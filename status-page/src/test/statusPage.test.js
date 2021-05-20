@@ -194,7 +194,8 @@ describe('Status page monitors check', function() {
     });
 
     it('Status page should have one monitor with a category', async function() {
-        const monitorName = await page.$eval(
+        const monitorName = await init.page$Eval(
+            page,
             '#monitor0 > div.uptime-graph-header  span.uptime-stat-name',
             el => el.textContent
         );
@@ -328,7 +329,8 @@ describe('Status page monitors check', function() {
         await page.goto(statusPageURL, { waitUntil: 'networkidle0' });
         const monitorCategoryNameSelector = `#monitorCategory_${monitorName}`;
         await page.waitForSelector(monitorCategoryNameSelector);
-        const monitorCategoryName = await page.$eval(
+        const monitorCategoryName = await init.page$Eval(
+            page,
             `${monitorCategoryNameSelector} > span`,
             el => el.textContent
         );
@@ -342,7 +344,8 @@ describe('Status page monitors check', function() {
         const categoryId = `#monitorCategory_${monitorName}`;
 
         await page.waitForSelector(categoryId);
-        const categoryName = await page.$eval(
+        const categoryName = await init.page$Eval(
+            page,
             `${categoryId} > span`,
             elem => elem.textContent
         );
@@ -357,7 +360,8 @@ describe('Status page monitors check', function() {
             waitUntil: 'networkidle0',
         });
         const monitorCategoryNameSelector = `#monitorCategory_${monitorName}`;
-        const monitorCategoryName = await page.$eval(
+        const monitorCategoryName = await init.page$Eval(
+            page,
             `${monitorCategoryNameSelector} > span`,
             el => el.textContent
         );
@@ -384,7 +388,8 @@ describe('Status page monitors check', function() {
         const scheduledEvents = await page.$$('li.scheduledEvent');
         const countScheduledEvents = scheduledEvents.length;
 
-        const scheduledEventName = await page.$eval(
+        const scheduledEventName = await init.page$Eval(
+            page,
             'li.scheduledEvent .feed-title',
             el => el.textContent
         );
@@ -409,7 +414,8 @@ describe('Status page monitors check', function() {
         await events[0].click();
 
         await page.waitForSelector('#scheduledEventPage');
-        const backnavigation = await page.$eval(
+        const backnavigation = await init.page$Eval(
+            page,
             '#scheduledEventPage .sp__icon--back',
             elem => elem.textContent
         );
@@ -438,7 +444,7 @@ describe('Status page monitors check', function() {
         const monitorDaySelector = `div#block${scheduledEventMonitorId}${dateId}`;
 
         await page.waitForSelector(monitorDaySelector);
-        await page.$eval(monitorDaySelector, e => e.click());
+        await init.page$Eval(page, monitorDaySelector, e => e.click());
 
         await page.waitForSelector('li.scheduledEvent', {
             visible: true,
@@ -447,7 +453,8 @@ describe('Status page monitors check', function() {
         const scheduledEvents = await page.$$('li.scheduledEvent');
         const countScheduledEvents = scheduledEvents.length;
 
-        const scheduledEventName = await page.$eval(
+        const scheduledEventName = await init.page$Eval(
+            page,
             '#eventTitle',
             el => el.textContent
         );
@@ -484,7 +491,8 @@ describe('Status page monitors check', function() {
 
         await page.reload({ waitUntil: 'networkidle0' });
         await page.waitForSelector('.incidentlist');
-        const incidentTitle = await page.$eval(
+        const incidentTitle = await init.page$Eval(
+            page,
             '.incidentlist .message > .text > span:nth-child(1)',
             elem => elem.textContent
         );
@@ -498,7 +506,8 @@ describe('Status page monitors check', function() {
         await incidents[0].click();
 
         await page.waitForSelector('#incident');
-        const backnavigation = await page.$eval(
+        const backnavigation = await init.page$Eval(
+            page,
             '#footer .sp__icon--back',
             elem => elem.textContent
         );
@@ -532,7 +541,11 @@ describe('Status page monitors check', function() {
         });
         await page.waitForTimeout(3000);
         await page.waitForSelector('.largestatus > .status-paused');
-        const textHeader = await page.$eval('.title', e => e.textContent);
+        const textHeader = await init.page$Eval(
+            page,
+            '.title',
+            e => e.textContent
+        );
         expect(textHeader).to.be.eql('Some services are degraded');
     });
 });
@@ -596,7 +609,8 @@ describe('Private status page check', function() {
         await page.waitForSelector('#subscribe-btn-email');
         await page.click('#subscribe-btn-email');
         await page.waitForSelector('#monitor-subscribe-success-message');
-        const response = await page.$eval(
+        const response = await init.page$Eval(
+            page,
             '#monitor-subscribe-success-message',
             elem => elem.textContent
         );
@@ -621,7 +635,8 @@ describe('Private status page check', function() {
         await page.waitForSelector('#subscribe-btn-sms');
         await page.click('#subscribe-btn-sms');
         await page.waitForSelector('#monitor-subscribe-success-message');
-        const response = await page.$eval(
+        const response = await init.page$Eval(
+            page,
             '#monitor-subscribe-success-message',
             elem => elem.textContent
         );
@@ -647,7 +662,8 @@ describe('Private status page check', function() {
         await page.waitForSelector('#subscribe-btn-webhook');
         await page.click('#subscribe-btn-webhook');
         await page.waitForSelector('#monitor-subscribe-success-message');
-        const response = await page.$eval(
+        const response = await init.page$Eval(
+            page,
             '#monitor-subscribe-success-message',
             elem => elem.textContent
         );
@@ -706,7 +722,8 @@ describe('Private status page check', function() {
             page.waitForNavigation(),
         ]);
 
-        const monitorName = await page.$eval(
+        const monitorName = await init.page$Eval(
+            page,
             '#monitor0 > div.uptime-graph-header span.uptime-stat-name',
             el => el.textContent
         );

@@ -24,6 +24,7 @@ describe('Sub-Project API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -97,7 +98,8 @@ describe('Sub-Project API', () => {
             timeout: init.timeout,
         });
         await init.pageClick(page, '#teamMembers');
-        let prevMemberCount = await page.$eval(
+        let prevMemberCount = await init.page$Eval(
+            page,
             `#count_${subProjectName}`,
             elem => elem.textContent
         );
@@ -126,7 +128,8 @@ describe('Sub-Project API', () => {
         await init.pageWaitForSelector(page, `#count_${subProjectName}`, {
             visible: true,
         });
-        let memberCount = await page.$eval(
+        let memberCount = await init.page$Eval(
+            page,
             `#count_${subProjectName}`,
             elem => elem.textContent
         );
@@ -147,7 +150,8 @@ describe('Sub-Project API', () => {
         await init.pageWaitForSelector(page, `#count_${newProjectName}`, {
             visible: true,
         });
-        let prevMemberCount = await page.$eval(
+        let prevMemberCount = await init.page$Eval(
+            page,
             `#count_${newProjectName}`,
             elem => elem.textContent
         );
@@ -179,7 +183,8 @@ describe('Sub-Project API', () => {
         await init.pageWaitForSelector(page, `#count_${newProjectName}`, {
             visible: true,
         });
-        let memberCount = await page.$eval(
+        let memberCount = await init.page$Eval(
+            page,
             `#count_${newProjectName}`,
             elem => elem.textContent
         );
@@ -204,7 +209,8 @@ describe('Sub-Project API', () => {
                 visible: true,
             }
         );
-        let oldStatusPageCounter = await page.$eval(
+        let oldStatusPageCounter = await init.page$Eval(
+            page,
             `#status_page_count_${newProjectName}`,
             elem => elem.textContent
         );
@@ -217,7 +223,8 @@ describe('Sub-Project API', () => {
                 visible: true,
             }
         );
-        let statusPageCounter = await page.$eval(
+        let statusPageCounter = await init.page$Eval(
+            page,
             `#status_page_count_${newProjectName}`,
             elem => elem.textContent
         );

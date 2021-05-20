@@ -338,7 +338,9 @@ const _this = {
 
         // Navigate to details page of component assumed created
         await _this.pageWaitForSelector(page, `#more-details-${component}`);
-        await page.$eval(`#more-details-${component}`, e => e.click());
+        await _this.page$Eval(page, `#more-details-${component}`, e =>
+            e.click()
+        );
     },
     addMonitorToStatusPage: async function(componentName, monitorName, page) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
@@ -409,13 +411,15 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await page.$eval(`#react-tabs-${tabId}`, e => e.click());
+        await _this.page$Eval(page, `#react-tabs-${tabId}`, e => e.click());
     },
     themeNavigationAndConfirmation: async function(page, theme) {
         await _this.pageWaitForSelector(page, '.branding-tab', {
             visible: true,
         });
-        await page.$$eval('.branding-tab', elems => elems[0].click());
+        await _this.page$$Eval(page, '.branding-tab', elems =>
+            elems[0].click()
+        );
         await _this.pageWaitForSelector(page, `#${theme}`, {
             visible: true,
             timeout: _this.timeout,
@@ -736,7 +740,8 @@ const _this = {
 
         // online criteria
         await _this.pageWaitForSelector(page, '[data-testId=add_criterion_up]');
-        await page.$$eval(
+        await _this.page$$Eval(
+            page,
             '[data-testId=add_criterion_up]',
             addCriterionButtons => {
                 const lastAddCriterionButton =
@@ -790,13 +795,16 @@ const _this = {
                     timeout: _this.timeout,
                 }
             );
-            await page.$eval('input[name^=createAlert_up]', element =>
-                element.click()
+            await _this.page$Eval(
+                page,
+                'input[name^=createAlert_up]',
+                element => element.click()
             );
         }
 
         // degraded criteria
-        await page.$$eval(
+        await _this.page$$Eval(
+            page,
             '[data-testId=add_criterion_degraded]',
             addCriterionButtons => {
                 const lastAddCriterionButton =
@@ -871,25 +879,29 @@ const _this = {
                 page,
                 `#btnCreateIncident_${projectName}`
             );
-            await page.$eval(`#btnCreateIncident_${projectName}`, e =>
-                e.click()
+            await _this.page$Eval(
+                page,
+                `#btnCreateIncident_${projectName}`,
+                e => e.click()
             );
             await _this.pageWaitForSelector(page, '#frmIncident');
             await _this.selectDropdownValue('#monitorList', monitorName, page);
-            await page.$eval('#createIncident', e => e.click());
+            await _this.page$Eval(page, '#createIncident', e => e.click());
         } else {
             await _this.pageWaitForSelector(page, '#incidentLog');
-            await page.$eval('#incidentLog', e => e.click());
+            await _this.page$Eval(page, '#incidentLog', e => e.click());
             await _this.pageWaitForSelector(
                 page,
                 `#btnCreateIncident_${projectName}`
             );
-            await page.$eval(`#btnCreateIncident_${projectName}`, e =>
-                e.click()
+            await _this.page$Eval(
+                page,
+                `#btnCreateIncident_${projectName}`,
+                e => e.click()
             );
             await _this.pageWaitForSelector(page, '#frmIncident');
             await _this.selectDropdownValue('#monitorList', monitorName, page);
-            await page.$eval('#createIncident', e => e.click());
+            await _this.page$Eval(page, '#createIncident', e => e.click());
         }
         await _this.pageWaitForSelector(page, '#createIncident', {
             hidden: true,
@@ -909,7 +921,9 @@ const _this = {
         await _this.pageWaitForSelector(page, '.incident-priority-tab', {
             visible: true,
         });
-        await page.$$eval('.incident-priority-tab', elems => elems[0].click());
+        await _this.page$$Eval(page, '.incident-priority-tab', elems =>
+            elems[0].click()
+        );
 
         await _this.pageWaitForSelector(page, '#addNewPriority');
         await _this.pageClick(page, '#addNewPriority');
@@ -999,7 +1013,11 @@ const _this = {
             await _this.pageClick(page, 'label[for=selectAllMonitorsBox]');
             await _this.pageClick(page, '#addMoreMonitor');
             await _this.pageWaitForSelector(page, '#monitorfield_0');
-            await _this.selectDropdownValue('#monitorfield_0', componentName, page); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
+            await _this.selectDropdownValue(
+                '#monitorfield_0',
+                componentName,
+                page
+            ); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
         }
         await _this.pageClick(page, '#description');
         await _this.pageType(
@@ -1298,10 +1316,14 @@ const _this = {
         await _this.pageClick(page, '#twilio');
         await _this.pageWaitForSelector(page, '#call-enabled');
         if (enableCalls) {
-            await page.$eval('#call-enabled', element => element.click());
+            await _this.page$Eval(page, '#call-enabled', element =>
+                element.click()
+            );
         }
         if (enableSms) {
-            await page.$eval('#sms-enabled', element => element.click());
+            await _this.page$Eval(page, '#sms-enabled', element =>
+                element.click()
+            );
         }
         await _this.pageType(page, '#account-sid', accountSid);
         await _this.pageType(page, '#authentication-token', authToken);
@@ -1332,7 +1354,8 @@ const _this = {
         await _this.pageWaitForSelector(page, '#email');
         await _this.pageClick(page, '#email');
         await _this.pageWaitForSelector(page, '#smtpswitch');
-        if (enable) await page.$eval('#smtpswitch', elem => elem.click());
+        if (enable)
+            await _this.page$Eval(page, '#smtpswitch', elem => elem.click());
         await _this.pageWaitForSelector(page, '#user');
         await _this.pageType(page, '#user', user);
         await _this.pageType(page, '#pass', pass);
@@ -1340,7 +1363,7 @@ const _this = {
         await _this.pageType(page, '#port', port);
         await _this.pageType(page, '#from', from);
         await _this.pageType(page, '#name', 'Admin');
-        await page.$eval('#secure', e => {
+        await _this.page$Eval(page, '#secure', e => {
             e.checked = secure;
         });
         await _this.pageClick(page, '#saveSmtp');
@@ -1389,7 +1412,11 @@ const _this = {
         if (alertType === 'SMS') {
             const { countryCode, phoneNumber } = data;
             await _this.pageWaitForSelector(page, '#countryCodeId');
-            await _this.selectDropdownValue('#countryCodeId', countryCode, page);
+            await _this.selectDropdownValue(
+                '#countryCodeId',
+                countryCode,
+                page
+            );
             await _this.pageType(page, '#contactPhoneId', phoneNumber);
         }
         await _this.pageClick(page, '#createSubscriber');
@@ -1461,6 +1488,14 @@ const _this = {
             timeout: _this.timeout,
         });
         return await page.click(selector, opts);
+    },
+    page$Eval: async function(page, selector, evalFunction, opts) {
+        await _this.pageWaitForSelector(page, selector);
+        return await page.$eval(selector, evalFunction);
+    },
+    page$$Eval: async function(page, selector, evalFunction) {
+        await _this.pageWaitForSelector(page, selector);
+        return await page.$$eval(selector, evalFunction);
     },
     pageWaitForSelector: async function(page, selector, opts) {
         if (!opts) {

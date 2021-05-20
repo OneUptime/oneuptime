@@ -15,6 +15,7 @@ describe('Profile -> Delete Account Component test', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -80,7 +81,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
             await init.pageWaitForSelector(page, '#changePassword');
-            await page.$eval('#changePassword', elem => elem.click());
+            await init.page$Eval(page, '#changePassword', elem => elem.click());
             await init.pageWaitForSelector(page, 'input[name=currentPassword]');
             await init.pageType(
                 page,
@@ -127,7 +128,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
             await init.pageWaitForSelector(page, '#changePassword');
-            await page.$eval('#changePassword', elem => elem.click());
+            await init.page$Eval(page, '#changePassword', elem => elem.click());
             await init.pageWaitForSelector(page, 'input[name=currentPassword]');
             await init.pageType(
                 page,
@@ -186,7 +187,7 @@ describe('Profile -> Delete Account Component test', () => {
                 }
             );
             await page.reload({ waitUntil: 'networkidle2' });
-            await page.$eval('input[name=twoFactorAuthEnabled]', e =>
+            await init.page$Eval(page, 'input[name=twoFactorAuthEnabled]', e =>
                 e.click()
             );
 

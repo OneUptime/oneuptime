@@ -14,6 +14,7 @@ describe('SMS Logs', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -46,7 +47,8 @@ describe('SMS Logs', () => {
                 hidden: true,
             });
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -69,7 +71,8 @@ describe('SMS Logs', () => {
             await init.pageWaitForSelector(page, '#cancelSmsDelete');
             await init.pageClick(page, '#cancelSmsDelete');
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -96,7 +99,8 @@ describe('SMS Logs', () => {
             await init.pageWaitForSelector(page, '#smsLogs');
             await init.pageClick(page, '#smsLogs');
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -118,7 +122,8 @@ describe('SMS Logs', () => {
             await init.pageClick(page, '#searchSmsLog');
             await init.pageType(page, '#searchSmsLog', 'probe');
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -140,7 +145,8 @@ describe('SMS Logs', () => {
             await init.pageClick(page, '#searchSmsLog');
             await init.pageType(page, '#searchSmsLog', 'somerandom');
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -200,7 +206,9 @@ describe('SMS Logs', () => {
             await init.pageClick(page, '#smsLog');
 
             // turn SMS log off
-            await page.$eval('input[name=smsStatusToggler]', e => e.click());
+            await init.page$Eval(page, 'input[name=smsStatusToggler]', e =>
+                e.click()
+            );
 
             // click the submit button
             await init.pageWaitForSelector(page, '#smsLogSubmit');
@@ -286,7 +294,9 @@ describe('SMS Logs', () => {
             await init.pageClick(page, '#smsLogSetting');
 
             // enable logs
-            await page.$eval('input[name=smsStatusToggler]', e => e.click());
+            await init.page$Eval(page, 'input[name=smsStatusToggler]', e =>
+                e.click()
+            );
 
             // click the submit button
             await init.pageWaitForSelector(page, '#smsLogSubmit');

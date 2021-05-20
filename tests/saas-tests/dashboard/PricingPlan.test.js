@@ -17,6 +17,7 @@ describe('Status Page -> Pricing Plan Component', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -33,7 +34,7 @@ describe('Status Page -> Pricing Plan Component', () => {
         'should show upgrade modal if project is not available in a particular plan',
         async done => {
             await init.addProject(page, 'test');
-            await page.$eval('#statusPages', elem => elem.click());
+            await init.page$Eval(page, '#statusPages', elem => elem.click());
             await init.pageWaitForSelector(page, '#btnCreateStatusPage_test');
             await init.pageClick(page, '#btnCreateStatusPage_test');
             await init.pageWaitForSelector(page, '#name');
@@ -51,10 +52,12 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.advanced-options-tab', elems =>
+            await init.page$$Eval(page, '.advanced-options-tab', elems =>
                 elems[0].click()
             );
-            await page.$eval('input[name="isPrivate"]', elem => elem.click());
+            await init.page$Eval(page, 'input[name="isPrivate"]', elem =>
+                elem.click()
+            );
             const modal = await init.pageWaitForSelector(
                 page,
                 '#pricingPlanModal',
@@ -76,7 +79,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.$eval('#statusPages', elem => elem.click());
+            await init.page$Eval(page, '#statusPages', elem => elem.click());
             // select the first item from the table row
             const rowItem = await init.pageWaitForSelector(
                 page,
@@ -90,12 +93,14 @@ describe('Status Page -> Pricing Plan Component', () => {
                 timeout: init.timeout,
             });
 
-            await page.$$eval('.advanced-options-tab', elems =>
+            await init.page$$Eval(page, '.advanced-options-tab', elems =>
                 elems[0].click()
             );
 
-            await page.$eval('input[name="isSubscriberEnabled"]', elem =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                'input[name="isSubscriberEnabled"]',
+                elem => elem.click()
             );
 
             const modal = await init.pageWaitForSelector(
@@ -129,7 +134,8 @@ describe('Status Page -> Pricing Plan Component', () => {
             await init.pageClick(page, '#billing a');
             await init.pageWaitForSelector(page, '#alertEnable');
 
-            const rowLength = await page.$$eval(
+            const rowLength = await init.page$$Eval(
+                page,
                 '#alertOptionRow > div.bs-Fieldset-row',
                 rows => rows.length
             );
@@ -163,7 +169,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.$eval('#statusPages', elem => elem.click());
+            await init.page$Eval(page, '#statusPages', elem => elem.click());
             // select the first item from the table row
             const rowItem = await init.pageWaitForSelector(
                 page,
@@ -175,10 +181,12 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.advanced-options-tab', elems =>
+            await init.page$$Eval(page, '.advanced-options-tab', elems =>
                 elems[0].click()
             );
-            await page.$eval('input[name="isPrivate"]', elem => elem.click());
+            await init.page$Eval(page, 'input[name="isPrivate"]', elem =>
+                elem.click()
+            );
 
             await init.pageWaitForSelector(page, '#pricingPlanModal', {
                 visible: true,
@@ -215,7 +223,7 @@ describe('Status Page -> Pricing Plan Component', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.$eval('#statusPages', elem => elem.click());
+            await init.page$Eval(page, '#statusPages', elem => elem.click());
             // select the first item from the table row
             const rowItem = await init.pageWaitForSelector(
                 page,
@@ -227,10 +235,12 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.advanced-options-tab', elems =>
+            await init.page$$Eval(page, '.advanced-options-tab', elems =>
                 elems[0].click()
             );
-            await page.$eval('input[name="isPrivate"]', elem => elem.click());
+            await init.page$Eval(page, 'input[name="isPrivate"]', elem =>
+                elem.click()
+            );
 
             await init.pageWaitForSelector(page, '#pricingPlanModal', {
                 visible: true,
@@ -257,12 +267,15 @@ describe('Status Page -> Pricing Plan Component', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.advanced-options-tab', elems =>
+            await init.page$$Eval(page, '.advanced-options-tab', elems =>
                 elems[0].click()
             );
 
-            await page.$eval('input[name="isPrivate"]', elem => elem.click());
-            const value = await page.$eval(
+            await init.page$Eval(page, 'input[name="isPrivate"]', elem =>
+                elem.click()
+            );
+            const value = await init.page$Eval(
+                page,
                 'input[name="isPrivate"]',
                 elem => elem.value
             );

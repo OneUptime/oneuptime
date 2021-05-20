@@ -57,19 +57,23 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let sendCreatedIncidentNotification = await page.$eval(
+            let sendCreatedIncidentNotification = await init.page$Eval(
+                page,
                 '#sendCreatedIncidentNotificationEmail',
                 elem => elem.value
             );
-            let sendAcknowledgedIncidentNotification = await page.$eval(
+            let sendAcknowledgedIncidentNotification = await init.page$Eval(
+                page,
                 '#sendAcknowledgedIncidentNotificationEmail',
                 elem => elem.value
             );
-            let sendResolvedIncidentNotification = await page.$eval(
+            let sendResolvedIncidentNotification = await init.page$Eval(
+                page,
                 '#sendResolvedIncidentNotificationEmail',
                 elem => elem.value
             );
-            let sendInvestigationNoteNotification = await page.$eval(
+            let sendInvestigationNoteNotification = await init.page$Eval(
+                page,
                 '#enableInvestigationNoteNotificationEmail',
                 elem => elem.value
             );
@@ -122,8 +126,10 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            await page.$eval('#sendCreatedIncidentNotificationEmail', elem =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#sendCreatedIncidentNotificationEmail',
+                elem => elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
 
@@ -139,7 +145,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let checkedState = await page.$eval(
+            let checkedState = await init.page$Eval(
+                page,
                 '#sendCreatedIncidentNotificationEmail',
                 elem => elem.value
             );
@@ -178,7 +185,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            await page.$eval(
+            await init.page$Eval(
+                page,
                 '#sendAcknowledgedIncidentNotificationEmail',
                 elem => elem.click()
             );
@@ -196,7 +204,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let checkedState = await page.$eval(
+            let checkedState = await init.page$Eval(
+                page,
                 '#sendAcknowledgedIncidentNotificationEmail',
                 elem => elem.value
             );
@@ -235,8 +244,10 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            await page.$eval('#sendResolvedIncidentNotificationEmail', elem =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#sendResolvedIncidentNotificationEmail',
+                elem => elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
 
@@ -252,7 +263,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let checkedState = await page.$eval(
+            let checkedState = await init.page$Eval(
+                page,
                 '#sendResolvedIncidentNotificationEmail',
                 elem => elem.value
             );
@@ -291,7 +303,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            await page.$eval(
+            await init.page$Eval(
+                page,
                 '#enableInvestigationNoteNotificationEmail',
                 elem => elem.click()
             );
@@ -309,7 +322,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let checkedState = await page.$eval(
+            let checkedState = await init.page$Eval(
+                page,
                 '#enableInvestigationNoteNotificationEmail',
                 elem => elem.value
             );
@@ -349,19 +363,23 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     timeout: init.timeout,
                 }
             );
-            let sendCreatedIncidentNotification = await page.$eval(
+            let sendCreatedIncidentNotification = await init.page$Eval(
+                page,
                 '#sendCreatedIncidentNotificationSms',
                 elem => elem.value
             );
-            let sendAcknowledgedIncidentNotification = await page.$eval(
+            let sendAcknowledgedIncidentNotification = await init.page$Eval(
+                page,
                 '#sendAcknowledgedIncidentNotificationSms',
                 elem => elem.value
             );
-            let sendResolvedIncidentNotification = await page.$eval(
+            let sendResolvedIncidentNotification = await init.page$Eval(
+                page,
                 '#sendResolvedIncidentNotificationSms',
                 elem => elem.value
             );
-            let sendInvestigationNoteNotification = await page.$eval(
+            let sendInvestigationNoteNotification = await init.page$Eval(
+                page,
                 '#enableInvestigationNoteNotificationSMS',
                 elem => elem.value
             );
@@ -415,8 +433,10 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     timeout: init.timeout,
                 }
             );
-            await page.$eval('#sendCreatedIncidentNotificationSms', elem =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#sendCreatedIncidentNotificationSms',
+                elem => elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
 
@@ -433,7 +453,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     timeout: init.timeout,
                 }
             );
-            let checkedState = await page.$eval(
+            let checkedState = await init.page$Eval(
+                page,
                 '#sendCreatedIncidentNotificationSms',
                 elem => elem.value
             );
@@ -471,8 +492,10 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            await page.$eval('#sendAcknowledgedIncidentNotificationSms', elem =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#sendAcknowledgedIncidentNotificationSms',
+                elem => elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
 
@@ -488,7 +511,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let checkedState = await page.$eval(
+            let checkedState = await init.page$Eval(
+                page,
                 '#sendAcknowledgedIncidentNotificationSms',
                 elem => elem.value
             );
@@ -529,8 +553,10 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     timeout: init.timeout,
                 }
             );
-            await page.$eval('#sendResolvedIncidentNotificationSms', elem =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#sendResolvedIncidentNotificationSms',
+                elem => elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
 
@@ -547,7 +573,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     timeout: init.timeout,
                 }
             );
-            let checkedState = await page.$eval(
+            let checkedState = await init.page$Eval(
+                page,
                 '#sendResolvedIncidentNotificationSms',
                 elem => elem.value
             );
@@ -585,8 +612,10 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            await page.$eval('#enableInvestigationNoteNotificationSMS', elem =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#enableInvestigationNoteNotificationSMS',
+                elem => elem.click()
             );
             await init.pageClick(page, '#saveIncidentNotification');
 
@@ -602,7 +631,8 @@ describe('Project Settings Page - (Email and SMS & Calls)', () => {
                     visible: true,
                 }
             );
-            let checkedState = await page.$eval(
+            let checkedState = await init.page$Eval(
+                page,
                 '#enableInvestigationNoteNotificationSMS',
                 elem => elem.value
             );

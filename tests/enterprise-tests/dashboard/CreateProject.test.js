@@ -20,6 +20,7 @@ describe('Enterprise Project API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -39,7 +40,7 @@ describe('Enterprise Project API', () => {
             await init.adminLogout(page);
             await init.loginUser(user, page);
             await init.pageWaitForSelector(page, '#selector', { visble: true });
-            await page.$eval('#create-project', e => e.click());
+            await init.page$Eval(page, '#create-project', e => e.click());
             await init.pageWaitForSelector(page, '#name', { visble: true });
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,

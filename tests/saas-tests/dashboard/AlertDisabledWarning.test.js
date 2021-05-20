@@ -17,6 +17,7 @@ describe('Alert Warning', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -83,7 +84,8 @@ describe('Alert Warning', () => {
                 timeout: init.timeout,
             });
 
-            const rowLength = await page.$$eval(
+            const rowLength = await init.page$$Eval(
+                page,
                 '#alertOptionRow > div.bs-Fieldset-row',
                 rows => rows.length
             );

@@ -21,6 +21,7 @@ const customDomainWebsite = `www.${utils.generateRandomString()}.com`;
 describe('Status-Page Advanced Options', () => {
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -87,7 +88,7 @@ describe('Status-Page Advanced Options', () => {
             });
 
             await init.pageWaitForSelector(page, '#components');
-            await page.$eval('#components', el => el.click());
+            await init.page$Eval(page, '#components', el => el.click());
 
             // Fill and submit New Component form
             await init.pageWaitForSelector(page, '#form-new-component');
@@ -198,7 +199,9 @@ describe('Status-Page Advanced Options', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.subscribers-tab', elems => elems[0].click());
+            await init.page$$Eval(page, '.subscribers-tab', elems =>
+                elems[0].click()
+            );
             await init.pageWaitForSelector(page, '#addSubscriberButton');
             await init.pageClick(page, '#addSubscriberButton');
             await init.pageWaitForSelector(page, '#alertViaId');
@@ -236,7 +239,9 @@ describe('Status-Page Advanced Options', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.subscribers-tab', elems => elems[0].click());
+            await init.page$$Eval(page, '.subscribers-tab', elems =>
+                elems[0].click()
+            );
             // To confirm that the subscriber created is present.
             const subscriberContact = await init.pageWaitForSelector(
                 page,
@@ -266,7 +271,9 @@ describe('Status-Page Advanced Options', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.custom-domains-tab', elems => elems[0].click());
+            await init.page$$Eval(page, '.custom-domains-tab', elems =>
+                elems[0].click()
+            );
             await init.pageWaitForSelector(page, '#addMoreDomain');
             await init.pageClick(page, '#addMoreDomain');
             await init.pageWaitForSelector(page, '#customDomain');
@@ -302,7 +309,7 @@ describe('Status-Page Advanced Options', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.advanced-options-tab', elems =>
+            await init.page$$Eval(page, '.advanced-options-tab', elems =>
                 elems[0].click()
             );
             // Add Enable Subscribers
@@ -375,7 +382,7 @@ describe('Status-Page Advanced Options', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.advanced-options-tab', elems =>
+            await init.page$$Eval(page, '.advanced-options-tab', elems =>
                 elems[0].click()
             );
 

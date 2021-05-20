@@ -19,6 +19,7 @@ const statusPageName = utils.generateRandomString();
 describe('Check status-page up', () => {
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -40,9 +41,13 @@ describe('Check status-page up', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const response = await page.$eval('#app-loading > div', e => {
-                return e.innerHTML;
-            });
+            const response = await init.page$Eval(
+                page,
+                '#app-loading > div',
+                e => {
+                    return e.innerHTML;
+                }
+            );
             expect(response).toBe('Page Not Found');
             done();
         },
@@ -126,7 +131,7 @@ describe('Check status-page up', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#components', el => el.click());
+            await init.page$Eval(page, '#components', el => el.click());
             // Fill and submit New Component form
             await init.addComponent(componentName, page);
             // Create a Manual Monitor

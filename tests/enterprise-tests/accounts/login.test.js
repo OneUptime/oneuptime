@@ -55,6 +55,7 @@ const createSso = async (page, data) => {
 describe('SSO login', () => {
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -108,7 +109,11 @@ describe('SSO login', () => {
             await page.waitForResponse(response =>
                 response.url().includes('/login')
             );
-            const html = await page.$eval('#main-body', e => e.innerHTML);
+            const html = await init.page$Eval(
+                page,
+                '#main-body',
+                e => e.innerHTML
+            );
             html.should.containEql('Domain not found.');
 
             done();
@@ -136,7 +141,11 @@ describe('SSO login', () => {
                     response.url().includes('/login')
                 ),
             ]);
-            const html = await page.$eval('#main-body', e => e.innerHTML);
+            const html = await init.page$Eval(
+                page,
+                '#main-body',
+                e => e.innerHTML
+            );
             html.should.containEql('SSO disabled for this domain.');
 
             done();

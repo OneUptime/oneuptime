@@ -14,6 +14,7 @@ describe('Twilio Settings API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -93,7 +94,8 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const errorMessage = await page.$eval(
+            const errorMessage = await init.page$Eval(
+                page,
                 '#errors',
                 element => element.textContent
             );
@@ -104,7 +106,8 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const value = await page.$eval(
+            const value = await init.page$Eval(
+                page,
                 'input[name=account-sid]',
                 e => e.value
             );
@@ -150,7 +153,8 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const errorMessage = await page.$eval(
+            const errorMessage = await init.page$Eval(
+                page,
                 '#errors',
                 element => element.textContent
             );
@@ -163,7 +167,8 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const value = await page.$eval(
+            const value = await init.page$Eval(
+                page,
                 'input[name=account-sid]',
                 e => e.value
             );
@@ -185,7 +190,7 @@ describe('Twilio Settings API', () => {
             await init.pageClick(page, '#twilio a');
             await init.pageWaitForSelector(page, '#twilio-form');
 
-            await page.$eval('#sms-enabled', e => e.click());
+            await init.page$Eval(page, '#sms-enabled', e => e.click());
 
             await init.pageClick(page, 'input[name=account-sid]');
             await init.pageType(
@@ -223,7 +228,8 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const value = await page.$eval(
+            const value = await init.page$Eval(
+                page,
                 'input[name=account-sid]',
                 e => e.value
             );
@@ -255,7 +261,8 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const message = await page.$eval(
+            const message = await init.page$Eval(
+                page,
                 '#smsVerificationErrors',
                 e => e.textContent
             );
@@ -291,7 +298,8 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const message = await page.$eval(
+            const message = await init.page$Eval(
+                page,
                 '#successMessage',
                 e => e.textContent
             );
@@ -334,7 +342,8 @@ describe('Twilio Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const message = await page.$eval(
+            const message = await init.page$Eval(
+                page,
                 '#successMessage',
                 e => e.textContent
             );

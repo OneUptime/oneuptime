@@ -68,7 +68,9 @@ describe('Credential Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#cancelCredentialModalBtn', e => e.click());
+            await init.page$Eval(page, '#cancelCredentialModalBtn', e =>
+                e.click()
+            );
 
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 hidden: true,
@@ -281,7 +283,9 @@ describe('Credential Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#cancelCredentialModalBtn', e => e.click());
+            await init.page$Eval(page, '#cancelCredentialModalBtn', e =>
+                e.click()
+            );
             await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 hidden: true,
             });

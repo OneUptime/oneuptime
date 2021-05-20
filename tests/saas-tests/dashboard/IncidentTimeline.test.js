@@ -40,16 +40,16 @@ describe('Incident Timeline API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        await page.$eval('input[id=name]', e => e.click());
+        await init.page$Eval(page, 'input[id=name]', e => e.click());
         await init.pageType(page, 'input[id=name]', projectMonitorName);
         await init.pageClick(page, '[data-testId=type_url]');
         await init.pageWaitForSelector(page, '#url', {
             visible: true,
             timeout: init.timeout,
         });
-        await page.$eval('#url', e => e.click());
+        await init.page$Eval(page, '#url', e => e.click());
         await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
-        await page.$eval('button[type=submit]', e => e.click());
+        await init.page$Eval(page, 'button[type=submit]', e => e.click());
         await init.pageWaitForSelector(
             page,
             `#monitor-title-${projectMonitorName}`,
@@ -104,7 +104,7 @@ describe('Incident Timeline API', () => {
                     timeout: init.timeout,
                 }
             );
-            await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+            await init.page$Eval(page, `#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
             //Incident Notes Tab has been refactored. It functionality is now in 'Incident Timeline' which is below the BASIC tab.
@@ -120,7 +120,11 @@ describe('Incident Timeline API', () => {
                 `#form-new-incident-${type}-message`
             );
             await init.pageType(page, `textarea[id=new-${type}]`, `${message}`);
-            await init.selectDropdownValue('#incident_state', 'investigating', page);
+            await init.selectDropdownValue(
+                '#incident_state',
+                'investigating',
+                page
+            );
             await init.pageClick(page, `#${type}-addButton`);
             await init.pageWaitForSelector(page, `#${type}-addButton`, {
                 hidden: true,
@@ -168,7 +172,7 @@ describe('Incident Timeline API', () => {
                 page,
                 `#incident_${projectMonitorName}_0`
             );
-            await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+            await init.page$Eval(page, `#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
 
@@ -234,12 +238,12 @@ describe('Incident Timeline API', () => {
                 page,
                 `#incident_${projectMonitorName}_0`
             );
-            await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+            await init.page$Eval(page, `#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
             // fill internal message thread form
             await init.pageWaitForSelector(page, `#add-${type}-message`);
-            await page.$eval(`#add-${type}-message`, e => e.click());
+            await init.page$Eval(page, `#add-${type}-message`, e => e.click());
             await init.pageWaitForSelector(
                 page,
                 `#form-new-incident-${type}-message`
@@ -301,7 +305,7 @@ describe('Incident Timeline API', () => {
                 page,
                 `#incident_${projectMonitorName}_0`
             );
-            await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+            await init.page$Eval(page, `#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
             // click on incident notes tab
@@ -317,7 +321,11 @@ describe('Incident Timeline API', () => {
             await init.pageWaitForSelector(page, `#${type}-editButton`);
             await init.pageClick(page, `textarea[id=edit-${type}]`);
             await init.pageType(page, `textarea[id=edit-${type}]`, '-updated');
-            await init.selectDropdownValue('#incident_state', 'investigating', page);
+            await init.selectDropdownValue(
+                '#incident_state',
+                'investigating',
+                page
+            );
             await init.pageClick(page, `#${type}-editButton`);
             await init.pageWaitForSelector(page, `#${type}-editButton`, {
                 hidden: true,
@@ -361,7 +369,7 @@ describe('Incident Timeline API', () => {
                 page,
                 `#incident_${projectMonitorName}_0`
             );
-            await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+            await init.page$Eval(page, `#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
 
@@ -408,7 +416,7 @@ describe('Incident Timeline API', () => {
                 page,
                 `#incident_${projectMonitorName}_0`
             );
-            await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+            await init.page$Eval(page, `#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
             for (let i = 0; i < 10; i++) {
@@ -427,7 +435,11 @@ describe('Incident Timeline API', () => {
                     `textarea[id=new-${type}]`,
                     `${internalNote}`
                 );
-                await init.selectDropdownValue('#incident_state', 'update', page);
+                await init.selectDropdownValue(
+                    '#incident_state',
+                    'update',
+                    page
+                );
 
                 await init.pageClick(page, `#${type}-addButton`);
                 await init.pageWaitForSelector(page, `#${type}-addButton`, {
@@ -462,11 +474,11 @@ describe('Incident Timeline API', () => {
                 page,
                 `#incident_${projectMonitorName}_0`
             );
-            await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+            await init.page$Eval(page, `#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
-            await page.$eval('#btnAcknowledge_0', e => e.click());
+            await init.page$Eval(page, '#btnAcknowledge_0', e => e.click());
             await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -499,7 +511,7 @@ describe('Incident Timeline API', () => {
                 page,
                 `#incident_${projectMonitorName}_0`
             );
-            await page.$eval(`#incident_${projectMonitorName}_0`, e =>
+            await init.page$Eval(page, `#incident_${projectMonitorName}_0`, e =>
                 e.click()
             );
             await init.pageWaitForSelector(page, '#btnResolve_0');

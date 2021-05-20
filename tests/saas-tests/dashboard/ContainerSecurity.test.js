@@ -85,7 +85,11 @@ describe('Container Security Page', () => {
 
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', containerSecurityName);
-            await init.selectDropdownValue('#resourceCategory', categoryName, page); // add category
+            await init.selectDropdownValue(
+                '#resourceCategory',
+                categoryName,
+                page
+            ); // add category
             await init.pageClick(page, '#dockerCredential');
             await init.pageType(page, '#dockerCredential', dockerUsername);
             await page.keyboard.press('Enter');
@@ -369,7 +373,8 @@ describe('Container Security Page', () => {
                 hidden: true,
             });
 
-            const textContent = await page.$eval(
+            const textContent = await init.page$Eval(
+                page,
                 `#containerSecurityTitle_${newContainerSecurityName}`,
                 elem => elem.textContent
             );

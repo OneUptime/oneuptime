@@ -17,6 +17,7 @@ describe('Enterprise Dashboard API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -82,7 +83,7 @@ describe('Enterprise Dashboard API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.$eval('#components', el => el.click());
+            await init.page$Eval(page, '#components', el => el.click());
 
             // Fill and submit New Component form
             await init.pageWaitForSelector(page, '#form-new-component');
@@ -97,7 +98,7 @@ describe('Enterprise Dashboard API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await page.$eval('#components', el => el.click());
+            await init.page$Eval(page, '#components', el => el.click());
 
             // Navigate to details page of component created in previous test
             await init.pageWaitForSelector(
@@ -148,7 +149,7 @@ describe('Enterprise Dashboard API', () => {
                 waitUntil: 'networkidle2',
             });
 
-            await page.$eval('#components', el => el.click());
+            await init.page$Eval(page, '#components', el => el.click());
 
             // Navigate to details page of component created in previous test
             await init.pageWaitForSelector(

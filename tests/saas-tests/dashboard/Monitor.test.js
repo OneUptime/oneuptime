@@ -18,6 +18,7 @@ describe('Monitor API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -141,7 +142,8 @@ describe('Monitor API', () => {
             );
             await criterionAdvancedOptions.click();
             await init.pageWaitForSelector(page, 'input[id^=name_up]');
-            const criterionName = await page.$eval(
+            const criterionName = await init.page$Eval(
+                page,
                 'input[id^=name_up]',
                 el => el.value
             );
@@ -404,8 +406,10 @@ describe('Monitor API', () => {
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             // select multiple schedules
-            await page.$$eval('[data-testId^=callSchedules_]', schedules =>
-                schedules.forEach(schedule => schedule.click())
+            await init.page$$Eval(
+                page,
+                '[data-testId^=callSchedules_]',
+                schedules => schedules.forEach(schedule => schedule.click())
             );
 
             await init.pageClick(page, 'button[type=submit]');
@@ -420,7 +424,8 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, `#edit_${monitorName}`);
 
-            const checkboxValues = await page.$$eval(
+            const checkboxValues = await init.page$$Eval(
+                page,
                 '[data-testId^=callSchedules_]',
                 schedules => schedules.map(schedule => schedule.checked)
             );
@@ -727,6 +732,7 @@ describe('API Monitor API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -1025,7 +1031,7 @@ describe('API Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval(editButtonSelector, e => e.click());
+            await init.page$Eval(page, editButtonSelector, e => e.click());
 
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, '#advanceOptions');
@@ -1301,7 +1307,7 @@ describe('API Monitor API', () => {
             );
             const deleteButtonSelector = `#delete_${testMonitorName}`;
             await init.pageWaitForSelector(page, deleteButtonSelector);
-            await page.$eval(deleteButtonSelector, e => e.click());
+            await init.page$Eval(page, deleteButtonSelector, e => e.click());
 
             const confirmDeleteButtonSelector = '#deleteMonitor';
             await init.pageWaitForSelector(page, confirmDeleteButtonSelector);

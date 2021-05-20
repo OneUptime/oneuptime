@@ -13,6 +13,7 @@ describe('Enterprise User API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -206,7 +207,7 @@ describe('Enterprise User API', () => {
             );
             await init.pageClick(page, 'button[type=submit]');
 
-            const html = await page.$eval('#frmUser', e => {
+            const html = await init.page$Eval(page, '#frmUser', e => {
                 return e.innerHTML;
             });
             html.should.containEql('Please enter a business email address.');

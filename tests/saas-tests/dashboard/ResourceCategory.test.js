@@ -21,6 +21,7 @@ describe('Resource Category', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -87,7 +88,8 @@ describe('Resource Category', () => {
                 }
             );
 
-            const createdResourceCategoryName = await page.$eval(
+            const createdResourceCategoryName = await init.page$Eval(
+                page,
                 createdResourceCategorySelector,
                 el => el.textContent
             );
@@ -168,7 +170,8 @@ describe('Resource Category', () => {
                 visible: true,
                 timeout: operationTimeOut,
             });
-            const createdMonitorName = await page.$eval(
+            const createdMonitorName = await init.page$Eval(
+                page,
                 createdMonitorSelector,
                 el => el.textContent
             );
@@ -220,7 +223,8 @@ describe('Resource Category', () => {
             });
 
             const resourceCategoryCounterSelector = '#resourceCategoryCount';
-            const resourceCategoryCount = await page.$eval(
+            const resourceCategoryCount = await init.page$Eval(
+                page,
                 resourceCategoryCounterSelector,
                 el => el.textContent
             );
@@ -237,6 +241,7 @@ describe('Member Restriction', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

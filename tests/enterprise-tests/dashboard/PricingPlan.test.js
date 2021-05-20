@@ -18,6 +18,7 @@ describe('Status Page', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -44,7 +45,7 @@ describe('Status Page', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await page.$eval('#statusPages', elem => elem.click());
+            await init.page$Eval(page, '#statusPages', elem => elem.click());
             await init.pageWaitForSelector(
                 page,
                 'button[type="button"] .bs-FileUploadButton',
@@ -72,10 +73,12 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.advanced-options-tab', elems =>
+            await init.page$$Eval(page, '.advanced-options-tab', elems =>
                 elems[0].click()
             );
-            await page.$eval('input[name="isPrivate"]', elem => elem.click());
+            await init.page$Eval(page, 'input[name="isPrivate"]', elem =>
+                elem.click()
+            );
 
             const modal = await page.$('#pricingPlanModal');
 

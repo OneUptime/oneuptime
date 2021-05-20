@@ -24,6 +24,7 @@ describe('Server Monitor API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -372,12 +373,16 @@ describe('Server Monitor API', () => {
                 page,
                 `#${monitorName}_EditIncidentDetails_0`
             );
-            await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
-                e.click()
+            await init.page$Eval(
+                page,
+                `#${monitorName}_EditIncidentDetails_0`,
+                e => e.click()
             );
 
-            await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
-                e.click()
+            await init.page$Eval(
+                page,
+                `#${monitorName}_EditIncidentDetails_0`,
+                e => e.click()
             );
 
             await init.pageWaitForSelector(page, 'span#activeIncidentsText', {

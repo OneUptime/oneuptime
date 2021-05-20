@@ -44,12 +44,14 @@ describe('Login API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const email = await page.$eval(
+            const email = await init.page$Eval(
+                page,
                 'input[name=email]',
                 element => element.value
             );
             expect(email).toEqual('');
-            const password = await page.$eval(
+            const password = await init.page$Eval(
+                page,
                 'input[name=password]',
                 element => element.value
             );
@@ -71,7 +73,7 @@ describe('Login API', () => {
             await init.pageType(page, 'input[name=password]', user.password);
             await init.pageClick(page, 'button[type=submit]');
 
-            const html = await page.$eval('#main-body', e => {
+            const html = await init.page$Eval(page, '#main-body', e => {
                 return e.innerHTML;
             });
             html.should.containEql('User does not exist.');

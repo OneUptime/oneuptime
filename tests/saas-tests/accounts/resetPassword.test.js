@@ -40,9 +40,13 @@ describe('Reset Password API', () => {
             await init.pageType(page, 'input[name=email]', email);
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#reset-password-success');
-            const html = await page.$eval('#reset-password-success', e => {
-                return e.innerHTML;
-            });
+            const html = await init.page$Eval(
+                page,
+                '#reset-password-success',
+                e => {
+                    return e.innerHTML;
+                }
+            );
             should.exist(html);
             html.should.containEql(
                 " An email is on its way to you. Follow the instructions to reset your password. Please don't forget to check spam. "
@@ -66,7 +70,7 @@ describe('Reset Password API', () => {
             );
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#error-msg');
-            const html = await page.$eval('#error-msg', e => {
+            const html = await init.page$Eval(page, '#error-msg', e => {
                 return e.innerHTML;
             });
             should.exist(html);

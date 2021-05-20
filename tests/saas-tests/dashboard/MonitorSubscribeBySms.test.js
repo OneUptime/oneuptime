@@ -15,6 +15,7 @@ describe('Monitor Detail API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -82,7 +83,8 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '.subscribers-tab');
             await init.pageClick(page, '.subscribers-tab');
 
-            const textContent = await page.$eval(
+            const textContent = await init.page$Eval(
+                page,
                 '#subscriber_contact',
                 e => e.textContent
             );
@@ -125,7 +127,8 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#createSubscriber');
             await init.pageClick(page, '#createSubscriber');
 
-            const textContent = await page.$eval(
+            const textContent = await init.page$Eval(
+                page,
                 '#field-error',
                 e => e.textContent
             );

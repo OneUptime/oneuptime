@@ -21,6 +21,7 @@ describe('Schedule', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -47,13 +48,13 @@ describe('Schedule', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#onCallDuty', elem => elem.click());
+            await init.page$Eval(page, '#onCallDuty', elem => elem.click());
             const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
             await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval(createScheduleBtn, elem => elem.click());
+            await init.page$Eval(page, createScheduleBtn, elem => elem.click());
 
             await init.pageWaitForSelector(page, '#name');
             await init.pageType(page, '#name', newScheduleName);
@@ -92,7 +93,7 @@ describe('Schedule', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#onCallDuty', elem => elem.click());
+            await init.page$Eval(page, '#onCallDuty', elem => elem.click());
 
             await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
@@ -135,7 +136,7 @@ describe('Schedule', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#onCallDuty', elem => elem.click());
+            await init.page$Eval(page, '#onCallDuty', elem => elem.click());
 
             await page.reload({ waitUntil: 'networkidle2' });
             await page.evaluate(() => {
@@ -166,13 +167,13 @@ describe('Schedule', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#onCallDuty', elem => elem.click());
+            await init.page$Eval(page, '#onCallDuty', elem => elem.click());
             const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
             await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval(createScheduleBtn, elem => elem.click());
+            await init.page$Eval(page, createScheduleBtn, elem => elem.click());
 
             await init.pageWaitForSelector(page, '#name');
             await init.pageType(page, '#name', newScheduleName);
@@ -186,7 +187,8 @@ describe('Schedule', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const onCallScheduleName = await page.$eval(
+            const onCallScheduleName = await init.page$Eval(
+                page,
                 `#cb${newScheduleName}`,
                 el => el.textContent
             );

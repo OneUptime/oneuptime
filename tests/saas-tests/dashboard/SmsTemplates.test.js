@@ -17,6 +17,7 @@ describe('SMS Templates API', () => {
     let initialTemplate;
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -51,7 +52,8 @@ describe('SMS Templates API', () => {
                 page
             );
             await init.pageWaitForSelector(page, '#templateField');
-            initialTemplate = await page.$eval(
+            initialTemplate = await init.page$Eval(
+                page,
                 '#templateField',
                 elem => elem.value
             );
@@ -106,7 +108,8 @@ describe('SMS Templates API', () => {
             );
             await init.pageWaitForSelector(page, '#frmSmsTemplate');
 
-            const smsTemplateBody = await page.$eval(
+            const smsTemplateBody = await init.page$Eval(
+                page,
                 'textarea[name=body]',
                 el => el.value
             );
@@ -185,7 +188,8 @@ describe('SMS Templates API', () => {
                 page
             );
             await init.pageWaitForSelector(page, '#templateField');
-            const template = await page.$eval(
+            const template = await init.page$Eval(
+                page,
                 '#templateField',
                 elem => elem.value
             );

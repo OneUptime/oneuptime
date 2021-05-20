@@ -21,6 +21,7 @@ describe('Team API With SubProjects', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -74,7 +75,8 @@ describe('Team API With SubProjects', () => {
             });
 
             await init.pageWaitForSelector(page, `#count_${projectName}`);
-            const memberCount = await page.$eval(
+            const memberCount = await init.page$Eval(
+                page,
                 `#count_${projectName}`,
                 elem => elem.textContent
             );
@@ -159,7 +161,8 @@ describe('Team API With SubProjects', () => {
             );
 
             await init.pageWaitForSelector(page, `#count_${subProjectName}`);
-            const memberCount = await page.$eval(
+            const memberCount = await init.page$Eval(
+                page,
                 `#count_${subProjectName}`,
                 elem => elem.textContent
             );
@@ -229,7 +232,8 @@ describe('Team API With SubProjects', () => {
             });
 
             await init.pageWaitForSelector(page, `#count_${projectName}`);
-            const memberCount = await page.$eval(
+            const memberCount = await init.page$Eval(
+                page,
                 `#count_${projectName}`,
                 elem => elem.textContent
             );
@@ -312,12 +316,14 @@ describe('Team API With SubProjects', () => {
                 page,
                 `#changeRole_${memberEmailSelector}`
             );
-            const oldMemberRole = await page.$eval(
+            const oldMemberRole = await init.page$Eval(
+                page,
                 `#Member_${memberEmailSelector}`,
                 elem => elem.innerHTML
             );
             expect(oldMemberRole).toEqual('Member');
-            const oldOwnerRole = await page.$eval(
+            const oldOwnerRole = await init.page$Eval(
+                page,
                 `#Owner_${ownerEmailSelector}`,
                 elem => elem.innerHTML
             );
@@ -329,12 +335,14 @@ describe('Team API With SubProjects', () => {
             await init.pageWaitForSelector(page, '#confirmRoleChange');
             await init.pageClick(page, '#confirmRoleChange');
 
-            const newMemberRole = await page.$eval(
+            const newMemberRole = await init.page$Eval(
+                page,
                 `#Owner_${memberEmailSelector}`,
                 elem => elem.innerHTML
             );
             expect(newMemberRole).toEqual('Owner');
-            const newOwnerRole = await page.$eval(
+            const newOwnerRole = await init.page$Eval(
+                page,
                 `#Administrator_${ownerEmailSelector}`,
                 elem => elem.innerHTML
             );

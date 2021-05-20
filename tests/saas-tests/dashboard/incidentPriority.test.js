@@ -15,6 +15,7 @@ describe('Incident Priority API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -49,7 +50,7 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
 
@@ -60,7 +61,8 @@ describe('Incident Priority API', () => {
             );
             await init.pageClick(page, deleteButtonFirstRowIndentifier);
             await init.pageWaitForSelector(page, '#message-modal-message');
-            const warningMessage = await page.$eval(
+            const warningMessage = await init.page$Eval(
+                page,
                 '#message-modal-message',
                 e => e.textContent
             );
@@ -89,7 +91,7 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
 
@@ -108,14 +110,15 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
             // two incident priority is automatically added to a project
             // High incident priority is marked as default
             const lastRowFirstColumnIndentifier = `#priority_${priorityName}_2`;
             await init.pageWaitForSelector(page, lastRowFirstColumnIndentifier);
-            const content = await page.$eval(
+            const content = await init.page$Eval(
+                page,
                 lastRowFirstColumnIndentifier,
                 e => e.textContent
             );
@@ -142,7 +145,7 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
             const editButtonLastRowIndentifier = `#priorityEdit_${priorityName}_2`;
@@ -164,12 +167,13 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
             const lastRowIndentifier = `#priority_${newPriorityName}_2`;
             await init.pageWaitForSelector(page, lastRowIndentifier);
-            const content = await page.$eval(
+            const content = await init.page$Eval(
+                page,
                 lastRowIndentifier,
                 e => e.textContent
             );
@@ -196,12 +200,13 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
             const incidentPrioritiesCount = '#incidentPrioritiesCount';
             await init.pageWaitForSelector(page, incidentPrioritiesCount);
-            const incidentsCountBeforeDeletion = await page.$eval(
+            const incidentsCountBeforeDeletion = await init.page$Eval(
+                page,
                 incidentPrioritiesCount,
                 e => e.textContent
             );
@@ -223,11 +228,12 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
             await init.pageWaitForSelector(page, incidentPrioritiesCount);
-            const incidentsCountAfterDeletion = await page.$eval(
+            const incidentsCountAfterDeletion = await init.page$Eval(
+                page,
                 incidentPrioritiesCount,
                 e => e.textContent
             );
@@ -256,7 +262,7 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
             // default priority
@@ -270,7 +276,8 @@ describe('Incident Priority API', () => {
                 page,
                 incidentPrioritiesCountIdentifier
             );
-            let incidentPrioritiesCount = await page.$eval(
+            let incidentPrioritiesCount = await init.page$Eval(
+                page,
                 incidentPrioritiesCountIdentifier,
                 e => e.textContent
             );
@@ -305,7 +312,7 @@ describe('Incident Priority API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
 
@@ -321,7 +328,8 @@ describe('Incident Priority API', () => {
                 page,
                 incidentPrioritiesCountIdentifier
             );
-            incidentPrioritiesCount = await page.$eval(
+            incidentPrioritiesCount = await init.page$Eval(
+                page,
                 incidentPrioritiesCountIdentifier,
                 e => e.textContent
             );
@@ -335,7 +343,8 @@ describe('Incident Priority API', () => {
                 page,
                 incidentPrioritiesCountIdentifier
             );
-            incidentPrioritiesCount = await page.$eval(
+            incidentPrioritiesCount = await init.page$Eval(
+                page,
                 incidentPrioritiesCountIdentifier,
                 e => e.textContent
             );

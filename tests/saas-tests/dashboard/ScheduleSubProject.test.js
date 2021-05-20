@@ -24,6 +24,7 @@ describe('Schedule API With SubProjects', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -197,7 +198,8 @@ describe('Schedule API With SubProjects', () => {
             await init.pageWaitForSelector(page, '#btnSaveMonitors');
             await init.pageClick(page, '#btnSaveMonitors');
 
-            const monitorSelectValue = await page.$eval(
+            const monitorSelectValue = await init.page$Eval(
+                page,
                 'input[type=checkbox]',
                 el => el.value
             );

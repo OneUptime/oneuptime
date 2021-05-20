@@ -21,6 +21,7 @@ describe('Schedule', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -59,14 +60,20 @@ describe('Schedule', () => {
         await init.pageWaitForSelector(page, '#btnSaveMonitors');
         await init.pageClick(page, '#scheduleMonitor_0');
         await init.pageClick(page, '#btnSaveMonitors');
-        await page.$eval('input[name="OnCallAlertBox[0].email"]', element =>
-            element.click()
+        await init.page$Eval(
+            page,
+            'input[name="OnCallAlertBox[0].email"]',
+            element => element.click()
         );
-        await page.$eval('input[name="OnCallAlertBox[0].sms"]', element =>
-            element.click()
+        await init.page$Eval(
+            page,
+            'input[name="OnCallAlertBox[0].sms"]',
+            element => element.click()
         );
-        await page.$eval('input[name="OnCallAlertBox[0].call"]', element =>
-            element.click()
+        await init.page$Eval(
+            page,
+            'input[name="OnCallAlertBox[0].call"]',
+            element => element.click()
         );
         await init.selectDropdownValue(
             'div[id="OnCallAlertBox[0].teams[0].teamMembers[0].userId"]',
@@ -103,11 +110,13 @@ describe('Schedule', () => {
                 firstOncallAlertStatusSelector
             );
 
-            const firstOncallAlertStatus = await page.$eval(
+            const firstOncallAlertStatus = await init.page$Eval(
+                page,
                 firstOncallAlertStatusSelector,
                 element => element.textContent
             );
-            const secondOncallAlertStatus = await page.$eval(
+            const secondOncallAlertStatus = await init.page$Eval(
+                page,
                 secondOncallAlertStatusSelector,
                 element => element.textContent
             );
@@ -121,13 +130,15 @@ describe('Schedule', () => {
             const subscriberAlertTypeSelector =
                 '#subscriberAlertTable tbody tr:first-of-type td:nth-last-of-type(2)';
 
-            const subscriberAlertStatus = await page.$eval(
+            const subscriberAlertStatus = await init.page$Eval(
+                page,
                 subscriberAlertStatusSelector,
                 element => element.textContent
             );
             expect(subscriberAlertStatus).toEqual('Sent');
 
-            const subscriberAlertType = await page.$eval(
+            const subscriberAlertType = await init.page$Eval(
+                page,
                 subscriberAlertTypeSelector,
                 element => element.textContent
             );

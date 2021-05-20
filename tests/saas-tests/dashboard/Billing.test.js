@@ -43,7 +43,8 @@ describe('Project Setting: Change Plan', () => {
             await init.growthPlanUpgrade(page);
             await page.reload({ waitUntil: 'networkidle0' });
             await init.pageWaitForSelector(page, 'input#Growth_month');
-            const checked = await page.$eval(
+            const checked = await init.page$Eval(
+                page,
                 'input#Growth_month',
                 input => input.checked
             );
@@ -242,6 +243,7 @@ describe('Member Restriction', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -304,7 +306,11 @@ describe('Member Restriction', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#alertEnable', checkbox => checkbox.click);
+            await init.page$Eval(
+                page,
+                '#alertEnable',
+                checkbox => checkbox.click
+            );
             await init.pageClick(page, '#alertOptionSave');
             const unauthorisedModal = await init.pageWaitForSelector(
                 page,

@@ -14,6 +14,7 @@ describe('Project', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -43,7 +44,7 @@ describe('Project', () => {
 
             await init.createUserFromAdminDashboard({ email, password }, page);
 
-            await page.$eval('#projects > a', elem => elem.click());
+            await init.page$Eval(page, '#projects > a', elem => elem.click());
             await page.reload({ waitUntil: 'networkidle0' });
 
             const elem = await page.$$('table > tbody > tr');

@@ -18,6 +18,7 @@ describe('StatusPage API With SubProjects', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -212,7 +213,8 @@ describe('StatusPage API With SubProjects', () => {
 
             await init.pageWaitForSelector(page, '#customTabList > li');
             // navigate to branding tab
-            await page.$$eval(
+            await init.page$$Eval(
+                page,
                 '#customTabList > li',
                 elem => elem[3].click() //Branding is in fourth tab
             );
@@ -233,9 +235,15 @@ describe('StatusPage API With SubProjects', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await init.pageWaitForSelector(page, '#customTabList > li');
             // navigate to branding tab
-            await page.$$eval('#customTabList > li', elem => elem[3].click());
+            await init.page$$Eval(page, '#customTabList > li', elem =>
+                elem[3].click()
+            );
             await init.pageWaitForSelector(page, '#title');
-            const title = await page.$eval('#title', elem => elem.value);
+            const title = await init.page$Eval(
+                page,
+                '#title',
+                elem => elem.value
+            );
 
             expect(title).toMatch(pageTitle);
 
@@ -256,7 +264,8 @@ describe('StatusPage API With SubProjects', () => {
             await init.pageClick(page, 'tr.statusPageListItem');
             await init.pageWaitForSelector(page, '#customTabList > li');
             // navigate to advanced options
-            await page.$$eval(
+            await init.page$$Eval(
+                page,
                 '#customTabList > li',
                 elem => elem[5].click() // Advanced is in sixth tab
             );

@@ -23,6 +23,7 @@ describe('Incident Settings API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -53,18 +54,21 @@ describe('Incident Settings API', () => {
             await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
             await init.pageWaitForSelector(page, 'input[name=title]');
-            const priorityFieldValue = await page.$eval(
+            const priorityFieldValue = await init.page$Eval(
+                page,
                 '#incidentPriority',
                 e => e.textContent
             );
 
             expect(priorityFieldValue).toMatch('High');
-            const titleFieldValue = await page.$eval(
+            const titleFieldValue = await init.page$Eval(
+                page,
                 'input[name=title]',
                 e => e.value
             );
             expect(titleFieldValue).toMatch(incidentDefaultSettings.title);
-            const descriptionFieldValue = await page.$eval(
+            const descriptionFieldValue = await init.page$Eval(
+                page,
                 '.ace_layer.ace_text-layer',
                 e => e.textContent
             );
@@ -92,7 +96,7 @@ describe('Incident Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
             await init.pageWaitForSelector(page, '#priorityDelete_High_0');
@@ -145,17 +149,20 @@ describe('Incident Settings API', () => {
             });
 
             await init.pageWaitForSelector(page, 'input[name=title]');
-            const priorityFieldValue = await page.$eval(
+            const priorityFieldValue = await init.page$Eval(
+                page,
                 '#incidentPriority',
                 e => e.textContent
             );
             expect(priorityFieldValue).toEqual('Low');
-            const titleFieldValue = await page.$eval(
+            const titleFieldValue = await init.page$Eval(
+                page,
                 'input[name=title]',
                 e => e.value
             );
             expect(titleFieldValue).toEqual(newDefaultIncidentTitle);
-            const descriptionFieldValue = await page.$eval(
+            const descriptionFieldValue = await init.page$Eval(
+                page,
                 '.ace_layer.ace_text-layer',
                 e => e.textContent
             );
@@ -185,14 +192,20 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
             await init.pageWaitForSelector(page, '#title');
 
-            const priorityFieldValue = await page.$eval(
+            const priorityFieldValue = await init.page$Eval(
+                page,
                 '#incidentPriority',
                 e => e.textContent
             );
             expect(priorityFieldValue).toEqual('Low');
-            const titleFieldValue = await page.$eval('#title', e => e.value);
+            const titleFieldValue = await init.page$Eval(
+                page,
+                '#title',
+                e => e.value
+            );
             expect(titleFieldValue).toEqual(inctidentTitleAfterSubstitution);
-            const descriptionFieldValue = await page.$eval(
+            const descriptionFieldValue = await init.page$Eval(
+                page,
                 '.ace_layer.ace_text-layer',
                 e => e.textContent
             );
@@ -220,12 +233,14 @@ describe('Incident Settings API', () => {
             const incidentPrioritySelector = '#name_Low';
 
             await init.pageWaitForSelector(page, incidentTitleSelector);
-            const title = await page.$eval(
+            const title = await init.page$Eval(
+                page,
                 incidentTitleSelector,
                 e => e.textContent
             );
 
-            const incidentPriority = await page.$eval(
+            const incidentPriority = await init.page$Eval(
+                page,
                 incidentPrioritySelector,
                 e => e.textContent
             );
@@ -252,7 +267,7 @@ describe('Incident Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
             await init.pageWaitForSelector(page, '#priorityDelete_High_0');
@@ -290,7 +305,7 @@ describe('Incident Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
             // Add New Priority
@@ -319,7 +334,7 @@ describe('Incident Settings API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.incident-priority-tab', elems =>
+            await init.page$$Eval(page, '.incident-priority-tab', elems =>
                 elems[0].click()
             );
 

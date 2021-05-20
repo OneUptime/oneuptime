@@ -20,6 +20,7 @@ describe('Custom SMTP Settings', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -77,7 +78,11 @@ describe('Custom SMTP Settings', () => {
             await init.pageType(page, '#from', smtpData.from);
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', name);
-            await page.$eval('#secure', elem => (elem.checked = true));
+            await init.page$Eval(
+                page,
+                '#secure',
+                elem => (elem.checked = true)
+            );
             await init.pageClick(page, '#saveSmtp');
 
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -88,7 +93,11 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const host = await page.$eval('#host', elem => elem.value);
+            const host = await init.page$Eval(
+                page,
+                '#host',
+                elem => elem.value
+            );
             expect(host).toEqual(smtpData.host);
 
             done();
@@ -137,7 +146,11 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const fromVal = await page.$eval('#from', elem => elem.value);
+            const fromVal = await init.page$Eval(
+                page,
+                '#from',
+                elem => elem.value
+            );
             expect(fromVal).toEqual(from);
 
             done();
@@ -178,7 +191,8 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const errorMessage = await page.$eval(
+            const errorMessage = await init.page$Eval(
+                page,
                 '#field-error',
                 element => element.textContent
             );

@@ -26,6 +26,7 @@ describe('Incident API With SubProjects', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -101,7 +102,9 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#closeIncident_0', elem => elem.click());
+            await init.page$Eval(page, '#closeIncident_0', elem =>
+                elem.click()
+            );
 
             await init.pageWaitForSelector(page, '#incident_0', {
                 visible: true,
@@ -154,7 +157,9 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#closeIncident_0', elem => elem.click());
+            await init.page$Eval(page, '#closeIncident_0', elem =>
+                elem.click()
+            );
 
             // Navigate to details page of monitor
             await init.navigateToComponentDetails(componentName, page);
@@ -181,7 +186,9 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#closeIncident_0', elem => elem.click());
+            await init.page$Eval(page, '#closeIncident_0', elem =>
+                elem.click()
+            );
 
             await init.pageWaitForSelector(page, '#incident_1');
             const incidentTitleSelector = await page.$(
@@ -271,8 +278,10 @@ describe('Incident API With SubProjects', () => {
                     timeout: init.timeout,
                 }
             );
-            await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
-                e.click()
+            await init.page$Eval(
+                page,
+                `#incident_${projectMonitorName1}_0`,
+                e => e.click()
             );
             await init.pageWaitForSelector(page, '#incident_0', {
                 visible: true,
@@ -285,14 +294,18 @@ describe('Incident API With SubProjects', () => {
             let type = 'internal';
             // fill internal message thread form
             await init.pageWaitForSelector(page, `#add-${type}-message`);
-            await page.$eval(`#add-${type}-message`, e => e.click());
+            await init.page$Eval(page, `#add-${type}-message`, e => e.click());
             await init.pageWaitForSelector(
                 page,
                 `#form-new-incident-${type}-message`
             );
             await init.pageClick(page, `textarea[id=new-${type}]`);
             await init.pageType(page, `textarea[id=new-${type}]`, internalNote);
-            await init.selectDropdownValue('#incident_state', 'investigating', page);
+            await init.selectDropdownValue(
+                '#incident_state',
+                'investigating',
+                page
+            );
             await init.pageClick(page, `#${type}-addButton`);
             await init.pageWaitForSelector(page, `#${type}-addButton`, {
                 hidden: true,
@@ -315,7 +328,7 @@ describe('Incident API With SubProjects', () => {
             await init.gotoTab(utils.incidentTabIndexes.INCIDENT_NOTES, page);
             // fill investigation message thread form
             await init.pageWaitForSelector(page, `#add-${type}-message`);
-            await page.$eval(`#add-${type}-message`, e => e.click());
+            await init.page$Eval(page, `#add-${type}-message`, e => e.click());
             await init.pageWaitForSelector(
                 page,
                 `#form-new-incident-${type}-message`
@@ -326,7 +339,11 @@ describe('Incident API With SubProjects', () => {
                 `textarea[id=new-${type}]`,
                 investigationNote
             );
-            await init.selectDropdownValue('#incident_state', 'investigating', page);
+            await init.selectDropdownValue(
+                '#incident_state',
+                'investigating',
+                page
+            );
             await init.pageClick(page, `#${type}-addButton`);
             await init.pageWaitForSelector(page, `#${type}-addButton`, {
                 hidden: true,
@@ -369,8 +386,10 @@ describe('Incident API With SubProjects', () => {
                     timeout: init.timeout,
                 }
             );
-            await page.$eval(`#incident_${projectMonitorName1}_0`, e =>
-                e.click()
+            await init.page$Eval(
+                page,
+                `#incident_${projectMonitorName1}_0`,
+                e => e.click()
             );
             await init.pageWaitForSelector(page, '#incident_0', {
                 visible: true,
@@ -380,7 +399,9 @@ describe('Incident API With SubProjects', () => {
             await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
             for (let i = 0; i < 10; i++) {
-                await page.$eval(`#add-${type}-message`, e => e.click());
+                await init.page$Eval(page, `#add-${type}-message`, e =>
+                    e.click()
+                );
                 await init.pageWaitForSelector(
                     page,
                     `#form-new-incident-${type}-message`
@@ -391,7 +412,11 @@ describe('Incident API With SubProjects', () => {
                     `textarea[id=new-${type}]`,
                     `${internalNote}`
                 );
-                await init.selectDropdownValue('#incident_state', 'update', page);
+                await init.selectDropdownValue(
+                    '#incident_state',
+                    'update',
+                    page
+                );
                 await init.pageClick(page, `#${type}-addButton`);
                 await init.pageWaitForSelector(page, `#${type}-addButton`, {
                     hidden: true,
@@ -420,7 +445,7 @@ describe('Incident API With SubProjects', () => {
 
             expect(countIncidentTimelines).toEqual(10);
 
-            await page.$eval('#btnTimelineNext', e => e.click());
+            await init.page$Eval(page, '#btnTimelineNext', e => e.click());
             await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
                 timeout: init.timeout,
@@ -434,7 +459,7 @@ describe('Incident API With SubProjects', () => {
             countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(5);
 
-            await page.$eval('#btnTimelinePrev', e => e.click());
+            await init.page$Eval(page, '#btnTimelinePrev', e => e.click());
             await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
                 timeout: init.timeout,

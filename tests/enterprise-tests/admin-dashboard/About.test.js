@@ -13,6 +13,7 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -44,7 +45,7 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#profile-menu', elem => elem.click());
+            await init.page$Eval(page, '#profile-menu', elem => elem.click());
             const about = await init.pageWaitForSelector(
                 page,
                 '#about-button',
@@ -68,12 +69,12 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#profile-menu', elem => elem.click());
+            await init.page$Eval(page, '#profile-menu', elem => elem.click());
             await init.pageWaitForSelector(page, '#about-button', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#about-button', elem => elem.click());
+            await init.page$Eval(page, '#about-button', elem => elem.click());
             await init.pageWaitForSelector(page, '.bs-Modal', {
                 visible: true,
                 timeout: init.timeout,
@@ -82,28 +83,34 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const serverVersion = await page.$eval(
+            const serverVersion = await init.page$Eval(
+                page,
                 '#server-version',
                 elem => elem.textContent
             );
-            const docsVersion = await page.$eval(
+            const docsVersion = await init.page$Eval(
+                page,
                 '#docs-version',
                 elem => elem.textContent
             );
-            const helmVersion = await page.$eval(
+            const helmVersion = await init.page$Eval(
+                page,
                 '#helm-version',
                 elem => elem.textContent
             );
-            const dashboardVersion = await page.$eval(
+            const dashboardVersion = await init.page$Eval(
+                page,
                 '#dashboard-version',
                 elem => elem.textContent
             );
-            const adminDashboardVersion = await page.$eval(
+            const adminDashboardVersion = await init.page$Eval(
+                page,
                 '#admin-dashboard-version',
                 elem => elem.textContent
             );
 
-            const probeVersion = await page.$eval(
+            const probeVersion = await init.page$Eval(
+                page,
                 '#probe-version',
                 elem => elem.textContent
             );
@@ -128,12 +135,12 @@ describe('About Modal (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#profile-menu', elem => elem.click());
+            await init.page$Eval(page, '#profile-menu', elem => elem.click());
             await init.pageWaitForSelector(page, '#about-button', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#about-button', elem => elem.click());
+            await init.page$Eval(page, '#about-button', elem => elem.click());
             await init.pageWaitForSelector(page, '.bs-Button', {
                 visible: true,
                 timeout: init.timeout,

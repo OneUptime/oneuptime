@@ -21,6 +21,7 @@ const scheduledMaintenanceDescription = utils.generateRandomString();
 describe('Check scheduled maintenace', () => {
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -106,7 +107,7 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#components', el => el.click());
+            await init.page$Eval(page, '#components', el => el.click());
 
             // Fill and submit New Component form
             await init.pageWaitForSelector(page, '#form-new-component', {
@@ -347,7 +348,8 @@ describe('Check scheduled maintenace', () => {
                 page,
                 `#event-name-${scheduledMaintenanceName}`
             );
-            const eventName = await page.$eval(
+            const eventName = await init.page$Eval(
+                page,
                 `#event-name-${scheduledMaintenanceName}`,
                 elem => elem.textContent
             );
@@ -359,7 +361,8 @@ describe('Check scheduled maintenace', () => {
                 `#event-description-${scheduledMaintenanceDescription}`,
                 { visible: true, timeout: init.timeout }
             );
-            const eventDescription = await page.$eval(
+            const eventDescription = await init.page$Eval(
+                page,
                 `#event-description-${scheduledMaintenanceDescription}`,
                 elem => elem.textContent
             );
@@ -370,7 +373,8 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const eventDate = await page.$eval(
+            const eventDate = await init.page$Eval(
+                page,
                 '#event-date',
                 elem => elem.textContent
             );
@@ -381,7 +385,8 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const futureEvent = await page.$eval(
+            const futureEvent = await init.page$Eval(
+                page,
                 '#ongoing-event',
                 elem => elem.textContent
             );

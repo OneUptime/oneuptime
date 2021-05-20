@@ -13,6 +13,7 @@ describe('Email Logs', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -45,7 +46,8 @@ describe('Email Logs', () => {
                 hidden: true,
             });
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -68,7 +70,8 @@ describe('Email Logs', () => {
             await init.pageWaitForSelector(page, '#cancelEmailDelete');
             await init.pageClick(page, '#cancelEmailDelete');
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -95,7 +98,8 @@ describe('Email Logs', () => {
             await init.pageWaitForSelector(page, '#emailLogs');
             await init.pageClick(page, '#emailLogs');
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -117,7 +121,8 @@ describe('Email Logs', () => {
             await init.pageClick(page, '#searchEmailLog');
             await init.pageType(page, '#searchEmailLog', 'probe');
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -139,7 +144,8 @@ describe('Email Logs', () => {
             await init.pageClick(page, '#searchEmailLog');
             await init.pageType(page, '#searchEmailLog', 'somerandom');
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -199,7 +205,9 @@ describe('Email Logs', () => {
             await init.pageClick(page, '#emailLog');
 
             // turn email log off
-            await page.$eval('input[name=emailStatusToggler]', e => e.click());
+            await init.page$Eval(page, 'input[name=emailStatusToggler]', e =>
+                e.click()
+            );
 
             // click the submit button
             await init.pageWaitForSelector(page, '#emailLogSubmit');
@@ -285,7 +293,9 @@ describe('Email Logs', () => {
             await init.pageClick(page, '#emailLogSetting');
 
             // enable logs
-            await page.$eval('input[name=emailStatusToggler]', e => e.click());
+            await init.page$Eval(page, 'input[name=emailStatusToggler]', e =>
+                e.click()
+            );
 
             // click the submit button
             await init.pageWaitForSelector(page, '#emailLogSubmit');

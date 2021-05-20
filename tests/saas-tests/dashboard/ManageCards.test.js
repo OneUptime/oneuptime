@@ -16,6 +16,7 @@ describe('Stripe cards API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -64,7 +65,8 @@ describe('Stripe cards API', () => {
                 timeout: operationTimeOut,
             });
 
-            const cardsCount = await page.$eval(
+            const cardsCount = await init.page$Eval(
+                page,
                 '#cardsCount',
                 el => el.textContent
             );
@@ -88,7 +90,8 @@ describe('Stripe cards API', () => {
                 hidden: true,
             });
 
-            const cardsCount = await page.$eval(
+            const cardsCount = await init.page$Eval(
+                page,
                 '#cardsCount',
                 el => el.textContent
             );
@@ -119,7 +122,8 @@ describe('Stripe cards API', () => {
             expect(deleteError).toBeDefined();
             await init.pageClick(page, '#deleteCardCancel');
 
-            const cardsCount = await page.$eval(
+            const cardsCount = await init.page$Eval(
+                page,
                 '#cardsCount',
                 el => el.textContent
             );

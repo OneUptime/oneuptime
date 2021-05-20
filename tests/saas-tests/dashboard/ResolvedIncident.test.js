@@ -41,19 +41,31 @@ describe('Incident Reports API', () => {
 
     test(
         'should create 5 incidents and resolved them',
-        async (done) => {
+        async done => {
             for (let i = 0; i < 4; i++) {
-                await init.navigateToMonitorDetails(componentName, monitorName, page);
-                await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
+                await init.navigateToMonitorDetails(
+                    componentName,
+                    monitorName,
+                    page
+                );
+                await init.pageClick(
+                    page,
+                    `#monitorCreateIncident_${monitorName}`
+                );
                 await init.pageWaitForSelector(page, '#incidentType');
                 await init.pageClick(page, '#createIncident');
-                await init.pageWaitForSelector(page, '#createIncident', { hidden: true });
+                await init.pageWaitForSelector(page, '#createIncident', {
+                    hidden: true,
+                });
                 await init.pageClick(page, '#viewIncident-0');
                 await init.pageWaitForSelector(page, '#btnAcknowledge_0');
                 await init.pageClick(page, '#btnAcknowledge_0');
                 await init.pageClick(page, '#btnResolve_0');
 
-                const resolvedConfirmation = await init.pageWaitForSelector(page, '.bs-resolved-green');
+                const resolvedConfirmation = await init.pageWaitForSelector(
+                    page,
+                    '.bs-resolved-green'
+                );
                 expect(resolvedConfirmation).toBeDefined();
             }
             done();
@@ -65,14 +77,20 @@ describe('Incident Reports API', () => {
         'should close all resolved incidents at once',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle2'
-            })
+                waitUntil: 'networkidle2',
+            });
             await init.pageWaitForSelector(page, '#incidents-close-all-btn');
             await init.pageClick(page, '#incidents-close-all-btn');
-            await init.pageWaitForSelector(page, '#closeIncidentButton_0', { hidden: true });
+            await init.pageWaitForSelector(page, '#closeIncidentButton_0', {
+                hidden: true,
+            });
             await page.reload({ waitUntil: 'networkidle2' });
 
-            const closedResolvedIncidents = await init.pageWaitForSelector(page, '#incidents-close-all-btn', { hidden: true });
+            const closedResolvedIncidents = await init.pageWaitForSelector(
+                page,
+                '#incidents-close-all-btn',
+                { hidden: true }
+            );
             expect(closedResolvedIncidents).toBeNull();
             done();
         },

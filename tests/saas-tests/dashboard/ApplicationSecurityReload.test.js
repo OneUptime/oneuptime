@@ -24,6 +24,7 @@ describe('Fyipe Page Reload', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -79,7 +80,11 @@ describe('Fyipe Page Reload', () => {
 
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', applicationSecurityName);
-            await init.selectDropdownValue('#resourceCategory', categoryName, page); // add category
+            await init.selectDropdownValue(
+                '#resourceCategory',
+                categoryName,
+                page
+            ); // add category
             await init.pageClick(page, '#gitRepositoryUrl');
             await init.pageType(page, '#gitRepositoryUrl', gitRepositoryUrl);
             await init.pageClick(page, '#gitCredential');

@@ -17,6 +17,7 @@ describe('SMTP Settings API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -49,7 +50,7 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, '#email-enabled');
             await init.pageClick(page, '#customSmtp');
 
-            const originalValues = await page.$$eval('input', e =>
+            const originalValues = await init.page$$Eval(page, 'input', e =>
                 e.map(field => field.value)
             );
             await init.pageClick(page, 'input[name=email]');
@@ -76,7 +77,9 @@ describe('SMTP Settings API', () => {
 
             // All fields should remain as were
             expect(
-                await page.$$eval('input', e => e.map(field => field.value))
+                await init.page$$Eval(page, 'input', e =>
+                    e.map(field => field.value)
+                )
             ).toEqual(originalValues);
             done();
         },
@@ -128,12 +131,18 @@ describe('SMTP Settings API', () => {
             );
             await init.pageClick(page, 'input[name=from-name]');
             await init.pageType(page, 'input[name=from-name]', smtpName);
-            await page.$eval('#smtp-secure', element => element.click());
+            await init.page$Eval(page, '#smtp-secure', element =>
+                element.click()
+            );
             await init.pageClick(page, 'button[type=submit]');
 
             await page.reload();
 
-            const value = await page.$eval('input[name=email]', e => e.value);
+            const value = await init.page$Eval(
+                page,
+                'input[name=email]',
+                e => e.value
+            );
 
             expect(value).toEqual(utils.smtpCredential.user);
             done();

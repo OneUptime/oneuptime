@@ -22,6 +22,7 @@ describe('Fyipe Page Reload', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        jest.retryTimes(3);
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -49,13 +50,13 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#onCallDuty', elem => elem.click());
+            await init.page$Eval(page, '#onCallDuty', elem => elem.click());
             const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
             await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval(createScheduleBtn, elem => elem.click());
+            await init.page$Eval(page, createScheduleBtn, elem => elem.click());
 
             await init.pageWaitForSelector(page, '#name', {
                 visible: true,
