@@ -24,6 +24,12 @@
             "name": "Debug Single File: Local SaaS test",
             "request": "launch",
             "type": "node-terminal"
+        },
+        {
+            "command": "export HEADLESS=true && jest  ./saas-tests/admin-dashboard/Project.test.js",
+            "name": "Debug Headless Single File: Local SaaS test",
+            "request": "launch",
+            "type": "node-terminal"
         }
     ]
 }

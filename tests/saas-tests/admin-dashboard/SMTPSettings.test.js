@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer');
 const utils = require('../../test-utils');
 const init = require('../../test-init');
+const axios = require('axios');
 
 let browser, page;
 require('should');
@@ -17,7 +18,7 @@ describe('SMTP Settings API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
-        jest.retryTimes(3);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -28,8 +29,25 @@ describe('SMTP Settings API', () => {
             password: password,
         };
         // user
-        // await init.registerEnterpriseUser(user, page);
+        
         await init.loginAdminUser(user, page);
+
+        // delete existing smtp details, if there is any.
+        var data = JSON.stringify({
+            "collection": "globalconfigs",
+            "query": {}
+        });
+
+        var config = {
+            method: 'post',
+            url: utils.INIT_SCRIPT_URL+'/removeMany',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            data: data
+        };
+
+        await axios(config); 
     });
 
     afterAll(async () => {
@@ -72,7 +90,7 @@ describe('SMTP Settings API', () => {
                 (await init.page$$(page, 'span.field-error')).length
             ).toEqual(
                 (await init.page$$(page, 'input')).length -
-                    4 /** There 10 input values and 6 span-errors */
+                4 /** There 10 input values and 6 span-errors */
             );
 
             //Since we did not save the settings, reloading the page automatically removes the input values

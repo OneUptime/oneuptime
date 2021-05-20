@@ -18,7 +18,7 @@ describe('Project', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
-        jest.retryTimes(3);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig, {
             waitUntil: 'networkidle2',

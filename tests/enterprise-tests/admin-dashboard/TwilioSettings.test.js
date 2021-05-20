@@ -14,7 +14,7 @@ describe('Twilio Settings API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
-        jest.retryTimes(3);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

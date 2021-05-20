@@ -46,7 +46,7 @@ if (process.env['NODE_ENV'] === 'development') {
         return await interactWithDB(req, res);
     });
 
-    await function interactWithDB(req, res) {
+    async function interactWithDB(req, res) {
         if (req.params.dbFunction === "find") {
             res.send(await find(req.body.collection, req.body.query));
         }
@@ -60,8 +60,6 @@ if (process.env['NODE_ENV'] === 'development') {
             res.send(await removeMany(req.body.collection, req.body.query));
         }
     }
-
-
 }
 
 async function run() {
@@ -120,11 +118,17 @@ async function run() {
 
     // eslint-disable-next-line no-console
     console.log('END SCRIPT: Completed');
+    // keep connection open in dev
+    if (process.env['NODE_ENV'] !== 'development') {
+        connection.close();
+        // eslint-disable-next-line no-console
+        console.log('Mongo connection closed.');
+    } else {
+        // eslint-disable-next-line no-console
+        console.log('Mongo connection open in development mode.');
+    }
 
-    connection.close();
 
-    // eslint-disable-next-line no-console
-    console.log('Mongo connection closed.');
 }
 
 module.exports = run;
