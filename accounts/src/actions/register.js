@@ -67,8 +67,24 @@ export const resetSignup = () => {
     };
 };
 
+// Get Cookies
+export const getCookie = cName => {
+    const name = cName + '=';
+    const cDecoded = decodeURIComponent(document.cookie); //to be careful
+    const cArr = cDecoded.split('; ');
+    let res;
+    cArr.forEach(val => {
+        if (val.indexOf(name) === 0) res = val.substring(name.length);
+    });
+    return res;
+};
+
 // Calls the API to register a user.
 export function signupUser(values) {
+    const redirectSource = JSON.parse(getCookie('source'));
+    if (redirectSource) {
+        values.source = redirectSource;
+    }
     return function(dispatch) {
         const promise = postApi(`user/signup?token=${values.token}`, values);
         dispatch(signUpRequest(promise));
