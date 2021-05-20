@@ -248,7 +248,10 @@ describe('Log Containers', () => {
             await init.pageClick(page, `#filter_${applicationLogName}`);
 
             // select the drop down and confirm the current value as all
-            let logTypeElement = await init.pageWaitForSelector(                
+            let logTypeElement = await init.pageWaitForSelector(     
+                /** React-Select Library is used in the dashboard 
+                 * This reminds puppeteer that the <input /> is hidden
+                 * as init.pageWaitForSelector is 'visible : true' by default  */           
                 page, 'input[name=log_type_selector]', { hidden : true }
             );
             logTypeElement = await logTypeElement.getProperty('value');
