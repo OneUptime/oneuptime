@@ -5,22 +5,42 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import moment from 'moment';
 import ShouldRender from './ShouldRender';
+import { handleResources } from '../config';
 
 class AnnouncementLogs extends Component {
-    constructor(props) {
-        super(props);
-        this.limit = 14;
-    }
+    state = {
+        limit: 5,
+    };
     componentDidMount() {
-        const { fetchAnnouncementLogs, projectId, statusPageId } = this.props;
-        const limit = statusPageId.announcementLogsHistory || this.limit;
+        const {
+            fetchAnnouncementLogs,
+            projectId,
+            statusPageId,
+            theme,
+        } = this.props;
+        const limit = theme
+            ? statusPageId.announcementLogsHistory || 14
+            : this.state.limit;
         fetchAnnouncementLogs(projectId, statusPageId._id, 0, limit);
     }
+
+    more = () => {
+        const {
+            fetchAnnouncementLogs,
+            projectId,
+            statusPageId,
+            logs,
+        } = this.props;
+        let { limit } = this.state;
+        limit += Number(logs.limit);
+        fetchAnnouncementLogs(projectId, statusPageId._id, 0, limit);
+    };
     render() {
         const {
             theme,
-            logs: { announcementLogs },
+            logs: { announcementLogs, limit, count },
             error,
+            monitorState,
         } = this.props;
         return (
             <>
@@ -31,57 +51,117 @@ class AnnouncementLogs extends Component {
                                 style={{ marginBottom: '40px' }}
                                 className="font-largest"
                             >
-                                Past Announcement Logs
+                                Past Announcements
                             </div>
-                            <ul className="nt-ann-block">
-                                {announcementLogs &&
-                                announcementLogs.length > 0 ? (
-                                    announcementLogs.map((log, index) => {
-                                        return (
-                                            <li key={index}>
-                                                <div className="nt-topic">
-                                                    {log.announcementId.name}
+                            {announcementLogs && announcementLogs.length > 0 ? (
+                                announcementLogs.map((log, index) => {
+                                    return (
+                                        <div
+                                            className="incident-object"
+                                            key={index}
+                                        >
+                                            <ShouldRender if={log.style}>
+                                                <div className="date-big">
+                                                    {moment(
+                                                        log.createdAt
+                                                    ).format('MMMM Do, YYYY')}
                                                 </div>
-                                                <div className="incident-date">
+                                            </ShouldRender>
+                                            <ShouldRender if={!log.style}>
+                                                <div className="border-width-90"></div>
+                                            </ShouldRender>
+                                            <div className="list_k">
+                                                <b id={`event-name`}>
+                                                    {log.announcementId.name}
+                                                </b>
+                                                <ShouldRender if={!log.endDate}>
+                                                    <div
+                                                        style={{
+                                                            marginLeft: 5,
+                                                        }}
+                                                        className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                    >
+                                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                            <span id="ongoing-event">
+                                                                Active
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                </ShouldRender>
+                                            </div>
+                                            <div
+                                                className="incident_desc"
+                                                id={`event-description-`}
+                                            >
+                                                {log.announcementId.description}
+                                            </div>
+                                            <span
+                                                className="ongoing__affectedmonitor--title"
+                                                style={{
+                                                    color:
+                                                        'rgba(76, 76, 76, 0.8)',
+                                                }}
+                                            >
+                                                Resources Affected:{' '}
+                                            </span>
+                                            <span
+                                                className="ongoing__affectedmonitor--content"
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.5)',
+                                                }}
+                                            >
+                                                {log.announcementId &&
+                                                    handleResources(
+                                                        monitorState,
+                                                        log.announcementId
+                                                    )}
+                                            </span>
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    justifyContent:
+                                                        'space-between',
+                                                    alignItems: 'center',
+                                                }}
+                                            >
+                                                <div
+                                                    className="incident-date"
+                                                    id="event-date"
+                                                >
                                                     <span>
                                                         {moment(
                                                             log.startDate
                                                         ).format(
                                                             'MMMM Do YYYY, h:mm a'
                                                         )}
-                                                        &nbsp;&nbsp;-
-                                                        &nbsp;&nbsp;
                                                         <ShouldRender
                                                             if={log.endDate}
                                                         >
+                                                            &nbsp;&nbsp;-
+                                                            &nbsp;&nbsp;
                                                             {moment(
                                                                 log.endDate
                                                             ).format(
                                                                 'MMMM Do YYYY, h:mm a'
                                                             )}
                                                         </ShouldRender>
-                                                        <ShouldRender
-                                                            if={!log.endDate}
-                                                        >
-                                                            <span>active</span>
-                                                        </ShouldRender>
                                                     </span>
                                                 </div>
-                                            </li>
-                                        );
-                                    })
-                                ) : (
-                                    <li className="nt_list">
-                                        {error ? (
-                                            <span style={{ color: '#f00' }}>
-                                                {error}
-                                            </span>
-                                        ) : (
-                                            'no announcement log'
-                                        )}
-                                    </li>
-                                )}
-                            </ul>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="nt_list">
+                                    {error ? (
+                                        <span style={{ color: '#f00' }}>
+                                            {error}
+                                        </span>
+                                    ) : (
+                                        'no announcement log'
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </>
                 ) : (
@@ -108,47 +188,72 @@ class AnnouncementLogs extends Component {
                                         className="feed-header"
                                     >
                                         <span className="feed-title">
-                                            Announcement Logs
+                                            Announcement History
                                         </span>
-                                        <ul style={{ paddingLeft: 0 }}>
+                                        <ul className="feed-contents plain">
                                             {announcementLogs &&
                                             announcementLogs.length > 0 ? (
                                                 announcementLogs.map(
                                                     (log, index) => {
                                                         return (
                                                             <li
+                                                                className="incidentlist feed-item clearfix"
+                                                                style={{
+                                                                    margin:
+                                                                        '0 0 10px',
+                                                                    cursor:
+                                                                        'text',
+                                                                }}
                                                                 key={index}
-                                                                className="ann_list scheduledEvent feed-item clearfix"
                                                             >
-                                                                <div
-                                                                    style={{
-                                                                        maxWidth:
-                                                                            '30%',
-                                                                    }}
-                                                                >
+                                                                <div className="ct_header">
                                                                     {
                                                                         log
                                                                             .announcementId
                                                                             .name
                                                                     }
                                                                 </div>
+                                                                <div className="ct_desc">
+                                                                    {
+                                                                        log
+                                                                            .announcementId
+                                                                            .description
+                                                                    }
+                                                                </div>
                                                                 <div
+                                                                    className="ongoing__affectedmonitor"
                                                                     style={{
-                                                                        display:
-                                                                            'flex',
-                                                                        alignItems:
-                                                                            'center',
-                                                                        flex: 1,
+                                                                        marginTop: 10,
                                                                     }}
                                                                 >
                                                                     <span
-                                                                        className="time"
+                                                                        className="ongoing__affectedmonitor--title"
                                                                         style={{
                                                                             color:
-                                                                                '#000',
-                                                                            paddingTop: 0,
+                                                                                'rgba(76, 76, 76, 0.8)',
                                                                         }}
                                                                     >
+                                                                        Resource
+                                                                        Affected:
+                                                                    </span>{' '}
+                                                                    <span
+                                                                        className="ongoing__affectedmonitor--content"
+                                                                        style={{
+                                                                            color:
+                                                                                'rgba(0, 0, 0, 0.5)',
+                                                                            fontSize:
+                                                                                '13px',
+                                                                        }}
+                                                                    >
+                                                                        {log.announcementId &&
+                                                                            handleResources(
+                                                                                monitorState,
+                                                                                log.announcementId
+                                                                            )}
+                                                                    </span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="ct_time time">
                                                                         {moment(
                                                                             log.startDate
                                                                         ).format(
@@ -198,6 +303,16 @@ class AnnouncementLogs extends Component {
                                                 </li>
                                             )}
                                         </ul>
+                                        <ShouldRender
+                                            if={count > Number(limit)}
+                                        >
+                                            <button
+                                                className="more button-as-anchor anchor-centered"
+                                                onClick={() => this.more()}
+                                            >
+                                                More
+                                            </button>
+                                        </ShouldRender>
                                     </div>
                                 </div>
                             </div>
@@ -224,6 +339,7 @@ AnnouncementLogs.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    monitorState: PropTypes.array,
 };
 
 const mapStateToProps = state => ({
