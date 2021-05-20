@@ -24,7 +24,6 @@ import AffectedResources from './basic/AffectedResources';
 import NewThemeEvent from './NewThemeEvent';
 import NewThemeSubscriber from './NewThemeSubscriber';
 import Announcement from './Announcement';
-import { Fragment } from 'react';
 import AnnouncementLogs from './AnnouncementLogs';
 
 const greenBackground = {
@@ -762,6 +761,7 @@ class Main extends Component {
                             this.props.statusData.projectId._id
                         }
                         statusPageId={this.props.statusData}
+                        monitorState={this.props.monitorState}
                         theme={theme}
                     />
                 </div>
@@ -1129,6 +1129,7 @@ class Main extends Component {
                             this.props.statusData.projectId._id
                         }
                         statusPageId={this.props.statusData}
+                        monitorState={this.props.monitorState}
                     />
                 </div>
             ),

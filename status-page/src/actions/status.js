@@ -1169,7 +1169,7 @@ export function fetchAnnouncementLogs(
 ) {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}`
+            `statusPage/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}&theme=${true}`
         );
         dispatch(fetchAnnouncementLogsRequest());
         promise.then(
