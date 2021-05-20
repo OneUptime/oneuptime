@@ -385,7 +385,7 @@ module.exports = {
                             phone: data.companyPhoneNumber,
                             company: data.companyName,
                             jobRole: data.companyRole,
-                            source: data.source,
+                            source: JSON.stringify(data.source),
                             createdAt,
                         });
                     } catch (error) {
