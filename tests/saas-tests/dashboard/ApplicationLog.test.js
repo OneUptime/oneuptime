@@ -120,7 +120,7 @@ describe('Log Containers', () => {
         'Should create new resource category then redirect to application log page to create a container under that',
         async done => {
             const categoryName = 'Random-Category';
-            const appLogName = `${applicationLogName}-sample`;
+            const appLogName = utils.generateRandomString();
             // create a new resource category
             await init.addResourceCategory(categoryName, page);
             //navigate to component details
@@ -145,7 +145,7 @@ describe('Log Containers', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let spanElement = await page.$(`#${appLogName}-badge`);
+            let spanElement = await init.pageWaitForSelector(page,`#${appLogName}-badge`);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -154,83 +154,83 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
-    // test(
-    //     'Should not create new log container',
-    //     async done => {
-    //         // Navigate to Component details
-    //         await init.navigateToComponentDetails(componentName, page);
-    //         await init.pageWaitForSelector(page, '#logs');
-    //         await init.pageClick(page, '#logs');
+    test(
+        'Should not create new log container',
+        async done => {
+            // Navigate to Component details
+            await init.navigateToComponentDetails(componentName, page);
+            await init.pageWaitForSelector(page, '#logs');
+            await init.pageClick(page, '#logs');
 
-    //         // Fill and submit New Application  log form
-    //         await init.pageWaitForSelector(page, '#form-new-application-log');
-    //         await init.pageWaitForSelector(page, 'input[id=name]', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageClick(page, 'input[id=name]');
-    //         await page.focus('input[id=name]');
-    //         await init.pageType(page, 'input[id=name]', '');
-    //         await init.pageClick(page, 'button[type=submit]');
+            // Fill and submit New Application  log form
+            await init.pageWaitForSelector(page, '#form-new-application-log');
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, 'input[id=name]');
+            await page.focus('input[id=name]');
+            await init.pageType(page, 'input[id=name]', '');
+            await init.pageClick(page, 'button[type=submit]');
 
-    //         await init.pageWaitForSelector(
-    //             page,
-    //             '#form-new-application-log span#field-error',
-    //             { visible: true, timeout: init.timeout }
-    //         );
-    //         let spanElement = await page.$(
-    //             '#form-new-application-log span#field-error'
-    //         );
-    //         spanElement = await spanElement.getProperty('innerText');
-    //         spanElement = await spanElement.jsonValue();
-    //         spanElement.should.be.exactly('This field cannot be left blank');
+            await init.pageWaitForSelector(
+                page,
+                '#form-new-application-log span#field-error',
+                { visible: true, timeout: init.timeout }
+            );
+            let spanElement = await page.$(
+                '#form-new-application-log span#field-error'
+            );
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            spanElement.should.be.exactly('This field cannot be left blank');
 
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
-    // test(
-    //     'Should open details page of created log container',
-    //     async done => {
-    //         await init.navigateToApplicationLogDetails(
-    //             componentName,
-    //             applicationLogName,
-    //             page
-    //         );
+            done();
+        },
+        operationTimeOut
+    );
+    test(
+        'Should open details page of created log container',
+        async done => {
+            await init.navigateToApplicationLogDetails(
+                componentName,
+                applicationLogName,
+                page
+            );
 
-    //         let spanElement = await init.pageWaitForSelector(
-    //             page,
-    //             `#application-log-title-${applicationLogName}`
-    //         );
-    //         spanElement = await spanElement.getProperty('innerText');
-    //         spanElement = await spanElement.jsonValue();
-    //         spanElement.should.be.exactly(applicationLogName);
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                `#application-log-title-${applicationLogName}`
+            );
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            spanElement.should.be.exactly(applicationLogName);
 
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
-    // test(
-    //     'Should display warning for empty log container',
-    //     async done => {
-    //         // goto thee details page
-    //         await init.navigateToApplicationLogDetails(
-    //             componentName,
-    //             applicationLogName,
-    //             page
-    //         );
+            done();
+        },
+        operationTimeOut
+    );
+    test(
+        'Should display warning for empty log container',
+        async done => {
+            // goto thee details page
+            await init.navigateToApplicationLogDetails(
+                componentName,
+                applicationLogName,
+                page
+            );
 
-    //         // get the error element, Expect it to be defined
-    //         const errorElement = await init.pageWaitForSelector(
-    //             page,
-    //             `#${applicationLogName}-no-log-warning`
-    //         );
-    //         expect(errorElement).toBeDefined();
+            // get the error element, Expect it to be defined
+            const errorElement = await init.pageWaitForSelector(
+                page,
+                `#${applicationLogName}-no-log-warning`
+            );
+            expect(errorElement).toBeDefined();
 
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+            done();
+        },
+        operationTimeOut
+    );
     // test(
     //     'Should filter log container by selected log type',
     //     async done => {
@@ -249,9 +249,8 @@ describe('Log Containers', () => {
     //         await init.pageClick(page, `#filter_${applicationLogName}`);
 
     //         // select the drop down and confirm the current value as all
-    //         let logTypeElement = await init.pageWaitForSelector(
-    //             page,
-    //             'input[name=log_type_selector]'
+    //         let logTypeElement = await init.pageWaitForSelector(                
+    //             page, 'input[name=log_type_selector]', { hidden : true }
     //         );
     //         logTypeElement = await logTypeElement.getProperty('value');
 
@@ -268,7 +267,7 @@ describe('Log Containers', () => {
     //         // confim that thee drop down current value is warning
     //         logTypeElement = await init.pageWaitForSelector(
     //             page,
-    //             'input[name=log_type_selector]'
+    //             'input[name=log_type_selector]', { hidden : true }
     //         );
     //         logTypeElement = await logTypeElement.getProperty('value');
 
@@ -282,7 +281,7 @@ describe('Log Containers', () => {
     //         // confim that thee drop down current value is info
     //         logTypeElement = await init.pageWaitForSelector(
     //             page,
-    //             'input[name=log_type_selector]'
+    //             'input[name=log_type_selector]', { hidden : true }
     //         );
     //         logTypeElement = await logTypeElement.getProperty('value');
 
@@ -299,7 +298,7 @@ describe('Log Containers', () => {
     //         // confim that thee drop down current value is error
     //         logTypeElement = await init.pageWaitForSelector(
     //             page,
-    //             'input[name=log_type_selector]'
+    //             'input[name=log_type_selector]', { hidden : true }
     //         );
     //         logTypeElement = await logTypeElement.getProperty('value');
 
@@ -313,7 +312,7 @@ describe('Log Containers', () => {
     //         // confim that thee drop down current value is all
     //         logTypeElement = await init.pageWaitForSelector(
     //             page,
-    //             'input[name=log_type_selector]'
+    //             'input[name=log_type_selector]', { hidden : true }
     //         );
     //         logTypeElement = await logTypeElement.getProperty('value');
 

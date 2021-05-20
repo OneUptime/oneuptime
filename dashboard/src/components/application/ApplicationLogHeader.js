@@ -246,7 +246,7 @@ class ApplicationLogHeader extends Component {
                                             onChange={handleLogTypeChange}
                                             placeholder="Log Type"
                                             className="db-select-pr"
-                                            id="log_type_selector"
+                                            inputId="log_type_selector"
                                             isDisabled={
                                                 !(
                                                     applicationLog &&
