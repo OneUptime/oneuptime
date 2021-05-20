@@ -10,6 +10,7 @@ import NewApplicationLog from '../components/application/NewApplicationLog';
 import getParentRoute from '../utils/getParentRoute';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { fetchApplicationLogs } from '../actions/applicationLog';
+import { fetchComponent } from '../actions/component';
 import { bindActionCreators } from 'redux';
 import { logEvent } from '../analytics';
 import { loadPage } from '../actions/page';
@@ -33,14 +34,33 @@ class ApplicationLog extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINER LIST'
             );
         }
+        const { currentProject, fetchComponent, componentSlug } = this.props;
+        if (currentProject) {
+            fetchComponent(currentProject._id, componentSlug);
+        }
+    }
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps.currentProject !== this.props.currentProject ||
+            prevProps.componentSlug !== this.props.componentSlug
+        ) {
+            const {
+                currentProject,
+                fetchComponent,
+                componentSlug,
+            } = this.props;
+            if (currentProject) {
+                fetchComponent(currentProject._id, componentSlug);
+            }
+        }
     }
     ready = () => {
         const componentId = this.props.componentId;
-        const projectId = this.props.currentProject
-            ? this.props.currentProject._id
-            : null;
-
-        this.props.fetchApplicationLogs(projectId, componentId);
+        const projectId =
+            this.props.currentProject && this.props.currentProject._id;
+        if (projectId && componentId) {
+            this.props.fetchApplicationLogs(projectId, componentId);
+        }
     };
     componentWillUnmount() {
         socket.removeListener(`createApplicationLog-${this.props.componentId}`);
@@ -148,11 +168,13 @@ const mapDispatchToProps = dispatch => {
         {
             fetchApplicationLogs,
             loadPage,
+            fetchComponent,
         },
         dispatch
     );
 };
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
+    const { componentSlug } = props.match.params;
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const applicationLog = state.applicationLog.applicationLogsList;
@@ -179,9 +201,7 @@ const mapStateToProps = state => {
             state.component.currentComponent.component._id,
         component:
             state.component && state.component.currentComponent.component,
-        componentSlug:
-            state.component.currentComponent.component &&
-            state.component.currentComponent.component.slug,
+        componentSlug,
         applicationLog,
         currentProject,
         tutorialStat,
@@ -201,6 +221,7 @@ ApplicationLog.propTypes = {
     componentId: PropTypes.string,
     componentSlug: PropTypes.string,
     loadPage: PropTypes.func,
+    fetchComponent: PropTypes.func,
     fetchApplicationLogs: PropTypes.func,
     currentProject: PropTypes.oneOfType([
         PropTypes.object,

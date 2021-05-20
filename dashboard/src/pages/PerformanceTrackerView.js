@@ -43,15 +43,18 @@ class PerformanceTrackerView extends Component {
             currentProject,
             performanceTrackerSlug,
             fetchPerformanceTracker,
+            fetchComponent,
             performanceTracker,
             updateTimeMetrics,
             updateThroughputMetrics,
             updateErrorMetrics,
+            componentSlug,
         } = this.props;
         if (
-            JSON.stringify(prevProps.currentProject) !==
-            JSON.stringify(currentProject)
+            prevProps.currentProject !== this.props.currentProject ||
+            prevProps.componentSlug !== this.props.componentSlug
         ) {
+            currentProject && fetchComponent(currentProject._id, componentSlug);
             currentProject &&
                 fetchPerformanceTracker({
                     projectId: currentProject._id,
@@ -105,7 +108,7 @@ class PerformanceTrackerView extends Component {
             );
         }
 
-        fetchComponent(componentSlug);
+        currentProject && fetchComponent(currentProject._id, componentSlug);
         currentProject &&
             fetchPerformanceTracker({
                 projectId: currentProject._id,

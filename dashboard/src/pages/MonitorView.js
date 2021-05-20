@@ -76,6 +76,22 @@ class MonitorView extends React.Component {
 
     componentDidUpdate(prevProps) {
         const { monitor } = this.props;
+        if (
+            String(prevProps.componentSlug) !==
+                String(this.props.componentSlug) ||
+            prevProps.currentProject !== this.props.currentProject
+        ) {
+            if (
+                this.props.currentProject &&
+                this.props.currentProject._id &&
+                this.props.componentSlug
+            ) {
+                this.props.fetchComponent(
+                    this.props.currentProject._id,
+                    this.props.componentSlug
+                );
+            }
+        }
         if (monitor && String(prevProps.monitor._id) !== String(monitor._id)) {
             const subProjectId = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId
