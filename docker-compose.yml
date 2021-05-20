@@ -144,6 +144,8 @@ services:
 
     init-script:
         build: ./init-script
+        ports:
+            - '1447:1447'
         env_file:
             - ./init-script/.env
         environment:

@@ -57,20 +57,12 @@ describe('Project', () => {
                 elem[0].click();
             });
 
-            await init.pageWaitForSelector(
-                page,
-                '#Enterprise',
-                {
-                    visible: true,
-                    timeout: init.timeout,
-                }
-            );
+            await init.pageWaitForSelector(page, '#Enterprise', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
-            await init.page$Eval(
-                page,
-                '#Enterprise',
-                elem => elem.click()
-            );
+            await init.page$Eval(page, '#Enterprise', elem => elem.click());
             await init.page$Eval(page, '#submitChangePlan', elem =>
                 elem.click()
             );

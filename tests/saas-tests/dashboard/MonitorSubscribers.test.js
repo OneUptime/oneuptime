@@ -74,7 +74,10 @@ describe('Monitor Detail API', () => {
             const createdSubscriberSelector = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
-            const subscriberRows = await init.page$$(page, createdSubscriberSelector);
+            const subscriberRows = await init.page$$(
+                page,
+                createdSubscriberSelector
+            );
             const countSubscribers = subscriberRows.length;
             expect(countSubscribers).toEqual(3);
             done();
@@ -153,7 +156,10 @@ describe('Monitor Detail API', () => {
             const createdSubscriberSelector = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
-            const subscriberRows = await init.page$$(page, createdSubscriberSelector);
+            const subscriberRows = await init.page$$(
+                page,
+                createdSubscriberSelector
+            );
             const countSubscribers = subscriberRows.length;
             expect(countSubscribers).toEqual(3);
             done();
@@ -193,7 +199,10 @@ describe('Monitor Detail API', () => {
             const createdSubscriberSelector = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
-            const subscriberRows = await init.page$$(page, createdSubscriberSelector);
+            const subscriberRows = await init.page$$(
+                page,
+                createdSubscriberSelector
+            );
             const countSubscribers = subscriberRows.length;
             expect(countSubscribers).toEqual(4);
             done();

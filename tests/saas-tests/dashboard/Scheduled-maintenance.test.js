@@ -202,7 +202,10 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let link = await init.page$(page, '#publicStatusPageUrl > span > a');
+            let link = await init.page$(
+                page,
+                '#publicStatusPageUrl > span > a'
+            );
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
@@ -338,7 +341,10 @@ describe('Check scheduled maintenace', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let link = await init.page$(page, '#publicStatusPageUrl > span > a');
+            let link = await init.page$(
+                page,
+                '#publicStatusPageUrl > span > a'
+            );
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);

@@ -248,7 +248,8 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const element = await init.page$(page, 
+            const element = await init.page$(
+                page,
                 `#accountSwitcher > div[title=${newProjectName}]`
             );
             element.click();
@@ -256,10 +257,16 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const projectStatusPages = await init.page$(page, '#statusPageTable');
+            const projectStatusPages = await init.page$(
+                page,
+                '#statusPageTable'
+            );
             expect(projectStatusPages).toEqual(null);
 
-            const subProjectStatusPages = await init.page$(page, '#statusPageTable_0');
+            const subProjectStatusPages = await init.page$(
+                page,
+                '#statusPageTable_0'
+            );
             expect(subProjectStatusPages).not.toEqual(null);
             done();
         },
@@ -280,7 +287,8 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const element = await init.page$(page, 
+            const element = await init.page$(
+                page,
                 `#accountSwitcher > div[title=${newProjectName}]`
             );
             element.click();
@@ -288,10 +296,16 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const projectStatusPages = await init.page$(page, '#statusPageTable');
+            const projectStatusPages = await init.page$(
+                page,
+                '#statusPageTable'
+            );
             expect(projectStatusPages).not.toEqual(null);
 
-            const subProjectStatusPages = await init.page$(page, '#statusPageTable_0');
+            const subProjectStatusPages = await init.page$(
+                page,
+                '#statusPageTable_0'
+            );
             expect(subProjectStatusPages).not.toEqual(null);
             done();
         },
@@ -310,7 +324,8 @@ describe('Sub-Project API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        const element = await init.page$(page, 
+        const element = await init.page$(
+            page,
             `#accountSwitcher > div[title=${newProjectName}]`
         );
         element.click();

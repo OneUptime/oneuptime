@@ -138,7 +138,8 @@ describe('Incident Timeline API', () => {
                     timeout: init.timeout,
                 }
             );
-            const investigationMessage = await init.page$(page, 
+            const investigationMessage = await init.page$(
+                page,
                 `#content_${type}_incident_message_0`
             );
             let messageContent = await investigationMessage.getProperty(
@@ -203,7 +204,8 @@ describe('Incident Timeline API', () => {
                     timeout: init.timeout,
                 }
             );
-            const investigationMessage = await init.page$(page, 
+            const investigationMessage = await init.page$(
+                page,
                 `#content_${type}_incident_message_0`
             );
             let messageContent = await investigationMessage.getProperty(
@@ -271,7 +273,8 @@ describe('Incident Timeline API', () => {
                     timeout: init.timeout,
                 }
             );
-            const incidentMessage = await init.page$(page, 
+            const incidentMessage = await init.page$(
+                page,
                 `#content_${type}_incident_message_0`
             );
             let messageContent = await incidentMessage.getProperty('innerText');
@@ -340,7 +343,8 @@ describe('Incident Timeline API', () => {
                     timeout: init.timeout,
                 }
             );
-            const incidentMessage = await init.page$(page, 
+            const incidentMessage = await init.page$(
+                page,
                 `#content_${type}_incident_message_0`
             );
             let messageContent = await incidentMessage.getProperty('innerText');
@@ -386,7 +390,8 @@ describe('Incident Timeline API', () => {
                 hidden: true,
             });
 
-            const incidentMessage = await init.page$(page, 
+            const incidentMessage = await init.page$(
+                page,
                 `#content_${type}_incident_message_0`
             );
             expect(incidentMessage).toEqual(null);
@@ -450,7 +455,10 @@ describe('Incident Timeline API', () => {
 
             //Incident Timeline is now directly below 'BASIC' tab and it does not have 'Prev' and 'Next' button.
             await init.pageWaitForSelector(page, '.internal-list');
-            const incidentTimelineRow = await init.page$$(page, '.internal-list');
+            const incidentTimelineRow = await init.page$$(
+                page,
+                '.internal-list'
+            );
             const countIncidentTimelines = incidentTimelineRow.length;
             expect(countIncidentTimelines).toEqual(11); // An internal mesage has been exist in the previous test
         },
@@ -486,7 +494,10 @@ describe('Incident Timeline API', () => {
             await page.reload({ waitUntil: 'networkidle0' });
             // Incident Timeline Tab Does Not Exist Anymore
             await init.pageWaitForSelector(page, '.internal-list');
-            const incidentTimelineRows = await init.page$$(page, '.internal-list');
+            const incidentTimelineRows = await init.page$$(
+                page,
+                '.internal-list'
+            );
             const countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(11);
         },
@@ -519,7 +530,10 @@ describe('Incident Timeline API', () => {
             await init.pageWaitForSelector(page, '#ResolveText_0');
             // Incident Timeline Tab Does Not Exist Anymore
             await init.pageWaitForSelector(page, '.internal-list');
-            const incidentTimelineRows = await init.page$$(page, '.internal-list');
+            const incidentTimelineRows = await init.page$$(
+                page,
+                '.internal-list'
+            );
             const countIncidentTimelines = incidentTimelineRows.length;
             expect(countIncidentTimelines).toEqual(11);
         },

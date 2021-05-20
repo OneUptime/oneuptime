@@ -45,7 +45,8 @@ describe('Stripe cards API', () => {
                     timeout: operationTimeOut,
                 }
             );
-            const stripeIframe = await init.page$(page, 
+            const stripeIframe = await init.page$(
+                page,
                 '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]'
             );
             const frame = await stripeIframe.contentFrame();
@@ -148,7 +149,8 @@ describe('Stripe cards API', () => {
                     timeout: operationTimeOut,
                 }
             );
-            const stripeIframe = await init.page$(page, 
+            const stripeIframe = await init.page$(
+                page,
                 '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]'
             );
 

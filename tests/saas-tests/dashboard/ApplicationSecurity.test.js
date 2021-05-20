@@ -110,7 +110,10 @@ describe('Application Security Page', () => {
             expect(editApplicationElement).toBeDefined();
 
             // confirm the category shows in the details page.
-            let spanElement = await init.page$(page, `#${applicationSecurityName}-badge`);
+            let spanElement = await init.page$(
+                page,
+                `#${applicationSecurityName}-badge`
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());

@@ -76,7 +76,10 @@ describe('Monitor API With SubProjects', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#components');
-            const newComponentForm = await init.page$(page, '#form-new-component');
+            const newComponentForm = await init.page$(
+                page,
+                '#form-new-component'
+            );
             expect(newComponentForm).toEqual(null);
 
             const newMonitorForm = await init.page$(page, '#form-new-monitor');
@@ -180,7 +183,10 @@ describe('Monitor API With SubProjects', () => {
             });
             await init.pageClick(page, '#components');
 
-            const projectBadgeSelector = await init.page$(page, `#badge_${projectName}`);
+            const projectBadgeSelector = await init.page$(
+                page,
+                `#badge_${projectName}`
+            );
 
             expect(projectBadgeSelector).toEqual(null);
 
@@ -188,7 +194,8 @@ describe('Monitor API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const subProjectBadgeSelector = await init.page$(page, 
+            const subProjectBadgeSelector = await init.page$(
+                page,
                 `#badge_${subProjectName}`
             );
             let textContent = await subProjectBadgeSelector.getProperty(
@@ -252,7 +259,8 @@ describe('Monitor API With SubProjects', () => {
             });
             await init.pageClick(page, '#cbMonitors');
             await init.pageWaitForSelector(page, `#badge_${subProjectName}`);
-            const subProjectBadgeSelector = await init.page$(page, 
+            const subProjectBadgeSelector = await init.page$(
+                page,
                 `#badge_${subProjectName}`
             );
 

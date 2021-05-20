@@ -164,7 +164,10 @@ describe('Status-Page Advanced Options', () => {
             await init.pageClick(page, '#btnAddStatusPageMonitors');
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
-            let link = await init.page$(page, '#publicStatusPageUrl > span > a');
+            let link = await init.page$(
+                page,
+                '#publicStatusPageUrl > span > a'
+            );
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
@@ -317,7 +320,10 @@ describe('Status-Page Advanced Options', () => {
             await init.pageClick(page, '#saveAdvancedOptions');
 
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
-            let link = await init.page$(page, '#publicStatusPageUrl > span > a');
+            let link = await init.page$(
+                page,
+                '#publicStatusPageUrl > span > a'
+            );
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);

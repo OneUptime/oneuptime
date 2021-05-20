@@ -98,7 +98,8 @@ describe('Project API', () => {
                 timeout: init.timeout,
             });
 
-            const element = await init.page$(page, 
+            const element = await init.page$(
+                page,
                 '#accountSwitcher > div[title="Unnamed Project"]'
             );
 

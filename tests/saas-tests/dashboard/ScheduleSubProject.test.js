@@ -78,7 +78,8 @@ describe('Schedule API With SubProjects', () => {
             await init.pageWaitForSelector(page, '#onCallDuty');
             await init.pageClick(page, '#onCallDuty');
 
-            const createButton = await init.page$(page, 
+            const createButton = await init.page$(
+                page,
                 `#btnCreateSchedule_${subProjectName}`
             );
 

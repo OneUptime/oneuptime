@@ -1049,7 +1049,8 @@ describe('Monitor Detail API', () => {
                 }
             );
 
-            const lighthouseLogsRows = await init.page$$(page, 
+            const lighthouseLogsRows = await init.page$$(
+                page,
                 createdLighthouseLogsSelector
             );
             const countLighthouseLogs = lighthouseLogsRows.length;
@@ -1089,7 +1090,8 @@ describe('Monitor Detail API', () => {
             const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
             await init.pageWaitForSelector(page, createdLighthouseLogsSelector);
 
-            const lighthouseLogsRows = await init.page$$(page, 
+            const lighthouseLogsRows = await init.page$$(
+                page,
                 createdLighthouseLogsSelector
             );
             const countLighthouseLogs = lighthouseLogsRows.length;
@@ -1129,7 +1131,8 @@ describe('Monitor Detail API', () => {
             const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
             await init.pageWaitForSelector(page, createdLighthouseLogsSelector);
 
-            const lighthouseLogsRows = await init.page$$(page, 
+            const lighthouseLogsRows = await init.page$$(
+                page,
                 createdLighthouseLogsSelector
             );
             const countLighthouseLogs = lighthouseLogsRows.length;
@@ -1286,7 +1289,10 @@ describe('Monitor Detail API', () => {
                 '#performance #websiteIssuesList > tbody >tr.websiteIssuesListItem';
             await init.pageWaitForSelector(page, websiteIssuesSelector);
 
-            const websiteIssuesRows = await init.page$$(page, websiteIssuesSelector);
+            const websiteIssuesRows = await init.page$$(
+                page,
+                websiteIssuesSelector
+            );
             const countWebsiteIssues = websiteIssuesRows.length;
 
             expect(countWebsiteIssues).toBeGreaterThanOrEqual(1);

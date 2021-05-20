@@ -347,7 +347,10 @@ describe('Status Page', () => {
             await gotoTheFirstStatusPage(page);
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await init.page$(page, '#publicStatusPageUrl > span > a');
+            let link = await init.page$(
+                page,
+                '#publicStatusPageUrl > span > a'
+            );
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
@@ -722,7 +725,10 @@ describe('Status Page', () => {
             await init.pageClick(page, '#react-tabs-2');
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await init.page$(page, '#publicStatusPageUrl > span > a');
+            let link = await init.page$(
+                page,
+                '#publicStatusPageUrl > span > a'
+            );
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
@@ -762,7 +768,10 @@ describe('Status Page', () => {
             await init.pageClick(page, '#react-tabs-2');
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await init.page$(page, '#publicStatusPageUrl > span > a');
+            let link = await init.page$(
+                page,
+                '#publicStatusPageUrl > span > a'
+            );
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);

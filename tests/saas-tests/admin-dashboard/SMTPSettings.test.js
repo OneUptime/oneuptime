@@ -68,7 +68,9 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             // All fields should validate false
-            expect((await init.page$$(page, 'span.field-error')).length).toEqual(
+            expect(
+                (await init.page$$(page, 'span.field-error')).length
+            ).toEqual(
                 (await init.page$$(page, 'input')).length -
                     4 /** There 10 input values and 6 span-errors */
             );

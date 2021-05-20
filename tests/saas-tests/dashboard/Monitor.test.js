@@ -182,7 +182,8 @@ describe('Monitor API', () => {
 
         // add up criterion
         expect(
-            (await init.page$$(page, '[data-testId^=single_criterion_up')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_up'))
+                .length
         ).toEqual(1);
 
         let criterionAdvancedOption = await init.pageWaitForSelector(
@@ -193,37 +194,52 @@ describe('Monitor API', () => {
 
         await init.pageClick(page, '[data-testId=add_criteria_up]');
         expect(
-            (await init.page$$(page, '[data-testId^=single_criterion_up')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_up'))
+                .length
         ).toEqual(2);
 
         // add degraded criterion
         expect(
-            (await init.page$$(page, '[data-testId^=single_criterion_degraded]')).length
+            (
+                await init.page$$(
+                    page,
+                    '[data-testId^=single_criterion_degraded]'
+                )
+            ).length
         ).toEqual(1);
 
-        criterionAdvancedOption = await init.page$(page, 
+        criterionAdvancedOption = await init.page$(
+            page,
             '[data-testId=criterionAdvancedOptions_degraded]'
         );
         await criterionAdvancedOption.click();
 
         await init.pageClick(page, '[data-testId=add_criteria_degraded]');
         expect(
-            (await init.page$$(page, '[data-testId^=single_criterion_degraded]')).length
+            (
+                await init.page$$(
+                    page,
+                    '[data-testId^=single_criterion_degraded]'
+                )
+            ).length
         ).toEqual(2);
 
         // add down criterion
-        criterionAdvancedOption = await init.page$(page, 
+        criterionAdvancedOption = await init.page$(
+            page,
             '[data-testId=criterionAdvancedOptions_down]'
         );
         await criterionAdvancedOption.click();
 
         expect(
-            (await init.page$$(page, '[data-testId^=single_criterion_down]')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_down]'))
+                .length
         ).toEqual(1);
 
         await init.pageClick(page, '[data-testId=add_criteria_down]');
         expect(
-            (await init.page$$(page, '[data-testId^=single_criterion_down]')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_down]'))
+                .length
         ).toEqual(2);
 
         // add the monitor and check if the criteria are persisted
@@ -245,7 +261,8 @@ describe('Monitor API', () => {
             '[data-testId^=single_criterion_up]'
         );
         expect(
-            (await init.page$$(page, '[data-testId^=single_criterion_up')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_up'))
+                .length
         ).toEqual(2);
 
         // for degraded criteria
@@ -254,7 +271,12 @@ describe('Monitor API', () => {
             '[data-testId^=single_criterion_degraded]'
         );
         expect(
-            (await init.page$$(page, '[data-testId^=single_criterion_degraded]')).length
+            (
+                await init.page$$(
+                    page,
+                    '[data-testId^=single_criterion_degraded]'
+                )
+            ).length
         ).toEqual(2);
         // for down criteria
         await init.pageWaitForSelector(
@@ -262,7 +284,8 @@ describe('Monitor API', () => {
             '[data-testId^=single_criterion_down]'
         );
         expect(
-            (await init.page$$(page, '[data-testId^=single_criterion_down]')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_down]'))
+                .length
         ).toEqual(2);
         done();
     });
@@ -1000,7 +1023,8 @@ describe('API Monitor API', () => {
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
-                let monitorStatusElement = await init.page$(page, 
+                let monitorStatusElement = await init.page$(
+                    page,
                     `#monitor-status-${testMonitorName}`
                 );
                 if (monitorStatusElement) {
@@ -1038,7 +1062,8 @@ describe('API Monitor API', () => {
             await init.pageClick(page, '#advanceOptions');
 
             // for online criteria
-            const upFields = await init.page$$(page, 
+            const upFields = await init.page$$(
+                page,
                 `input[name*="up_"][name*=".field1"]`
             );
             const lastUpField = upFields[upFields.length - 1];
@@ -1049,7 +1074,8 @@ describe('API Monitor API', () => {
             expect(upExpression).toEqual("response.body.status === 'ok'");
 
             // for degraded criteria
-            const degradedFields = await init.page$$(page, 
+            const degradedFields = await init.page$$(
+                page,
                 `input[name*="degraded_"][name*=".field1"]`
             );
             const lastDegradedField = degradedFields[degradedFields.length - 1];
@@ -1105,7 +1131,8 @@ describe('API Monitor API', () => {
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
-                let monitorStatusElement = await init.page$(page, 
+                let monitorStatusElement = await init.page$(
+                    page,
                     `#monitor-status-${testMonitorName}`
                 );
                 if (monitorStatusElement) {
@@ -1165,7 +1192,8 @@ describe('API Monitor API', () => {
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
-                let monitorStatusElement = await init.page$(page, 
+                let monitorStatusElement = await init.page$(
+                    page,
                     `#monitor-status-${testMonitorName}`
                 );
                 if (monitorStatusElement) {
@@ -1222,7 +1250,8 @@ describe('API Monitor API', () => {
         for (const probeTab of probeTabs) {
             await probeTab.click();
 
-            let monitorStatusElement = await init.page$(page, 
+            let monitorStatusElement = await init.page$(
+                page,
                 `#monitor-status-${testMonitorName}`
             );
             if (monitorStatusElement) {

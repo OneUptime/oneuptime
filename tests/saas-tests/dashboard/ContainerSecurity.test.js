@@ -117,7 +117,10 @@ describe('Container Security Page', () => {
             expect(editContainerElement).toBeDefined();
 
             // confirm the category shows in the details page.
-            let spanElement = await init.page$(page, `#${containerSecurityName}-badge`);
+            let spanElement = await init.page$(
+                page,
+                `#${containerSecurityName}-badge`
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());

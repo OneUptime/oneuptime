@@ -183,7 +183,8 @@ describe('Log Containers', () => {
                 '#form-new-application-log span#field-error',
                 { visible: true, timeout: init.timeout }
             );
-            let spanElement = await init.page$(page, 
+            let spanElement = await init.page$(
+                page,
                 '#form-new-application-log span#field-error'
             );
             spanElement = await spanElement.getProperty('innerText');
@@ -604,7 +605,10 @@ describe('Log Containers', () => {
                 }
             );
             // confirm the new category shows in the details page.
-            let spanElement = await init.page$(page, `#${applicationLogName}-new-badge`);
+            let spanElement = await init.page$(
+                page,
+                `#${applicationLogName}-new-badge`
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -625,7 +629,10 @@ describe('Log Containers', () => {
                 page
             );
 
-            let spanElement = await init.page$(page, `#${applicationLogName}-new-badge`);
+            let spanElement = await init.page$(
+                page,
+                `#${applicationLogName}-new-badge`
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -648,7 +655,8 @@ describe('Log Containers', () => {
             await init.pageClick(page, '#deleteResourceCategory');
 
             // go back to log details and confirm it is not there anymore
-            const spanElementBadge = await init.page$(page, 
+            const spanElementBadge = await init.page$(
+                page,
                 `#${applicationLogName}-new-badge`,
                 { hidden: true }
             );

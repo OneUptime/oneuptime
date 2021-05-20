@@ -81,7 +81,8 @@ describe('StatusPage API With SubProjects', () => {
             await init.pageWaitForSelector(page, '#statusPages');
             await init.pageClick(page, '#statusPages');
 
-            const createButton = await init.page$(page, 
+            const createButton = await init.page$(
+                page,
                 `#btnCreateStatusPage_${subProjectName}`
             );
 
@@ -116,7 +117,8 @@ describe('StatusPage API With SubProjects', () => {
                 `#status_page_count_${subProjectName}`
             );
 
-            const statusPageCountSelector = await init.page$(page, 
+            const statusPageCountSelector = await init.page$(
+                page,
                 `#status_page_count_${subProjectName}`
             );
             let textContent = await statusPageCountSelector.getProperty(
@@ -175,7 +177,10 @@ describe('StatusPage API With SubProjects', () => {
             await page.reload({ waitUntil: 'networkidle2' });
             await init.pageWaitForSelector(page, 'tr.statusPageListItem');
 
-            let statusPageRows = await init.page$$(page, 'tr.statusPageListItem');
+            let statusPageRows = await init.page$$(
+                page,
+                'tr.statusPageListItem'
+            );
             let countStatusPages = statusPageRows.length;
 
             expect(countStatusPages).toEqual(10);
@@ -280,7 +285,10 @@ describe('StatusPage API With SubProjects', () => {
             await init.pageClick(page, '#statusPages');
 
             await init.pageWaitForSelector(page, 'tr.statusPageListItem');
-            const statusPageRows = await init.page$$(page, 'tr.statusPageListItem');
+            const statusPageRows = await init.page$$(
+                page,
+                'tr.statusPageListItem'
+            );
             const countStatusPages = statusPageRows.length;
 
             expect(countStatusPages).toEqual(10);

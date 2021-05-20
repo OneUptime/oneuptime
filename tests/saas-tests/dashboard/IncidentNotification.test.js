@@ -179,7 +179,8 @@ describe('Incident Created test', () => {
             await init.loginUser(user1, page);
             // Switch projects
             await init.switchProject(projectName, page);
-            const viewIncidentButton = await init.page$(page, 
+            const viewIncidentButton = await init.page$(
+                page,
                 'button[id=viewIncident-0]'
             );
             expect(viewIncidentButton).toBe(null);
@@ -216,7 +217,8 @@ describe('Incident Created test', () => {
             await init.loginUser(user1, page);
             // Switch projects
             await init.switchProject(projectName, page);
-            const viewIncidentButton = await init.page$(page, 
+            const viewIncidentButton = await init.page$(
+                page,
                 'button[id=viewIncident-0]'
             );
             expect(viewIncidentButton).toBe(null);
@@ -310,7 +312,8 @@ describe('Incident Created test', () => {
             await page.goto(utils.DASHBOARD_URL);
             await init.switchProject(projectName, page);
 
-            const viewIncidentButton = await init.page$(page, 
+            const viewIncidentButton = await init.page$(
+                page,
                 'button[id=viewIncident-0]'
             );
             expect(viewIncidentButton).toBeDefined();
@@ -326,7 +329,10 @@ describe('Incident Created test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let activeIncidents = await init.page$(page, 'span#activeIncidentsText');
+            let activeIncidents = await init.page$(
+                page,
+                'span#activeIncidentsText'
+            );
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
             expect(activeIncidents).toEqual('2 Incidents Currently Active');
@@ -388,7 +394,10 @@ describe('Incident Created test', () => {
             );
 
             await init.pageWaitForSelector(page, 'tr.incidentListItem');
-            const filteredIncidents = await init.page$$(page, 'tr.incidentListItem');
+            const filteredIncidents = await init.page$$(
+                page,
+                'tr.incidentListItem'
+            );
             const filteredIncidentsCount = filteredIncidents.length;
 
             expect(filteredIncidentsCount).toEqual(2);
@@ -444,7 +453,10 @@ describe('Incident Created test', () => {
                 e.click()
             );
 
-            let filteredIncidents = await init.page$(page, 'span#noIncidentsInnerText');
+            let filteredIncidents = await init.page$(
+                page,
+                'span#noIncidentsInnerText'
+            );
             filteredIncidents = await filteredIncidents.getProperty(
                 'innerText'
             );
@@ -480,7 +492,10 @@ describe('Incident Created test', () => {
             await init.page$Eval(page, 'div[title=unresolved]', e => e.click());
 
             await init.pageWaitForSelector(page, 'tr.incidentListItem');
-            const filteredIncidents = await init.page$$(page, 'tr.incidentListItem');
+            const filteredIncidents = await init.page$$(
+                page,
+                'tr.incidentListItem'
+            );
             const filteredIncidentsCount = filteredIncidents.length;
 
             expect(filteredIncidentsCount).toEqual(3);
@@ -513,7 +528,10 @@ describe('Incident Created test', () => {
             await init.page$Eval(page, 'div[title=clear]', e => e.click());
 
             await init.pageWaitForSelector(page, 'tr.incidentListItem');
-            const filteredIncidents = await init.page$$(page, 'tr.incidentListItem');
+            const filteredIncidents = await init.page$$(
+                page,
+                'tr.incidentListItem'
+            );
             const filteredIncidentsCount = filteredIncidents.length;
 
             expect(filteredIncidentsCount).toEqual(5);
@@ -540,7 +558,10 @@ describe('Incident Created test', () => {
             await init.pageWaitForSelector(page, '#incidents');
             await init.page$Eval(page, '#incidents', e => e.click());
             await init.pageWaitForSelector(page, 'tr.incidentListItem');
-            const filteredIncidents = await init.page$$(page, 'tr.incidentListItem');
+            const filteredIncidents = await init.page$$(
+                page,
+                'tr.incidentListItem'
+            );
             const filteredIncidentsCount = filteredIncidents.length;
             expect(filteredIncidentsCount).toEqual(7);
         },
@@ -576,7 +597,10 @@ describe('Incident Created test', () => {
                 hidden: true,
             });
             await init.pageWaitForSelector(page, 'tr.incidentListItem');
-            const filteredIncidents = await init.page$$(page, 'tr.incidentListItem');
+            const filteredIncidents = await init.page$$(
+                page,
+                'tr.incidentListItem'
+            );
             const filteredIncidentsCount = filteredIncidents.length;
             expect(filteredIncidentsCount).toEqual(8);
         },
@@ -639,8 +663,9 @@ describe('Incident Created test', () => {
             await init.pageWaitForSelector(page, '#closeIncident_2', {
                 hidden: true,
             });
-            const rowsCount = (await init.page$$(page, '#notificationscroll button'))
-                .length;
+            const rowsCount = (
+                await init.page$$(page, '#notificationscroll button')
+            ).length;
 
             expect(rowsCount).toEqual(2);
         },

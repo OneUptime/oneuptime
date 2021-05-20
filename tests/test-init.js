@@ -59,7 +59,8 @@ const _this = {
                     timeout: _this.timeout,
                 }
             );
-            const stripeIframeElements = await _this.page$$(page, 
+            const stripeIframeElements = await _this.page$$(
+                page,
                 '.__PrivateStripeElement > iframe'
             );
 
@@ -617,7 +618,10 @@ const _this = {
         });
     },
     addSubProject: async function(subProjectName, page) {
-        const subProjectNameSelector = await _this.page$(page, '#btn_Add_SubProjects');
+        const subProjectNameSelector = await _this.page$(
+            page,
+            '#btn_Add_SubProjects'
+        );
         if (subProjectNameSelector) {
             await _this.pageWaitForSelector(page, '#btn_Add_SubProjects');
             await _this.pageClick(page, '#btn_Add_SubProjects');
@@ -870,7 +874,8 @@ const _this = {
         });
     },
     addIncidentToProject: async function(monitorName, projectName, page) {
-        const createIncidentSelector = await _this.page$(page, 
+        const createIncidentSelector = await _this.page$(
+            page,
             `#btnCreateIncident_${projectName}`,
             { visible: true, timeout: _this.timeout }
         );
@@ -935,7 +940,8 @@ const _this = {
         });
     },
     addStatusPageToProject: async function(statusPageName, projectName, page) {
-        const createStatusPageSelector = await _this.page$(page, 
+        const createStatusPageSelector = await _this.page$(
+            page,
             `#btnCreateStatusPage_${projectName}`
         );
         if (createStatusPageSelector) {
@@ -960,7 +966,8 @@ const _this = {
         });
     },
     addScheduleToProject: async function(scheduleName, projectName, page) {
-        const createStatusPageSelector = await _this.page$(page, 
+        const createStatusPageSelector = await _this.page$(
+            page,
             `#btnCreateStatusPage_${projectName}`
         );
         if (createStatusPageSelector) {
@@ -1085,7 +1092,8 @@ const _this = {
                 'iframe[name=__privateStripeFrame5]'
             );
 
-            const elementHandle = await _this.page$(page, 
+            const elementHandle = await _this.page$(
+                page,
                 'iframe[name=__privateStripeFrame5]'
             );
             const frame = await elementHandle.contentFrame();
@@ -1521,6 +1529,13 @@ const _this = {
         return await page.waitForSelector(selector, {
             ...opts,
         });
+    },
+    isElementOnPage: async function(page, selector) {
+        if (await page.$(selector)) {
+            return true;
+        } else {
+            return false;
+        }
     },
 };
 

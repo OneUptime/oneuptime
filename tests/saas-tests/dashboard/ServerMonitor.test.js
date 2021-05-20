@@ -71,7 +71,10 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let activeIncidents = await init.page$(page, 'span#activeIncidentsText');
+            let activeIncidents = await init.page$(
+                page,
+                'span#activeIncidentsText'
+            );
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
             expect(activeIncidents).toEqual('1 Incident Currently Active');
@@ -141,7 +144,10 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let activeIncidents = await init.page$(page, 'span#activeIncidentsText');
+            let activeIncidents = await init.page$(
+                page,
+                'span#activeIncidentsText'
+            );
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
             expect(activeIncidents).toEqual('No incidents currently active.');
@@ -355,7 +361,10 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let activeIncidents = await init.page$(page, 'span#activeIncidentsText');
+            let activeIncidents = await init.page$(
+                page,
+                'span#activeIncidentsText'
+            );
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
             expect(activeIncidents).toEqual('1 Incident Currently Active');
@@ -389,7 +398,10 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let activeIncidents = await init.page$(page, 'span#activeIncidentsText');
+            let activeIncidents = await init.page$(
+                page,
+                'span#activeIncidentsText'
+            );
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
             expect(activeIncidents).toEqual('No incidents currently active.');
@@ -398,7 +410,10 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            activeIncidents = await init.page$(page, 'span#activeIncidentsText');
+            activeIncidents = await init.page$(
+                page,
+                'span#activeIncidentsText'
+            );
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
             expect(activeIncidents).toEqual('1 Incident Currently Active');
