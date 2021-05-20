@@ -302,6 +302,7 @@ class Incident extends React.Component {
             history,
             scheduleWarning,
             defaultSchedule,
+            monitors,
         } = this.props;
         const slug = currentProject ? currentProject.slug : null;
         const redirectTo = `/dashboard/project/${slug}/on-call`;
@@ -335,12 +336,23 @@ class Incident extends React.Component {
                 this.props.defaultIncidentSla);
 
         let scheduleAlert;
-        if (
-            scheduleWarning.includes(monitorId) === false &&
-            defaultSchedule !== true
-        ) {
-            scheduleAlert = (
-                <div id="alertWarning" className="Box-root Margin-vertical--12">
+
+        const monitorList = monitors
+            ? monitors.map(monitor => monitor.monitorId)
+            : [];
+        const monitorWithoutSchedule = [];
+        monitorList.forEach(monitor => {
+            if (!scheduleWarning.includes(monitor._id)) {
+                monitorWithoutSchedule.push(monitor);
+            }
+        });
+        if (defaultSchedule !== true) {
+            scheduleAlert = monitorWithoutSchedule.map(monitor => (
+                <div
+                    id="alertWarning"
+                    key={monitor._id}
+                    className="Box-root Margin-vertical--12"
+                >
                     <div className="db-Trends bs-ContentSection Card-root">
                         <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
                             <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
@@ -356,9 +368,9 @@ class Incident extends React.Component {
                                         src={`${'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCAxOTEuODEyIDE5MS44MTIiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDUxMiA1MTIiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxnPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgoJPHBhdGggc3R5bGU9IiIgZD0iTTk1LjkwNiwxMjEuMDAzYzYuOTAzLDAsMTIuNS01LjU5NywxMi41LTEyLjVWNTEuNTExYzAtNi45MDQtNS41OTctMTIuNS0xMi41LTEyLjUgICBzLTEyLjUsNS41OTYtMTIuNSwxMi41djU2Ljk5M0M4My40MDYsMTE1LjQwNyw4OS4wMDMsMTIxLjAwMyw5NS45MDYsMTIxLjAwM3oiIGZpbGw9IiNmZmZmZmYiIGRhdGEtb3JpZ2luYWw9IiMxZDFkMWIiLz4KCTxwYXRoIHN0eWxlPSIiIGQ9Ik05NS45MDksMTI3LjgwN2MtMy4yOSwwLTYuNTIxLDEuMzMtOC44NDEsMy42NmMtMi4zMjksMi4zMi0zLjY1OSw1LjU0LTMuNjU5LDguODMgICBzMS4zMyw2LjUyLDMuNjU5LDguODRjMi4zMiwyLjMzLDUuNTUxLDMuNjYsOC44NDEsMy42NnM2LjUxLTEuMzMsOC44NC0zLjY2YzIuMzE5LTIuMzIsMy42Ni01LjU1LDMuNjYtOC44NHMtMS4zNDEtNi41MS0zLjY2LTguODMgICBDMTAyLjQxOSwxMjkuMTM3LDk5LjE5OSwxMjcuODA3LDk1LjkwOSwxMjcuODA3eiIgZmlsbD0iI2ZmZmZmZiIgZGF0YS1vcmlnaW5hbD0iIzFkMWQxYiIvPgoJPHBhdGggc3R5bGU9IiIgZD0iTTk1LjkwNiwwQzQzLjAyNCwwLDAsNDMuMDIzLDAsOTUuOTA2czQzLjAyMyw5NS45MDYsOTUuOTA2LDk1LjkwNnM5NS45MDUtNDMuMDIzLDk1LjkwNS05NS45MDYgICBTMTQ4Ljc4OSwwLDk1LjkwNiwweiBNOTUuOTA2LDE3Ni44MTJDNTEuMjk0LDE3Ni44MTIsMTUsMTQwLjUxOCwxNSw5NS45MDZTNTEuMjk0LDE1LDk1LjkwNiwxNSAgIGM0NC42MTEsMCw4MC45MDUsMzYuMjk0LDgwLjkwNSw4MC45MDZTMTQwLjUxOCwxNzYuODEyLDk1LjkwNiwxNzYuODEyeiIgZmlsbD0iI2ZmZmZmZiIgZGF0YS1vcmlnaW5hbD0iIzFkMWQxYiIvPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjwvZz48L3N2Zz4K'}`}
                                     />
                                     <span>
-                                        This Monitor does not have an on-call
-                                        schedule. No Team Member will be alerted
-                                        when incident is created.
+                                        The monitor {monitor.name} does not have
+                                        an on-call schedule. No Team Member will
+                                        be alerted when incident is created.
                                     </span>
                                 </span>
                                 <span>
@@ -373,7 +385,7 @@ class Incident extends React.Component {
                         </div>
                     </div>
                 </div>
-            );
+            ));
         }
 
         if (this.props.incident) {
@@ -691,6 +703,13 @@ const mapStateToProps = (state, props) => {
             monitor.monitors.find(monitor => monitor._id === monitorId)
         )
         .filter(monitor => monitor)[0];
+
+    const monitors =
+        state.incident &&
+        state.incident.incident &&
+        state.incident.incident.incident &&
+        state.incident.incident.incident.monitors;
+
     return {
         defaultSchedule,
         scheduleWarning,
@@ -721,6 +740,7 @@ const mapStateToProps = (state, props) => {
             state.incidentSla.defaultIncidentCommunicationSla.requesting,
         defaultIncidentSla:
             state.incidentSla.defaultIncidentCommunicationSla.sla,
+        monitors,
     };
 };
 
@@ -791,6 +811,7 @@ Incident.propTypes = {
     projectId: PropTypes.string,
     fetchComponent: PropTypes.func,
     requestingComponent: PropTypes.bool,
+    monitors: PropTypes.array,
 };
 
 Incident.displayName = 'Incident';
