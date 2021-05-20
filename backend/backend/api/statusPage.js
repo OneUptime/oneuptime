@@ -1392,8 +1392,8 @@ router.get(
     async function(req, res) {
         try {
             const { statusPageId } = req.params;
-            const { skip, limit } = req.query;
-            const announcementLogs = await StatusPageService.getAnnouncementLogs(
+            const { skip, limit, theme } = req.query;
+            let announcementLogs = await StatusPageService.getAnnouncementLogs(
                 {
                     statusPageId,
                 },
@@ -1404,6 +1404,15 @@ router.get(
             const count = await StatusPageService.countAnnouncementLogs({
                 statusPageId,
             });
+
+            if ((theme && typeof theme === 'boolean') || theme === 'true') {
+                const updatedLogs = [];
+                for (const log of announcementLogs) {
+                    updatedLogs.push({ ...log._doc });
+                }
+                announcementLogs = formatNotes(updatedLogs, 20);
+                announcementLogs = checkDuplicateDates(announcementLogs);
+            }
 
             return sendItemResponse(req, res, {
                 announcementLogs,
