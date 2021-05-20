@@ -81,6 +81,7 @@ export const getCookie = cName => {
 
 // Calls the API to register a user.
 export function signupUser(values) {
+    // This is basically for users redirected to fyipe
     const redirectSource = JSON.parse(getCookie('source'));
     if (redirectSource) {
         values.source = redirectSource;
