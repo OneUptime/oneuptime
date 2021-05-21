@@ -14,104 +14,34 @@ const newComponentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
 const newMonitorName = utils.generateRandomString();
 const applicationLogName = utils.generateRandomString();
+let browser, browser2, page, monitorPage;
 describe('Components', () => {
-    const operationTimeOut = init.timeout;
-
-    let browser, page;
+    const operationTimeOut = init.timeout;    
 
     beforeAll(async () => {
-        jest.setTimeout(init.timeout);
-        
+        jest.setTimeout(init.timeout);        
 
-        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-
+        browser2 = await puppeteer.launch(utils.puppeteerLaunchConfig);        
         browser = await puppeteer.launch({
             ...utils.puppeteerLaunchConfig,
-        });
-        page = await browser.newPage();
+        });      
+        monitorPage = await browser2.newPage();  
+        page = await browser.newPage();        
 
         await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page);
     });
 
-    afterAll(async () => {
+    afterAll(async (done) => {        
         await browser.close();
-        await browser.idle();
-        await browser.close();
+        await browser2.close();
+        done();
     });
 
     test(
-        'Should show indicator on how to invite new Team members since no other member exist, then goto team page ',
-        async () => {
-            // Navigate to home page
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
-            });
-            const componentBoxElement = await init.pageWaitForSelector(
-                page,
-                '#info-teamMember'
-            );
-            expect(componentBoxElement).toBeDefined();
-
-            let spanElement;
-            spanElement = await init.pageWaitForSelector(
-                page,
-                `span#box-header-teamMember`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
-            spanElement.should.be.exactly('Invite your Team');
-
-            // click on the call to action button
-            await init.pageWaitForSelector(page, '#gotoPage-teamMember');
-            await init.page$Eval(page, '#gotoPage-teamMember', e => e.click());
-
-            const componentFormElement = await init.pageWaitForSelector(
-                page,
-                `#teamMemberPage`
-            );
-            expect(componentFormElement).toBeDefined();
-        },
-        operationTimeOut
-    );
-    test(
-        'Should show indicator on how to create a component since no component exist, then goto component creation ',
-        async () => {
-            // Navigate to home page
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
-            });
-            const componentBoxElement = await init.pageWaitForSelector(
-                page,
-                '#info-component'
-            );
-            expect(componentBoxElement).toBeDefined();
-
-            let spanElement;
-            spanElement = await init.pageWaitForSelector(
-                page,
-                `span#box-header-component`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
-            spanElement.should.be.exactly('Create your first Component');
-
-            // click on the call to action button
-            await init.pageWaitForSelector(page, '#gotoPage-component');
-            await init.page$Eval(page, '#gotoPage-component', e => e.click());
-
-            const componentFormElement = await init.pageWaitForSelector(
-                page,
-                '#form-new-component'
-            );
-            expect(componentFormElement).toBeDefined();
-        },
-        operationTimeOut
-    );
-    test(
         'Should create new component',
-        async () => {
+        async (done) => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -137,140 +67,14 @@ describe('Components', () => {
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(componentName);
-        },
-        operationTimeOut
-    );
-    test(
-        'Should show indicator on how to create a monitor since a component exist, then goto monitor creation',
-        async () => {
-            // Navigate to home page
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
-            });
-
-            const monitorBoxElement = await init.pageWaitForSelector(
-                page,
-                '#info-monitor'
-            );
-            expect(monitorBoxElement).toBeDefined();
-
-            let spanElement;
-            spanElement = await init.pageWaitForSelector(
-                page,
-                `span#box-header-monitor`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
-            spanElement.should.be.exactly('Create a Monitor');
-
-            // click on the call to action button
-            await init.pageWaitForSelector(page, '#gotoPage-monitor');
-            await init.page$Eval(page, '#gotoPage-monitor', e => e.click());
-
-            // Navigate to Component details
-            await init.pageWaitForSelector(
-                page,
-                `#more-details-${componentName}`
-            );
-            await init.page$Eval(page, `#more-details-${componentName}`, e =>
-                e.click()
-            );
-            await init.pageWaitForSelector(page, '#form-new-monitor');
-        },
-        operationTimeOut
-    );
-
-    test(
-        'should show the correct path on the breadcrumbs inside a component',
-        async done => {
-            await page.goto(utils.DASHBOARD_URL);
-            await init.pageWaitForSelector(page, '#components', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.page$Eval(page, '#components', e => e.click());
-
-            const moreBtn = `#more-details-${componentName}`;
-            await init.pageWaitForSelector(page, moreBtn, {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.page$Eval(page, moreBtn, e => e.click());
-
-            const projectSelector = `#cbUnnamedProject`;
-            const componentSelector = `#cb${componentName}`;
-            await init.pageWaitForSelector(page, projectSelector, {
-                visible: true,
-                timeout: init.timeout,
-            });
-            const projectBreadcrumb = await page.evaluate(
-                projectSelector =>
-                    document.querySelector(projectSelector).textContent,
-                projectSelector
-            );
-            await init.pageWaitForSelector(page, componentSelector, {
-                visible: true,
-                timeout: init.timeout,
-            });
-            const componentBreadcrumb = await page.evaluate(
-                componentSelector =>
-                    document.querySelector(componentSelector).textContent,
-                componentSelector
-            );
-
-            expect(projectBreadcrumb).toBe('Unnamed Project');
-            expect(componentBreadcrumb).toBe(componentName);
-
             done();
         },
         operationTimeOut
-    );
-
-    test(
-        'Should not create new component when details are incorrect',
-        async () => {
-            // Navigate to Components page
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
-            });
-            await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', e => e.click());
-
-            // Fill and submit New Component form with incorrect details
-            await init.pageWaitForSelector(page, '#form-new-component');
-            await init.pageWaitForSelector(page, '#name');
-            await init.page$Eval(page, 'button[type=submit]', e => e.click());
-
-            let spanElement = await init.page$(
-                page,
-                '#form-new-component span#field-error'
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
-            spanElement.should.be.exactly('This field cannot be left blank');
-        },
-        operationTimeOut
-    );
-    test(
-        'Should show indicator on how to create monitor',
-        async () => {
-            // Navigate to Component details
-            await init.navigateToComponentDetails(componentName, page);
-
-            const customTutorialType = 'monitor';
-            // confirm that monitor box exist on component details page
-            const componentBoxElement = await init.pageWaitForSelector(
-                page,
-                `#info-${customTutorialType}`
-            );
-            expect(componentBoxElement).toBeDefined();
-        },
-        operationTimeOut
-    );
+    );    
 
     test(
         'Should create a new monitor in component and confirm that monitor quick tip shows',
-        async () => {
+        async (done) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
@@ -304,13 +108,14 @@ describe('Components', () => {
                 `#quick-tip-${customTutorialType}`
             );
             expect(monitorQuickTip).toBeDefined();
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should create a new monitor in component and goto the details page after creating',
-        async () => {
+        async (done) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             const newMonitorName = `another-${monitorName}`;
@@ -340,6 +145,7 @@ describe('Components', () => {
                 `#customTabList`
             );
             expect(monitorTabsComponent).toBeDefined();
+            done();
         },
         operationTimeOut
     );
@@ -398,7 +204,7 @@ describe('Components', () => {
 
     test(
         'Should create a new log container in component',
-        async () => {
+        async (done) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
@@ -418,13 +224,14 @@ describe('Components', () => {
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(applicationLogName);
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should create a new monitor in a new component and get list of resources',
-        async () => {
+        async (done) => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -484,15 +291,16 @@ describe('Components', () => {
                 elem => elem.textContent
             );
             expect(firstResourceCount).toEqual('3 Resources');
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should create an incident in monitor details and change monitor status in component list',
-        async () => {
-            // launch component page
-            await init.loginUser(user, page);
+        async (done) => {
+            
+            // launch component page            
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
@@ -508,14 +316,15 @@ describe('Components', () => {
             componentSpanElement = await componentSpanElement.jsonValue();
 
             expect(componentSpanElement).toMatch('Website Monitor');
-
-            const monitorPage = page;
+                      
+            await monitorPage.bringToFront();
+            
+            await init.loginUser(user, monitorPage);
             await init.navigateToMonitorDetails(
                 componentName,
                 monitorName,
                 monitorPage
-            );
-            await monitorPage.bringToFront();
+            );            
 
             await monitorPage.waitForSelector(
                 `#monitorCreateIncident_${monitorName}`
@@ -598,13 +407,15 @@ describe('Components', () => {
             componentSpanElement = await componentSpanElement.jsonValue();
 
             expect(componentSpanElement).toMatch('Online');
+
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should get list of resources and confirm their types match',
-        async () => {
+        async (done) => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -650,13 +461,14 @@ describe('Components', () => {
             spanElement = await spanElement.jsonValue();
 
             expect(spanElement).toMatch('No Logs Yet');
+            done();
         },
         operationTimeOut
     );
 
     test(
         'Should get list of resources and  navigate to each page',
-        async () => {
+        async (done) => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -690,11 +502,12 @@ describe('Components', () => {
             spanElement = await spanElement.jsonValue();
 
             expect(spanElement).toMatch(applicationLogName);
+            done();
         },
         operationTimeOut
     );
 
-    test('should edit a component in the component settings SideNav', async () => {
+    test('should edit a component in the component settings SideNav', async (done) => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle0',
         });
@@ -721,9 +534,10 @@ describe('Components', () => {
         spanElement = await spanElement.getProperty('innerText');
         spanElement = await spanElement.jsonValue();
         spanElement.should.be.exactly(`${componentName}-two`);
+        done();
     });
 
-    test('should delete a component in the component settings sideNav', async () => {
+    test('should delete a component in the component settings sideNav', async (done) => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle0',
         });
@@ -765,11 +579,12 @@ describe('Components', () => {
             }
         );
         expect(componentClicked).toBeDefined();
+        done();
     });
 
     test(
         'Should create new project from incident page and redirect to the home page and not component page',
-        async () => {
+        async (done) => {
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 newComponentName,
@@ -832,7 +647,10 @@ describe('Components', () => {
             currentPage = await currentPage.getProperty('innerText');
             currentPage = await currentPage.jsonValue();
             currentPage.should.be.exactly('Home');
+            done();
         },
         operationTimeOut
     );
+
+    /**Test Split */
 });
