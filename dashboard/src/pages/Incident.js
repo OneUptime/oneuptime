@@ -314,8 +314,6 @@ class Incident extends React.Component {
             location: { pathname },
             requestingComponent,
         } = this.props;
-        const agentless =
-            this.props.monitor && this.props.monitor.agentlessConfig;
 
         let scheduleAlert;
 
@@ -562,7 +560,10 @@ class Incident extends React.Component {
                                             monitorId={monitor._id}
                                             monitorName={monitor.name}
                                             monitorType={monitor.type}
-                                            agentless={agentless}
+                                            agentless={
+                                                monitor &&
+                                                monitor.agentlessConfig
+                                            }
                                         />
                                     </div>
                                 ))}
