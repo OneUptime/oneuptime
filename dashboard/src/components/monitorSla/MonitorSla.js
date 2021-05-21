@@ -29,7 +29,18 @@ class MonitorSla extends Component {
 
     componentDidMount() {
         const { projectId, fetchMonitorSlas } = this.props;
-        fetchMonitorSlas(projectId, 0, this.limit);
+        if (projectId) {
+            fetchMonitorSlas(projectId, 0, this.limit);
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.currentProject !== this.props.currentProject) {
+            const { currentProject, fetchMonitorSlas } = this.props;
+            if (currentProject) {
+                fetchMonitorSlas(currentProject._id, 0, this.limit);
+            }
+        }
     }
 
     prevClicked = (skip, limit) => {

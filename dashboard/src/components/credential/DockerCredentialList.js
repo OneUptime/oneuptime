@@ -289,6 +289,7 @@ const DockerCredentialList = ({
                             marginTop: '20px',
                             padding: '0 10px',
                         }}
+                        id="noDockerCredential"
                     >
                         There are no docker credentials for this project
                     </div>
