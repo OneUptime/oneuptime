@@ -94,12 +94,20 @@ export default function incident(state = initialState, action) {
         noteStatus;
     switch (action.type) {
         case 'SLA_COUNT_DOWN': {
-            const { incident: incidentData, countDown } = action.payload;
+            const {
+                incident: incidentData,
+                countDown,
+                monitor,
+            } = action.payload;
             if (
                 state.incident.incident &&
                 String(incidentData._id) === String(state.incident.incident._id)
             ) {
-                const incident = { ...state.incident.incident, countDown };
+                const countDowns = {
+                    ...state.incident.incident.countDowns,
+                    [monitor._id]: countDown,
+                };
+                const incident = { ...state.incident.incident, countDowns };
                 return {
                     ...state,
                     incident: {
@@ -116,7 +124,10 @@ export default function incident(state = initialState, action) {
                 ...state,
                 incident: {
                     ...state.incident,
-                    incident: action.payload,
+                    incident: {
+                        ...state.incident.incident,
+                        ...action.payload,
+                    },
                 },
             };
         }

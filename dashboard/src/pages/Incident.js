@@ -35,6 +35,7 @@ import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSl
 import secondsToHms from '../utils/secondsToHms';
 import { fetchComponent } from '../actions/component';
 import HideIncidentBox from '../components/incident/HideIncidentBox';
+import flat from '../utils/flattenArray';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -303,6 +304,7 @@ class Incident extends React.Component {
             scheduleWarning,
             defaultSchedule,
             monitors,
+            allMonitors,
         } = this.props;
         const slug = currentProject ? currentProject.slug : null;
         const redirectTo = `/dashboard/project/${slug}/on-call`;
@@ -311,35 +313,23 @@ class Incident extends React.Component {
             location: { pathname },
             requestingComponent,
         } = this.props;
-        const monitorId =
-            this.props.incident &&
-            this.props.incident.monitorId &&
-            this.props.incident.monitorId._id
-                ? this.props.incident.monitorId._id
-                : null;
-        const monitorName =
-            this.props.incident &&
-            this.props.incident.monitorId &&
-            this.props.incident.monitorId.name
-                ? this.props.incident.monitorId.name
-                : null;
-        const monitorType =
-            this.props.monitor && this.props.monitor.type
-                ? this.props.monitor.type
-                : '';
         const agentless =
             this.props.monitor && this.props.monitor.agentlessConfig;
-
-        const incidentCommunicationSla =
-            this.props.monitor &&
-            (this.props.monitor.incidentCommunicationSla ||
-                this.props.defaultIncidentSla);
 
         let scheduleAlert;
 
         const monitorList = monitors
             ? monitors.map(monitor => monitor.monitorId)
             : [];
+
+        const incidentMonitors = [];
+        const monitorIds = monitorList.map(monitor => String(monitor._id));
+        allMonitors.forEach(monitor => {
+            if (monitorIds.includes(String(monitor._id))) {
+                incidentMonitors.push(monitor);
+            }
+        });
+
         const monitorWithoutSchedule = [];
         monitorList.forEach(monitor => {
             if (!scheduleWarning.includes(monitor._id)) {
@@ -437,92 +427,114 @@ class Incident extends React.Component {
                             </TabList>
                         </div>
                         <div>{scheduleAlert}</div>
-                        {incidentCommunicationSla &&
-                            this.props.incident &&
-                            this.props.incident.countDown &&
-                            this.props.incident.countDown !== '0:0' && (
-                                <div
-                                    className="Box-root Margin-vertical--12"
-                                    style={{ marginTop: 0, cursor: 'pointer' }}
-                                    id="slaIndicatorAlert"
-                                >
-                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
-                                        <div className="Box-root box__yellow--dark Card-shadow--medium Border-radius--4">
-                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
-                                                <span
-                                                    className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
-                                                    style={{
-                                                        filter:
-                                                            'brightness(0) invert(1)',
-                                                        marginTop: 1,
-                                                        marginRight: 10,
-                                                    }}
-                                                ></span>
-                                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
-                                                    <span>
-                                                        According to{' '}
-                                                        {incidentCommunicationSla &&
-                                                            incidentCommunicationSla.name}{' '}
-                                                        SLA, you need to update
-                                                        the incident note for
-                                                        this incident in{' '}
-                                                        {secondsToHms(
-                                                            this.props.incident
-                                                                .countDown
-                                                        )}
-                                                        {'. '} Click{' '}
+                        {this.props.incident &&
+                            this.props.incident.countDowns &&
+                            incidentMonitors.map(monitor => {
+                                const incidentCommunicationSla =
+                                    monitor.incidentCommunicationSla ||
+                                    this.props.defaultIncidentSla;
+                                const countDown = this.props.incident
+                                    .countDowns[monitor._id];
+
+                                if (!incidentCommunicationSla) return null;
+                                if (countDown === '0') return null;
+
+                                return (
+                                    <div
+                                        key={monitor._id}
+                                        className="Box-root Margin-vertical--12"
+                                        style={{
+                                            marginTop: 0,
+                                            cursor: 'pointer',
+                                        }}
+                                        id="slaIndicatorAlert"
+                                    >
+                                        <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                            <div className="Box-root box__yellow--dark Card-shadow--medium Border-radius--4">
+                                                <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
+                                                    <span
+                                                        className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
+                                                        style={{
+                                                            filter:
+                                                                'brightness(0) invert(1)',
+                                                            marginTop: 1,
+                                                            marginRight: 10,
+                                                        }}
+                                                    ></span>
+                                                    <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                                        <span>
+                                                            According to{' '}
+                                                            {incidentCommunicationSla &&
+                                                                incidentCommunicationSla.name}{' '}
+                                                            SLA for the monitor{' '}
+                                                            {monitor.name}, you
+                                                            need to update the
+                                                            incident note for
+                                                            this incident in{' '}
+                                                            {secondsToHms(
+                                                                countDown
+                                                            )}
+                                                            {'. '} Please update
+                                                            the incident note
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        {this.props.incident &&
+                            this.props.incident.breachedCommunicationSlas &&
+                            this.props.incident.breachedCommunicationSlas
+                                .length > 0 &&
+                            this.props.incident.breachedCommunicationSlas.map(
+                                breach => {
+                                    const incidentCommunicationSla =
+                                        breach.monitorId
+                                            .incidentCommunicationSla ||
+                                        this.props.defaultIncidentSla;
+
+                                    if (!incidentCommunicationSla) return null;
+
+                                    return (
+                                        <div
+                                            key={breach.monitorId._id}
+                                            className="Box-root Margin-vertical--12"
+                                            style={{ marginTop: 0 }}
+                                            id="slaBreachedIndicator"
+                                        >
+                                            <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                                <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
+                                                    <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
                                                         <span
-                                                            onClick={() =>
-                                                                this.tabSelected(
-                                                                    4
-                                                                )
-                                                            }
+                                                            className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
                                                             style={{
-                                                                textDecoration:
-                                                                    'underline',
+                                                                filter:
+                                                                    'brightness(0) invert(1)',
+                                                                marginTop: 1,
+                                                                marginRight: 10,
                                                             }}
-                                                        >
-                                                            here
-                                                        </span>{' '}
-                                                        to update the incident
-                                                        note
-                                                    </span>
-                                                </span>
+                                                        ></span>
+                                                        <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                                            <span>
+                                                                The monitor{' '}
+                                                                {
+                                                                    breach
+                                                                        .monitorId
+                                                                        .name
+                                                                }{' '}
+                                                                have breached
+                                                                the SLA with
+                                                                this incident
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            )}
-                        {incidentCommunicationSla &&
-                            this.props.incident &&
-                            this.props.incident.breachedCommunicationSla && (
-                                <div
-                                    className="Box-root Margin-vertical--12"
-                                    style={{ marginTop: 0 }}
-                                    id="slaBreachedIndicator"
-                                >
-                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
-                                        <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
-                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
-                                                <span
-                                                    className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
-                                                    style={{
-                                                        filter:
-                                                            'brightness(0) invert(1)',
-                                                        marginTop: 1,
-                                                        marginRight: 10,
-                                                    }}
-                                                ></span>
-                                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
-                                                    <span>
-                                                        You&#39;ve breached SLA
-                                                        with this incident
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                    );
+                                }
                             )}
                         <TabPanel>
                             <Fade>
@@ -680,6 +692,10 @@ class Incident extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
+    const projectId =
+        state.component.currentComponent.component &&
+        state.component.currentComponent.component.projectId._id;
+
     const scheduleWarning = [];
     state.schedule.subProjectSchedules.forEach(item => {
         item.schedules.forEach(item => {
@@ -709,6 +725,13 @@ const mapStateToProps = (state, props) => {
         )
         .filter(monitor => monitor)[0];
 
+    let allMonitors =
+        state.monitor &&
+        state.monitor.monitorsList &&
+        state.monitor.monitorsList.monitors
+            .filter(monitorObj => String(monitorObj._id) === String(projectId))
+            .map(monitorObj => monitorObj.monitors);
+    allMonitors = flat(allMonitors);
     const monitors =
         state.incident &&
         state.incident.incident &&
@@ -723,9 +746,7 @@ const mapStateToProps = (state, props) => {
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
         incidentId: incidentId,
-        projectId:
-            state.component.currentComponent.component &&
-            state.component.currentComponent.component.projectId._id,
+        projectId,
         incidentTimeline: state.incident.incident,
         count: state.alert.incidentalerts.count,
         skip: state.alert.incidentalerts.skip,
@@ -746,6 +767,7 @@ const mapStateToProps = (state, props) => {
         defaultIncidentSla:
             state.incidentSla.defaultIncidentCommunicationSla.sla,
         monitors,
+        allMonitors,
     };
 };
 
@@ -817,6 +839,7 @@ Incident.propTypes = {
     fetchComponent: PropTypes.func,
     requestingComponent: PropTypes.bool,
     monitors: PropTypes.array,
+    allMonitors: PropTypes.array,
 };
 
 Incident.displayName = 'Incident';
