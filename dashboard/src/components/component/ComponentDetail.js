@@ -7,7 +7,11 @@ import {
     fetchComponentResources,
     addCurrentComponent,
 } from '../../actions/component';
-import { fetchMonitors } from '../../actions/monitor';
+import {
+    fetchMonitors,
+    fetchMonitorsIncidents,
+    fetchMonitorLogs,
+} from '../../actions/monitor';
 import { closeModal } from '../../actions/modal';
 import { deleteComponent } from '../../actions/component';
 import ShouldRender from '../basic/ShouldRender';
@@ -126,7 +130,28 @@ export class ComponentDetail extends Component {
             0,
             5
         );
-        this.props.fetchMonitors(currentProject._id);
+
+        const projectId = currentProject ? currentProject._id : null;
+        this.props.fetchMonitors(projectId).then(() => {
+            this.props.monitor.monitorsList.monitors.forEach(subProject => {
+                if (subProject.monitors.length > 0) {
+                    subProject.monitors.forEach(monitor => {
+                        this.props.fetchMonitorLogs(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            this.props.startDate,
+                            this.props.endDate
+                        );
+                        this.props.fetchMonitorsIncidents(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            0,
+                            1
+                        );
+                    });
+                }
+            });
+        });
     }
 
     render() {
@@ -274,6 +299,8 @@ const mapDispatchToProps = dispatch => {
             fetchComponentResources,
             fetchMonitors,
             animateSidebar,
+            fetchMonitorsIncidents,
+            fetchMonitorLogs,
         },
         dispatch
     );
@@ -297,6 +324,9 @@ function mapStateToProps(state, props) {
         currentProject: state.project.currentProject,
         subProject: state.subProject,
         componentResources: state.component.componentResourceList,
+        monitor: state.monitor,
+        startDate: state.monitor.monitorsList.startDate,
+        endDate: state.monitor.monitorsList.endDate,
     };
 }
 
@@ -317,6 +347,11 @@ ComponentDetail.propTypes = {
     ]),
     fetchMonitors: PropTypes.func,
     animateSidebar: PropTypes.func,
+    fetchMonitorsIncidents: PropTypes.func,
+    fetchMonitorLogs: PropTypes.func,
+    monitor: PropTypes.object,
+    startDate: PropTypes.object,
+    endDate: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ComponentDetail);
