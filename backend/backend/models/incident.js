@@ -112,7 +112,15 @@ const monitorSchema = new Schema({
     },
 
     deletedById: { type: String, ref: 'User', index: true },
-    breachedCommunicationSla: { type: Boolean, default: false },
+    breachedCommunicationSlas: [
+        {
+            monitorId: {
+                type: Schema.Types.ObjectId,
+                ref: 'Monitor',
+                index: true,
+            },
+        },
+    ],
     customFields: [
         {
             fieldName: String,
