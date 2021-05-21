@@ -938,27 +938,20 @@ const _this = {
         });
     },
     addStatusPageToProject: async function(statusPageName, projectName, page) {
-        const createStatusPageSelector = await _this.page$(
+        await _this.pageClick(page, `#btnCreateStatusPage_${projectName}`);
+        await _this.pageWaitForSelector(page, '#btnCreateStatusPage');
+        await _this.pageType(page, '#name', statusPageName);
+        await _this.pageClick(page, '#btnCreateStatusPage');
+        await _this.pageWaitForSelector(page, '#statusPages');
+        await _this.pageClick(page, '#statusPages');
+        await _this.pageWaitForSelector(
             page,
             `#btnCreateStatusPage_${projectName}`
         );
-        if (createStatusPageSelector) {
-            await _this.pageClick(page, `#btnCreateStatusPage_${projectName}`);
-            await _this.pageWaitForSelector(page, '#btnCreateStatusPage');
-            await _this.pageType(page, '#name', statusPageName);
-            await _this.pageClick(page, '#btnCreateStatusPage');
-        } else {
-            await _this.pageWaitForSelector(page, '#statusPages');
-            await _this.pageClick(page, '#statusPages');
-            await _this.pageWaitForSelector(
-                page,
-                `#btnCreateStatusPage_${projectName}`
-            );
-            await _this.pageClick(page, `#btnCreateStatusPage_${projectName}`);
-            await _this.pageWaitForSelector(page, '#btnCreateStatusPage');
-            await _this.pageType(page, '#name', statusPageName);
-            await _this.pageClick(page, '#btnCreateStatusPage');
-        }
+        await _this.pageClick(page, `#btnCreateStatusPage_${projectName}`);
+        await _this.pageWaitForSelector(page, '#btnCreateStatusPage');
+        await _this.pageType(page, '#name', statusPageName);
+        await _this.pageClick(page, '#btnCreateStatusPage');
         await _this.pageWaitForSelector(page, '#btnCreateStatusPage', {
             hidden: true,
         });
