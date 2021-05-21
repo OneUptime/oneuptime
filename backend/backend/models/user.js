@@ -92,6 +92,7 @@ const userSchema = new Schema({
             userAgent: String,
         },
     ],
+    source: Object,
 });
 
 module.exports = mongoose.model('User', userSchema);
