@@ -1626,7 +1626,8 @@ module.exports = {
                                 statusNoteStatus,
                             },
                             subscribers.length,
-                            uuid
+                            uuid,
+                            monitor
                         );
                     }
                 }
@@ -2337,7 +2338,8 @@ module.exports = {
                                 enabledStatusPage,
                                 {},
                                 subscribers.length,
-                                uuid
+                                uuid,
+                                monitor
                             );
                         }
                     } else {
@@ -2348,7 +2350,8 @@ module.exports = {
                             null,
                             {},
                             subscribers.length,
-                            uuid
+                            uuid,
+                            monitor
                         );
                     }
                 }
@@ -2389,7 +2392,8 @@ module.exports = {
                                 enabledStatusPage,
                                 {},
                                 subscribers.length,
-                                uuid
+                                uuid,
+                                monitor
                             );
                         }
                     } else {
@@ -2400,7 +2404,8 @@ module.exports = {
                             null,
                             {},
                             subscribers.length,
-                            uuid
+                            uuid,
+                            monitor
                         );
                     }
                 }
