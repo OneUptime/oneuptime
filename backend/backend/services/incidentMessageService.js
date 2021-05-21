@@ -12,7 +12,9 @@ module.exports = {
 
             incidentMessage = await incidentMessage.save();
 
-            IncidentService.refreshInterval(data.incidentId);
+            for (const monitor of data.monitors) {
+                IncidentService.refreshInterval(data.incidentId, monitor._id);
+            }
 
             incidentMessage = await this.findOneBy({
                 _id: incidentMessage._id,

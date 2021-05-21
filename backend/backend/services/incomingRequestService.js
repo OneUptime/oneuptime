@@ -1341,11 +1341,17 @@ module.exports = {
                                     String(incident._id)
                                 )
                             ) {
+                                data.monitors = incident.monitors.map(
+                                    monitor => monitor.monitorId
+                                );
                                 await IncidentMessageService.create(data);
                                 noteResponse.push(incident);
                                 incidentsWithNote.push(String(incident._id));
                             }
                         } else {
+                            data.monitors = incident.monitors.map(
+                                monitor => monitor.monitorId
+                            );
                             await IncidentMessageService.create(data);
                             noteResponse.push(incident);
                         }
@@ -1572,6 +1578,9 @@ module.exports = {
                                                 String(incident._id)
                                             )
                                         ) {
+                                            data.monitors = incident.monitors.map(
+                                                monitor => monitor.monitorId
+                                            );
                                             await IncidentMessageService.create(
                                                 data
                                             );
@@ -1581,6 +1590,9 @@ module.exports = {
                                             );
                                         }
                                     } else {
+                                        data.monitors = incident.monitors.map(
+                                            monitor => monitor.monitorId
+                                        );
                                         await IncidentMessageService.create(
                                             data
                                         );

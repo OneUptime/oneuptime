@@ -654,6 +654,9 @@ router.post(
                 // handle creation or updating
                 if (!data.id) {
                     data.createdById = req.user.id;
+                    data.monitors = incident.monitors.map(
+                        monitor => monitor.monitorId
+                    );
                     incidentMessage = await IncidentMessageService.create(data);
                     if (data.post_statuspage) {
                         AlertService.sendInvestigationNoteToSubscribers(
