@@ -578,8 +578,6 @@ module.exports = {
                     }
                 );
 
-                _this.refreshInterval(incidentId);
-
                 const downtimestring = IncidentUtilitiy.calculateHumanReadableDownTime(
                     incident.createdAt
                 );
@@ -626,6 +624,7 @@ module.exports = {
                     type: 'investigation',
                     incident_state: 'Acknowledged',
                     post_statuspage: true,
+                    monitors,
                 });
 
                 await IncidentTimelineService.create({
@@ -637,6 +636,8 @@ module.exports = {
                 });
 
                 for (const monitor of monitors) {
+                    _this.refreshInterval(incidentId, monitor._id);
+
                     WebHookService.sendIntegrationNotification(
                         incident.projectId,
                         incident,
@@ -734,8 +735,6 @@ module.exports = {
 
             incident = await _this.updateOneBy({ _id: incidentId }, data);
 
-            _this.clearInterval(incidentId);
-
             incident = await _this.findOneBy({ _id: incident._id });
 
             const monitors = incident.monitors.map(
@@ -750,6 +749,7 @@ module.exports = {
                 type: 'investigation',
                 incident_state: 'Resolved',
                 post_statuspage: true,
+                monitors,
             });
 
             await IncidentTimelineService.create({
@@ -761,6 +761,8 @@ module.exports = {
             });
 
             for (const monitor of monitors) {
+                _this.clearInterval(incidentId, monitor._id);
+
                 if (incident.probes && incident.probes.length > 0) {
                     for (const probe of incident.probes) {
                         await MonitorStatusService.create({
@@ -1191,10 +1193,28 @@ module.exports = {
                     }
 
                     if (countDown === 0) {
-                        _this.clearInterval(incident._id);
+                        _this.clearInterval(incident._id, monitor._id);
+
+                        // refetch the incident
+                        const currentIncident = await _this.findOneBy({
+                            _id: incident._id,
+                        });
+                        const breachedCommunicationSlas = currentIncident.breachedCommunicationSlas
+                            ? currentIncident.breachedCommunicationSlas.map(
+                                  breach => ({
+                                      monitorId:
+                                          breach.monitorId._id ||
+                                          breach.monitorId,
+                                  })
+                              )
+                            : [];
+                        breachedCommunicationSlas.push({
+                            monitorId: monitor._id,
+                        });
+
                         await _this.updateOneBy(
                             { _id: incident._id },
-                            { breachedCommunicationSla: true }
+                            { breachedCommunicationSlas }
                         );
 
                         // send mail to team
@@ -1207,15 +1227,16 @@ module.exports = {
 
                 intervals.push({
                     incidentId: incident._id,
+                    monitorId: monitor._id,
                     intervalId,
                 });
             }
         }
     },
 
-    clearInterval: function(incidentId) {
+    clearInterval: function(incidentId, monitorId) {
         intervals = intervals.filter(interval => {
-            if (String(interval.incidentId) === String(incidentId)) {
+            if (String(interval.monitorId) === String(monitorId)) {
                 clearInterval(interval.intervalId);
                 return false;
             }
@@ -1223,13 +1244,13 @@ module.exports = {
         });
     },
 
-    refreshInterval: async function(incidentId) {
+    refreshInterval: async function(incidentId, monitorId) {
         const _this = this;
         for (const interval of intervals) {
-            if (String(interval.incidentId) === String(incidentId)) {
-                _this.clearInterval(incidentId);
+            if (String(interval.monitorId) === String(monitorId)) {
+                _this.clearInterval(incidentId, monitorId);
 
-                const incident = await _this.findOneBy({ _id: incidentId });
+                const incident = await _this.findOneBy({ _id: monitorId });
                 _this.startInterval(
                     incident.projectId,
                     incident.monitors,
