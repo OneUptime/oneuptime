@@ -15,26 +15,9 @@
         <script defer src="/js/home.js"></script>
         <script src="/js/amplitude.js"></script>
         <script type="module" async>
-            var searchParams = window.location.search
-            var sourceObj = {}
-            const params = new URLSearchParams(window.location.search)
             var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
             if (IS_SAAS_SERVICE) {
                 amplitude.getInstance().logEvent('PAGE VIEW: HOME');
-            }
-            if (searchParams) {
-                for (const param of params) {
-                    sourceObj = { ...sourceObj, [`${param[0]}`]: param[1] }
-                }
-                // Set a Cookie
-                function setCookie(cName, cValue, expDays) {
-                    let date = new Date();
-                    date.setTime(date.getTime() + (expDays * 24 * 60 * 60 * 1000));
-                    const expires = "expires=" + date.toUTCString();
-                    document.cookie = cName + "=" + cValue + "; " + expires + "; path=/" + "; " + "domain=localhost";
-                }
-                // Apply setCookie
-                setCookie('source', JSON.stringify(sourceObj), 1);
             }
         </script>
         <script defer src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/js/bootstrap.bundle.min.js"

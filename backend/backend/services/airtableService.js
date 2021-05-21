@@ -46,7 +46,7 @@ module.exports = {
             Company: company,
             'Job Role': jobRole,
             'Created At': createdAt,
-            Source: source,
+            Source: JSON.stringify(source),
         });
     },
 
