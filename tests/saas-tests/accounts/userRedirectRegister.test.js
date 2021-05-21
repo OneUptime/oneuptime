@@ -54,7 +54,10 @@ describe('Home redirect', () => {
                 data: data,
             };
             const res = await axios(config);
-            expect(res.data[0].source).not.toEqual(null);
+            const sourceObj = res.data[0].source;
+            for (const key in sourceObj) {
+                expect(sourceObj[key] && key).not.toEqual(null || '');
+            }
         },
         init.timeout
     );
