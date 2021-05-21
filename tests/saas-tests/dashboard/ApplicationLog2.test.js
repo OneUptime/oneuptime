@@ -287,7 +287,7 @@ describe('Log Containers', () => {
             // Fill and submit edit Application  log form
             await init.pageWaitForSelector(page, '#form-new-application-log');
             await page.focus('input[id=name]');
-            await init.pageType(page, 'input[id=name]', '-new');
+            await init.pageType(page, 'input[id=name]', 'New');
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#addApplicationLogButton', {
                 hidden: true,
@@ -297,11 +297,11 @@ describe('Log Containers', () => {
             await init.pageClick(page, '#logs');
             let spanElement = await init.pageWaitForSelector(
                 page,
-                `#application-log-title-${applicationLogName}-new`
+                `#application-log-title-${applicationLogName}New`
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
-            spanElement.should.be.exactly(`${applicationLogName}-new`);
+            spanElement.should.be.exactly(`${applicationLogName}New`);
 
             done();
         },
@@ -316,14 +316,14 @@ describe('Log Containers', () => {
 
             await init.navigateToApplicationLogDetails(
                 componentName,
-                `${applicationLogName}-new`,
+                `${applicationLogName}New`,
                 page
             );
             await init.pageWaitForSelector(
                 page,
-                `#edit_${applicationLogName}-new`
+                `#edit_${applicationLogName}New`
             );
-            await init.pageClick(page, `#edit_${applicationLogName}-new`);
+            await init.pageClick(page, `#edit_${applicationLogName}New`);
             // Fill and submit edit Application  log form
             await init.pageWaitForSelector(page, '#form-new-application-log');
             // change category here
@@ -335,14 +335,14 @@ describe('Log Containers', () => {
 
             await init.pageWaitForSelector(
                 page,
-                `#${applicationLogName}-new-badge`,
+                `#${applicationLogName}NewBadge`,
                 {
                     visible: true,
                     timeout: init.timeout,
                 }
             );
             // confirm the new category shows in the details page.
-            let spanElement = await page.$(`#${applicationLogName}-new-badge`);
+            let spanElement = await page.$(`#${applicationLogName}NewBadge`);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -359,11 +359,11 @@ describe('Log Containers', () => {
             // confirm the application log has a category
             await init.navigateToApplicationLogDetails(
                 componentName,
-                `${applicationLogName}-new`,
+                `${applicationLogName}New`,
                 page
             );
 
-            let spanElement = await page.$(`#${applicationLogName}-new-badge`);
+            let spanElement = await page.$(`#${applicationLogName}NewBadge`);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -387,7 +387,7 @@ describe('Log Containers', () => {
 
             // go back to log details and confirm it is not there anymore
             const spanElementBadge = await page.$(
-                `#${applicationLogName}-new-badge`,
+                `#${applicationLogName}NewBadge`,
                 { hidden: true }
             );
             expect(spanElementBadge).toBeNull();

@@ -145,11 +145,11 @@ describe('Log Containers', () => {
             );
             await init.pageClick(page, 'button[type=submit]');
             // confirm the category shows in the details page.
-            await init.pageWaitForSelector(page, `#${appLogName}-badge`, {
+            await init.pageWaitForSelector(page, `#${appLogName}Badge`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            let spanElement = await init.pageWaitForSelector(page,`#${appLogName}-badge`);
+            let spanElement = await init.pageWaitForSelector(page,`#${appLogName}Badge`);
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
