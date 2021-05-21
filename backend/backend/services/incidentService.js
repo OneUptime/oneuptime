@@ -33,6 +33,16 @@ module.exports = {
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
                 .populate('createdByIncomingHttpRequest', 'name')
+                .populate({
+                    path: 'breachedCommunicationSlas.monitorId',
+                    populate: [
+                        {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                        { path: 'projectId', select: '_id name slug' },
+                    ],
+                })
                 .sort({ createdAt: 'desc' });
             return incidents;
         } catch (error) {
@@ -319,6 +329,16 @@ module.exports = {
                         },
                         { path: 'projectId', select: '_id name slug' },
                     ],
+                })
+                .populate({
+                    path: 'breachedCommunicationSlas.monitorId',
+                    populate: [
+                        {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                        { path: 'projectId', select: '_id name slug' },
+                    ],
                 });
             return incident;
         } catch (error) {
@@ -381,6 +401,16 @@ module.exports = {
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
                 .populate('createdByIncomingHttpRequest', 'name')
+                .populate({
+                    path: 'breachedCommunicationSlas.monitorId',
+                    populate: [
+                        {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                        { path: 'projectId', select: '_id name slug' },
+                    ],
+                })
                 .execPopulate();
 
             RealTimeService.updateIncident(updatedIncident);
@@ -1089,6 +1119,16 @@ module.exports = {
                         .populate('acknowledgedByIncomingHttpRequest', 'name')
                         .populate('resolvedByIncomingHttpRequest', 'name')
                         .populate('createdByIncomingHttpRequest', 'name')
+                        .populate({
+                            path: 'breachedCommunicationSlas.monitorId',
+                            populate: [
+                                {
+                                    path: 'componentId',
+                                    select: 'name slug',
+                                },
+                                { path: 'projectId', select: '_id name slug' },
+                            ],
+                        })
                         .execPopulate();
 
                     await RealTimeService.deleteIncident(updatedIncident);
