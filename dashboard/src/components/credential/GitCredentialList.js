@@ -255,6 +255,7 @@ const GitCredentialList = ({
                             marginTop: '20px',
                             padding: '0 10px',
                         }}
+                        id="noGitCredential"
                     >
                         There are no git credentials for this project
                     </div>
