@@ -95,7 +95,8 @@ describe('Custom Twilio Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const savedAccountSid = await page.$eval(
+            const savedAccountSid = await init.page$Eval(
+                page,
                 '#accountSid',
                 elem => elem.value
             );
@@ -137,9 +138,11 @@ describe('Custom Twilio Settings', () => {
             });
 
             await init.pageWaitForSelector(page, '#closeIncident_0');
-            await page.$eval('#closeIncident_0', elem => elem.click());
+            await init.page$Eval(page, '#closeIncident_0', elem =>
+                elem.click()
+            );
             await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
-            await page.$eval(`#incident_${monitorName}_0`, elem =>
+            await init.page$Eval(page, `#incident_${monitorName}_0`, elem =>
                 elem.click()
             );
             await init.pageWaitForSelector(page, '#incident_0');
@@ -149,11 +152,14 @@ describe('Custom Twilio Settings', () => {
                 page,
                 '#subscriberAlertTable > tbody > tr'
             );
-            await page.$eval('#subscriberAlertTable > tbody > tr', elem =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#subscriberAlertTable > tbody > tr',
+                elem => elem.click()
             );
             await init.pageWaitForSelector(page, '#subscriber');
-            const subscriber = await page.$eval(
+            const subscriber = await init.page$Eval(
+                page,
                 '#subscriber',
                 elem => elem.textContent
             );
@@ -175,11 +181,11 @@ describe('Custom Twilio Settings', () => {
             );
 
             await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
-            await page.$eval(`#incident_${monitorName}_0`, elem =>
+            await init.page$Eval(page, `#incident_${monitorName}_0`, elem =>
                 elem.click()
             );
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
-            await page.$eval('#btnAcknowledge_0', e => e.click());
+            await init.page$Eval(page, '#btnAcknowledge_0', e => e.click());
             await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -192,11 +198,14 @@ describe('Custom Twilio Settings', () => {
                 '#subscriberAlertTable > tbody > tr'
             );
             // grab the last log
-            await page.$eval('#subscriberAlertTable > tbody > tr', elem =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#subscriberAlertTable > tbody > tr',
+                elem => elem.click()
             );
             await init.pageWaitForSelector(page, '#eventType');
-            const eventType = await page.$eval(
+            const eventType = await init.page$Eval(
+                page,
                 '#eventType',
                 elem => elem.textContent
             );
@@ -218,11 +227,11 @@ describe('Custom Twilio Settings', () => {
             );
 
             await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
-            await page.$eval(`#incident_${monitorName}_0`, elem =>
+            await init.page$Eval(page, `#incident_${monitorName}_0`, elem =>
                 elem.click()
             );
             await init.pageWaitForSelector(page, '#btnResolve_0');
-            await page.$eval('#btnResolve_0', e => e.click());
+            await init.page$Eval(page, '#btnResolve_0', e => e.click());
             await init.pageWaitForSelector(page, '#ResolveText_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -235,11 +244,14 @@ describe('Custom Twilio Settings', () => {
                 '#subscriberAlertTable > tbody > tr'
             );
             // grab the last log
-            await page.$eval('#subscriberAlertTable > tbody > tr', elem =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#subscriberAlertTable > tbody > tr',
+                elem => elem.click()
             );
             await init.pageWaitForSelector(page, '#eventType');
-            const eventType = await page.$eval(
+            const eventType = await init.page$Eval(
+                page,
                 '#eventType',
                 elem => elem.textContent
             );
@@ -265,7 +277,8 @@ describe('Custom Twilio Settings', () => {
             await init.pageType(page, '#otp', '654321');
             await init.pageClick(page, '#verify');
             await init.pageWaitForSelector(page, '#smsVerificationErrors');
-            const message = await page.$eval(
+            const message = await init.page$Eval(
+                page,
                 '#smsVerificationErrors',
                 e => e.textContent
             );
@@ -299,7 +312,8 @@ describe('Custom Twilio Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const message = await page.$eval(
+            const message = await init.page$Eval(
+                page,
                 '#successMessage',
                 e => e.textContent
             );
@@ -340,7 +354,8 @@ describe('Custom Twilio Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const message = await page.$eval(
+            const message = await init.page$Eval(
+                page,
                 '#successMessage',
                 e => e.textContent
             );

@@ -28,6 +28,7 @@ describe('Project Settings', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -177,7 +178,8 @@ describe('Project Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const childCount = await page.$eval(
+            const childCount = await init.page$Eval(
+                page,
                 parentContainer,
                 el => el.childElementCount
             );

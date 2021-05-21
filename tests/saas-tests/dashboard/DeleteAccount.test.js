@@ -19,6 +19,7 @@ describe('Profile -> Delete Account Component test', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -75,7 +76,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
             await init.pageWaitForSelector(page, '#advanced');
-            await page.$eval('#advanced', elem => elem.click());
+            await init.page$Eval(page, '#advanced', elem => elem.click());
             await init.pageWaitForSelector(page, '#btn_delete_account');
             await init.pageClick(page, '#btn_delete_account');
             await init.pageWaitForSelector(page, '#btn_confirm_delete');
@@ -124,7 +125,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
             await init.pageWaitForSelector(page, '#advanced');
-            await page.$eval('#advanced', elem => elem.click());
+            await init.page$Eval(page, '#advanced', elem => elem.click());
             await init.pageWaitForSelector(page, '#btn_delete_account');
             await init.pageClick(page, '#btn_delete_account');
             await init.pageWaitForSelector(page, '#btn_confirm_delete');
@@ -184,7 +185,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
             await init.pageWaitForSelector(page, '#advanced');
-            await page.$eval('#advanced', elem => elem.click());
+            await init.page$Eval(page, '#advanced', elem => elem.click());
             await init.pageWaitForSelector(page, '#btn_delete_account');
             await init.pageClick(page, '#btn_delete_account');
             await init.pageWaitForSelector(page, '#btn_confirm_delete');
@@ -213,7 +214,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
             await init.pageWaitForSelector(page, '#advanced');
-            await page.$eval('#advanced', elem => elem.click());
+            await init.page$Eval(page, '#advanced', elem => elem.click());
             await init.pageWaitForSelector(page, '#btn_delete_account');
             await init.pageClick(page, '#btn_delete_account');
             await init.pageWaitForSelector(page, '#btn_confirm_delete');

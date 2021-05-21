@@ -10,6 +10,7 @@ let page;
 describe('Resend Verification API', () => {
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -30,7 +31,7 @@ describe('Resend Verification API', () => {
             await init.pageType(page, 'input[name=email]', 'invalid@email.com');
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#error-msg');
-            const html = await page.$eval('#error-msg', e => {
+            const html = await init.page$Eval(page, '#error-msg', e => {
                 return e.innerHTML;
             });
             should.exist(html);

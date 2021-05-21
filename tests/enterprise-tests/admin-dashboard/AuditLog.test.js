@@ -14,6 +14,7 @@ describe('Audit Logs', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -48,7 +49,8 @@ describe('Audit Logs', () => {
                 hidden: true,
             });
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -73,7 +75,8 @@ describe('Audit Logs', () => {
             await init.pageWaitForSelector(page, '#cancelAuditDelete');
             await init.pageClick(page, '#cancelAuditDelete');
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -104,7 +107,8 @@ describe('Audit Logs', () => {
             await init.pageWaitForSelector(page, '#auditLogs');
             await init.pageClick(page, '#auditLogs');
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -128,7 +132,8 @@ describe('Audit Logs', () => {
             await init.pageClick(page, '#searchAuditLog');
             await init.pageType(page, '#searchAuditLog', 'probe');
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -152,7 +157,8 @@ describe('Audit Logs', () => {
             await init.pageClick(page, '#searchAuditLog');
             await init.pageType(page, '#searchAuditLog', 'somerandom');
 
-            const rowNum = await page.$$eval(
+            const rowNum = await init.page$$Eval(
+                page,
                 'tbody tr.Table-row',
                 rows => rows.length
             );
@@ -220,7 +226,9 @@ describe('Audit Logs', () => {
             await init.pageClick(page, '#auditLog');
 
             // turn audit log off
-            await page.$eval('input[name=auditStatusToggler]', e => e.click());
+            await init.page$Eval(page, 'input[name=auditStatusToggler]', e =>
+                e.click()
+            );
 
             // click the submit button
             await init.pageWaitForSelector(page, '#auditLogSubmit');
@@ -320,7 +328,9 @@ describe('Audit Logs', () => {
             await init.pageClick(page, '#auditLogSetting');
 
             // enable logs
-            await page.$eval('input[name=auditStatusToggler]', e => e.click());
+            await init.page$Eval(page, 'input[name=auditStatusToggler]', e =>
+                e.click()
+            );
 
             // click the submit button
             await init.pageWaitForSelector(page, '#auditLogSubmit');

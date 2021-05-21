@@ -17,7 +17,7 @@ const gotoTheFirstStatusPage = async page => {
         waitUntil: ['networkidle2'],
     });
     await init.pageWaitForSelector(page, '#statusPages');
-    await page.$eval('#statusPages', e => e.click());
+    await init.page$Eval(page, '#statusPages', e => e.click());
     const rowItem = await init.pageWaitForSelector(
         page,
         '#statusPagesListContainer > tr',
@@ -31,6 +31,7 @@ describe('Status Page', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -69,7 +70,7 @@ describe('Status Page', () => {
                 timeout: init.timeout,
             });
             expect(elem).toBeTruthy();
-            const element = await page.$eval('#app-loading', e => {
+            const element = await init.page$Eval(page, '#app-loading', e => {
                 return e.innerHTML;
             });
             expect(element).toContain(
@@ -95,7 +96,8 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const textContent = await page.$eval(
+            const textContent = await init.page$Eval(
+                page,
                 '#monitor-0',
                 e => e.textContent
             );
@@ -132,9 +134,13 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const element = await page.$eval('#monitor-0 .errors', e => {
-                return e.innerHTML;
-            });
+            const element = await init.page$Eval(
+                page,
+                '#monitor-0 .errors',
+                e => {
+                    return e.innerHTML;
+                }
+            );
             expect(element).toContain(
                 'You must select at least one chart type'
             );
@@ -176,7 +182,8 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const textContent = await page.$eval(
+            const textContent = await init.page$Eval(
+                page,
                 '#monitor-1',
                 e => e.textContent
             );
@@ -257,7 +264,7 @@ describe('Status Page', () => {
                 timeout: init.timeout,
             });
             expect(elem).toBeTruthy();
-            const element = await page.$eval('#app-loading', e => {
+            const element = await init.page$Eval(page, '#app-loading', e => {
                 return e.innerHTML;
             });
             expect(element).toContain(
@@ -322,7 +329,7 @@ describe('Status Page', () => {
     test('Should change status-page theme to Classic theme', async done => {
         await gotoTheFirstStatusPage(page);
         await init.themeNavigationAndConfirmation(page, 'Classic');
-        let link = await page.$('#publicStatusPageUrl > span > a');
+        let link = await init.page$(page, '#publicStatusPageUrl > span > a');
         link = await link.getProperty('href');
         link = await link.jsonValue();
         await page.goto(link);
@@ -340,16 +347,21 @@ describe('Status Page', () => {
             await gotoTheFirstStatusPage(page);
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await page.$('#publicStatusPageUrl > span > a');
+            let link = await init.page$(
+                page,
+                '#publicStatusPageUrl > span > a'
+            );
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
             await init.pageWaitForSelector(page, '#monitor0');
-            const firstMonitorBeforeSwap = await page.$eval(
+            const firstMonitorBeforeSwap = await init.page$Eval(
+                page,
                 '#monitor0 .uptime-stat-name',
                 e => e.textContent
             );
-            const secondMonitorBeforeSwap = await page.$eval(
+            const secondMonitorBeforeSwap = await init.page$Eval(
+                page,
                 '#monitor1 .uptime-stat-name',
                 e => e.textContent
             );
@@ -396,11 +408,13 @@ describe('Status Page', () => {
 
             await page.goto(link);
             await init.pageWaitForSelector(page, '#monitor0');
-            const firstMonitorAfterSwap = await page.$eval(
+            const firstMonitorAfterSwap = await init.page$Eval(
+                page,
                 '#monitor0 .uptime-stat-name',
                 e => e.textContent
             );
-            const secondMonitorAfterSwap = await page.$eval(
+            const secondMonitorAfterSwap = await init.page$Eval(
+                page,
                 '#monitor1 .uptime-stat-name',
                 e => e.textContent
             );
@@ -468,7 +482,7 @@ describe('Status Page', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await page.$eval('#statusPages', elem => elem.click());
+            await init.page$Eval(page, '#statusPages', elem => elem.click());
 
             const elem = await init.pageWaitForSelector(page, '#domainSet', {
                 visible: true,
@@ -498,7 +512,7 @@ describe('Status Page', () => {
                 timeout: init.timeout,
             });
             await init.pageWaitForSelector(page, '#customDomain');
-            const input = await page.$('#customDomain');
+            const input = await init.page$(page, '#customDomain');
             await input.click({ clickCount: 3 });
             await input.type(finalValue);
 
@@ -574,7 +588,8 @@ describe('Status Page', () => {
             );
 
             //Get the initial length of domains
-            const initialLength = await page.$$eval(
+            const initialLength = await init.page$$Eval(
+                page,
                 'fieldset[name="added-domain"]',
                 domains => domains.length
             );
@@ -595,12 +610,16 @@ describe('Status Page', () => {
 
             await init.gotoTab(4, page);
             await init.pageWaitForSelector(page, '#btnDeleteDomain_0');
-            await page.$eval('#btnDeleteDomain_0', elem => elem.click());
+            await init.page$Eval(page, '#btnDeleteDomain_0', elem =>
+                elem.click()
+            );
             await init.pageWaitForSelector(page, '#confirmDomainDelete', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#confirmDomainDelete', elem => elem.click());
+            await init.page$Eval(page, '#confirmDomainDelete', elem =>
+                elem.click()
+            );
             await init.pageWaitForSelector(page, '#confirmDomainDelete', {
                 hidden: true,
             });
@@ -612,7 +631,8 @@ describe('Status Page', () => {
                 page,
                 'fieldset[name="added-domain"]'
             );
-            const finalLength = await page.$$eval(
+            const finalLength = await init.page$$Eval(
+                page,
                 'fieldset[name="added-domain"]',
                 domains => domains.length
             );
@@ -638,7 +658,8 @@ describe('Status Page', () => {
                 }
             );
             //Get the initial length of domains
-            const initialLength = await page.$$eval(
+            const initialLength = await init.page$$Eval(
+                page,
                 'fieldset[name="added-domain"]',
                 domains => domains.length
             );
@@ -660,8 +681,12 @@ describe('Status Page', () => {
             await init.gotoTab(4, page);
 
             await init.pageWaitForSelector(page, '#btnDeleteDomain_0');
-            await page.$eval('#btnDeleteDomain_0', elem => elem.click());
-            await page.$eval('#cancelDomainDelete', elem => elem.click());
+            await init.page$Eval(page, '#btnDeleteDomain_0', elem =>
+                elem.click()
+            );
+            await init.page$Eval(page, '#cancelDomainDelete', elem =>
+                elem.click()
+            );
 
             await page.reload({ waitUntil: 'networkidle2' });
             await init.gotoTab(4, page);
@@ -670,7 +695,8 @@ describe('Status Page', () => {
                 'fieldset[name="added-domain"]'
             );
             // get the final length of domains after cancelling
-            const finalLength = await page.$$eval(
+            const finalLength = await init.page$$Eval(
+                page,
                 'fieldset[name="added-domain"]',
                 domains => domains.length
             );
@@ -699,13 +725,16 @@ describe('Status Page', () => {
             await init.pageClick(page, '#react-tabs-2');
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await page.$('#publicStatusPageUrl > span > a');
+            let link = await init.page$(
+                page,
+                '#publicStatusPageUrl > span > a'
+            );
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
             await init.pageWaitForSelector(page, '#customHeaderHTML > div');
 
-            let spanElement = await page.$('#customHeaderHTML > div');
+            let spanElement = await init.page$(page, '#customHeaderHTML > div');
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly('My header');
@@ -739,13 +768,20 @@ describe('Status Page', () => {
             await init.pageClick(page, '#react-tabs-2');
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
-            let link = await page.$('#publicStatusPageUrl > span > a');
+            let link = await init.page$(
+                page,
+                '#publicStatusPageUrl > span > a'
+            );
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
             await init.pageWaitForSelector(page, '#js');
 
-            const code = await page.$eval('#js', script => script.innerHTML);
+            const code = await init.page$Eval(
+                page,
+                '#js',
+                script => script.innerHTML
+            );
             expect(code).toEqual(javascript);
             done();
         },
@@ -765,7 +801,9 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#moreAdvancedOptions', elem => elem.click());
+            await init.page$Eval(page, '#moreAdvancedOptions', elem =>
+                elem.click()
+            );
             await init.pageWaitForSelector(
                 page,
                 '#statuspage_moveIncidentToTheTop',
@@ -774,8 +812,10 @@ describe('Status Page', () => {
                     timeout: init.timeout,
                 }
             );
-            await page.$eval('#statuspage_moveIncidentToTheTop', elem =>
-                elem.click()
+            await init.page$Eval(
+                page,
+                '#statuspage_moveIncidentToTheTop',
+                elem => elem.click()
             );
             await init.pageClick(page, '#saveAdvancedOptions');
 
@@ -791,7 +831,8 @@ describe('Status Page', () => {
                     timeout: init.timeout,
                 }
             );
-            const checked = await page.$eval(
+            const checked = await init.page$Eval(
+                page,
                 '#statuspage_moveIncidentToTheTop',
                 elem => elem.value
             );
@@ -817,7 +858,7 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const element = await page.$eval('#field-error', e => {
+            const element = await init.page$Eval(page, '#field-error', e => {
                 return e.innerHTML;
             });
             expect(element).toContain('Domain is required');
@@ -846,7 +887,7 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const element = await page.$eval('#field-error', e => {
+            const element = await init.page$Eval(page, '#field-error', e => {
                 return e.innerHTML;
             });
             expect(element).toContain('Domain is not valid.');
@@ -883,7 +924,8 @@ describe('Status Page', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            const domains = await page.$$eval(
+            const domains = await init.page$$Eval(
+                page,
                 'fieldset[name="added-domain"]',
                 domains => domains.length
             );

@@ -24,6 +24,7 @@ describe('Sub-Project API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -97,7 +98,8 @@ describe('Sub-Project API', () => {
             timeout: init.timeout,
         });
         await init.pageClick(page, '#teamMembers');
-        let prevMemberCount = await page.$eval(
+        let prevMemberCount = await init.page$Eval(
+            page,
             `#count_${subProjectName}`,
             elem => elem.textContent
         );
@@ -126,7 +128,8 @@ describe('Sub-Project API', () => {
         await init.pageWaitForSelector(page, `#count_${subProjectName}`, {
             visible: true,
         });
-        let memberCount = await page.$eval(
+        let memberCount = await init.page$Eval(
+            page,
             `#count_${subProjectName}`,
             elem => elem.textContent
         );
@@ -147,7 +150,8 @@ describe('Sub-Project API', () => {
         await init.pageWaitForSelector(page, `#count_${newProjectName}`, {
             visible: true,
         });
-        let prevMemberCount = await page.$eval(
+        let prevMemberCount = await init.page$Eval(
+            page,
             `#count_${newProjectName}`,
             elem => elem.textContent
         );
@@ -171,7 +175,7 @@ describe('Sub-Project API', () => {
             visible: true,
         });
         await init.pageClick(page, `#btn_modal_${newProjectName}`);
-        const elem = await page.$('button[id=btnConfirmInvite]');
+        const elem = await init.page$(page, 'button[id=btnConfirmInvite]');
         elem.click();
         await init.pageWaitForSelector(page, `#btn_modal_${newProjectName}`, {
             hidden: true,
@@ -179,7 +183,8 @@ describe('Sub-Project API', () => {
         await init.pageWaitForSelector(page, `#count_${newProjectName}`, {
             visible: true,
         });
-        let memberCount = await page.$eval(
+        let memberCount = await init.page$Eval(
+            page,
             `#count_${newProjectName}`,
             elem => elem.textContent
         );
@@ -204,7 +209,8 @@ describe('Sub-Project API', () => {
                 visible: true,
             }
         );
-        let oldStatusPageCounter = await page.$eval(
+        let oldStatusPageCounter = await init.page$Eval(
+            page,
             `#status_page_count_${newProjectName}`,
             elem => elem.textContent
         );
@@ -217,7 +223,8 @@ describe('Sub-Project API', () => {
                 visible: true,
             }
         );
-        let statusPageCounter = await page.$eval(
+        let statusPageCounter = await init.page$Eval(
+            page,
             `#status_page_count_${newProjectName}`,
             elem => elem.textContent
         );
@@ -241,7 +248,8 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const element = await page.$(
+            const element = await init.page$(
+                page,
                 `#accountSwitcher > div[title=${newProjectName}]`
             );
             element.click();
@@ -249,10 +257,16 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const projectStatusPages = await page.$('#statusPageTable');
+            const projectStatusPages = await init.page$(
+                page,
+                '#statusPageTable'
+            );
             expect(projectStatusPages).toEqual(null);
 
-            const subProjectStatusPages = await page.$('#statusPageTable_0');
+            const subProjectStatusPages = await init.page$(
+                page,
+                '#statusPageTable_0'
+            );
             expect(subProjectStatusPages).not.toEqual(null);
             done();
         },
@@ -273,7 +287,8 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const element = await page.$(
+            const element = await init.page$(
+                page,
                 `#accountSwitcher > div[title=${newProjectName}]`
             );
             element.click();
@@ -281,10 +296,16 @@ describe('Sub-Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const projectStatusPages = await page.$('#statusPageTable');
+            const projectStatusPages = await init.page$(
+                page,
+                '#statusPageTable'
+            );
             expect(projectStatusPages).not.toEqual(null);
 
-            const subProjectStatusPages = await page.$('#statusPageTable_0');
+            const subProjectStatusPages = await init.page$(
+                page,
+                '#statusPageTable_0'
+            );
             expect(subProjectStatusPages).not.toEqual(null);
             done();
         },
@@ -303,7 +324,8 @@ describe('Sub-Project API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        const element = await page.$(
+        const element = await init.page$(
+            page,
             `#accountSwitcher > div[title=${newProjectName}]`
         );
         element.click();
@@ -313,7 +335,7 @@ describe('Sub-Project API', () => {
             { visible: true, timeout: init.timeout }
         );
         rowItem.click();
-        const statusPage = await page.$(`#cb${statusPageName}`);
+        const statusPage = await init.page$(page, `#cb${statusPageName}`);
         expect(statusPage).toEqual(null);
         done();
     });
