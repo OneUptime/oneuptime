@@ -21,6 +21,7 @@ describe('Scheduled event', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -70,10 +71,18 @@ describe('Scheduled event', () => {
             await init.pageClick(page, 'label[for=selectAllMonitorsBox]');
             await init.pageClick(page, '#addMoreMonitor');
             await init.pageWaitForSelector(page, '#monitorfield_0');
-            await init.selectDropdownValue('#monitorfield_0', componentName, page); // "ComponentName / MonitorName" is in the dropdown. Using only ComponentName selects both
+            await init.selectDropdownValue(
+                '#monitorfield_0',
+                componentName,
+                page
+            ); // "ComponentName / MonitorName" is in the dropdown. Using only ComponentName selects both
             await init.pageClick(page, '#addMoreMonitor');
             await init.pageWaitForSelector(page, '#monitorfield_1');
-            await init.selectDropdownValue('#monitorfield_1', componentName, page);
+            await init.selectDropdownValue(
+                '#monitorfield_1',
+                componentName,
+                page
+            );
             await init.pageClick(page, '#description');
             await init.pageType(
                 page,
@@ -136,7 +145,11 @@ describe('Scheduled event', () => {
             await init.pageClick(page, 'label[for=selectAllMonitorsBox]');
             await init.pageClick(page, '#addMoreMonitor');
             await init.pageWaitForSelector(page, '#monitorfield_0');
-            await init.selectDropdownValue('#monitorfield_0', componentName, page);
+            await init.selectDropdownValue(
+                '#monitorfield_0',
+                componentName,
+                page
+            );
             await init.pageClick(page, '#description');
             await init.pageType(
                 page,
@@ -165,7 +178,8 @@ describe('Scheduled event', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const scheduledMaintenanceList = await page.$$(
+            const scheduledMaintenanceList = await init.page$$(
+                page,
                 '.scheduled-event-list-item'
             );
 
@@ -262,7 +276,7 @@ describe('Scheduled event', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.advanced-options-tab', elems =>
+            await init.page$$Eval(page, '.advanced-options-tab', elems =>
                 elems[0].click()
             );
 

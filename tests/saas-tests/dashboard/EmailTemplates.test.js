@@ -19,6 +19,7 @@ describe('Email Templates API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -53,7 +54,11 @@ describe('Email Templates API', () => {
                 page
             );
             await init.pageWaitForSelector(page, '#name');
-            defaultSubject = await page.$eval('#name', elem => elem.value);
+            defaultSubject = await init.page$Eval(
+                page,
+                '#name',
+                elem => elem.value
+            );
             const resetBtn = await init.pageWaitForSelector(
                 page,
                 '#templateReset',
@@ -101,7 +106,11 @@ describe('Email Templates API', () => {
                 page
             );
             await init.pageWaitForSelector(page, '#name');
-            const finalSubject = await page.$eval('#name', elem => elem.value);
+            const finalSubject = await init.page$Eval(
+                page,
+                '#name',
+                elem => elem.value
+            );
 
             expect(finalSubject).toEqual(subject);
 
@@ -175,7 +184,11 @@ describe('Email Templates API', () => {
                 page
             );
             await init.pageWaitForSelector(page, '#name');
-            const finalSubject = await page.$eval('#name', elem => elem.value);
+            const finalSubject = await init.page$Eval(
+                page,
+                '#name',
+                elem => elem.value
+            );
             expect(defaultSubject).toEqual(finalSubject);
 
             done();

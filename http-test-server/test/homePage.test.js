@@ -52,7 +52,7 @@ describe('HTTP Home page', () => {
             waitUntil: 'networkidle2',
         });
         await page.waitForSelector('#html > span');
-        const html = await page.$eval('#html > span', e => {
+        const html = await init.page$Eval(page, '#html > span', e => {
             return e.innerHTML;
         });
         should.exist(html);

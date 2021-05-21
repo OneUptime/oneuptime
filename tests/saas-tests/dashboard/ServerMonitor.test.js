@@ -24,6 +24,7 @@ describe('Server Monitor API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -70,7 +71,10 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let activeIncidents = await page.$('span#activeIncidentsText');
+            let activeIncidents = await init.page$(
+                page,
+                'span#activeIncidentsText'
+            );
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
             expect(activeIncidents).toEqual('1 Incident Currently Active');
@@ -90,14 +94,14 @@ describe('Server Monitor API', () => {
             await init.pageWaitForSelector(page, '#api');
             await init.pageClick(page, '#api a');
 
-            let projectId = await page.$('#projectId', {
+            let projectId = await init.page$(page, '#projectId', {
                 visible: true,
                 timeout: init.timeout,
             });
             projectId = await projectId.getProperty('innerText');
             projectId = await projectId.jsonValue();
 
-            let apiUrl = await page.$('#apiUrl', {
+            let apiUrl = await init.page$(page, '#apiUrl', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -105,7 +109,7 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let apiKey = await page.$('#apiKey', {
+            let apiKey = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -140,7 +144,10 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let activeIncidents = await page.$('span#activeIncidentsText');
+            let activeIncidents = await init.page$(
+                page,
+                'span#activeIncidentsText'
+            );
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
             expect(activeIncidents).toEqual('No incidents currently active.');
@@ -162,14 +169,14 @@ describe('Server Monitor API', () => {
             await init.pageWaitForSelector(page, '#api');
             await init.pageClick(page, '#api a');
 
-            let projectId = await page.$('#projectId', {
+            let projectId = await init.page$(page, '#projectId', {
                 visible: true,
                 timeout: init.timeout,
             });
             projectId = await projectId.getProperty('innerText');
             projectId = await projectId.jsonValue();
 
-            let apiUrl = await page.$('#apiUrl', {
+            let apiUrl = await init.page$(page, '#apiUrl', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -177,7 +184,7 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let apiKey = await page.$('#apiKey', {
+            let apiKey = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -232,14 +239,14 @@ describe('Server Monitor API', () => {
             await init.pageWaitForSelector(page, '#api');
             await init.pageClick(page, '#api a');
 
-            let projectId = await page.$('#projectId', {
+            let projectId = await init.page$(page, '#projectId', {
                 visible: true,
                 timeout: init.timeout,
             });
             projectId = await projectId.getProperty('innerText');
             projectId = await projectId.jsonValue();
 
-            let apiUrl = await page.$('#apiUrl', {
+            let apiUrl = await init.page$(page, '#apiUrl', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -247,7 +254,7 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let apiKey = await page.$('#apiKey', {
+            let apiKey = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -302,14 +309,14 @@ describe('Server Monitor API', () => {
             await init.pageWaitForSelector(page, '#api');
             await init.pageClick(page, '#api a');
 
-            let projectId = await page.$('#projectId', {
+            let projectId = await init.page$(page, '#projectId', {
                 visible: true,
                 timeout: init.timeout,
             });
             projectId = await projectId.getProperty('innerText');
             projectId = await projectId.jsonValue();
 
-            let apiUrl = await page.$('#apiUrl', {
+            let apiUrl = await init.page$(page, '#apiUrl', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -317,7 +324,7 @@ describe('Server Monitor API', () => {
             apiUrl = await apiUrl.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let apiKey = await page.$('#apiKey', {
+            let apiKey = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -354,7 +361,10 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let activeIncidents = await page.$('span#activeIncidentsText');
+            let activeIncidents = await init.page$(
+                page,
+                'span#activeIncidentsText'
+            );
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
             expect(activeIncidents).toEqual('1 Incident Currently Active');
@@ -372,19 +382,26 @@ describe('Server Monitor API', () => {
                 page,
                 `#${monitorName}_EditIncidentDetails_0`
             );
-            await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
-                e.click()
+            await init.page$Eval(
+                page,
+                `#${monitorName}_EditIncidentDetails_0`,
+                e => e.click()
             );
 
-            await page.$eval(`#${monitorName}_EditIncidentDetails_0`, e =>
-                e.click()
+            await init.page$Eval(
+                page,
+                `#${monitorName}_EditIncidentDetails_0`,
+                e => e.click()
             );
 
             await init.pageWaitForSelector(page, 'span#activeIncidentsText', {
                 visible: true,
                 timeout: init.timeout,
             });
-            let activeIncidents = await page.$('span#activeIncidentsText');
+            let activeIncidents = await init.page$(
+                page,
+                'span#activeIncidentsText'
+            );
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
             expect(activeIncidents).toEqual('No incidents currently active.');
@@ -393,7 +410,10 @@ describe('Server Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            activeIncidents = await page.$('span#activeIncidentsText');
+            activeIncidents = await init.page$(
+                page,
+                'span#activeIncidentsText'
+            );
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
             expect(activeIncidents).toEqual('1 Incident Currently Active');

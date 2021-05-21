@@ -17,6 +17,7 @@ describe('Monitor SLA', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -70,7 +71,7 @@ describe('Monitor SLA', () => {
                 monitorUptime,
                 page
             );
-            await page.$eval('#isDefault', elem => elem.click());
+            await init.page$Eval(page, '#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
 
             const monitorSla = await init.pageWaitForSelector(
@@ -117,7 +118,7 @@ describe('Monitor SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
-            await page.$eval('#isDefault', elem => elem.click());
+            await init.page$Eval(page, '#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
             await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
@@ -167,11 +168,15 @@ describe('Monitor SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
-            await init.selectDropdownValue('#monitorUptimeOption', 'custom', page);
+            await init.selectDropdownValue(
+                '#monitorUptimeOption',
+                'custom',
+                page
+            );
             await init.pageWaitForSelector(page, '#customMonitorUptime');
             await init.pageClick(page, '#customMonitorUptime');
             await init.pageType(page, '#customMonitorUptime', '12uptime');
-            await page.$eval('#isDefault', elem => elem.click());
+            await init.page$Eval(page, '#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
 
             const uptimeError = await init.pageWaitForSelector(
@@ -218,11 +223,15 @@ describe('Monitor SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
-            await init.selectDropdownValue('#monitorUptimeOption', 'custom', page);
+            await init.selectDropdownValue(
+                '#monitorUptimeOption',
+                'custom',
+                page
+            );
             await init.pageWaitForSelector(page, '#customMonitorUptime');
             await init.pageClick(page, '#customMonitorUptime');
             await init.pageType(page, '#customMonitorUptime', '120');
-            await page.$eval('#isDefault', elem => elem.click());
+            await init.page$Eval(page, '#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
 
             const uptimeError = await init.pageWaitForSelector(
@@ -269,11 +278,15 @@ describe('Monitor SLA', () => {
             });
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
-            await init.selectDropdownValue('#monitorUptimeOption', 'custom', page);
+            await init.selectDropdownValue(
+                '#monitorUptimeOption',
+                'custom',
+                page
+            );
             await init.pageWaitForSelector(page, '#customMonitorUptime');
             await init.pageClick(page, '#customMonitorUptime');
             await init.pageType(page, '#customMonitorUptime', '0');
-            await page.$eval('#isDefault', elem => elem.click());
+            await init.page$Eval(page, '#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
 
             const uptimeError = await init.pageWaitForSelector(
@@ -324,7 +337,7 @@ describe('Monitor SLA', () => {
             await init.pageWaitForSelector(page, '#customFrequency');
             await init.pageClick(page, '#customFrequency');
             await init.pageType(page, '#customFrequency', '12days');
-            await page.$eval('#isDefault', elem => elem.click());
+            await init.page$Eval(page, '#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
 
             const frequencyError = await init.pageWaitForSelector(
@@ -424,7 +437,7 @@ describe('Monitor SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#isDefault', elem => elem.click()); // set isDefault to false
+            await init.page$Eval(page, '#isDefault', elem => elem.click()); // set isDefault to false
             await init.pageClick(page, '#editSlaBtn');
             await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,

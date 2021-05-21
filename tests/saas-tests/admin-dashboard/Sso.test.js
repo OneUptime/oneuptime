@@ -56,6 +56,7 @@ describe('SSO API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -81,6 +82,15 @@ describe('SSO API', () => {
              *  removal of UNDEFINED
              *  sso-count is only visible after an sso has been created*/
 
+            // delete all previous SSO
+            while (await init.isElementOnPage(page, '#delete-button')) {
+                await init.pageWaitForSelector(page, '#delete-button');
+                await init.pageClick(page, '#delete-button');
+                await init.pageWaitForSelector(page, '#confirmDelete');
+                await init.pageClick(page, '#confirmDelete');
+                await page.reload({ waitUntil: 'networkidle2' });
+            }
+
             await init.pageWaitForSelector(page, '#no-sso-message');
 
             await createSso(page, {
@@ -94,15 +104,20 @@ describe('SSO API', () => {
 
             await init.pageWaitForSelector(page, '#sso-domain');
 
-            const ssoCountAfterCreation = await page.$eval('#sso-count', e => {
-                return e.innerHTML;
-            });
+            const ssoCountAfterCreation = await init.page$Eval(
+                page,
+                '#sso-count',
+                e => {
+                    return e.innerHTML;
+                }
+            );
 
             expect(ssoCountAfterCreation).toContain('1');
 
-            const tbody = await page.$eval('tbody', e => {
+            const tbody = await init.page$Eval(page, 'tbody', e => {
                 return e.innerHTML;
             });
+
             expect(tbody).toContain('test.hackerbay.io');
 
             done();
@@ -121,11 +136,15 @@ describe('SSO API', () => {
 
             await init.pageWaitForSelector(page, '#sso-count');
 
-            const ssoCount = await page.$eval('#sso-count', e => {
-                return e.innerHTML;
-            });
+            const ssoCountAfterCreation = await init.page$Eval(
+                page,
+                '#sso-count',
+                e => {
+                    return e.innerHTML;
+                }
+            );
 
-            expect(ssoCount).toContain('1');
+            expect(ssoCountAfterCreation).toContain('1');
 
             await init.pageWaitForSelector(page, '#edit-button');
             await init.pageClick(page, '#edit-button');
@@ -141,7 +160,7 @@ describe('SSO API', () => {
 
             await init.pageWaitForSelector(page, '#sso-domain');
 
-            const tbody = await page.$eval('tbody', e => {
+            const tbody = await init.page$Eval(page, 'tbody', e => {
                 return e.innerHTML;
             });
             expect(tbody).toContain('updated.test.hackerbay.io');
@@ -159,22 +178,31 @@ describe('SSO API', () => {
 
             await init.pageWaitForSelector(page, '#sso-count');
 
-            const ssoCount = await page.$eval('#sso-count', e => {
+            const count = await init.page$Eval(page, '#sso-count', e => {
                 return e.innerHTML;
             });
 
-            expect(ssoCount).toContain('1');
+            expect(count).toContain('1');
 
-            await init.pageWaitForSelector(page, '#delete-button');
-            await init.pageClick(page, '#delete-button');
+            while (await init.isElementOnPage(page, '#delete-button')) {
+                await init.pageWaitForSelector(page, '#delete-button');
+                await init.pageClick(page, '#delete-button');
+                await init.pageWaitForSelector(page, '#confirmDelete');
+                await init.pageClick(page, '#confirmDelete');
+                await page.reload({ waitUntil: 'networkidle2' });
+            }
 
-            await init.pageWaitForSelector(page, '#confirmDelete');
-            await init.pageClick(page, '#confirmDelete');
-
-            const ssoMessage = await init.pageWaitForSelector(page, '#no-sso-message'); // 'No SSO created yet' is rendered when none is available
+            const ssoMessage = await init.pageWaitForSelector(
+                page,
+                '#no-sso-message'
+            ); // 'No SSO created yet' is rendered when none is available
             expect(ssoMessage).toBeDefined();
 
-            const ssoCountAfterDeletion = await init.pageWaitForSelector(page, '#sso-count', { hidden : true});
+            const ssoCountAfterDeletion = await init.pageWaitForSelector(
+                page,
+                '#sso-count',
+                { hidden: true }
+            );
             expect(ssoCountAfterDeletion).toBeNull();
 
             done();
@@ -202,13 +230,13 @@ describe('SSO API', () => {
 
             await init.pageWaitForSelector(page, '#sso-domain');
 
-            const ssoCount = await page.$eval('#sso-count', e => {
+            const ssoCount = await init.page$Eval(page, '#sso-count', e => {
                 return e.innerHTML;
             });
 
             expect(ssoCount).toContain('12');
 
-            const firstPageTbody = await page.$eval('tbody', e => {
+            const firstPageTbody = await init.page$Eval(page, 'tbody', e => {
                 return e.innerHTML;
             });
             expect(firstPageTbody).toContain('subdomain.11.test.hackerbay.io');
@@ -216,7 +244,7 @@ describe('SSO API', () => {
 
             await init.pageClick(page, '#next-button');
 
-            const secondPageTbody = await page.$eval('tbody', e => {
+            const secondPageTbody = await init.page$Eval(page, 'tbody', e => {
                 return e.innerHTML;
             });
             expect(secondPageTbody).toContain('subdomain.1.test.hackerbay.io');
@@ -224,7 +252,7 @@ describe('SSO API', () => {
 
             await init.pageClick(page, '#previous-button');
 
-            const initalPageTbody = await page.$eval('tbody', e => {
+            const initalPageTbody = await init.page$Eval(page, 'tbody', e => {
                 return e.innerHTML;
             });
 

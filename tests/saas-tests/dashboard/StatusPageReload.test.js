@@ -22,6 +22,7 @@ describe('Fyipe Page Reload', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -50,7 +51,7 @@ describe('Fyipe Page Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#statusPages', e => e.click());
+            await init.page$Eval(page, '#statusPages', e => e.click());
             const rowItem = await init.pageWaitForSelector(
                 page,
                 '#statusPagesListContainer > tr',

@@ -494,14 +494,16 @@ class MonitorInfo extends Component {
                             <div
                                 style={{
                                     color:
-                                        status.font === 'rgba(108, 219, 86, 1)'
+                                        (this.props.ongoing &&
+                                            this.props.ongoing.length > 0) ||
+                                        status.font === 'rgba(255, 222, 36, 1)'
+                                            ? '#e39f48'
+                                            : status.font ===
+                                              'rgba(108, 219, 86, 1)'
                                             ? '#49c3b1'
                                             : status.font ===
                                               'rgba(250, 109, 70, 1)'
                                             ? '#FA6D46'
-                                            : status.font ===
-                                              'rgba(255, 222, 36, 1)'
-                                            ? '#e39f48'
                                             : status.font,
                                     textTransform: 'capitalize',
                                 }}
@@ -704,13 +706,20 @@ class MonitorInfo extends Component {
 MonitorInfo.displayName = 'UptimeGraphs';
 
 function mapStateToProps(state) {
+    const ongoing =
+        state.status &&
+        state.status.ongoing &&
+        state.status.ongoing.ongoing &&
+        state.status.ongoing.ongoing.filter(
+            ongoingSchedule => !ongoingSchedule.cancelled
+        );
     return {
         monitorState: state.status.statusPage.monitorsData,
         checkUptime: state.status.statusPage.hideUptime,
         activeProbe: state.status.activeProbe,
         probes: state.probe.probes,
         colors: state.status.statusPage.colors,
-        ongoing: state.status.ongoing.ongoing,
+        ongoing,
     };
 }
 

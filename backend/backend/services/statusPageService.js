@@ -1426,7 +1426,7 @@ module.exports = {
                 .skip(skip)
                 .populate({
                     path: 'announcementId',
-                    select: 'name',
+                    select: 'name description',
                     populate: { path: 'monitors.monitorId', select: 'name' },
                 });
             return announcementLogs;

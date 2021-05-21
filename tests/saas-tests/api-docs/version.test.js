@@ -5,6 +5,7 @@ const init = require('../../test-init');
 describe('Version API', function() {
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
         done();
     });
 

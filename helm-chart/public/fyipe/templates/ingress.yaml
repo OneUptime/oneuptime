@@ -98,6 +98,12 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "accounts"  }}
               servicePort: 80
+          {{- end }}
+          {{- if $.Values.saas.exposeInitScriptContainer }}
+          - path: /
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name "init-script"  }}
+              servicePort: 80
           {{- end }}   
 ---
 {{- end }}

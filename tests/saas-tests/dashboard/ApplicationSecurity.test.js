@@ -80,7 +80,11 @@ describe('Application Security Page', () => {
 
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', applicationSecurityName);
-            await init.selectDropdownValue('#resourceCategory', categoryName, page); // add category
+            await init.selectDropdownValue(
+                '#resourceCategory',
+                categoryName,
+                page
+            ); // add category
             await init.pageClick(page, '#gitRepositoryUrl');
             await init.pageType(page, '#gitRepositoryUrl', gitRepositoryUrl);
             await init.pageClick(page, '#gitCredential');
@@ -106,7 +110,10 @@ describe('Application Security Page', () => {
             expect(editApplicationElement).toBeDefined();
 
             // confirm the category shows in the details page.
-            let spanElement = await page.$(`#${applicationSecurityName}-badge`);
+            let spanElement = await init.page$(
+                page,
+                `#${applicationSecurityName}-badge`
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -309,7 +316,7 @@ describe('Application Security Page', () => {
             });
             // make sure the added application security
             // has atleast one security vulnerability
-            const logs = await page.$$('#securityLog tbody tr');
+            const logs = await init.page$$(page, '#securityLog tbody tr');
             expect(logs.length).toBeGreaterThanOrEqual(1);
 
             done();
@@ -371,7 +378,7 @@ describe('Application Security Page', () => {
                     timeout: init.timeout,
                 }
             );
-            await init.pageClick(page, '#name');
+            await init.pageClick(page, '#name', {clickCount : 3});
             await init.pageType(page, '#name', newApplicationName);
             await init.pageClick(page, '#editApplicationBtn');
             await init.pageWaitForSelector(
@@ -382,7 +389,8 @@ describe('Application Security Page', () => {
                 }
             );
 
-            const textContent = await page.$eval(
+            const textContent = await init.page$Eval(
+                page,
                 `#applicationSecurityTitle_${newApplicationName}`,
                 elem => elem.textContent
             );

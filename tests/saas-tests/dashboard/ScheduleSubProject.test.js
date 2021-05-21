@@ -24,6 +24,7 @@ describe('Schedule API With SubProjects', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -77,7 +78,8 @@ describe('Schedule API With SubProjects', () => {
             await init.pageWaitForSelector(page, '#onCallDuty');
             await init.pageClick(page, '#onCallDuty');
 
-            const createButton = await page.$(
+            const createButton = await init.page$(
+                page,
                 `#btnCreateSchedule_${subProjectName}`
             );
 
@@ -141,7 +143,7 @@ describe('Schedule API With SubProjects', () => {
             await init.pageClick(page, '#onCallDuty');
             await init.pageWaitForSelector(page, 'tr.scheduleListItem');
 
-            let scheduleRows = await page.$$('tr.scheduleListItem');
+            let scheduleRows = await init.page$$(page, 'tr.scheduleListItem');
             let countSchedules = scheduleRows.length;
 
             expect(countSchedules).toEqual(10);
@@ -155,7 +157,7 @@ describe('Schedule API With SubProjects', () => {
             // await nextSelector.click();
             await init.pageClick(page, `#btnNext-${subProjectName}`);
 
-            scheduleRows = await page.$$('tr.scheduleListItem');
+            scheduleRows = await init.page$$(page, 'tr.scheduleListItem');
             countSchedules = scheduleRows.length;
             expect(countSchedules).toEqual(1);
 
@@ -167,7 +169,7 @@ describe('Schedule API With SubProjects', () => {
             await init.pageClick(page, `#btnPrev-${subProjectName}`);
             //await prevSelector.click();
 
-            scheduleRows = await page.$$('tr.scheduleListItem');
+            scheduleRows = await init.page$$(page, 'tr.scheduleListItem');
             countSchedules = scheduleRows.length;
             expect(countSchedules).toEqual(10);
 
@@ -197,7 +199,8 @@ describe('Schedule API With SubProjects', () => {
             await init.pageWaitForSelector(page, '#btnSaveMonitors');
             await init.pageClick(page, '#btnSaveMonitors');
 
-            const monitorSelectValue = await page.$eval(
+            const monitorSelectValue = await init.page$Eval(
+                page,
                 'input[type=checkbox]',
                 el => el.value
             );
@@ -230,7 +233,7 @@ describe('Schedule API With SubProjects', () => {
             await init.pageClick(page, '#onCallDuty');
             await init.pageWaitForSelector(page, 'tr.scheduleListItem');
 
-            const scheduleRows = await page.$$('tr.scheduleListItem');
+            const scheduleRows = await init.page$$(page, 'tr.scheduleListItem');
             const countSchedules = scheduleRows.length;
 
             expect(countSchedules).toEqual(10);

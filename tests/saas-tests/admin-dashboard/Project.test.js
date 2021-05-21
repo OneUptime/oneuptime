@@ -13,11 +13,14 @@ const user = {
     password,
 };
 
+let projectId = null;
+
 describe('Project', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig, {
             waitUntil: 'networkidle2',
@@ -48,27 +51,27 @@ describe('Project', () => {
             await init.createUserFromAdminDashboard(user, page);
             await page.reload({ waitUntil: 'networkidle2' });
             await init.pageClick(page, '#projects');
-            await page.$eval('#projects > a', elem => elem.click());
+            await init.page$Eval(page, '#projects > a', elem => elem.click());
             await init.pageWaitForSelector(page, '.Table > tbody tr');
+
+            var project = await init.pageWaitForSelector(page, '.projectId');
+            projectId = await (await project.getProperty('innerText')).jsonValue();
+
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
                 elem = Array.from(elem);
                 elem[0].click();
             });
 
-            await init.pageWaitForSelector(
-                page,
-                'input[name="planId"]#Enterprise',
-                {
-                    visible: true,
-                    timeout: init.timeout,
-                }
-            );
+            await init.pageWaitForSelector(page, '#Enterprise', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
-            await page.$eval('input[name="planId"]#Enterprise', elem =>
+            await init.page$Eval(page, '#Enterprise', elem => elem.click());
+            await init.page$Eval(page, '#submitChangePlan', elem =>
                 elem.click()
             );
-            await page.$eval('#submitChangePlan', elem => elem.click());
 
             const loader = await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
@@ -76,12 +79,12 @@ describe('Project', () => {
 
             await page.reload({ waitUntil: 'networkidle0' });
 
-            const checked = await page.$eval(
-                'input[name="planId"]#Enterprise',
+            const checked = await init.page$Eval(
+                page,
+                '#Enterprise',
                 elem => elem.checked
             );
 
-            expect(loader).toBeNull();
             expect(checked).toEqual(true);
             done();
         },
@@ -93,27 +96,27 @@ describe('Project', () => {
         async done => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageClick(page, '#projects');
-            await page.$eval('#projects > a', elem => elem.click());
+            await init.page$Eval(page, '#projects > a', elem => elem.click());
             await init.pageWaitForSelector(page, '.Table > tbody tr');
-            await page.evaluate(() => {
-                let elem = document.querySelectorAll('.Table > tbody tr');
-                elem = Array.from(elem);
-                elem[0].click();
-            });
+            await init.pageClick(page, '#project-'+projectId);
 
             await init.pageWaitForSelector(
                 page,
-                'input[name="planId"]#Growth_annual',
+                '#Growth_annual',
                 {
                     visible: true,
                     timeout: init.timeout,
                 }
             );
 
-            await page.$eval('input[name="planId"]#Growth_annual', elem =>
+            await init.page$Eval(
+                page,
+                '#Growth_annual',
+                elem => elem.click()
+            );
+            await init.page$Eval(page, '#submitChangePlan', elem =>
                 elem.click()
             );
-            await page.$eval('#submitChangePlan', elem => elem.click());
 
             const loader = await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
@@ -121,8 +124,9 @@ describe('Project', () => {
 
             await page.reload({ waitUntil: 'networkidle0' });
 
-            const checked = await page.$eval(
-                'input[name="planId"]#Growth_annual',
+            const checked = await init.page$Eval(
+                page,
+                '#Growth_annual',
                 elem => elem.checked
             );
 

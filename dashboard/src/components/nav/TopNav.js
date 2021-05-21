@@ -13,10 +13,11 @@ import { openSideNav } from '../../actions/page';
 import { API_URL, User } from '../../config';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { history } from '../../store';
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
 import OnCallScheduleModal from '../OnCallScheduleModal';
+import IncidentHeaderModal from '../modals/IncidentHeaderModal';
+import ScheduleHeaderModal from '../modals/ScheduleHeaderModal';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
 import _ from 'lodash';
@@ -114,10 +115,43 @@ class TopContent extends Component {
     };
 
     handleActiveIncidentClick = () => {
-        history.push(`/dashboard/project/${this.props.currentProjectSlug}`);
+        let unresolvedincidents = [];
+
+        if (
+            this.props.incidents &&
+            this.props.incidents.incidents &&
+            this.props.incidents.incidents.length > 0
+        ) {
+            unresolvedincidents = this.props.incidents.incidents.filter(
+                incident => !incident.resolved
+            );
+        }
+        this.props.openModal({
+            content: DataPathHoC(IncidentHeaderModal, {
+                status: 'active',
+                incidents: unresolvedincidents,
+                currentProjectSlug: this.props.currentProjectSlug,
+                currentProjectId: this.props.currentProjectId,
+            }),
+        });
     };
 
-    renderActiveIncidents = (incidentCounter, topNavCardClass) => (
+    handleOngoingScheduleClick = () => {
+        const { subProjectOngoingScheduledEvents } = this.props;
+        const schedules = [];
+        subProjectOngoingScheduledEvents.forEach(eventData => {
+            schedules.push(...eventData.ongoingScheduledEvents);
+        });
+        this.props.openModal({
+            content: DataPathHoC(ScheduleHeaderModal, {
+                schedules,
+                currentProjectSlug: this.props.currentProjectSlug,
+                currentProjectId: this.props.currentProjectId,
+            }),
+        });
+    };
+
+    renderActiveIncidents = incidentCounter => (
         <>
             {typeof incidentCounter === 'number' && (
                 <div
@@ -146,25 +180,12 @@ class TopContent extends Component {
                             marginRight: '3px',
                         }}
                     />
-                    <span className={topNavCardClass} id="activeIncidentsText">
-                        <ShouldRender
-                            if={incidentCounter && incidentCounter > 0}
-                        >
-                            {`${incidentCounter +
-                                (incidentCounter === 1
-                                    ? ' Incident Currently Active'
-                                    : ' Incidents Currently Active')}`}
-                        </ShouldRender>
-                        <ShouldRender if={incidentCounter === 0}>
-                            No incidents currently active.
-                        </ShouldRender>
-                    </span>
                 </div>
             )}
         </>
     );
 
-    renderOngoingScheduledEvents = topNavCardClass => {
+    renderOngoingScheduledEvents = () => {
         const { subProjectOngoingScheduledEvents } = this.props;
         let count = 0;
         subProjectOngoingScheduledEvents.forEach(eventData => {
@@ -174,7 +195,7 @@ class TopContent extends Component {
             <div
                 className="Box-root box__yellow--dark Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer Margin-left--20"
                 style={{ paddingBottom: '6px', paddingTop: '6px' }}
-                onClick={this.handleActiveIncidentClick}
+                onClick={this.handleOngoingScheduleClick}
                 id="ongoingEvents"
             >
                 <span
@@ -185,9 +206,6 @@ class TopContent extends Component {
                         marginRight: '3px',
                     }}
                 />
-                <span className={topNavCardClass}>{`${count} Scheduled Event${
-                    count === 1 ? '' : 's'
-                } Currently Active`}</span>
             </div>
         ) : null;
     };
@@ -253,6 +271,7 @@ class TopContent extends Component {
             });
         }
         let incidentCounter = null;
+
         if (
             this.props.incidents &&
             this.props.incidents.incidents &&

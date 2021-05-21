@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer');
 const utils = require('../../test-utils');
 const init = require('../../test-init');
+const axios = require('axios');
 
 let browser, page;
 require('should');
@@ -17,6 +18,7 @@ describe('SMTP Settings API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -27,8 +29,25 @@ describe('SMTP Settings API', () => {
             password: password,
         };
         // user
-        // await init.registerEnterpriseUser(user, page);
+        
         await init.loginAdminUser(user, page);
+
+        // delete existing smtp details, if there is any.
+        var data = JSON.stringify({
+            "collection": "globalconfigs",
+            "query": {}
+        });
+
+        var config = {
+            method: 'post',
+            url: utils.INIT_SCRIPT_URL+'/removeMany',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            data: data
+        };
+
+        await axios(config); 
     });
 
     afterAll(async () => {
@@ -49,7 +68,7 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, '#email-enabled');
             await init.pageClick(page, '#customSmtp');
 
-            const originalValues = await page.$$eval('input', e =>
+            const originalValues = await init.page$$Eval(page, 'input', e =>
                 e.map(field => field.value)
             );
             await init.pageClick(page, 'input[name=email]');
@@ -67,16 +86,20 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, 'button[type=submit]');
 
             // All fields should validate false
-            expect((await page.$$('span.field-error')).length).toEqual(
-                (await page.$$('input')).length -
-                    4 /** There 10 input values and 6 span-errors */
+            expect(
+                (await init.page$$(page, 'span.field-error')).length
+            ).toEqual(
+                (await init.page$$(page, 'input')).length -
+                4 /** There 10 input values and 6 span-errors */
             );
 
             //Since we did not save the settings, reloading the page automatically removes the input values
 
             // All fields should remain as were
             expect(
-                await page.$$eval('input', e => e.map(field => field.value))
+                await init.page$$Eval(page, 'input', e =>
+                    e.map(field => field.value)
+                )
             ).toEqual(originalValues);
             done();
         },
@@ -128,12 +151,18 @@ describe('SMTP Settings API', () => {
             );
             await init.pageClick(page, 'input[name=from-name]');
             await init.pageType(page, 'input[name=from-name]', smtpName);
-            await page.$eval('#smtp-secure', element => element.click());
+            await init.page$Eval(page, '#smtp-secure', element =>
+                element.click()
+            );
             await init.pageClick(page, 'button[type=submit]');
 
             await page.reload();
 
-            const value = await page.$eval('input[name=email]', e => e.value);
+            const value = await init.page$Eval(
+                page,
+                'input[name=email]',
+                e => e.value
+            );
 
             expect(value).toEqual(utils.smtpCredential.user);
             done();
@@ -159,7 +188,7 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, '#confirmSmtpTest');
 
             await init.pageWaitForSelector(page, '#test-result');
-            let elem = await page.$('#test-result');
+            let elem = await init.page$(page, '#test-result');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();
 
@@ -190,7 +219,7 @@ describe('SMTP Settings API', () => {
             await init.pageClick(page, '#confirmSmtpTest');
 
             await init.pageWaitForSelector(page, '#test-result');
-            let elem = await page.$('#test-result');
+            let elem = await init.page$(page, '#test-result');
             elem = await elem.getProperty('innerText');
             elem = await elem.jsonValue();
 

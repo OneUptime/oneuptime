@@ -29,13 +29,25 @@ const socket = io.connect(API_URL.replace('/api', ''), {
 
 class ApplicationSecurityDetail extends Component {
     componentDidUpdate(prevProps) {
-        if (prevProps.projectId !== this.props.projectId) {
-            const { getGitCredentials, projectId } = this.props;
+        if (
+            prevProps.projectId !== this.props.projectId ||
+            prevProps.componentSlug !== this.props.componentSlug
+        ) {
+            const {
+                getGitCredentials,
+                projectId,
+                fetchComponent,
+                componentSlug,
+            } = this.props;
             if (projectId) {
                 getGitCredentials({ projectId });
+                fetchComponent(projectId, componentSlug);
             }
         }
-        if (prevProps.componentId !== this.props.componentId) {
+        if (
+            prevProps.projectId !== this.props.projectId ||
+            prevProps.componentId !== this.props.componentId
+        ) {
             const {
                 projectId,
                 componentId,
@@ -82,7 +94,8 @@ class ApplicationSecurityDetail extends Component {
             applicationSecurityId,
             getApplicationSecurityLog,
         } = this.props;
-        if (projectId && componentSlug) {
+        if (projectId) {
+            getGitCredentials({ projectId });
             fetchComponent(projectId, componentSlug);
         }
         if (projectId && componentId) {
@@ -92,9 +105,6 @@ class ApplicationSecurityDetail extends Component {
                 componentId,
                 applicationSecuritySlug,
             });
-        }
-        if (projectId) {
-            getGitCredentials({ projectId });
         }
         if (applicationSecurityId) {
             // get a container security log

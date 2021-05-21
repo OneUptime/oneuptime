@@ -22,6 +22,7 @@ describe('Fyipe Page Reload', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -54,8 +55,16 @@ describe('Fyipe Page Reload', () => {
                 `${componentName} / ${monitorName}`,
                 page
             );
-            await init.selectDropdownValue('#frequencyOption', 'Every 3 months', page);
-            await init.selectDropdownValue('#monitorUptimeOption', '99.90%', page);
+            await init.selectDropdownValue(
+                '#frequencyOption',
+                'Every 3 months',
+                page
+            );
+            await init.selectDropdownValue(
+                '#monitorUptimeOption',
+                '99.90%',
+                page
+            );
             await init.pageClick(page, '#createSlaBtn');
             await init.pageWaitForSelector(page, '#createSlaBtn', {
                 hidden: true,

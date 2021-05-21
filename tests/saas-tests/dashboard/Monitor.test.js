@@ -18,6 +18,7 @@ describe('Monitor API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -141,7 +142,8 @@ describe('Monitor API', () => {
             );
             await criterionAdvancedOptions.click();
             await init.pageWaitForSelector(page, 'input[id^=name_up]');
-            const criterionName = await page.$eval(
+            const criterionName = await init.page$Eval(
+                page,
                 'input[id^=name_up]',
                 el => el.value
             );
@@ -180,7 +182,8 @@ describe('Monitor API', () => {
 
         // add up criterion
         expect(
-            (await page.$$('[data-testId^=single_criterion_up')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_up'))
+                .length
         ).toEqual(1);
 
         let criterionAdvancedOption = await init.pageWaitForSelector(
@@ -191,37 +194,52 @@ describe('Monitor API', () => {
 
         await init.pageClick(page, '[data-testId=add_criteria_up]');
         expect(
-            (await page.$$('[data-testId^=single_criterion_up')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_up'))
+                .length
         ).toEqual(2);
 
         // add degraded criterion
         expect(
-            (await page.$$('[data-testId^=single_criterion_degraded]')).length
+            (
+                await init.page$$(
+                    page,
+                    '[data-testId^=single_criterion_degraded]'
+                )
+            ).length
         ).toEqual(1);
 
-        criterionAdvancedOption = await page.$(
+        criterionAdvancedOption = await init.page$(
+            page,
             '[data-testId=criterionAdvancedOptions_degraded]'
         );
         await criterionAdvancedOption.click();
 
         await init.pageClick(page, '[data-testId=add_criteria_degraded]');
         expect(
-            (await page.$$('[data-testId^=single_criterion_degraded]')).length
+            (
+                await init.page$$(
+                    page,
+                    '[data-testId^=single_criterion_degraded]'
+                )
+            ).length
         ).toEqual(2);
 
         // add down criterion
-        criterionAdvancedOption = await page.$(
+        criterionAdvancedOption = await init.page$(
+            page,
             '[data-testId=criterionAdvancedOptions_down]'
         );
         await criterionAdvancedOption.click();
 
         expect(
-            (await page.$$('[data-testId^=single_criterion_down]')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_down]'))
+                .length
         ).toEqual(1);
 
         await init.pageClick(page, '[data-testId=add_criteria_down]');
         expect(
-            (await page.$$('[data-testId^=single_criterion_down]')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_down]'))
+                .length
         ).toEqual(2);
 
         // add the monitor and check if the criteria are persisted
@@ -243,7 +261,8 @@ describe('Monitor API', () => {
             '[data-testId^=single_criterion_up]'
         );
         expect(
-            (await page.$$('[data-testId^=single_criterion_up')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_up'))
+                .length
         ).toEqual(2);
 
         // for degraded criteria
@@ -252,7 +271,12 @@ describe('Monitor API', () => {
             '[data-testId^=single_criterion_degraded]'
         );
         expect(
-            (await page.$$('[data-testId^=single_criterion_degraded]')).length
+            (
+                await init.page$$(
+                    page,
+                    '[data-testId^=single_criterion_degraded]'
+                )
+            ).length
         ).toEqual(2);
         // for down criteria
         await init.pageWaitForSelector(
@@ -260,7 +284,8 @@ describe('Monitor API', () => {
             '[data-testId^=single_criterion_down]'
         );
         expect(
-            (await page.$$('[data-testId^=single_criterion_down]')).length
+            (await init.page$$(page, '[data-testId^=single_criterion_down]'))
+                .length
         ).toEqual(2);
         done();
     });
@@ -404,8 +429,10 @@ describe('Monitor API', () => {
             await init.pageClick(page, '#url');
             await init.pageType(page, '#url', 'https://google.com');
             // select multiple schedules
-            await page.$$eval('[data-testId^=callSchedules_]', schedules =>
-                schedules.forEach(schedule => schedule.click())
+            await init.page$$Eval(
+                page,
+                '[data-testId^=callSchedules_]',
+                schedules => schedules.forEach(schedule => schedule.click())
             );
 
             await init.pageClick(page, 'button[type=submit]');
@@ -420,7 +447,8 @@ describe('Monitor API', () => {
 
             await init.pageClick(page, `#edit_${monitorName}`);
 
-            const checkboxValues = await page.$$eval(
+            const checkboxValues = await init.page$$Eval(
+                page,
                 '[data-testId^=callSchedules_]',
                 schedules => schedules.map(schedule => schedule.checked)
             );
@@ -727,6 +755,7 @@ describe('API Monitor API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -990,11 +1019,12 @@ describe('API Monitor API', () => {
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(testMonitorName);
 
-            const probeTabs = await page.$$('button[id^=probes-btn]');
+            const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
-                let monitorStatusElement = await page.$(
+                let monitorStatusElement = await init.page$(
+                    page,
                     `#monitor-status-${testMonitorName}`
                 );
                 if (monitorStatusElement) {
@@ -1025,14 +1055,15 @@ describe('API Monitor API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval(editButtonSelector, e => e.click());
+            await init.page$Eval(page, editButtonSelector, e => e.click());
 
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, '#advanceOptions');
             await init.pageClick(page, '#advanceOptions');
 
             // for online criteria
-            const upFields = await page.$$(
+            const upFields = await init.page$$(
+                page,
                 `input[name*="up_"][name*=".field1"]`
             );
             const lastUpField = upFields[upFields.length - 1];
@@ -1043,7 +1074,8 @@ describe('API Monitor API', () => {
             expect(upExpression).toEqual("response.body.status === 'ok'");
 
             // for degraded criteria
-            const degradedFields = await page.$$(
+            const degradedFields = await init.page$$(
+                page,
                 `input[name*="degraded_"][name*=".field1"]`
             );
             const lastDegradedField = degradedFields[degradedFields.length - 1];
@@ -1095,11 +1127,12 @@ describe('API Monitor API', () => {
                 testMonitorName,
                 page
             );
-            const probeTabs = await page.$$('button[id^=probes-btn]');
+            const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
-                let monitorStatusElement = await page.$(
+                let monitorStatusElement = await init.page$(
+                    page,
                     `#monitor-status-${testMonitorName}`
                 );
                 if (monitorStatusElement) {
@@ -1155,11 +1188,12 @@ describe('API Monitor API', () => {
                 page
             );
 
-            const probeTabs = await page.$$('button[id^=probes-btn]');
+            const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
-                let monitorStatusElement = await page.$(
+                let monitorStatusElement = await init.page$(
+                    page,
                     `#monitor-status-${testMonitorName}`
                 );
                 if (monitorStatusElement) {
@@ -1212,11 +1246,12 @@ describe('API Monitor API', () => {
             page
         );
 
-        const probeTabs = await page.$$('button[id^=probes-btn]');
+        const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
         for (const probeTab of probeTabs) {
             await probeTab.click();
 
-            let monitorStatusElement = await page.$(
+            let monitorStatusElement = await init.page$(
+                page,
                 `#monitor-status-${testMonitorName}`
             );
             if (monitorStatusElement) {
@@ -1301,7 +1336,7 @@ describe('API Monitor API', () => {
             );
             const deleteButtonSelector = `#delete_${testMonitorName}`;
             await init.pageWaitForSelector(page, deleteButtonSelector);
-            await page.$eval(deleteButtonSelector, e => e.click());
+            await init.page$Eval(page, deleteButtonSelector, e => e.click());
 
             const confirmDeleteButtonSelector = '#deleteMonitor';
             await init.pageWaitForSelector(page, confirmDeleteButtonSelector);
@@ -1311,7 +1346,7 @@ describe('API Monitor API', () => {
             });
 
             const selector = `span#monitor-title-${testMonitorName}`;
-            const spanElement = await page.$(selector);
+            const spanElement = await init.page$(page, selector);
             expect(spanElement).toBeNull();
             done();
         },

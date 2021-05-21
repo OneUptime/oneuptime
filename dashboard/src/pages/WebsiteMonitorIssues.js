@@ -63,7 +63,9 @@ class WebsiteMonitorIssues extends React.Component {
     }
     componentDidUpdate(prevProps) {
         if (
-            String(prevProps.componentSlug) !== String(this.props.componentSlug)
+            String(prevProps.componentSlug) !==
+                String(this.props.componentSlug) ||
+            prevProps.projectId !== this.props.projectId
         ) {
             if (this.props.projectId && this.props.componentSlug) {
                 this.props.fetchComponent(

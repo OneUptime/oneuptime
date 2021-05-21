@@ -23,6 +23,7 @@ describe('Scheduled Event Note', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -84,7 +85,11 @@ describe('Scheduled Event Note', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.selectDropdownValue('#event_state', 'investigating', page);
+            await init.selectDropdownValue(
+                '#event_state',
+                'investigating',
+                page
+            );
             await init.pageClick(page, '#new-internal');
             await init.pageType(
                 page,
@@ -219,6 +224,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

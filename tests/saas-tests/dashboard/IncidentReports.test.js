@@ -35,16 +35,16 @@ describe('Incident Reports API', () => {
             visible: true,
             timeout: init.timeout,
         });
-        await page.$eval('input[id=name]', e => e.click());
+        await init.page$Eval(page, 'input[id=name]', e => e.click());
         await init.pageType(page, 'input[id=name]', monitorName);
         await init.pageClick(page, '[data-testId=type_url]');
         await init.pageWaitForSelector(page, '#url', {
             visible: true,
             timeout: init.timeout,
         });
-        await page.$eval('#url', e => e.click());
+        await init.page$Eval(page, '#url', e => e.click());
         await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
-        await page.$eval('button[type=submit]', e => e.click());
+        await init.page$Eval(page, 'button[type=submit]', e => e.click());
         await init.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
             visible: true,
         });

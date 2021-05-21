@@ -85,7 +85,11 @@ describe('Container Security Page', () => {
 
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', containerSecurityName);
-            await init.selectDropdownValue('#resourceCategory', categoryName, page); // add category
+            await init.selectDropdownValue(
+                '#resourceCategory',
+                categoryName,
+                page
+            ); // add category
             await init.pageClick(page, '#dockerCredential');
             await init.pageType(page, '#dockerCredential', dockerUsername);
             await page.keyboard.press('Enter');
@@ -113,7 +117,10 @@ describe('Container Security Page', () => {
             expect(editContainerElement).toBeDefined();
 
             // confirm the category shows in the details page.
-            let spanElement = await page.$(`#${containerSecurityName}-badge`);
+            let spanElement = await init.page$(
+                page,
+                `#${containerSecurityName}-badge`
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -308,7 +315,7 @@ describe('Container Security Page', () => {
             });
             // make sure the added container security
             // have atlest one security vulnerability
-            const logs = await page.$$('#securityLog tbody tr');
+            const logs = await init.page$$(page, '#securityLog tbody tr');
             expect(logs.length).toBeGreaterThanOrEqual(1);
 
             done();
@@ -369,7 +376,8 @@ describe('Container Security Page', () => {
                 hidden: true,
             });
 
-            const textContent = await page.$eval(
+            const textContent = await init.page$Eval(
+                page,
                 `#containerSecurityTitle_${newContainerSecurityName}`,
                 elem => elem.textContent
             );

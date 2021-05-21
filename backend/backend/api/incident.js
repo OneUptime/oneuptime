@@ -1084,6 +1084,7 @@ router.get(
                 body_message: 'Your incident is now resolved.',
                 action: 'resolve',
                 dashboard_url: global.dashboardHost,
+                apiUrl: global.apiHost,
             });
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -1115,6 +1116,7 @@ router.get(
                 body_message: 'Your incident is now acknowledged',
                 action: 'acknowledge',
                 dashboard_url: global.dashboardHost,
+                apiUrl: global.apiHost,
             });
         } catch (error) {
             return sendErrorResponse(req, res, error);

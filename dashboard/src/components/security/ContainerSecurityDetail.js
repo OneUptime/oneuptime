@@ -29,9 +29,18 @@ const socket = io.connect(API_URL.replace('/api', ''), {
 
 class ContainerSecurityDetail extends Component {
     componentDidUpdate(prevProps) {
-        if (prevProps.projectId !== this.props.projectId) {
-            const { getDockerCredentials, projectId } = this.props;
+        if (
+            prevProps.projectId !== this.props.projectId ||
+            prevProps.componentSlug !== this.props.componentSlug
+        ) {
+            const {
+                getDockerCredentials,
+                projectId,
+                fetchComponent,
+                componentSlug,
+            } = this.props;
             if (projectId) {
+                fetchComponent(projectId, componentSlug);
                 getDockerCredentials({ projectId });
             }
         }

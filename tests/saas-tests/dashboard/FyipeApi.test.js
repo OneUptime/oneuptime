@@ -19,6 +19,7 @@ describe('API test', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -56,7 +57,7 @@ describe('API test', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#api a');
-            let elementHandle = await page.$('#boxTitle', {
+            let elementHandle = await init.page$(page, '#boxTitle', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -86,7 +87,7 @@ describe('API test', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#api a');
-            let label = await page.$('#apiKey', {
+            let label = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -94,7 +95,7 @@ describe('API test', () => {
             label = await label.jsonValue();
 
             await init.pageClick(page, '#apiKey');
-            let newLabel = await page.$('#apiKey', {
+            let newLabel = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -126,7 +127,7 @@ describe('API test', () => {
             await init.pageClick(page, '#api a');
 
             await init.pageClick(page, '#apiKey');
-            let oldApiKey = await page.$('#apiKey', {
+            let oldApiKey = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -145,7 +146,7 @@ describe('API test', () => {
                 hidden: true,
             });
 
-            let newApiKey = await page.$('#apiKey', {
+            let newApiKey = await init.page$(page, '#apiKey', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -238,13 +239,13 @@ describe('API test', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#api a');
-            let elementHandle = await page.$('#boxTitle', {
+            let elementHandle = await init.page$(page, '#boxTitle', {
                 visible: true,
                 timeout: init.timeout,
             });
             expect(elementHandle).toEqual(null);
 
-            elementHandle = await page.$('#errorMessage', {
+            elementHandle = await init.page$(page, '#errorMessage', {
                 visible: true,
                 timeout: init.timeout,
             });

@@ -77,6 +77,15 @@ class Container extends Component {
                 getContainerSecurities({ projectId, componentId });
             }
         }
+        if (
+            prevProps.projectId !== this.props.projectId ||
+            prevProps.componentSlug !== this.props.componentSlug
+        ) {
+            const { projectId, fetchComponent, componentSlug } = this.props;
+            if (projectId) {
+                fetchComponent(projectId, componentSlug);
+            }
+        }
     }
 
     ready = () => {

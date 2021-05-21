@@ -51,6 +51,8 @@ const STATUSPAGE_URL = process.env.STATUSPAGE_URL || 'http://localhost:3006';
 const APIDOCS_URL = process.env.APIDOCS_URL || 'http://localhost:1445';
 const HTTP_TEST_SERVER_URL =
     process.env.HTTP_TEST_SERVER_URL || 'http://localhost:3010';
+const INIT_SCRIPT_URL =
+    process.env.INIT_SCRIPT_URL || 'http://localhost:1447';
 
 function generateRandomBusinessEmail() {
     return (
@@ -197,6 +199,7 @@ module.exports = {
     STATUSPAGE_URL,
     APIDOCS_URL,
     HTTP_TEST_SERVER_URL,
+    INIT_SCRIPT_URL,
     user,
     puppeteerLaunchConfig,
     generateRandomString,

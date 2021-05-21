@@ -156,7 +156,7 @@ class NewThemeEvent extends Component {
                                     {event.cancelled ? (
                                         <div
                                             style={{
-                                                marginLeft: 5,
+                                                marginLeft: 15,
                                             }}
                                             className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
                                         >
@@ -169,7 +169,7 @@ class NewThemeEvent extends Component {
                                     ) : event.resolved ? (
                                         <div
                                             style={{
-                                                marginLeft: 5,
+                                                marginLeft: 15,
                                             }}
                                             className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
                                         >
@@ -179,18 +179,47 @@ class NewThemeEvent extends Component {
                                                 </span>
                                             </span>
                                         </div>
+                                    ) : currentTime >=
+                                          moment(event.startDate) &&
+                                      currentTime < moment(event.endDate) ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    Ongoing
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ) : currentTime <
+                                      moment(event.startDate) ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--default Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    Scheduled
+                                                </span>
+                                            </span>
+                                        </div>
                                     ) : (
-                                        currentTime > moment(event.startDate) &&
-                                        currentTime < moment(event.endDate) && (
+                                        currentTime >=
+                                            moment(event.endDate) && (
                                             <div
                                                 style={{
-                                                    marginLeft: 5,
+                                                    marginLeft: 15,
                                                 }}
-                                                className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
                                             >
-                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                     <span id="ongoing-event">
-                                                        Ongoing
+                                                        Ended
                                                     </span>
                                                 </span>
                                             </div>
@@ -215,6 +244,7 @@ class NewThemeEvent extends Component {
                                         display: 'flex',
                                         justifyContent: 'space-between',
                                         alignItems: 'center',
+                                        marginBottom: '12px',
                                     }}
                                 >
                                     <div
