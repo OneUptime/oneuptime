@@ -1135,10 +1135,10 @@ const _this = {
         await _this.pageWaitForSelector(page, 'li#resources a');
         await _this.pageClickNavigate(page, 'li#resources a');
         await _this.pageWaitForSelector(page, '#createResourceCategoryButton');
-        await _this.pageClickNavigate(page, '#createResourceCategoryButton');
+        await _this.pageClick(page, '#createResourceCategoryButton');
         await _this.pageWaitForSelector(page, '#resourceCategoryName');
         await _this.pageType(page, '#resourceCategoryName', resourceCategory);
-        await _this.pageClickNavigate(page, '#addResourceCategoryButton');
+        await _this.pageClick(page, '#addResourceCategoryButton');
         await _this.pageWaitForSelector(page, '#addResourceCategoryButton', {
             hidden: true,
         });

@@ -80,7 +80,7 @@ describe('Log Containers', () => {
                 page
             );
             await init.pageWaitForSelector(page, `#edit_${applicationLogName}`);
-            await init.pageClickNavigate(page, `#edit_${applicationLogName}`);
+            await init.pageClick(page, `#edit_${applicationLogName}`);
 
             let spanElement = await init.pageWaitForSelector(
                 page,
@@ -200,14 +200,14 @@ describe('Log Containers', () => {
             );
             // open modal
             await init.pageWaitForSelector(page, `#key_${applicationLogName}`);
-            await init.pageClickNavigate(page, `#key_${applicationLogName}`);
+            await init.pageClick(page, `#key_${applicationLogName}`);
 
             // click show applicaion log key
             await init.pageWaitForSelector(
                 page,
                 `#show_application_log_key_${applicationLogName}`
             );
-            await init.pageClickNavigate(
+            await init.pageClick(
                 page,
                 `#show_application_log_key_${applicationLogName}`
             );
@@ -375,7 +375,7 @@ describe('Log Containers', () => {
             await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClickNavigate(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more');
-            await init.pageClickNavigate(page, '#more');
+            await init.pageClick(page, '#more');
 
             await init.pageWaitForSelector(page, 'li#resources a');
             await init.pageClickNavigate(page, 'li#resources a');
