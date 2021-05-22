@@ -8,6 +8,7 @@ let page, browser;
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
+const queryString = '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
 
 describe('Home redirect', () => {
     beforeAll(async done => {
@@ -16,10 +17,9 @@ describe('Home redirect', () => {
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
-        await page.goto(
-            `${utils.HOME_URL}?utm_source=runningtest&good=thankyou&kill=love&ion=pure`,
-            { waitUntil: 'networkidle2' }
-        );
+        await page.goto(`${utils.HOME_URL}${queryString}`, {
+            waitUntil: 'networkidle2',
+        });
         await page.goto(`${utils.ACCOUNTS_URL}/accounts/register`, {
             waitUntil: 'networkidle2',
         });
@@ -41,6 +41,7 @@ describe('Home redirect', () => {
     test(
         'redirected query string should be save as source in the user schema',
         async () => {
+            let queryObj = {};
             const data = {
                 collection: 'users',
                 query: { email: email },
@@ -55,8 +56,13 @@ describe('Home redirect', () => {
             };
             const res = await axios(config);
             const sourceObj = res.data[0].source;
+            const params = new URLSearchParams(queryString);
+            // formating query string to an object
+            for (const param of params) {
+                queryObj = { ...queryObj, [`${param[0]}`]: param[1] };
+            }
             for (const key in sourceObj) {
-                expect(sourceObj[key] && key).not.toEqual(null || '');
+                expect(sourceObj[key]).toEqual(queryObj[key]);
             }
         },
         init.timeout
