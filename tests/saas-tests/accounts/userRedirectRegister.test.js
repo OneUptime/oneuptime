@@ -9,6 +9,7 @@ let page, browser;
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const queryString = '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
+let queryObj = {};
 
 describe('Home redirect', () => {
     beforeAll(async done => {
@@ -30,6 +31,12 @@ describe('Home redirect', () => {
         };
         // user
         await init.registerUser(user, page);
+
+        const params = new URLSearchParams(queryString);
+        // formating query string to an object
+        for (const param of params) {
+            queryObj = { ...queryObj, [`${param[0]}`]: param[1] };
+        }
         done();
     });
 
@@ -41,7 +48,6 @@ describe('Home redirect', () => {
     test(
         'redirected query string should be save as source in the user schema',
         async () => {
-            let queryObj = {};
             const data = {
                 collection: 'users',
                 query: { email: email },
@@ -56,11 +62,6 @@ describe('Home redirect', () => {
             };
             const res = await axios(config);
             const sourceObj = res.data[0].source;
-            const params = new URLSearchParams(queryString);
-            // formating query string to an object
-            for (const param of params) {
-                queryObj = { ...queryObj, [`${param[0]}`]: param[1] };
-            }
             for (const key in sourceObj) {
                 expect(sourceObj[key]).toEqual(queryObj[key]);
             }
