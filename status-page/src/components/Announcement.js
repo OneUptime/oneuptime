@@ -127,6 +127,9 @@ function AnnouncementBox({ announcement, monitorState, type }) {
                     </span>
                 </div>
             </ShouldRender>
+            <div className="ongoing__schedulebox classic_icon_x">
+                <span className="sp__icon sp__icon--more"></span>
+            </div>
         </>
     );
 }
