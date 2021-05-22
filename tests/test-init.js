@@ -64,7 +64,7 @@ const _this = {
                 '.__PrivateStripeElement > iframe'
             );
 
-            await _this.pageClickNavigate(page, 'input[name=cardName]');
+            await _this.pageClick(page, 'input[name=cardName]');
             await _this.pageType(page, 'input[name=cardName]', 'Test name');
 
             elementHandle = stripeIframeElements[0]; // card element
@@ -87,31 +87,31 @@ const _this = {
             await frame.type('input[name=exp-date]', '11/23', {
                 delay: 50,
             });
-            await _this.pageClickNavigate(page, 'input[name=address1]');
+            await _this.pageClick(page, 'input[name=address1]');
             await _this.pageType(
                 page,
                 'input[name=address1]',
                 utils.user.address.streetA
             );
-            await _this.pageClickNavigate(page, 'input[name=address2]');
+            await _this.pageClick(page, 'input[name=address2]');
             await _this.pageType(
                 page,
                 'input[name=address2]',
                 utils.user.address.streetB
             );
-            await _this.pageClickNavigate(page, 'input[name=city]');
+            await _this.pageClick(page, 'input[name=city]');
             await _this.pageType(
                 page,
                 'input[name=city]',
                 utils.user.address.city
             );
-            await _this.pageClickNavigate(page, 'input[name=state]');
+            await _this.pageClick(page, 'input[name=state]');
             await _this.pageType(
                 page,
                 'input[name=state]',
                 utils.user.address.state
             );
-            await _this.pageClickNavigate(page, 'input[name=zipCode]');
+            await _this.pageClick(page, 'input[name=zipCode]');
             await _this.pageType(
                 page,
                 'input[name=zipCode]',
@@ -143,9 +143,9 @@ const _this = {
             waitUntil: 'networkidle2',
         });
         await _this.pageWaitForSelector(page, '#login-button');
-        await _this.pageClickNavigate(page, 'input[name=email]');
+        await _this.pageClick(page, 'input[name=email]');
         await _this.pageType(page, 'input[name=email]', email);
-        await _this.pageClickNavigate(page, 'input[name=password]');
+        await _this.pageClick(page, 'input[name=password]');
         await _this.pageType(page, 'input[name=password]', password);
         await _this.pageClickNavigate(page, 'button[type=submit]');
 
@@ -160,11 +160,11 @@ const _this = {
             waitUntil: 'networkidle2',
         });
         await _this.pageWaitForSelector(page, '#login-button');
-        await _this.pageClickNavigate(page, 'input[name=email]');
+        await _this.pageClick(page, 'input[name=email]');
         await _this.pageType(page, 'input[name=email]', email);
-        await _this.pageClickNavigate(page, 'input[name=password]');
+        await _this.pageClick(page, 'input[name=password]');
         await _this.pageType(page, 'input[name=password]', password);
-        await _this.pageClickNavigate(page, 'button[type=submit]');
+        await _this.pageClick(page, 'button[type=submit]');
 
         await _this.pageWaitForSelector(page, '#users', {
             visible: true,
@@ -185,21 +185,21 @@ const _this = {
                 waitUntil: 'networkidle2',
             });
             await _this.pageWaitForSelector(page, '#email');
-            await _this.pageClickNavigate(page, 'input[name=email]');
+            await _this.pageClick(page, 'input[name=email]');
             await _this.pageType(page, 'input[name=email]', masterAdmin.email);
-            await _this.pageClickNavigate(page, 'input[name=name]');
+            await _this.pageClick(page, 'input[name=name]');
             await _this.pageType(page, 'input[name=name]', 'Master Admin');
-            await _this.pageClickNavigate(page, 'input[name=companyName]');
+            await _this.pageClick(page, 'input[name=companyName]');
             await _this.pageType(page, 'input[name=companyName]', 'Master');
-            await _this.pageClickNavigate(page, 'input[name=companyPhoneNumber]');
+            await _this.pageClick(page, 'input[name=companyPhoneNumber]');
             await _this.pageType(
                 page,
                 'input[name=companyPhoneNumber]',
                 '99105688'
             );
-            await _this.pageClickNavigate(page, 'input[name=password]');
+            await _this.pageClick(page, 'input[name=password]');
             await _this.pageType(page, 'input[name=password]', '1234567890');
-            await _this.pageClickNavigate(page, 'input[name=confirmPassword]');
+            await _this.pageClick(page, 'input[name=confirmPassword]');
             await _this.pageType(
                 page,
                 'input[name=confirmPassword]',
@@ -218,23 +218,23 @@ const _this = {
         // create the user from admin dashboard
         const { email } = user;
         await _this.pageWaitForSelector(page, '#add_user');
-        await _this.pageClickNavigate(page, '#add_user');
+        await _this.pageClick(page, '#add_user');
         await _this.pageWaitForSelector(page, '#email');
-        await _this.pageClickNavigate(page, 'input[name=email]');
+        await _this.pageClick(page, 'input[name=email]');
         await _this.pageType(page, 'input[name=email]', email);
-        await _this.pageClickNavigate(page, 'input[name=name]');
+        await _this.pageClick(page, 'input[name=name]');
         await _this.pageType(page, 'input[name=name]', 'Test Name');
-        await _this.pageClickNavigate(page, 'input[name=companyName]');
+        await _this.pageClick(page, 'input[name=companyName]');
         await _this.pageType(page, 'input[name=companyName]', 'Test Name');
-        await _this.pageClickNavigate(page, 'input[name=companyPhoneNumber]');
+        await _this.pageClick(page, 'input[name=companyPhoneNumber]');
         await _this.pageType(
             page,
             'input[name=companyPhoneNumber]',
             '99105688'
         );
-        await _this.pageClickNavigate(page, 'input[name=password]');
+        await _this.pageClick(page, 'input[name=password]');
         await _this.pageType(page, 'input[name=password]', '1234567890');
-        await _this.pageClickNavigate(page, 'input[name=confirmPassword]');
+        await _this.pageClick(page, 'input[name=confirmPassword]');
         await _this.pageType(page, 'input[name=confirmPassword]', '1234567890');
         await _this.pageClickNavigate(page, 'button[type=submit]');
         try {
@@ -283,7 +283,7 @@ const _this = {
         await page.reload({ waitUntil: 'networkidle2' });
     },
     selectDropdownValue: async function(selector, text, page) {
-        await _this.pageClickNavigate(page, selector, { delay: 100 });
+        await _this.pageClick(page, selector, { delay: 100 });
         await page.keyboard.type(text);
         //'div.css-1gl4k7y' is used if present. However, it presence is not consistent
         await page.keyboard.press('Tab'); //String.fromCharCode(9) could not press tab
@@ -310,15 +310,15 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, 'input[id=name]');
+        await _this.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
         await _this.pageType(page, 'input[id=name]', monitorName);
-        await _this.pageClickNavigate(page, '[data-testId=type_manual]');
+        await _this.pageClick(page, '[data-testId=type_manual]');
         await _this.pageWaitForSelector(page, '#description', {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, '#description');
+        await _this.pageClick(page, '#description');
         await _this.pageType(page, '#description', description);
         await _this.pageClickNavigate(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, `#cb${monitorName}`, {
@@ -359,7 +359,7 @@ const _this = {
             `${componentName} / ${monitorName}`,
             page
         );
-        await _this.pageClickNavigate(
+        await _this.pageClick(
             page,
             'ul > li:last-of-type #monitor-description'
         );
@@ -368,7 +368,7 @@ const _this = {
             'ul > li:last-of-type #monitor-description',
             description
         );
-        await _this.pageClickNavigate(
+        await _this.pageClick(
             page,
             'ul > li:last-of-type #manual-monitor-checkbox'
         );
@@ -401,7 +401,7 @@ const _this = {
         await _this.pageWaitForSelector(page, 'input#Growth_month', {
             visible: true,
         });
-        await _this.pageClickNavigate(page, 'input#Growth_month');
+        await _this.pageClick(page, 'input#Growth_month');
         await _this.pageClickNavigate(page, '#changePlanBtn');
         await _this.pageWaitForSelector(page, '.ball-beat', { hidden: true });
     },
@@ -423,12 +423,12 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, `#${theme}`);
+        await _this.pageClick(page, `#${theme}`);
         await _this.pageWaitForSelector(page, '#changePlanBtn', {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, '#changePlanBtn');
+        await _this.pageClick(page, '#changePlanBtn');
         await _this.gotoTab(0, page);
     },
     registerAndLoggingTeamMember: async function(user, page) {
@@ -439,21 +439,21 @@ const _this = {
             };
         // Registration
         await _this.pageWaitForSelector(page, '#email');
-        await _this.pageClickNavigate(page, 'input[name=email]');
+        await _this.pageClick(page, 'input[name=email]');
         await _this.pageType(page, 'input[name=email]', email);
-        await _this.pageClickNavigate(page, 'input[name=name]');
+        await _this.pageClick(page, 'input[name=name]');
         await _this.pageType(page, 'input[name=name]', 'Test Name');
-        await _this.pageClickNavigate(page, 'input[name=companyName]');
+        await _this.pageClick(page, 'input[name=companyName]');
         await _this.pageType(page, 'input[name=companyName]', 'Test Name');
-        await _this.pageClickNavigate(page, 'input[name=companyPhoneNumber]');
+        await _this.pageClick(page, 'input[name=companyPhoneNumber]');
         await _this.pageType(
             page,
             'input[name=companyPhoneNumber]',
             '99105688'
         );
-        await _this.pageClickNavigate(page, 'input[name=password]');
+        await _this.pageClick(page, 'input[name=password]');
         await _this.pageType(page, 'input[name=password]', password);
-        await _this.pageClickNavigate(page, 'input[name=confirmPassword]');
+        await _this.pageClick(page, 'input[name=confirmPassword]');
         await _this.pageType(page, 'input[name=confirmPassword]', password);
         await _this.pageClickNavigate(page, 'button[type=submit]'),
             await _this.pageWaitForSelector(page, '#success-step');
@@ -463,9 +463,9 @@ const _this = {
             waitUntil: 'networkidle2',
         });
         await _this.pageWaitForSelector(page, '#login-form');
-        await _this.pageClickNavigate(page, 'input[name=email]');
+        await _this.pageClick(page, 'input[name=email]');
         await _this.pageType(page, 'input[name=email]', email);
-        await _this.pageClickNavigate(page, 'input[name=password]');
+        await _this.pageClick(page, 'input[name=password]');
         await _this.pageType(page, 'input[name=password]', password);
         await _this.pageWaitForSelector(page, 'button[type=submit]', {
             visible: true,
@@ -473,7 +473,7 @@ const _this = {
         });
         await Promise.all([
             page.waitForNavigation({ waitUntil: 'networkidle2' }),
-            _this.pageClickNavigate(page, 'button[type=submit]'),
+            _this.pageClick(page, 'button[type=submit]'),
         ]);
         expect(page.url().startsWith(utils.ACCOUNTS_URL + '/login')).toEqual(
             false
@@ -503,7 +503,7 @@ const _this = {
 
         // Fill and submit New Component form
         await _this.pageWaitForSelector(page, '#form-new-component');
-        await _this.pageClickNavigate(page, 'input[id=name]');
+        await _this.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
         await _this.pageType(page, 'input[id=name]', component);
 
@@ -577,21 +577,21 @@ const _this = {
         await _this.pageWaitForSelector(page, '#add_user');
         await _this.pageClickNavigate(page, '#add_user');
         await _this.pageWaitForSelector(page, '#email');
-        await _this.pageClickNavigate(page, 'input[name=email]');
+        await _this.pageClick(page, 'input[name=email]');
         await _this.pageType(page, 'input[name=email]', email);
-        await _this.pageClickNavigate(page, 'input[name=name]');
+        await _this.pageClick(page, 'input[name=name]');
         await _this.pageType(page, 'input[name=name]', 'Test Name');
-        await _this.pageClickNavigate(page, 'input[name=companyName]');
+        await _this.pageClick(page, 'input[name=companyName]');
         await _this.pageType(page, 'input[name=companyName]', 'Test Name');
-        await _this.pageClickNavigate(page, 'input[name=companyPhoneNumber]');
+        await _this.pageClick(page, 'input[name=companyPhoneNumber]');
         await _this.pageType(
             page,
             'input[name=companyPhoneNumber]',
             '99105688'
         );
-        await _this.pageClickNavigate(page, 'input[name=password]');
+        await _this.pageClick(page, 'input[name=password]');
         await _this.pageType(page, 'input[name=password]', '1234567890');
-        await _this.pageClickNavigate(page, 'input[name=confirmPassword]');
+        await _this.pageClick(page, 'input[name=confirmPassword]');
         await _this.pageType(page, 'input[name=confirmPassword]', '1234567890');
         await _this.pageClickNavigate(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, '#frmUser', { hidden: true });
@@ -646,9 +646,9 @@ const _this = {
         await _this.pageWaitForSelector(page, `#btn_${subProjectName}`);
         await _this.pageClickNavigate(page, `#btn_${subProjectName}`);
         await _this.pageWaitForSelector(page, `#frm_${subProjectName}`);
-        await _this.pageClickNavigate(page, `#emails_${subProjectName}`);
+        await _this.pageClick(page, `#emails_${subProjectName}`);
         await _this.pageType(page, `#emails_${subProjectName}`, email);
-        await _this.pageClickNavigate(page, `#${role}_${subProjectName}`);
+        await _this.pageClick(page, `#${role}_${subProjectName}`);
         await _this.pageClickNavigate(page, `#btn_modal_${subProjectName}`);
     },
     switchProject: async function(projectName, page) {
