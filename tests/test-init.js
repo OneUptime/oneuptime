@@ -671,17 +671,17 @@ const _this = {
     addMonitorToComponent: async function(component, monitorName, page) {
         component && (await _this.addComponent(component, page));
         await _this.pageWaitForSelector(page, 'input[id=name]');
-        await _this.pageClickNavigate(page, 'input[id=name]');
+        await _this.page(page, 'input[id=name]');
         await page.focus('input[id=name]');
         await _this.pageType(page, 'input[id=name]', monitorName);
         await _this.pageWaitForSelector(page, 'button[id=showMoreMonitors]');
-        await _this.pageClickNavigate(page, 'button[id=showMoreMonitors]');
-        await _this.pageClickNavigate(page, '[data-testId=type_url]');
+        await _this.pageClick(page, 'button[id=showMoreMonitors]');
+        await _this.pageClick(page, '[data-testId=type_url]');
         await _this.pageWaitForSelector(page, '#url', {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, '#url');
+        await _this.pageClick(page, '#url');
         await _this.pageType(page, '#url', 'https://google.com');
         await _this.pageClickNavigate(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
@@ -699,15 +699,15 @@ const _this = {
         await _this.pageClickNavigate(page, `#more-details-${componentName}`);
         await _this.pageWaitForSelector(page, '#form-new-monitor');
         await _this.pageWaitForSelector(page, 'input[id=name]');
-        await _this.pageClickNavigate(page, 'input[id=name]');
+        await _this.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
         await _this.pageType(page, 'input[id=name]', monitorName);
-        await _this.pageClickNavigate(page, '[data-testId=type_url]');
+        await _this.pageClick(page, '[data-testId=type_url]');
         await _this.pageWaitForSelector(page, '#url', {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, '#url');
+        await _this.pageClick(page, '#url');
         await _this.pageType(page, '#url', 'https://google.com');
         await _this.pageClickNavigate(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
@@ -726,19 +726,19 @@ const _this = {
         options = {}
     ) {
         await _this.pageWaitForSelector(page, '#form-new-monitor');
-        await _this.pageClickNavigate(page, 'input[id=name]');
+        await _this.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
         await _this.pageType(page, 'input[id=name]', monitorName);
-        await _this.pageClickNavigate(page, 'input[data-testId=type_api]');
+        await _this.pageClick(page, 'input[data-testId=type_api]');
         await _this.selectDropdownValue('#method', 'get', page);
         await _this.pageWaitForSelector(page, '#url', {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, '#url');
+        await _this.pageClick(page, '#url');
         await _this.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
         await _this.pageWaitForSelector(page, '#advanceOptions');
-        await _this.pageClickNavigate(page, '#advanceOptions');
+        await _this.pageClick(page, '#advanceOptions');
 
         // online criteria
         await _this.pageWaitForSelector(page, '[data-testId=add_criterion_up]');
@@ -773,7 +773,7 @@ const _this = {
             page,
             'ul[data-testId=up_criteria_list]> div:last-of-type #value'
         );
-        await _this.pageClickNavigate(
+        await _this.pageClick(
             page,
             'ul[data-testId=up_criteria_list]> div:last-of-type #value'
         );
@@ -784,7 +784,7 @@ const _this = {
         );
 
         if (options.createAlertForOnline) {
-            await _this.pageClickNavigate(
+            await _this.pageClick(
                 page,
                 '[data-testId=criterionAdvancedOptions_up]'
             );
@@ -836,7 +836,7 @@ const _this = {
             page,
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #value'
         );
-        await _this.pageClickNavigate(
+        await _this.pageClick(
             page,
             'ul[data-testId=degraded_criteria_list] > div:last-of-type #value'
         );
@@ -847,7 +847,7 @@ const _this = {
         );
 
         await Promise.all([
-            _this.pageClickNavigate(page, 'button[type=submit]'),
+            _this.pageClick(page, 'button[type=submit]'),
             page.waitForNavigation(),
         ]);
     },
@@ -862,7 +862,7 @@ const _this = {
         await _this.pageClickNavigate(page, '#monitors'); // Fix this
         // await _this.navigateToComponentDetails(componentName, page);
         await _this.pageWaitForSelector(page, '#form-new-monitor');
-        await _this.pageClickNavigate(page, 'input[id=name]');
+        await _this.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
         await _this.pageType(page, 'input[id=name]', monitorName);
         //Please add a new monitor type here. IOT Device Monitor has been removed.
@@ -1011,11 +1011,11 @@ const _this = {
             visible: true,
         });
         await _this.pageWaitForSelector(page, '#name');
-        await _this.pageClickNavigate(page, '#name');
+        await _this.pageClick(page, '#name');
         await _this.pageType(page, '#name', scheduledEventName);
         if (monitorName) {
-            await _this.pageClickNavigate(page, 'label[for=selectAllMonitorsBox]');
-            await _this.pageClickNavigate(page, '#addMoreMonitor');
+            await _this.pageClick(page, 'label[for=selectAllMonitorsBox]');
+            await _this.pageClick(page, '#addMoreMonitor');
             await _this.pageWaitForSelector(page, '#monitorfield_0');
             await _this.selectDropdownValue(
                 '#monitorfield_0',
@@ -1023,15 +1023,15 @@ const _this = {
                 page
             ); // 'Component_Name/Monitor_Name' appears in the dropdown. Using 'componentName' selects the monitor.
         }
-        await _this.pageClickNavigate(page, '#description');
+        await _this.pageClick(page, '#description');
         await _this.pageType(
             page,
             '#description',
             'This is an example description for a test'
         );
         await _this.pageWaitForSelector(page, 'input[name=startDate]');
-        await _this.pageClickNavigate(page, 'input[name=startDate]');
-        await _this.pageClickNavigate(
+        await _this.pageClick(page, 'input[name=startDate]');
+        await _this.pageClick(
             page,
             'div.MuiDialogActions-root button:nth-child(2)'
         );
@@ -1040,8 +1040,8 @@ const _this = {
             'div.MuiDialogActions-root button:nth-child(2)',
             { hidden: true }
         );
-        await _this.pageClickNavigate(page, 'input[name=endDate]');
-        await _this.pageClickNavigate(
+        await _this.pageClick(page, 'input[name=endDate]');
+        await _this.pageClick(
             page,
             'div.MuiDialogActions-root button:nth-child(2)'
         );
@@ -1076,7 +1076,7 @@ const _this = {
         await _this.pageClickNavigate(page, '#create-project');
         await _this.pageWaitForSelector(page, '#name');
         await _this.pageType(page, '#name', projectName ? projectName : 'test');
-        await _this.pageClickNavigate(page, 'label[for=Startup_month]');
+        await _this.pageClick(page, 'label[for=Startup_month]');
         const startupOption = await _this.pageWaitForSelector(
             page,
             'label[for=Startup_month]',
@@ -1119,7 +1119,7 @@ const _this = {
             timeout: _this.timeout,
         });
         await Promise.all([
-            _this.pageClickNavigate(page, '#btnCreateProject'),
+            _this.pageClick(page, '#btnCreateProject'),
             page.waitForNavigation({ waitUntil: 'networkidle2' }),
         ]);
     },
@@ -1159,7 +1159,7 @@ const _this = {
         await _this.pageClickNavigate(page, '#create-project');
         await _this.pageWaitForSelector(page, '#name');
         await _this.pageType(page, '#name', projectName);
-        await _this.pageClickNavigate(page, 'label[for=Growth_month]');
+        await _this.pageClick(page, 'label[for=Growth_month]');
         const growthOption = await _this.pageWaitForSelector(
             page,
             'label[for=Growth_month]',
@@ -1167,7 +1167,7 @@ const _this = {
         );
         growthOption.click();
         await Promise.all([
-            await _this.pageClickNavigate(page, '#btnCreateProject'),
+            await _this.pageClick(page, '#btnCreateProject'),
             await page.waitForNavigation({ waitUntil: 'networkidle2' }),
         ]);
     },
@@ -1181,7 +1181,7 @@ const _this = {
         await _this.pageClickNavigate(page, '#create-project');
         await _this.pageWaitForSelector(page, '#name');
         await _this.pageType(page, '#name', projectName);
-        await _this.pageClickNavigate(page, 'label[for=Scale_month]');
+        await _this.pageClick(page, 'label[for=Scale_month]');
         const scaleOption = await _this.pageWaitForSelector(
             page,
             'label[for=Scale_month]',
@@ -1189,7 +1189,7 @@ const _this = {
         );
         scaleOption.click();
         await Promise.all([
-            await _this.pageClickNavigate(page, '#btnCreateProject'),
+            await _this.pageClick(page, '#btnCreateProject'),
             await page.waitForNavigation({ waitUntil: 'networkidle2' }),
         ]);
     },
@@ -1211,18 +1211,18 @@ const _this = {
         await _this.pageWaitForSelector(page, `#${eventBtn}`, {
             visible: true,
         });
-        await _this.pageClickNavigate(page, `#${eventBtn}`);
+        await _this.pageClick(page, `#${eventBtn}`);
         // navigate to the note tab section
         await _this.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
         await _this.pageWaitForSelector(page, `#add-${type}-message`, {
             visible: true,
         });
-        await _this.pageClickNavigate(page, `#add-${type}-message`);
+        await _this.pageClick(page, `#add-${type}-message`);
         await _this.pageWaitForSelector(page, '#event_state', {
             visible: true,
         });
         await _this.selectDropdownValue('#event_state', eventState, page);
-        await _this.pageClickNavigate(page, '#new-internal');
+        await _this.pageClick(page, '#new-internal');
         await _this.pageType(page, '#new-internal', noteDescription);
         await _this.pageClickNavigate(page, '#internal-addButton');
         await _this.pageWaitForSelector(
@@ -1292,11 +1292,11 @@ const _this = {
         await _this.pageWaitForSelector(page, 'label[for=enabled]', {
             visible: true,
         });
-        if (enableSms) await _this.pageClickNavigate(page, 'label[for=enabled]');
+        if (enableSms) await _this.pageClick(page, 'label[for=enabled]');
         await _this.pageType(page, '#accountSid', accountSid);
         await _this.pageType(page, '#authToken', authToken);
         await _this.pageType(page, '#phoneNumber', phoneNumber);
-        await _this.pageClickNavigate(page, '#submitTwilioSettings');
+        await _this.pageClick(page, '#submitTwilioSettings');
         await _this.pageWaitForSelector(page, '.ball-beat', { hidden: true });
         await page.reload();
         await _this.pageWaitForSelector(page, '#accountSid');
@@ -1371,7 +1371,7 @@ const _this = {
         await _this.page$Eval(page, '#secure', e => {
             e.checked = secure;
         });
-        await _this.pageClickNavigate(page, '#saveSmtp');
+        await _this.pageClick(page, '#saveSmtp');
         await _this.pageWaitForSelector(page, '.ball-beat', {
             visible: true,
             timeout: _this.timeout,
@@ -1391,10 +1391,10 @@ const _this = {
         await _this.pageWaitForSelector(page, 'input[type=tel]');
         await _this.pageType(page, 'input[type=tel]', phoneNumber);
         await _this.pageWaitForSelector(page, '#sendVerificationSMS');
-        await _this.pageClickNavigate(page, '#sendVerificationSMS');
+        await _this.pageClick(page, '#sendVerificationSMS');
         await _this.pageWaitForSelector(page, '#otp');
         await _this.pageType(page, '#otp', code);
-        await _this.pageClickNavigate(page, '#verify');
+        await _this.pageClick(page, '#verify');
         await _this.pageWaitForSelector(page, '#successMessage');
     },
     addAnExternalSubscriber: async function(
