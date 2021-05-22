@@ -106,14 +106,14 @@ describe('Log Containers', () => {
             );
             // open modal
             await init.pageWaitForSelector(page, `#key_${applicationLogName}`);
-            await init.pageClickNavigate(page, `#key_${applicationLogName}`);
+            await init.pageClick(page, `#key_${applicationLogName}`);
 
             // click show applicaion log key
             await init.pageWaitForSelector(
                 page,
                 `#show_application_log_key_${applicationLogName}`
             );
-            await init.pageClickNavigate(
+            await init.pageClick(
                 page,
                 `#show_application_log_key_${applicationLogName}`
             );
@@ -132,7 +132,7 @@ describe('Log Containers', () => {
                 page,
                 `#cancel_application_log_key_${applicationLogName}`
             );
-            await init.pageClickNavigate(
+            await init.pageClick(
                 page,
                 `#cancel_application_log_key_${applicationLogName}`
             );
@@ -150,14 +150,14 @@ describe('Log Containers', () => {
                 page
             );
             await init.pageWaitForSelector(page, `#key_${applicationLogName}`);
-            await init.pageClickNavigate(page, `#key_${applicationLogName}`);
+            await init.pageClick(page, `#key_${applicationLogName}`);
 
             // click show applicaion log key
             await init.pageWaitForSelector(
                 page,
                 `#show_application_log_key_${applicationLogName}`
             );
-            await init.pageClickNavigate(
+            await init.pageClick(
                 page,
                 `#show_application_log_key_${applicationLogName}`
             );
@@ -172,7 +172,7 @@ describe('Log Containers', () => {
                 page,
                 `#hide_application_log_key_${applicationLogName}`
             );
-            await init.pageClickNavigate(
+            await init.pageClick(
                 page,
                 `#hide_application_log_key_${applicationLogName}`
             );
@@ -225,7 +225,7 @@ describe('Log Containers', () => {
                 page,
                 `#reset_application_log_key_${applicationLogName}`
             );
-            await init.pageClickNavigate(
+            await init.pageClick(
                 page,
                 `#reset_application_log_key_${applicationLogName}`
             );
@@ -235,7 +235,7 @@ describe('Log Containers', () => {
                 page,
                 `#confirm_reset_application_log_key_${applicationLogName}`
             );
-            await init.pageClickNavigate(
+            await init.pageClick(
                 page,
                 `#confirm_reset_application_log_key_${applicationLogName}`
             );
@@ -247,14 +247,14 @@ describe('Log Containers', () => {
 
             // open modal
             await init.pageWaitForSelector(page, `#key_${applicationLogName}`);
-            await init.pageClickNavigate(page, `#key_${applicationLogName}`);
+            await init.pageClick(page, `#key_${applicationLogName}`);
 
             // click show applicaion log key
             await init.pageWaitForSelector(
                 page,
                 `#show_application_log_key_${applicationLogName}`
             );
-            await init.pageClickNavigate(
+            await init.pageClick(
                 page,
                 `#show_application_log_key_${applicationLogName}`
             );
@@ -283,12 +283,12 @@ describe('Log Containers', () => {
                 page
             );
             await init.pageWaitForSelector(page, `#edit_${applicationLogName}`);
-            await init.pageClickNavigate(page, `#edit_${applicationLogName}`);
+            await init.pageClick(page, `#edit_${applicationLogName}`);
             // Fill and submit edit Application  log form
             await init.pageWaitForSelector(page, '#form-new-application-log');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', 'New');
-            await init.pageClickNavigate(page, 'button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#addApplicationLogButton', {
                 hidden: true,
             });
@@ -323,12 +323,12 @@ describe('Log Containers', () => {
                 page,
                 `#edit_${applicationLogName}New`
             );
-            await init.pageClickNavigate(page, `#edit_${applicationLogName}New`);
+            await init.pageClick(page, `#edit_${applicationLogName}New`);
             // Fill and submit edit Application  log form
             await init.pageWaitForSelector(page, '#form-new-application-log');
             // change category here
             await init.selectDropdownValue('#resourceCategory', categoryName, page);
-            await init.pageClickNavigate(page, 'button[type=submit]');
+            await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#addApplicationLogButton', {
                 hidden: true,
             });
@@ -381,9 +381,9 @@ describe('Log Containers', () => {
             await init.pageClickNavigate(page, 'li#resources a');
 
             await init.pageWaitForSelector(page, `#delete_${categoryName}`);
-            await init.pageClickNavigate(page, `#delete_${categoryName}`);
+            await init.pageClick(page, `#delete_${categoryName}`);
             await init.pageWaitForSelector(page, '#deleteResourceCategory');
-            await init.pageClickNavigate(page, '#deleteResourceCategory');
+            await init.pageClick(page, '#deleteResourceCategory');
 
             // go back to log details and confirm it is not there anymore
             const spanElementBadge = await page.$(

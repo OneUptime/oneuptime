@@ -118,7 +118,7 @@ const _this = {
                 utils.user.address.zipcode
             );
             await page.select('#country', 'India');
-            await _this.pageClickNavigate(page, 'button[type=submit]');
+            await _this.pageClick(page, 'button[type=submit]');
 
             const signupResponse = await page.waitForResponse(
                 response =>
@@ -147,7 +147,7 @@ const _this = {
         await _this.pageType(page, 'input[name=email]', email);
         await _this.pageClick(page, 'input[name=password]');
         await _this.pageType(page, 'input[name=password]', password);
-        await _this.pageClickNavigate(page, 'button[type=submit]');
+        await _this.pageClick(page, 'button[type=submit]');
 
         await _this.pageWaitForSelector(page, '#home', {
             visible: true,
@@ -1130,7 +1130,7 @@ const _this = {
         await _this.pageWaitForSelector(page, '#projectSettings');
         await _this.pageClickNavigate(page, '#projectSettings');
         await _this.pageWaitForSelector(page, '#more');
-        await _this.pageClickNavigate(page, '#more');
+        await _this.pageClick(page, '#more');
 
         await _this.pageWaitForSelector(page, 'li#resources a');
         await _this.pageClickNavigate(page, 'li#resources a');
