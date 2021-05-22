@@ -22,6 +22,7 @@ describe('Incident Communication SLA', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -62,7 +63,7 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.communication-sla-tab', elems =>
+            await init.page$$Eval(page, '.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
@@ -123,7 +124,7 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.communication-sla-tab', elems =>
+            await init.page$$Eval(page, '.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
@@ -184,7 +185,7 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.communication-sla-tab', elems =>
+            await init.page$$Eval(page, '.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
@@ -245,7 +246,7 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.communication-sla-tab', elems =>
+            await init.page$$Eval(page, '.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
@@ -264,7 +265,7 @@ describe('Incident Communication SLA', () => {
             await init.selectDropdownValue('#durationOption', duration, page);
             await init.pageClick(page, '#alertTime');
             await init.pageType(page, '#alertTime', alertTime);
-            await page.$eval('#isDefault', elem => elem.click());
+            await init.page$Eval(page, '#isDefault', elem => elem.click());
             await init.pageClick(page, '#createSlaBtn');
             await init.pageWaitForSelector(page, '.ball-beat', {
                 visible: true,
@@ -314,7 +315,7 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.communication-sla-tab', elems =>
+            await init.page$$Eval(page, '.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
@@ -376,7 +377,7 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.communication-sla-tab', elems =>
+            await init.page$$Eval(page, '.communication-sla-tab', elems =>
                 elems[0].click()
             );
 
@@ -529,7 +530,7 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$$eval('.communication-sla-tab', elems =>
+            await init.page$$Eval(page, '.communication-sla-tab', elems =>
                 elems[0].click()
             );
 

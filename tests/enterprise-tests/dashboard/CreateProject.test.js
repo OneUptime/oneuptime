@@ -20,6 +20,7 @@ describe('Enterprise Project API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -39,7 +40,7 @@ describe('Enterprise Project API', () => {
             await init.adminLogout(page);
             await init.loginUser(user, page);
             await init.pageWaitForSelector(page, '#selector', { visble: true });
-            await page.$eval('#create-project', e => e.click());
+            await init.page$Eval(page, '#create-project', e => e.click());
             await init.pageWaitForSelector(page, '#name', { visble: true });
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
@@ -53,7 +54,10 @@ describe('Enterprise Project API', () => {
                 utils.generateRandomString()
             );
 
-            const projectPlan = await page.$('input[id=Startup_month]');
+            const projectPlan = await init.page$(
+                page,
+                'input[id=Startup_month]'
+            );
             expect(projectPlan).toBeDefined(); // Startup_month is part of the modal that gets popped out.
 
             await init.pageClick(page, 'button[type=submit]');

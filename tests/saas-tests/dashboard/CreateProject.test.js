@@ -17,6 +17,7 @@ describe('Project API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -41,7 +42,7 @@ describe('Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#create-project', e => e.click());
+            await init.page$Eval(page, '#create-project', e => e.click());
             await init.pageWaitForSelector(page, '#name', {
                 visible: true,
                 timeout: init.timeout,
@@ -53,7 +54,7 @@ describe('Project API', () => {
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', projectName);
-            await init.pageClick(page, 'input[id=Startup_month]');
+            await init.pageClick(page, 'label[for=Startup_month]');
             await init.pageClick(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, `#cb${projectName}`, {
                 visible: true,

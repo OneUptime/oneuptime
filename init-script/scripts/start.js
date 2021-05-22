@@ -33,20 +33,6 @@ async function updateVersion() {
     }
 }
 
-async function removeMasterAdminUser() {
-    const collection = 'users';
-
-    await removeMany(collection, {
-        email: 'masteradmin@hackerbay.io',
-    });
-}
-
-async function removeGlobalConfigs() {
-    const collection = 'globalconfigs';
-
-    await removeMany(collection, {}); //remove all global configs.
-}
-
 async function addMasterAdminUser() {
     const collection = 'users';
 

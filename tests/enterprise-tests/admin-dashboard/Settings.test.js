@@ -13,6 +13,7 @@ describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -60,7 +61,7 @@ describe('Settings Component (IS_SAAS_SERVICE=false)', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#settings a', elem => elem.click());
+            await init.page$Eval(page, '#settings a', elem => elem.click());
 
             // if element does not exist it will timeout and throw
             const licenseOption = await init.pageWaitForSelector(

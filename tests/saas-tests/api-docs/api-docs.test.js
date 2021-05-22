@@ -6,6 +6,7 @@ let page, browser;
 describe('Check api-docs up', () => {
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -23,7 +24,7 @@ describe('Check api-docs up', () => {
             await page.goto(utils.APIDOCS_URL, {
                 waitUntil: 'domcontentloaded',
             });
-            const response = await page.$eval('head > title', e => {
+            const response = await init.page$Eval(page, 'head > title', e => {
                 return e.innerHTML;
             });
             expect(response).toBe('Fyipe API Documentation');

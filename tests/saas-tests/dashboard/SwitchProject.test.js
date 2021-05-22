@@ -17,6 +17,7 @@ describe('Project API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -43,7 +44,7 @@ describe('Project API', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.$eval('#create-project', e => e.click());
+            await init.page$Eval(page, '#create-project', e => e.click());
             await init.pageWaitForSelector(page, '#name', {
                 visible: true,
                 timeout: init.timeout,
@@ -97,7 +98,8 @@ describe('Project API', () => {
                 timeout: init.timeout,
             });
 
-            const element = await page.$(
+            const element = await init.page$(
+                page,
                 '#accountSwitcher > div[title="Unnamed Project"]'
             );
 

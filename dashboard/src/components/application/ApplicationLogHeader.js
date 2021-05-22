@@ -57,7 +57,7 @@ class ApplicationLogHeader extends Component {
                                     <div className="Box-root">
                                         <Badge
                                             color={'slate5'}
-                                            id={`${applicationLog.name}-badge`}
+                                            id={`${applicationLog.name}Badge`}
                                         >
                                             {applicationLog &&
                                             applicationLog.resourceCategory

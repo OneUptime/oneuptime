@@ -19,6 +19,7 @@ describe('Subscribers Alert logs API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -80,7 +81,8 @@ describe('Subscribers Alert logs API', () => {
             const subscriberPhoneNumberSelector =
                 '#subscribersList tbody tr:first-of-type td:nth-of-type(4)';
             await init.pageWaitForSelector(page, subscriberPhoneNumberSelector);
-            const subscriberPhoneNumber = await page.$eval(
+            const subscriberPhoneNumber = await init.page$Eval(
+                page,
                 subscriberPhoneNumberSelector,
                 e => e.textContent
             );
@@ -119,7 +121,8 @@ describe('Subscribers Alert logs API', () => {
             const subscriberEmailSelector =
                 '#subscribersList tbody tr:first-of-type td:nth-of-type(4)';
             await init.pageWaitForSelector(page, subscriberEmailSelector);
-            const renderedSubscriberEmail = await page.$eval(
+            const renderedSubscriberEmail = await init.page$Eval(
+                page,
                 subscriberEmailSelector,
                 e => e.textContent
             );
@@ -157,8 +160,9 @@ describe('Subscribers Alert logs API', () => {
                 page,
                 '#subscriberAlertTable tbody tr'
             );
-            const rowsCount = (await page.$$('#subscriberAlertTable tbody tr'))
-                .length;
+            const rowsCount = (
+                await init.page$$(page, '#subscriberAlertTable tbody tr')
+            ).length;
             expect(rowsCount).toEqual(2);
 
             const firstRowIdentifier =
@@ -169,19 +173,23 @@ describe('Subscribers Alert logs API', () => {
                 '#backboneModals .bs-Modal-content'
             );
 
-            const subscriber = await page.$eval(
+            const subscriber = await init.page$Eval(
+                page,
                 '#backboneModals #subscriber',
                 e => e.textContent
             );
-            const via = await page.$eval(
+            const via = await init.page$Eval(
+                page,
                 '#backboneModals #alertVia',
                 e => e.textContent
             );
-            const type = await page.$eval(
+            const type = await init.page$Eval(
+                page,
                 '#backboneModals #eventType',
                 e => e.textContent
             );
-            const alertStatus = await page.$eval(
+            const alertStatus = await init.page$Eval(
+                page,
                 '#backboneModals #alertStatus',
                 e => e.textContent
             );
@@ -211,19 +219,23 @@ describe('Subscribers Alert logs API', () => {
                 '#backboneModals .bs-Modal-content'
             );
 
-            const subscriber1 = await page.$eval(
+            const subscriber1 = await init.page$Eval(
+                page,
                 '#backboneModals #subscriber',
                 e => e.textContent
             );
-            const via1 = await page.$eval(
+            const via1 = await init.page$Eval(
+                page,
                 '#backboneModals #alertVia',
                 e => e.textContent
             );
-            const type1 = await page.$eval(
+            const type1 = await init.page$Eval(
+                page,
                 '#backboneModals #eventType',
                 e => e.textContent
             );
-            const alertStatus1 = await page.$eval(
+            const alertStatus1 = await init.page$Eval(
+                page,
                 '#backboneModals #alertStatus',
                 e => e.textContent
             );

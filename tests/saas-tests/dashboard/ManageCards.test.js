@@ -16,6 +16,7 @@ describe('Stripe cards API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
+        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -44,7 +45,8 @@ describe('Stripe cards API', () => {
                     timeout: operationTimeOut,
                 }
             );
-            const stripeIframe = await page.$(
+            const stripeIframe = await init.page$(
+                page,
                 '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]'
             );
             const frame = await stripeIframe.contentFrame();
@@ -64,7 +66,8 @@ describe('Stripe cards API', () => {
                 timeout: operationTimeOut,
             });
 
-            const cardsCount = await page.$eval(
+            const cardsCount = await init.page$Eval(
+                page,
                 '#cardsCount',
                 el => el.textContent
             );
@@ -88,7 +91,8 @@ describe('Stripe cards API', () => {
                 hidden: true,
             });
 
-            const cardsCount = await page.$eval(
+            const cardsCount = await init.page$Eval(
+                page,
                 '#cardsCount',
                 el => el.textContent
             );
@@ -119,7 +123,8 @@ describe('Stripe cards API', () => {
             expect(deleteError).toBeDefined();
             await init.pageClick(page, '#deleteCardCancel');
 
-            const cardsCount = await page.$eval(
+            const cardsCount = await init.page$Eval(
+                page,
                 '#cardsCount',
                 el => el.textContent
             );
@@ -144,7 +149,8 @@ describe('Stripe cards API', () => {
                     timeout: operationTimeOut,
                 }
             );
-            const stripeIframe = await page.$(
+            const stripeIframe = await init.page$(
+                page,
                 '.__PrivateStripeElement > iframe[title="Secure card payment input frame"]'
             );
 
