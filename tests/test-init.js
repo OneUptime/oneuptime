@@ -1487,7 +1487,7 @@ const _this = {
         await page.focus(selector);
         return await page.type(selector, text, opts);
     },
-    pageClickNavigate: async function(page, selector, opts) {
+    pageClick: async function(page, selector, opts) {
         await _this.pageWaitForSelector(page, selector, {
             visible: true,
             timeout: _this.timeout,
@@ -1501,7 +1501,7 @@ const _this = {
         });
        return await Promise.all([
             page.click(selector, opts),
-            page.waitForNavigation({ waitUntil: 'networkidle0' }), // This ensures every id is loaded upon page routing            
+            page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing            
         ]);
     },
     page$Eval: async function(page, selector, evalFunction, opts) {
