@@ -45,7 +45,7 @@ const _this = {
                 '1234567890'
             );
 
-            await _this.pageClickNavigate(page, 'button[type=submit]');
+            await _this.pageClick(page, 'button[type=submit]');
             await _this.pageWaitForSelector(page, `form#card-form`, {
                 visible: true,
                 timeout: _this.timeout,
