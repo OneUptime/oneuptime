@@ -328,7 +328,7 @@ describe('Log Containers', () => {
             await init.pageWaitForSelector(page, '#form-new-application-log');
             // change category here
             await init.selectDropdownValue('#resourceCategory', categoryName, page);
-            await init.pageClick(page, 'button[type=submit]');
+            await init.pageClickNavigate(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#addApplicationLogButton', {
                 hidden: true,
             });
