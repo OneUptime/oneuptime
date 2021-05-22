@@ -72,6 +72,12 @@ import {
     FETCH_ANNOUNCEMEMTLOGS_REQUEST,
     FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
     FETCH_ANNOUNCEMEMTLOGS_FAILURE,
+    PAST_EVENTS_REQUEST,
+    PAST_EVENTS_SUCCESS,
+    PAST_EVENTS_FAILURE,
+    MORE_PAST_EVENTS_REQUEST,
+    MORE_PAST_EVENTS_SUCCESS,
+    MORE_PAST_EVENTS_FAILURE,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -107,6 +113,19 @@ const INITIAL_STATE = {
         count: 0,
     },
     moreFutureEvents: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    pastEvents: {
+        requesting: false,
+        success: false,
+        error: null,
+        events: [],
+        skip: 0,
+        count: 0,
+    },
+    morePastEvents: {
         requesting: false,
         success: false,
         error: null,
@@ -953,6 +972,48 @@ export default (state = INITIAL_STATE, action) => {
                 },
             };
 
+        case MORE_PAST_EVENTS_REQUEST:
+            return {
+                ...state,
+                morePastEvents: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+                individualEvents: {
+                    ...state.individualEvents,
+                    show: false,
+                },
+            };
+
+        case MORE_PAST_EVENTS_SUCCESS:
+            return {
+                ...state,
+                morePastEvents: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                pastEvents: {
+                    ...state.pastEvents,
+                    events: state.pastEvents.events.concat(action.payload.data),
+                    skip: action.payload.skip,
+                    count: action.payload.count
+                        ? action.payload.count
+                        : state.events.count,
+                },
+            };
+
+        case MORE_PAST_EVENTS_FAILURE:
+            return {
+                ...state,
+                morePastEvents: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
         case INDIVIDUAL_EVENTS_REQUEST:
             return {
                 ...state,
@@ -1563,6 +1624,49 @@ export default (state = INITIAL_STATE, action) => {
                 ...state,
                 futureEvents: {
                     ...state.futureEvents,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            };
+
+        case PAST_EVENTS_REQUEST:
+            return {
+                ...state,
+                pastEvents: {
+                    ...state.pastEvents,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+                individualEvents: {
+                    ...state.individualEvents,
+                    show: false,
+                },
+            };
+
+        case PAST_EVENTS_SUCCESS:
+            return {
+                ...state,
+                pastEvents: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    events: action.payload.data,
+                    count: action.payload.count,
+                    skip: action.payload.skip || 0,
+                },
+                individualEvents: {
+                    // reset individualEvents state
+                    ...INITIAL_STATE.individualEvents,
+                },
+            };
+
+        case PAST_EVENTS_FAILURE:
+            return {
+                ...state,
+                pastEvents: {
+                    ...state.pastEvents,
                     requesting: false,
                     success: false,
                     error: action.payload,
