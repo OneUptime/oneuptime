@@ -1224,7 +1224,7 @@ const _this = {
         await _this.selectDropdownValue('#event_state', eventState, page);
         await _this.pageClick(page, '#new-internal');
         await _this.pageType(page, '#new-internal', noteDescription);
-        await _this.pageClickNavigate(page, '#internal-addButton');
+        await _this.pageClick(page, '#internal-addButton');
         await _this.pageWaitForSelector(
             page,
             '#form-new-schedule-internal-message',
