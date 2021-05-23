@@ -1154,9 +1154,9 @@ const _this = {
             waitUntil: ['networkidle2'],
         });
         await _this.pageWaitForSelector(page, '#AccountSwitcherId');
-        await _this.pageClickNavigate(page, '#AccountSwitcherId');
+        await _this.pageClick(page, '#AccountSwitcherId');
         await _this.pageWaitForSelector(page, '#create-project');
-        await _this.pageClickNavigate(page, '#create-project');
+        await _this.pageClick(page, '#create-project');
         await _this.pageWaitForSelector(page, '#name');
         await _this.pageType(page, '#name', projectName);
         await _this.pageClick(page, 'label[for=Growth_month]');
@@ -1176,9 +1176,9 @@ const _this = {
             waitUntil: ['networkidle2'],
         });
         await _this.pageWaitForSelector(page, '#AccountSwitcherId');
-        await _this.pageClickNavigate(page, '#AccountSwitcherId');
+        await _this.pageClick(page, '#AccountSwitcherId');
         await _this.pageWaitForSelector(page, '#create-project');
-        await _this.pageClickNavigate(page, '#create-project');
+        await _this.pageClick(page, '#create-project');
         await _this.pageWaitForSelector(page, '#name');
         await _this.pageType(page, '#name', projectName);
         await _this.pageClick(page, 'label[for=Scale_month]');
