@@ -402,7 +402,7 @@ const _this = {
             visible: true,
         });
         await _this.pageClick(page, 'input#Growth_month');
-        await _this.pageClickNavigate(page, '#changePlanBtn');
+        await _this.pageClick(page, '#changePlanBtn');
         await _this.pageWaitForSelector(page, '.ball-beat', { hidden: true });
     },
     gotoTab: async function(tabId, page) {
@@ -455,7 +455,7 @@ const _this = {
         await _this.pageType(page, 'input[name=password]', password);
         await _this.pageClick(page, 'input[name=confirmPassword]');
         await _this.pageType(page, 'input[name=confirmPassword]', password);
-        await _this.pageClickNavigate(page, 'button[type=submit]'),
+        await _this.pageClick(page, 'button[type=submit]'),
             await _this.pageWaitForSelector(page, '#success-step');
 
         // Login
@@ -488,9 +488,9 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, 'button#profile-menu');
+        await _this.pageClick(page, 'button#profile-menu');
         await _this.pageWaitForSelector(page, 'button#logout-button');
-        await _this.pageClickNavigate(page, 'button#logout-button');
+        await _this.pageClick(page, 'button#logout-button');
         await page.reload({ waitUntil: 'networkidle2' });
     },
     addComponent: async function(component, page, projectName = null) {
@@ -575,7 +575,7 @@ const _this = {
         // create the user from admin dashboard
         const { email } = user;
         await _this.pageWaitForSelector(page, '#add_user');
-        await _this.pageClickNavigate(page, '#add_user');
+        await _this.pageClick(page, '#add_user');
         await _this.pageWaitForSelector(page, '#email');
         await _this.pageClick(page, 'input[name=email]');
         await _this.pageType(page, 'input[name=email]', email);
@@ -593,7 +593,7 @@ const _this = {
         await _this.pageType(page, 'input[name=password]', '1234567890');
         await _this.pageClick(page, 'input[name=confirmPassword]');
         await _this.pageType(page, 'input[name=confirmPassword]', '1234567890');
-        await _this.pageClickNavigate(page, 'button[type=submit]');
+        await _this.pageClick(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, '#frmUser', { hidden: true });
     },
     addSchedule: async function(callSchedule, page) {
@@ -609,7 +609,7 @@ const _this = {
         });
         page.waitForSelector('#name', { timeout: 2000 });
         await _this.pageType(page, '#name', callSchedule);
-        await _this.pageClickNavigate(page, '#btnCreateSchedule');
+        await _this.pageClick(page, '#btnCreateSchedule');
         await _this.pageWaitForSelector(page, `#duty_${callSchedule}`, {
             visible: true,
             timeout: _this.timeout,
@@ -622,18 +622,18 @@ const _this = {
         );
         if (subProjectNameSelector) {
             await _this.pageWaitForSelector(page, '#btn_Add_SubProjects');
-            await _this.pageClickNavigate(page, '#btn_Add_SubProjects');
+            await _this.pageClick(page, '#btn_Add_SubProjects');
             await _this.pageWaitForSelector(page, '#title');
             await _this.pageType(page, '#title', subProjectName);
-            await _this.pageClickNavigate(page, '#btnAddSubProjects');
+            await _this.pageClick(page, '#btnAddSubProjects');
         } else {
             await _this.pageWaitForSelector(page, '#projectSettings');
             await _this.pageClickNavigate(page, '#projectSettings');
             await _this.pageWaitForSelector(page, '#btn_Add_SubProjects');
-            await _this.pageClickNavigate(page, '#btn_Add_SubProjects');
+            await _this.pageClick(page, '#btn_Add_SubProjects');
             await _this.pageWaitForSelector(page, '#title');
             await _this.pageType(page, '#title', subProjectName);
-            await _this.pageClickNavigate(page, '#btnAddSubProjects');
+            await _this.pageClick(page, '#btnAddSubProjects');
         }
         await _this.pageWaitForSelector(page, '#btnAddSubProjects', {
             hidden: true,
@@ -644,12 +644,12 @@ const _this = {
         await _this.pageWaitForSelector(page, '#teamMembers');
         await _this.pageClickNavigate(page, '#teamMembers');
         await _this.pageWaitForSelector(page, `#btn_${subProjectName}`);
-        await _this.pageClickNavigate(page, `#btn_${subProjectName}`);
+        await _this.pageClick(page, `#btn_${subProjectName}`);
         await _this.pageWaitForSelector(page, `#frm_${subProjectName}`);
         await _this.pageClick(page, `#emails_${subProjectName}`);
         await _this.pageType(page, `#emails_${subProjectName}`, email);
         await _this.pageClick(page, `#${role}_${subProjectName}`);
-        await _this.pageClickNavigate(page, `#btn_modal_${subProjectName}`);
+        await _this.pageClick(page, `#btn_modal_${subProjectName}`);
     },
     switchProject: async function(projectName, page) {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
@@ -657,12 +657,12 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, '#AccountSwitcherId');
+        await _this.pageClick(page, '#AccountSwitcherId');
         await _this.pageWaitForSelector(
             page,
             `#accountSwitcher div#${projectName}`
         );
-        await _this.pageClickNavigate(page, `#accountSwitcher div#${projectName}`);
+        await _this.pageClick(page, `#accountSwitcher div#${projectName}`);
         await _this.pageWaitForSelector(page, '#components', {
             visible: true,
             timeout: _this.timeout,
