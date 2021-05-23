@@ -206,7 +206,7 @@ const _this = {
                 '1234567890'
             );
             await Promise.all([
-                _this.pageClickNavigate(page, 'button[type=submit]'),
+                _this.pageClick(page, 'button[type=submit]'),
                 page.waitForSelector('#users', {
                     visible: true,
                     timeout: _this.timeout,
@@ -236,7 +236,7 @@ const _this = {
         await _this.pageType(page, 'input[name=password]', '1234567890');
         await _this.pageClick(page, 'input[name=confirmPassword]');
         await _this.pageType(page, 'input[name=confirmPassword]', '1234567890');
-        await _this.pageClickNavigate(page, 'button[type=submit]');
+        await _this.pageClick(page, 'button[type=submit]');
         try {
             const signupResponse = await page.waitForResponse(
                 response =>
@@ -266,9 +266,9 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, 'button#profile-menu');
+        await _this.pageClick(page, 'button#profile-menu');
         await _this.pageWaitForSelector(page, 'button#logout-button');
-        await _this.pageClickNavigate(page, 'button#logout-button');
+        await _this.pageClick(page, 'button#logout-button');
         await page.reload();
     },
     saasLogout: async function(page) {
@@ -277,9 +277,9 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, 'button#profile-menu');
+        await _this.pageClick(page, 'button#profile-menu');
         await _this.pageWaitForSelector(page, 'button#logout-button');
-        await _this.pageClickNavigate(page, 'button#logout-button');
+        await _this.pageClick(page, 'button#logout-button');
         await page.reload({ waitUntil: 'networkidle2' });
     },
     selectDropdownValue: async function(selector, text, page) {
@@ -299,7 +299,7 @@ const _this = {
         await _this.pageWaitForSelector(page, 'input[name=project_name]');
         await _this.clear('input[name=project_name]', page);
         await _this.pageType(page, 'input[name=project_name]', newProjectName);
-        await _this.pageClickNavigate(page, '#btnCreateProject');
+        await _this.pageClick(page, '#btnCreateProject');
     },
     addMonitor: async function(monitorName, description, page) {
         await _this.pageWaitForSelector(page, '#form-new-monitor', {
@@ -353,7 +353,7 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, '#addMoreMonitors');
+        await _this.pageClick(page, '#addMoreMonitors');
         await _this.selectDropdownValue(
             'ul > li:last-of-type #monitor-name',
             `${componentName} / ${monitorName}`,
@@ -372,7 +372,7 @@ const _this = {
             page,
             'ul > li:last-of-type #manual-monitor-checkbox'
         );
-        await _this.pageClickNavigate(page, '#btnAddStatusPageMonitors');
+        await _this.pageClick(page, '#btnAddStatusPageMonitors');
     },
     clickStatusPageUrl: async function(page) {
         await _this.pageWaitForSelector(page, '#publicStatusPageUrl');
