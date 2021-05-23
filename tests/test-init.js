@@ -1050,7 +1050,7 @@ const _this = {
             'div.MuiDialogActions-root button:nth-child(2)',
             { hidden: true }
         );
-        await _this.pageClickNavigate(page, '#createScheduledEventButton');
+        await _this.pageClick(page, '#createScheduledEventButton');
         await _this.pageWaitForSelector(page, '.ball-beat', {
             hidden: true,
         });
@@ -1071,9 +1071,9 @@ const _this = {
             waitUntil: ['networkidle2'],
         });
         await _this.pageWaitForSelector(page, '#AccountSwitcherId');
-        await _this.pageClickNavigate(page, '#AccountSwitcherId');
+        await _this.pageClick(page, '#AccountSwitcherId');
         await _this.pageWaitForSelector(page, '#create-project');
-        await _this.pageClickNavigate(page, '#create-project');
+        await _this.pageClick(page, '#create-project');
         await _this.pageWaitForSelector(page, '#name');
         await _this.pageType(page, '#name', projectName ? projectName : 'test');
         await _this.pageClick(page, 'label[for=Startup_month]');
