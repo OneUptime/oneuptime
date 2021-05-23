@@ -1256,7 +1256,7 @@ const _this = {
             page,
             `#monitorCreateIncident_${monitorName}`
         );
-        await _this.pageClickNavigate(page, `#monitorCreateIncident_${monitorName}`);
+        await _this.pageClick(page, `#monitorCreateIncident_${monitorName}`);
         await _this.pageWaitForSelector(page, '#createIncident');
         await _this.selectDropdownValue('#incidentType', incidentType, page);
         if (incidentPriority) {
@@ -1266,7 +1266,7 @@ const _this = {
                 page
             );
         }
-        await _this.pageClickNavigate(page, '#createIncident');
+        await _this.pageClick(page, '#createIncident');
         await _this.pageWaitForSelector(page, '.ball-beat', {
             visible: true,
             timeout: _this.timeout,
@@ -1356,8 +1356,9 @@ const _this = {
             visible: true,
         });
         await _this.pageClickNavigate(page, '#projectSettings');
-        await _this.pageWaitForSelector(page, '#email');
-        await _this.pageClickNavigate(page, '#email');
+        await _this.pageClick(page, '#more');
+        await _this.pageWaitForSelector(page, '#email');        
+        await _this.pageClickNavigate(page, '#email');        
         await _this.pageWaitForSelector(page, '#smtpswitch');
         if (enable)
             await _this.page$Eval(page, '#smtpswitch', elem => elem.click());
@@ -1385,7 +1386,7 @@ const _this = {
             waitUntil: ['networkidle2'],
         });
         await _this.pageWaitForSelector(page, '#profile-menu');
-        await _this.pageClickNavigate(page, '#profile-menu');
+        await _this.pageClick(page, '#profile-menu');
         await _this.pageWaitForSelector(page, '#userProfile');
         await _this.pageClickNavigate(page, '#userProfile');
         await _this.pageWaitForSelector(page, 'input[type=tel]');
@@ -1409,9 +1410,9 @@ const _this = {
         });
         await _this.navigateToMonitorDetails(componentName, monitorName, page);
         await _this.pageWaitForSelector(page, '#react-tabs-2');
-        await _this.pageClickNavigate(page, '#react-tabs-2');
+        await _this.pageClick(page, '#react-tabs-2');
         await _this.pageWaitForSelector(page, '#addSubscriberButton');
-        await _this.pageClickNavigate(page, '#addSubscriberButton');
+        await _this.pageClick(page, '#addSubscriberButton');
         await _this.pageWaitForSelector(page, '#alertViaId');
         await _this.selectDropdownValue('#alertViaId', alertType, page);
         if (alertType === 'SMS') {
@@ -1424,7 +1425,7 @@ const _this = {
             );
             await _this.pageType(page, '#contactPhoneId', phoneNumber);
         }
-        await _this.pageClickNavigate(page, '#createSubscriber');
+        await _this.pageClick(page, '#createSubscriber');
     },
     addCustomField: async function(page, data, owner) {
         await page.goto(utils.DASHBOARD_URL, {
@@ -1437,7 +1438,7 @@ const _this = {
         await _this.pageClickNavigate(page, '#projectSettings');
         if (owner === 'monitor') {
             await _this.pageWaitForSelector(page, '#more');
-            await _this.pageClickNavigate(page, '#more');
+            await _this.pageClick(page, '#more');
             await _this.pageWaitForSelector(page, '#monitor', {
                 visible: true,
                 timeout: _this.timeout,
@@ -1449,7 +1450,7 @@ const _this = {
             await _this.gotoTab(2, page);
         } else {
             await _this.pageWaitForSelector(page, '#more');
-            await _this.pageClickNavigate(page, '#more');
+            await _this.pageClick(page, '#more');
             await _this.pageWaitForSelector(page, '#incidentSettings', {
                 visible: true,
                 timeout: _this.timeout,
@@ -1465,16 +1466,16 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, '#addCustomField');
+        await _this.pageClick(page, '#addCustomField');
         await _this.pageWaitForSelector(page, '#customFieldForm', {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClickNavigate(page, '#fieldName');
+        await _this.pageClick(page, '#fieldName');
         await _this.pageType(page, '#fieldName', data.fieldName);
         await _this.selectDropdownValue('#fieldType', data.fieldType, page);
 
-        await _this.pageClickNavigate(page, '#createCustomFieldButton');
+        await _this.pageClick(page, '#createCustomFieldButton');
         await _this.pageWaitForSelector(page, '#customFieldForm', {
             visible: 'hidden',
         });
