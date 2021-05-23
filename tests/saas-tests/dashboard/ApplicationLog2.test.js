@@ -309,7 +309,7 @@ describe('Log Containers', () => {
     );
     test(
         'Should update category for created log container',
-        async done => {
+        async done => {            
             const categoryName = 'Another-Category';
             // create a new resource category
             await init.addResourceCategory(categoryName, page);
@@ -331,8 +331,7 @@ describe('Log Containers', () => {
             await init.pageClickNavigate(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#addApplicationLogButton', {
                 hidden: true,
-            });
-
+            });            
             await init.pageWaitForSelector(
                 page,
                 `#${applicationLogName}NewBadge`,
