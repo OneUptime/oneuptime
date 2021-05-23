@@ -1287,6 +1287,7 @@ const _this = {
             visible: true,
         });
         await _this.pageClickNavigate(page, '#projectSettings');
+        await _this.pageClick(page, '#more');
         await _this.pageWaitForSelector(page, '#smsCalls');
         await _this.pageClickNavigate(page, '#smsCalls');
         await _this.pageWaitForSelector(page, 'label[for=enabled]', {
