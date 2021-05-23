@@ -866,7 +866,7 @@ const _this = {
         await page.focus('input[id=name]');
         await _this.pageType(page, 'input[id=name]', monitorName);
         //Please add a new monitor type here. IOT Device Monitor has been removed.
-        await _this.pageClickNavigate(page, 'button[type=submit]');
+        await _this.pageClick(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
             visible: true,
         });
@@ -917,7 +917,7 @@ const _this = {
         await _this.pageWaitForSelector(page, '#projectSettings');
         await _this.pageClickNavigate(page, '#projectSettings');
         await _this.pageWaitForSelector(page, '#more');
-        await _this.pageClickNavigate(page, '#more');
+        await _this.pageClick(page, '#more');
         await _this.pageWaitForSelector(page, '#incidentSettings');
         await _this.pageClickNavigate(page, '#incidentSettings');
         // To navigate to incident Priority tab
@@ -929,10 +929,10 @@ const _this = {
         );
 
         await _this.pageWaitForSelector(page, '#addNewPriority');
-        await _this.pageClickNavigate(page, '#addNewPriority');
+        await _this.pageClick(page, '#addNewPriority');
         await _this.pageWaitForSelector(page, '#CreateIncidentPriority');
         await _this.pageType(page, 'input[name=name]', incidentPriority);
-        await _this.pageClickNavigate(page, '#CreateIncidentPriority');
+        await _this.pageClick(page, '#CreateIncidentPriority');
         await _this.pageWaitForSelector(page, '#CreateIncidentPriority', {
             hidden: true,
         });
@@ -942,10 +942,10 @@ const _this = {
             `#btnCreateStatusPage_${projectName}`
         );
         if (createStatusPageSelector) {
-            await _this.pageClickNavigate(page, `#btnCreateStatusPage_${projectName}`);
+            await _this.pageClick(page, `#btnCreateStatusPage_${projectName}`);
             await _this.pageWaitForSelector(page, '#btnCreateStatusPage');
             await _this.pageType(page, '#name', statusPageName);
-            await _this.pageClickNavigate(page, '#btnCreateStatusPage');
+            await _this.pageClick(page, '#btnCreateStatusPage');
         } else {
             await _this.pageWaitForSelector(page, '#statusPages');
             await _this.pageClickNavigate(page, '#statusPages');
@@ -953,10 +953,10 @@ const _this = {
                 page,
                 `#btnCreateStatusPage_${projectName}`
             );
-            await _this.pageClickNavigate(page, `#btnCreateStatusPage_${projectName}`);
+            await _this.pageClick(page, `#btnCreateStatusPage_${projectName}`);
             await _this.pageWaitForSelector(page, '#btnCreateStatusPage');
             await _this.pageType(page, '#name', statusPageName);
-            await _this.pageClickNavigate(page, '#btnCreateStatusPage');
+            await _this.pageClick(page, '#btnCreateStatusPage');
         }
         await _this.pageWaitForSelector(page, '#btnCreateStatusPage', {
             hidden: true,
@@ -972,10 +972,10 @@ const _this = {
                 page,
                 `#btnCreateSchedule_${projectName}`
             );
-            await _this.pageClickNavigate(page, `#btnCreateSchedule_${projectName}`);
+            await _this.pageClick(page, `#btnCreateSchedule_${projectName}`);
             await _this.pageWaitForSelector(page, '#btnCreateSchedule');
             await _this.pageType(page, '#name', scheduleName);
-            await _this.pageClickNavigate(page, '#btnCreateSchedule');
+            await _this.pageClick(page, '#btnCreateSchedule');
         } else {
             await _this.pageWaitForSelector(page, '#onCallDuty');
             await _this.pageClickNavigate(page, '#onCallDuty');
@@ -983,10 +983,10 @@ const _this = {
                 page,
                 `#btnCreateSchedule_${projectName}`
             );
-            await _this.pageClickNavigate(page, `#btnCreateSchedule_${projectName}`);
+            await _this.pageClick(page, `#btnCreateSchedule_${projectName}`);
             await _this.pageWaitForSelector(page, '#btnCreateSchedule');
             await _this.pageType(page, '#name', scheduleName);
-            await _this.pageClickNavigate(page, '#btnCreateSchedule');
+            await _this.pageClick(page, '#btnCreateSchedule');
         }
     },
     addScheduledMaintenance: async function(
@@ -1005,7 +1005,7 @@ const _this = {
         await _this.pageWaitForSelector(page, '#addScheduledEventButton', {
             visible: true,
         });
-        await _this.pageClickNavigate(page, '#addScheduledEventButton');
+        await _this.pageClick(page, '#addScheduledEventButton');
 
         await _this.pageWaitForSelector(page, '#scheduledEventForm', {
             visible: true,
