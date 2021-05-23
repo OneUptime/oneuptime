@@ -1317,9 +1317,9 @@ const _this = {
         await _this.pageWaitForSelector(page, '#settings', {
             visible: true,
         });
-        await _this.pageClickNavigate(page, '#settings');
+        await _this.pageClick(page, '#settings');
         await _this.pageWaitForSelector(page, '#twilio');
-        await _this.pageClickNavigate(page, '#twilio');
+        await _this.pageClick(page, '#twilio');
         await _this.pageWaitForSelector(page, '#call-enabled');
         if (enableCalls) {
             await _this.page$Eval(page, '#call-enabled', element =>
@@ -1335,7 +1335,7 @@ const _this = {
         await _this.pageType(page, '#authentication-token', authToken);
         await _this.pageType(page, '#phone', phoneNumber);
         await _this.pageType(page, '#alert-limit', alertLimit);
-        await _this.pageClickNavigate(page, 'button[type=submit]');
+        await _this.pageClick(page, 'button[type=submit]');
 
         await page.reload();
         await _this.pageWaitForSelector(page, '#account-sid');
