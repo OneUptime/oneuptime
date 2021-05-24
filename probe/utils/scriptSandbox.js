@@ -46,6 +46,10 @@ const runScript = async (
         return new Promise(resolve => {
             const worker = new Worker(__filename, {
                 workerData: { functionCode },
+                execArgv: [
+                    ...process.execArgv,
+                    '--unhandled-rejections=strict',
+                ], // handle promise rejection warnings
             });
 
             let lastMessage = null;

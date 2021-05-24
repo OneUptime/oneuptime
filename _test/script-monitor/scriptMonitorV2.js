@@ -34,7 +34,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
         const { maxScriptRunTime, maxSyncStatementDuration } = options; 
         if (!isCalled) return;
         return new Promise(resolve => {
-            const worker = new Worker(__filename, { workerData: { functionCode } });
+            const worker = new Worker(__filename, { workerData: { functionCode }, execArgv: [...process.execArgv, '--unhandled-rejections=strict' ] });
 
             let lastMessage = null;
 
