@@ -60,6 +60,15 @@ module.exports = {
                 }
             );
 
+            await ErrorTrackerModel.updateMany(
+                { resourceCategory: query._id },
+                {
+                    $set: {
+                        resourceCategory: null,
+                    },
+                }
+            );
+
             await ApplicationSecurityModel.updateMany(
                 { resourceCategory: query._id },
                 {
@@ -205,5 +214,6 @@ const ResourceCategoryModel = require('../models/resourceCategory');
 const MonitorModel = require('../models/monitor');
 const ErrorService = require('./errorService');
 const ApplicationLogModel = require('../models/applicationLog');
+const ErrorTrackerModel = require('../models/errorTracker');
 const ApplicationSecurityModel = require('../models/applicationSecurity');
 const ContainerSecurityModel = require('../models/containerSecurity');
