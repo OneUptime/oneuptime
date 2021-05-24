@@ -550,23 +550,50 @@ class Incident extends React.Component {
                         </TabPanel>
                         <TabPanel>
                             <Fade>
-                                {monitorList.map(monitor => (
-                                    <div
-                                        key={monitor._id}
-                                        className="Box-root Margin-bottom--12"
-                                    >
-                                        <MonitorViewLogsBox
-                                            incidentId={this.props.incident._id}
-                                            monitorId={monitor._id}
-                                            monitorName={monitor.name}
-                                            monitorType={monitor.type}
-                                            agentless={
-                                                monitor &&
-                                                monitor.agentlessConfig
-                                            }
-                                        />
-                                    </div>
-                                ))}
+                                {monitorList && monitorList.length > 1
+                                    ? monitorList.map(monitor => (
+                                          <div
+                                              key={monitor._id}
+                                              className="Box-root Margin-bottom--12"
+                                          >
+                                              <MonitorViewLogsBox
+                                                  incidentId={
+                                                      this.props.incident._id
+                                                  }
+                                                  monitorId={monitor._id}
+                                                  monitorName={monitor.name}
+                                                  monitorType={monitor.type}
+                                                  agentless={
+                                                      monitor &&
+                                                      monitor.agentlessConfig
+                                                  }
+                                              />
+                                          </div>
+                                      ))
+                                    : monitorList[0] && (
+                                          <div
+                                              key={monitorList[0]._id}
+                                              className="Box-root Margin-bottom--12"
+                                          >
+                                              <MonitorViewLogsBox
+                                                  incidentId={
+                                                      this.props.incident._id
+                                                  }
+                                                  monitorId={monitorList[0]._id}
+                                                  monitorName={
+                                                      monitorList[0].name
+                                                  }
+                                                  monitorType={
+                                                      monitorList[0].type
+                                                  }
+                                                  agentless={
+                                                      monitorList[0] &&
+                                                      monitorList[0]
+                                                          .agentlessConfig
+                                                  }
+                                              />
+                                          </div>
+                                      )}
                             </Fade>
                         </TabPanel>
                         <TabPanel>
