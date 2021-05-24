@@ -289,10 +289,16 @@ export const ongoingEventReset = () => {
 };
 
 // Calls the API to get events
-export const getOngoingScheduledEvent = (projectId, statusPageSlug) => {
+export const getOngoingScheduledEvent = (
+    projectId,
+    statusPageSlug,
+    skip,
+    theme,
+    limit
+) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/events`
+            `statusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&limit=${limit}`
         );
 
         dispatch(ongoingEventRequest());
@@ -387,12 +393,14 @@ export const futureEventsFailure = error => ({
 export const fetchFutureEvents = (
     projectId,
     statusPageSlug,
-    skip
+    skip,
+    theme,
+    limit
 ) => async dispatch => {
     try {
         dispatch(futureEventsRequest());
         const response = await getApi(
-            `statusPage/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}`
+            `statusPage/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&theme=${theme}&limit=${limit}`
         );
         dispatch(futureEventsSuccess(response.data));
     } catch (error) {
@@ -405,6 +413,46 @@ export const fetchFutureEvents = (
                 ? error.message
                 : 'Network Error';
         dispatch(futureEventsFailure(errorMsg));
+    }
+};
+
+export const pastEventsRequest = () => ({
+    type: types.PAST_EVENTS_REQUEST,
+});
+
+export const pastEventsSuccess = payload => ({
+    type: types.PAST_EVENTS_SUCCESS,
+    payload,
+});
+
+export const pastEventsFailure = error => ({
+    type: types.PAST_EVENTS_FAILURE,
+    payload: error,
+});
+
+export const fetchPastEvents = (
+    projectId,
+    statusPageSlug,
+    skip,
+    theme,
+    limit
+) => async dispatch => {
+    try {
+        dispatch(pastEventsRequest());
+        const response = await getApi(
+            `statusPage/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}&theme=${theme}&limit=${limit}`
+        );
+        dispatch(pastEventsSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(pastEventsFailure(errorMsg));
     }
 };
 
@@ -539,12 +587,13 @@ export const moreFutureEventsFailure = error => ({
 export const fetchMoreFutureEvents = (
     projectId,
     statusPageSlug,
-    skip
+    skip,
+    limit
 ) => async dispatch => {
     try {
         dispatch(moreFutureEventsRequest());
         const response = await getApi(
-            `statusPage/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}`
+            `statusPage/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&limit=${limit}`
         );
         dispatch(moreFutureEventsSuccess(response.data));
     } catch (error) {
@@ -557,6 +606,44 @@ export const fetchMoreFutureEvents = (
                 ? error.message
                 : 'Network Error';
         dispatch(moreFutureEventsFailure(errorMsg));
+    }
+};
+
+export const morePastEventsRequest = () => ({
+    type: types.MORE_PAST_EVENTS_REQUEST,
+});
+
+export const morePastEventsSuccess = payload => ({
+    type: types.MORE_PAST_EVENTS_SUCCESS,
+    payload,
+});
+
+export const morePastEventsFailure = error => ({
+    type: types.MORE_PAST_EVENTS_FAILURE,
+    payload: error,
+});
+
+export const fetchMorePastEvents = (
+    projectId,
+    statusPageSlug,
+    skip
+) => async dispatch => {
+    try {
+        dispatch(morePastEventsRequest());
+        const response = await getApi(
+            `statusPage/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}`
+        );
+        dispatch(morePastEventsSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(morePastEventsFailure(errorMsg));
     }
 };
 
@@ -750,13 +837,13 @@ export function fetchEventNoteFailure(error) {
     };
 }
 
-export function fetchEventNote(projectId, scheduledEventId, type) {
+export function fetchEventNote(projectId, scheduledEventSlug, type) {
     return async function(dispatch) {
         dispatch(fetchEventNoteRequest());
 
         try {
             const response = await getApi(
-                `statusPage/${projectId}/notes/${scheduledEventId}?type=${type}`
+                `statusPage/${projectId}/notes/${scheduledEventSlug}?type=${type}`
             );
             dispatch(fetchEventNoteSuccess(response.data));
         } catch (error) {

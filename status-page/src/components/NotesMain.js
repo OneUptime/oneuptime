@@ -350,30 +350,7 @@ class NotesMain extends Component {
                     {typeof this.props.notesmessage === 'string' ? (
                         this.props.notesmessage
                     ) : (
-                        <div>
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                }}
-                            >
-                                <div style={{ transform: 'scale(2)' }}>
-                                    <svg
-                                        viewBox="0 0 24 24"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="bs-Spinner-svg"
-                                    >
-                                        <ellipse
-                                            cx="12"
-                                            cy="12"
-                                            rx="10"
-                                            ry="10"
-                                            className="bs-Spinner-ellipse"
-                                        ></ellipse>
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
+                        <div>No incident available</div>
                     )}
                 </div>
             );

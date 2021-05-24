@@ -667,7 +667,7 @@ module.exports = {
         }
     },
 
-    getEvents: async function(query, skip, limit, theme) {
+    getEvents: async function(query, skip, limit) {
         try {
             const _this = this;
 
@@ -696,30 +696,17 @@ module.exports = {
                 const eventIds = [];
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
-                        let scheduledEvents;
-                        if (
-                            (theme && typeof theme === 'boolean') ||
-                            theme === 'true'
-                        ) {
-                            scheduledEvents = await ScheduledEventsService.findBy(
-                                {
-                                    'monitors.monitorId': monitorId,
-                                    showEventOnStatusPage: true,
-                                }
-                            );
-                        } else {
-                            scheduledEvents = await ScheduledEventsService.findBy(
-                                {
-                                    'monitors.monitorId': monitorId,
-                                    showEventOnStatusPage: true,
-                                    startDate: { $lte: currentDate },
-                                    endDate: {
-                                        $gte: currentDate,
-                                    },
-                                    resolved: false,
-                                }
-                            );
-                        }
+                        const scheduledEvents = await ScheduledEventsService.findBy(
+                            {
+                                'monitors.monitorId': monitorId,
+                                showEventOnStatusPage: true,
+                                startDate: { $lte: currentDate },
+                                endDate: {
+                                    $gte: currentDate,
+                                },
+                                resolved: false,
+                            }
+                        );
                         scheduledEvents.map(event => {
                             const id = String(event._id);
                             if (!eventIds.includes(id)) {
@@ -740,6 +727,7 @@ module.exports = {
                     );
                 });
                 const count = events.length;
+                // console.log(events);
 
                 return { events, count };
             } else {
@@ -810,11 +798,11 @@ module.exports = {
                     );
                 });
 
-                // sort in ascending start date
-                events = events.sort((a, b) => a.startDate - b.startDate);
+                // // sort in ascending start date
+                events = events.sort((a, b) => b.startDate - a.startDate);
 
                 const count = events.length;
-                return { events: limitEvents(events, limit, skip), count };
+                return { events, count };
             } else {
                 const error = new Error('no monitor to check');
                 error.code = 400;
@@ -823,6 +811,79 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('statusPageService.getFutureEvents', error);
+            throw error;
+        }
+    },
+
+    getPastEvents: async function(query, skip, limit) {
+        try {
+            const _this = this;
+
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 5;
+
+            if (typeof skip === 'string') skip = parseInt(skip);
+
+            if (typeof limit === 'string') limit = parseInt(limit);
+
+            if (!query) query = {};
+            query.deleted = false;
+
+            const statuspages = await _this.findBy(query, 0, limit);
+
+            const withMonitors = statuspages.filter(
+                statusPage => statusPage.monitors.length
+            );
+            const statuspage = withMonitors[0];
+            const monitorIds = statuspage
+                ? statuspage.monitors.map(m => m.monitor)
+                : [];
+            if (monitorIds && monitorIds.length) {
+                const currentDate = moment();
+                const eventIds = [];
+                let events = await Promise.all(
+                    monitorIds.map(async monitorId => {
+                        const scheduledEvents = await ScheduledEventsService.findBy(
+                            {
+                                'monitors.monitorId': monitorId,
+                                showEventOnStatusPage: true,
+                                endDate: { $lt: currentDate },
+                            }
+                        );
+                        scheduledEvents.map(event => {
+                            const id = String(event._id);
+                            if (!eventIds.includes(id)) {
+                                eventIds.push(id);
+                            }
+                            return event;
+                        });
+
+                        return scheduledEvents;
+                    })
+                );
+
+                events = flattenArray(events);
+                // do not repeat the same event two times
+                events = eventIds.map(id => {
+                    return events.find(
+                        event => String(event._id) === String(id)
+                    );
+                });
+
+                // sort in ascending start date
+                events = events.sort((a, b) => a.startDate - b.startDate);
+
+                const count = events.length;
+                return { events: limitEvents(events, limit, skip), count };
+            } else {
+                const error = new Error('no monitor to check');
+                error.code = 400;
+                ErrorService.log('statusPageService.getPastEvents', error);
+                throw error;
+            }
+        } catch (error) {
+            ErrorService.log('statusPageService.getPastEvents', error);
             throw error;
         }
     },
