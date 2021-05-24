@@ -56,7 +56,7 @@ class SingleAnnouncement extends Component {
                                                 fontWeight: '700',
                                                 display: 'inline-block',
                                                 marginBottom: 20,
-                                                fontSize: 14,
+                                                fontSize: 12,
                                             }}
                                         >
                                             Announcement Info
