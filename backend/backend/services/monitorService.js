@@ -190,7 +190,7 @@ module.exports = {
             await this.updateMonitorSlaStat(query);
 
             let errorMsg;
-            if (data.customFields && data.customFields.length > 0) {
+            if (data && data.customFields && data.customFields.length > 0) {
                 const monitor = await _this.findOneBy(query);
                 for (const field of data.customFields) {
                     if (field.uniqueField) {
@@ -793,9 +793,10 @@ module.exports = {
             let probes;
             const probeStatuses = [];
             if (
-                (monitor.type === 'server-monitor' &&
+                (monitor &&
+                    monitor.type === 'server-monitor' &&
                     !monitor.agentlessConfig) ||
-                monitor.type === 'manual'
+                (monitor && monitor.type === 'manual')
             ) {
                 probes = [undefined];
             } else {
