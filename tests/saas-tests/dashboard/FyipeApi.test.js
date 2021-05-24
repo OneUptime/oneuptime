@@ -246,7 +246,7 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            expect(elementHandle).toBeDefined();
+            expect(elementHandle).not.toBe(null);;
             done();
         },
         operationTimeOut
