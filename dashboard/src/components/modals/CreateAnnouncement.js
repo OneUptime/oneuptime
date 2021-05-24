@@ -342,7 +342,7 @@ class CreateAnnouncement extends Component {
                                     }}
                                 >
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Create Announcement</span>
+                                        <span>Create Announcement Template</span>
                                     </span>
                                 </div>
                             </div>
