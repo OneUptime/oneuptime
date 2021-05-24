@@ -18,7 +18,6 @@ describe('Error Trackers', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -547,7 +546,7 @@ describe('Error Trackers', () => {
                 `${errorTrackerName}-new`,
                 page
             );
-                        
+
             const spanElementBadge = await init.pageWaitForSelector(
                 page,
                 `#${errorTrackerName}-new-badge`,

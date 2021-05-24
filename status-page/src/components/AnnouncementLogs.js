@@ -51,7 +51,7 @@ class AnnouncementLogs extends Component {
                                 style={{ marginBottom: '40px' }}
                                 className="font-largest"
                             >
-                                Past Announcements
+                                Announcements
                             </div>
                             {announcementLogs && announcementLogs.length > 0 ? (
                                 announcementLogs.map((log, index) => {
@@ -158,7 +158,7 @@ class AnnouncementLogs extends Component {
                                             {error}
                                         </span>
                                     ) : (
-                                        'No announcement log'
+                                        'No announcements at this time.'
                                     )}
                                 </div>
                             )}
@@ -298,7 +298,7 @@ class AnnouncementLogs extends Component {
                                                             {error}
                                                         </span>
                                                     ) : (
-                                                        'no announcement log'
+                                                        'No announcements at this time.'
                                                     )}
                                                 </li>
                                             )}

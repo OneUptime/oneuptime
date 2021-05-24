@@ -21,7 +21,6 @@ describe('Fyipe Page Reload', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

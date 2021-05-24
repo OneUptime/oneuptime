@@ -16,24 +16,24 @@ const newMonitorName = utils.generateRandomString();
 const applicationLogName = utils.generateRandomString();
 let browser, browser2, page, monitorPage;
 describe('Components', () => {
-    const operationTimeOut = init.timeout;    
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(init.timeout);        
+        jest.setTimeout(init.timeout);
 
-        browser2 = await puppeteer.launch(utils.puppeteerLaunchConfig);        
+        browser2 = await puppeteer.launch(utils.puppeteerLaunchConfig);
         browser = await puppeteer.launch({
             ...utils.puppeteerLaunchConfig,
-        });      
-        monitorPage = await browser2.newPage();  
-        page = await browser.newPage();        
+        });
+        monitorPage = await browser2.newPage();
+        page = await browser.newPage();
 
         await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page);
     });
 
-    afterAll(async (done) => {        
+    afterAll(async done => {
         await browser.close();
         await browser2.close();
         done();
@@ -41,7 +41,7 @@ describe('Components', () => {
 
     test(
         'Should create new component',
-        async (done) => {
+        async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -70,11 +70,11 @@ describe('Components', () => {
             done();
         },
         operationTimeOut
-    );    
+    );
 
     test(
         'Should create a new monitor in component and confirm that monitor quick tip shows',
-        async (done) => {
+        async done => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
@@ -115,7 +115,7 @@ describe('Components', () => {
 
     test(
         'Should create a new monitor in component and goto the details page after creating',
-        async (done) => {
+        async done => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             const newMonitorName = `another-${monitorName}`;
@@ -204,7 +204,7 @@ describe('Components', () => {
 
     test(
         'Should create a new log container in component',
-        async (done) => {
+        async done => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
@@ -231,7 +231,7 @@ describe('Components', () => {
 
     test(
         'Should create a new monitor in a new component and get list of resources',
-        async (done) => {
+        async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -298,9 +298,8 @@ describe('Components', () => {
 
     test(
         'Should create an incident in monitor details and change monitor status in component list',
-        async (done) => {
-            
-            // launch component page            
+        async done => {
+            // launch component page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
@@ -316,15 +315,15 @@ describe('Components', () => {
             componentSpanElement = await componentSpanElement.jsonValue();
 
             expect(componentSpanElement).toMatch('Website Monitor');
-                      
+
             await monitorPage.bringToFront();
-            
+
             await init.loginUser(user, monitorPage);
             await init.navigateToMonitorDetails(
                 componentName,
                 monitorName,
                 monitorPage
-            );            
+            );
 
             await monitorPage.waitForSelector(
                 `#monitorCreateIncident_${monitorName}`
@@ -415,7 +414,7 @@ describe('Components', () => {
 
     test(
         'Should get list of resources and confirm their types match',
-        async (done) => {
+        async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -468,7 +467,7 @@ describe('Components', () => {
 
     test(
         'Should get list of resources and  navigate to each page',
-        async (done) => {
+        async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -507,7 +506,7 @@ describe('Components', () => {
         operationTimeOut
     );
 
-    test('should edit a component in the component settings SideNav', async (done) => {
+    test('should edit a component in the component settings SideNav', async done => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle0',
         });
@@ -537,7 +536,7 @@ describe('Components', () => {
         done();
     });
 
-    test('should delete a component in the component settings sideNav', async (done) => {
+    test('should delete a component in the component settings sideNav', async done => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle0',
         });
@@ -584,7 +583,7 @@ describe('Components', () => {
 
     test(
         'Should create new project from incident page and redirect to the home page and not component page',
-        async (done) => {
+        async done => {
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 newComponentName,

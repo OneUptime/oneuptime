@@ -51,8 +51,7 @@ const STATUSPAGE_URL = process.env.STATUSPAGE_URL || 'http://localhost:3006';
 const APIDOCS_URL = process.env.APIDOCS_URL || 'http://localhost:1445';
 const HTTP_TEST_SERVER_URL =
     process.env.HTTP_TEST_SERVER_URL || 'http://localhost:3010';
-const INIT_SCRIPT_URL =
-    process.env.INIT_SCRIPT_URL || 'http://localhost:1447';
+const INIT_SCRIPT_URL = process.env.INIT_SCRIPT_URL || 'http://localhost:1447';
 
 function generateRandomBusinessEmail() {
     return (
@@ -75,18 +74,19 @@ function generatePassword() {
 /** The previous generates a mixture of numbers and alphabets
  * If not properly arranged e.g 5xvhm. This violates HTML5 rule and throws the following error:
  * ' Evaluation failed: DOMException: Failed to execute 'querySelector' on 'Document': '#5xvhm' is not a valid selector.'
- * 
+ *
  * The new generateRandomString only generate 5 lowercase alphabets with no numbers
  */
 function generateRandomString() {
-    var result           = [];
-    var characters       = 'abcdefghijklmnopqrstuvwxyz';
-    var charactersLength = characters.length;
-    for ( var i = 0; i < 5; i++ ) {
-      result.push(characters.charAt(Math.floor(Math.random() * 
- charactersLength)));
-   }
-   return result.join('');
+    const result = [];
+    const characters = 'abcdefghijklmnopqrstuvwxyz';
+    const charactersLength = characters.length;
+    for (let i = 0; i < 5; i++) {
+        result.push(
+            characters.charAt(Math.floor(Math.random() * charactersLength))
+        );
+    }
+    return result.join('');
 }
 
 // These are other required functions, variables present in other test-utils dashboard folder.

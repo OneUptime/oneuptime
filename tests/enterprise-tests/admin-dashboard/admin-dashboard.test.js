@@ -17,7 +17,7 @@ const user = {
 describe('Enterprise Admin Dashboard API', () => {
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
-        
+
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);

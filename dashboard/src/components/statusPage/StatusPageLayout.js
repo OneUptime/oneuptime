@@ -42,13 +42,13 @@ export class StatusPageLayout extends Component {
                 key: 'anouncement',
             },
             {
-                name: 'Ongoing Schedule Events',
+                name: 'Ongoing Scheduled Events',
                 key: 'ongoingSchedule',
             },
-            { name: 'Overall Status', key: 'resources' },
+            { name: 'Overall Status of Resources', key: 'resources' },
             { name: 'Resource List', key: 'services' },
-            { name: 'Incidents', key: 'incidents' },
-            { name: 'Announcement Logs', key: 'AnnouncementLogs' },
+            { name: 'Incidents List', key: 'incidents' },
+            { name: 'Past Announcements List', key: 'AnnouncementLogs' },
             {
                 name: 'Future Scheduled Events',
                 key: 'maintenance',
@@ -145,13 +145,13 @@ export class StatusPageLayout extends Component {
             case 'maintenance':
                 return 'This section displays the scheduled maintenance of the resources on the status page';
             case 'futureSchedule':
-                return 'This section contains the schedule events that are yet to start';
+                return 'This section contains the scheduled events that are yet to start';
             case 'pastEvents':
-                return 'This section contains the schedule events that have ended';
+                return 'This section contains the scheduled events that have ended';
             case 'AnnouncementLogs':
                 return 'This section displays the announcement logs in the status page';
             case 'ongoingSchedule':
-                return 'This section contains the schedule events that are on going';
+                return 'This section contains the scheduled events that are ongoing';
             case 'footer':
                 return 'This section displays the footer of the status page and can not be hidden';
             case 'header':
@@ -174,13 +174,13 @@ export class StatusPageLayout extends Component {
                     key: 'anouncement',
                 },
                 {
-                    name: 'Ongoing Schedule Events',
+                    name: 'Ongoing Scheduled Events',
                     key: 'ongoingSchedule',
                 },
-                { name: 'Overall Status', key: 'resources' },
+                { name: 'Overall Status of Resources', key: 'resources' },
                 { name: 'Resource List', key: 'services' },
-                { name: 'Incidents', key: 'incidents' },
-                { name: 'Announcement Logs', key: 'AnnouncementLogs' },
+                { name: 'Incidents List', key: 'incidents' },
+                { name: 'Past Announcements List', key: 'AnnouncementLogs' },
                 {
                     name: 'Future Scheduled Events',
                     key: 'maintenance',

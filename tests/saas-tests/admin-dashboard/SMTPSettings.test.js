@@ -18,7 +18,6 @@ describe('SMTP Settings API', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -29,25 +28,25 @@ describe('SMTP Settings API', () => {
             password: password,
         };
         // user
-        
+
         await init.loginAdminUser(user, page);
 
         // delete existing smtp details, if there is any.
-        var data = JSON.stringify({
-            "collection": "globalconfigs",
-            "query": {}
+        const data = JSON.stringify({
+            collection: 'globalconfigs',
+            query: {},
         });
 
-        var config = {
+        const config = {
             method: 'post',
-            url: utils.INIT_SCRIPT_URL+'/removeMany',
+            url: utils.INIT_SCRIPT_URL + '/removeMany',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            data: data
+            data: data,
         };
 
-        await axios(config); 
+        await axios(config);
     });
 
     afterAll(async () => {
@@ -90,7 +89,7 @@ describe('SMTP Settings API', () => {
                 (await init.page$$(page, 'span.field-error')).length
             ).toEqual(
                 (await init.page$$(page, 'input')).length -
-                4 /** There 10 input values and 6 span-errors */
+                    4 /** There 10 input values and 6 span-errors */
             );
 
             //Since we did not save the settings, reloading the page automatically removes the input values

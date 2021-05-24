@@ -10,14 +10,13 @@ const user = {
     password: '1234567890',
 };
 const componentName = utils.generateRandomString();
-const applicationLogName = 'AppLogName'
+const applicationLogName = 'AppLogName';
 
 describe('Log Containers', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -120,7 +119,7 @@ describe('Log Containers', () => {
         'Should create new resource category then redirect to application log page to create a container under that',
         async done => {
             const categoryName = 'Random-Category';
-            const appLogName =  'NewAppLog';
+            const appLogName = 'NewAppLog';
             // create a new resource category
             await init.addResourceCategory(categoryName, page);
             //navigate to component details
@@ -149,7 +148,10 @@ describe('Log Containers', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            let spanElement = await init.pageWaitForSelector(page,`#${appLogName}Badge`);
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                `#${appLogName}Badge`
+            );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
             spanElement.should.be.exactly(categoryName.toUpperCase());
@@ -254,11 +256,14 @@ describe('Log Containers', () => {
             await init.pageClick(page, `#filter_${applicationLogName}`);
 
             // select the drop down and confirm the current value as all
-            let logTypeElement = await init.pageWaitForSelector(     
-                /** React-Select Library is used in the dashboard 
+            let logTypeElement = await init.pageWaitForSelector(
+                /** React-Select Library is used in the dashboard
                  * This reminds puppeteer that the <input /> is hidden
-                 * as init.pageWaitForSelector is 'visible : true' by default  */           
-                page, 'input[name=log_type_selector]', { hidden : true }
+                 * as init.pageWaitForSelector is 'visible : true' by default  */
+
+                page,
+                'input[name=log_type_selector]',
+                { hidden: true }
             );
             logTypeElement = await logTypeElement.getProperty('value');
 
@@ -275,7 +280,8 @@ describe('Log Containers', () => {
             // confim that thee drop down current value is warning
             logTypeElement = await init.pageWaitForSelector(
                 page,
-                'input[name=log_type_selector]', { hidden : true }
+                'input[name=log_type_selector]',
+                { hidden: true }
             );
             logTypeElement = await logTypeElement.getProperty('value');
 
@@ -289,7 +295,8 @@ describe('Log Containers', () => {
             // confim that thee drop down current value is info
             logTypeElement = await init.pageWaitForSelector(
                 page,
-                'input[name=log_type_selector]', { hidden : true }
+                'input[name=log_type_selector]',
+                { hidden: true }
             );
             logTypeElement = await logTypeElement.getProperty('value');
 
@@ -306,7 +313,8 @@ describe('Log Containers', () => {
             // confim that thee drop down current value is error
             logTypeElement = await init.pageWaitForSelector(
                 page,
-                'input[name=log_type_selector]', { hidden : true }
+                'input[name=log_type_selector]',
+                { hidden: true }
             );
             logTypeElement = await logTypeElement.getProperty('value');
 
@@ -320,7 +328,8 @@ describe('Log Containers', () => {
             // confim that thee drop down current value is all
             logTypeElement = await init.pageWaitForSelector(
                 page,
-                'input[name=log_type_selector]', { hidden : true }
+                'input[name=log_type_selector]',
+                { hidden: true }
             );
             logTypeElement = await logTypeElement.getProperty('value');
 
@@ -331,6 +340,6 @@ describe('Log Containers', () => {
         },
         operationTimeOut
     );
-    
+
     /**Test Split */
 });

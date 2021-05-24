@@ -15,20 +15,22 @@ async function run() {
                         key: 'anouncement',
                     },
                     {
-                        name: 'Ongoing Schedule Events',
+                        name: 'Ongoing Scheduled Events',
                         key: 'ongoingSchedule',
                     },
-                    { name: 'Incidents', key: 'incidents' },
-                    { name: 'Overall Status', key: 'resources' },
+                    { name: 'Incidents List', key: 'incidents' },
+                    { name: 'Overall Status of Resources', key: 'resources' },
                     { name: 'Resource List', key: 'services' },
-                    { name: 'Announcement Logs', key: 'AnnouncementLogs' },
+                    { name: 'Past Announcements List', key: 'AnnouncementLogs' },
                     {
                         name: 'Future Scheduled Events',
                         key: 'maintenance',
                     },
                     { name: 'Footer', key: 'footer' },
                 ],
-                invisible: [{ name: 'Past Scheduled Events', key: 'pastEvents' }],
+                invisible: [
+                    { name: 'Past Scheduled Events', key: 'pastEvents' },
+                ],
             },
         }
     );
@@ -36,7 +38,7 @@ async function run() {
     await removeFieldsFromMany(
         statusPageCollection,
         { moveIncidentToTheTop: { $exists: true } },
-        moveIncidentToTheTop
+        'moveIncidentToTheTop'
     );
 
     return `Script completed`;

@@ -12,7 +12,7 @@ describe('Credential Page', () => {
     const operationTimeOut = init.timeout;
     const dockerRegistryUrl = utils.dockerCredential.dockerRegistryUrl;
     const dockerUsername = utils.dockerCredential.dockerUsername;
-    const dockerPassword = utils.dockerCredential.dockerPassword;    
+    const dockerPassword = utils.dockerCredential.dockerPassword;
 
     beforeAll(async done => {
         jest.setTimeout(operationTimeOut);
@@ -33,7 +33,7 @@ describe('Credential Page', () => {
     afterAll(async done => {
         await browser.close();
         done();
-    });    
+    });
 
     test(
         'should cancel adding docker credential to a project',
@@ -55,11 +55,16 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-           // When no git credential is added, no 'tr'.
-           let noGitCredential = await init.pageWaitForSelector(page, '#noDockerCredential');
-           noGitCredential = await noGitCredential.getProperty('innerText');
-           noGitCredential = await noGitCredential.jsonValue();
-           noGitCredential.should.be.exactly('There are no docker credentials for this project');
+            // When no git credential is added, no 'tr'.
+            let noGitCredential = await init.pageWaitForSelector(
+                page,
+                '#noDockerCredential'
+            );
+            noGitCredential = await noGitCredential.getProperty('innerText');
+            noGitCredential = await noGitCredential.jsonValue();
+            noGitCredential.should.be.exactly(
+                'There are no docker credentials for this project'
+            );
             await init.pageClick(page, '#addCredentialBtn');
 
             await init.pageWaitForSelector(page, '#dockerCredentialForm', {
@@ -72,11 +77,16 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '#dockerCredentialForm', {
                 hidden: true,
             });
-            
-           let noGitCredential2 = await init.pageWaitForSelector(page, '#noDockerCredential');
-           noGitCredential2 = await noGitCredential2.getProperty('innerText');
-           noGitCredential2 = await noGitCredential2.jsonValue();
-           noGitCredential2.should.be.exactly('There are no docker credentials for this project');
+
+            let noGitCredential2 = await init.pageWaitForSelector(
+                page,
+                '#noDockerCredential'
+            );
+            noGitCredential2 = await noGitCredential2.getProperty('innerText');
+            noGitCredential2 = await noGitCredential2.jsonValue();
+            noGitCredential2.should.be.exactly(
+                'There are no docker credentials for this project'
+            );
 
             done();
         },
@@ -152,9 +162,9 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, '#dockerCredentialForm');
             const dockerUsername = 'username';
             const dockerPassword = 'hello1234567890';
-            await init.pageClick(page, '#dockerUsername', {clickCount : 3});
+            await init.pageClick(page, '#dockerUsername', { clickCount: 3 });
             await init.pageType(page, '#dockerUsername', dockerUsername);
-            await init.pageClick(page, '#dockerPassword', {clickCount : 3});
+            await init.pageClick(page, '#dockerPassword', { clickCount: 3 });
             await init.pageType(page, '#dockerPassword', dockerPassword);
             await init.pageClick(page, '#updateCredentialModalBtn');
             await init.pageWaitForSelector(page, '#dockerCredentialForm', {
@@ -322,7 +332,7 @@ describe('Credential Page', () => {
             await init.pageWaitForSelector(page, 'tbody tr', {
                 visible: true,
                 timeout: init.timeout,
-            });            
+            });
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
             await init.pageWaitForSelector(page, '#deleteCredentialBtn', {
@@ -334,10 +344,15 @@ describe('Credential Page', () => {
                 hidden: true,
             });
             // When no git credential is added, no 'tr'.
-           let noGitCredential3 = await init.pageWaitForSelector(page, '#noDockerCredential');
-           noGitCredential3 = await noGitCredential3.getProperty('innerText');
-           noGitCredential3 = await noGitCredential3.jsonValue();
-           noGitCredential3.should.be.exactly('There are no docker credentials for this project');
+            let noGitCredential3 = await init.pageWaitForSelector(
+                page,
+                '#noDockerCredential'
+            );
+            noGitCredential3 = await noGitCredential3.getProperty('innerText');
+            noGitCredential3 = await noGitCredential3.jsonValue();
+            noGitCredential3.should.be.exactly(
+                'There are no docker credentials for this project'
+            );
 
             done();
         },

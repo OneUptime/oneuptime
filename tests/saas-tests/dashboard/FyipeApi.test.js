@@ -19,14 +19,13 @@ describe('API test', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
 
         // Register user
-        await init.registerUser(user, page);        
+        await init.registerUser(user, page);
 
         done();
     });
@@ -64,8 +63,8 @@ describe('API test', () => {
             done();
         },
         operationTimeOut
-    ); 
-    
+    );
+
     test(
         'Should display the API key when clicked',
         async done => {
@@ -175,7 +174,9 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, 'input[name=project_name]', {clickCount : 3});
+            await init.pageClick(page, 'input[name=project_name]', {
+                clickCount: 3,
+            });
             await init.pageType(page, 'input[name=project_name]', projectName);
             await init.pageWaitForSelector(
                 page,
@@ -223,8 +224,8 @@ describe('API test', () => {
             await init.saasLogout(page);
 
             // Register and logging team member email that has been added
-            await init.registerAndLoggingTeamMember(member, page); 
-            
+            await init.registerAndLoggingTeamMember(member, page);
+
             await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
@@ -235,17 +236,25 @@ describe('API test', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#api a');
-            let elementHandle = await init.pageWaitForSelector(page, '#boxTitle', {
-                hidden: true, // The id is not present in the DOM
-                timeout: init.timeout,
-            });
+            let elementHandle = await init.pageWaitForSelector(
+                page,
+                '#boxTitle',
+                {
+                    hidden: true, // The id is not present in the DOM
+                    timeout: init.timeout,
+                }
+            );
             expect(elementHandle).toEqual(null);
 
             // This confirms that team member is logged in and could not change Project API
-            elementHandle = await init.pageWaitForSelector(page, '#errorMessage', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            elementHandle = await init.pageWaitForSelector(
+                page,
+                '#errorMessage',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             expect(elementHandle).not.toBe(null);
             done();
         },

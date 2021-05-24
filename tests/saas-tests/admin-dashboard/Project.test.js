@@ -21,7 +21,6 @@ describe('Project', () => {
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
 
-
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig, {
             waitUntil: 'networkidle2',
         });
@@ -54,8 +53,10 @@ describe('Project', () => {
             await init.page$Eval(page, '#projects > a', elem => elem.click());
             await init.pageWaitForSelector(page, '.Table > tbody tr');
 
-            var project = await init.pageWaitForSelector(page, '.projectId');
-            projectId = await (await project.getProperty('innerText')).jsonValue();
+            const project = await init.pageWaitForSelector(page, '.projectId');
+            projectId = await (
+                await project.getProperty('innerText')
+            ).jsonValue();
 
             await page.evaluate(() => {
                 let elem = document.querySelectorAll('.Table > tbody tr');
@@ -73,7 +74,7 @@ describe('Project', () => {
                 elem.click()
             );
 
-            const loader = await init.pageWaitForSelector(page, '.ball-beat', {
+            await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
 
@@ -98,22 +99,14 @@ describe('Project', () => {
             await init.pageClick(page, '#projects');
             await init.page$Eval(page, '#projects > a', elem => elem.click());
             await init.pageWaitForSelector(page, '.Table > tbody tr');
-            await init.pageClick(page, '#project-'+projectId);
+            await init.pageClick(page, '#project-' + projectId);
 
-            await init.pageWaitForSelector(
-                page,
-                '#Growth_annual',
-                {
-                    visible: true,
-                    timeout: init.timeout,
-                }
-            );
+            await init.pageWaitForSelector(page, '#Growth_annual', {
+                visible: true,
+                timeout: init.timeout,
+            });
 
-            await init.page$Eval(
-                page,
-                '#Growth_annual',
-                elem => elem.click()
-            );
+            await init.page$Eval(page, '#Growth_annual', elem => elem.click());
             await init.page$Eval(page, '#submitChangePlan', elem =>
                 elem.click()
             );

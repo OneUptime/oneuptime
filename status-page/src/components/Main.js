@@ -468,18 +468,17 @@ class Main extends Component {
                     key: 'anouncement',
                 },
                 {
-                    name: 'Ongoing Schedule Events',
+                    name: 'Ongoing Scheduled Events',
                     key: 'ongoingSchedule',
                 },
-                { name: 'Overall Status', key: 'resources' },
+                { name: 'Overall Status of Resources', key: 'resources' },
                 { name: 'Resource List', key: 'services' },
-                { name: 'Incidents', key: 'incidents' },
-                { name: 'Announcement Logs', key: 'AnnouncementLogs' },
+                { name: 'Incidents List', key: 'incidents' },
+                { name: 'Past Announcements List', key: 'AnnouncementLogs' },
                 { name: 'Future Scheduled Events', key: 'maintenance' },
-                { name: 'Past Scheduled Events', key: 'pastEvents' },
                 { name: 'Footer', key: 'footer' },
             ],
-            invisible: [],
+            invisible: [{ name: 'Past Scheduled Events', key: 'pastEvents' }],
         };
 
         let visibleLayout =
@@ -491,7 +490,8 @@ class Main extends Component {
         let resourcesServiceOverlap = false;
         visibleLayout.visible.forEach((item, i) => {
             if (
-                item.key === 'services' && visibleLayout.visible[i - 1] && 
+                item.key === 'services' &&
+                visibleLayout.visible[i - 1] &&
                 visibleLayout.visible[i - 1].key === 'resources'
             ) {
                 resourcesServiceOverlap = true;
@@ -739,7 +739,7 @@ class Main extends Component {
                     }}
                 >
                     <div className="font-largest" style={heading}>
-                        Past Incidents
+                        Incidents
                     </div>
                     <NotesMain
                         projectId={

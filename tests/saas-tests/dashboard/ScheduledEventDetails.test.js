@@ -23,7 +23,6 @@ describe('Scheduled Event Note', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -224,7 +223,6 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

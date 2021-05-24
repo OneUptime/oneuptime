@@ -26,7 +26,6 @@ describe('Incident API With SubProjects', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
