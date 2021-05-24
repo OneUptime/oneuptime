@@ -2454,7 +2454,9 @@ const mapStateToProps = (state, ownProps) => {
     const initialValues = {
         title: incident.title,
         description: incident.description,
-        incidentPriority: incident.incidentPriority._id,
+        incidentPriority: incident.incidentPriority
+            ? incident.incidentPriority._id
+            : '',
     };
     const { description, incidentPriority } = selector(
         state,
