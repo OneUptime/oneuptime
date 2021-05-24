@@ -35,11 +35,7 @@ async function interactWithDB(req, res) {
     }
     if (req.params.dbFunction === 'update') {
         res.send(
-            await update(
-                req.body.collection,
-                req.body.query,
-                req.body.value
-            )
+            await update(req.body.collection, req.body.query, req.body.value)
         );
     }
     if (req.params.dbFunction === 'removeMany') {
@@ -49,7 +45,6 @@ async function interactWithDB(req, res) {
 
 // IMPORTANT: only attach this server in development.
 if (process.env['NODE_ENV'] === 'development') {
-
     app.use(cors());
 
     app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));

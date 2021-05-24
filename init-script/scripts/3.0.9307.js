@@ -21,7 +21,10 @@ async function run() {
                     { name: 'Incidents List', key: 'incidents' },
                     { name: 'Overall Status of Resources', key: 'resources' },
                     { name: 'Resource List', key: 'services' },
-                    { name: 'Past Announcements List', key: 'AnnouncementLogs' },
+                    {
+                        name: 'Past Announcements List',
+                        key: 'AnnouncementLogs',
+                    },
                     {
                         name: 'Future Scheduled Events',
                         key: 'maintenance',
