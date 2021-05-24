@@ -24,5 +24,6 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency 'rubocop', '~> 0.60'
     spec.add_development_dependency 'rubocop-performance', '~> 1.5'
     spec.add_development_dependency 'rubocop-rspec', '~> 1.37'
+    spec.add_development_dependency 'faker', '~> 2.18'
     
 end
