@@ -859,7 +859,7 @@ const _this = {
     ) {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await _this.pageWaitForSelector(page, '#monitors');
-        await _this.pageClickNavigate(page, '#monitors'); // Fix this
+        await _this.pageClick(page, '#monitors'); // Fix this
         // await _this.navigateToComponentDetails(componentName, page);
         await _this.pageWaitForSelector(page, '#form-new-monitor');
         await _this.pageClick(page, 'input[id=name]');
