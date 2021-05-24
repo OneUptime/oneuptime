@@ -542,7 +542,13 @@ describe('Error Trackers', () => {
             });
 
             // go back to log details and confirm it is not there anymore
-            const spanElementBadge = await init.page$(
+            await init.navigateToErrorTrackerDetails(
+                componentName,
+                `${errorTrackerName}-new`,
+                page
+            );
+                        
+            const spanElementBadge = await init.pageWaitForSelector(
                 page,
                 `#${errorTrackerName}-new-badge`,
                 { hidden: true }
