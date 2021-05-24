@@ -23,12 +23,12 @@ async function run() {
                     { name: 'Resource List', key: 'services' },
                     { name: 'Announcement Logs', key: 'AnnouncementLogs' },
                     {
-                        name: 'Scheduled Maintenance Events',
+                        name: 'Future Scheduled Events',
                         key: 'maintenance',
                     },
                     { name: 'Footer', key: 'footer' },
                 ],
-                invisible: [],
+                invisible: [{ name: 'Past Scheduled Events', key: 'pastEvents' }],
             },
         }
     );
@@ -36,7 +36,7 @@ async function run() {
     await removeFieldsFromMany(
         statusPageCollection,
         { moveIncidentToTheTop: { $exists: true } },
-        { moveIncidentToTheTop: '' }
+        moveIncidentToTheTop
     );
 
     return `Script completed`;

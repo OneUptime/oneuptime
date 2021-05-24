@@ -23,12 +23,12 @@ async function run() {
                     { name: 'Incidents', key: 'incidents' },
                     { name: 'Announcement Logs', key: 'AnnouncementLogs' },
                     {
-                        name: 'Scheduled Maintenance Events',
+                        name: 'Future Scheduled Events',
                         key: 'maintenance',
                     },
                     { name: 'Footer', key: 'footer' },
                 ],
-                invisible: [],
+                invisible: [{ name: 'Past Scheduled Events', key: 'pastEvents' }],
             },
         }
     );
