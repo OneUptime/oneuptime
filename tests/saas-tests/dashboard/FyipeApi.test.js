@@ -236,7 +236,7 @@ describe('API test', () => {
             });
             await init.pageClick(page, '#api a');
             let elementHandle = await init.pageWaitForSelector(page, '#boxTitle', {
-                hidden: true,
+                hidden: true, // The id is not present in the DOM
                 timeout: init.timeout,
             });
             expect(elementHandle).toEqual(null);
