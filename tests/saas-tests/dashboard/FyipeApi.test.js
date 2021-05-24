@@ -235,11 +235,11 @@ describe('API test', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#api a');
-            let elementHandle = await init.pageWaitForSelector(page, '#fyipeApi', {
-                visible: true,
+            let elementHandle = await init.pageWaitForSelector(page, '#boxTitle', {
+                hidden: true,
                 timeout: init.timeout,
             });
-            expect(elementHandle).toBeDefined();
+            expect(elementHandle).toEqual(null);
 
             // This confirms that team member is logged in and could not change Project API
             elementHandle = await init.pageWaitForSelector(page, '#errorMessage', {
