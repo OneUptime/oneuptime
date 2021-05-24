@@ -71,11 +71,24 @@ function generatePassword() {
         .toString(36)
         .substring(7);
 }
+
+/** The previous generates a mixture of numbers and alphabets
+ * If not properly arranged e.g 5xvhm. This violates HTML5 rule and throws the following error:
+ * ' Evaluation failed: DOMException: Failed to execute 'querySelector' on 'Document': '#5xvhm' is not a valid selector.'
+ * 
+ * The new generateRandomString only generate 5 lowercase alphabets with no numbers
+ */
 function generateRandomString() {
-    return Math.random()
-        .toString(36)
-        .substring(8);
+    var result           = [];
+    var characters       = 'abcdefghijklmnopqrstuvwxyz';
+    var charactersLength = characters.length;
+    for ( var i = 0; i < 5; i++ ) {
+      result.push(characters.charAt(Math.floor(Math.random() * 
+ charactersLength)));
+   }
+   return result.join('');
 }
+
 // These are other required functions, variables present in other test-utils dashboard folder.
 function parseBoolean(val) {
     const falsy = /^(?:f(?:alse)?|no?|0+)$/i;
