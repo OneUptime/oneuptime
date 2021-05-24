@@ -18,7 +18,11 @@ Gem::Specification.new do |spec|
                  'fyipe.gemspec', '.github/*.md',
                  'Gemfile', 'Rakefile']
     spec.extra_rdoc_files = ['README.md']
+    spec.add_dependency 'httparty', '~> 0.17'
+    spec.add_development_dependency 'dotenv', '~> 2.5'
+    spec.add_development_dependency 'rspec', '~> 3.6'
     spec.add_development_dependency 'rubocop', '~> 0.60'
     spec.add_development_dependency 'rubocop-performance', '~> 1.5'
     spec.add_development_dependency 'rubocop-rspec', '~> 1.37'
+    
 end
