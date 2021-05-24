@@ -1341,7 +1341,17 @@ margin-left:10px;
   color: white;
   padding: 0.75rem 1.25rem;
   border-radius: 5px;
-  margin-bottom: 70px;
+  margin-bottom: 40px;
+}
+
+.classic_icon_x {
+  padding-top: 0 !important;
+}
+
+.classic_icon_x span {
+  margin: 0;
+  bottom: 0;
+  right: 0;
 }
 
 .announcement_icon {
@@ -1994,10 +2004,9 @@ margin-left:10px;
 }
 
 .nt_list {
-  border: 1px solid #dfe1df !important;
-  display: block !important;
-  text-align: center !important;
-  padding: 10px;
+  font-size: 16px;
+  color: #8898aa;
+  margin-top: -23px;
 }
 
 .cl_nolist {

@@ -20,11 +20,13 @@ import {
 } from '../actions/status';
 import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
-import AffectedResources from './basic/AffectedResources';
 import NewThemeEvent from './NewThemeEvent';
 import NewThemeSubscriber from './NewThemeSubscriber';
 import Announcement from './Announcement';
 import AnnouncementLogs from './AnnouncementLogs';
+import PastEvent from './PastEvent';
+import { fetchFutureEvents, fetchPastEvents } from '../actions/status';
+import OngoingSchedule from './OngoingSchedule';
 
 const greenBackground = {
     display: 'inline-block',
@@ -70,6 +72,29 @@ class Main extends Component {
     }
 
     componentDidUpdate(prevProps) {
+        const fetchData = (skip = 0, theme = false, limit = 5) => {
+            this.props.getOngoingScheduledEvent(
+                this.props.statusData.projectId._id,
+                this.props.statusData.slug,
+                skip,
+                theme,
+                limit
+            );
+            this.props.fetchFutureEvents(
+                this.props.statusData.projectId._id,
+                this.props.statusData.slug,
+                skip,
+                theme,
+                limit
+            );
+            this.props.fetchPastEvents(
+                this.props.statusData.slug,
+                this.props.statusData.slug,
+                skip,
+                theme,
+                limit
+            );
+        };
         if (prevProps.probes !== this.props.probes) {
             if (this.state.nowHandler) {
                 clearTimeout(this.state.nowHandler);
@@ -94,18 +119,12 @@ class Main extends Component {
         if (
             prevProps.statusData.projectId !== this.props.statusData.projectId
         ) {
-            this.props.getScheduledEvent(
-                this.props.statusData.projectId._id,
-                this.props.statusData.slug,
-                0,
-                this.props.statusData.theme === 'Clean Theme' ? true : false,
-                this.props.scheduleHistoryDays || 14
-            );
-
-            this.props.getOngoingScheduledEvent(
-                this.props.statusData.projectId._id,
-                this.props.statusData.slug
-            );
+            if (this.props.statusData.theme === 'Clean Theme') {
+                fetchData(0, true, this.props.scheduleHistoryDays || 14);
+            }
+            if (this.props.statusData.theme === 'Classic Theme') {
+                fetchData(0, false, 5);
+            }
         }
     }
 
@@ -456,7 +475,8 @@ class Main extends Component {
                 { name: 'Resource List', key: 'services' },
                 { name: 'Incidents', key: 'incidents' },
                 { name: 'Announcement Logs', key: 'AnnouncementLogs' },
-                { name: 'Scheduled Maintenance Events', key: 'maintenance' },
+                { name: 'Future Scheduled Events', key: 'maintenance' },
+                { name: 'Past Scheduled Events', key: 'pastEvents' },
                 { name: 'Footer', key: 'footer' },
             ],
             invisible: [],
@@ -566,84 +586,14 @@ class Main extends Component {
                 </>
             ),
 
-            ongoingSchedule:
-                this.props.ongoing &&
-                this.props.ongoing.length > 0 &&
-                this.props.statusData &&
-                this.props.statusData._id &&
-                this.props.ongoing.map(
-                    event =>
-                        !event.cancelled && (
-                            <div
-                                className="content"
-                                style={{
-                                    margin: '40px 0px',
-                                    cursor: 'pointer',
-                                }}
-                                key={event._id}
-                            >
-                                <div
-                                    className="ongoing__schedulebox"
-                                    style={{ padding: 0 }}
-                                >
-                                    <div
-                                        className="content box"
-                                        style={{
-                                            cursor: 'pointer',
-                                        }}
-                                        key={event._id}
-                                    >
-                                        <div
-                                            className="ongoing__schedulebox content box box__yellow--dark"
-                                            style={{
-                                                padding: '30px',
-                                                boxShadow:
-                                                    '0 7px 14px 0 rgb(50 50 93 / 10%)',
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    textTransform: 'uppercase',
-                                                    fontSize: 11,
-                                                    fontWeight: 900,
-                                                }}
-                                            >
-                                                Ongoing Scheduled Event
-                                            </div>
-                                            <div className="ongoing__scheduleitem">
-                                                <span>{event.name}</span>
-                                                <span>{event.description}</span>
-                                            </div>
-                                            <div className="ongoing__affectedmonitor">
-                                                <AffectedResources
-                                                    event={event}
-                                                    monitorState={
-                                                        this.props.monitorState
-                                                    }
-                                                />
-                                            </div>
-
-                                            <span
-                                                style={{
-                                                    display: 'inline-block',
-                                                    fontSize: 12,
-                                                    marginTop: 5,
-                                                }}
-                                            >
-                                                {moment(event.startDate).format(
-                                                    'MMMM Do YYYY, h:mm a'
-                                                )}
-                                                &nbsp;&nbsp;-&nbsp;&nbsp;
-                                                {moment(event.endDate).format(
-                                                    'MMMM Do YYYY, h:mm a'
-                                                )}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                ),
+            ongoingSchedule: (
+                <OngoingSchedule
+                    monitorState={this.props.monitorState}
+                    ongoing={this.props.ongoing}
+                    history={this.props.history}
+                    statusData={this.props.statusData}
+                />
+            ),
 
             resources: (
                 <div
@@ -805,14 +755,17 @@ class Main extends Component {
             ),
             maintenance: (
                 <ShouldRender
-                    if={this.props.events && this.props.events.length > 0}
+                    if={
+                        this.props.futureEvents &&
+                        this.props.futureEvents.length > 0
+                    }
                 >
                     <div
                         className="new-theme-incident"
                         style={contentBackground}
                     >
                         <div className="font-largest" style={heading}>
-                            Scheduled Events
+                            Future Scheduled Events
                         </div>
                         <NewThemeEvent
                             projectId={
@@ -822,6 +775,34 @@ class Main extends Component {
                             }
                             statusPageId={this.props.statusData._id}
                             noteBackgroundColor={noteBackgroundColor}
+                            type={'future'}
+                        />
+                    </div>
+                </ShouldRender>
+            ),
+            pastEvents: (
+                <ShouldRender
+                    if={
+                        this.props.pastEvents &&
+                        this.props.pastEvents.length > 0
+                    }
+                >
+                    <div
+                        className="new-theme-incident"
+                        style={contentBackground}
+                    >
+                        <div className="font-largest" style={heading}>
+                            Past Scheduled Events
+                        </div>
+                        <NewThemeEvent
+                            projectId={
+                                this.props.statusData &&
+                                this.props.statusData.projectId &&
+                                this.props.statusData.projectId._id
+                            }
+                            statusPageId={this.props.statusData._id}
+                            noteBackgroundColor={noteBackgroundColor}
+                            type={'past'}
                         />
                     </div>
                 </ShouldRender>
@@ -1093,95 +1074,14 @@ class Main extends Component {
                     />
                 </>
             ),
-            ongoingSchedule:
-                this.props.events &&
-                this.props.events.length > 0 &&
-                this.props.statusData &&
-                this.props.statusData._id &&
-                this.props.events.map(
-                    event =>
-                        !event.cancelled && (
-                            <div
-                                className="content"
-                                style={{
-                                    margin: '40px 0px',
-                                    cursor: 'pointer',
-                                }}
-                                key={event._id}
-                                onClick={() => {
-                                    this.props.history.push(
-                                        `/status-page/${this.props.statusData.slug}/scheduledEvent/${event.slug}`
-                                    );
-                                }}
-                            >
-                                <div
-                                    className="ongoing__schedulebox"
-                                    style={{ padding: 0 }}
-                                >
-                                    <div
-                                        className="content box"
-                                        style={{
-                                            cursor: 'pointer',
-                                        }}
-                                        key={event._id}
-                                        onClick={() => {
-                                            this.props.history.push(
-                                                `/status-page/${this.props.statusData._id}/scheduledEvent/${event._id}`
-                                            );
-                                        }}
-                                    >
-                                        <div
-                                            className="ongoing__schedulebox content box box__yellow--dark"
-                                            style={{
-                                                padding: '30px',
-                                                boxShadow:
-                                                    '0 7px 14px 0 rgb(50 50 93 / 10%)',
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    textTransform: 'uppercase',
-                                                    fontSize: 11,
-                                                    fontWeight: 900,
-                                                }}
-                                            >
-                                                Ongoing Scheduled Event
-                                            </div>
-                                            <div className="ongoing__scheduleitem">
-                                                <span>{event.name}</span>
-                                                <span>{event.description}</span>
-                                            </div>
-                                            <div className="ongoing__affectedmonitor">
-                                                <AffectedResources
-                                                    event={event}
-                                                    monitorState={
-                                                        this.props.monitorState
-                                                    }
-                                                />
-                                            </div>
-
-                                            <span
-                                                style={{
-                                                    display: 'inline-block',
-                                                    fontSize: 12,
-                                                    marginTop: 5,
-                                                }}
-                                            >
-                                                {moment(event.startDate).format(
-                                                    'MMMM Do YYYY, h:mm a'
-                                                )}
-                                                &nbsp;&nbsp;-&nbsp;&nbsp;
-                                                {moment(event.endDate).format(
-                                                    'MMMM Do YYYY, h:mm a'
-                                                )}
-                                            </span>
-                                            <span className="sp__icon sp__icon--more"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                ),
+            ongoingSchedule: (
+                <OngoingSchedule
+                    monitorState={this.props.monitorState}
+                    ongoing={this.props.ongoing}
+                    history={this.props.history}
+                    statusData={this.props.statusData}
+                />
+            ),
             maintenance: (
                 <ShouldRender
                     if={
@@ -1201,6 +1101,31 @@ class Main extends Component {
                             }
                             statusPageId={this.props.statusData._id}
                             statusPageSlug={this.props.statusData.slug}
+                            type={'future'}
+                        />
+                    </ShouldRender>
+                </ShouldRender>
+            ),
+            pastEvents: (
+                <ShouldRender
+                    if={
+                        this.props.statusData &&
+                        this.props.statusData.projectId &&
+                        this.props.statusData._id
+                    }
+                >
+                    <ShouldRender
+                        if={this.props.statusData.showScheduledEvents}
+                    >
+                        <PastEvent
+                            projectId={
+                                this.props.statusData &&
+                                this.props.statusData.projectId &&
+                                this.props.statusData.projectId._id
+                            }
+                            statusPageId={this.props.statusData._id}
+                            statusPageSlug={this.props.statusData.slug}
+                            type={'past'}
                         />
                     </ShouldRender>
                 </ShouldRender>
@@ -1412,6 +1337,8 @@ const mapStateToProps = state => {
         state.status.ongoing.ongoing.filter(
             ongoingSchedule => !ongoingSchedule.cancelled
         );
+    const futureEvents = state.status.futureEvents.events;
+    const pastEvents = state.status.pastEvents.events;
     return {
         status: state.status,
         statusData: state.status.statusPage,
@@ -1426,6 +1353,8 @@ const mapStateToProps = state => {
         isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
         scheduleHistoryDays: state.status.statusPage.scheduleHistoryDays,
         ongoing,
+        futureEvents,
+        pastEvents,
     };
 };
 
@@ -1437,6 +1366,8 @@ const mapDispatchToProps = dispatch =>
             getScheduledEvent,
             getProbes,
             getOngoingScheduledEvent,
+            fetchFutureEvents,
+            fetchPastEvents,
         },
         dispatch
     );
@@ -1461,6 +1392,10 @@ Main.propTypes = {
     statusPage: PropTypes.object,
     isSubscriberEnabled: PropTypes.bool.isRequired,
     ongoing: PropTypes.array,
+    fetchFutureEvents: PropTypes.func,
+    fetchPastEvents: PropTypes.func,
+    futureEvents: PropTypes.func,
+    pastEvents: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

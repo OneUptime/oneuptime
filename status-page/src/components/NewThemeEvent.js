@@ -385,10 +385,28 @@ NewThemeEvent.propTypes = {
     monitorState: PropTypes.array,
 };
 
-const mapStateToProps = state => ({
-    events: state.status.events.events,
-    filteredEvents: state.status.individualEvents,
-    monitorState: state.status.statusPage.monitorsData,
-});
+const mapStateToProps = (state, ownProps) => {
+    const { type } = ownProps;
+    const futureEvents = state.status.futureEvents.events;
+    const pastEvents = state.status.pastEvents.events;
+    const ongoing =
+        state.status &&
+        state.status.ongoing &&
+        state.status.ongoing.ongoing &&
+        state.status.ongoing.ongoing.filter(
+            ongoingSchedule => !ongoingSchedule.cancelled
+        );
+    const events =
+        type === 'future'
+            ? futureEvents
+            : type === 'past'
+            ? pastEvents
+            : ongoing;
+    return {
+        events,
+        filteredEvents: state.status.individualEvents,
+        monitorState: state.status.statusPage.monitorsData,
+    };
+};
 
 export default connect(mapStateToProps, null)(NewThemeEvent);

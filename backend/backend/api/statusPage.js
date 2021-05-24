@@ -33,6 +33,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const uuid = require('uuid');
 const defaultStatusPageColors = require('../config/statusPageColors');
 const SubscriberService = require('../services/subscriberService');
+const ScheduledEventService = require('../services/scheduledEventService');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -931,7 +932,6 @@ router.get(
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
         const theme = req.query.theme;
-        const days = req.query.days || 14;
         try {
             // Call the StatusPageService.
             const response = await StatusPageService.getEvents(
@@ -944,24 +944,8 @@ router.get(
             let events = response.events;
             const count = response.count;
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
-                const updatedEvents = [];
-                if (events.length > 0) {
-                    for (const event of events) {
-                        const statusPageEvent = await StatusPageService.getEventNotes(
-                            {
-                                scheduledEventId: event._id,
-                                type: 'investigation',
-                            }
-                        );
-                        updatedEvents.push({
-                            ...event,
-                            notes: statusPageEvent.notes,
-                        });
-                    }
-
-                    events = formatNotes(updatedEvents, days);
-                    events = checkDuplicateDates(events);
-                }
+                const results = await fetchNotes(events, limit);
+                events = results;
             }
             return sendListResponse(req, res, events, count);
         } catch (error) {
@@ -977,13 +961,16 @@ router.get(
     async function(req, res) {
         try {
             const { statusPageSlug } = req.params;
-            const { skip = 0, limit = 5 } = req.query;
-
+            const { skip = 0, limit = 5, theme } = req.query;
             const response = await StatusPageService.getFutureEvents(
                 { slug: statusPageSlug },
                 skip,
                 limit
             );
+            if ((theme && typeof theme === 'boolean') || theme === 'true') {
+                const results = await fetchNotes(response.events, limit);
+                response.events = results;
+            }
             const { events, count } = response;
             return sendListResponse(req, res, events, count);
         } catch (error) {
@@ -992,12 +979,62 @@ router.get(
     }
 );
 
-router.get('/:projectId/notes/:scheduledEventId', checkUser, async function(
+router.get(
+    '/:projectId/:statusPageSlug/pastEvents',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageSlug } = req.params;
+            const { skip = 0, limit = 5, theme } = req.query;
+
+            const response = await StatusPageService.getPastEvents(
+                { slug: statusPageSlug },
+                skip,
+                limit
+            );
+            if ((theme && typeof theme === 'boolean') || theme === 'true') {
+                const results = await fetchNotes(response.events, limit);
+                response.events = results;
+            }
+            const { events, count } = response;
+
+            return sendListResponse(req, res, events, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+const fetchNotes = async (events, limit) => {
+    const updatedEvents = [];
+    if (events.length > 0) {
+        for (const event of events) {
+            const statusPageEvent = await StatusPageService.getEventNotes({
+                scheduledEventId: event._id,
+                type: 'investigation',
+            });
+            updatedEvents.push({
+                ...event,
+                notes: statusPageEvent.notes,
+            });
+        }
+
+        events = formatNotes(updatedEvents, limit);
+        events = checkDuplicateDates(events);
+        return events;
+    }
+};
+
+router.get('/:projectId/notes/:scheduledEventSlug', checkUser, async function(
     req,
     res
 ) {
-    const { scheduledEventId } = req.params;
+    const { scheduledEventSlug } = req.params;
     const { skip, limit, type } = req.query;
+    const scheduledEventId = await ScheduledEventService.findOneBy({
+        slug: scheduledEventSlug,
+    });
 
     try {
         const response = await StatusPageService.getEventNotes(
@@ -1075,7 +1112,7 @@ router.get(
 
         try {
             const response = await StatusPageService.getEvent({
-                _id: scheduledEventId,
+                slug: scheduledEventId,
             });
             return sendListResponse(req, res, response);
         } catch (error) {

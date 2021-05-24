@@ -50,9 +50,10 @@ export class StatusPageLayout extends Component {
             { name: 'Incidents', key: 'incidents' },
             { name: 'Announcement Logs', key: 'AnnouncementLogs' },
             {
-                name: 'Scheduled Maintenance Events',
+                name: 'Future Scheduled Events',
                 key: 'maintenance',
             },
+            { name: 'Past Scheduled Events', key: 'pastEvents' },
             { name: 'Footer', key: 'footer' },
         ],
         invisible: [],
@@ -146,6 +147,8 @@ export class StatusPageLayout extends Component {
                 return 'This section displays the scheduled maintenance of the resources on the status page';
             case 'futureSchedule':
                 return 'This section contains the schedule events that are yet to start';
+            case 'pastEvents':
+                return 'This section contains the schedule events that have ended';
             case 'AnnouncementLogs':
                 return 'This section displays the announcement logs in the status page';
             case 'ongoingSchedule':
@@ -180,9 +183,10 @@ export class StatusPageLayout extends Component {
                 { name: 'Incidents', key: 'incidents' },
                 { name: 'Announcement Logs', key: 'AnnouncementLogs' },
                 {
-                    name: 'Scheduled Maintenance Events',
+                    name: 'Future Scheduled Events',
                     key: 'maintenance',
                 },
+                { name: 'Past Scheduled Events', key: 'pastEvents' },
                 { name: 'Footer', key: 'footer' },
             ],
             invisible: [],
