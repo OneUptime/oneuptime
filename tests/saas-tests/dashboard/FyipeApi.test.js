@@ -222,7 +222,7 @@ describe('API test', () => {
             });
             await init.saasLogout(page);
 
-            // Register team member email that has been added
+            // Register and logging team member email that has been added
             await init.registerAndLoggingTeamMember(member, page); 
             
             await init.pageWaitForSelector(page, '#projectSettings', {
