@@ -78,7 +78,8 @@ describe('Incident Custom Field', () => {
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            await init.gotoTab(6, page);
+            
+            await init.pageClick(page, '.advanced-tab');
 
             await init.pageWaitForSelector(page, '#editCustomField_0', {
                 visible: true,
@@ -89,7 +90,7 @@ describe('Incident Custom Field', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#fieldName');
+            await init.pageClick(page, '#fieldName', {clickCount : 3});
             await init.pageType(
                 page,
                 '#fieldName',
@@ -107,7 +108,7 @@ describe('Incident Custom Field', () => {
             await init.pageClick(page, '#updateCustomField');
             await init.pageWaitForSelector(page, '#updateCustomField', {
                 hidden: true,
-            });
+            });            
 
             const updatedField = await init.pageWaitForSelector(
                 page,
