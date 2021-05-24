@@ -671,7 +671,7 @@ const _this = {
     addMonitorToComponent: async function(component, monitorName, page) {
         component && (await _this.addComponent(component, page));
         await _this.pageWaitForSelector(page, 'input[id=name]');
-        await _this.page(page, 'input[id=name]');
+        await _this.pageClick(page, 'input[id=name]');
         await page.focus('input[id=name]');
         await _this.pageType(page, 'input[id=name]', monitorName);
         await _this.pageWaitForSelector(page, 'button[id=showMoreMonitors]');
