@@ -213,8 +213,7 @@ class TopContent extends Component {
     renderOnCallSchedule = (
         activeSchedules,
         currentProjectId,
-        currentProjectSlug,
-        topNavCardClass
+        currentProjectSlug
     ) => {
         return (
             <div
