@@ -1019,21 +1019,26 @@ export default function incident(state = initialState, action) {
                 },
             });
 
-        case 'DELETE_MONITOR_BY_SOCKET':
+        case 'DELETE_MONITOR_BY_SOCKET': {
+            const incidents = state.unresolvedincidents.incidents.map(
+                incident => {
+                    const monitors = incident.monitors.filter(monitor => {
+                        if (monitor.monitorId._id === action.payload) {
+                            return false;
+                        }
+                        return true;
+                    });
+                    incident.monitors = monitors;
+                    return incident;
+                }
+            );
             return Object.assign({}, state, {
                 unresolvedincidents: {
                     ...state.unresolvedincidents,
-                    incidents: state.unresolvedincidents.incidents.filter(
-                        incident => {
-                            if (incident.monitorId._id === action.payload) {
-                                return false;
-                            } else {
-                                return true;
-                            }
-                        }
-                    ),
+                    incidents,
                 },
             });
+        }
 
         case 'ADD_NEW_INCIDENT_TO_UNRESOLVED':
             return Object.assign({}, state, {
@@ -1051,18 +1056,17 @@ export default function incident(state = initialState, action) {
                     ...state.unresolvedincidents,
                     incidents: state.unresolvedincidents.incidents.map(
                         incident => {
-                            if (incident.monitorId._id === action.payload._id) {
-                                return {
-                                    ...incident,
-                                    monitorId: {
-                                        ...incident.monitorId,
-                                        name: action.payload.name,
-                                        slug: action.payload.slug,
-                                    },
-                                };
-                            } else {
-                                return incident;
-                            }
+                            let monitors = incident.monitors;
+                            monitors = monitors.map(monitor => {
+                                if (
+                                    monitor.monitorId._id === action.payload._id
+                                ) {
+                                    monitor.monitorId = action.payload;
+                                }
+                                return monitor;
+                            });
+                            incident.monitors = monitors;
+                            return incident;
                         }
                     ),
                 },
