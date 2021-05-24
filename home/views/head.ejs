@@ -168,7 +168,7 @@
         date.setTime(date.getTime() + (expDays * 24 * 60 * 60 * 1000));
         const expires = "expires=" + date.toUTCString();
         // Remember to set back the domain since you used localhost for development purposes
-        document.cookie = cName + "=" + cValue + "; " + expires + "; path=/" + "; " + "domain=localhost";
+        document.cookie = cName + "=" + cValue + "; " + expires + "; path=/" + "; " + "domain="+window.location.host;
     }
     // Apply setCookie
     setCookie('source', JSON.stringify(sourceObj), 1);
