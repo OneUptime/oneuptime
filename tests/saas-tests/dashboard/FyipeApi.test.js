@@ -26,11 +26,7 @@ describe('API test', () => {
         await page.setUserAgent(utils.agent);
 
         // Register user
-        await init.registerUser(user, page);
-        await init.logout(page);
-        await init.registerUser(member, page);
-        await init.logout(page);
-        await init.loginUser(user, page);
+        await init.registerUser(user, page);        
 
         done();
     });
@@ -68,8 +64,8 @@ describe('API test', () => {
             done();
         },
         operationTimeOut
-    );
-
+    ); 
+    
     test(
         'Should display the API key when clicked',
         async done => {
@@ -179,7 +175,7 @@ describe('API test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, 'input[name=project_name]');
+            await init.pageClick(page, 'input[name=project_name]', {clickCount : 3});
             await init.pageType(page, 'input[name=project_name]', projectName);
             await init.pageWaitForSelector(
                 page,
@@ -224,11 +220,11 @@ describe('API test', () => {
             await init.pageWaitForSelector(page, 'button[type=submit]', {
                 hidden: true,
             });
-            await init.logout(page);
+            await init.saasLogout(page);
 
-            // Login as member
-            await init.loginUser(member, page);
-            await init.switchProject(projectName, page);
+            // Register and logging team member email that has been added
+            await init.registerAndLoggingTeamMember(member, page); 
+            
             await init.pageWaitForSelector(page, '#projectSettings', {
                 visible: true,
                 timeout: init.timeout,
@@ -239,13 +235,14 @@ describe('API test', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#api a');
-            let elementHandle = await init.page$(page, '#boxTitle', {
-                visible: true,
+            let elementHandle = await init.pageWaitForSelector(page, '#boxTitle', {
+                hidden: true, // The id is not present in the DOM
                 timeout: init.timeout,
             });
             expect(elementHandle).toEqual(null);
 
-            elementHandle = await init.page$(page, '#errorMessage', {
+            // This confirms that team member is logged in and could not change Project API
+            elementHandle = await init.pageWaitForSelector(page, '#errorMessage', {
                 visible: true,
                 timeout: init.timeout,
             });
