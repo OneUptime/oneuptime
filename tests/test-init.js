@@ -285,10 +285,8 @@ const _this = {
     selectDropdownValue: async function(selector, text, page) {
         await _this.pageClick(page, selector, { delay: 100 });
         await page.keyboard.type(text);
-        const noOption = await _this.page$(page, 'div.css-1gl4k7y');
-        if (!noOption) {
-            await page.keyboard.press('Tab'); //String.fromCharCode(9) could not press tab
-        }
+        //'div.css-1gl4k7y' is used if present. However, it presence is not consistent
+        await page.keyboard.press('Tab'); //String.fromCharCode(9) could not press tab
     },
     clear: async function(selector, page) {
         const input = await _this.page$(page, selector);
@@ -940,8 +938,7 @@ const _this = {
         });
     },
     addStatusPageToProject: async function(statusPageName, projectName, page) {
-        const createStatusPageSelector = await _this.page$(
-            page,
+        const createStatusPageSelector = await page.$(
             `#btnCreateStatusPage_${projectName}`
         );
         if (createStatusPageSelector) {
@@ -1525,7 +1522,6 @@ const _this = {
         if (!opts.hidden) {
             opts.visible = true;
         }
-
         return await page.waitForSelector(selector, {
             ...opts,
         });

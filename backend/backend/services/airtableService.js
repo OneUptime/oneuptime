@@ -28,7 +28,15 @@ module.exports = {
         return base(tableName).destroy(id);
     },
 
-    logUser: function({ name, email, phone, company, jobRole, createdAt }) {
+    logUser: function({
+        name,
+        email,
+        phone,
+        company,
+        jobRole,
+        createdAt,
+        source,
+    }) {
         if (!base) return;
 
         return base('User').create({
@@ -38,6 +46,7 @@ module.exports = {
             Company: company,
             'Job Role': jobRole,
             'Created At': createdAt,
+            Source: JSON.stringify(source),
         });
     },
 

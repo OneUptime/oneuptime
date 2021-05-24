@@ -97,7 +97,7 @@ describe('Fyipe Page Reload', () => {
             await page.waitForSelector(`#cb${componentName}`, {
                 visible: true,
             });
-            await page.waitForSelector('#cbcontainerSecurity', {
+            await page.waitForSelector('#cbContainerSecurity', {
                 visible: true,
             });
             await page.waitForSelector(`#cb${containerSecurityName}`, {

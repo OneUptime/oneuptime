@@ -3,8 +3,12 @@ import { masterAdminExistsSuccess, loginSuccess } from './login';
 import * as types from '../constants/register';
 import errors from '../errors';
 import { IS_SAAS_SERVICE } from '../config';
+import Cookies from 'universal-cookie';
+
 // There are three possible states for our login
 // process and we need actions for each of them
+
+const cookies = new Cookies();
 
 export function signupError(error) {
     return {
@@ -69,6 +73,11 @@ export const resetSignup = () => {
 
 // Calls the API to register a user.
 export function signupUser(values) {
+    // This is basically for users redirected to fyipe
+    const redirectSource = cookies.get('source');
+    if (redirectSource) {
+        values.source = redirectSource;
+    }
     return function(dispatch) {
         const promise = postApi(`user/signup?token=${values.token}`, values);
         dispatch(signUpRequest(promise));

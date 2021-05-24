@@ -54,6 +54,7 @@ module.exports = {
             userModel.twoFactorAuthEnabled = data.twoFactorAuthEnabled || false;
             userModel.twoFactorSecretCode = data.twoFactorSecretCode || null;
             userModel.otpauth_url = data.otpauth_url || null;
+            userModel.source = data.source || null;
             if (data.password) {
                 const hash = await bcrypt.hash(
                     data.password,
@@ -384,6 +385,7 @@ module.exports = {
                             phone: data.companyPhoneNumber,
                             company: data.companyName,
                             jobRole: data.companyRole,
+                            source: data.source,
                             createdAt,
                         });
                     } catch (error) {
