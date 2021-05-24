@@ -60,7 +60,7 @@ deploy_production_python-sdk:
         - ./ci/scripts/cleanup.sh
     only:
         refs:
-            - master
-            - hotfix-master
+            - release
+            - hotfix-release
     environment:
         name: staging
