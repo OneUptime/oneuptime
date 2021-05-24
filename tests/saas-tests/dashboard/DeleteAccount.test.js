@@ -14,13 +14,15 @@ const user1 = {
     password: '1234567890',
 };
 
+const projectName = utils.generateRandomString();
+const projectName2 = utils.generateRandomString();
+
 describe('Profile -> Delete Account Component test', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
         
-
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -36,7 +38,6 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should not delete account with single project -> multiple users -> single owner',
         async done => {
-            const projectName = 'Project1';
             const role = 'Member';
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
@@ -45,7 +46,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, 'input[name=project_name]');
-            await init.pageClick(page, 'input[name=project_name]');
+            await init.pageClick(page, 'input[name=project_name]', {clickCount : 3});
             await init.pageType(page, 'input[name=project_name]', projectName);
             await init.pageWaitForSelector(page, 'button[id=btnCreateProject]');
             await init.pageClick(page, 'button[id=btnCreateProject]');
@@ -95,27 +96,25 @@ describe('Profile -> Delete Account Component test', () => {
 
     test(
         'Should not delete account with multiple projects -> multiple users -> single owner',
-        async done => {
-            const projectName = 'Project2';
+        async done => {            
             const role = 'Member';
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await init.addProject(page, projectName);
-
+            await init.addProject(page, projectName2);
             // Invite member on the project
             await init.pageWaitForSelector(page, '#teamMembers');
             await init.pageClick(page, '#teamMembers');
-            await init.pageWaitForSelector(page, `#btn_${projectName}`);
-            await init.pageClick(page, `#btn_${projectName}`);
+            await init.pageWaitForSelector(page, `#btn_${projectName2}`);
+            await init.pageClick(page, `#btn_${projectName2}`);
             await init.pageWaitForSelector(page, 'input[name=emails]');
             await init.pageClick(page, 'input[name=emails]');
             await init.pageType(page, 'input[name=emails]', user1.email);
-            await init.pageWaitForSelector(page, `#${role}_${projectName}`);
-            await init.pageClick(page, `#${role}_${projectName}`);
+            await init.pageWaitForSelector(page, `#${role}_${projectName2}`);
+            await init.pageClick(page, `#${role}_${projectName2}`);
             await init.pageWaitForSelector(page, 'button[type=submit]');
             await init.pageClick(page, 'button[type=submit]');
-            await init.pageWaitForSelector(page, `#btn_modal_${projectName}`, {
+            await init.pageWaitForSelector(page, `#btn_modal_${projectName2}`, {
                 hidden: true,
             });
 
@@ -146,8 +145,7 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should not delete account without confirmation',
         async done => {
-            const role = 'Owner';
-            const projectName = 'Project1';
+            const role = 'Owner';            
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
