@@ -491,7 +491,7 @@ class Main extends Component {
         let resourcesServiceOverlap = false;
         visibleLayout.visible.forEach((item, i) => {
             if (
-                item.key === 'services' &&
+                item.key === 'services' && visibleLayout.visible[i - 1] && 
                 visibleLayout.visible[i - 1].key === 'resources'
             ) {
                 resourcesServiceOverlap = true;
