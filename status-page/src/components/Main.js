@@ -478,7 +478,7 @@ class Main extends Component {
                 { name: 'Future Scheduled Events', key: 'maintenance' },
                 { name: 'Footer', key: 'footer' },
             ],
-            invisible: [{ name: 'Past Scheduled Events', key: 'pastEvents' }],
+            invisible: [{ name: 'Scheduled Events Completed', key: 'pastEvents' }],
         };
 
         let visibleLayout =
@@ -765,7 +765,7 @@ class Main extends Component {
                         style={contentBackground}
                     >
                         <div className="font-largest" style={heading}>
-                            Future Scheduled Events
+                            Maintenance Events Scheduled
                         </div>
                         <NewThemeEvent
                             projectId={
@@ -792,7 +792,7 @@ class Main extends Component {
                         style={contentBackground}
                     >
                         <div className="font-largest" style={heading}>
-                            Past Scheduled Events
+                            Scheduled Events Completed
                         </div>
                         <NewThemeEvent
                             projectId={

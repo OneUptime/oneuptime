@@ -130,7 +130,7 @@ class PastEvent extends Component {
                                         className="feed-title"
                                         style={subheading}
                                     >
-                                        Past Scheduled Events
+                                        Scheduled Events Completed
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender

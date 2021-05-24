@@ -32,7 +32,7 @@ async function run() {
                     { name: 'Footer', key: 'footer' },
                 ],
                 invisible: [
-                    { name: 'Past Scheduled Events', key: 'pastEvents' },
+                    { name: 'Scheduled Events Completed', key: 'pastEvents' },
                 ],
             },
         }
