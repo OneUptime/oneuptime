@@ -240,9 +240,6 @@ class TopContent extends Component {
                         marginRight: '3px',
                     }}
                 />
-                <span className={topNavCardClass}>
-                    {`You're currently on-call duty`}
-                </span>
             </div>
         );
     };
