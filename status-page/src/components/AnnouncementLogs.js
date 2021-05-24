@@ -158,7 +158,7 @@ class AnnouncementLogs extends Component {
                                             {error}
                                         </span>
                                     ) : (
-                                        'no announcement log'
+                                        'No announcement log'
                                     )}
                                 </div>
                             )}

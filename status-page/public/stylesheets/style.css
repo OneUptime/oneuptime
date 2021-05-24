@@ -2004,10 +2004,9 @@ margin-left:10px;
 }
 
 .nt_list {
-  border: 1px solid #dfe1df !important;
-  display: block !important;
-  text-align: center !important;
-  padding: 10px;
+  font-size: 16px;
+  color: #8898aa;
+  margin-top: -23px;
 }
 
 .cl_nolist {
