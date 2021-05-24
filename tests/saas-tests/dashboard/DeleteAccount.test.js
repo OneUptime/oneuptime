@@ -145,8 +145,7 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should not delete account without confirmation',
         async done => {
-            const role = 'Owner';
-            //const projectName = 'Project1';
+            const role = 'Owner';            
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
