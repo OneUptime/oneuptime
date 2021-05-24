@@ -53,10 +53,9 @@ export class StatusPageLayout extends Component {
                 name: 'Future Scheduled Events',
                 key: 'maintenance',
             },
-            { name: 'Past Scheduled Events', key: 'pastEvents' },
             { name: 'Footer', key: 'footer' },
         ],
-        invisible: [],
+        invisible: [{ name: 'Past Scheduled Events', key: 'pastEvents' }],
         confirmResetModalId: uuidv4(),
     };
 
@@ -186,10 +185,9 @@ export class StatusPageLayout extends Component {
                     name: 'Future Scheduled Events',
                     key: 'maintenance',
                 },
-                { name: 'Past Scheduled Events', key: 'pastEvents' },
                 { name: 'Footer', key: 'footer' },
             ],
-            invisible: [],
+            invisible: [{ name: 'Past Scheduled Events', key: 'pastEvents' }],
         };
         await this.props
             .updateStatusPageLayout(projectId, {
