@@ -6,7 +6,6 @@ RSpec.configure do |config|
     config.before(:suite){
         # using $ registers the variable as a global variable
         # ref: https://stackoverflow.com/a/19167379/6800815
-        # $logger = FyipeLogger.new()
         $apiUrl = 'http://localhost:3002/api'
         $helper = Helper.new()
         sampleUser = $helper.getSampleUser()
@@ -27,15 +26,28 @@ RSpec.configure do |config|
             appLog = { 'name' => $helper.getTitle() }
             $applicationLog = $helper.makeApiRequest($apiUrl+"/application-log/"+$project["_id"]+"/"+$createdComponent["_id"]+"/create", appLog, $token)
         rescue => exception
-            puts "Couldnt create an application log to run a test, Error occured: " + exception.message
+            puts "Couldnt create an application log to run a test, Error occured: #{exception.message}"
         ensure
             puts "All clear, Tests will commence now"
         end 
                         
     }
 end
+
 RSpec.describe FyipeLogger do
-  context "#world" do
-    it { expect('hello world').to eql 'hello world' }
-  end
+    it 'test_application_log_key_is_required' do
+        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], '')
+        response = logger.log('test content')
+        expect(response['message']).to eql 'Application Log Key is required.'
+    end
+    it 'test_content_is_required' do
+        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        response = logger.log('')
+        expect(response['message']).to eql 'Content to be logged is required.'
+    end
+    it 'test_valid_applicaiton_log_id_is_required' do
+        logger = FyipeLogger.new($apiUrl, "5eec6f33d7d57033b3a7d502", $applicationLog["key"])
+        response = logger.log('test')
+        expect(response['message']).to eql 'Application Log does not exist.'
+    end
 end
