@@ -69,18 +69,27 @@ class CreateIncident extends Component {
             selectAllMonitors,
         } = values;
         let { monitors } = values;
-
-        const allMonitors =
-            componentId &&
-            monitorsList.filter(
-                monitor => monitor.componentId._id === componentId
-            );
-
         if (monitors && monitors.length > 0) {
             monitors = monitors.filter(
                 monitorId => typeof monitorId === 'string'
             );
-        } else {
+        }
+        if (
+            (!monitors || (monitors && monitors.length === 0)) &&
+            !selectAllMonitors
+        ) {
+            this.setState({
+                monitorError: 'No monitor was selected',
+            });
+            return;
+        }
+
+        if (selectAllMonitors) {
+            const allMonitors =
+                componentId &&
+                monitorsList.filter(
+                    monitor => monitor.componentId._id === componentId
+                );
             monitors = allMonitors.map(monitor => monitor._id);
         }
 
@@ -93,13 +102,6 @@ class CreateIncident extends Component {
         if (isDuplicate) {
             this.setState({
                 monitorError: 'Duplicate monitor selection found',
-            });
-            return;
-        }
-
-        if (monitors && monitors.length === 0 && !selectAllMonitors) {
-            this.setState({
-                monitorError: 'No monitor was selected',
             });
             return;
         }
