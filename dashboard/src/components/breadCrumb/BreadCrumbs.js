@@ -1,4 +1,3 @@
-/* eslint-disable */
 import React, { useState } from 'react';
 import { connect } from 'react-redux';
 import { CrumbItem, Breadcrumbs } from 'react-breadcrumbs-dynamic';
