@@ -23,6 +23,7 @@ module.exports = {
             lead.country = data.country;
             lead.message = data.message;
             lead.whitepaperName = data.whitepaperName;
+            lead.source = data.source;
 
             lead.templateName = 'Request Demo';
             if (data.whitepaperName) {
@@ -43,6 +44,17 @@ module.exports = {
                     ); //whitepaper name should be stored in moreInfo.
                 }
             }
+            await AirtableService.logLeads({
+                name: data.name,
+                email: data.email,
+                phone: data.phone,
+                country: data.country,
+                message: data.message,
+                website: data.website,
+                source: data.source,
+                volume: data.companySize,
+                type: data.type,
+            });
             return lead;
         } catch (error) {
             ErrorService.log('leadService.create', error);
@@ -64,3 +76,4 @@ module.exports = {
 const LeadsModel = require('../models/lead');
 const MailService = require('./mailService');
 const ErrorService = require('./errorService');
+const AirtableService = require('./airtableService');

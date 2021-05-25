@@ -50,6 +50,34 @@ module.exports = {
         });
     },
 
+    logLeads: function({
+        name,
+        country,
+        email,
+        fullname,
+        message,
+        phone,
+        source,
+        type,
+        volume,
+        website,
+    }) {
+        if (!base) return;
+
+        return base('Leads').create({
+            Name: name,
+            Email: email,
+            Phone: phone,
+            Country: country,
+            'Full Name': fullname,
+            Message: message,
+            Type: type,
+            Volume: volume,
+            Website: website,
+            Source: JSON.stringify(source),
+        });
+    },
+
     deleteUser: function(airtableId) {
         if (!base) return;
 
