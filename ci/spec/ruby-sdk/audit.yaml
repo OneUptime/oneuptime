@@ -11,7 +11,7 @@ audit_ruby-sdk:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
         - sudo apt-get install -y rbenv ruby-build
-        # - rbenv install -l
+        - rbenv install --list
         - rbenv install 2.6.3
         - rbenv global 2.6.3
         - ruby -v
