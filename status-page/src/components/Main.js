@@ -478,7 +478,9 @@ class Main extends Component {
                 { name: 'Future Scheduled Events', key: 'maintenance' },
                 { name: 'Footer', key: 'footer' },
             ],
-            invisible: [{ name: 'Scheduled Events Completed', key: 'pastEvents' }],
+            invisible: [
+                { name: 'Scheduled Events Completed', key: 'pastEvents' },
+            ],
         };
 
         let visibleLayout =
