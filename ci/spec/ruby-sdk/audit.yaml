@@ -10,11 +10,8 @@ audit_ruby-sdk:
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
-        - git clone https://github.com/rbenv/rbenv.git ~/.rbenv
-        - echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
-        - echo 'eval "$(rbenv init -)"' >> ~/.bashrc
-        - source ~/.bashrc
-        - rbenv
+        - sudo apt-get install -y rbenv
+        - rbenv init
         # -
         # -
         # - cd ruby-sdk
