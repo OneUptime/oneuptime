@@ -26,7 +26,7 @@ async function run() {
         await removeField(
             monitorCollection,
             { _id: monitor._id },
-            { monitorCategoryId: '' }
+            'monitorCategoryId'
         );
     });
 

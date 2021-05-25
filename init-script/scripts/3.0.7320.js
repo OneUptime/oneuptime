@@ -23,7 +23,19 @@ async function run() {
         await removeField(
             incomingRequestCollection,
             { _id: request._id },
-            { filterCriteria: '', filterCondition: '', filterText: '' }
+            'filterCriteria'
+        );
+
+        await removeField(
+            incomingRequestCollection,
+            { _id: request._id },
+            'filterCondition'
+        );
+
+        await removeField(
+            incomingRequestCollection,
+            { _id: request._id },
+            'filterText'
         );
     }
 
