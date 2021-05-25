@@ -1,8 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { bindActionCreators, compose } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
@@ -141,7 +142,7 @@ MonitorViewChangeComponentBox.propTypes = {
     component: PropTypes.object,
 };
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps
+export default compose(
+    withRouter,
+    connect(mapStateToProps, mapDispatchToProps)
 )(MonitorViewChangeComponentBox);
