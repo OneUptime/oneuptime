@@ -22,6 +22,6 @@ function registerUrl(params) {
 }
 //eslint-disable-next-line
 function formUrl() {
-    return `${backendUrl}/lead/`;
+    return `http://localhost:3002/api/lead/`;
 }
 
