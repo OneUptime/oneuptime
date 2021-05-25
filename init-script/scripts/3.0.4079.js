@@ -21,7 +21,7 @@ async function run() {
         await removeField(
             scheduledEventCollection,
             { _id: event._id },
-            { monitorId: '' }
+            'monitorId'
         );
     });
 

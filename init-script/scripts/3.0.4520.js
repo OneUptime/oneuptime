@@ -19,7 +19,7 @@ async function run() {
         await removeField(
             scheduledEventNoteCollection,
             { _id: eventNote._id },
-            { incident_state: '' }
+            'incident_state'
         );
     });
 }

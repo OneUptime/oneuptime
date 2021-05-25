@@ -15,11 +15,7 @@ async function run() {
 
         await update(monitorCollection, { _id: monitor._id }, data);
 
-        await removeField(
-            monitorCollection,
-            { _id: monitor._id },
-            { variables: '' }
-        );
+        await removeField(monitorCollection, { _id: monitor._id }, 'variables');
     }
 
     return `Script ran for ${monitors.length} monitors`;

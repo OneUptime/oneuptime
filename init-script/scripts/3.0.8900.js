@@ -6,7 +6,7 @@ async function run() {
     const components = await find(componentCollection, {
         $or: [
             { slug: { $exists: false } },
-            { slug: { $regex: /[*+~.()'"!:@]+/g } },
+            { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < components.length; i++) {

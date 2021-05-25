@@ -6,7 +6,7 @@ async function run() {
     const errorTrackers = await find(errortrackerCollection, {
         $or: [
             { slug: { $exists: false } },
-            { slug: { $regex: /[*+~.()'"!:@]+/g } },
+            { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < errorTrackers.length; i++) {
