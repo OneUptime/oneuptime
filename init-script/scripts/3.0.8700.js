@@ -6,7 +6,7 @@ async function run() {
     const logContainers = await find(logContainerCollection, {
         $or: [
             { slug: { $exists: false } },
-            { slug: { $regex: /[*+~.()'"!:@]+/g } },
+            { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < logContainers.length; i++) {
