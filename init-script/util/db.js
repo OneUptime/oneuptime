@@ -33,18 +33,18 @@ async function removeMany(collection, query) {
 async function removeField(collection, query, field) {
     return global.db
         .collection(collection)
-        .updateOne(query, { $unset: field }, { multi: true });
+        .updateOne(query, { $unset: { [field]: "" } }, { multi: true });
 }
 async function removeFieldsFromMany(collection, query, field) {
     return global.db
         .collection(collection)
-        .updateMany(query, { $unset: field }, { multi: true });
+        .updateMany(query, { $unset: { [field]: "" } }, { multi: true });
 }
 
 async function rename(oldCollectionName, newCollectionName) {
     return global.db
         .listCollections({ name: oldCollectionName })
-        .next(function(err, collinfo) {
+        .next(function (err, collinfo) {
             if (collinfo) {
                 // The collection exists
                 global.db
