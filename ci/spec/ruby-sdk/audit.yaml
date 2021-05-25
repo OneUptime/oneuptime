@@ -13,7 +13,7 @@ audit_ruby-sdk:
         - sudo apt install -y ruby-full
         - ruby -v
         - export GEM_HOME="$HOME/.gem"
-        - gem install bundler
+        - gem install bundle
         - cd ruby-sdk
         - bundle install
         # - npm ci
