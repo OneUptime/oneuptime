@@ -278,7 +278,7 @@ export class IncidentStatus extends Component {
             : null;
     };
 
-    render() {       
+    render() {
         const subProject =
             this.props.subProjects &&
             this.props.subProjects.filter(
