@@ -28,9 +28,20 @@ class ErrorEventView extends Component {
     }
     componentDidUpdate(prevProps) {
         if (
-            String(prevProps.componentSlug) !== String(this.props.componentSlug)
+            String(prevProps.componentSlug) !==
+                String(this.props.componentSlug) ||
+            prevProps.currentProject !== this.props.currentProject
         ) {
-            this.props.fetchComponent(this.props.componentSlug);
+            if (
+                this.props.currentProject &&
+                this.props.currentProject._id &&
+                this.props.componentSlug
+            ) {
+                this.props.fetchComponent(
+                    this.props.currentProject._id,
+                    this.props.componentSlug
+                );
+            }
         }
 
         if (String(prevProps.componentId) !== String(this.props.componentId)) {
@@ -58,7 +69,9 @@ class ErrorEventView extends Component {
             ? this.props.match.params.errorEventId
             : null;
         const { componentSlug, fetchComponent } = this.props;
-        fetchComponent(componentSlug);
+        if (projectId && componentSlug) {
+            fetchComponent(projectId, componentSlug);
+        }
 
         // fetching error trackers is necessary incase a reload is done on error event details page
         this.props.fetchErrorTrackers(projectId, componentId);
@@ -90,7 +103,7 @@ class ErrorEventView extends Component {
         history.push(
             '/dashboard/project/' +
                 currentProject.slug +
-                '/' +
+                '/component/' +
                 componentSlug +
                 '/error-trackers/' +
                 errorTracker[0].slug +

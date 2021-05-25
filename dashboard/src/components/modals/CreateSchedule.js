@@ -1063,8 +1063,8 @@ const mapStateToProps = (state, ownProps) => {
 
     return {
         newScheduledEvent: state.scheduledEvent.newScheduledEvent,
-        requesting: state.scheduledEvent.newScheduledEvent.requesting,
-        scheduledEventError: state.scheduledEvent.newScheduledEvent.error,
+        requesting: state.scheduledEvent.currentScheduledEvent.requesting,
+        scheduledEventError: state.scheduledEvent.currentScheduledEvent.error,
         createScheduledEventModalId: state.modal.modals[0].id,
         minStartDate,
         monitors,

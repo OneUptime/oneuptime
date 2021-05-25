@@ -19,7 +19,7 @@ module.exports = {
                 .populate('userIds', 'name')
                 .populate('createdById', 'name')
                 .populate('monitorIds', 'name')
-                .populate('projectId', 'name')
+                .populate('projectId', ['_id', 'name', 'slug'])
                 .populate({
                     path: 'escalationIds',
                     select: 'teams',
@@ -47,7 +47,7 @@ module.exports = {
                 .populate('userIds', 'name')
                 .populate('createdById', 'name')
                 .populate('monitorIds', 'name')
-                .populate('projectId', 'name')
+                .populate('projectId', ['_id', 'name', 'slug'])
                 .populate({
                     path: 'escalationIds',
                     select: 'teamMember',
@@ -82,8 +82,15 @@ module.exports = {
                     scheduleModel.userIds.push(monitorId);
                 }
             }
+
+            if (data && data.name) {
+                scheduleModel.slug = getSlug(data.name);
+            }
             const schedule = await scheduleModel.save();
-            return schedule;
+            const newSchedule = await this.findOneBy({
+                _id: schedule._id,
+            });
+            return newSchedule;
         } catch (error) {
             ErrorService.log('scheduleService.create', error);
             throw error;
@@ -211,6 +218,9 @@ module.exports = {
                     { $set: { isDefault: false } },
                     { new: true }
                 );
+            }
+            if (data && data.name) {
+                data.slug = getSlug(data.name);
             }
 
             schedule = await ScheduleModel.findOneAndUpdate(
@@ -423,3 +433,4 @@ module.exports = {
 const ScheduleModel = require('../models/schedule');
 const EscalationService = require('../services/escalationService');
 const ErrorService = require('../services/errorService');
+const getSlug = require('../utils/getSlug');

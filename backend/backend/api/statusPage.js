@@ -33,6 +33,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const uuid = require('uuid');
 const defaultStatusPageColors = require('../config/statusPageColors');
 const SubscriberService = require('../services/subscriberService');
+const ScheduledEventService = require('../services/scheduledEventService');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -621,9 +622,12 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
     }
 });
 
-// External status page api - get the data to show on status page
-router.get('/:statusPageId', checkUser, ipWhitelist, async function(req, res) {
-    const statusPageId = req.params.statusPageId;
+// External status page api - get the data to show on status page using Slug
+router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
+    req,
+    res
+) {
+    const statusPageSlug = req.params.statusPageSlug;
     const url = req.query.url;
     const user = req.user;
     let statusPage = {};
@@ -634,15 +638,15 @@ router.get('/:statusPageId', checkUser, ipWhitelist, async function(req, res) {
                 { domains: { $elemMatch: { domain: url } } },
                 user
             );
-        } else if ((!url || url === 'null') && statusPageId) {
+        } else if ((!url || url === 'null') && statusPageSlug) {
             statusPage = await StatusPageService.getStatusPage(
-                { _id: statusPageId },
+                { slug: statusPageSlug },
                 user
             );
         } else {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'StatusPage Id or Url required',
+                message: 'StatusPage Slug or Url required',
             });
         }
 
@@ -757,18 +761,19 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
     }
 });
 router.get(
-    '/:projectId/:statusPageId/notes',
+    '/:projectId/:statusPageSlug/notes',
     checkUser,
     ipWhitelist,
     async function(req, res) {
         let result;
-        const statusPageId = req.params.statusPageId;
+        const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
+        const days = req.query.days || 14;
         try {
             // Call the StatusPageService.
             const response = await StatusPageService.getNotes(
-                { _id: statusPageId },
+                { slug: statusPageSlug },
                 skip,
                 limit
             );
@@ -792,7 +797,7 @@ router.get(
                         });
                     }
                 }
-                result = formatNotes(updatedNotes);
+                result = formatNotes(updatedNotes, days);
                 result = checkDuplicateDates(result);
             } else {
                 result = notes;
@@ -919,41 +924,28 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
 });
 
 router.get(
-    '/:projectId/:statusPageId/events',
+    '/:projectId/:statusPageSlug/events',
     checkUser,
     ipWhitelist,
     async function(req, res) {
-        const statusPageId = req.params.statusPageId;
+        const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 5;
         const theme = req.query.theme;
         try {
             // Call the StatusPageService.
             const response = await StatusPageService.getEvents(
-                { _id: statusPageId },
+                { slug: statusPageSlug },
                 skip,
                 limit,
                 theme
             );
+
             let events = response.events;
             const count = response.count;
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
-                const updatedEvents = [];
-                if (events.length > 0) {
-                    for (const event of events) {
-                        const statusPageEvent = await StatusPageService.getEventNotes(
-                            {
-                                scheduledEventId: event._id,
-                                type: 'investigation',
-                            }
-                        );
-                        updatedEvents.push({
-                            ...event,
-                            notes: statusPageEvent.notes,
-                        });
-                    }
-                    events = checkDuplicateDates(events);
-                }
+                const results = await fetchNotes(events, limit);
+                events = results;
             }
             return sendListResponse(req, res, events, count);
         } catch (error) {
@@ -963,19 +955,22 @@ router.get(
 );
 
 router.get(
-    '/:projectId/:statusPageId/futureEvents',
+    '/:projectId/:statusPageSlug/futureEvents',
     checkUser,
     ipWhitelist,
     async function(req, res) {
         try {
-            const { statusPageId } = req.params;
-            const { skip = 0, limit = 5 } = req.query;
-
+            const { statusPageSlug } = req.params;
+            const { skip = 0, limit = 5, theme } = req.query;
             const response = await StatusPageService.getFutureEvents(
-                { _id: statusPageId },
+                { slug: statusPageSlug },
                 skip,
                 limit
             );
+            if ((theme && typeof theme === 'boolean') || theme === 'true') {
+                const results = await fetchNotes(response.events, limit);
+                response.events = results;
+            }
             const { events, count } = response;
             return sendListResponse(req, res, events, count);
         } catch (error) {
@@ -984,12 +979,62 @@ router.get(
     }
 );
 
-router.get('/:projectId/notes/:scheduledEventId', checkUser, async function(
+router.get(
+    '/:projectId/:statusPageSlug/pastEvents',
+    checkUser,
+    ipWhitelist,
+    async function(req, res) {
+        try {
+            const { statusPageSlug } = req.params;
+            const { skip = 0, limit = 5, theme } = req.query;
+
+            const response = await StatusPageService.getPastEvents(
+                { slug: statusPageSlug },
+                skip,
+                limit
+            );
+            if ((theme && typeof theme === 'boolean') || theme === 'true') {
+                const results = await fetchNotes(response.events, limit);
+                response.events = results;
+            }
+            const { events, count } = response;
+
+            return sendListResponse(req, res, events, count);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+const fetchNotes = async (events, limit) => {
+    const updatedEvents = [];
+    if (events.length > 0) {
+        for (const event of events) {
+            const statusPageEvent = await StatusPageService.getEventNotes({
+                scheduledEventId: event._id,
+                type: 'investigation',
+            });
+            updatedEvents.push({
+                ...event,
+                notes: statusPageEvent.notes,
+            });
+        }
+
+        events = formatNotes(updatedEvents, limit);
+        events = checkDuplicateDates(events);
+        return events;
+    }
+};
+
+router.get('/:projectId/notes/:scheduledEventSlug', checkUser, async function(
     req,
     res
 ) {
-    const { scheduledEventId } = req.params;
+    const { scheduledEventSlug } = req.params;
     const { skip, limit, type } = req.query;
+    const scheduledEventId = await ScheduledEventService.findOneBy({
+        slug: scheduledEventSlug,
+    });
 
     try {
         const response = await StatusPageService.getEventNotes(
@@ -1067,7 +1112,7 @@ router.get(
 
         try {
             const response = await StatusPageService.getEvent({
-                _id: scheduledEventId,
+                slug: scheduledEventId,
             });
             return sendListResponse(req, res, response);
         } catch (error) {
@@ -1152,17 +1197,17 @@ router.get('/:projectId/probes', checkUser, async function(req, res) {
 });
 
 router.delete(
-    '/:projectId/:statusPageId',
+    '/:projectId/:statusPageSlug',
     getUser,
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
-        const statusPageId = req.params.statusPageId;
+        const statusPageSlug = req.params.statusPageSlug;
         const userId = req.user ? req.user.id : null;
         try {
             // Call the StatusPageService.
             const statusPage = await StatusPageService.deleteBy(
-                { _id: statusPageId },
+                { slug: statusPageSlug },
                 userId
             );
             return sendItemResponse(req, res, statusPage);
@@ -1200,15 +1245,15 @@ router.get('/:projectId/timeline/:incidentId', checkUser, async function(
 });
 
 router.get(
-    '/:projectId/:statusPageId/timelines',
+    '/:projectId/:statusPageSlug/timelines',
     checkUser,
     ipWhitelist,
     async function(req, res) {
         try {
-            const { statusPageId } = req.params;
+            const { statusPageSlug } = req.params;
 
             const incidents = await StatusPageService.getNotes({
-                _id: statusPageId,
+                slug: statusPageSlug,
             });
             const response = await IncidentTimelineService.getIncidentLastTimelines(
                 incidents.notes
@@ -1251,9 +1296,267 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
     }
 });
 
-const formatNotes = (data = []) => {
+router.post('/:projectId/announcement/:statusPageId', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { projectId, statusPageId } = req.params;
+        const { data } = req.body;
+        data.createdById = req.user ? req.user.id : null;
+
+        if (!data) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: "Values can't be null",
+            });
+        }
+
+        if (!data.name || !data.name.trim()) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Announcement name is required.',
+            });
+        }
+
+        // data.monitors should be an array containing id of monitor(s)
+        if (data.monitors && !Array.isArray(data.monitors)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Monitors is not of type array',
+            });
+        }
+
+        if (!projectId) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Project ID is required.',
+            });
+        }
+
+        data.projectId = projectId;
+        data.statusPageId = statusPageId;
+        const response = await StatusPageService.createAnnouncement(data);
+
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.put(
+    '/:projectId/announcement/:statusPageId/:announcementId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageId, announcementId } = req.params;
+            const { data } = req.body;
+            data.createdById = req.user ? req.user.id : null;
+
+            if (!data.announcementToggle) {
+                if (!data) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: "Values can't be null",
+                    });
+                }
+
+                if (!data.name || !data.name.trim()) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Announcement name is required.',
+                    });
+                }
+
+                // data.monitors should be an array containing id of monitor(s)
+                if (data.monitors && !Array.isArray(data.monitors)) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Monitors is not of type array',
+                    });
+                }
+
+                if (!projectId) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Project ID is required.',
+                    });
+                }
+
+                data.monitors = data.monitors.map(monitor => ({
+                    monitorId: monitor,
+                }));
+            }
+
+            const query = { projectId, statusPageId, _id: announcementId };
+
+            const response = await StatusPageService.updateAnnouncement(
+                query,
+                data
+            );
+
+            if (response && data.announcementToggle) {
+                const date = new Date();
+                const log = {};
+                log.statusPageId = statusPageId;
+                if (data.hideAnnouncement) {
+                    log.endDate = date;
+                    log.updatedById = data.createdById;
+                    log.active = false;
+                    await StatusPageService.updateAnnouncementLog(
+                        { active: true },
+                        log
+                    );
+                } else {
+                    log.announcementId = announcementId;
+                    log.createdById = data.createdById;
+                    log.startDate = date;
+                    log.active = true;
+                    await StatusPageService.createAnnouncementLog(log);
+                }
+            }
+
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get(
+    '/:projectId/announcementLogs/:statusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { statusPageId } = req.params;
+            const { skip, limit, theme } = req.query;
+            let announcementLogs = await StatusPageService.getAnnouncementLogs(
+                {
+                    statusPageId,
+                },
+                skip,
+                limit
+            );
+
+            const count = await StatusPageService.countAnnouncementLogs({
+                statusPageId,
+            });
+
+            if ((theme && typeof theme === 'boolean') || theme === 'true') {
+                const updatedLogs = [];
+                for (const log of announcementLogs) {
+                    updatedLogs.push({ ...log._doc });
+                }
+                announcementLogs = formatNotes(updatedLogs, 20);
+                announcementLogs = checkDuplicateDates(announcementLogs);
+            }
+
+            return sendItemResponse(req, res, {
+                announcementLogs,
+                skip,
+                limit,
+                count,
+            });
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get('/:projectId/announcement/:statusPageId', checkUser, async function(
+    req,
+    res
+) {
+    try {
+        const { projectId, statusPageId } = req.params;
+        const { skip, limit, show } = req.query;
+        const query = { projectId, statusPageId };
+        if (show) query.hideAnnouncement = false;
+
+        const allAnnouncements = await StatusPageService.getAnnouncements(
+            query,
+            skip,
+            limit
+        );
+
+        const count = await StatusPageService.countAnnouncements(query);
+
+        return sendItemResponse(req, res, {
+            allAnnouncements,
+            skip,
+            limit,
+            count,
+        });
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get(
+    '/:projectId/announcement/:statusPageSlug/single/:announcementSlug',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageSlug, announcementSlug } = req.params;
+            const { _id } = await StatusPageService.findOneBy({
+                slug: statusPageSlug,
+            });
+            const response = await StatusPageService.getSingleAnnouncement({
+                projectId,
+                statusPageId: _id,
+                slug: announcementSlug,
+            });
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.delete(
+    `/:projectId/announcement/:announcementId/delete`,
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, announcementId } = req.params;
+            const userId = req.user ? req.user.id : null;
+            const response = await StatusPageService.deleteAnnouncement(
+                {
+                    projectId,
+                    _id: announcementId,
+                },
+                userId
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.delete(
+    `/:projectId/announcementLog/:announcementLogId/delete`,
+    checkUser,
+    async function(req, res) {
+        try {
+            const { announcementLogId } = req.params;
+            const userId = req.user ? req.user.id : null;
+            const response = await StatusPageService.deleteAnnouncementLog(
+                {
+                    _id: announcementLogId,
+                },
+                userId
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+const formatNotes = (data = [], days) => {
     const result = [];
-    const limit = 15;
+    const limit = days - 1;
 
     for (let i = 0; i <= limit; i++) {
         const date = new Date();
@@ -1274,17 +1577,8 @@ const formatNotes = (data = []) => {
                         incidentDate.toDateString() && !lastIncident._id
                         ? (result[result.length - 1] = incident)
                         : result.push(incident);
-                } else {
-                    const lastIncident = result[result.length - 1];
-                    const lastIncidentDate = new Date(lastIncident?.createdAt);
-                    if (lastIncidentDate.toDateString() !== date.toDateString())
-                        result.push({
-                            createdAt: new Date(date).toISOString(),
-                        });
                 }
             }
-        } else {
-            result.push({ createdAt: new Date(date).toISOString() });
         }
     }
 

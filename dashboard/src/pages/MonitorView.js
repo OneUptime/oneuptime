@@ -62,8 +62,8 @@ class MonitorView extends React.Component {
         }
 
         const { currentProject, componentSlug, fetchComponent } = this.props;
-        fetchComponent(componentSlug);
         if (currentProject) {
+            componentSlug && fetchComponent(currentProject._id, componentSlug);
             const userId = User.getUserId();
             const projectMember = currentProject.users.find(
                 user => user.userId === userId
@@ -76,6 +76,22 @@ class MonitorView extends React.Component {
 
     componentDidUpdate(prevProps) {
         const { monitor } = this.props;
+        if (
+            String(prevProps.componentSlug) !==
+                String(this.props.componentSlug) ||
+            prevProps.currentProject !== this.props.currentProject
+        ) {
+            if (
+                this.props.currentProject &&
+                this.props.currentProject._id &&
+                this.props.componentSlug
+            ) {
+                this.props.fetchComponent(
+                    this.props.currentProject._id,
+                    this.props.componentSlug
+                );
+            }
+        }
         if (monitor && String(prevProps.monitor._id) !== String(monitor._id)) {
             const subProjectId = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId
@@ -124,7 +140,15 @@ class MonitorView extends React.Component {
         });
     };
     ready = () => {
-        const { monitor } = this.props;
+        const {
+            monitor,
+            componentSlug,
+            fetchComponent,
+            currentProject,
+        } = this.props;
+        if (currentProject && currentProject._id && componentSlug) {
+            fetchComponent(currentProject._id, componentSlug);
+        }
         if (monitor && monitor._id && this.props.currentProject._id) {
             this.props.fetchIncidentPriorities(
                 this.props.currentProject._id,
@@ -275,16 +299,32 @@ class MonitorView extends React.Component {
                                 id="customTabList"
                                 className={'custom-tab-list'}
                             >
-                                <Tab className={'custom-tab custom-tab-4'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-4 basic-tab'
+                                    }
+                                >
                                     Basic
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-4'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-4 subscribers-tab'
+                                    }
+                                >
                                     Subscribers
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-4'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-4 integrations-tab'
+                                    }
+                                >
                                     Integrations
                                 </Tab>
-                                <Tab className={'custom-tab custom-tab-4'}>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-4 advanced-options-tab'
+                                    }
+                                >
                                     Advanced Options
                                 </Tab>
                                 <div
@@ -879,7 +919,7 @@ const mapStateToProps = (state, props) => {
     const projectId =
         state.project.currentProject && state.project.currentProject._id;
     const monitorCollection = state.monitor.monitorsList.monitors.find(el => {
-        return component.projectId._id === el._id;
+        return component && component.projectId._id === el._id;
     });
     const currentMonitor =
         monitorCollection &&

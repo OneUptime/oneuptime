@@ -15,7 +15,7 @@ e2e_microk8s_test:
         - export STATUSPAGE_URL=http://localhost/status-page
         - export APIDOCS_URL=http://localhost/docs
         - export LICENSING_URL=http://localhost/license
-        - cd smoke-test
+        - cd tests
         - npm ci
         - npm run test
         - cd ..

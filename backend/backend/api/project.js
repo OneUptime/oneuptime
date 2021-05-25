@@ -839,14 +839,14 @@ router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function(
     }
 });
 
-router.get('/projects/:projectId', getUser, isUserMasterAdmin, async function(
+router.get('/projects/:slug', getUser, isUserMasterAdmin, async function(
     req,
     res
 ) {
     try {
-        const projectId = req.params.projectId;
+        const slug = req.params.slug;
         const project = await ProjectService.findOneBy({
-            _id: projectId,
+            slug: slug,
             deleted: { $ne: null },
         });
 
@@ -1018,17 +1018,11 @@ router.post('/:projectId/addNote', getUser, isUserMasterAdmin, async function(
                     data.push(val);
                 }
 
-                const adminNotes = await ProjectService.addNotes(
-                    projectId,
-                    data
-                );
-                return sendItemResponse(req, res, adminNotes);
+                const project = await ProjectService.addNotes(projectId, data);
+                return sendItemResponse(req, res, project);
             } else {
-                const adminNotes = await ProjectService.addNotes(
-                    projectId,
-                    data
-                );
-                return sendItemResponse(req, res, adminNotes);
+                const project = await ProjectService.addNotes(projectId, data);
+                return sendItemResponse(req, res, project);
             }
         } else {
             return sendErrorResponse(req, res, {
@@ -1095,6 +1089,23 @@ router.put(
                 data.replyAddress = null;
             }
 
+            if (!data.sendCreatedScheduledEventNotificationEmail) {
+                data.sendCreatedScheduledEventNotificationEmail = false;
+            }
+
+            if (!data.sendScheduledEventResolvedNotificationEmail) {
+                data.sendScheduledEventResolvedNotificationEmail = false;
+            }
+            if (!data.sendNewScheduledEventInvestigationNoteNotificationEmail) {
+                data.sendNewScheduledEventInvestigationNoteNotificationEmail = false;
+            }
+            if (!data.sendScheduledEventResolvedNotificationEmail) {
+                data.sendScheduledEventResolvedNotificationEmail = false;
+            }
+            if (!data.sendScheduledEventCancelledNotificationEmail) {
+                data.sendScheduledEventCancelledNotificationEmail = false;
+            }
+
             data.enableInvestigationNoteNotificationEmail = data.enableInvestigationNoteNotificationEmail
                 ? true
                 : false;
@@ -1131,6 +1142,23 @@ router.put(
             data.enableInvestigationNoteNotificationSMS = data.enableInvestigationNoteNotificationSMS
                 ? true
                 : false;
+
+            if (!data.sendCreatedScheduledEventNotificationSms) {
+                data.sendCreatedScheduledEventNotificationSms = false;
+            }
+
+            if (!data.sendScheduledEventResolvedNotificationSms) {
+                data.sendScheduledEventResolvedNotificationSms = false;
+            }
+            if (!data.sendNewScheduledEventInvestigationNoteNotificationSms) {
+                data.sendNewScheduledEventInvestigationNoteNotificationSms = false;
+            }
+            if (!data.sendScheduledEventResolvedNotificationSms) {
+                data.sendScheduledEventResolvedNotificationSms = false;
+            }
+            if (!data.sendScheduledEventCancelledNotificationSms) {
+                data.sendScheduledEventCancelledNotificationSms = false;
+            }
 
             const result = await ProjectService.updateOneBy(
                 { _id: projectId },

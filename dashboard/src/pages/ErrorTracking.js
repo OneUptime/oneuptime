@@ -37,9 +37,20 @@ class ErrorTracking extends Component {
     }
     componentDidUpdate(prevProps) {
         if (
-            String(prevProps.componentSlug) !== String(this.props.componentSlug)
+            String(prevProps.componentSlug) !==
+                String(this.props.componentSlug) ||
+            prevProps.currentProject !== this.props.currentProject
         ) {
-            this.props.fetchComponent(this.props.componentSlug);
+            if (
+                this.props.currentProject &&
+                this.props.currentProject._id &&
+                this.props.componentSlug
+            ) {
+                this.props.fetchComponent(
+                    this.props.currentProject._id,
+                    this.props.componentSlug
+                );
+            }
         }
 
         if (String(prevProps.componentId) !== String(this.props.componentId)) {
@@ -51,10 +62,12 @@ class ErrorTracking extends Component {
     }
     ready = () => {
         const { componentSlug, fetchComponent, componentId } = this.props;
-        fetchComponent(componentSlug);
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
+        if (projectId && componentSlug) {
+            fetchComponent(projectId, componentSlug);
+        }
         if (projectId && componentId) {
             this.props.fetchErrorTrackers(projectId, componentId);
         }
@@ -64,7 +77,7 @@ class ErrorTracking extends Component {
             document.title = this.props.currentProject.name + ' Dashboard';
             socket.on(`createErrorTracker-${this.props.componentId}`, data => {
                 history.push(
-                    `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/error-trackers/${data.slug}`
+                    `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/error-trackers/${data.slug}`
                 );
             });
         }

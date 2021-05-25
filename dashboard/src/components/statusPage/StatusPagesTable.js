@@ -25,22 +25,23 @@ class StatusPagesTable extends Component {
     }
 
     componentDidMount() {
-        this.props
-            .fetchSubProjectStatusPages(this.props.projectId)
-            .then(res => {
-                if (res.data.length > 0) {
-                    res.data.forEach(proj => {
-                        this.setState({ [proj._id]: 1 });
-                    });
-                }
-            });
+        if (this.props.projectId) {
+            this.props
+                .fetchSubProjectStatusPages(this.props.projectId)
+                .then(res => {
+                    if (res.data.length > 0) {
+                        res.data.forEach(proj => {
+                            this.setState({ [proj._id]: 1 });
+                        });
+                    }
+                });
+        }
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'PAGE VIEW: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE'
             );
         }
     }
-
     switchStatusPages = (statusPage, path) => {
         this.props.switchStatusPage(statusPage);
         history.push(path);
@@ -153,7 +154,7 @@ class StatusPagesTable extends Component {
                                             subProjectStatusPages.length
                                         }
                                         modalList={this.props.modalList}
-                                        project={subProject}
+                                        project={currentProject}
                                         pages={
                                             this.state[subProjectStatusPage._id]
                                         }
@@ -260,7 +261,7 @@ const mapDispatchToProps = dispatch =>
 
 function mapStateToProps(state) {
     const currentProject = state.project.currentProject;
-    const currentProjectId = currentProject ? currentProject._id : null;
+    const currentProjectId = currentProject && currentProject._id;
     const statusPages = state.statusPage.subProjectStatusPages;
 
     let subProjects = state.subProject.subProjects.subProjects;
@@ -305,6 +306,7 @@ function mapStateToProps(state) {
               };
     });
     subProjectStatusPages.unshift(projectStatusPage);
+    const searchValues = state.form.search && state.form.search.values;
     return {
         currentProject,
         subProjectStatusPages,
@@ -313,6 +315,7 @@ function mapStateToProps(state) {
         subProjects,
         modalList: state.modal.modals,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        searchValues,
     };
 }
 

@@ -54,6 +54,7 @@ module.exports = {
             userModel.twoFactorAuthEnabled = data.twoFactorAuthEnabled || false;
             userModel.twoFactorSecretCode = data.twoFactorSecretCode || null;
             userModel.otpauth_url = data.otpauth_url || null;
+            userModel.source = data.source || null;
             if (data.password) {
                 const hash = await bcrypt.hash(
                     data.password,
@@ -279,11 +280,14 @@ module.exports = {
             const verificationToken = await verificationTokenModel.save();
             if (verificationToken) {
                 const verificationTokenURL = `${global.apiHost}/user/confirmation/${verificationToken.token}`;
-                MailService.sendVerifyEmail(
-                    verificationTokenURL,
-                    user.name,
-                    email
-                );
+                // Checking for already verified user so that he/she will not recieve another email verification
+                if (!user.isVerified) {
+                    MailService.sendVerifyEmail(
+                        verificationTokenURL,
+                        user.name,
+                        email
+                    );
+                }
                 if (email !== user.email) {
                     _this.updateOneBy({ _id: user._id }, { tempEmail: email });
                 }
@@ -315,8 +319,7 @@ module.exports = {
                     throw error;
                 } else {
                     let customerId, subscription;
-
-                    if (IS_SAAS_SERVICE) {
+                    if (IS_SAAS_SERVICE && paymentIntent !== null) {
                         // Check here is the payment intent is successfully paid. If yes then create the customer else not.
                         const processedPaymentIntent = await PaymentService.checkPaymentIntent(
                             paymentIntent
@@ -337,7 +340,7 @@ module.exports = {
                     // IS_SAAS_SERVICE: save a user only when payment method is charged and then next steps
                     user = await _this.create(data);
 
-                    if (IS_SAAS_SERVICE) {
+                    if (IS_SAAS_SERVICE && paymentIntent !== null) {
                         //update customer Id
                         user = await _this.updateOneBy(
                             { _id: user._id },
@@ -382,6 +385,7 @@ module.exports = {
                             phone: data.companyPhoneNumber,
                             company: data.companyName,
                             jobRole: data.companyRole,
+                            source: data.source,
                             createdAt,
                         });
                     } catch (error) {
@@ -885,17 +889,15 @@ module.exports = {
 
     addNotes: async function(userId, notes) {
         const _this = this;
-        const adminNotes = (
-            await _this.updateOneBy(
-                {
-                    _id: userId,
-                },
-                {
-                    adminNotes: notes,
-                }
-            )
-        ).adminNotes;
-        return adminNotes;
+        const user = await _this.updateOneBy(
+            {
+                _id: userId,
+            },
+            {
+                adminNotes: notes,
+            }
+        );
+        return user;
     },
 
     searchUsers: async function(query, skip, limit) {

@@ -9,6 +9,7 @@ import moment from 'moment';
 import { openModal } from '../../actions/modal';
 import SsoDeleteModal from './sso/SsoDeleteModal';
 import { SsoAddModal, SsoUpdateModal } from './sso/SsoModal';
+import ShouldRender from '../basic/ShouldRender';
 
 export class Component extends React.Component {
     state = {
@@ -243,7 +244,7 @@ export class Component extends React.Component {
                                                         className="Box-root Margin-right--16"
                                                     >
                                                         <span>
-                                                            No SOOs created yet
+                                                            No SSOs created yet
                                                         </span>
                                                     </div>
                                                 </span>
@@ -266,7 +267,7 @@ export class Component extends React.Component {
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     <div className="Box-root Margin-right--16">
-                                                        <span>
+                                                        <span id="sso-domain">
                                                             {sso.domain}
                                                         </span>
                                                     </div>
@@ -333,6 +334,7 @@ export class Component extends React.Component {
                                             >
                                                 <button
                                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--edit"
+                                                    id="edit-button"
                                                     onClick={() =>
                                                         this.editSso(sso._id)
                                                     }
@@ -341,6 +343,7 @@ export class Component extends React.Component {
                                                 </button>
                                                 <button
                                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                                    id="delete-button"
                                                     onClick={() =>
                                                         this.deleteSso(sso._id)
                                                     }
@@ -355,17 +358,18 @@ export class Component extends React.Component {
                         </table>
 
                         <div className="bs-Tail bs-Tail--separated bs-Tail--short">
-                            <div id="sso-count" className="bs-Tail-copy">
+                            <div className="bs-Tail-copy">
+                                {/* Code Refactor to remove undefined*/}
                                 <span>
-                                    {numberOfPages > 0
-                                        ? `Page ${
-                                              this.state.page
-                                          } of ${numberOfPages} (${count} SOS${
-                                              count === 1 ? '' : 's'
-                                          })`
-                                        : `${count} SOS${
-                                              count === 1 ? '' : 's'
-                                          }`}
+                                    <ShouldRender if={numberOfPages > 0}>
+                                        Page {this.state.page} of{' '}
+                                        {numberOfPages} (
+                                        <span id="sso-count">{count} </span>SSO
+                                        <ShouldRender if={count > 1}>
+                                            s
+                                        </ShouldRender>
+                                        )
+                                    </ShouldRender>
                                 </span>
                             </div>
                             <div className="bs-Tail-actions">

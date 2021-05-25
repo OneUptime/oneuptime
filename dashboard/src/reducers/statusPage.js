@@ -88,6 +88,27 @@ import {
     FETCH_SUBSCRIBER_SUCCESS,
     FETCH_SUBSCRIBER_REQUEST,
     FETCH_SUBSCRIBER_FAILURE,
+    FETCH_ANNOUNCEMEMT_SUCCESS,
+    FETCH_ANNOUNCEMEMT_REQUEST,
+    FETCH_ANNOUNCEMEMT_FAILURE,
+    CREATE_ANNOUNCEMEMT_REQUEST,
+    CREATE_ANNOUNCEMEMT_FAILURE,
+    CREATE_ANNOUNCEMEMT_SUCCESS,
+    FETCH_SINCLE_ANNOUNCEMENT_SUCCESS,
+    HANDLE_ANNOUNCEMENT_SUCCESS,
+    HANDLE_ANNOUNCEMENT_FAILURE,
+    RESET_HANDLE_ANNOUNCEMENT,
+    FETCH_SINCLE_ANNOUNCEMENT_FAILURE,
+    DELETE_ANNOUNCEMENT_FAILURE,
+    DELETE_ANNOUNCEMENT_REQUEST,
+    DELETE_ANNOUNCEMENT_SUCCESS,
+    RESET_DELETE_ANNOUNCEMENT,
+    UPDATE_STATUS_PAGE_LAYOUT_FAILURE,
+    UPDATE_STATUS_PAGE_LAYOUT_SUCCESS,
+    UPDATE_STATUS_PAGE_LAYOUT_REQUEST,
+    FETCH_ANNOUNCEMEMTLOGS_REQUEST,
+    FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
+    FETCH_ANNOUNCEMEMTLOGS_FAILURE,
 } from '../constants/statusPage';
 
 import {
@@ -186,6 +207,11 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    updateLayout: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
     addDomain: {
         requesting: false,
         success: false,
@@ -258,6 +284,36 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    announcements: {
+        announcementsList: [],
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    createAnnouncement: {
+        announcement: null,
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    singleAnnouncement: {
+        announcement: null,
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    updateAnnouncement: {
+        announcement: null,
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    announcementLogs: {
+        logsList: [],
+        requesting: false,
+        success: false,
+        error: null,
+    },
 };
 
 export default function statusPage(state = INITIAL_STATE, action) {
@@ -274,13 +330,199 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 },
             });
 
+        case FETCH_ANNOUNCEMEMTLOGS_REQUEST:
+            return Object.assign({}, state, {
+                announcementLogs: {
+                    ...state.announcementLogs,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case FETCH_ANNOUNCEMEMTLOGS_FAILURE:
+            return Object.assign({}, state, {
+                announcementLogs: {
+                    ...state.announcementLogs,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case FETCH_ANNOUNCEMEMTLOGS_SUCCESS:
+            return Object.assign({}, state, {
+                announcementLogs: {
+                    ...state.announcementLogs,
+                    logsList: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case DELETE_ANNOUNCEMENT_SUCCESS:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    announcement: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case DELETE_ANNOUNCEMENT_REQUEST:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case DELETE_ANNOUNCEMENT_FAILURE:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case RESET_DELETE_ANNOUNCEMENT:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case HANDLE_ANNOUNCEMENT_SUCCESS:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    announcement: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case HANDLE_ANNOUNCEMENT_FAILURE:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case RESET_HANDLE_ANNOUNCEMENT:
+            return Object.assign({}, state, {
+                updateAnnouncement: {
+                    ...state.updateAnnouncement,
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case FETCH_SINCLE_ANNOUNCEMENT_SUCCESS:
+            return Object.assign({}, state, {
+                singleAnnouncement: {
+                    ...state.singleAnnouncement,
+                    announcement: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case FETCH_SINCLE_ANNOUNCEMENT_FAILURE:
+            return Object.assign({}, state, {
+                singleAnnouncement: {
+                    ...state.singleAnnouncement,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case CREATE_ANNOUNCEMEMT_REQUEST:
+            return Object.assign({}, state, {
+                createAnnouncement: {
+                    ...state.createAnnouncement,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case CREATE_ANNOUNCEMEMT_SUCCESS:
+            return Object.assign({}, state, {
+                createAnnouncement: {
+                    ...state.createAnnouncement,
+                    announcement: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case CREATE_ANNOUNCEMEMT_FAILURE:
+            return Object.assign({}, state, {
+                createAnnouncement: {
+                    ...state.createAnnouncement,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case FETCH_ANNOUNCEMEMT_REQUEST:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case FETCH_ANNOUNCEMEMT_SUCCESS:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    announcementsList: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case FETCH_ANNOUNCEMEMT_FAILURE:
+            return Object.assign({}, state, {
+                announcements: {
+                    ...state.announcements,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
         case FETCH_SUBSCRIBER_REQUEST:
             return Object.assign({}, state, {
                 subscribers: {
                     ...state.subscribers,
                     requesting: true,
                     success: false,
-                    error: false,
+                    error: null,
                 },
             });
 
@@ -304,13 +546,15 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     limit: action.payload.limit,
                     requesting: false,
                     success: true,
-                    error: false,
+                    error: null,
                 },
             });
 
         case CREATE_STATUSPAGE_SUCCESS:
             isExistingStatusPage = state.subProjectStatusPages.find(
-                statusPage => statusPage._id === action.payload.projectId
+                statusPage =>
+                    statusPage._id === action.payload.projectId ||
+                    statusPage._id === action.payload.projectId._id
             );
             return Object.assign({}, state, {
                 newStatusPage: {
@@ -322,9 +566,14 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 subProjectStatusPages: isExistingStatusPage
                     ? state.subProjectStatusPages.length > 0
                         ? state.subProjectStatusPages.map(statusPage => {
-                              return statusPage._id === action.payload.projectId
+                              return statusPage._id ===
+                                  action.payload.projectId ||
+                                  statusPage._id ===
+                                      action.payload.projectId._id
                                   ? {
-                                        _id: action.payload.projectId,
+                                        _id: action.payload.projectId._id
+                                            ? action.payload.projectId._id
+                                            : action.payload.projectId,
                                         statusPages: [
                                             action.payload,
                                             ...statusPage.statusPages.filter(
@@ -339,7 +588,9 @@ export default function statusPage(state = INITIAL_STATE, action) {
                           })
                         : [
                               {
-                                  _id: action.payload.projectId,
+                                  _id: action.payload.projectId._id
+                                      ? action.payload.projectId._id
+                                      : action.payload.projectId,
                                   statusPages: [action.payload],
                                   count: 1,
                                   skip: 0,
@@ -348,7 +599,9 @@ export default function statusPage(state = INITIAL_STATE, action) {
                           ]
                     : state.subProjectStatusPages.concat([
                           {
-                              _id: action.payload.projectId,
+                              _id: action.payload.projectId._id
+                                  ? action.payload.projectId._id
+                                  : action.payload.projectId,
                               statusPages: [action.payload],
                               count: 1,
                               skip: 0,
@@ -1066,9 +1319,12 @@ export default function statusPage(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 subProjectStatusPages: state.subProjectStatusPages.map(
                     statusPage => {
-                        return statusPage._id === action.payload.projectId
+                        return statusPage._id === action.payload.projectId ||
+                            statusPage._id === action.payload.projectId._id
                             ? {
-                                  _id: action.payload.projectId,
+                                  _id: action.payload.projectId._id
+                                      ? action.payload.projectId._id
+                                      : action.payload.projectId,
                                   statusPages: [...action.payload.data],
                                   count: action.payload.count,
                                   skip: action.payload.skip,
@@ -1329,6 +1585,30 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 resetBrandingColors: {
                     requesting: false,
                     error: action.payload,
+                    success: false,
+                },
+            });
+        case UPDATE_STATUS_PAGE_LAYOUT_FAILURE:
+            return Object.assign({}, state, {
+                updateLayout: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+        case UPDATE_STATUS_PAGE_LAYOUT_SUCCESS:
+            return Object.assign({}, state, {
+                updateLayout: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+            });
+        case UPDATE_STATUS_PAGE_LAYOUT_REQUEST:
+            return Object.assign({}, state, {
+                updateLayout: {
+                    requesting: true,
+                    error: null,
                     success: false,
                 },
             });

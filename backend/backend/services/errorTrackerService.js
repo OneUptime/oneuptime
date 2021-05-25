@@ -39,10 +39,7 @@ module.exports = {
                 errorTracker.resourceCategory = data.resourceCategory;
             }
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                errorTracker.slug = name.toLowerCase();
+                errorTracker.slug = getSlug(data.name);
             }
             const savedErrorTracker = await errorTracker.save();
             errorTracker = await _this.findOneBy({
@@ -78,7 +75,14 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('componentId', 'name')
+                .populate({
+                    path: 'componentId',
+                    select: 'name slug projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name',
+                    },
+                })
                 .populate('resourceCategory', 'name');
             return errorTrackers;
         } catch (error) {
@@ -185,10 +189,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
             let errorTracker = await ErrorTrackerModel.findOneAndUpdate(
                 query,
@@ -227,5 +228,4 @@ const ResourceCategoryService = require('./resourceCategoryService');
 const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
 const uuid = require('uuid');
-const generate = require('nanoid/generate');
-const slugify = require('slugify');
+const getSlug = require('../utils/getSlug');

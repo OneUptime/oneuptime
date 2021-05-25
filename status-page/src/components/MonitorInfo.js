@@ -384,7 +384,6 @@ class MonitorInfo extends Component {
             uptimePercent !== 100 && !isNaN(uptimePercent)
                 ? uptimePercent.toFixed(3)
                 : '100';
-        const upDays = timeBlock.length;
 
         const block = [];
         if (selectedCharts && selectedCharts.uptime)
@@ -495,19 +494,24 @@ class MonitorInfo extends Component {
                             <div
                                 style={{
                                     color:
-                                        status.font === 'rgba(108, 219, 86, 1)'
+                                        (this.props.ongoing &&
+                                            this.props.ongoing.length > 0) ||
+                                        status.font === 'rgba(255, 222, 36, 1)'
+                                            ? '#e39f48'
+                                            : status.font ===
+                                              'rgba(108, 219, 86, 1)'
                                             ? '#49c3b1'
                                             : status.font ===
                                               'rgba(250, 109, 70, 1)'
                                             ? '#FA6D46'
-                                            : status.font ===
-                                              'rgba(255, 222, 36, 1)'
-                                            ? '#e39f48'
                                             : status.font,
                                     textTransform: 'capitalize',
                                 }}
                             >
-                                {monitorStatus === 'online'
+                                {this.props.ongoing &&
+                                this.props.ongoing.length > 0
+                                    ? 'Ongoing Scheduled Event'
+                                    : monitorStatus === 'online'
                                     ? 'operational'
                                     : monitorStatus}
                             </div>
@@ -668,11 +672,9 @@ class MonitorInfo extends Component {
                                     style={primaryText}
                                 >
                                     <ShouldRender if={!this.props.checkUptime}>
-                                        <em>{uptime}%</em>{' '}
+                                        <em>{uptime}%</em>
+                                        {' Uptime'}
                                     </ShouldRender>
-                                    Uptime for the last{' '}
-                                    {upDays > range ? range : upDays} day
-                                    {upDays > 1 ? 's' : ''}
                                 </span>
                             </div>
                         </div>
@@ -704,12 +706,20 @@ class MonitorInfo extends Component {
 MonitorInfo.displayName = 'UptimeGraphs';
 
 function mapStateToProps(state) {
+    const ongoing =
+        state.status &&
+        state.status.ongoing &&
+        state.status.ongoing.ongoing &&
+        state.status.ongoing.ongoing.filter(
+            ongoingSchedule => !ongoingSchedule.cancelled
+        );
     return {
         monitorState: state.status.statusPage.monitorsData,
         checkUptime: state.status.statusPage.hideUptime,
         activeProbe: state.status.activeProbe,
         probes: state.probe.probes,
         colors: state.status.statusPage.colors,
+        ongoing,
     };
 }
 
@@ -737,6 +747,7 @@ MonitorInfo.propTypes = {
     isGroupedByMonitorCategory: PropTypes.bool,
     theme: PropTypes.string,
     checkUptime: PropTypes.bool,
+    ongoing: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);

@@ -289,6 +289,7 @@ const DockerCredentialList = ({
                             marginTop: '20px',
                             padding: '0 10px',
                         }}
+                        id="noDockerCredential"
                     >
                         There are no docker credentials for this project
                     </div>
@@ -342,7 +343,7 @@ const DockerCredentialList = ({
                             <div className="Box-root">
                                 <span className="Text-fontWeight--medium">
                                     {numberOfPages > 0
-                                        ? `Page ${page} of ${numberOfPages} (${count} Git Credential${
+                                        ? `Page ${page} of ${numberOfPages} (${count} Docker Credential${
                                               count === 1 ? '' : 's'
                                           })`
                                         : `${count} Docker Credential${

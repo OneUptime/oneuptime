@@ -20,13 +20,27 @@ class ComponentSettings extends Component {
             return;
         }
         this.props.editComponent(this.props.projectId, values).then(data => {
-            history.push(
-                `/dashboard/project/${this.props.projectSlug}/${data.data.slug}/settings/basic`
+            history.replace(
+                `/dashboard/project/${this.props.projectSlug}/component/${data.data.slug}/settings/basic`
             );
         });
     };
     componentDidMount() {
-        this.props.fetchComponent(this.props.componentSlug);
+        const { projectId, componentSlug, fetchComponent } = this.props;
+        if (projectId && componentSlug) {
+            fetchComponent(projectId, componentSlug);
+        }
+    }
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps.projectId !== this.props.projectId ||
+            prevProps.componentSlug !== this.props.componentSlug
+        ) {
+            const { projectId, fetchComponent, componentSlug } = this.props;
+            if (projectId) {
+                fetchComponent(projectId, componentSlug);
+            }
+        }
     }
     render() {
         const {

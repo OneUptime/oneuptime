@@ -18,6 +18,19 @@ class GitCredential extends Component {
         this.props = props;
     }
 
+    componentDidUpdate(prevProps) {
+        if (prevProps.projectId !== this.props.projectId) {
+            const { projectId, getGitCredentials } = this.props;
+
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent('Git Credential page Loaded');
+            }
+
+            // load all the Docker Credentials
+            getGitCredentials({ projectId });
+        }
+    }
+
     componentDidMount() {
         const { projectId, getGitCredentials } = this.props;
 

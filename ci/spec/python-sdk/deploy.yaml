@@ -30,6 +30,37 @@ deploy_staging_python-sdk:
         refs:
             - master
             - hotfix-master
-            - feature-python-sdk
+    environment:
+        name: staging
+
+## DEPLOYMENT STAGE - PYTHON SDK
+deploy_production_python-sdk:
+    stage: Deploy
+    allow_failure: true
+    retry: 2
+    script:
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt-get install -y python3-pip
+        - cd python-sdk
+        - pip3 install -r requirements.txt
+        - bumpversion --new-version 3.0.$CI_PIPELINE_IID patch setup.py
+        - python3 setup.py sdist bdist_wheel
+        - twine check dist/*
+        - twine upload dist/* -u=$PyPi_USERNAME -p=$PyPi_PASSWORD
+        - git init
+        - git add .
+        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
+        - git checkout -f master
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/python-sdk.git master --force
+        - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - release
+            - hotfix-release
     environment:
         name: staging

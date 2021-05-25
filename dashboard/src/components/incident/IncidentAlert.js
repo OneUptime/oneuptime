@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import ShouldRender from '../basic/ShouldRender';
 import { AlertTableRows, AlertTableHeader } from '../alert/AlertTable';
@@ -265,6 +264,4 @@ IncidentAlert.propTypes = {
     ]),
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(IncidentAlert)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(IncidentAlert);

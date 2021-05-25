@@ -13,14 +13,16 @@ import { openSideNav } from '../../actions/page';
 import { API_URL, User } from '../../config';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-import { history } from '../../store';
 import { fetchSubProjectOngoingScheduledEvents } from '../../actions/scheduledEvent';
 import ShouldRender from '../basic/ShouldRender';
 import OnCallScheduleModal from '../OnCallScheduleModal';
+import IncidentHeaderModal from '../modals/IncidentHeaderModal';
+import ScheduleHeaderModal from '../modals/ScheduleHeaderModal';
 import DataPathHoC from '../DataPathHoC';
 import { openModal } from '../../actions/modal';
 import _ from 'lodash';
 import moment from 'moment-timezone';
+import Search from './Search';
 class TopContent extends Component {
     componentDidMount() {
         const {
@@ -49,6 +51,9 @@ class TopContent extends Component {
             };
             this.props.updateProfileSetting(userData);
         }
+    }
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.ArrowDown);
     }
 
     componentDidUpdate(prevProps) {
@@ -110,10 +115,43 @@ class TopContent extends Component {
     };
 
     handleActiveIncidentClick = () => {
-        history.push(`/dashboard/project/${this.props.currentProjectSlug}`);
+        let unresolvedincidents = [];
+
+        if (
+            this.props.incidents &&
+            this.props.incidents.incidents &&
+            this.props.incidents.incidents.length > 0
+        ) {
+            unresolvedincidents = this.props.incidents.incidents.filter(
+                incident => !incident.resolved
+            );
+        }
+        this.props.openModal({
+            content: DataPathHoC(IncidentHeaderModal, {
+                status: 'active',
+                incidents: unresolvedincidents,
+                currentProjectSlug: this.props.currentProjectSlug,
+                currentProjectId: this.props.currentProjectId,
+            }),
+        });
     };
 
-    renderActiveIncidents = (incidentCounter, topNavCardClass) => (
+    handleOngoingScheduleClick = () => {
+        const { subProjectOngoingScheduledEvents } = this.props;
+        const schedules = [];
+        subProjectOngoingScheduledEvents.forEach(eventData => {
+            schedules.push(...eventData.ongoingScheduledEvents);
+        });
+        this.props.openModal({
+            content: DataPathHoC(ScheduleHeaderModal, {
+                schedules,
+                currentProjectSlug: this.props.currentProjectSlug,
+                currentProjectId: this.props.currentProjectId,
+            }),
+        });
+    };
+
+    renderActiveIncidents = incidentCounter => (
         <>
             {typeof incidentCounter === 'number' && (
                 <div
@@ -142,25 +180,12 @@ class TopContent extends Component {
                             marginRight: '3px',
                         }}
                     />
-                    <span className={topNavCardClass} id="activeIncidentsText">
-                        <ShouldRender
-                            if={incidentCounter && incidentCounter > 0}
-                        >
-                            {`${incidentCounter +
-                                (incidentCounter === 1
-                                    ? ' Incident Currently Active'
-                                    : ' Incidents Currently Active')}`}
-                        </ShouldRender>
-                        <ShouldRender if={incidentCounter === 0}>
-                            No incidents currently active.
-                        </ShouldRender>
-                    </span>
                 </div>
             )}
         </>
     );
 
-    renderOngoingScheduledEvents = topNavCardClass => {
+    renderOngoingScheduledEvents = () => {
         const { subProjectOngoingScheduledEvents } = this.props;
         let count = 0;
         subProjectOngoingScheduledEvents.forEach(eventData => {
@@ -170,7 +195,7 @@ class TopContent extends Component {
             <div
                 className="Box-root box__yellow--dark Flex-flex Flex-direction--row Flex-alignItems--center Text-color--white Border-radius--4 Text-fontWeight--bold Padding-left--8 Padding-right--6 pointer Margin-left--20"
                 style={{ paddingBottom: '6px', paddingTop: '6px' }}
-                onClick={this.handleActiveIncidentClick}
+                onClick={this.handleOngoingScheduleClick}
                 id="ongoingEvents"
             >
                 <span
@@ -181,9 +206,6 @@ class TopContent extends Component {
                         marginRight: '3px',
                     }}
                 />
-                <span className={topNavCardClass}>{`${count} Scheduled Event${
-                    count === 1 ? '' : 's'
-                } Currently Active`}</span>
             </div>
         ) : null;
     };
@@ -191,8 +213,7 @@ class TopContent extends Component {
     renderOnCallSchedule = (
         activeSchedules,
         currentProjectId,
-        currentProjectSlug,
-        topNavCardClass
+        currentProjectSlug
     ) => {
         return (
             <div
@@ -218,9 +239,6 @@ class TopContent extends Component {
                         marginRight: '3px',
                     }}
                 />
-                <span className={topNavCardClass}>
-                    {`You're currently on-call duty`}
-                </span>
             </div>
         );
     };
@@ -249,6 +267,7 @@ class TopContent extends Component {
             });
         }
         let incidentCounter = null;
+
         if (
             this.props.incidents &&
             this.props.incidents.incidents &&
@@ -357,7 +376,6 @@ class TopContent extends Component {
                 const tempObj = { ...userSchedule, isOnDutyAllTheTime };
                 tempObj.startTime = startTime;
                 tempObj.endTime = endTime;
-
                 if (isUserActive) {
                     activeSchedules.push(tempObj);
                 } else {
@@ -381,143 +399,163 @@ class TopContent extends Component {
             <div
                 tabIndex="0"
                 onKeyDown={this.handleKeyBoard}
-                style={{ zIndex: '2' }}
-                className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20"
+                style={{
+                    zIndex: '2',
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                }}
+                className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20 db-Topnav-wrap"
             >
-                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-                    <div className="Box-root" onClick={this.props.openSideNav}>
-                        <div className="db-MenuContainer">
-                            <div
-                                className={
-                                    'db-MenuIcon Box-root Box-background--white'
-                                }
-                            >
-                                <div className="db-MenuIcon--content db-MenuIcon--menu" />
-                            </div>
-                        </div>
-                    </div>
-                    <FeedBackModal hideFeedbackModal={this.hideFeedbackModal} />
-
-                    <div
-                        className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart"
-                        id="myId"
-                    >
-                        {userSchedules ? (
-                            <>
-                                {ongoingEventList &&
-                                    ongoingEventList.length > 0 &&
-                                    ongoingEventList}
-                                <ShouldRender
-                                    if={
-                                        activeSchedules &&
-                                        activeSchedules.length > 0
+                <div className="db-Search-wrapper">
+                    <Search />
+                </div>
+                <div>
+                    <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                        <div
+                            className="Box-root"
+                            onClick={this.props.openSideNav}
+                        >
+                            <div className="db-MenuContainer">
+                                <div
+                                    className={
+                                        'db-MenuIcon Box-root Box-background--white'
                                     }
                                 >
-                                    {this.renderOnCallSchedule(
-                                        activeSchedules,
-                                        this.props.currentProjectId,
-                                        this.props.currentProjectSlug,
-                                        topNavCardClass
-                                    )}
-                                </ShouldRender>
-                            </>
-                        ) : (
-                            ''
-                        )}
+                                    <div className="db-MenuIcon--content db-MenuIcon--menu" />
+                                </div>
+                            </div>
+                        </div>
+                        <FeedBackModal
+                            hideFeedbackModal={this.hideFeedbackModal}
+                        />
 
-                        {this.renderActiveIncidents(
-                            incidentCounter,
-                            topNavCardClass
-                        )}
-                        {this.renderOngoingScheduledEvents(topNavCardClass)}
-
-                        <div className="Box-root Margin-right--16">
-                            <div
-                                id="feedback-div"
-                                className="db-FeedbackInput-container Card-root Card-shadow--small"
-                                onClick={this.showFeedbackModal}
-                            >
-                                <div className="db-FeedbackInput-box Box-root Box-background--offset Flex-flex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--4">
-                                    <div className="Box-root Flex-flex Margin-right--8">
-                                        <span className="db-FeedbackInput-defaultIcon" />
-                                    </div>
-
-                                    <div
-                                        style={{
-                                            overflow: 'hidden',
-                                            textOveerflow: 'ellipsis',
-                                            whiteSpace: 'nowrap',
-                                        }}
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart"
+                            id="myId"
+                        >
+                            {userSchedules ? (
+                                <>
+                                    {ongoingEventList &&
+                                        ongoingEventList.length > 0 &&
+                                        ongoingEventList}
+                                    <ShouldRender
+                                        if={
+                                            activeSchedules &&
+                                            activeSchedules.length > 0
+                                        }
                                     >
-                                        <span className="Text-color--disabled Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                            {}
-                                            {this.props.feedback.feedback
-                                                .success ||
-                                            this.props.feedback.feedback
-                                                .requesting ? (
-                                                <span>
-                                                    Thank you for your feedback.
-                                                </span>
-                                            ) : null}
-                                            {!this.props.feedback.feedback
-                                                .success &&
-                                            !this.props.feedback.feedback
-                                                .requesting &&
-                                            !this.props.feedback.feedback
-                                                .error ? (
-                                                <span>
-                                                    Anything we can do to help?
-                                                </span>
-                                            ) : null}
-                                            {this.props.feedback.feedback
-                                                .error ? (
-                                                <span>
-                                                    Sorry, Please try again.
-                                                </span>
-                                            ) : null}
-                                        </span>
+                                        {this.renderOnCallSchedule(
+                                            activeSchedules,
+                                            this.props.currentProjectId,
+                                            this.props.currentProjectSlug,
+                                            topNavCardClass
+                                        )}
+                                    </ShouldRender>
+                                </>
+                            ) : (
+                                ''
+                            )}
+
+                            {this.renderActiveIncidents(
+                                incidentCounter,
+                                topNavCardClass
+                            )}
+                            {this.renderOngoingScheduledEvents(topNavCardClass)}
+
+                            <div className="Box-root Margin-right--16">
+                                <div
+                                    id="feedback-div"
+                                    className="db-FeedbackInput-container Card-root Card-shadow--small"
+                                    onClick={this.showFeedbackModal}
+                                >
+                                    <div className="db-FeedbackInput-box Box-root Box-background--offset Flex-flex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--4">
+                                        <div className="Box-root Flex-flex Margin-right--8">
+                                            <span className="db-FeedbackInput-defaultIcon" />
+                                        </div>
+
+                                        <div
+                                            style={{
+                                                overflow: 'hidden',
+                                                textOveerflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            <span className="Text-color--disabled Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                {}
+                                                {this.props.feedback.feedback
+                                                    .success ||
+                                                this.props.feedback.feedback
+                                                    .requesting ? (
+                                                    <span>
+                                                        Thank you for your
+                                                        feedback.
+                                                    </span>
+                                                ) : null}
+                                                {!this.props.feedback.feedback
+                                                    .success &&
+                                                !this.props.feedback.feedback
+                                                    .requesting &&
+                                                !this.props.feedback.feedback
+                                                    .error ? (
+                                                    <span>
+                                                        Anything we can do to
+                                                        help?
+                                                    </span>
+                                                ) : null}
+                                                {this.props.feedback.feedback
+                                                    .error ? (
+                                                    <span>
+                                                        Sorry, Please try again.
+                                                    </span>
+                                                ) : null}
+                                            </span>
+                                        </div>
+                                        <span />
                                     </div>
                                     <span />
                                 </div>
-                                <span />
                             </div>
-                        </div>
 
-                        <div className="Box-root Flex-flex">
-                            <div
-                                tabIndex="-1"
-                                style={{ outline: 'none', marginRight: '15px' }}
-                            >
-                                <button
-                                    className={
-                                        count
-                                            ? 'db-Notifications-button active-notification'
-                                            : 'db-Notifications-button'
-                                    }
-                                    onClick={this.showNotificationsMenu}
+                            <div className="Box-root Flex-flex">
+                                <div
+                                    tabIndex="-1"
+                                    style={{
+                                        outline: 'none',
+                                        marginRight: '15px',
+                                    }}
                                 >
-                                    <span className="db-Notifications-icon db-Notifications-icon--empty" />
-                                </button>
+                                    <button
+                                        className={
+                                            count
+                                                ? 'db-Notifications-button active-notification'
+                                                : 'db-Notifications-button'
+                                        }
+                                        onClick={this.showNotificationsMenu}
+                                    >
+                                        <span className="db-Notifications-icon db-Notifications-icon--empty" />
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                        <div className="Box-root margin-20">
-                            <div>
-                                <div className="Box-root Flex-flex">
+                            <div className="Box-root margin-20">
+                                <div>
                                     <div className="Box-root Flex-flex">
-                                        <button
-                                            className="bs-Button bs-DeprecatedButton db-UserMenuX"
-                                            id="profile-menu"
-                                            type="button"
-                                            tabIndex="-1"
-                                            onClick={this.showProfileMenu}
-                                        >
-                                            <div
-                                                className="db-GravatarImage db-UserMenuX-image"
-                                                style={{
-                                                    backgroundImage: IMG_URL,
-                                                }}
-                                            />
-                                        </button>
+                                        <div className="Box-root Flex-flex">
+                                            <button
+                                                className="bs-Button bs-DeprecatedButton db-UserMenuX"
+                                                id="profile-menu"
+                                                type="button"
+                                                tabIndex="-1"
+                                                onClick={this.showProfileMenu}
+                                            >
+                                                <div
+                                                    className="db-GravatarImage db-UserMenuX-image"
+                                                    style={{
+                                                        backgroundImage: IMG_URL,
+                                                    }}
+                                                />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

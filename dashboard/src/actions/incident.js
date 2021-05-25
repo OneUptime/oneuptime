@@ -411,6 +411,11 @@ export function getIncidentByIdNumber(projectId, incidentIdNumber) {
     };
 }
 
+export function addIncident(incident) {
+    return function(dispatch) {
+        dispatch(incidentSuccess(incident));
+    };
+}
 // Calls the API to get the incident timeline
 export function getIncidentTimeline(projectId, incidentId, skip, limit) {
     return function(dispatch) {
@@ -515,7 +520,7 @@ export function acknowledgeIncident(projectId, incidentId, userId, multiple) {
                 });
                 dispatch(
                     fetchIncidentMessagesSuccess({
-                        incidentId,
+                        incidentId: result.data.incident.idNumber, // The incidentID needed is no longer objectID from DB but incident serial ID e.g 1
                         incidentMessages: result.data.data,
                         count: result.data.data.length,
                         type: result.data.type,
@@ -604,7 +609,7 @@ export function resolveIncident(projectId, incidentId, userId, multiple) {
                 });
                 dispatch(
                     fetchIncidentMessagesSuccess({
-                        incidentId,
+                        incidentId: result.data.incident.idNumber, // The incidentID needed is no longer objectID from DB but incident serial ID e.g 1
                         incidentMessages: result.data.data,
                         count: result.data.data.length,
                         type: result.data.type,

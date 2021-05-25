@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { v4 as uuidv4 } from 'uuid';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -564,6 +563,4 @@ const mapStateToProps = state => {
 const mapDispatchToProps = dispatch =>
     bindActionCreators({ openModal, fetchCards, setDefaultCard }, dispatch);
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(PaymentCard)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(PaymentCard);

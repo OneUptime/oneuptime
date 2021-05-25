@@ -8,7 +8,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 export class RowData extends Component {
     render() {
-        const { statusPage, subProjectId, project } = this.props;
+        const { statusPage, project } = this.props;
         const userId = User.getUserId();
         const monitorIds = statusPage.monitorNames;
         const gt = i => monitorIds && monitorIds.length > i;
@@ -16,17 +16,17 @@ export class RowData extends Component {
         monitors += gt(1)
             ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
             : '';
-        const path = `/dashboard/project/${project.slug}/sub-project/${subProjectId}/status-page/${statusPage._id}`;
-        let statusPageId, publicStatusPageUrl;
+        const path = `/dashboard/project/${project.slug}/status-page/${statusPage.slug}`;
+        let publicStatusPageUrl, statusPageSlug;
         if (statusPage) {
-            statusPageId = statusPage._id;
+            statusPageSlug = statusPage.slug;
         }
 
         if (IS_LOCALHOST) {
-            publicStatusPageUrl = `http://${statusPageId}.localhost:3006`;
+            publicStatusPageUrl = `http://${statusPageSlug}.localhost:3006`;
         } else {
             publicStatusPageUrl =
-                window.location.origin + '/status-page/' + statusPageId;
+                window.location.origin + '/status-page/' + statusPageSlug;
         }
 
         return (
@@ -129,7 +129,6 @@ RowData.displayName = 'StatusPage RowData';
 RowData.propTypes = {
     statusPage: PropTypes.object.isRequired,
     switchStatusPages: PropTypes.func.isRequired,
-    subProjectId: PropTypes.string.isRequired,
     project: PropTypes.object,
     switchToProjectViewerNav: PropTypes.bool,
 };

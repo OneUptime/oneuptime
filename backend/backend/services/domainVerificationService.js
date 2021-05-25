@@ -12,6 +12,20 @@ module.exports = {
     create: async function({ domain, projectId }) {
         const parsed = psl.parse(domain);
         const token = 'fyipe=' + randomChar();
+
+        // all domain should be tied to parentProject only
+        const project = await ProjectService.findOneBy({
+            _id: projectId,
+        });
+        if (!project) {
+            const error = new Error('Project not found or does not exist');
+            error.code = 400;
+            throw error;
+        }
+        if (project.parentProjectId) {
+            projectId = project.parentProjectId._id || project.parentProjectId;
+        }
+
         const creationData = {
             domain: parsed.domain,
             verificationToken: token,
@@ -113,6 +127,24 @@ module.exports = {
             throw error;
         }
     },
+    resetDomain: async function(domain) {
+        try {
+            const _this = this;
+            const updateObj = {
+                verificationToken: 'fyipe=' + randomChar(),
+                verified: false,
+                updatedAt: new Date(),
+            };
+            const updatedDomain = await _this.updateOneBy(
+                { _id: domain },
+                updateObj
+            );
+            return updatedDomain;
+        } catch (error) {
+            ErrorService.log('domainVerificationService.resetDomain', error);
+            throw error;
+        }
+    },
     doesTxtRecordExist: async function(subDomain, verificationToken) {
         const parsed = psl.parse(subDomain);
         const host = 'fyipe';
@@ -152,17 +184,29 @@ module.exports = {
     },
     doesDomainBelongToProject: async function(projectId, subDomain) {
         // ensure that a particular domain is available to all project and subProject
+        // domain added to a project should be available for both project and subProjects
+        // domain added to a subProject should be available to other subProjects and project
         const project = await ProjectService.findOneBy({ _id: projectId });
-        const projectList = [project._id];
+        let projectList = [project._id];
+        let subProjects = [];
         if (project.parentProjectId) {
             projectList.push(project.parentProjectId._id);
+
+            // find all the subProjects attached to this parent project
+            subProjects = await ProjectService.findBy({
+                parentProjectId: project.parentProjectId._id,
+            });
         } else {
-            let subProjects = await ProjectService.findBy({
+            subProjects = await ProjectService.findBy({
                 parentProjectId: project._id,
             });
-            subProjects = subProjects.map(project => project._id); // grab just the project ids
-            projectList.push(...subProjects);
         }
+        subProjects = subProjects.map(project => project._id); // grab just the project ids
+        projectList.push(...subProjects);
+
+        projectList = projectList.filter(
+            (projectId, index) => projectList.indexOf(projectId) === index
+        );
 
         const parsed = psl.parse(subDomain);
         const domain = parsed.domain;
@@ -241,6 +285,26 @@ module.exports = {
             throw error;
         }
     },
+    findDomain: async function(domainId, projectArr = []) {
+        try {
+            const _this = this;
+            let projectId;
+            for (const pId of projectArr) {
+                const check = await _this.findOneBy({
+                    _id: domainId,
+                    projectId: pId,
+                });
+                if (check) {
+                    projectId = check.projectId._id;
+                }
+            }
+            return projectId;
+        } catch (error) {
+            ErrorService.log('domainVerificationService.findDomain', error);
+            throw error;
+        }
+    },
+
     countBy: async function(query) {
         try {
             if (!query) {
@@ -248,6 +312,18 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
+
+            // fetch subproject
+            if (query.projectId) {
+                let subProjects = await ProjectService.findBy({
+                    parentProjectId: query.projectId,
+                });
+                subProjects = subProjects.map(project => project._id); // grab just the project ids
+                const totalProjects = [query.projectId, ...subProjects];
+
+                query = { ...query, projectId: { $in: totalProjects } };
+            }
+
             const count = await DomainVerificationTokenModel.countDocuments(
                 query
             );

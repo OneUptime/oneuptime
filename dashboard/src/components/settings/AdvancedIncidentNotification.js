@@ -6,8 +6,8 @@ import { reduxForm, Field } from 'redux-form';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import {
-    setEmailIncidentNotification,
-    setSmsIncidentNotification,
+    setEmailNotification,
+    setSmsNotification,
     setWebhookNotificationSettings,
 } from '../../actions/project';
 import { RenderField } from '../basic/RenderField';
@@ -37,16 +37,16 @@ class AdvancedIncidentNotification extends Component {
     submitForm = values => {
         const {
             type,
-            setSmsIncidentNotification,
-            setEmailIncidentNotification,
+            setSmsNotification,
+            setEmailNotification,
             setWebhookNotificationSettings,
             projectId,
         } = this.props;
 
         if (type === 'email') {
-            setEmailIncidentNotification({ projectId, data: values });
+            setEmailNotification({ projectId, data: values });
         } else if (type === 'sms') {
-            setSmsIncidentNotification({ projectId, data: values });
+            setSmsNotification({ projectId, data: values });
         } else if (type === 'webhook') {
             setWebhookNotificationSettings({ projectId, data: values });
         }
@@ -177,6 +177,66 @@ class AdvancedIncidentNotification extends Component {
                                                         text="Enable Investigation Note Email for Subscribers"
                                                     />
                                                 )}
+
+                                                <Checkbox
+                                                    name={
+                                                        type === 'email'
+                                                            ? 'sendCreatedScheduledEventNotificationEmail'
+                                                            : 'sendCreatedScheduledEventNotificationSms'
+                                                    }
+                                                    text={`Enable Create Scheduled Maintenance Event
+                                                        ${
+                                                            type === 'sms'
+                                                                ? 'SMS'
+                                                                : 'Email'
+                                                        }
+                                                        for Subscribers`}
+                                                />
+
+                                                <Checkbox
+                                                    name={
+                                                        type === 'email'
+                                                            ? 'sendScheduledEventResolvedNotificationEmail'
+                                                            : 'sendScheduledEventResolvedNotificationSms'
+                                                    }
+                                                    text={`Enable Scheduled Maintenance Event Resolved
+                                                        ${
+                                                            type === 'sms'
+                                                                ? 'SMS'
+                                                                : 'Email'
+                                                        }
+                                                        for Subscribers`}
+                                                />
+
+                                                <Checkbox
+                                                    name={
+                                                        type === 'email'
+                                                            ? 'sendNewScheduledEventInvestigationNoteNotificationEmail'
+                                                            : 'sendNewScheduledEventInvestigationNoteNotificationSms'
+                                                    }
+                                                    text={`Enable Scheduled Maintenance Event Note Added
+                                                        ${
+                                                            type === 'sms'
+                                                                ? 'SMS'
+                                                                : 'Email'
+                                                        }
+                                                        for Subscribers`}
+                                                />
+
+                                                <Checkbox
+                                                    name={
+                                                        type === 'email'
+                                                            ? 'sendScheduledEventCancelledNotificationEmail'
+                                                            : 'sendScheduledEventCancelledNotificationSms'
+                                                    }
+                                                    text={`Enable Scheduled Maintenance Event Cancelled
+                                                        ${
+                                                            type === 'sms'
+                                                                ? 'SMS'
+                                                                : 'Email'
+                                                        }
+                                                        for Subscribers`}
+                                                />
 
                                                 {showMoreOptions &&
                                                     type === 'email' && (
@@ -320,8 +380,8 @@ AdvancedIncidentNotification.displayName = 'AdvancedIncidentNotification';
 
 AdvancedIncidentNotification.propTypes = {
     type: PropTypes.string.isRequired,
-    setEmailIncidentNotification: PropTypes.func,
-    setSmsIncidentNotification: PropTypes.func,
+    setEmailNotification: PropTypes.func,
+    setSmsNotification: PropTypes.func,
     handleSubmit: PropTypes.func,
     requestingEmailIncident: PropTypes.bool,
     requestingSmsIncident: PropTypes.bool,
@@ -358,6 +418,24 @@ const mapStateToProps = (state, ownProps) => {
                 state.project.currentProject &&
                 state.project.currentProject
                     .enableInvestigationNoteNotificationSMS,
+
+            sendCreatedScheduledEventNotificationSms:
+                state.project.currentProject &&
+                state.project.currentProject
+                    .sendCreatedScheduledEventNotificationSms,
+            sendScheduledEventResolvedNotificationSms:
+                state.project.currentProject &&
+                state.project.currentProject
+                    .sendScheduledEventResolvedNotificationSms,
+            sendNewScheduledEventInvestigationNoteNotificationSms:
+                state.project.currentProject &&
+                state.project.currentProject
+                    .sendNewScheduledEventInvestigationNoteNotificationSms,
+
+            sendScheduledEventCancelledNotificationSms:
+                state.project.currentProject &&
+                state.project.currentProject
+                    .sendScheduledEventCancelledNotificationSms,
         };
     } else if (type === 'email') {
         initialValues = {
@@ -377,6 +455,23 @@ const mapStateToProps = (state, ownProps) => {
                 state.project.currentProject &&
                 state.project.currentProject
                     .enableInvestigationNoteNotificationEmail,
+
+            sendCreatedScheduledEventNotificationEmail:
+                state.project.currentProject &&
+                state.project.currentProject
+                    .sendCreatedScheduledEventNotificationEmail,
+            sendScheduledEventResolvedNotificationEmail:
+                state.project.currentProject &&
+                state.project.currentProject
+                    .sendScheduledEventResolvedNotificationEmail,
+            sendNewScheduledEventInvestigationNoteNotificationEmail:
+                state.project.currentProject &&
+                state.project.currentProject
+                    .sendNewScheduledEventInvestigationNoteNotificationEmail,
+            sendScheduledEventCancelledNotificationEmail:
+                state.project.currentProject &&
+                state.project.currentProject
+                    .sendScheduledEventCancelledNotificationEmail,
             replyAddress:
                 state.project.currentProject &&
                 state.project.currentProject.replyAddress,
@@ -405,8 +500,8 @@ const mapStateToProps = (state, ownProps) => {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            setEmailIncidentNotification,
-            setSmsIncidentNotification,
+            setEmailNotification,
+            setSmsNotification,
             setWebhookNotificationSettings,
         },
         dispatch

@@ -123,6 +123,7 @@ export class TeamMember extends Component {
             >
                 <div
                     className="bs-ObjectList-cell bs-u-v-middle"
+                    id={`${this.props.email.split('@')[0]}-profile`}
                     style={{ cursor: 'pointer' }}
                     onClick={() => {
                         history.push('/dashboard/profile/' + this.props.userId);
@@ -233,7 +234,7 @@ export class TeamMember extends Component {
                                                                     name:
                                                                         this
                                                                             .props
-                                                                            .name ??
+                                                                            .name ||
                                                                         this
                                                                             .props
                                                                             .email,

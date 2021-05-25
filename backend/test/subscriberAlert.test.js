@@ -23,7 +23,7 @@ const EmailSmtpService = require('../backend/services/emailSmtpService');
 
 const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, userId, projectId, monitorId, incidentId, subscriberId;
+let token, userId, projectId, monitorId, incidentId, subscriberId, idNumber;
 const monitor = {
     name: 'New Monitor',
     type: 'url',
@@ -73,6 +73,8 @@ describe('Subcriber Alert API', function() {
                                                 )
                                                 .send(incidentData)
                                                 .end((err, res) => {
+                                                    idNumber =
+                                                        res.body.idNumber; // This has replaced incidentId and is used to query subscriber alert
                                                     incidentId = res.body._id;
                                                     expect(res).to.have.status(
                                                         200
@@ -184,7 +186,7 @@ describe('Subcriber Alert API', function() {
 
     it('should get subscriber alerts by incidentId', done => {
         request
-            .get(`/subscriberAlert/${projectId}/incident/${incidentId}`)
+            .get(`/subscriberAlert/${projectId}/incident/${idNumber}`)
             .end((err, res) => {
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('object');

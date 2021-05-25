@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
+import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -19,22 +19,28 @@ export class DeleteStatusPageBox extends Component {
     }
 
     handleClick = () => {
-        const { deleteStatusPage, scheduleId, history } = this.props;
+        const {
+            deleteStatusPage,
+            statusPageSlug,
+            history,
+            subProjectId,
+        } = this.props;
         const { deleteModalId } = this.state;
-        const { subProjectId } = this.props.match.params;
         this.props.openModal({
             id: deleteModalId,
             onConfirm: () => {
-                return deleteStatusPage(subProjectId, scheduleId).then(() => {
-                    if (SHOULD_LOG_ANALYTICS) {
-                        logEvent(
-                            'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > STATUS PAGE DELETED'
+                return deleteStatusPage(subProjectId, statusPageSlug).then(
+                    () => {
+                        if (SHOULD_LOG_ANALYTICS) {
+                            logEvent(
+                                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > STATUS PAGE DELETED'
+                            );
+                        }
+                        history.push(
+                            `/dashboard/project/${this.props.slug}/status-pages`
                         );
                     }
-                    history.push(
-                        `/dashboard/project/${this.props.slug}/status-pages`
-                    );
-                });
+                );
             },
             content: DeleteStatusPageModal,
         });
@@ -103,20 +109,13 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators({ deleteStatusPage, openModal, closeModal }, dispatch);
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId } = props.match.params;
-
-    //  const status = state.statusPage.statusPages.find(
-    //   statusPage => statusPage._id === scheduleId
-    //   );
-
-    //  const scheduleName = schedule && schedule.name;
+    const { statusPageSlug } = props.match.params;
 
     return {
-        // scheduleName,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
-        scheduleId,
+        statusPageSlug,
         isRequesting:
             state.statusPage &&
             state.statusPage.deleteStatusPage &&
@@ -127,15 +126,12 @@ const mapStateToProps = (state, props) => {
 DeleteStatusPageBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
     history: PropTypes.object.isRequired,
-    scheduleId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    statusPageSlug: PropTypes.string,
     deleteStatusPage: PropTypes.func.isRequired,
     closeModal: PropTypes.func,
     openModal: PropTypes.func.isRequired,
     slug: PropTypes.string,
-    match: PropTypes.object,
+    subProjectId: PropTypes.string,
 };
 
 export default withRouter(

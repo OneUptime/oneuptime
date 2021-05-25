@@ -18,6 +18,8 @@ const ApplicationSecurityLogService = require('../services/applicationSecurityLo
 const ContainerSecurityLogService = require('../services/containerSecurityLogService');
 const ErrorTrackerService = require('../services/errorTrackerService');
 const IssueService = require('../services/issueService');
+const PerformanceTrackerService = require('../services/performanceTrackerService');
+const PerformanceTrackerMetricService = require('../services/performanceTrackerMetricService');
 
 const router = express.Router();
 const isUserAdmin = require('../middlewares/project').isUserAdmin;
@@ -135,7 +137,10 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     }
 });
 
-router.get('/slug/:slug', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(
+    req,
+    res
+) {
     try {
         const { slug } = req.params;
         const component = await ComponentService.findOneBy({
@@ -380,7 +385,6 @@ router.get(
                         icon: 'docker',
                         securityLog,
                         slug: elem.slug,
-                        component,
                     };
                     // add it to the total resources
                     totalResources.push(newElement);
@@ -411,7 +415,6 @@ router.get(
                         icon: 'security',
                         securityLog,
                         slug: elem.slug,
-                        component,
                     };
                     // add it to the total resources
                     totalResources.push(newElement);
@@ -482,6 +485,39 @@ router.get(
                     return newElement;
                 })
             );
+
+            // fetch performance tracker
+            const performanceTrackers = await PerformanceTrackerService.getPerformanceTrackerByComponentId(
+                componentId,
+                limit,
+                skip
+            );
+
+            await Promise.all(
+                performanceTrackers.map(async performanceTracker => {
+                    let trackerStatus = 'Not monitoring performance';
+                    const metrics = await PerformanceTrackerMetricService.findBy(
+                        { performanceTrackerId: performanceTracker._id },
+                        1,
+                        0
+                    );
+                    if (metrics.length > 0) {
+                        trackerStatus = 'Monitoring performance';
+                    }
+                    const newElement = {
+                        _id: performanceTracker._id,
+                        name: performanceTracker.name,
+                        type: 'performance tracker',
+                        createdAt: performanceTracker.createdAt,
+                        icon: 'monitor',
+                        status: trackerStatus,
+                        slug: performanceTracker.slug,
+                    };
+                    // add it to the total resources
+                    totalResources.push(newElement);
+                    return newElement;
+                })
+            );
             // return response
             return sendItemResponse(req, res, {
                 totalResources,
@@ -543,6 +579,7 @@ router.get(
         }
     }
 );
+
 router.delete(
     '/:projectId/:componentId',
     getUser,

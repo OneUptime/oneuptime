@@ -40,6 +40,7 @@ const statusSchema = new Schema({
         },
     ],
     links: Array,
+    slug: String,
     title: { type: String, default: 'Status Page' },
     name: String,
     isPrivate: {
@@ -84,6 +85,7 @@ const statusSchema = new Schema({
     logoPath: String,
     bannerPath: String,
     colors: Object,
+    layout: Object,
     headerHTML: String,
     footerHTML: String,
     customCSS: String,
@@ -117,6 +119,9 @@ const statusSchema = new Schema({
     enableIpWhitelist: { type: Boolean, default: false },
     ipWhitelist: { type: Array, default: [] },
     deleted: { type: Boolean, default: false },
+    incidentHistoryDays: { type: Number, default: 14 },
+    scheduleHistoryDays: { type: Number, default: 14 },
+    announcementLogsHistory: { type: Number, default: 14 },
 
     deletedAt: {
         type: Date,

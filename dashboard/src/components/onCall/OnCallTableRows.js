@@ -5,8 +5,7 @@ import { OnCallTableBody } from './OnCallData';
 import { history } from '../../store';
 
 function Row(props) {
-    const { subProjectId } = props;
-    const path = `/dashboard/project/${props.slug}/sub-project/${subProjectId}/schedule/${props.id}`;
+    const path = `/dashboard/project/${props.slug}/schedule/${props.scheduleSlug}`;
     return (
         <tr
             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink scheduleListItem"
@@ -41,15 +40,14 @@ Row.displayName = 'OnCallTableRow';
 Row.propTypes = {
     name: PropTypes.string.isRequired,
     users: PropTypes.string,
-    id: PropTypes.string.isRequired,
+    scheduleSlug: PropTypes.string.isRequired,
     monitors: PropTypes.string,
-    subProjectId: PropTypes.string,
     slug: PropTypes.string,
     bottonTitle: PropTypes.string,
 };
 
 function parseSchedule(schedule) {
-    const { name, monitorIds, _id } = schedule;
+    const { name, monitorIds, _id, slug } = schedule;
     const { escalationIds } = schedule;
     const escalation = escalationIds[0] && escalationIds[0].teams;
     const userIds = [];
@@ -85,7 +83,7 @@ function parseSchedule(schedule) {
         ? ` and ${monitorIds.length - 1} other${gt(2) ? 's' : ''}`
         : '';
 
-    return { name, users, monitors, id };
+    return { name, users, monitors, id, slug };
 }
 
 function OnCallTableRows({
@@ -112,6 +110,7 @@ function OnCallTableRows({
                       subProjectId={subProjectId}
                       bottonTitle={bottonTitle}
                       slug={slug}
+                      scheduleSlug={schedule.slug}
                   />
               );
           })

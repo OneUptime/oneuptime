@@ -3226,6 +3226,10 @@ figure.bs-Number>figcaption {
   width: 600px;
 }
 
+.bs-Modal--team {
+  width: 650px;
+}
+
 .bs-Modal--xlarge {
   width: 900px;
 }
@@ -35038,7 +35042,10 @@ span.CodeMirror-selectedtext {
 padding-left:20px
 }
 
-
+.search-list-li li:hover{
+  background-color: #eee;
+  cursor: pointer;
+}
 .bs-bullet-container {
     display: flex;
     align-items: flex-start;
@@ -35332,7 +35339,7 @@ padding-left:20px
 }
 
 .status-tab {
-  width: 16.67% !important;
+  width: 14.28% !important;
 }
 
 @media (max-width: 930px) {

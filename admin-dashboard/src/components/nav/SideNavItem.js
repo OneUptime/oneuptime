@@ -191,7 +191,7 @@ export class SidebarNavItem extends Component {
 
 SidebarNavItem.displayName = 'SidebarNavItem';
 
-const mapStateToProps = state_Ignored => ({});
+const mapStateToProps = () => ({});
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators({ loadPage }, dispatch);

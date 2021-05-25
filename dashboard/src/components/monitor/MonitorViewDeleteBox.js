@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -28,7 +27,7 @@ export class MonitorViewDeleteBox extends Component {
             projectId
         );
         history.push(
-            `/dashboard/project/${this.props.currentProject.slug}/${this.props.componentSlug}/monitoring`
+            `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
         );
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -143,6 +142,7 @@ MonitorViewDeleteBox.propTypes = {
     deleteMonitor: PropTypes.func.isRequired,
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(MonitorViewDeleteBox)
-);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(MonitorViewDeleteBox);

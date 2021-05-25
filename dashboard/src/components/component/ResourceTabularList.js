@@ -27,7 +27,7 @@ class ResourceTabularList extends Component {
     }
     generateUrlLink(componentResource) {
         const { currentProject, componentSlug } = this.props;
-        const baseUrl = `/dashboard/project/${currentProject.slug}/${componentSlug}/`;
+        const baseUrl = `/dashboard/project/${currentProject.slug}/component/${componentSlug}/`;
         let route = '';
         switch (componentResource.type) {
             case 'website monitor':
@@ -52,6 +52,9 @@ class ResourceTabularList extends Component {
                 break;
             case 'error tracker':
                 route = 'error-trackers';
+                break;
+            case 'performance tracker':
+                route = 'performance-tracker';
                 break;
             default:
                 break;
@@ -207,6 +210,26 @@ class ResourceTabularList extends Component {
                 break;
             case 'error tracker':
                 if (componentResource.status === 'Listening for Errors')
+                    statusColor = 'green';
+                statusDescription = componentResource.status;
+                indicator = (
+                    <div className="Flex-flex">
+                        <div
+                            className={`db-Badge Box-background--${statusColor}`}
+                        ></div>
+
+                        <span
+                            id={`resource_status_${componentResource.name}`}
+                            className={`Text-color--${statusColor}`}
+                        >
+                            {' '}
+                            {` ${statusDescription}`}{' '}
+                        </span>
+                    </div>
+                );
+                break;
+            case 'performance tracker':
+                if (componentResource.status === 'Monitoring performance')
                     statusColor = 'green';
                 statusDescription = componentResource.status;
                 indicator = (

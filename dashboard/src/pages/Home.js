@@ -101,9 +101,10 @@ class Home extends Component {
 
     closeAllIncidents = async () => {
         const incidents = this.props.incidents;
+        const projectId = this.props.currentProjectId;
         for (const incident of incidents) {
             if (incident.resolved) {
-                this.props.closeIncident(incident.projectId, incident._id);
+                this.props.closeIncident(projectId, incident._id);
             }
         }
     };

@@ -1,337 +1,53 @@
 # Running Tests
 
-To run tests on several projects, there are a few components required, mongodb and redis.
+## Introduction
 
-If you have docker installed on your local machine, you can as well run mongodb and redis in containers.
+Tests are in the `/tests` folder.
 
-Run the following commands to start up mongodb and redis:
+There are two types of tests,
 
-```bash
-sudo docker run --name mongo -p 27017:27017 -d mongo
-sudo docker run --name redis -p 6379:6379 -d redis
-```
+-   SaaS
+-   Enterprise
 
-**Note** Running mongodb and redis in docker containers require you to have any previous running processes stopped or installation completely removed.
+### SaaS tests
 
-## Initial Setup
+This runs the application in SaaS mode. What is SaaS mode? SaaS mode enables plans and pricing with stripe. It runs the test as if its a hosted Fyipe service on Fyipe.com.
 
-Some tests, including backend and dashboard, require you to have probes and http test server running.
-
-Run the following commands to setup test probe records in mongodb:
-
-```bash
-cd init-scripts
-npm install
-NODE_ENV=development npm start
-```
-
-Run the following commands to start up the 2 test probes:
-
-```bash
-cd probe
-npm install
-PROBE_NAME="Probe 1" PROBE_KEY=test-key PORT=3024 npm start
-PROBE_NAME="Probe 2" PROBE_KEY=test-key PORT=3025 npm start
-```
-
-Or in docker containers:
-
-```bash
-sudo docker build -t fyipeproject/probe ./probe
-sudo docker run --name probe-1 --env-file ./probe/.env -e PORT=3024 -e PROBE_NAME="Probe 1" -e PROBE_KEY=test-key --net=host -d fyipeproject/probe
-sudo docker run --name probe-2 --env-file ./probe/.env -e PORT=3025 -e PROBE_NAME="Probe 2" -e PROBE_KEY=test-key --net=host -d fyipeproject/probe
-```
-
-Run the following commands to start up http test server:
-
-```bash
-cd http-test-server
-npm install
-npm start
-```
-
-Or in a docker container:
-
-```bash
-sudo docker build -t fyipeproject/http-test-server ./http-test-server
-sudo docker run --name test-server -p 3010:3010 -d fyipeproject/http-test-server
-```
-
-## Backend
-
-There are two types of backend test, saas and enterprise test.
-
-### Dependencies
-
--   Probes
--   Http Test Server
-
-To run saas test, add the following line in the `.env` file in the backend project (`app/backend/.env`); this line is not required to run enterprise test:
+#### Running tests in SaaS mode
 
 ```
-IS_SAAS_SERVICE=true
+npm run docker-saas-test
 ```
 
-Run the following commands to start saas test:
+This spins up a new local Fyipe cluster on Docker Compose and runs a test on it.
 
-```bash
-cd backend
-npm install
-npm test
-```
+### Enterprise tests
 
-Run the following commands to start enterprise test:
+This runs the application in Enterprise mode. What is Enterprise mode? Enterprise mode DISABLES plans and pricing. It runs the test as if its a hosted on an on-premise datacenter with an enterprise.
 
-```bash
-cd backend
-npm install
-npm run enterprise-test
-```
-
-## Accounts
-
-There are two types of accounts test, saas and enterprise test.
-
-### Dependencies
-
--   Backend
--   Accounts
--   Admin Dashboard
--   Dashboard
-
-To run saas test, add the following line in the `.env` file in the backend project (`app/backend/.env`), accounts project (`app/accounts/.env`), dashboard project (`app/dashboard/.env`) and admin dashboard project (`app/admin-dashboard/.env`); this line is not required to run enterprise test:
+#### Running tests in Enterprise mode
 
 ```
-IS_SAAS_SERVICE=true
+npm run docker-enterprise-test
 ```
 
-Run the following commands to start up dependencies in docker containers:
+This spins up a new local Fyipe cluster on Docker Compose and runs a test on it.
 
-```bash
-sudo docker build -t fyipeproject/backend ./backend
-sudo docker run --name backend --env-file ./backend/.env --net=host -d fyipeproject/backend
-sudo docker build -t fyipeproject/accounts ./accounts
-sudo docker run --name accounts --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts
-sudo docker build -t fyipeproject/admin-dashboard ./admin-dashboard
-sudo docker run --name admin-dashboard --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard
-sudo docker build -t fyipeproject/dashboard ./dashboard
-sudo docker run --name dashboard --env-file ./dashboard/.env -p 3000:3000 -d fyipeproject/dashboard
-```
+### Debugging tests
 
-Run the following commands to start saas test:
-
-```bash
-cd accounts
-npm install
-npm test
-```
-
-Run the following commands to start enterprise test:
-
-```bash
-cd accounts
-npm install
-npm run enterprise-test
-```
-
-## Admin Dashboard
-
-There are two types of admin dashboard test, saas and enterprise test.
-
-### Dependencies
-
--   Backend
--   Accounts
--   Admin Dashboard
--   Dashboard
--   Helm Chart
--   Api Docs
--   Licensing
--   Probe
-
-To run saas test, add the following line in the `.env` file in the backend project (`app/backend/.env`), accounts project (`app/accounts/.env`), and admin dashboard project (`app/admin-dashboard/.env`); this line is not required to run enterprise test:
+To debug tests you first need to run the cluster and then run the tests seperately.
 
 ```
-IS_SAAS_SERVICE=true
+npm run docker-saas # Running a cluster in SaaS mode, or...
+npm run docker-enterprise # Run a cluster in enterprise mode.
 ```
 
-Run the following commands to start up dependencies in docker containers:
-
-```bash
-sudo docker build -t fyipeproject/backend ./backend
-sudo docker run --name backend --env-file ./backend/.env --net=host -d fyipeproject/backend
-sudo docker build -t fyipeproject/accounts ./accounts
-sudo docker run --name accounts --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts
-sudo docker build -t fyipeproject/licensing ./licensing
-sudo docker run --name licensing --env-file ./licensing/.env -p 3004:3004 -d fyipeproject/licensing
-sudo docker build -t fyipeproject/dashboard ./dashboard
-sudo docker run --name dashboard --env-file ./dashboard/.env -p 3000:3000 -d fyipeproject/dashboard
-sudo docker build -t fyipeproject/helm-chart ./helm-chart
-sudo docker run --name helm-chart --env-file ./helm-chart/.env -p 3423:3423 -d fyipeproject/helm-chart
-sudo docker build -t fyipeproject/api-docs ./api-docs
-sudo docker run --name api-docs --env-file ./api-docs/.env -p 1445:1445 -d fyipeproject/api-docs
-sudo docker build -t fyipeproject/probe ./probe
-sudo docker run --name probe-1 --env-file ./probe/.env -e PORT=3024 -e PROBE_NAME='Probe 1' -e PROBE_KEY=test-key    --net=host -d fyipeproject/probe
-sudo docker run --name probe-2 --env-file ./probe/.env -e PORT=3025 -e PROBE_NAME='Probe 2' -e PROBE_KEY=test-key --net=host -d fyipeproject/probe
-sudo docker build -t fyipeproject/admin-dashboard ./admin-dashboard
-sudo docker run --name admin-dashboard --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard
-```
-
-Run the following commands to start saas test:
-
-```bash
-cd admin-dashboard
-npm install
-npm test
-```
-
-Run the following commands to start enterprise test:
-
-```bash
-cd admin-dashboard
-npm install
-npm run enterprise-test
-```
-
-## Dashboard
-
-There are two types of dashboard test, saas and enterprise test.
-
-### Dependencies
-
--   Probes
--   Http Test Server
--   Backend
--   Accounts
--   Admin Dashboard
--   Status Page
--   Dashboard
-
-To run saas test, add the following line in the `.env` file in the backend project (`app/backend/.env`), accounts project (`app/accounts/.env`), dashboard project (`app/dashboard/.env`) and admin dashboard project (`app/admin-dashboard/.env`); this line is not required to run enterprise test:
+Once the cluster is running, you can run tests like:
 
 ```
-IS_SAAS_SERVICE=true
+export SLOMO=20
+export HEADLESS=false
+jest  ./saas-tests/status-page/status-page.test.js # or any file.
 ```
 
-Run the following commands to start up dependencies in docker containers:
-
-```bash
-sudo docker build -t fyipeproject/backend ./backend
-sudo docker run --name backend --env-file ./backend/.env --net=host -d fyipeproject/backend
-sudo docker build -t fyipeproject/accounts ./accounts
-sudo docker run --name accounts --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts
-sudo docker build -t fyipeproject/admin-dashboard ./admin-dashboard
-sudo docker run --name admin-dashboard --env-file ./admin-dashboard/.env -p 3100:3100 -d fyipeproject/admin-dashboard
-sudo docker build -t fyipeproject/dashboard ./dashboard
-sudo docker run --name dashboard --env-file ./dashboard/.env -p 3000:3000 -d fyipeproject/dashboard
-```
-
-Run the following commands to start saas test:
-
-```bash
-cd dashboard
-npm install
-npm test
-```
-
-Run the following commands to start enterprise test:
-
-```bash
-cd dashboard
-npm install
-npm run enterprise-test
-```
-
-**Note** saas tests are saved like so \*.test.js while enterprise tests are saved like so, \*.test.enterprise.js.
-
-## Status Page
-
-### Dependencies
-
--   Backend
--   Accounts
--   Status Page
-
-To run test, add the following line in the `.env` file in the backend project (`app/backend/.env`) and accounts project (`app/accounts/.env`):
-
-```
-IS_SAAS_SERVICE=true
-```
-
-Run the following commands to start up dependencies in docker containers:
-
-```bash
-sudo docker build -t fyipeproject/backend ./backend
-sudo docker run --name backend --env-file ./backend/.env --net=host -d fyipeproject/backend
-sudo docker build -t fyipeproject/accounts ./accounts
-sudo docker run --name accounts --env-file ./accounts/.env -p 3003:3003 -d fyipeproject/accounts
-sudo docker build -t fyipeproject/status-page ./status-page
-sudo docker run --name status-page --env-file ./status-page/.env -p 3006:3006 -d fyipeproject/status-page
-```
-
-Run the following commands to start test:
-
-```bash
-cd status-page
-npm install
-npm test
-```
-
-## Http Test Server
-
-Run the following commands to start test:
-
-```bash
-cd status-page
-npm install
-npm test
-```
-
-## Init Script
-
-Run the following commands to start test:
-
-```bash
-cd init-script
-npm install
-npm test
-```
-
-## Server Monitor
-
-Please see [Fyipe Server Monitor](https://github.com/Fyipe/js-sdk/blob/master/docs/server-monitor/README.md) for more information on how to use this package.
-
-### Dependencies
-
--   Backend
-
-To run saas test, add the following line in the `.env` file in the backend project (`app/backend/.env`):
-
-```
-IS_SAAS_SERVICE=true
-```
-
-Run the following commands to start up dependency in a docker container:
-
-```bash
-sudo docker build -t fyipeproject/backend ./backend
-sudo docker run --name backend --env-file ./backend/.env --net=host -d fyipeproject/backend
-```
-
-Run the following commands to start test:
-
-```bash
-cd server-monitor
-npm install
-npm test
-```
-
-## Zapier
-
-Run the following commands to start test:
-
-```bash
-cd zapier
-npm install
-npm test
-```
+There's also a .vscode/launch.json in test folder which will help you to debug tests with vscode.

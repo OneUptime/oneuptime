@@ -119,13 +119,14 @@ export class ComponentDetail extends Component {
         return promise;
     };
     componentDidMount() {
-        const { component } = this.props;
+        const { component, currentProject } = this.props;
         this.props.fetchComponentResources(
             component.projectId._id,
             component._id,
             0,
             5
         );
+        this.props.fetchMonitors(currentProject._id);
     }
 
     render() {
@@ -211,7 +212,7 @@ export class ComponentDetail extends Component {
                                         history.push(
                                             '/dashboard/project/' +
                                                 currentProject.slug +
-                                                '/' +
+                                                '/component/' +
                                                 component.slug +
                                                 '/monitoring'
                                         );
@@ -314,7 +315,7 @@ ComponentDetail.propTypes = {
         PropTypes.object,
         PropTypes.array,
     ]),
-    //  fetchMonitors: PropTypes.func, unused
+    fetchMonitors: PropTypes.func,
     animateSidebar: PropTypes.func,
 };
 

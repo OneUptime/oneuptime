@@ -1,5 +1,6 @@
 const Gl = require('greenlock');
 const greenlock = Gl.create({
+    manager: 'fyipe-gl-manager',
     packageRoot: __dirname,
     configDir: './greenlock.d/',
     maintainerEmail: 'certs@fyipe.com',

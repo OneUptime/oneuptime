@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router';
+import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -109,18 +109,18 @@ const mapDispatchToProps = dispatch =>
     );
 
 const mapStateToProps = (state, props) => {
-    const { scheduleId, subProjectId, userId } = props.match.params;
+    const { scheduleSlug, userId } = props.match.params;
 
     let schedule = state.schedule.subProjectSchedules.map(
         subProjectSchedule => {
             return subProjectSchedule.schedules.find(
-                schedule => schedule._id === scheduleId
+                schedule => schedule.slug === scheduleSlug
             );
         }
     );
 
     schedule = schedule.find(
-        schedule => schedule && schedule._id === scheduleId
+        schedule => schedule && schedule.slug === scheduleSlug
     );
 
     const scheduleName = schedule && schedule.name;
@@ -129,8 +129,8 @@ const mapStateToProps = (state, props) => {
         scheduleName,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        subProjectId,
-        scheduleId,
+        subProjectId: schedule && schedule.projectId._id,
+        scheduleId: schedule && schedule._id,
         slug: state.project.currentProject && state.project.currentProject.slug,
         userId,
         isRequesting: state.schedule.deleteSchedule.requesting,

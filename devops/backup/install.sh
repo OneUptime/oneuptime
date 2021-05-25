@@ -93,13 +93,18 @@ Persistent=true
 WantedBy=timers.target
 ' > /etc/systemd/system/backup.timer
 
-  # STEP 6: make files.sh executable
-  chmod +x "$HOME"/backup.sh
+# STEP 6: make files.sh executable
+chmod +x "$HOME"/backup.sh
 
-  # STEP 7: Start timer
-  sudo systemctl daemon-reload
+# STEP 7: Start timer
+sudo systemctl daemon-reload
 
-  sudo systemctl enable backup.timer
+sudo systemctl enable backup.timer
 
-  sudo systemctl start backup.timer
+sudo systemctl start backup.timer
 
+# Install Mongodb locally for mongo cli and mongodump and mongorestore.
+wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+sudo apt-get update
+sudo apt-get install -y mongodb-org

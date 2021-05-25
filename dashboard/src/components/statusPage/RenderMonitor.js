@@ -314,6 +314,18 @@ const mapStateToProps = (state, ownProps) => {
         .map(monitor => monitor.monitors)
         .flat();
     const monitors = selector(state, 'monitors');
+
+    /** On Theme change, the updated monitors state becomes a monitor nested object within an array
+     * This monitor nested object(monitor.monitor._id) is then extracted and used to update 'monitor.monitor'.
+     * monitor.monitor is the required id used in setting the initial values by default.
+     */
+    monitors.map(monitor => {
+        if (monitor.monitor && typeof monitor.monitor === 'object') {
+            monitor.monitor = monitor.monitor._id;
+        }
+        return monitor;
+    });
+
     const {
         form: {
             StatuspageMonitors: { syncErrors: errors },

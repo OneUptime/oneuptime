@@ -4,7 +4,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import SideNav from './nav/SideNav';
 import TopNav from './nav/TopNav';
-import { withRouter } from 'react-router';
 import { Link } from 'react-router-dom';
 import ShouldRender from './basic/ShouldRender';
 import ProfileMenu from './profile/ProfileMenu';
@@ -295,6 +294,4 @@ DashboardApp.contextTypes = {
     mixpanel: PropTypes.object.isRequired,
 };
 
-export default withRouter(
-    connect(mapStateToProps, mapDispatchToProps)(DashboardApp)
-);
+export default connect(mapStateToProps, mapDispatchToProps)(DashboardApp);

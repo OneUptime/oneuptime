@@ -54,18 +54,7 @@ class OnCallScheduleModal extends Component {
                                                             <b
                                                                 onClick={() => {
                                                                     history.push(
-                                                                        `/dashboard/project/${
-                                                                            this
-                                                                                .props
-                                                                                .data
-                                                                                .currentProjectSlug
-                                                                        }/sub-project/${schedule.projectId &&
-                                                                            schedule
-                                                                                .projectId
-                                                                                ._id}/schedule/${schedule.scheduleId &&
-                                                                            schedule
-                                                                                .scheduleId
-                                                                                ._id}`
+                                                                        `/dashboard/project/${this.props.data.currentProjectSlug}/schedule/${schedule.scheduleId.slug}`
                                                                     );
 
                                                                     this.props.closeThisDialog();

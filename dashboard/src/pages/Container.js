@@ -14,6 +14,7 @@ import {
     scanContainerSecuritySuccess,
     getContainerSecuritySuccess,
 } from '../actions/security';
+import { fetchComponent } from '../actions/component';
 import { LargeSpinner } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -37,6 +38,54 @@ class Container extends Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('Container Security page Loaded');
         }
+        const {
+            projectId,
+            componentId,
+            getContainerSecurities,
+            getContainerSecurityLogs,
+            componentSlug,
+            fetchComponent,
+        } = this.props;
+        if (projectId && componentSlug) {
+            fetchComponent(projectId, componentSlug);
+        }
+        if (projectId && componentId) {
+            // load container security logs
+            getContainerSecurityLogs({ projectId, componentId });
+
+            // load container security
+            getContainerSecurities({ projectId, componentId });
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps.projectId !== this.props.projectId ||
+            prevProps.componentId !== this.props.componentId
+        ) {
+            const {
+                projectId,
+                componentId,
+                getContainerSecurities,
+                getContainerSecurityLogs,
+            } = this.props;
+            if (projectId && componentId) {
+                // load container security logs
+                getContainerSecurityLogs({ projectId, componentId });
+
+                // load container security
+                getContainerSecurities({ projectId, componentId });
+            }
+        }
+        if (
+            prevProps.projectId !== this.props.projectId ||
+            prevProps.componentSlug !== this.props.componentSlug
+        ) {
+            const { projectId, fetchComponent, componentSlug } = this.props;
+            if (projectId) {
+                fetchComponent(projectId, componentSlug);
+            }
+        }
     }
 
     ready = () => {
@@ -45,6 +94,8 @@ class Container extends Component {
             componentId,
             getContainerSecurities,
             getContainerSecurityLogs,
+            componentSlug,
+            fetchComponent,
         } = this.props;
         if (projectId && componentId) {
             // load container security logs
@@ -52,6 +103,9 @@ class Container extends Component {
 
             // load container security
             getContainerSecurities({ projectId, componentId });
+        }
+        if (componentSlug && projectId) {
+            fetchComponent(projectId, componentSlug);
         }
     };
 
@@ -71,7 +125,7 @@ class Container extends Component {
 
         socket.on(`createContainerSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${this.props.slug}/${componentSlug}/security/container/${data.slug}`
+                `/dashboard/project/${this.props.slug}/component/${componentSlug}/security/container/${data.slug}`
             );
         });
 
@@ -196,6 +250,7 @@ Container.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     componentSlug: PropTypes.string,
+    fetchComponent: PropTypes.func,
     slug: PropTypes.string,
     containerSecurities: PropTypes.array,
     getContainerSecurities: PropTypes.func,
@@ -205,11 +260,7 @@ Container.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string,
-        })
-    ),
+    component: PropTypes.object,
     scanContainerSecuritySuccess: PropTypes.func,
     getContainerSecuritySuccess: PropTypes.func,
 };
@@ -241,6 +292,7 @@ const mapDispatchToProps = dispatch =>
             getContainerSecurityLogs,
             scanContainerSecuritySuccess,
             getContainerSecuritySuccess,
+            fetchComponent,
         },
         dispatch
     );

@@ -44,10 +44,7 @@ module.exports = {
             }
             projectModel.name = data.name || null;
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                projectModel.slug = name.toLowerCase();
+                projectModel.slug = getSlug(data.name);
             }
             projectModel.apiKey = uuidv1();
             projectModel.stripePlanId = data.stripePlanId || null;
@@ -135,6 +132,15 @@ module.exports = {
                     })
                 );
 
+                const domains = await DomainVerificationService.findBy({
+                    projectId: project._id,
+                });
+                for (const domain of domains) {
+                    await DomainVerificationService.deleteBy({
+                        _id: domain._id,
+                    });
+                }
+
                 const statusPages = await StatusPageService.findBy({
                     projectId: project._id,
                 });
@@ -220,10 +226,7 @@ module.exports = {
             }
 
             if (data && data.name) {
-                let name = data.name;
-                name = slugify(name);
-                name = `${name}-${generate('1234567890', 8)}`;
-                data.slug = name.toLowerCase();
+                data.slug = getSlug(data.name);
             }
 
             let updatedProject = await ProjectModel.findOneAndUpdate(
@@ -381,9 +384,11 @@ module.exports = {
         const data = { stripePlanId: 'enterprise', stripeSubscriptionId: null };
         try {
             const project = await this.findOneBy({ _id: projectId });
-            await PaymentService.removeSubscription(
-                project.stripeSubscriptionId
-            );
+            if (data.stripeSubscriptionId !== null) {
+                await PaymentService.removeSubscription(
+                    project.stripeSubscriptionId
+                );
+            }
             const updatedProject = await this.updateOneBy(
                 { _id: projectId },
                 data
@@ -434,6 +439,21 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('projectService.changePlan', error);
+            throw error;
+        }
+    },
+
+    findSubprojectId: async function(projectId) {
+        try {
+            const _this = this;
+            const subProject = await _this.findBy({
+                parentProjectId: projectId,
+            });
+            const subProjectId = subProject.map(sub => String(sub._id));
+            const projectIdArr = [projectId, ...subProjectId];
+            return projectIdArr;
+        } catch (error) {
+            ErrorService.log('projectService.findSubprojectId', error);
             throw error;
         }
     },
@@ -708,15 +728,13 @@ module.exports = {
 
     addNotes: async function(projectId, notes) {
         const _this = this;
-        const adminNotes = (
-            await _this.updateOneBy(
-                { _id: projectId },
-                {
-                    adminNotes: notes,
-                }
-            )
-        ).adminNotes;
-        return adminNotes;
+        const project = await _this.updateOneBy(
+            { _id: projectId },
+            {
+                adminNotes: notes,
+            }
+        );
+        return project;
     },
 
     searchProjects: async function(query, skip, limit) {
@@ -756,8 +774,8 @@ const EscalationService = require('./escalationService');
 const StripeService = require('./stripeService');
 const TeamService = require('./teamService');
 const StatusPageService = require('./statusPageService');
-const slugify = require('slugify');
-const generate = require('nanoid/generate');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const componentService = require('./componentService');
+const DomainVerificationService = require('./domainVerificationService');
 const SsoDefaultRolesService = require('./ssoDefaultRolesService');
+const getSlug = require('../utils/getSlug');

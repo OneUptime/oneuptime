@@ -97,7 +97,7 @@ class CreateSubscriber extends Component {
         const { monitorId, subProjectId, statusPage, limit } = data;
         createSubscriber(
             subProjectId,
-            monitorId ?? values.monitorId,
+            monitorId || values.monitorId,
             values
         ).then(
             function() {
@@ -129,19 +129,12 @@ class CreateSubscriber extends Component {
     };
 
     render() {
-        const { handleSubmit, closeThisDialog, data } = this.props;
-        let monitorsList;
-
-        if (data && data.monitorList && data.monitorList.length > 0) {
-            monitorsList = data.monitorList.map(monitor => ({
-                value: monitor.monitor,
-                label: monitor.monitorName,
-            }));
-            monitorsList.unshift({
-                value: '',
-                label: 'Select a monitor',
-            });
-        }
+        const {
+            handleSubmit,
+            closeThisDialog,
+            data,
+            mergeMonitors,
+        } = this.props;
 
         return (
             <div
@@ -353,10 +346,20 @@ class CreateSubscriber extends Component {
                                                                     RenderField
                                                                 }
                                                                 type="text"
+                                                                pattern="[0-9]*"
+                                                                inputMode="numeric"
                                                                 name="contactPhone"
                                                                 id="contactPhoneId"
                                                                 placeholder="6505551234"
-                                                                required="required"
+                                                                normalize={val =>
+                                                                    (
+                                                                        val ||
+                                                                        ''
+                                                                    ).replace(
+                                                                        /[^\d]/g,
+                                                                        ''
+                                                                    )
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -381,9 +384,28 @@ class CreateSubscriber extends Component {
                                                                 name="monitorId"
                                                                 id="monitorId"
                                                                 required="required"
-                                                                options={
-                                                                    monitorsList
-                                                                }
+                                                                options={[
+                                                                    {
+                                                                        value:
+                                                                            '',
+                                                                        label:
+                                                                            mergeMonitors.length >
+                                                                            0
+                                                                                ? 'Select a Monitor'
+                                                                                : 'No Monitor available',
+                                                                    },
+                                                                    ...(mergeMonitors &&
+                                                                    mergeMonitors.length >
+                                                                        0
+                                                                        ? mergeMonitors.map(
+                                                                              monitor => ({
+                                                                                  value:
+                                                                                      monitor._id,
+                                                                                  label: `${monitor.componentId.name} / ${monitor.name}`,
+                                                                              })
+                                                                          )
+                                                                        : []),
+                                                                ]}
                                                             />
                                                         </div>
                                                     </div>
@@ -494,9 +516,24 @@ const mapDispatchToProps = dispatch => {
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
+    const projectId = ownProps.data.subProjectId;
+    const allMonitors = state.monitor.monitorsList.monitors
+        .filter(monitor => String(monitor._id) === String(projectId))
+        .map(monitor => monitor.monitors)
+        .flat();
+    const statusPageMonitors = ownProps.data.monitorList || [];
+    const mergeMonitors = [];
+    allMonitors.forEach(allMon => {
+        statusPageMonitors.forEach(mon => {
+            if (allMon._id === mon.monitor) {
+                mergeMonitors.push(allMon);
+            }
+        });
+    });
     return {
         monitors: state.monitor.monitorsList.monitors,
+        mergeMonitors,
         currentProject: state.project.currentProject,
         newSubscriber: state.subscriber.newSubscriber,
         type: selector(state, 'alertVia'),
@@ -516,6 +553,7 @@ CreateSubscriber.propTypes = {
     data: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     createSubscriberError: PropTypes.func,
     monitorList: PropTypes.array,
+    mergeMonitors: PropTypes.array,
 };
 
 export default connect(

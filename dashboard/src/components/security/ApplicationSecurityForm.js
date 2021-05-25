@@ -16,8 +16,17 @@ import GitCredentialModal from '../credential/GitCredentialModal';
 class ApplicationSecurityForm extends Component {
     componentDidMount() {
         const { projectId, getGitCredentials } = this.props;
-
-        getGitCredentials({ projectId });
+        if (projectId) {
+            getGitCredentials({ projectId });
+        }
+    }
+    componentDidUpdate(prevProps) {
+        if (prevProps.projectId !== this.props.projectId) {
+            const { projectId, getGitCredentials } = this.props;
+            if (projectId) {
+                getGitCredentials({ projectId });
+            }
+        }
     }
 
     submitForm = (values, dispatch) => {

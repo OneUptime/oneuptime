@@ -71,8 +71,15 @@ module.exports = {
                 : [];
             statusPageModel.statusBubbleId = data.statusBubbleId || uuid.v4();
 
+            if (data && data.name) {
+                statusPageModel.slug = getSlug(data.name);
+            }
+
             const statusPage = await statusPageModel.save();
-            return statusPage;
+            const newStatusPage = await this.findOneBy({
+                _id: statusPage._id,
+            });
+            return newStatusPage;
         } catch (error) {
             ErrorService.log('statusPageService.create', error);
             throw error;
@@ -321,7 +328,7 @@ module.exports = {
                 .populate('domains.domainVerificationToken')
                 .execPopulate();
         } catch (error) {
-            ErrorService.log('statusPageService.deleteDomain', error);
+            ErrorService.log('statusPageService.updateDomain', error);
             throw error;
         }
     },
@@ -416,6 +423,21 @@ module.exports = {
                         );
                     })
                 );
+
+                // delete all certificate pipeline for the custom domains
+                // handle this for autoprovisioned custom domains
+                const customDomains = [...statusPage.domains];
+                for (const eachDomain of customDomains) {
+                    if (eachDomain.enableHttps && eachDomain.autoProvisioning) {
+                        greenlock
+                            .remove({ subject: eachDomain.domain })
+                            .finally(() => {
+                                CertificateStoreService.deleteBy({
+                                    subject: eachDomain.domain,
+                                });
+                            });
+                    }
+                }
             }
             return statusPage;
         } catch (error) {
@@ -487,6 +509,10 @@ module.exports = {
                 error.code = 400;
                 ErrorService.log('statusPageService.updateOneBy', error);
                 throw error;
+            }
+
+            if (data && data.name) {
+                existingStatusPage.slug = getSlug(data.name);
             }
 
             if (!query) {
@@ -641,7 +667,7 @@ module.exports = {
         }
     },
 
-    getEvents: async function(query, skip, limit, theme) {
+    getEvents: async function(query, skip, limit) {
         try {
             const _this = this;
 
@@ -670,31 +696,17 @@ module.exports = {
                 const eventIds = [];
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
-                        let scheduledEvents;
-                        if (
-                            (theme && typeof theme === 'boolean') ||
-                            theme === 'true'
-                        ) {
-                            scheduledEvents = await ScheduledEventsService.findBy(
-                                {
-                                    'monitors.monitorId': monitorId,
-                                    showEventOnStatusPage: true,
-                                    resolved: false,
-                                }
-                            );
-                        } else {
-                            scheduledEvents = await ScheduledEventsService.findBy(
-                                {
-                                    'monitors.monitorId': monitorId,
-                                    showEventOnStatusPage: true,
-                                    startDate: { $lte: currentDate },
-                                    endDate: {
-                                        $gte: currentDate,
-                                    },
-                                    resolved: false,
-                                }
-                            );
-                        }
+                        const scheduledEvents = await ScheduledEventsService.findBy(
+                            {
+                                'monitors.monitorId': monitorId,
+                                showEventOnStatusPage: true,
+                                startDate: { $lte: currentDate },
+                                endDate: {
+                                    $gte: currentDate,
+                                },
+                                resolved: false,
+                            }
+                        );
                         scheduledEvents.map(event => {
                             const id = String(event._id);
                             if (!eventIds.includes(id)) {
@@ -715,6 +727,7 @@ module.exports = {
                     );
                 });
                 const count = events.length;
+                // console.log(events);
 
                 return { events, count };
             } else {
@@ -785,11 +798,11 @@ module.exports = {
                     );
                 });
 
-                // sort in ascending start date
-                events = events.sort((a, b) => a.startDate - b.startDate);
+                // // sort in ascending start date
+                events = events.sort((a, b) => b.startDate - a.startDate);
 
                 const count = events.length;
-                return { events: limitEvents(events, limit, skip), count };
+                return { events, count };
             } else {
                 const error = new Error('no monitor to check');
                 error.code = 400;
@@ -798,6 +811,79 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('statusPageService.getFutureEvents', error);
+            throw error;
+        }
+    },
+
+    getPastEvents: async function(query, skip, limit) {
+        try {
+            const _this = this;
+
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 5;
+
+            if (typeof skip === 'string') skip = parseInt(skip);
+
+            if (typeof limit === 'string') limit = parseInt(limit);
+
+            if (!query) query = {};
+            query.deleted = false;
+
+            const statuspages = await _this.findBy(query, 0, limit);
+
+            const withMonitors = statuspages.filter(
+                statusPage => statusPage.monitors.length
+            );
+            const statuspage = withMonitors[0];
+            const monitorIds = statuspage
+                ? statuspage.monitors.map(m => m.monitor)
+                : [];
+            if (monitorIds && monitorIds.length) {
+                const currentDate = moment();
+                const eventIds = [];
+                let events = await Promise.all(
+                    monitorIds.map(async monitorId => {
+                        const scheduledEvents = await ScheduledEventsService.findBy(
+                            {
+                                'monitors.monitorId': monitorId,
+                                showEventOnStatusPage: true,
+                                endDate: { $lt: currentDate },
+                            }
+                        );
+                        scheduledEvents.map(event => {
+                            const id = String(event._id);
+                            if (!eventIds.includes(id)) {
+                                eventIds.push(id);
+                            }
+                            return event;
+                        });
+
+                        return scheduledEvents;
+                    })
+                );
+
+                events = flattenArray(events);
+                // do not repeat the same event two times
+                events = eventIds.map(id => {
+                    return events.find(
+                        event => String(event._id) === String(id)
+                    );
+                });
+
+                // sort in ascending start date
+                events = events.sort((a, b) => a.startDate - b.startDate);
+
+                const count = events.length;
+                return { events: limitEvents(events, limit, skip), count };
+            } else {
+                const error = new Error('no monitor to check');
+                error.code = 400;
+                ErrorService.log('statusPageService.getPastEvents', error);
+                throw error;
+            }
+        } catch (error) {
+            ErrorService.log('statusPageService.getPastEvents', error);
             throw error;
         }
     },
@@ -1166,6 +1252,290 @@ module.exports = {
             throw error;
         }
     },
+
+    createAnnouncement: async function(data) {
+        try {
+            // reassign data.monitors with a restructured monitor data
+            data.monitors = data.monitors.map(monitor => ({
+                monitorId: monitor,
+            }));
+            // slugify announcement name
+            if (data && data.name) {
+                data.slug = getSlug(data.name);
+            }
+
+            const announcement = new AnnouncementModel();
+            announcement.name = data.name || null;
+            announcement.projectId = data.projectId || null;
+            announcement.statusPageId = data.statusPageId || null;
+            announcement.description = data.description || null;
+            announcement.monitors = data.monitors || null;
+            announcement.createdById = data.createdById || null;
+            announcement.slug = data.slug || null;
+            const newAnnouncement = await announcement.save();
+
+            return newAnnouncement;
+        } catch (error) {
+            ErrorService.log('statusPageService.createAnnouncement', error);
+            throw error;
+        }
+    },
+
+    getAnnouncements: async function(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') {
+                skip = Number(skip);
+            }
+
+            if (typeof limit === 'string') {
+                limit = Number(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const allAnnouncements = await AnnouncementModel.find(query)
+                .sort([['createdAt', -1]])
+                .limit(limit)
+                .skip(skip)
+                .populate('createdById', 'name')
+                .populate('monitors.monitorId', 'name');
+            return allAnnouncements;
+        } catch (error) {
+            ErrorService.log('statusPageService.getAnnouncements', error);
+            throw error;
+        }
+    },
+
+    countAnnouncements: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const count = await AnnouncementModel.countDocuments(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('statusPageService.countAnnouncements', error);
+            throw error;
+        }
+    },
+
+    getSingleAnnouncement: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementModel.findOne(query);
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.getSingleAnnouncement', error);
+            throw error;
+        }
+    },
+
+    updateAnnouncement: async function(query, data) {
+        try {
+            const _this = this;
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            if (!data.hideAnnouncement) {
+                await _this.updateManyAnnouncement({
+                    statusPageId: query.statusPageId,
+                });
+            }
+            const response = await AnnouncementModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
+            const log = {
+                active: false,
+                endDate: new Date(),
+                updatedById: data.createdById,
+            };
+            await _this.updateAnnouncementLog({ active: true }, log);
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.getSingleAnnouncement', error);
+            throw error;
+        }
+    },
+
+    updateManyAnnouncement: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementModel.updateMany(
+                query,
+                {
+                    $set: { hideAnnouncement: true },
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.updateManyAnnouncement', error);
+            throw error;
+        }
+    },
+
+    deleteAnnouncement: async function(query, userId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.deleteAnnouncement', error);
+            throw error;
+        }
+    },
+
+    createAnnouncementLog: async function(data) {
+        try {
+            const announcementLog = new AnnouncementLogModel();
+            announcementLog.announcementId = data.announcementId || null;
+            announcementLog.createdById = data.createdById || null;
+            announcementLog.statusPageId = data.statusPageId || null;
+            announcementLog.startDate = data.startDate || null;
+            announcementLog.endDate = data.endDate || null;
+            announcementLog.active = data.active || null;
+            const newAnnouncementLog = await announcementLog.save();
+            return newAnnouncementLog;
+        } catch (error) {
+            ErrorService.log('statusPageService.createAnnouncementLog', error);
+            throw error;
+        }
+    },
+
+    updateAnnouncementLog: async function(query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementLogModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.createAnnouncementLog', error);
+            throw error;
+        }
+    },
+
+    getAnnouncementLogs: async function(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') {
+                skip = Number(skip);
+            }
+
+            if (typeof limit === 'string') {
+                limit = Number(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const announcementLogs = await AnnouncementLogModel.find(query)
+                .sort([['createdAt', -1]])
+                .limit(limit)
+                .skip(skip)
+                .populate({
+                    path: 'announcementId',
+                    select: 'name description',
+                    populate: { path: 'monitors.monitorId', select: 'name' },
+                });
+            return announcementLogs;
+        } catch (error) {
+            ErrorService.log('statusPageService.getAnnouncementLogs', error);
+            throw error;
+        }
+    },
+
+    deleteAnnouncementLog: async function(query, userId) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const response = await AnnouncementLogModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.deleteAnnouncementLog', error);
+            throw error;
+        }
+    },
+
+    countAnnouncementLogs: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+            const count = await AnnouncementLogModel.countDocuments(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('statusPageService.countAnnouncementLogs', error);
+            throw error;
+        }
+    },
 };
 
 // handle the unique pagination for scheduled events on status page
@@ -1254,3 +1624,6 @@ const moment = require('moment');
 const uuid = require('uuid');
 const greenlock = require('../../greenlock');
 const CertificateStoreService = require('./certificateStoreService');
+const AnnouncementModel = require('../models/announcements');
+const getSlug = require('../utils/getSlug');
+const AnnouncementLogModel = require('../models/announcementLogs');

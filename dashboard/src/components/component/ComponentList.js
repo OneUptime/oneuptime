@@ -4,9 +4,9 @@ import { connect } from 'react-redux';
 import RenderIfUserInSubProject from '../basic/RenderIfUserInSubProject';
 import ComponentDetail from './ComponentDetail';
 import sortByName from '../../utils/sortByName';
-
 export function ComponentList(props) {
     let componentDetails = null;
+
     const components = props.components ? sortByName(props.components) : [];
 
     if (components && components.length > 0) {

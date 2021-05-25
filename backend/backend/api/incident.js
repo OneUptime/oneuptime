@@ -656,7 +656,7 @@ router.post(
                 if (!data.id) {
                     data.createdById = req.user.id;
                     incidentMessage = await IncidentMessageService.create(data);
-                    if (data.type === 'investigation') {
+                    if (data.post_statuspage) {
                         AlertService.sendInvestigationNoteToSubscribers(
                             incident,
                             data,
@@ -1070,7 +1070,8 @@ router.get(
                 title_message: 'Incident Resolved',
                 body_message: 'Your incident is now resolved.',
                 action: 'resolve',
-                dashboard_url: global.dashboardHost + '/dashboard',
+                dashboard_url: global.dashboardHost,
+                apiUrl: global.apiHost,
             });
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -1101,7 +1102,8 @@ router.get(
                 title_message: 'Incident Acknowledged',
                 body_message: 'Your incident is now acknowledged',
                 action: 'acknowledge',
-                dashboard_url: global.dashboardHost + '/dashboard',
+                dashboard_url: global.dashboardHost,
+                apiUrl: global.apiHost,
             });
         } catch (error) {
             return sendErrorResponse(req, res, error);

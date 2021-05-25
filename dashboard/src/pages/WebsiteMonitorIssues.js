@@ -63,15 +63,24 @@ class WebsiteMonitorIssues extends React.Component {
     }
     componentDidUpdate(prevProps) {
         if (
-            String(prevProps.componentSlug) !== String(this.props.componentSlug)
+            String(prevProps.componentSlug) !==
+                String(this.props.componentSlug) ||
+            prevProps.projectId !== this.props.projectId
         ) {
-            this.props.fetchComponent(this.props.componentSlug);
+            if (this.props.projectId && this.props.componentSlug) {
+                this.props.fetchComponent(
+                    this.props.projectId,
+                    this.props.componentSlug
+                );
+            }
         }
     }
 
     ready = () => {
-        const { componentSlug, fetchComponent } = this.props;
-        fetchComponent(componentSlug);
+        const { componentSlug, fetchComponent, projectId } = this.props;
+        if (projectId && componentSlug) {
+            fetchComponent(projectId, componentSlug);
+        }
         this.props.fetchMonitorIssue(
             this.props.projectId,
             this.props.match.params.issueId

@@ -20,11 +20,6 @@ process.on('uncaughtException', err => {
 const express = require('express');
 const path = require('path');
 const app = express();
-const child_process = require('child_process');
-
-child_process.execSync('react-env', {
-    stdio: [0, 1, 2],
-});
 
 app.use('/', (req, res, next) => {
     //eslint-disable-next-line

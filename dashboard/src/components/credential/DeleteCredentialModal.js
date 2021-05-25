@@ -96,7 +96,7 @@ class DeleteCredentialModal extends Component {
                                                         className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
                                                     >
                                                         <a
-                                                            href={`/dashboard/project/${this.props.slug}/${security.componentId.slug}/security/${securityType}/${security._id}`}
+                                                            href={`/dashboard/project/${this.props.slug}/component/${security.componentId.slug}/security/${securityType}/${security._id}`}
                                                         >
                                                             {security.name}
                                                         </a>

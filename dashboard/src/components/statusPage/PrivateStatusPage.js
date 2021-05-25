@@ -49,12 +49,14 @@ export class PrivateStatusPage extends Component {
                 isSubscriberEnabled: values.isSubscriberEnabled,
                 isGroupedByMonitorCategory: values.isGroupedByMonitorCategory,
                 showScheduledEvents: values.showScheduledEvents,
-                moveIncidentToTheTop: values.moveIncidentToTheTop,
                 ipWhitelist: values.ipWhitelist,
                 enableIpWhitelist: values.enableIpWhitelist,
                 hideProbeBar: values.hideProbeBar,
                 hideUptime: values.hideUptime,
                 hideResolvedIncident: values.hideResolvedIncident,
+                scheduleHistoryDays: values.scheduleHistoryDays,
+                incidentHistoryDays: values.incidentHistoryDays,
+                announcementLogsHistory: values.announcementLogsHistory,
             })
             .then(() => {
                 this.props.fetchProjectStatusPage(
@@ -146,6 +148,15 @@ export class PrivateStatusPage extends Component {
         const { handleSubmit, formValues } = this.props;
         const { subscriberAdvanceOptionModalId, showMoreOptions } = this.state;
         this.props.showDuplicateStatusPage(this.state.showMoreOptions);
+        const historyLimit = value => {
+            if (value < 1) {
+                return 1;
+            } else if (value > 30) {
+                return 30;
+            } else {
+                return value;
+            }
+        };
         return (
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div className="Box-root">
@@ -549,84 +560,6 @@ export class PrivateStatusPage extends Component {
                                                                         component="input"
                                                                         type="checkbox"
                                                                         name={
-                                                                            'moveIncidentToTheTop'
-                                                                        }
-                                                                        data-test="RetrySettings-failedPaymentsCheckbox"
-                                                                        className="Checkbox-source"
-                                                                        id="statuspage_moveIncidentToTheTop"
-                                                                    />
-                                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
-                                                                        <div className="Checkbox-target Box-root">
-                                                                            <div className="Checkbox-color Box-root"></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        className="Box-root"
-                                                                        style={{
-                                                                            paddingLeft:
-                                                                                '5px',
-                                                                        }}
-                                                                    >
-                                                                        <span>
-                                                                            Show
-                                                                            incidents
-                                                                            to
-                                                                            the
-                                                                            top
-                                                                            of
-                                                                            the
-                                                                            status
-                                                                            page
-                                                                        </span>
-                                                                        <label className="bs-Fieldset-explanation">
-                                                                            <span>
-                                                                                Move
-                                                                                the
-                                                                                list
-                                                                                of
-                                                                                incidents
-                                                                                to
-                                                                                the
-                                                                                top
-                                                                                of
-                                                                                the
-                                                                                status
-                                                                                page
-                                                                                instead
-                                                                                of
-                                                                                at
-                                                                                the
-                                                                                bottom.
-                                                                            </span>
-                                                                        </label>
-                                                                    </div>
-                                                                </label>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="bs-Fieldset-row">
-                                                        <label
-                                                            className="bs-Fieldset-label"
-                                                            style={{
-                                                                flex: '25% 0 0',
-                                                            }}
-                                                        >
-                                                            <span></span>
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                            <div
-                                                                className="Box-root"
-                                                                style={{
-                                                                    height:
-                                                                        '5px',
-                                                                }}
-                                                            ></div>
-                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                                <label className="Checkbox">
-                                                                    <Field
-                                                                        component="input"
-                                                                        type="checkbox"
-                                                                        name={
                                                                             'hideProbeBar'
                                                                         }
                                                                         data-test="RetrySettings-failedPaymentsCheckbox"
@@ -932,6 +865,257 @@ export class PrivateStatusPage extends Component {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            paddingTop: '0',
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Show
+                                                                            incident
+                                                                            history
+                                                                            for{' '}
+                                                                            <Field
+                                                                                component="input"
+                                                                                type="number"
+                                                                                min="1"
+                                                                                placeholder="days"
+                                                                                className="db-BusinessSettings-input-60 TextInput bs-TextInput"
+                                                                                name={
+                                                                                    'incidentHistoryDays'
+                                                                                }
+                                                                                id="statuspage.incidentHistoryDays"
+                                                                                normalize={
+                                                                                    historyLimit
+                                                                                }
+                                                                            />{' '}
+                                                                            days
+                                                                        </span>
+                                                                        <label className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                The
+                                                                                amount
+                                                                                of
+                                                                                days
+                                                                                entered
+                                                                                in
+                                                                                the
+                                                                                text
+                                                                                box
+                                                                                will
+                                                                                be
+                                                                                the
+                                                                                amount
+                                                                                of
+                                                                                incident
+                                                                                history
+                                                                                days
+                                                                                on
+                                                                                the
+                                                                                status
+                                                                                page
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            paddingTop: '0',
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Show
+                                                                            scheduled
+                                                                            maintenance
+                                                                            event
+                                                                            history
+                                                                            for{' '}
+                                                                            <Field
+                                                                                component="input"
+                                                                                type="number"
+                                                                                min="1"
+                                                                                placeholder="days"
+                                                                                className="db-BusinessSettings-input-60 TextInput bs-TextInput"
+                                                                                name={
+                                                                                    'scheduleHistoryDays'
+                                                                                }
+                                                                                id="statuspage.scheduleHistoryDays"
+                                                                                normalize={
+                                                                                    historyLimit
+                                                                                }
+                                                                            />{' '}
+                                                                            days
+                                                                        </span>
+                                                                        <label className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                The
+                                                                                amount
+                                                                                of
+                                                                                days
+                                                                                entered
+                                                                                in
+                                                                                the
+                                                                                text
+                                                                                box
+                                                                                will
+                                                                                be
+                                                                                the
+                                                                                amount
+                                                                                of
+                                                                                scheduled
+                                                                                maintenance
+                                                                                event
+                                                                                history
+                                                                                days
+                                                                                on
+                                                                                the
+                                                                                status
+                                                                                page
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            paddingTop: '0',
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Show
+                                                                            announcement
+                                                                            history
+                                                                            for{' '}
+                                                                            <Field
+                                                                                component="input"
+                                                                                type="number"
+                                                                                min="1"
+                                                                                placeholder="days"
+                                                                                className="db-BusinessSettings-input-60 TextInput bs-TextInput"
+                                                                                name={
+                                                                                    'announcementLogsHistory'
+                                                                                }
+                                                                                id="statuspage.announcementLogsHistory"
+                                                                                normalize={
+                                                                                    historyLimit
+                                                                                }
+                                                                            />{' '}
+                                                                            days
+                                                                        </span>
+                                                                        <label className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                The
+                                                                                amount
+                                                                                of
+                                                                                days
+                                                                                entered
+                                                                                in
+                                                                                the
+                                                                                text
+                                                                                box
+                                                                                will
+                                                                                be
+                                                                                the
+                                                                                amount
+                                                                                of
+                                                                                announcement
+                                                                                log
+                                                                                history
+                                                                                displayed
+                                                                                on
+                                                                                the
+                                                                                status
+                                                                                page
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </>
                                             )}
                                         </div>
@@ -1036,12 +1220,14 @@ const mapStateToProps = state => {
         initialValues.isGroupedByMonitorCategory =
             status.isGroupedByMonitorCategory;
         initialValues.showScheduledEvents = status.showScheduledEvents;
-        initialValues.moveIncidentToTheTop = status.moveIncidentToTheTop;
         initialValues.enableIpWhitelist = status.enableIpWhitelist;
         initialValues.ipWhitelist = status.ipWhitelist;
         initialValues.hideProbeBar = status.hideProbeBar;
         initialValues.hideUptime = status.hideUptime;
         initialValues.hideResolvedIncident = status.hideResolvedIncident;
+        initialValues.incidentHistoryDays = status.incidentHistoryDays;
+        initialValues.scheduleHistoryDays = status.scheduleHistoryDays;
+        initialValues.announcementLogsHistory = status.announcementLogsHistory;
     }
     initialValues.showIpWhitelistInput = true;
 

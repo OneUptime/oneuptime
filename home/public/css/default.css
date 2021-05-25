@@ -1,6 +1,11 @@
 *{
     box-sizing:border-box
 }
+
+a{
+    cursor: pointer !important;
+}
+
 blockquote,body,button,dd,dl,figure,h1,h2,h3,h4,h5,h6,ol,p,pre,ul{
     margin:0;
     padding:0
@@ -198,7 +203,7 @@ width:100%
     justify-content: center !important;
 }
 
-.sdlc-description{
+.feature-table-description{
     padding: 5px;
 }
 
@@ -3335,6 +3340,11 @@ section.basics .columns .google:before{
     background-image:url("/img/google.svg")
 }
 
+section.basics .columns .errorrate:before{
+    background-image:url("/img/errorrate.svg")
+}
+
+
 section.basics .columns .chat:before{
     background-image:url("/img/chat.svg")
 }
@@ -5907,7 +5917,7 @@ footer#main-footer div.country-selector ul a.selected:after{
 }
 .product-page{
     width:1300px;
-    height:460px;
+    height:500px;
     display: flex;
     flex-direction:row;
     justify-content:space-between;

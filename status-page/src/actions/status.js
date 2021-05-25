@@ -24,9 +24,9 @@ export const statusPageFailure = error => {
 };
 
 // Calls the API to get status
-export const getStatusPage = (statusPageId, url) => {
+export const getStatusPage = (statusPageSlug, url) => {
     return function(dispatch) {
-        const promise = getApi(`statusPage/${statusPageId}?url=${url}`);
+        const promise = getApi(`statusPage/${statusPageSlug}?url=${url}`);
 
         dispatch(statusPageRequest());
 
@@ -41,7 +41,7 @@ export const getStatusPage = (statusPageId, url) => {
                     error.response.status &&
                     error.response.status === 401
                 ) {
-                    dispatch(loginRequired(statusPageId));
+                    dispatch(loginRequired(statusPageSlug));
                 }
                 if (error && error.response && error.response.data)
                     error = error.response.data;
@@ -114,10 +114,16 @@ export const individualNoteDisable = () => {
 };
 
 // Calls the API to get notes
-export const getStatusPageNote = (projectId, statusPageId, skip, limit) => {
+export const getStatusPageNote = (
+    projectId,
+    statusPageSlug,
+    skip,
+    limit,
+    days
+) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageId}/notes?skip=${skip}&limit=${limit}`
+            `statusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}`
         );
 
         dispatch(statusPageNoteRequest());
@@ -220,10 +226,16 @@ export const scheduledEventReset = () => {
 };
 
 // Calls the API to get events
-export const getScheduledEvent = (projectId, statusPageId, skip, theme) => {
+export const getScheduledEvent = (
+    projectId,
+    statusPageSlug,
+    skip,
+    theme,
+    days
+) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageId}/events?skip=${skip}&theme=${theme}`
+            `statusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&days=${days}`
         );
 
         dispatch(scheduledEventRequest());
@@ -245,6 +257,70 @@ export const getScheduledEvent = (projectId, statusPageId, skip, theme) => {
                     error = 'Network Error';
                 }
                 dispatch(scheduledEventFailure(errors(error)));
+            }
+        );
+    };
+};
+
+export const ongoingEventSuccess = data => {
+    return {
+        type: types.ONGOING_SCHEDULED_EVENTS_SUCCESS,
+        payload: data,
+    };
+};
+
+export const ongoingEventRequest = () => {
+    return {
+        type: types.ONGOING_SCHEDULED_EVENTS_REQUEST,
+    };
+};
+
+export const ongoingEventFailure = error => {
+    return {
+        type: types.ONGOING_SCHEDULED_EVENTS_FAILURE,
+        payload: error,
+    };
+};
+
+export const ongoingEventReset = () => {
+    return {
+        type: types.ONGOING_SCHEDULED_EVENTS_RESET,
+    };
+};
+
+// Calls the API to get events
+export const getOngoingScheduledEvent = (
+    projectId,
+    statusPageSlug,
+    skip,
+    theme,
+    limit
+) => {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/${statusPageSlug}/events?skip=${skip}&theme=${theme}&limit=${limit}`
+        );
+
+        dispatch(ongoingEventRequest());
+
+        promise.then(
+            Data => {
+                dispatch(ongoingEventSuccess(Data.data));
+            },
+
+            error => {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                }
+                if (error.length > 100) {
+                    error = 'Network Error';
+                }
+                dispatch(ongoingEventFailure(errors(error)));
             }
         );
     };
@@ -316,13 +392,15 @@ export const futureEventsFailure = error => ({
 
 export const fetchFutureEvents = (
     projectId,
-    statusPageId,
-    skip
+    statusPageSlug,
+    skip,
+    theme,
+    limit
 ) => async dispatch => {
     try {
         dispatch(futureEventsRequest());
         const response = await getApi(
-            `statusPage/${projectId}/${statusPageId}/futureEvents?skip=${skip}`
+            `statusPage/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&theme=${theme}&limit=${limit}`
         );
         dispatch(futureEventsSuccess(response.data));
     } catch (error) {
@@ -335,6 +413,46 @@ export const fetchFutureEvents = (
                 ? error.message
                 : 'Network Error';
         dispatch(futureEventsFailure(errorMsg));
+    }
+};
+
+export const pastEventsRequest = () => ({
+    type: types.PAST_EVENTS_REQUEST,
+});
+
+export const pastEventsSuccess = payload => ({
+    type: types.PAST_EVENTS_SUCCESS,
+    payload,
+});
+
+export const pastEventsFailure = error => ({
+    type: types.PAST_EVENTS_FAILURE,
+    payload: error,
+});
+
+export const fetchPastEvents = (
+    projectId,
+    statusPageSlug,
+    skip,
+    theme,
+    limit
+) => async dispatch => {
+    try {
+        dispatch(pastEventsRequest());
+        const response = await getApi(
+            `statusPage/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}&theme=${theme}&limit=${limit}`
+        );
+        dispatch(pastEventsSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(pastEventsFailure(errorMsg));
     }
 };
 
@@ -374,10 +492,10 @@ export const moreNoteFailure = error => {
     };
 };
 
-export const getMoreNote = (projectId, statusPageId, skip) => {
+export const getMoreNote = (projectId, statusPageSlug, skip) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageId}/notes?skip=${skip}`
+            `statusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}`
         );
 
         dispatch(moreNoteRequest());
@@ -423,10 +541,10 @@ export const moreEventFailure = error => {
     };
 };
 
-export const getMoreEvent = (projectId, statusPageId, skip) => {
+export const getMoreEvent = (projectId, statusPageSlug, skip) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageId}/events?skip=${skip}`
+            `statusPage/${projectId}/${statusPageSlug}/events?skip=${skip}`
         );
 
         dispatch(moreEventRequest());
@@ -468,13 +586,14 @@ export const moreFutureEventsFailure = error => ({
 
 export const fetchMoreFutureEvents = (
     projectId,
-    statusPageId,
-    skip
+    statusPageSlug,
+    skip,
+    limit
 ) => async dispatch => {
     try {
         dispatch(moreFutureEventsRequest());
         const response = await getApi(
-            `statusPage/${projectId}/${statusPageId}/futureEvents?skip=${skip}`
+            `statusPage/${projectId}/${statusPageSlug}/futureEvents?skip=${skip}&limit=${limit}`
         );
         dispatch(moreFutureEventsSuccess(response.data));
     } catch (error) {
@@ -487,6 +606,44 @@ export const fetchMoreFutureEvents = (
                 ? error.message
                 : 'Network Error';
         dispatch(moreFutureEventsFailure(errorMsg));
+    }
+};
+
+export const morePastEventsRequest = () => ({
+    type: types.MORE_PAST_EVENTS_REQUEST,
+});
+
+export const morePastEventsSuccess = payload => ({
+    type: types.MORE_PAST_EVENTS_SUCCESS,
+    payload,
+});
+
+export const morePastEventsFailure = error => ({
+    type: types.MORE_PAST_EVENTS_FAILURE,
+    payload: error,
+});
+
+export const fetchMorePastEvents = (
+    projectId,
+    statusPageSlug,
+    skip
+) => async dispatch => {
+    try {
+        dispatch(morePastEventsRequest());
+        const response = await getApi(
+            `statusPage/${projectId}/${statusPageSlug}/pastEvents?skip=${skip}`
+        );
+        dispatch(morePastEventsSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(morePastEventsFailure(errorMsg));
     }
 };
 
@@ -680,13 +837,13 @@ export function fetchEventNoteFailure(error) {
     };
 }
 
-export function fetchEventNote(projectId, scheduledEventId, type) {
+export function fetchEventNote(projectId, scheduledEventSlug, type) {
     return async function(dispatch) {
         dispatch(fetchEventNoteRequest());
 
         try {
             const response = await getApi(
-                `statusPage/${projectId}/notes/${scheduledEventId}?type=${type}`
+                `statusPage/${projectId}/notes/${scheduledEventSlug}?type=${type}`
             );
             dispatch(fetchEventNoteSuccess(response.data));
         } catch (error) {
@@ -944,13 +1101,13 @@ export function fetchLastIncidentTimelinesFailure(error) {
     };
 }
 
-export function fetchLastIncidentTimelines(projectId, statusPageId) {
+export function fetchLastIncidentTimelines(projectId, statusPageSlug) {
     return async function(dispatch) {
         try {
             dispatch(fetchLastIncidentTimelinesRequest());
 
             const response = await getApi(
-                `statusPage/${projectId}/${statusPageId}/timelines`
+                `statusPage/${projectId}/${statusPageSlug}/timelines`
             );
             dispatch(fetchLastIncidentTimelinesSuccess(response.data));
         } catch (error) {
@@ -972,5 +1129,154 @@ export function showEventCard(payload) {
     return {
         type: types.SHOW_EVENT_CARD,
         payload,
+    };
+}
+
+export function getAnnouncementsRequest() {
+    return {
+        type: types.FETCH_ANNOUNCEMENTS_REQUEST,
+    };
+}
+
+export function getAnnouncementsSuccess(data) {
+    return {
+        type: types.FETCH_ANNOUNCEMENTS_SUCCESS,
+        payload: data,
+    };
+}
+
+export function getAnnouncementsFailure(data) {
+    return {
+        type: types.FETCH_ANNOUNCEMENTS_FAILURE,
+        payload: data,
+    };
+}
+
+export function getAnnouncements(projectId, statusPageId, skip = 0, limit) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/announcement/${statusPageId}?skip=${skip}&limit=${limit}&show=true`
+        );
+        dispatch(getAnnouncementsRequest());
+        promise.then(
+            function(response) {
+                dispatch(getAnnouncementsSuccess(response.data));
+            },
+            function(error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(getAnnouncementsFailure(errorMsg));
+            }
+        );
+        return promise;
+    };
+}
+
+export function getSingleAnnouncementSuccess(data) {
+    return {
+        type: types.FETCH_SINGLE_ANNOUNCEMENTS_SUCCESS,
+        payload: data,
+    };
+}
+
+export function getSingleAnnouncementRequest() {
+    return {
+        type: types.FETCH_SINGLE_ANNOUNCEMENTS_REQUEST,
+    };
+}
+
+export function getSingleAnnouncementFailure(error) {
+    return {
+        type: types.FETCH_SINGLE_ANNOUNCEMENTS_FAILURE,
+        payload: error,
+    };
+}
+
+export function getSingleAnnouncement(
+    projectId,
+    statusPageSlug,
+    announcementSlug
+) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/announcement/${statusPageSlug}/single/${announcementSlug}`
+        );
+        dispatch(getSingleAnnouncementRequest());
+        promise.then(
+            function(response) {
+                dispatch(getSingleAnnouncementSuccess(response.data));
+            },
+            function(error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(getSingleAnnouncementFailure(errorMsg));
+            }
+        );
+        return promise;
+    };
+}
+
+export function fetchAnnouncementLogsRequest() {
+    return {
+        type: types.FETCH_ANNOUNCEMEMTLOGS_REQUEST,
+    };
+}
+
+export function fetchAnnouncementLogsSuccess(data) {
+    return {
+        type: types.FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
+        payload: data,
+    };
+}
+
+export function fetchAnnouncementLogsFailure(error) {
+    return {
+        type: types.FETCH_ANNOUNCEMEMTLOGS_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchAnnouncementLogs(
+    projectId,
+    statusPageId,
+    skip = 0,
+    limit
+) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/announcementLogs/${statusPageId}?skip=${skip}&limit=${limit}&theme=${true}`
+        );
+        dispatch(fetchAnnouncementLogsRequest());
+        promise.then(
+            function(response) {
+                dispatch(fetchAnnouncementLogsSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchAnnouncementLogsFailure(error));
+            }
+        );
+        return promise;
     };
 }

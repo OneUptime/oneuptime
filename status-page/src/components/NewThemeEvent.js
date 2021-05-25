@@ -153,6 +153,78 @@ class NewThemeEvent extends Component {
                                     <b id={`event-name-${event.name}`}>
                                         {event.name}
                                     </b>
+                                    {event.cancelled ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    Cancelled
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ) : event.resolved ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    Completed
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ) : currentTime >=
+                                          moment(event.startDate) &&
+                                      currentTime < moment(event.endDate) ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    Ongoing
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ) : currentTime <
+                                      moment(event.startDate) ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--default Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    Scheduled
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        currentTime >=
+                                            moment(event.endDate) && (
+                                            <div
+                                                style={{
+                                                    marginLeft: 15,
+                                                }}
+                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                            >
+                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span id="ongoing-event">
+                                                        Ended
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        )
+                                    )}
                                 </div>
                                 <ShouldRender if={event.description}>
                                     <div
@@ -172,37 +244,31 @@ class NewThemeEvent extends Component {
                                         display: 'flex',
                                         justifyContent: 'space-between',
                                         alignItems: 'center',
+                                        marginBottom: '12px',
                                     }}
                                 >
                                     <div
                                         className="incident-date"
                                         id="event-date"
                                     >
-                                        <span>
-                                            {moment(event.startDate).format(
-                                                'LLL'
-                                            )}{' '}
-                                            -{' '}
-                                            {moment(event.endDate).format(
-                                                'LLL'
-                                            )}
-                                        </span>
-                                    </div>
-                                    {currentTime > moment(event.startDate) &&
-                                        currentTime < moment(event.endDate) && (
-                                            <div
-                                                style={{
-                                                    marginLeft: 5,
-                                                }}
-                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                            >
-                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                    <span id="ongoing-event">
-                                                        Ongoing event
-                                                    </span>
-                                                </span>
-                                            </div>
+                                        {event.cancelled ? (
+                                            <span>
+                                                {moment(
+                                                    event.cancelledAt
+                                                ).format('LLL')}
+                                            </span>
+                                        ) : (
+                                            <span>
+                                                {moment(event.startDate).format(
+                                                    'LLL'
+                                                )}{' '}
+                                                -{' '}
+                                                {moment(event.endDate).format(
+                                                    'LLL'
+                                                )}
+                                            </span>
                                         )}
+                                    </div>
                                 </div>
                                 {event &&
                                     event.notes &&
@@ -319,10 +385,28 @@ NewThemeEvent.propTypes = {
     monitorState: PropTypes.array,
 };
 
-const mapStateToProps = state => ({
-    events: state.status.events.events,
-    filteredEvents: state.status.individualEvents,
-    monitorState: state.status.statusPage.monitorsData,
-});
+const mapStateToProps = (state, ownProps) => {
+    const { type } = ownProps;
+    const futureEvents = state.status.futureEvents.events;
+    const pastEvents = state.status.pastEvents.events;
+    const ongoing =
+        state.status &&
+        state.status.ongoing &&
+        state.status.ongoing.ongoing &&
+        state.status.ongoing.ongoing.filter(
+            ongoingSchedule => !ongoingSchedule.cancelled
+        );
+    const events =
+        type === 'future'
+            ? futureEvents
+            : type === 'past'
+            ? pastEvents
+            : ongoing;
+    return {
+        events,
+        filteredEvents: state.status.individualEvents,
+        monitorState: state.status.statusPage.monitorsData,
+    };
+};
 
 export default connect(mapStateToProps, null)(NewThemeEvent);

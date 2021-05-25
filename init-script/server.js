@@ -20,6 +20,48 @@ process.on('uncaughtException', err => {
 const fs = require('fs');
 const util = require('./util/db');
 const scripts = require('./scripts');
+const express = require('express');
+const app = express();
+const { find, save, update, removeMany } = require('./util/db');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+
+async function interactWithDB(req, res) {
+    if (req.params.dbFunction === 'find') {
+        res.send(await find(req.body.collection, req.body.query));
+    }
+    if (req.params.dbFunction === 'save') {
+        res.send(await save(req.body.collection, req.body.docs));
+    }
+    if (req.params.dbFunction === 'update') {
+        res.send(
+            await update(req.body.collection, req.body.query, req.body.value)
+        );
+    }
+    if (req.params.dbFunction === 'removeMany') {
+        res.send(await removeMany(req.body.collection, req.body.query));
+    }
+}
+
+// IMPORTANT: only attach this server in development.
+if (process.env['NODE_ENV'] === 'development') {
+    app.use(cors());
+
+    app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+    app.use(bodyParser.json({ limit: '10mb' }));
+
+    app.listen(1447, function() {
+        console.log('Server running on: 1447');
+    });
+
+    app.get('/:dbFunction', async function(req, res) {
+        return await interactWithDB(req, res);
+    });
+
+    app.post('/:dbFunction', async function(req, res) {
+        return await interactWithDB(req, res);
+    });
+}
 
 async function run() {
     const excludedScripts = ['index.js', 'start.js', 'end.js'];
@@ -77,11 +119,15 @@ async function run() {
 
     // eslint-disable-next-line no-console
     console.log('END SCRIPT: Completed');
-
-    connection.close();
-
-    // eslint-disable-next-line no-console
-    console.log('Mongo connection closed.');
+    // keep connection open in dev
+    if (process.env['NODE_ENV'] !== 'development') {
+        connection.close();
+        // eslint-disable-next-line no-console
+        console.log('Mongo connection closed.');
+    } else {
+        // eslint-disable-next-line no-console
+        console.log('Mongo connection open in development mode.');
+    }
 }
 
 module.exports = run;

@@ -42,7 +42,7 @@ router.post('/signup', async function(req, res) {
         }
 
         const data = req.body;
-
+        data.email = data.email.toLowerCase();
         if (IS_SAAS_SERVICE) {
             //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
             delete data.role;
@@ -520,7 +520,7 @@ router.post('/login', async function(req, res) {
         // Call the UserService
         const userAgent = req.get('user-agent');
         const user = await UserService.login(
-            data.email,
+            data.email.toLowerCase(),
             data.password,
             clientIP,
             userAgent
@@ -1401,11 +1401,11 @@ router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function(
                     data.push(val);
                 }
 
-                const adminNotes = await UserService.addNotes(userId, data);
-                return sendItemResponse(req, res, adminNotes);
+                const user = await UserService.addNotes(userId, data);
+                return sendItemResponse(req, res, user);
             } else {
-                const adminNotes = await UserService.addNotes(userId, data);
-                return sendItemResponse(req, res, adminNotes);
+                const user = await UserService.addNotes(userId, data);
+                return sendItemResponse(req, res, user);
             }
         } else {
             return sendErrorResponse(req, res, {

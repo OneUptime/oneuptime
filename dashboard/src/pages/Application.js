@@ -15,6 +15,7 @@ import {
     getApplicationSecuritySuccess,
 } from '../actions/security';
 import { LargeSpinner } from '../components/basic/Loader';
+import { fetchComponent } from '../actions/component';
 import ShouldRender from '../components/basic/ShouldRender';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
@@ -38,6 +39,51 @@ class Application extends Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('Application Security page Loaded');
         }
+        const {
+            projectId,
+            componentId,
+            getApplicationSecurities,
+            getApplicationSecurityLogs,
+            componentSlug,
+            fetchComponent,
+        } = this.props;
+        if (projectId && componentSlug) {
+            fetchComponent(projectId, componentSlug);
+        }
+        if (projectId && componentId) {
+            // load container security logs
+            getApplicationSecurityLogs({ projectId, componentId });
+
+            // load container security
+            getApplicationSecurities({ projectId, componentId });
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps.projectId !== this.props.projectId ||
+            prevProps.componentId !== this.props.componentId ||
+            prevProps.componentSlug !== this.props.componentSlug
+        ) {
+            const {
+                projectId,
+                componentId,
+                componentSlug,
+                fetchComponent,
+                getApplicationSecurities,
+                getApplicationSecurityLogs,
+            } = this.props;
+            if (projectId) {
+                fetchComponent(projectId, componentSlug);
+            }
+            if (projectId && componentId) {
+                // load container security logs
+                getApplicationSecurityLogs({ projectId, componentId });
+
+                // load container security
+                getApplicationSecurities({ projectId, componentId });
+            }
+        }
     }
 
     ready = () => {
@@ -46,6 +92,8 @@ class Application extends Component {
             projectId,
             getApplicationSecurities,
             getApplicationSecurityLogs,
+            componentSlug,
+            fetchComponent,
         } = this.props;
         if (projectId && componentId) {
             // load all the available logs
@@ -53,6 +101,9 @@ class Application extends Component {
 
             // load all the application securities
             getApplicationSecurities({ projectId, componentId });
+        }
+        if (componentSlug && projectId) {
+            fetchComponent(projectId, componentSlug);
         }
     };
 
@@ -72,7 +123,7 @@ class Application extends Component {
 
         socket.on(`createApplicationSecurity-${componentId}`, data => {
             history.push(
-                `/dashboard/project/${this.props.slug}/${componentSlug}/security/application/${data.slug}`
+                `/dashboard/project/${this.props.slug}/component/${componentSlug}/security/application/${data.slug}`
             );
         });
         const applicationSecurities = appSecurities
@@ -189,6 +240,7 @@ Application.propTypes = {
     componentSlug: PropTypes.string,
     slug: PropTypes.string,
     projectId: PropTypes.string,
+    fetchComponent: PropTypes.func,
     getApplicationSecurities: PropTypes.func,
     applicationSecurities: PropTypes.array,
     getApplicationSecurityLogs: PropTypes.func,
@@ -197,16 +249,13 @@ Application.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
-    component: PropTypes.arrayOf(
-        PropTypes.shape({
-            name: PropTypes.string,
-        })
-    ),
+    component: PropTypes.object,
     scanApplicationSecuritySuccess: PropTypes.func,
     getApplicationSecuritySuccess: PropTypes.func,
 };
 
-const mapStateToProps = state => {
+const mapStateToProps = (state, props) => {
+    const { componentSlug } = props.match.params;
     return {
         componentId:
             state.component.currentComponent.component &&
@@ -220,9 +269,7 @@ const mapStateToProps = state => {
         gettingApplicationSecurities: state.security.getApplication.requesting,
         component:
             state.component && state.component.currentComponent.component,
-        componentSlug:
-            state.component.currentComponent.component &&
-            state.component.currentComponent.component.slug,
+        componentSlug,
     };
 };
 
@@ -233,6 +280,7 @@ const mapDispatchToProps = dispatch =>
             getApplicationSecurityLogs,
             scanApplicationSecuritySuccess,
             getApplicationSecuritySuccess,
+            fetchComponent,
         },
         dispatch
     );

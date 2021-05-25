@@ -16,6 +16,8 @@ const helpers = {
     year: DateTime.getCurrentYear,
 };
 
+const UppercaseFirstLetter = require('../utils/UppercaseFirstLetter');
+
 const options = {
     viewEngine: {
         extname: '.hbs',
@@ -2951,14 +2953,15 @@ const _this = {
             );
             const data = {
                 incidentTime,
-                monitorName,
+                monitorName: UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName: UppercaseFirstLetter(projectName),
                 trackEmailAsViewedUrl,
                 projectId: incident.projectId,
-                incidentType: incident.incidentType,
-                componentName,
+                incidentType: UppercaseFirstLetter(incident.incidentType),
+                incidentDescription: incident.description,
+                componentName: UppercaseFirstLetter(componentName),
                 statusPageUrl,
                 unsubscribeUrl,
                 year: DateTime.getCurrentYear,
@@ -3513,18 +3516,18 @@ const _this = {
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
-                'Subscriber Incident Acknowledged'
+                'Subscriber Incident Acknowldeged'
             );
             const data = {
                 incidentTime,
-                monitorName,
+                monitorName: UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName: UppercaseFirstLetter(projectName),
                 trackEmailAsViewedUrl,
                 projectId: incident.projectId,
-                incidentType: incident.incidentType,
-                componentName,
+                incidentType: UppercaseFirstLetter(incident.incidentType),
+                componentName: UppercaseFirstLetter(componentName),
                 statusPageUrl,
                 unsubscribeUrl,
                 year: DateTime.getCurrentYear,
@@ -3713,6 +3716,7 @@ const _this = {
         emailTemplate,
         componentName,
         incidentNote,
+        noteType,
         statusPageUrl,
         statusNoteStatus,
         customFields,
@@ -3726,16 +3730,19 @@ const _this = {
                 emailTemplate,
                 'Investigation note is created'
             );
+
             const data = {
                 incidentTime,
-                monitorName,
+                monitorName: UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName: UppercaseFirstLetter(projectName),
                 projectId: incident.projectId,
                 incidentType: incident.incidentType,
-                componentName,
+                incidentId: incident.idNumber,
+                componentName: UppercaseFirstLetter(componentName),
                 incidentNote,
+                noteType: UppercaseFirstLetter(noteType),
                 statusPageUrl,
                 statusNoteStatus,
                 unsubscribeUrl,
@@ -3874,23 +3881,28 @@ const _this = {
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
-                'Subscriber Scheduled Maintenance'
+                'Subscriber Scheduled Maintenance Created'
             );
 
-            //project name
+            const resourcesAffected = [];
+            schedule.monitors.map(monitor => {
+                return resourcesAffected.push(monitor.monitorId.name);
+            });
+
             const data = {
                 scheduledTime,
-                monitorName,
+                monitorName: UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName: UppercaseFirstLetter(projectName),
                 projectId: schedule.projectId,
-                componentName,
-                eventName: schedule.name,
+                componentName: UppercaseFirstLetter(componentName),
+                eventName: UppercaseFirstLetter(schedule.name),
                 eventDescription: schedule.description,
                 eventCreateTime: schedule.createdAt,
                 eventStartTime: schedule.startDate,
                 eventEndTime: schedule.endDate,
+                resourcesAffected: resourcesAffected.toString(),
                 unsubscribeUrl,
                 year: DateTime.getCurrentYear,
             };
@@ -4088,18 +4100,23 @@ const _this = {
                 'Subscriber Scheduled Maintenance Resolved'
             );
 
+            const resourcesAffected = [];
+            schedule.monitors.map(monitor => {
+                return resourcesAffected.push(monitor.monitorId.name);
+            });
             //project name
             const data = {
                 scheduledTime,
-                monitorName,
+                monitorName: UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName: UppercaseFirstLetter(projectName),
                 projectId: schedule.projectId,
-                componentName,
-                eventName: schedule.name,
+                componentName: UppercaseFirstLetter(componentName),
+                eventName: UppercaseFirstLetter(schedule.name),
                 eventResolveTime: schedule.resolvedAt,
                 unsubscribeUrl,
+                resourcesAffected: resourcesAffected.toString(),
                 year: DateTime.getCurrentYear,
             };
             template = template(data);
@@ -4265,6 +4282,220 @@ const _this = {
     },
 
     /**
+     * @param {js date object} scheduledTime JS date of the event as timestamp.
+     * @param {string} monitorName Name of monitor with incident.
+     * @param {string} email Email of user being alerted.
+     * @param {string} userId Id of the user.
+     * @param {string} projectId Id of the project whose monitor has incident.
+     * @param {string} componentName Name of the component whose monitor has incident.
+     * @param {string} statusPageUrl status page url
+     */
+
+    sendCancelledScheduledEventMailToSubscriber: async function(
+        scheduledTime,
+        monitorName,
+        email,
+        userId,
+        userName,
+        schedule,
+        projectName,
+        emailTemplate,
+        componentName,
+        replyAddress,
+        unsubscribeUrl
+    ) {
+        let mailOptions = {};
+        let EmailBody;
+        let smtpServer;
+
+        try {
+            let { template, subject } = await _this.getTemplates(
+                emailTemplate,
+                'Subscriber Scheduled Maintenance Cancelled'
+            );
+
+            const resourcesAffected = [];
+            schedule.monitors.map(monitor => {
+                return resourcesAffected.push(monitor.monitorId.name);
+            });
+            //project name
+            const data = {
+                scheduledTime,
+                monitorName: UppercaseFirstLetter(monitorName),
+                userName,
+                userId,
+                projectName: UppercaseFirstLetter(projectName),
+                projectId: schedule.projectId,
+                componentName: UppercaseFirstLetter(componentName),
+                eventName: UppercaseFirstLetter(schedule.name),
+                eventCancelTime: schedule.cancelledAt,
+                unsubscribeUrl,
+                resourcesAffected: resourcesAffected.toString(),
+                year: DateTime.getCurrentYear,
+            };
+            template = template(data);
+            subject = subject(data);
+
+            let smtpSettings = await _this.getProjectSmtpSettings(
+                schedule.projectId._id
+            );
+            smtpServer = 'internal';
+            if (!smtpSettings.internalSmtp) {
+                smtpServer = smtpSettings.host;
+            }
+            const privateMailer = await _this.createMailer(smtpSettings);
+            if (replyAddress) {
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    replyTo: replyAddress,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        body: template,
+                    },
+                };
+            } else {
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        body: template,
+                    },
+                };
+            }
+            EmailBody = await _this.getEmailBody(mailOptions);
+            if (!privateMailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                    ...(mailOptions.replyTo && {
+                        replyTo: mailOptions.replyTo,
+                    }),
+                    content: EmailBody,
+                    error: 'Email not enabled.',
+                    smtpServer,
+                });
+                return;
+            }
+
+            let info = {};
+            try {
+                info = await privateMailer.sendMail(mailOptions);
+
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Success',
+                    ...(mailOptions.replyTo && {
+                        replyTo: mailOptions.replyTo,
+                    }),
+                    content: EmailBody,
+                    smtpServer,
+                });
+            } catch (error) {
+                if (error.code === 'ECONNECTION') {
+                    if (
+                        smtpSettings.internalSmtp &&
+                        smtpSettings.customSmtp &&
+                        !isEmpty(smtpSettings.backupConfig)
+                    ) {
+                        smtpServer = smtpSettings.backupConfig.host;
+                        smtpSettings = { ...smtpSettings.backupConfig };
+
+                        const privateMailer = await _this.createMailer(
+                            smtpSettings
+                        );
+                        if (replyAddress) {
+                            mailOptions = {
+                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                to: email,
+                                replyTo: replyAddress,
+                                subject: subject,
+                                template: 'template',
+                                context: {
+                                    body: template,
+                                },
+                            };
+                        } else {
+                            mailOptions = {
+                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                to: email,
+                                subject: subject,
+                                template: 'template',
+                                context: {
+                                    body: template,
+                                },
+                            };
+                        }
+                        EmailBody = await _this.getEmailBody(mailOptions);
+                        if (!privateMailer) {
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Email not enabled.',
+                                ...(mailOptions.replyTo && {
+                                    replyTo: mailOptions.replyTo,
+                                }),
+                                content: EmailBody,
+                                error: 'Email not enabled.',
+                                smtpServer,
+                            });
+                            return;
+                        }
+
+                        info = await privateMailer.sendMail(mailOptions);
+
+                        await EmailStatusService.create({
+                            from: mailOptions.from,
+                            to: mailOptions.to,
+                            subject: mailOptions.subject,
+                            template: mailOptions.template,
+                            status: 'Success',
+                            ...(mailOptions.replyTo && {
+                                replyTo: mailOptions.replyTo,
+                            }),
+                            content: EmailBody,
+                            smtpServer,
+                        });
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    throw error;
+                }
+            }
+            return info;
+        } catch (error) {
+            ErrorService.log(
+                'mailService.sendCancelledScheduledEventMailToSubscriber',
+                error
+            );
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+                ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: EmailBody,
+                error: error.message,
+                smtpServer,
+            });
+            throw error;
+        }
+    },
+
+    /**
      * @param {string} monitorName Name of monitor with incident.
      * @param {string} email Email of user being alerted.
      * @param {string} userId Id of the user.
@@ -4285,14 +4516,17 @@ const _this = {
         projectName,
         monitorName,
         projectId,
-        unsubscribeUrl
+        unsubscribeUrl,
+        monitorsAffected
     ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
 
-        const capitalizeStatus =
-            status.charAt(0).toUpperCase() + status.slice(1);
+        const resourcesAffected = [];
+        monitorsAffected.map(monitor => {
+            return resourcesAffected.push(monitor.name);
+        });
 
         try {
             let { template, subject } = await _this.getTemplates(
@@ -4303,13 +4537,14 @@ const _this = {
             //project name
             const data = {
                 userName,
-                eventName,
-                status: capitalizeStatus,
+                eventName: UppercaseFirstLetter(eventName),
+                status: UppercaseFirstLetter(status),
                 createdBy,
                 content,
-                projectName,
-                monitorName,
+                projectName: UppercaseFirstLetter(projectName),
+                monitorName: UppercaseFirstLetter(monitorName),
                 unsubscribeUrl,
+                resourcesAffected: resourcesAffected.toString(),
                 year: DateTime.getCurrentYear,
             };
             template = template(data);
@@ -4507,14 +4742,14 @@ const _this = {
             );
             const data = {
                 incidentTime,
-                monitorName,
+                monitorName: UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
-                projectName,
+                projectName: UppercaseFirstLetter(projectName),
                 trackEmailAsViewedUrl,
                 projectId: incident.projectId,
-                incidentType: incident.incidentType,
-                componentName,
+                incidentType: UppercaseFirstLetter(incident.incidentType),
+                componentName: UppercaseFirstLetter(componentName),
                 statusPageUrl,
                 unsubscribeUrl,
                 year: DateTime.getCurrentYear,

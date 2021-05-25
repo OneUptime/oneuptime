@@ -15,6 +15,7 @@ const domainVerificationTokenSchema = new Schema({
         default: false,
     },
     deletedAt: Date,
+    updatedAt: Date,
     projectId: {
         type: Schema.Types.ObjectId,
         ref: 'Project',

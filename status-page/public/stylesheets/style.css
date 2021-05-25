@@ -75,7 +75,7 @@ a:hover { color: #4c4c4c; }
 
 /******* Simple Bar Chart *******/
 div.block-chart {
-  height: 28px;
+  height: 41px;
   padding: 9px 0 4px;
   overflow: hidden;
   width: 101%; /* IE overflow fix */
@@ -89,7 +89,7 @@ div.block-chart::-webkit-scrollbar {
   div.block-chart div.bar {
     display: inline-block;
     height: 100%;
-    width: 4px;
+    width: 6px;
 
     cursor: pointer;
 
@@ -113,7 +113,7 @@ div.block-chart::-webkit-scrollbar {
 
     div.block-chart div.bar.empty {
       height: 100%;
-      width: 4px;
+      width: 6px;
 
       cursor: pointer;
 
@@ -1214,7 +1214,8 @@ margin-left:10px;
 }
 
 .ongoing__affectedmonitor--title {
-  font-weight: 900;
+  font-weight: 700;
+  font-size: 14px;
 }
 
 .scheduledEvent,
@@ -1306,6 +1307,217 @@ margin-left:10px;
   margin-top: 70px;
 }
 
+.annoucement_frame {
+  width: 90%;
+  max-width: 850px;
+  margin: auto;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+  font-size: 16px;
+  margin-top: 30px;
+  cursor: pointer;
+}
+
+.annoucement_frame2 {
+  margin-top: 120px !important;
+  cursor: default !important;
+}
+
+.log-container{
+  margin: auto;
+  width: 600px;
+  margin-top: -30px;
+}
+.clean_ann {
+  max-width: 850px;
+  margin: auto;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+  font-size: 16px;
+  margin-top: 30px;
+  cursor: pointer;
+  background-color: #49c3b1;
+  font-weight: 500;
+  border: 1px solid rgba(0,0,0,0.1);
+  text-shadow: 0 1px 0 rgb(0 0 0 / 10%);
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 5px;
+  margin-bottom: 40px;
+}
+
+.classic_icon_x {
+  padding-top: 0 !important;
+}
+
+.classic_icon_x span {
+  margin: 0;
+  bottom: 0;
+  right: 0;
+}
+
+.announcement_icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+}
+
+.announcement_icon svg {
+  margin-right: 10px;
+}
+
+.icon_ann {
+  display: flex;
+  align-items: center;
+}
+
+.ann_header {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.ann_title {
+  font-size: 16px;
+  margin: 7px 0px;
+}
+
+.ann_desc {
+  font-size: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.announcement_block {
+  padding: 10px;
+  border-style: solid;
+  border-top-width: 0;
+  border-right-width: 0;
+  border-left-width: 0;
+  border-bottom-width: 1px;
+  border-color: #dfe1df;
+}
+
+.announcement_block2 {
+  border-bottom-width: 0 !important;
+}
+
+.announce_title {
+  font-weight: 500;
+}
+
+.announcement_classic {
+  border-radius: 4px;
+  box-shadow: 0 7px 14px 0 rgb(50 50 93 / 10%), 0 3px 6px 0 rgb(0 0 0 / 7%);
+  padding: 30px;
+  background-color: #599b4c;
+  color: #fff;
+  margin-top: 20px;
+  cursor: pointer;
+  font-family: sans-serif !important;
+}
+.classic_font {
+  font-family: sans-serif !important;
+  font-weight: 700;
+}
+.classic_header {
+  font-weight: 900;
+  font-size: 11px !important;
+  margin-bottom: 10px !important;
+}
+.resources_aff {
+  margin-top: 6px;
+  font-size: 14px;
+}
+.ann_header {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.ul_announce {
+  padding: 0;
+}
+
+.ann_items {
+  background: rgba(238, 238, 238, 0.7);
+  padding-left: 20px;
+  padding-right: 20px;
+  border-radius: 10px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  cursor: pointer;
+  font-family: sans-serif;
+  margin-bottom: 10px;
+}
+
+.classic_ann_title {
+  font-size: 14px;
+  font-weight: bold;
+  color: rgba(76, 76, 76, 0.8);
+  margin-bottom: 6px;
+}
+
+.classic_ann_desc {
+  color: rgba(0, 0, 0, 0.5);
+  display: block;
+  text-align: justify;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.classic_res {
+  color: rgba(76, 76, 76, 0.8);
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.classic_res span:first-child {
+  font-weight: bold;
+}
+
+.new_res span:first-child {
+  font-weight: bold;
+}
+
+.affected_fonts {
+  font-weight: normal !important;
+}
+
+.classic_date {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  color: rgba(76, 76, 76, 0.52);
+  font-weight: 700;
+}
+
+.classic_more {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.new_show_btn {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  cursor: default;
+}
+
+.new_show_btn button, .new_show_btn button:hover, .new_show_btn button:focus {
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+
+.new_show_btn button {
+  background-color: #fff;
+  text-decoration: underline;
+  font-size: 14px;
+}
+
+.new_show_btn button:hover {
+  color: rgba(0,0,0,0.5);
+}
+
 .sy-op {
   background-color: #49c3b1;
   font-weight: 500;
@@ -1321,7 +1533,6 @@ margin-left:10px;
 
 .new-theme-incident {
   margin-top: 70px;
-  width: 90%;
   max-width: 850px;
   margin: auto;
   margin-bottom: 70px;
@@ -1752,10 +1963,89 @@ margin-left:10px;
   margin-left: 0px;
 }
 
+.ann_list {
+  margin: 0;
+  margin-bottom: 10px;
+  cursor: default;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ann_list div:first-child {
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+  font-weight: bold;
+  color: rgba(76, 76, 76, 0.8);
+}
+
+.ann_list div:nth-child(2) {
+  display: flex;
+  justify-content: flex-end;
+  flex: 1;
+}
+
+.nt-ann-block {
+  margin: 0;
+  padding-left: 0;
+}
+
+.nt-ann-block li {
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  border-style: solid;
+  border-top-width: 0;
+  border-right-width: 0;
+  border-left-width: 0;
+  border-bottom-width: 1px;
+  border-color: #dfe1df;
+}
+
+.nt-topic {
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+  font-weight: bold;
+}
+
+.nt_list {
+  font-size: 16px;
+  color: #8898aa;
+  margin-top: -23px;
+}
+
+.cl_nolist {
+  text-align: center;
+  font-family: "proxima-nova", "Helvetica Neue", Helvetica, Arial, Sans-Serif;
+  font-size: 14px;
+  color: rgba(76, 76, 76, 0.8);
+  padding: 10px;
+}
+
+.ct_header {
+  font-weight: bold;
+  color: rgba(76, 76, 76, 0.8);
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.ct_desc {
+  color: rgba(0, 0, 0, 0.5);
+  display: block;
+  text-align: justify;
+  font-size: 14px;
+  display: block;
+}
+
+.ct_time {
+  color: rgba(76, 76, 76, 0.8) !important;
+  margin-left: 0 !important;
+}
+
 @media screen and (max-width: 650px) {
   .innernew {
     width: 90%;
     margin-top: 20px;
+  }
+  .log-container{
+    width: 88%;
   }
 
   .scheduledEvent,
@@ -1830,5 +2120,12 @@ margin-left:10px;
 @media screen and (max-width: 420px) {
   .feed-item div.message {
     width: auto !important;
+  }
+}
+
+@media(min-width: 768px) {
+  .annoucement_frame2 {
+    width: 70% !important;
+    max-width: 550px !important;
   }
 }

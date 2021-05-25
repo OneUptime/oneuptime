@@ -39,7 +39,7 @@ export class StatusPageForm extends React.Component {
 
     submitForm = values => {
         const { data } = this.props;
-        this.props.readStatusPage(data.statusPageId, values).then(res => {
+        this.props.readStatusPage(data.statusPageSlug, values).then(res => {
             this.props.createDuplicateStatusPage(res).then(res => {
                 this.props.closeModal({
                     id: this.props.duplicateModalId,
@@ -47,8 +47,7 @@ export class StatusPageForm extends React.Component {
                 this.props.openModal({
                     id: this.props.duplicateModalId,
                     content: DuplicateStatusPageConfirmation,
-                    statusPageId: res.data._id,
-                    subProjectId: data.subProjectId,
+                    statusPageSlug: res.data.slug,
                     slug: this.props.currentProject.slug,
                 });
             });
@@ -230,10 +229,8 @@ StatusPageForm.propTypes = {
     readStatusPage: PropTypes.func,
     createDuplicateStatusPage: PropTypes.func,
     duplicateModalId: PropTypes.string.isRequired,
-    statusPageId: PropTypes.string.isRequired,
     statusPage: PropTypes.object,
     currentProject: PropTypes.object,
-    subProjectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
 };
 

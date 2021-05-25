@@ -13,7 +13,10 @@ const RenderField = ({
     style,
     required,
     autoFocus,
+    autofilled,
     parentStyle = {},
+    handleFocus,
+    handleBlur,
 }) => (
     <span style={{ width: '100%', ...parentStyle }}>
         <span>
@@ -28,6 +31,9 @@ const RenderField = ({
                 style={style || {}}
                 required={required}
                 autoFocus={autoFocus}
+                autoComplete={autofilled || 'on'}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
             />
         </span>
         <br />
@@ -70,6 +76,10 @@ RenderField.propTypes = {
     required: PropTypes.bool,
     autoFocus: PropTypes.bool,
     parentStyle: PropTypes.object,
+    autoComplete: PropTypes.string,
+    autofilled: PropTypes.string,
+    handleFocus: PropTypes.func,
+    handleBlur: PropTypes.func,
 };
 
 RenderField.defaultProps = {

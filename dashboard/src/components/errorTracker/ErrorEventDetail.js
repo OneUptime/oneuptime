@@ -88,7 +88,7 @@ class ErrorEventDetail extends Component {
             issue._id
         );
         history.push(
-            `/dashboard/project/${currentProject.slug}/${componentSlug}/error-trackers/${errorTrackerSlug}`
+            `/dashboard/project/${currentProject.slug}/component/${componentSlug}/error-trackers/${errorTrackerSlug}`
         );
 
         return promise;

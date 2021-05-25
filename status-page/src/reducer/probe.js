@@ -23,7 +23,27 @@ export default function probes(state = INITIAL_STATE, action) {
                 skip: action.payload.skip,
             });
 
+        case types.PROBE_SUCCESS_STATUSPAGE:
+            return Object.assign({}, state, {
+                requesting: false,
+                error: null,
+                success: true,
+                probes: action.payload.data,
+                count: action.payload.count,
+                limit: action.payload.limit,
+                skip: action.payload.skip,
+            });
+
         case types.PROBE_REQUEST:
+            return Object.assign({}, state, {
+                ...state,
+
+                requesting: true,
+                error: null,
+                success: false,
+            });
+
+        case types.PROBE_REQUEST_STATUSPAGE:
             return Object.assign({}, state, {
                 ...state,
 
@@ -40,8 +60,27 @@ export default function probes(state = INITIAL_STATE, action) {
                 error: action.payload,
                 success: false,
             });
+        case types.PROBE_FAILED_STATUSPAGE:
+            return Object.assign({}, state, {
+                ...state,
+
+                requesting: false,
+                error: action.payload,
+                success: false,
+            });
 
         case types.PROBE_RESET:
+            return Object.assign({}, state, {
+                requesting: false,
+                error: null,
+                success: false,
+                probes: [],
+                count: null,
+                limit: null,
+                skip: null,
+            });
+
+        case types.PROBE_RESET_STATUSPAGE:
             return Object.assign({}, state, {
                 requesting: false,
                 error: null,
