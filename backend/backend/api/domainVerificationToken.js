@@ -37,7 +37,7 @@ router.put(
                         ? txtRecords.join(', ')
                         : txtRecords[0];
                 return sendErrorResponse(req, res, {
-                    message: `please specify ${verificationToken} in your DNS as the available ${
+                    message: `Please specify ${verificationToken} in your DNS. Looks like your current ${
                         txtRecords.length > 1 ? 'records are' : 'record is'
                     } ${records}`,
                     code: 400,
