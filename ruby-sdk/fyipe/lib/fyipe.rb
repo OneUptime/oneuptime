@@ -30,7 +30,7 @@ class FyipeLogger
          end
  
          # check if tag type is avialable and its not a string or hash object
-         if(tagType != nil && (!((tagType.eql? "String") || (tagType.eql? "Hash"))))
+         if(tagType != nil && (!((tagType.eql? "String") || (tagType.eql? "Array"))))
              raise "Invalid Content Tags to be logged"
          end
     end
