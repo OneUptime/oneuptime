@@ -14,7 +14,7 @@ audit_ruby-sdk:
         - echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
         - echo 'eval "$(rbenv init -)"' >> ~/.bashrc
         - source ~/.bashrc
-        - type rbenv
+        - rbenv
         # -
         # -
         # - cd ruby-sdk
