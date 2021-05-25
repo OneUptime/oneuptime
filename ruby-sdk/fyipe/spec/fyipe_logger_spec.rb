@@ -50,4 +50,99 @@ RSpec.describe FyipeLogger do
         response = logger.log('test')
         expect(response['message']).to eql 'Application Log does not exist.'
     end
+    it 'test_valid_string_content_of_type_info_is_logged' do
+        log = "sample content to be logged"
+        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        response = logger.log(log)
+        expect(response['content']).to eql log
+        expect(response['content'].class.to_s).to eql "String"
+        expect(response['type']).to eql "info"
+    end
+    it 'test_valid_object_content_of_type_info_is_logged' do
+        log = {
+            "name" => "Tony Lewinsky",
+            "location" => "Liverpool"
+        }
+        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        response = logger.log(log)
+        expect(response['content']["location"]).to eql log["location"]
+        expect(response['content'].class.to_s).to eql "Hash"
+        expect(response['type']).to eql "info"
+    end
+    it 'test_valid_string_content_of_type_error_is_logged' do
+        log = "sample content to be logged"
+        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        response = logger.error(log)
+        expect(response['content']).to eql log
+        expect(response['content'].class.to_s).to eql "String"
+        expect(response['type']).to eql "error"
+    end
+    it 'test_valid_object_content_of_type_warning_is_logged' do
+        log = {
+            "name" => "Tony Lewinsky",
+            "location" => "Liverpool"
+        }
+        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        response = logger.warning(log)
+        expect(response['content']["location"]).to eql log["location"]
+        expect(response['content'].class.to_s).to eql "Hash"
+        expect(response['type']).to eql "warning"
+    end
+    it 'test_valid_object_content_of_type_warning_with_one_tag_is_logged' do
+        log = {
+            "name" => "Tony Lewinsky",
+            "location" => "Liverpool"
+        }
+        tag = "Famous";
+        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        response = logger.warning(log, tag)
+        expect(response['content']["location"]).to eql log["location"]
+        expect(response['content'].class.to_s).to eql "Hash"
+        expect(response['type']).to eql "warning"
+        expect(response['tags'].class.to_s).to eql "Array"
+        expect(response['tags'].find { |item| item == tag }).to_not be_nil
+    end
+    it 'test_valid_object_content_of_type_error_with_no_tag_is_logged' do
+        log = "sample content to be logged"
+        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        response = logger.error(log)
+        expect(response['content']).to eql log
+        expect(response['content'].class.to_s).to eql "String"
+        expect(response['type']).to eql "error"
+        expect(response['tags'].class.to_s).to eql "Array"
+        expect(response['tags']).to eql []
+    end
+    it 'test_valid_object_content_of_type_warning_with_four_tags_is_logged' do
+        log = {
+            "name" => "Tony Lewinsky",
+            "location" => "Liverpool"
+        }
+        tags = ['testing', 'rubylansh', 'trial', 'correct']
+        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        response = logger.warning(log, tags)
+        expect(response['content']["location"]).to eql log["location"]
+        expect(response['content'].class.to_s).to eql "Hash"
+        expect(response['type']).to eql "warning"
+        expect(response['tags'].class.to_s).to eql "Array"
+        tags.each {
+            |tag| expect(response['tags'].find { |item| item == tag }).to_not be_nil
+        }
+
+    end
+    it 'test_valid_object_content_of_type_warning_return_invalid_tags' do
+        log = {
+            "name" => "Tony Lewinsky",
+            "location" => "Liverpool"
+        }
+        tags = {"content" => "test"}
+        logger = FyipeLogger.new($apiUrl, $applicationLog["_id"], $applicationLog["key"])
+        begin
+            response = logger.warning(log, tags)
+        rescue => exception
+            expect(exception.message).to eql 'Invalid Content Tags to be logged'
+        ensure
+            
+        end
+        
+    end
 end
