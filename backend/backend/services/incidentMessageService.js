@@ -13,7 +13,12 @@ module.exports = {
             incidentMessage = await incidentMessage.save();
 
             for (const monitor of data.monitors) {
-                IncidentService.refreshInterval(data.incidentId, monitor._id);
+                if (!data.ignoreCounter) {
+                    await IncidentService.refreshInterval(
+                        data.incidentId,
+                        monitor._id
+                    );
+                }
             }
 
             incidentMessage = await this.findOneBy({

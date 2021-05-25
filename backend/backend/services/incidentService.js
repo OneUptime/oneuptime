@@ -630,6 +630,7 @@ module.exports = {
                     incident_state: 'Acknowledged',
                     post_statuspage: true,
                     monitors,
+                    ignoreCounter: true,
                 });
 
                 await IncidentTimelineService.create({
@@ -755,6 +756,7 @@ module.exports = {
                 incident_state: 'Resolved',
                 post_statuspage: true,
                 monitors,
+                ignoreCounter: true,
             });
 
             await IncidentTimelineService.create({
@@ -1255,12 +1257,13 @@ module.exports = {
             if (String(interval.monitorId) === String(monitorId)) {
                 _this.clearInterval(incidentId, monitorId);
 
-                const incident = await _this.findOneBy({ _id: monitorId });
-                _this.startInterval(
+                const incident = await _this.findOneBy({ _id: incidentId });
+                await _this.startInterval(
                     incident.projectId,
                     incident.monitors,
                     incident
                 );
+                break;
             }
         }
     },
