@@ -704,10 +704,9 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                         pubDate: new Date(incident.createdAt).toUTCString(),
                         description: `<![CDATA[Description: ${
                             incident.description
-                        }<br>Incident Id: ${incident._id.toString()} <br>Monitor's Name: ${
-                            incident.monitorId.name
-                        }
-                        <br>Monitor's Id: ${incident.monitorId._id.toString()} <br>Acknowledge Time: ${
+                        }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
+                            incident.monitors
+                        )}<br>Acknowledge Time: ${
                             incident.acknowledgedAt
                         }<br>Resolve Time: ${incident.resolvedAt}<br>${
                             incident.investigationNote
@@ -1566,6 +1565,23 @@ function checkDuplicateDates(items) {
         result.push(item);
     }
     return result;
+}
+
+function handleMonitorList(monitors) {
+    if (monitors.length === 1) {
+        return monitors[0].monitorId.name;
+    }
+    if (monitors.length === 2) {
+        return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name}`;
+    }
+    if (monitors.length === 3) {
+        return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
+    }
+    if (monitors.length > 3) {
+        return `${monitors[0].monitorId.name}, ${
+            monitors[1].monitorId.name
+        } and ${monitors.length - 2} others`;
+    }
 }
 
 module.exports = router;

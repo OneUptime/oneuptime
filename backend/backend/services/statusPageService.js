@@ -999,10 +999,10 @@ module.exports = {
                 statuspage && statuspage.monitors.map(m => m.monitor._id);
             if (monitorIds && monitorIds.length) {
                 const incidents = await IncidentService.findBy({
-                    monitorId: { $in: monitorIds },
+                    'monitors.monitorId': { $in: monitorIds },
                 });
                 const count = await IncidentService.countBy({
-                    monitorId: { $in: monitorIds },
+                    'monitors.monitorId': { $in: monitorIds },
                 });
                 return { incidents, count };
             } else {

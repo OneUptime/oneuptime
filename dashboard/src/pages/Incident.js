@@ -224,12 +224,6 @@ class Incident extends React.Component {
         this.props.fetchBasicIncidentSettings(
             this.props.currentProject && this.props.currentProject._id
         );
-        const monitorId =
-            this.props.incident &&
-            this.props.incident.monitorId &&
-            this.props.incident.monitorId._id
-                ? this.props.incident.monitorId._id
-                : null;
 
         this.props
             .getIncident(this.props.projectId, this.props.incidentId)
@@ -253,17 +247,23 @@ class Incident extends React.Component {
             0,
             10
         );
-        this.props.getMonitorLogs(
-            this.props.projectId,
-            monitorId,
-            0,
-            10,
-            null,
-            null,
-            null,
-            this.props.incidentId,
-            this.props.type
-        );
+
+        const monitors = this.props.incident
+            ? this.props.incident.monitors.map(monitor => monitor.monitorId)
+            : [];
+        for (const monitor of monitors) {
+            this.props.getMonitorLogs(
+                this.props.projectId,
+                monitor._id,
+                0,
+                10,
+                null,
+                null,
+                null,
+                this.props.incidentId,
+                monitor.type
+            );
+        }
         this.props.fetchIncidentMessages(
             this.props.projectId,
             this.props.incidentId,
@@ -629,10 +629,6 @@ class Incident extends React.Component {
                                                 currentProject={
                                                     this.props.currentProject
                                                 }
-                                                monitorSlug={
-                                                    this.props.monitor &&
-                                                    this.props.monitor.slug
-                                                }
                                                 componentSlug={
                                                     this.props.componentSlug
                                                 }
@@ -740,19 +736,6 @@ const mapStateToProps = (state, props) => {
         });
     });
     const { componentSlug, incidentId } = props.match.params;
-    const monitorId =
-        state.incident &&
-        state.incident.incident &&
-        state.incident.incident.incident &&
-        state.incident.incident.incident.monitorId &&
-        state.incident.incident.incident.monitorId._id
-            ? state.incident.incident.incident.monitorId._id
-            : null;
-    const monitor = state.monitor.monitorsList.monitors
-        .map(monitor =>
-            monitor.monitors.find(monitor => monitor._id === monitorId)
-        )
-        .filter(monitor => monitor)[0];
 
     let allMonitors =
         state.monitor &&
@@ -770,8 +753,6 @@ const mapStateToProps = (state, props) => {
     return {
         defaultSchedule,
         scheduleWarning,
-        monitor,
-        type: monitor && monitor.type ? monitor.type : null,
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
         incidentId: incidentId,
@@ -825,7 +806,6 @@ const mapDispatchToProps = dispatch => {
 };
 
 Incident.propTypes = {
-    monitor: PropTypes.object,
     currentProject: PropTypes.object,
     deleting: PropTypes.bool.isRequired,
     fetchIncidentAlert: PropTypes.func,
@@ -862,7 +842,6 @@ Incident.propTypes = {
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
     defaultSchedule: PropTypes.bool,
-    type: PropTypes.string,
     incidentId: PropTypes.string,
     projectId: PropTypes.string,
     fetchComponent: PropTypes.func,

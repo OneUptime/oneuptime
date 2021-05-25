@@ -216,13 +216,7 @@ export class IncidentList extends Component {
 
                                     return (
                                         <tr
-                                            id={`incident_${
-                                                incident.monitorId
-                                                    ? incident.monitorId.name
-                                                    : this.props.incidents.name
-                                                    ? this.props.incidents.name
-                                                    : 'Unknown Monitor'
-                                            }_${i}`}
+                                            id={`incident_${i}`}
                                             key={incident._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
                                             onClick={() => {
