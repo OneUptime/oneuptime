@@ -121,6 +121,7 @@ import {
     VERIFY_DOMAIN_FAILURE,
     VERIFY_DOMAIN_REQUEST,
     VERIFY_DOMAIN_SUCCESS,
+    RESET_VERIFY_DOMAIN,
     CREATE_DOMAIN_REQUEST,
     CREATE_DOMAIN_SUCCESS,
     CREATE_DOMAIN_FAILURE,
@@ -771,6 +772,17 @@ export default function statusPage(state = INITIAL_STATE, action) {
             return {
                 ...state,
                 addMoreDomain: false,
+            };
+
+        case RESET_VERIFY_DOMAIN:
+            return {
+                ...state,
+                verifyDomain: {
+                    ...state.verifyDomain,
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
             };
 
         case VERIFY_DOMAIN_REQUEST:
