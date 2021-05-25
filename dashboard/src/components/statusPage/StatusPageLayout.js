@@ -187,7 +187,9 @@ export class StatusPageLayout extends Component {
                 },
                 { name: 'Footer', key: 'footer' },
             ],
-            invisible: [{ name: 'Scheduled Events Completed', key: 'pastEvents' }],
+            invisible: [
+                { name: 'Scheduled Events Completed', key: 'pastEvents' },
+            ],
         };
         await this.props
             .updateStatusPageLayout(projectId, {

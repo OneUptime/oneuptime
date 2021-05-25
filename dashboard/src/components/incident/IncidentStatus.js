@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
@@ -278,6 +279,8 @@ export class IncidentStatus extends Component {
     };
 
     render() {
+        console.log("VV: ",this.props.closeincident
+        .requesting);
         const subProject =
             this.props.subProjects &&
             this.props.subProjects.filter(
