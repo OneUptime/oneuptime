@@ -1,0 +1,33 @@
+## RUBY SDK
+audit_ruby-sdk:
+    stage: BuildAndTest
+    allow_failure: true
+    script:
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh audit_ruby-sdk ruby-sdk`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
+        - git clone https://github.com/rbenv/rbenv.git ~/.rbenv
+        - echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
+        - echo 'eval "$(rbenv init -)"' >> ~/.bashrc
+        - source ~/.bashrc
+        - type rbenv
+        # -
+        # -
+        # - cd ruby-sdk
+        # - npm ci
+        # - npm run audit
+        # - npm run dep-check
+        # - cd ..
+        # - chmod +x ./ci/scripts/storehash.sh
+        # - ./ci/scripts/storehash.sh audit_ruby-sdk ruby-sdk
+        # - chmod +x ./ci/scripts/cleanup.sh
+        # - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - master
+            - release
+            - feature-ruby-sdk
