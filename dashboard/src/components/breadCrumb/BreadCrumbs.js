@@ -10,10 +10,7 @@ function BreadCrumbs({ styles, showDeleteBtn, close, name, closeIncidentRequest 
     const closeAllIncidents = async () => {
         await close();
         setLoading(false);
-    };
-    console.log("Close I R: ", closeIncidentRequest.requesting);
-    console.log("Close I: ", closeIncidentRequest);
-    console.log("Show B: ", showDeleteBtn);
+    };    
     const deleteBtnStyle =
         ' Flex-flex Flex-justifyContent--spaceBetween Flex-alignItems--center mobile-flex-direction-breadcrumb';
     return (
