@@ -19,7 +19,6 @@ describe('Email Templates API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -50,7 +49,7 @@ describe('Email Templates API', () => {
             await init.pageClick(page, '#email');
             await init.selectDropdownValue(
                 '#type',
-                'External Subscriber Incident Created',
+                'Subscriber Incident Created', // Updated UI
                 page
             );
             await init.pageWaitForSelector(page, '#name');
@@ -87,12 +86,12 @@ describe('Email Templates API', () => {
             await init.pageClick(page, '#email');
             await init.selectDropdownValue(
                 '#type',
-                'External Subscriber Incident Created',
+                'Subscriber Incident Created',
                 page
             );
             const subject = 'Updated Subject';
             await init.pageWaitForSelector(page, '#name');
-            await init.pageClick(page, '#name');
+            await init.pageClick(page, '#name', { clickCount: 3 });
             await init.pageType(page, '#name', subject);
             await init.pageClick(page, '#saveTemplate');
             await init.pageWaitForSelector(page, '#ball-beat', {
@@ -102,7 +101,7 @@ describe('Email Templates API', () => {
             await page.reload();
             await init.selectDropdownValue(
                 '#type',
-                'External Subscriber Incident Created',
+                'Subscriber Incident Created',
                 page
             );
             await init.pageWaitForSelector(page, '#name');
@@ -133,7 +132,7 @@ describe('Email Templates API', () => {
             await init.pageClick(page, '#email');
             await init.selectDropdownValue(
                 '#type',
-                'External Subscriber Incident Created',
+                'Subscriber Incident Created',
                 page
             );
             const resetBtn = await init.pageWaitForSelector(
@@ -165,7 +164,7 @@ describe('Email Templates API', () => {
             await init.pageClick(page, '#email');
             await init.selectDropdownValue(
                 '#type',
-                'External Subscriber Incident Created',
+                'Subscriber Incident Created',
                 page
             );
             await init.pageWaitForSelector(page, '#templateReset', {
@@ -180,7 +179,7 @@ describe('Email Templates API', () => {
             await page.reload();
             await init.selectDropdownValue(
                 '#type',
-                'External Subscriber Incident Created',
+                'Subscriber Incident Created',
                 page
             );
             await init.pageWaitForSelector(page, '#name');

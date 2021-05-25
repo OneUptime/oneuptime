@@ -31,14 +31,14 @@ describe('Log Containers', () => {
         await browser.close();
         done();
     });
-    
+
     test(
         'Should create new log container and confirm that it redirects to the details page',
         async done => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             await init.pageWaitForSelector(page, '#logs');
-            await init.pageClick(page, '#logs');
+            await init.pageClickNavigate(page, '#logs');
 
             // Fill and submit New Application  log form
             await init.pageWaitForSelector(page, '#form-new-application-log');
@@ -49,7 +49,7 @@ describe('Log Containers', () => {
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', applicationLogName);
-            await init.pageClick(page, 'button[type=submit]');
+            await init.pageClickNavigate(page, 'button[type=submit]');
 
             let spanElement = await init.pageWaitForSelector(
                 page,
@@ -69,8 +69,8 @@ describe('Log Containers', () => {
             done();
         },
         operationTimeOut
-    );    
-        
+    );
+
     test(
         'Should open edit component for created log container',
         async done => {
@@ -294,7 +294,7 @@ describe('Log Containers', () => {
             });
 
             await init.pageWaitForSelector(page, '#logs');
-            await init.pageClick(page, '#logs');
+            await init.pageClickNavigate(page, '#logs');
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#application-log-title-${applicationLogName}New`
@@ -327,12 +327,15 @@ describe('Log Containers', () => {
             // Fill and submit edit Application  log form
             await init.pageWaitForSelector(page, '#form-new-application-log');
             // change category here
-            await init.selectDropdownValue('#resourceCategory', categoryName, page);
-            await init.pageClick(page, 'button[type=submit]');
+            await init.selectDropdownValue(
+                '#resourceCategory',
+                categoryName,
+                page
+            );
+            await init.pageClickNavigate(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#addApplicationLogButton', {
                 hidden: true,
             });
-
             await init.pageWaitForSelector(
                 page,
                 `#${applicationLogName}NewBadge`,
@@ -373,12 +376,12 @@ describe('Log Containers', () => {
                 waitUntil: ['networkidle2'],
             });
             await init.pageWaitForSelector(page, '#projectSettings');
-            await init.pageClick(page, '#projectSettings');
+            await init.pageClickNavigate(page, '#projectSettings');
             await init.pageWaitForSelector(page, '#more');
             await init.pageClick(page, '#more');
 
             await init.pageWaitForSelector(page, 'li#resources a');
-            await init.pageClick(page, 'li#resources a');
+            await init.pageClickNavigate(page, 'li#resources a');
 
             await init.pageWaitForSelector(page, `#delete_${categoryName}`);
             await init.pageClick(page, `#delete_${categoryName}`);

@@ -6,12 +6,12 @@ import moment from 'moment';
 import Events from './Events';
 import ShouldRender from './ShouldRender';
 import {
-    fetchMoreFutureEvents,
-    fetchFutureEvents,
+    fetchMorePastEvents,
+    fetchPastEvents,
     showEventCard,
 } from '../actions/status';
 
-class EventsMain extends Component {
+class PastEvent extends Component {
     constructor(props) {
         super(props);
 
@@ -20,7 +20,7 @@ class EventsMain extends Component {
     }
 
     componentDidMount() {
-        this.props.fetchFutureEvents(
+        this.props.fetchPastEvents(
             this.props.projectId,
             this.props.statusPageSlug,
             0
@@ -29,7 +29,7 @@ class EventsMain extends Component {
 
     getAll = () => {
         this.props.showEventCard(true);
-        this.props.fetchFutureEvents(
+        this.props.fetchPastEvents(
             this.props.projectId,
             this.props.statusPageSlug,
             0
@@ -37,7 +37,7 @@ class EventsMain extends Component {
     };
 
     more = () => {
-        this.props.fetchMoreFutureEvents(
+        this.props.fetchMorePastEvents(
             this.props.projectId,
             this.props.statusPageSlug,
             this.props.skip + 1
@@ -67,10 +67,10 @@ class EventsMain extends Component {
                 background: `rgba(${colors.noteBackground.r}, ${colors.noteBackground.g}, ${colors.noteBackground.b})`,
             };
         }
-        if (this.props.futureEvents && this.props.futureEvents.events) {
+        if (this.props.pastEvents && this.props.pastEvents.events) {
             event = (
                 <Events
-                    events={this.props.futureEvents.events}
+                    events={this.props.pastEvents.events}
                     secondaryTextColor={secondaryTextColor}
                     primaryTextColor={primaryTextColor}
                     noteBackgroundColor={noteBackgroundColor}
@@ -99,7 +99,7 @@ class EventsMain extends Component {
         }
 
         return (!this.props.individualEvents.show &&
-            this.props.futureEvents.events.length > 0) ||
+            this.props.pastEvents.events.length > 0) ||
             this.props.individualEvents.show ||
             this.props.showEventCardState ? (
             <div
@@ -110,8 +110,8 @@ class EventsMain extends Component {
                 <div className="messages" style={{ position: 'relative' }}>
                     <ShouldRender
                         if={
-                            this.props.futureEvents &&
-                            !this.props.futureEvents.error
+                            this.props.pastEvents &&
+                            !this.props.pastEvents.error
                         }
                     >
                         <div
@@ -130,7 +130,7 @@ class EventsMain extends Component {
                                         className="feed-title"
                                         style={subheading}
                                     >
-                                        Maintenance Events Scheduled
+                                        Scheduled Events Completed
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender
@@ -158,7 +158,7 @@ class EventsMain extends Component {
                             <ShouldRender
                                 if={
                                     (!this.props.individualEvents.show &&
-                                        this.props.futureEvents.events.length >
+                                        this.props.pastEvents.events.length >
                                             0) ||
                                     (this.props.individualEvents.show &&
                                         this.props.individualEvents.events
@@ -202,8 +202,7 @@ class EventsMain extends Component {
                             <ShouldRender
                                 if={
                                     this.props.showEventCardState &&
-                                    this.props.futureEvents.events.length ===
-                                        0 &&
+                                    this.props.pastEvents.events.length === 0 &&
                                     this.props.individualEvents.events
                                         .length === 0
                                 }
@@ -237,14 +236,14 @@ class EventsMain extends Component {
 
                         <ShouldRender
                             if={
-                                this.props.futureEvents &&
-                                this.props.futureEvents.events &&
-                                this.props.futureEvents.events.length &&
+                                this.props.pastEvents &&
+                                this.props.pastEvents.events &&
+                                this.props.pastEvents.events.length &&
                                 this.props.count >
-                                    this.props.futureEvents.events.length &&
-                                !this.props.futureEvents.requesting &&
+                                    this.props.pastEvents.events.length &&
+                                !this.props.pastEvents.requesting &&
                                 !this.props.requestingmoreevents &&
-                                !this.props.futureEvents.error &&
+                                !this.props.pastEvents.error &&
                                 !this.props.individualEvents.show
                             }
                         >
@@ -265,9 +264,9 @@ class EventsMain extends Component {
                         >
                             <ShouldRender
                                 if={
-                                    this.props.futureEvents &&
-                                    !this.props.futureEvents.error &&
-                                    !this.props.futureEvents.requesting &&
+                                    this.props.pastEvents &&
+                                    !this.props.pastEvents.error &&
+                                    !this.props.pastEvents.requesting &&
                                     this.props.individualEvents.show
                                 }
                             >
@@ -282,7 +281,7 @@ class EventsMain extends Component {
 
                         <ShouldRender
                             if={
-                                this.props.futureEvents.requesting ||
+                                this.props.pastEvents.requesting ||
                                 this.props.requestingmoreevents
                             }
                         >
@@ -305,16 +304,16 @@ class EventsMain extends Component {
     }
 }
 
-EventsMain.displayName = 'EventsMain';
+PastEvent.displayName = 'PastEvent';
 
 const mapStateToProps = state => {
     let skip =
-        state.status.futureEvents && state.status.futureEvents.skip
-            ? state.status.futureEvents.skip
+        state.status.pastEvents && state.status.pastEvents.skip
+            ? state.status.pastEvents.skip
             : 0;
     let count =
-        state.status.futureEvents && state.status.futureEvents.count
-            ? state.status.futureEvents.count
+        state.status.pastEvents && state.status.pastEvents.count
+            ? state.status.pastEvents.count
             : 0;
     if (typeof skip === 'string') {
         skip = parseInt(skip, 10);
@@ -324,11 +323,11 @@ const mapStateToProps = state => {
     }
 
     return {
-        requestingmoreevents: state.status.moreFutureEvents.requesting,
+        requestingmoreevents: state.status.morePastEvents.requesting,
         skip,
         count,
         statusPage: state.status.statusPage,
-        futureEvents: state.status.futureEvents,
+        pastEvents: state.status.pastEvents,
         individualEvents: state.status.individualEvents,
         monitorState: state.status.statusPage.monitorsData,
         showEventCardState: state.status.showEventCard,
@@ -338,15 +337,15 @@ const mapStateToProps = state => {
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            fetchMoreFutureEvents,
-            fetchFutureEvents,
+            fetchMorePastEvents,
+            fetchPastEvents,
             showEventCard,
         },
         dispatch
     );
 
-EventsMain.propTypes = {
-    fetchMoreFutureEvents: PropTypes.func,
+PastEvent.propTypes = {
+    fetchMorePastEvents: PropTypes.func,
     requestingmoreevents: PropTypes.bool,
     projectId: PropTypes.string,
     skip: PropTypes.number,
@@ -354,12 +353,12 @@ EventsMain.propTypes = {
     statusPageId: PropTypes.string,
     statusPageSlug: PropTypes.string,
     statusPage: PropTypes.object,
-    fetchFutureEvents: PropTypes.func,
-    futureEvents: PropTypes.object,
+    fetchPastEvents: PropTypes.func,
+    pastEvents: PropTypes.object,
     individualEvents: PropTypes.object,
     monitorState: PropTypes.array,
     showEventCardState: PropTypes.bool,
     showEventCard: PropTypes.func,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(EventsMain);
+export default connect(mapStateToProps, mapDispatchToProps)(PastEvent);

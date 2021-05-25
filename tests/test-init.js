@@ -295,7 +295,7 @@ const _this = {
     },
     renameProject: async function(newProjectName, page) {
         await _this.pageWaitForSelector(page, '#projectSettings');
-        await _this.pageClick(page, '#projectSettings');
+        await _this.pageClickNavigate(page, '#projectSettings');
         await _this.pageWaitForSelector(page, 'input[name=project_name]');
         await _this.clear('input[name=project_name]', page);
         await _this.pageType(page, 'input[name=project_name]', newProjectName);
@@ -320,7 +320,7 @@ const _this = {
         });
         await _this.pageClick(page, '#description');
         await _this.pageType(page, '#description', description);
-        await _this.pageClick(page, 'button[type=submit]');
+        await _this.pageClickNavigate(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, `#cb${monitorName}`, {
             visible: true,
             timeout: _this.timeout,
@@ -333,7 +333,7 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClick(page, '#components');
+        await _this.pageClickNavigate(page, '#components');
 
         // Navigate to details page of component assumed created
         await _this.pageWaitForSelector(page, `#more-details-${component}`);
@@ -345,10 +345,10 @@ const _this = {
         await page.goto(utils.DASHBOARD_URL, { waitUntil: ['networkidle2'] });
         const description = utils.generateRandomString();
         await _this.pageWaitForSelector(page, '#statusPages');
-        await _this.pageClick(page, '#statusPages');
+        await _this.pageClickNavigate(page, '#statusPages');
         await _this.pageWaitForSelector(page, '#statusPagesListContainer');
         await _this.pageWaitForSelector(page, '#viewStatusPage');
-        await _this.pageClick(page, '#viewStatusPage');
+        await _this.pageClickNavigate(page, '#viewStatusPage');
         await _this.pageWaitForSelector(page, '#addMoreMonitors', {
             visible: true,
             timeout: _this.timeout,
@@ -383,10 +383,10 @@ const _this = {
     },
     navigateToStatusPage: async function(page) {
         await _this.pageWaitForSelector(page, '#statusPages');
-        await _this.pageClick(page, '#statusPages');
+        await _this.pageClickNavigate(page, '#statusPages');
         await _this.pageWaitForSelector(page, '#statusPagesListContainer');
         await _this.pageWaitForSelector(page, '#viewStatusPage');
-        await _this.pageClick(page, '#viewStatusPage');
+        await _this.pageClickNavigate(page, '#viewStatusPage');
         await _this.clickStatusPageUrl(page);
     },
     growthPlanUpgrade: async function(page) {
@@ -395,9 +395,9 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClick(page, '#projectSettings');
+        await _this.pageClickNavigate(page, '#projectSettings');
         await _this.pageWaitForSelector(page, '#billing');
-        await _this.pageClick(page, '#billing');
+        await _this.pageClickNavigate(page, '#billing');
         await _this.pageWaitForSelector(page, 'input#Growth_month', {
             visible: true,
         });
@@ -499,7 +499,7 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClick(page, '#components');
+        await _this.pageClickNavigate(page, '#components');
 
         // Fill and submit New Component form
         await _this.pageWaitForSelector(page, '#form-new-component');
@@ -521,7 +521,7 @@ const _this = {
         await _this.navigateToComponentDetails(component, page);
 
         // Navigate to details page of monitor assumed created
-        await _this.pageClick(page, `#more-details-${monitor}`);
+        await _this.pageClickNavigate(page, `#more-details-${monitor}`);
 
         await _this.pageWaitForSelector(page, `#monitor-title-${monitor}`, {
             visible: true,
@@ -537,14 +537,14 @@ const _this = {
 
         // then goto list of log containers
         await _this.pageWaitForSelector(page, '#logs');
-        await _this.pageClick(page, '#logs');
+        await _this.pageClickNavigate(page, '#logs');
 
         // Navigate to details page of log container assumed created
         await _this.pageWaitForSelector(
             page,
             `#more-details-${applicationLog}`
         );
-        await _this.pageClick(page, `#more-details-${applicationLog}`);
+        await _this.pageClickNavigate(page, `#more-details-${applicationLog}`);
         await _this.pageWaitForSelector(
             page,
             `#application-log-title-${applicationLog}`
@@ -560,11 +560,11 @@ const _this = {
 
         // then goto list of error trackers
         await _this.pageWaitForSelector(page, '#errorTracking');
-        await _this.pageClick(page, '#errorTracking');
+        await _this.pageClickNavigate(page, '#errorTracking');
 
         // Navigate to details page of error tracker assumed created
         await _this.pageWaitForSelector(page, `#more-details-${errorTracker}`);
-        await _this.pageClick(page, `#more-details-${errorTracker}`);
+        await _this.pageClickNavigate(page, `#more-details-${errorTracker}`);
         await _this.pageWaitForSelector(
             page,
             `#error-tracker-title-${errorTracker}`
@@ -603,7 +603,7 @@ const _this = {
         await _this.pageWaitForSelector(page, '#onCallDuty', {
             visible: true,
         });
-        await _this.pageClick(page, '#onCallDuty');
+        await _this.pageClickNavigate(page, '#onCallDuty');
         await page.evaluate(() => {
             document.querySelector('.ActionIconParent').click();
         });
@@ -628,7 +628,7 @@ const _this = {
             await _this.pageClick(page, '#btnAddSubProjects');
         } else {
             await _this.pageWaitForSelector(page, '#projectSettings');
-            await _this.pageClick(page, '#projectSettings');
+            await _this.pageClickNavigate(page, '#projectSettings');
             await _this.pageWaitForSelector(page, '#btn_Add_SubProjects');
             await _this.pageClick(page, '#btn_Add_SubProjects');
             await _this.pageWaitForSelector(page, '#title');
@@ -642,7 +642,7 @@ const _this = {
     addUserToProject: async function(data, page) {
         const { email, role, subProjectName } = data;
         await _this.pageWaitForSelector(page, '#teamMembers');
-        await _this.pageClick(page, '#teamMembers');
+        await _this.pageClickNavigate(page, '#teamMembers');
         await _this.pageWaitForSelector(page, `#btn_${subProjectName}`);
         await _this.pageClick(page, `#btn_${subProjectName}`);
         await _this.pageWaitForSelector(page, `#frm_${subProjectName}`);
@@ -683,7 +683,7 @@ const _this = {
         });
         await _this.pageClick(page, '#url');
         await _this.pageType(page, '#url', 'https://google.com');
-        await _this.pageClick(page, 'button[type=submit]');
+        await _this.pageClickNavigate(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
             visible: true,
         });
@@ -693,10 +693,10 @@ const _this = {
             waitUntil: 'networkidle2',
         });
         await _this.pageWaitForSelector(page, '#components');
-        await _this.pageClick(page, '#components');
+        await _this.pageClickNavigate(page, '#components');
         await _this.pageWaitForSelector(page, '#component0');
         await _this.pageWaitForSelector(page, `#more-details-${componentName}`);
-        await _this.pageClick(page, `#more-details-${componentName}`);
+        await _this.pageClickNavigate(page, `#more-details-${componentName}`);
         await _this.pageWaitForSelector(page, '#form-new-monitor');
         await _this.pageWaitForSelector(page, 'input[id=name]');
         await _this.pageClick(page, 'input[id=name]');
@@ -709,7 +709,7 @@ const _this = {
         });
         await _this.pageClick(page, '#url');
         await _this.pageType(page, '#url', 'https://google.com');
-        await _this.pageClick(page, 'button[type=submit]');
+        await _this.pageClickNavigate(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
             visible: true,
         });
@@ -915,11 +915,11 @@ const _this = {
             waitUntil: 'networkidle2',
         });
         await _this.pageWaitForSelector(page, '#projectSettings');
-        await _this.pageClick(page, '#projectSettings');
+        await _this.pageClickNavigate(page, '#projectSettings');
         await _this.pageWaitForSelector(page, '#more');
         await _this.pageClick(page, '#more');
         await _this.pageWaitForSelector(page, '#incidentSettings');
-        await _this.pageClick(page, '#incidentSettings');
+        await _this.pageClickNavigate(page, '#incidentSettings');
         // To navigate to incident Priority tab
         await _this.pageWaitForSelector(page, '.incident-priority-tab', {
             visible: true,
@@ -948,7 +948,7 @@ const _this = {
             await _this.pageClick(page, '#btnCreateStatusPage');
         } else {
             await _this.pageWaitForSelector(page, '#statusPages');
-            await _this.pageClick(page, '#statusPages');
+            await _this.pageClickNavigate(page, '#statusPages');
             await _this.pageWaitForSelector(
                 page,
                 `#btnCreateStatusPage_${projectName}`
@@ -978,7 +978,7 @@ const _this = {
             await _this.pageClick(page, '#btnCreateSchedule');
         } else {
             await _this.pageWaitForSelector(page, '#onCallDuty');
-            await _this.pageClick(page, '#onCallDuty');
+            await _this.pageClickNavigate(page, '#onCallDuty');
             await _this.pageWaitForSelector(
                 page,
                 `#btnCreateSchedule_${projectName}`
@@ -1001,7 +1001,7 @@ const _this = {
         await _this.pageWaitForSelector(page, '#scheduledMaintenance', {
             visible: true,
         });
-        await _this.pageClick(page, '#scheduledMaintenance');
+        await _this.pageClickNavigate(page, '#scheduledMaintenance');
         await _this.pageWaitForSelector(page, '#addScheduledEventButton', {
             visible: true,
         });
@@ -1128,12 +1128,12 @@ const _this = {
             waitUntil: ['networkidle2'],
         });
         await _this.pageWaitForSelector(page, '#projectSettings');
-        await _this.pageClick(page, '#projectSettings');
+        await _this.pageClickNavigate(page, '#projectSettings');
         await _this.pageWaitForSelector(page, '#more');
         await _this.pageClick(page, '#more');
 
         await _this.pageWaitForSelector(page, 'li#resources a');
-        await _this.pageClick(page, 'li#resources a');
+        await _this.pageClickNavigate(page, 'li#resources a');
         await _this.pageWaitForSelector(page, '#createResourceCategoryButton');
         await _this.pageClick(page, '#createResourceCategoryButton');
         await _this.pageWaitForSelector(page, '#resourceCategoryName');
@@ -1206,7 +1206,7 @@ const _this = {
         await _this.pageWaitForSelector(page, '#scheduledMaintenance', {
             visible: true,
         });
-        await _this.pageClick(page, '#scheduledMaintenance');
+        await _this.pageClickNavigate(page, '#scheduledMaintenance');
 
         await _this.pageWaitForSelector(page, `#${eventBtn}`, {
             visible: true,
@@ -1246,11 +1246,11 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClick(page, '#components');
+        await _this.pageClickNavigate(page, '#components');
         await _this.pageWaitForSelector(page, `#view-resource-${monitorName}`, {
             visible: true,
         });
-        await _this.pageClick(page, `#view-resource-${monitorName}`);
+        await _this.pageClickNavigate(page, `#view-resource-${monitorName}`);
 
         await _this.pageWaitForSelector(
             page,
@@ -1286,9 +1286,10 @@ const _this = {
         await _this.pageWaitForSelector(page, '#projectSettings', {
             visible: true,
         });
-        await _this.pageClick(page, '#projectSettings');
+        await _this.pageClickNavigate(page, '#projectSettings');
+        await _this.pageClick(page, '#more');
         await _this.pageWaitForSelector(page, '#smsCalls');
-        await _this.pageClick(page, '#smsCalls');
+        await _this.pageClickNavigate(page, '#smsCalls');
         await _this.pageWaitForSelector(page, 'label[for=enabled]', {
             visible: true,
         });
@@ -1355,9 +1356,10 @@ const _this = {
         await _this.pageWaitForSelector(page, '#projectSettings', {
             visible: true,
         });
-        await _this.pageClick(page, '#projectSettings');
+        await _this.pageClickNavigate(page, '#projectSettings');
+        await _this.pageClick(page, '#more');
         await _this.pageWaitForSelector(page, '#email');
-        await _this.pageClick(page, '#email');
+        await _this.pageClickNavigate(page, '#email');
         await _this.pageWaitForSelector(page, '#smtpswitch');
         if (enable)
             await _this.page$Eval(page, '#smtpswitch', elem => elem.click());
@@ -1387,7 +1389,7 @@ const _this = {
         await _this.pageWaitForSelector(page, '#profile-menu');
         await _this.pageClick(page, '#profile-menu');
         await _this.pageWaitForSelector(page, '#userProfile');
-        await _this.pageClick(page, '#userProfile');
+        await _this.pageClickNavigate(page, '#userProfile');
         await _this.pageWaitForSelector(page, 'input[type=tel]');
         await _this.pageType(page, 'input[type=tel]', phoneNumber);
         await _this.pageWaitForSelector(page, '#sendVerificationSMS');
@@ -1434,7 +1436,7 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-        await _this.pageClick(page, '#projectSettings');
+        await _this.pageClickNavigate(page, '#projectSettings');
         if (owner === 'monitor') {
             await _this.pageWaitForSelector(page, '#more');
             await _this.pageClick(page, '#more');
@@ -1442,7 +1444,7 @@ const _this = {
                 visible: true,
                 timeout: _this.timeout,
             });
-            await _this.pageClick(page, '#monitor');
+            await _this.pageClickNavigate(page, '#monitor');
             await page.reload({
                 waitUntil: 'networkidle2',
             });
@@ -1454,7 +1456,7 @@ const _this = {
                 visible: true,
                 timeout: _this.timeout,
             });
-            await _this.pageClick(page, '#incidentSettings');
+            await _this.pageClickNavigate(page, '#incidentSettings');
             await page.reload({
                 waitUntil: 'networkidle2',
             });
@@ -1494,7 +1496,17 @@ const _this = {
         });
         return await page.click(selector, opts);
     },
-    page$Eval: async function(page, selector, evalFunction, opts) {
+    pageClickNavigate: async function(page, selector, opts) {
+        await _this.pageWaitForSelector(page, selector, {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        return await Promise.all([
+            page.click(selector, opts),
+            page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing
+        ]);
+    },
+    page$Eval: async function(page, selector, evalFunction) {
         await _this.pageWaitForSelector(page, selector);
         return await page.$eval(selector, evalFunction);
     },

@@ -4,7 +4,7 @@
 
 ```
 sudo kubectl config get-contexts
-sudo kubectl config use-context do-nyc1-fyipe-staging
+sudo kubectl config use-context do-lon1-fyipe-staging
 ```
 
 # Pods
@@ -23,7 +23,7 @@ sudo kubectl get pv
 
 You might have to scale the cluster and add more nodes to it.
 
-This usually happens when one of the nodes is out ot memory or disk.
+This usually happens when one of the nodes is out ot memory or disk. Ideally kill the cluster and create a new cluster.
 
 Run this to delete evicted pods:
 

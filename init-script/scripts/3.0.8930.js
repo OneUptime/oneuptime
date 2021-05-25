@@ -14,7 +14,7 @@ async function run() {
             { remoteLoginUrl: sso.samlSsoUrl }
         );
 
-        await removeField(ssoCollection, { _id: sso._id }, { samlSsoUrl: '' });
+        await removeField(ssoCollection, { _id: sso._id }, 'samlSsoUrl');
     }
 
     return `Script ran for ${ssos.length} ssos`;

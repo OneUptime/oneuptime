@@ -86,7 +86,7 @@ class IncidentHeaderModal extends Component {
                                             <span>
                                                 {data.incidents.length === 0
                                                     ? 'No incidents currently active'
-                                                    : 'The following Incidents are currently Active.'}
+                                                    : 'These incidents are currently active.'}
                                             </span>
                                         </span>
                                     </div>

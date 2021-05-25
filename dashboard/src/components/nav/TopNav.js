@@ -213,8 +213,7 @@ class TopContent extends Component {
     renderOnCallSchedule = (
         activeSchedules,
         currentProjectId,
-        currentProjectSlug,
-        topNavCardClass
+        currentProjectSlug
     ) => {
         return (
             <div
@@ -240,9 +239,6 @@ class TopContent extends Component {
                         marginRight: '3px',
                     }}
                 />
-                <span className={topNavCardClass}>
-                    {`You're currently on-call duty`}
-                </span>
             </div>
         );
     };

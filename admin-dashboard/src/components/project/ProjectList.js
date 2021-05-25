@@ -211,7 +211,12 @@ export class ProjectList extends Component {
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                             <div className="Box-root Margin-right--16">
-                                                                <span className={'projectId'} id={`project-${project._id}`}>
+                                                                <span
+                                                                    className={
+                                                                        'projectId'
+                                                                    }
+                                                                    id={`project-${project._id}`}
+                                                                >
                                                                     {
                                                                         project._id
                                                                     }

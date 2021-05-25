@@ -9,7 +9,7 @@ const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 let browser, page;
 describe('Credential Page', () => {
-    const operationTimeOut = init.timeout;    
+    const operationTimeOut = init.timeout;
     const gitUsername = utils.gitCredential.gitUsername;
     const gitPassword = utils.gitCredential.gitPassword;
 
@@ -53,12 +53,17 @@ describe('Credential Page', () => {
             await init.pageClick(page, '#gitCredentials');
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
-            });            
+            });
             // When no git credential is added, no 'tr'.
-            let noGitCredential = await init.pageWaitForSelector(page, '#noGitCredential');
+            let noGitCredential = await init.pageWaitForSelector(
+                page,
+                '#noGitCredential'
+            );
             noGitCredential = await noGitCredential.getProperty('innerText');
             noGitCredential = await noGitCredential.jsonValue();
-            noGitCredential.should.be.exactly('There are no git credentials for this project');
+            noGitCredential.should.be.exactly(
+                'There are no git credentials for this project'
+            );
 
             await init.pageWaitForSelector(page, '#addCredentialBtn', {
                 visible: true,
@@ -76,12 +81,17 @@ describe('Credential Page', () => {
 
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
                 hidden: true,
-            });            
+            });
 
-            let noGitCredential2 = await init.pageWaitForSelector(page, '#noGitCredential');
+            let noGitCredential2 = await init.pageWaitForSelector(
+                page,
+                '#noGitCredential'
+            );
             noGitCredential2 = await noGitCredential2.getProperty('innerText');
             noGitCredential2 = await noGitCredential2.jsonValue();
-            noGitCredential2.should.be.exactly('There are no git credentials for this project');
+            noGitCredential2.should.be.exactly(
+                'There are no git credentials for this project'
+            );
 
             done();
         },
@@ -157,7 +167,7 @@ describe('Credential Page', () => {
             await init.pageClick(page, '#editCredentialBtn_0');
             await init.pageWaitForSelector(page, '#gitCredentialForm');
             const gitUsername = 'newusername';
-            await init.pageClick(page, '#gitUsername',{clickCount : 3});
+            await init.pageClick(page, '#gitUsername', { clickCount: 3 });
             await init.pageType(page, '#gitUsername', gitUsername);
             await init.pageClick(page, '#updateCredentialModalBtn');
             await init.pageWaitForSelector(page, '#gitCredentialForm', {
@@ -238,7 +248,7 @@ describe('Credential Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, '#deleteCredentialBtn_0');
 
             await init.pageWaitForSelector(page, '#deleteCredentialBtn', {
@@ -250,10 +260,15 @@ describe('Credential Page', () => {
                 hidden: true,
             });
             // When no git credential is added, no 'tr'.
-            let noGitCredential3 = await init.pageWaitForSelector(page, '#noGitCredential');
+            let noGitCredential3 = await init.pageWaitForSelector(
+                page,
+                '#noGitCredential'
+            );
             noGitCredential3 = await noGitCredential3.getProperty('innerText');
             noGitCredential3 = await noGitCredential3.jsonValue();
-            noGitCredential3.should.be.exactly('There are no git credentials for this project');
+            noGitCredential3.should.be.exactly(
+                'There are no git credentials for this project'
+            );
 
             done();
         },

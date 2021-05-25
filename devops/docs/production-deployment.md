@@ -8,6 +8,14 @@
 
 =======================================================
 
+# CHECKLIST
+
+=======================================================
+
+-   Backup your database.
+
+-   Run this script:
+
 ```
 # Deploy to production
 git checkout hotfix-release
