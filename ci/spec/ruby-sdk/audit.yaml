@@ -17,7 +17,9 @@ audit_ruby-sdk:
         - gem install bundler
         - echo $PATH
         - which gem
-        - locate bundle
+        - rbenv rehash
+        - bundle
+        # - locate bundle
         - cd ruby-sdk
         # - /usr/bin/bundle i
         # - npm ci
