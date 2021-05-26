@@ -15,8 +15,11 @@ audit_ruby-sdk:
         - export GEM_HOME="$HOME/.gem"
         - gem update --system
         - gem install bundler
+        - echo $PATH
+        - which gem
+        - locate bundle
         - cd ruby-sdk
-        - /usr/bin/bundle i
+        # - /usr/bin/bundle i
         # - npm ci
         # - npm run audit
         # - npm run dep-check
