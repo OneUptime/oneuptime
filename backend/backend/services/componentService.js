@@ -306,14 +306,9 @@ module.exports = {
                     componentId: component._id,
                 });
 
-                await Promise.all(
-                    monitors.map(async monitor => {
-                        await MonitorService.deleteBy(
-                            { _id: monitor._id },
-                            userId
-                        );
-                    })
-                );
+                for (const monitor of monitors) {
+                    await MonitorService.deleteBy({ _id: monitor._id }, userId);
+                }
                 await NotificationService.create(
                     component.projectId,
                     `A Component ${component.name} was deleted from the project by ${component.deletedById.name}`,
