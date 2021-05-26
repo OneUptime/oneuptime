@@ -17,26 +17,28 @@
             amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRODUCT > WEBSITE MONITORING');
         }
     </script>
-    <script>
-        function onClickFunc() {
-            let playButton = document.getElementById("playButton");
-            let gif = document.getElementById("uptime-monitoring-gif");
-            let videoDiv= document.getElementById("videoDiv");
-            let video= document.getElementById("video");
+      <script>
+        function onClickFunc(index) {
+            let playButton = document.getElementById(`playButton-${index}`);
+            let gif = document.getElementById(`gif-${index}`);
+            let videoDiv= document.getElementById(`videoDiv-${index}`);
+            let video= document.getElementById(`video-${index}`);
+            let grid = document.getElementById(`grid-${index}`);
             playButton.style.display = "none";
             gif.style.display="none";
             videoDiv.style.display="block";
+            // grid.style.width="1000px";
             video.src += "?autoplay=1";
         }
-        function mouseOverFunc()
+        function mouseOverFunc(index)
         {
-            let playButton = document.getElementById("playButton");
+            let playButton = document.getElementById(`playButton-${index}`);
             playButton.src="/img/play-button-black.svg";
             playButton.style.cursor="pointer";
         }
-        function mouseOutFunc()
+        function mouseOutFunc(index)
         {
-            let playButton = document.getElementById("playButton");
+            let playButton = document.getElementById(`playButton-${index}`);
             playButton.src="/img/play-button-grey.svg";
         }
     </script>
@@ -48,6 +50,7 @@
 
     <div class="globalContent">
         <div id="main-content">
+
 
             <section class="marquee nav-animation-element">
 
@@ -71,20 +74,63 @@
                             </div>
                             <p style="margin-top:50px; font-size: 20px"><span class="highlight">Analyze uptime &amp; performance of your website.</span> Improve poorly performing pages to improve your app. Get alerted by SMS, Email or Call when things go wrong.</p>
                         </header>
-
-                    </div>
-                    
+                    </div>   
+                    <div style="
+                    margin: 0 auto;
+                    ;">
+                        <div class="checkbox-items" style="max-width: 1000px; margin: auto;">
+                            <div class="checkbox-feature top-margin-10">
+                                <div><img height="22" src="/img/check-mark-button.svg" /> </div> <div
+                                        class="checkbox-text">Unlimited Website Monitoring</div> 
+                            </div>
+                            <div class="checkbox-feature top-margin-10">
+                                <div><img height="22" src="/img/check-mark-button.svg" /></div> <div
+                                        class="checkbox-text">Get Email, SMS &amp; Call alerts</div> 
+                            </div>
+                            
+                            <div class="checkbox-feature top-margin-10">
+                                <div><img height="22" src="/img/check-mark-button.svg" /></div> <div
+                                        class="checkbox-text">Monitor on any criteria </div> 
+                            </div>
+                            
+                        </div>
+                        <div class="checkbox-items" style="max-width: 1000px; margin: auto;">
+                            <div class="checkbox-feature top-margin-10">
+                                <div><img height="22" src="/img/check-mark-button.svg" /> </div> <div
+                                        class="checkbox-text">Performance Reports</div> 
+                            </div>
+                            <div class="checkbox-feature top-margin-10">
+                                <div><img height="22" src="/img/check-mark-button.svg" /></div> <div
+                                        class="checkbox-text">SSL Monitoring</div> 
+                            </div>
+                            
+                            <div class="checkbox-feature top-margin-10">
+                                <div><img height="22" src="/img/check-mark-button.svg" /></div> <div
+                                        class="checkbox-text">SEO Monitoring</div> 
+                            </div>
+                            
+                        </div>
+                       
+                    </div>                 
                 </div>
 
             </section>
 
-                <div class="gif-container">
-                <img src="/img/animated-gif/uptime-monitoring.gif" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;width: 100%;" />
-                  <img class="play" id="playButton" onmouseout="mouseOutFunc()"onmouseover="mouseOverFunc()"onclick="onClickFunc()" src="/img/play-button-grey.svg"/>
-                  <div id="videoDiv" class="videoClass">
-                    <iframe id="video" width="850" height="500" src="https://www.youtube.com/embed/C1WcqtlG0AM?modestbranding=1&rel=0&enablejsapi=1&controls=1&frameborder=0&allowfullscreen=1" rel="0" enablejsapi="1" modestbranding="1" controls="1" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
-                  </div>
+            <div class="vid_section">
+                <div class="grid-1"></div>
+                <div class="grid-2 text-center" id="grid-1">
+                    <img src="/img/animated-gif/uptime-monitoring.gif" class="imageshadow" alt="Uptime Monitoring" id="gif-1" style="border-radius: 5px;width: 100%;" />
+                    
+                    <img class="play" style="z-index: 3" id="playButton-1" onmouseout="mouseOutFunc(1)"onmouseover="mouseOverFunc(1)"onclick="onClickFunc(1)" src="/img/play-button-grey.svg"/>
+                        <div id="videoDiv-1" class="videoClass">
+                            <iframe id="video" width="850" height="500" src="https://www.youtube.com/embed/C1WcqtlG0AM?modestbranding=1&rel=0&enablejsapi=1&controls=1&frameborder=0&allowfullscreen=1" rel="0" enablejsapi="1" modestbranding="1" controls="1" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                    </div>
+                    
                 </div>
+                <div class="grid-3">
+                    <img src="/img/3mindemobg.png" />
+                </div>
+            </div>
 
             <% include ./cta-buttons %>
 
