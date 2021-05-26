@@ -27,6 +27,7 @@ import AnnouncementLogs from './AnnouncementLogs';
 import PastEvent from './PastEvent';
 import { fetchFutureEvents, fetchPastEvents } from '../actions/status';
 import OngoingSchedule from './OngoingSchedule';
+import Collapsible from 'react-collapsible';
 
 const greenBackground = {
     display: 'inline-block',
@@ -184,25 +185,16 @@ class Main extends Component {
     }
 
     groupBy(collection, property) {
-        let i = 0,
-            val,
-            index;
-        const values = [],
-            result = [];
-
-        for (; i < collection.length; i++) {
-            val = collection[i][property]
-                ? collection[i][property]['name']
-                : 'no-category';
-            index = values.indexOf(val);
-            if (index > -1) {
-                result[index].push(collection[i]);
-            } else {
-                values.push(val);
-                result.push([collection[i]]);
+        const collectionArray = [];
+        collection.forEach(monitor => {
+            if (
+                monitor[property] &&
+                collectionArray.indexOf(monitor[property].name) === -1
+            ) {
+                collectionArray.push(monitor[property].name);
             }
-        }
-        return result;
+        });
+        return collectionArray;
     }
 
     groupedMonitors = () => {
@@ -212,18 +204,99 @@ class Main extends Component {
             this.props.statusData.monitorsData.length > 0
         ) {
             const monitorData = this.props.statusData.monitorsData;
-            const groupedMonitorData = this.groupBy(
+            const resourceCategories = this.groupBy(
                 monitorData,
-                'monitorCategoryId'
+                'resourceCategory'
             );
-            return groupedMonitorData.map((groupedMonitors, i) => {
-                return (
-                    <div
-                        key={i}
-                        className="uptime-graph-header"
-                        style={{ flexDirection: 'column' }}
-                    >
-                        {groupedMonitors.map((monitor, i) => {
+            let uncategorized = [];
+
+            resourceCategories.map((categoryName, i) => {
+                return (uncategorized = monitorData.filter(
+                    mon =>
+                        mon.resourceCategory === undefined ||
+                        !mon.resourceCategory
+                ));
+            });
+
+            return (
+                <div
+                    className="uptime-graph-header"
+                    style={{ flexDirection: 'column' }}
+                >
+                    {resourceCategories.map((categoryName, i) => {
+                        const filteredResource = monitorData.filter(
+                            mon =>
+                                mon.resourceCategory &&
+                                mon.resourceCategory.name === categoryName
+                        );
+
+                        return (
+                            <Collapsible trigger={categoryName}>
+                                {filteredResource.map((monitor, i) => {
+                                    return (
+                                        <>
+                                            <MonitorInfo
+                                                monitor={monitor}
+                                                selectedCharts={
+                                                    this.props.monitors.filter(
+                                                        m =>
+                                                            monitor._id ===
+                                                            m.monitor._id
+                                                    )[0]
+                                                }
+                                                key={i}
+                                                id={`monitor${i}`}
+                                                resourceCategory={
+                                                    monitor.resourceCategory
+                                                }
+                                                isGroupedByMonitorCategory={
+                                                    this.props.statusData
+                                                        .isGroupedByMonitorCategory
+                                                }
+                                                theme={
+                                                    this.props.statusData
+                                                        .theme === 'Clean Theme'
+                                                        ? true
+                                                        : false
+                                                }
+                                            />
+                                            {this.props.monitors.some(
+                                                m =>
+                                                    monitor._id ===
+                                                    m.monitor._id
+                                            ) && (
+                                                <LineChartsContainer
+                                                    monitor={monitor}
+                                                    selectedCharts={
+                                                        this.props.monitors.filter(
+                                                            m =>
+                                                                monitor._id ===
+                                                                m.monitor._id
+                                                        )[0]
+                                                    }
+                                                />
+                                            )}
+                                            {i <
+                                                this.props.statusData
+                                                    .monitorsData.length -
+                                                    1 && (
+                                                <div
+                                                    style={{
+                                                        margin: '30px 0px',
+                                                        backgroundColor:
+                                                            'rgb(232, 232, 232)',
+                                                        height: '1px',
+                                                    }}
+                                                />
+                                            )}
+                                        </>
+                                    );
+                                })}
+                            </Collapsible>
+                        );
+                    })}
+                    <Collapsible trigger="Uncategorized">
+                        {uncategorized.map((monitor, i) => {
                             return (
                                 <>
                                     <MonitorInfo
@@ -281,9 +354,9 @@ class Main extends Component {
                                 </>
                             );
                         })}
-                    </div>
-                );
-            });
+                    </Collapsible>
+                </div>
+            );
         } else {
             return <NoMonitor />;
         }
