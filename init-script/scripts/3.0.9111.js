@@ -1,9 +1,28 @@
-const { find, update } = require('../util/db');
+const { find, update, updateMany } = require('../util/db');
 
 const monitorCollection = 'monitors';
 const statusPageCollection = 'statuspages';
+const componentCollection = 'components';
 
 async function run() {
+    const components = await find(componentCollection, {
+        deleted: true,
+    });
+    // delete monitors yet to be deleted
+    for (const component of components) {
+        await updateMany(
+            monitorCollection,
+            {
+                deleted: false,
+                componentId: component._id,
+            },
+            {
+                deleted: true,
+                deletedAt: component.deletedAt,
+                deletedById: component.createdById, // was designed as string in the schema
+            }
+        );
+    }
     let monitors = await find(monitorCollection, {
         deleted: true,
     });
