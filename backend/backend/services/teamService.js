@@ -297,7 +297,6 @@ module.exports = {
                 } else {
                     const newUser = await UserService.create({
                         email,
-                        createdAt: Date.now(),
                     });
 
                     invitedTeamMembers.push(newUser);
