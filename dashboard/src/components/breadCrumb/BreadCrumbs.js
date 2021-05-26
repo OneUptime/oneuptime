@@ -5,12 +5,18 @@ import { PropTypes } from 'prop-types';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 
-function BreadCrumbs({ styles, showDeleteBtn, close, name, closeIncidentRequest }) {
+function BreadCrumbs({
+    styles,
+    showDeleteBtn,
+    close,
+    name,
+    closeIncidentRequest,
+}) {
     const [loading, setLoading] = useState(true);
     const closeAllIncidents = async () => {
         await close();
         setLoading(false);
-    };    
+    };
     const deleteBtnStyle =
         ' Flex-flex Flex-justifyContent--spaceBetween Flex-alignItems--center mobile-flex-direction-breadcrumb';
     return (
@@ -51,29 +57,25 @@ function BreadCrumbs({ styles, showDeleteBtn, close, name, closeIncidentRequest 
                     }}
                 />
             </div>
-            
-                {loading && showDeleteBtn && name === 'Home' && (
-                    <div
-                        id="incidents-close-all-btn"
-                        style={{ height: 'fit-content' }}
-                        onClick={closeAllIncidents}
-                        className="bs-Button"
-                    >
-                        <span style={{ display: 'flex', alignItems: 'center' }}>
-                            <div
-                                className=" bs-ticks "
-                                style={{ marginTop: '0' }}
-                            ></div>
+
+            {loading && showDeleteBtn && name === 'Home' && (
+                <div
+                    id="incidents-close-all-btn"
+                    style={{ height: 'fit-content' }}
+                    onClick={closeAllIncidents}
+                    className="bs-Button"
+                >
+                    <span style={{ display: 'flex', alignItems: 'center' }}>
+                        <div
+                            className=" bs-ticks "
+                            style={{ marginTop: '0' }}
+                        ></div>
                         Close all Resolved Incidents
-                        <span style={{ marginLeft: '5px' }}>
+                        <span style={{ marginLeft: '5px' }}></span>
+                    </span>
+                </div>
+            )}
 
-                            </span>
-
-                        </span>
-
-                    </div>
-                )}
-            
             <ShouldRender if={closeIncidentRequest.requesting !== false}>
                 <Spinner
                     style={{
@@ -81,13 +83,12 @@ function BreadCrumbs({ styles, showDeleteBtn, close, name, closeIncidentRequest 
                     }}
                 />
             </ShouldRender>
-
         </div>
     );
 }
 
 BreadCrumbs.displayName = 'BreadCrumbs';
-const mapStateToProps = (state) => {
+const mapStateToProps = state => {
     return {
         closeIncidentRequest: state.incident.closeincident,
     };
@@ -97,7 +98,7 @@ BreadCrumbs.propTypes = {
     showDeleteBtn: PropTypes.bool,
     close: PropTypes.func,
     name: PropTypes.string,
-    closeIncidentRequest: PropTypes.object
+    closeIncidentRequest: PropTypes.object,
 };
 
 export default connect(mapStateToProps, null)(BreadCrumbs);
