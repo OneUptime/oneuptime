@@ -30,6 +30,7 @@ router.post('/', async function(req, res) {
         data.country = body.country;
         data.message = body.message || null;
         data.whitepaperName = body.whitepaper_name || null;
+        data.source = JSON.parse(body.source) || null;
         const lead = await LeadService.create(data);
         return sendItemResponse(req, res, lead);
     } catch (error) {
