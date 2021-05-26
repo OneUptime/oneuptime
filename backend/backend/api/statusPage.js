@@ -881,7 +881,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 5;
     const query = {
-        monitorId: req.params.monitorId,
+        'monitors.monitorId': req.params.monitorId,
         deleted: false,
         createdAt: { $gte: start, $lt: end },
     };
