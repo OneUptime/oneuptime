@@ -332,7 +332,7 @@ describe('Log Containers', () => {
                 categoryName,
                 page
             );
-            await init.pageClick(page, 'button[type=submit]');
+            await init.pageClickNavigate(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#addApplicationLogButton', {
                 hidden: true,
             });
