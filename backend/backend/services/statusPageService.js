@@ -586,7 +586,7 @@ module.exports = {
             if (monitorIds && monitorIds.length) {
                 const notes = await IncidentService.findBy(
                     {
-                        monitorId: { $in: monitorIds },
+                        'monitors.monitorId': { $in: monitorIds },
                         hideIncident: false,
                         ...option,
                     },
@@ -594,7 +594,7 @@ module.exports = {
                     skip
                 );
                 const count = await IncidentService.countBy({
-                    monitorId: { $in: monitorIds },
+                    'monitors.monitorId': { $in: monitorIds },
                     hideIncident: false,
                     ...option,
                 });
@@ -1167,18 +1167,22 @@ module.exports = {
     getStatusPagesForIncident: async (incidentId, skip, limit) => {
         try {
             // first get the monitor, then scan status page collection containing the monitor
-            const { monitorId } = await IncidentModel.findById(
-                incidentId
-            ).select('monitorId');
+            let { monitors } = await IncidentModel.findById(incidentId).select(
+                'monitors.monitorId'
+            );
+
             let statusPages = [];
             let count = 0;
-            if (monitorId) {
+            if (monitors) {
+                monitors = monitors.map(
+                    monitor => monitor.monitorId._id || monitor.monitorId
+                );
                 count = await StatusPageModel.find({
-                    'monitors.monitor': monitorId,
-                }).countDocuments({ 'monitors.monitor': monitorId });
+                    'monitors.monitor': { $in: monitors },
+                }).countDocuments({ 'monitors.monitor': { $in: monitors } });
                 if (count) {
                     statusPages = await StatusPageModel.find({
-                        'monitors.monitor': monitorId,
+                        'monitors.monitor': { $in: monitors },
                     })
                         .populate('projectId')
                         .populate('monitors.monitor')
