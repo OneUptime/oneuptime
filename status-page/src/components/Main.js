@@ -27,7 +27,7 @@ import AnnouncementLogs from './AnnouncementLogs';
 import PastEvent from './PastEvent';
 import { fetchFutureEvents, fetchPastEvents } from '../actions/status';
 import OngoingSchedule from './OngoingSchedule';
-import Collapsible from 'react-collapsible';
+import Collapsible from './Collapsible/Collapsible';
 
 const greenBackground = {
     display: 'inline-block',
@@ -184,7 +184,7 @@ class Main extends Component {
         this.setLastAlive();
     }
 
-    groupBy(collection, property) {
+    getCategories(collection, property) {
         const collectionArray = [];
         collection.forEach(monitor => {
             if (
@@ -204,19 +204,14 @@ class Main extends Component {
             this.props.statusData.monitorsData.length > 0
         ) {
             const monitorData = this.props.statusData.monitorsData;
-            const resourceCategories = this.groupBy(
+            const resourceCategories = this.getCategories(
                 monitorData,
                 'resourceCategory'
             );
-            let uncategorized = [];
-
-            resourceCategories.map((categoryName, i) => {
-                return (uncategorized = monitorData.filter(
-                    mon =>
-                        mon.resourceCategory === undefined ||
-                        !mon.resourceCategory
-                ));
-            });
+            let uncategorized = monitorData.filter(
+                mon =>
+                    mon.resourceCategory === undefined || !mon.resourceCategory
+            );
 
             return (
                 <div
@@ -230,136 +225,88 @@ class Main extends Component {
                                 mon.resourceCategory.name === categoryName
                         );
 
-                        return (
-                            <Collapsible trigger={categoryName}>
-                                {filteredResource.map((monitor, i) => {
-                                    return (
-                                        <>
-                                            <MonitorInfo
-                                                monitor={monitor}
-                                                selectedCharts={
-                                                    this.props.monitors.filter(
-                                                        m =>
-                                                            monitor._id ===
-                                                            m.monitor._id
-                                                    )[0]
-                                                }
-                                                key={i}
-                                                id={`monitor${i}`}
-                                                resourceCategory={
-                                                    monitor.resourceCategory
-                                                }
-                                                isGroupedByMonitorCategory={
-                                                    this.props.statusData
-                                                        .isGroupedByMonitorCategory
-                                                }
-                                                theme={
-                                                    this.props.statusData
-                                                        .theme === 'Clean Theme'
-                                                        ? true
-                                                        : false
-                                                }
-                                            />
-                                            {this.props.monitors.some(
-                                                m =>
-                                                    monitor._id ===
-                                                    m.monitor._id
-                                            ) && (
-                                                <LineChartsContainer
-                                                    monitor={monitor}
-                                                    selectedCharts={
-                                                        this.props.monitors.filter(
-                                                            m =>
-                                                                monitor._id ===
-                                                                m.monitor._id
-                                                        )[0]
-                                                    }
-                                                />
-                                            )}
-                                            {i <
-                                                this.props.statusData
-                                                    .monitorsData.length -
-                                                    1 && (
-                                                <div
-                                                    style={{
-                                                        margin: '30px 0px',
-                                                        backgroundColor:
-                                                            'rgb(232, 232, 232)',
-                                                        height: '1px',
-                                                    }}
-                                                />
-                                            )}
-                                        </>
-                                    );
-                                })}
-                            </Collapsible>
+                        return this.CollapsableGroup(
+                            categoryName,
+                            filteredResource
                         );
                     })}
-                    <Collapsible trigger="Uncategorized">
-                        {uncategorized.map((monitor, i) => {
-                            return (
-                                <>
-                                    <MonitorInfo
-                                        monitor={monitor}
-                                        selectedCharts={
-                                            this.props.monitors.filter(
-                                                m =>
-                                                    monitor._id ===
-                                                    m.monitor._id
-                                            )[0]
-                                        }
-                                        key={i}
-                                        id={`monitor${i}`}
-                                        resourceCategory={
-                                            monitor.resourceCategory
-                                        }
-                                        isGroupedByMonitorCategory={
-                                            this.props.statusData
-                                                .isGroupedByMonitorCategory
-                                        }
-                                        theme={
-                                            this.props.statusData.theme ===
-                                            'Clean Theme'
-                                                ? true
-                                                : false
-                                        }
-                                    />
-                                    {this.props.monitors.some(
-                                        m => monitor._id === m.monitor._id
-                                    ) && (
-                                        <LineChartsContainer
-                                            monitor={monitor}
-                                            selectedCharts={
-                                                this.props.monitors.filter(
-                                                    m =>
-                                                        monitor._id ===
-                                                        m.monitor._id
-                                                )[0]
-                                            }
-                                        />
-                                    )}
-                                    {i <
-                                        this.props.statusData.monitorsData
-                                            .length -
-                                            1 && (
-                                        <div
-                                            style={{
-                                                margin: '30px 0px',
-                                                backgroundColor:
-                                                    'rgb(232, 232, 232)',
-                                                height: '1px',
-                                            }}
-                                        />
-                                    )}
-                                </>
-                            );
-                        })}
-                    </Collapsible>
+                    {this.CollapsableGroup('Uncategorized', uncategorized)}
                 </div>
             );
         } else {
             return <NoMonitor />;
         }
+    };
+
+    CollapsableGroup = (categoryName, monitors) => {
+        return (
+            <Collapsible
+                trigger={
+                    categoryName.charAt(0).toUpperCase() + categoryName.slice(1)
+                }
+                triggerStyle={{
+                    backgroundColor: 'rgb(232, 232, 232)',
+                    width: '100%',
+                    padding: '10px',
+                    fontSize: ' 20px',
+                    fontWeight: '500',
+                    color: 'black',
+                    marginBottom: '25px',
+                    display: 'flex',
+                }}
+                open={true}
+                contentContainerTagName="div"
+                triggerTagName="div"
+            >
+                {monitors.map((monitor, i) => {
+                    return (
+                        <>
+                            <MonitorInfo
+                                monitor={monitor}
+                                selectedCharts={
+                                    this.props.monitors.filter(
+                                        m => monitor._id === m.monitor._id
+                                    )[0]
+                                }
+                                key={i}
+                                id={`monitor${i}`}
+                                resourceCategory={monitor.resourceCategory}
+                                isGroupedByMonitorCategory={false}
+                                theme={
+                                    this.props.statusData.theme ===
+                                    'Clean Theme'
+                                        ? true
+                                        : false
+                                }
+                            />
+                            {this.props.monitors.some(
+                                m => monitor._id === m.monitor._id
+                            ) && (
+                                <LineChartsContainer
+                                    monitor={monitor}
+                                    selectedCharts={
+                                        this.props.monitors.filter(
+                                            m => monitor._id === m.monitor._id
+                                        )[0]
+                                    }
+                                />
+                            )}
+                            {i <
+                                this.props.statusData.monitorsData.length -
+                                    1 && (
+                                <div
+                                    style={{
+                                        margin: '30px 0px',
+                                        backgroundColor: 'rgb(232, 232, 232)',
+                                        height: '1px',
+                                    }}
+                                />
+                            )}
+                        </>
+                    );
+                })}
+            </Collapsible>
+        );
     };
 
     selectbutton = index => {
