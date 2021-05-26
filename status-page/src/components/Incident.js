@@ -246,6 +246,23 @@ class Incident extends Component {
         } else return error;
     };
 
+    handleMonitorList = monitors => {
+        if (monitors.length === 1) {
+            return monitors[0].monitorId.name;
+        }
+        if (monitors.length === 2) {
+            return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name}`;
+        }
+        if (monitors.length === 3) {
+            return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
+        }
+        if (monitors.length > 3) {
+            return `${monitors[0].monitorId.name}, ${
+                monitors[1].monitorId.name
+            } and ${monitors.length - 2} others`;
+        }
+    };
+
     render() {
         const {
             count,
@@ -376,7 +393,9 @@ class Incident extends Component {
                                                     color: 'rgba(0, 0, 0, 0.5)',
                                                 }}
                                             >
-                                                {incident.monitorId.name}
+                                                {this.handleMonitorList(
+                                                    incident.monitors
+                                                )}
                                             </span>
                                         </div>
                                     </>
