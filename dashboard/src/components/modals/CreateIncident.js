@@ -394,17 +394,17 @@ class CreateIncident extends Component {
                                                   )
                                                 : []),
                                         ]}
-                                        onChange={(
-                                            event,
-                                            newValue,
-                                            previousValue,
-                                            name
-                                        ) => {
-                                            this.substituteVariables(
-                                                newValue,
-                                                name
-                                            );
-                                        }}
+                                        // onChange={(
+                                        //     event,
+                                        //     newValue,
+                                        //     previousValue,
+                                        //     name
+                                        // ) => {
+                                        //     this.substituteVariables(
+                                        //         newValue,
+                                        //         name
+                                        //     );
+                                        // }}
                                     />
                                     <button
                                         id="addMoreMonitor"
