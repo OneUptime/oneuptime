@@ -4,9 +4,12 @@ import PropTypes from 'prop-types';
 import ClickOutside from 'react-click-outside';
 import ShouldRender from '../basic/ShouldRender';
 import { ListLoader } from '../basic/Loader';
+import { resetDomain } from '../../actions/domain';
+import { bindActionCreators } from 'redux';
 
 class VerifyDomainModal extends Component {
     componentDidMount() {
+        this.props.resetDomain();
         window.addEventListener('keydown', this.handleKeyboard);
     }
 
@@ -298,6 +301,10 @@ VerifyDomainModal.propTypes = {
     domainField: PropTypes.object,
     requesting: PropTypes.bool,
     propArr: PropTypes.array,
+    resetDomain: PropTypes.func,
 };
 
-export default connect(mapStateToProps)(VerifyDomainModal);
+const mapDispatchToProps = dispatch =>
+    bindActionCreators({ resetDomain }, dispatch);
+
+export default connect(mapStateToProps, mapDispatchToProps)(VerifyDomainModal);

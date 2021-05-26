@@ -1,6 +1,12 @@
 import { putApi, deleteApi } from '../api';
 import * as types from '../constants/domain';
 
+export function resetDomain() {
+    return {
+        type: types.RESET_VERIFY_DOMAIN,
+    };
+}
+
 export function verifyDomainRequest() {
     return {
         type: types.VERIFY_DOMAIN_REQUEST,
