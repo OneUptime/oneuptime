@@ -20,7 +20,7 @@ module.exports = {
                 .populate('acknowledgedBy', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
-                .populate('projectId', 'name')
+                .populate('projectId')
                 .populate('probes.probeId')
                 .populate('incidentPriority', 'name color')
                 .populate({
@@ -274,12 +274,7 @@ module.exports = {
             });
 
             if (incident) {
-                for (const monitor of incident.monitors) {
-                    this.clearInterval(
-                        incident._id,
-                        monitor.monitorId._id || monitor.monitorId
-                    ); // clear any existing sla interval
-                }
+                this.clearInterval(incident._id); // clear any existing sla interval
 
                 const monitorStatuses = await MonitorStatusService.findBy({
                     incidentId: incident._id,
@@ -344,7 +339,8 @@ module.exports = {
                         },
                         { path: 'projectId', select: '_id name slug' },
                     ],
-                });
+                })
+                .populate('projectId');
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.findOne', error);
@@ -416,6 +412,7 @@ module.exports = {
                         { path: 'projectId', select: '_id name slug' },
                     ],
                 })
+                .populate('projectId')
                 .execPopulate();
 
             RealTimeService.updateIncident(updatedIncident);
@@ -641,9 +638,9 @@ module.exports = {
                     status: 'acknowledged',
                 });
 
-                for (const monitor of monitors) {
-                    _this.refreshInterval(incidentId, monitor._id);
+                _this.refreshInterval(incidentId);
 
+                for (const monitor of monitors) {
                     WebHookService.sendIntegrationNotification(
                         incident.projectId,
                         incident,
@@ -767,9 +764,9 @@ module.exports = {
                 status: 'resolved',
             });
 
-            for (const monitor of monitors) {
-                _this.clearInterval(incidentId, monitor._id);
+            _this.clearInterval(incidentId);
 
+            for (const monitor of monitors) {
                 if (incident.probes && incident.probes.length > 0) {
                     for (const probe of incident.probes) {
                         await MonitorStatusService.create({
@@ -1138,6 +1135,7 @@ module.exports = {
                                 { path: 'projectId', select: '_id name slug' },
                             ],
                         })
+                        .populate('projectId')
                         .execPopulate();
 
                     await RealTimeService.deleteIncident(updatedIncident);
@@ -1156,94 +1154,106 @@ module.exports = {
         const monitorList = await MonitorService.findBy({
             _id: { $in: monitors },
         });
-        for (const monitor of monitorList) {
-            let incidentCommunicationSla = monitor.incidentCommunicationSla;
+        // refetch the incident
+        const currentIncident = await _this.findOneBy({
+            _id: incident._id,
+        });
 
-            if (!incidentCommunicationSla) {
-                incidentCommunicationSla = await IncidentCommunicationSlaService.findOneBy(
-                    {
+        if (!currentIncident.breachedCommunicationSla) {
+            const slaList = {};
+            let fetchedDefault = false;
+            for (const monitor of monitorList) {
+                let sla = monitor.incidentCommunicationSla;
+                // don't fetch default communication sla twice
+                if (!sla && !fetchedDefault) {
+                    sla = await IncidentCommunicationSlaService.findOneBy({
                         projectId: projectId,
                         isDefault: true,
-                    }
-                );
+                    });
+                    fetchedDefault = true;
+                }
+
+                if (!slaList[sla._id]) {
+                    slaList[sla._id] = sla;
+                }
             }
 
-            if (incidentCommunicationSla && !incidentCommunicationSla.deleted) {
-                let countDown = incidentCommunicationSla.duration * 60;
-                const alertTime = incidentCommunicationSla.alertTime * 60;
+            // grab the lowest sla and apply to the incident
+            let lowestSla = {};
+            for (const [, value] of Object.entries(slaList)) {
+                if (!lowestSla.duration) {
+                    lowestSla = value;
+                } else {
+                    lowestSla =
+                        Number(value.duration) < Number(lowestSla.duration)
+                            ? value
+                            : lowestSla;
+                }
+            }
 
-                const data = {
-                    projectId,
-                    monitor,
-                    incidentCommunicationSla,
-                    incident,
-                    alertTime,
-                };
+            if (!isEmpty(lowestSla)) {
+                const incidentCommunicationSla = lowestSla;
 
-                // count down every second
-                const intervalId = setInterval(async () => {
-                    countDown -= 1;
+                if (
+                    incidentCommunicationSla &&
+                    !incidentCommunicationSla.deleted
+                ) {
+                    let countDown = incidentCommunicationSla.duration * 60;
+                    const alertTime = incidentCommunicationSla.alertTime * 60;
 
-                    // const minutes = Math.floor(countDown / 60);
-                    // let seconds = countDown % 60;
-                    // seconds =
-                    //     seconds < 10 && seconds !== 0 ? `0${seconds}` : seconds;
-                    await RealTimeService.sendSlaCountDown(
-                        incident,
-                        `${countDown}`,
-                        monitor
-                    );
+                    const data = {
+                        projectId,
+                        incidentCommunicationSla,
+                        incident: currentIncident,
+                        alertTime,
+                    };
 
-                    if (countDown === alertTime) {
-                        // send mail to team
-                        await AlertService.sendSlaEmailToTeamMembers(data);
-                    }
+                    // count down every second
+                    const intervalId = setInterval(async () => {
+                        countDown -= 1;
 
-                    if (countDown === 0) {
-                        _this.clearInterval(incident._id, monitor._id);
-
-                        // refetch the incident
-                        const currentIncident = await _this.findOneBy({
-                            _id: incident._id,
-                        });
-                        const breachedCommunicationSlas = currentIncident.breachedCommunicationSlas
-                            ? currentIncident.breachedCommunicationSlas.map(
-                                  breach => ({
-                                      monitorId:
-                                          breach.monitorId._id ||
-                                          breach.monitorId,
-                                  })
-                              )
-                            : [];
-                        breachedCommunicationSlas.push({
-                            monitorId: monitor._id,
-                        });
-
-                        await _this.updateOneBy(
-                            { _id: incident._id },
-                            { breachedCommunicationSlas }
+                        // const minutes = Math.floor(countDown / 60);
+                        // let seconds = countDown % 60;
+                        // seconds =
+                        //     seconds < 10 && seconds !== 0 ? `0${seconds}` : seconds;
+                        await RealTimeService.sendSlaCountDown(
+                            currentIncident,
+                            `${countDown}`
                         );
 
-                        // send mail to team
-                        await AlertService.sendSlaEmailToTeamMembers(
-                            data,
-                            true
-                        );
-                    }
-                }, 1000);
+                        if (countDown === alertTime) {
+                            // send mail to team
+                            await AlertService.sendSlaEmailToTeamMembers(data);
+                        }
 
-                intervals.push({
-                    incidentId: incident._id,
-                    monitorId: monitor._id,
-                    intervalId,
-                });
+                        if (countDown === 0) {
+                            _this.clearInterval(currentIncident._id);
+
+                            await _this.updateOneBy(
+                                { _id: currentIncident._id },
+                                { breachedCommunicationSla: true }
+                            );
+
+                            // send mail to team
+                            await AlertService.sendSlaEmailToTeamMembers(
+                                data,
+                                true
+                            );
+                        }
+                    }, 1000);
+
+                    intervals.push({
+                        incidentId: currentIncident._id,
+                        intervalId,
+                    });
+                }
             }
         }
     },
 
-    clearInterval: function(incidentId, monitorId) {
+    clearInterval: function(incidentId) {
         intervals = intervals.filter(interval => {
-            if (String(interval.monitorId) === String(monitorId)) {
+            if (String(interval.incidentId) === String(incidentId)) {
                 clearInterval(interval.intervalId);
                 return false;
             }
@@ -1251,11 +1261,11 @@ module.exports = {
         });
     },
 
-    refreshInterval: async function(incidentId, monitorId) {
+    refreshInterval: async function(incidentId) {
         const _this = this;
         for (const interval of intervals) {
-            if (String(interval.monitorId) === String(monitorId)) {
-                _this.clearInterval(incidentId, monitorId);
+            if (String(interval.incidentId) === String(incidentId)) {
+                _this.clearInterval(incidentId);
 
                 const incident = await _this.findOneBy({ _id: incidentId });
                 await _this.startInterval(

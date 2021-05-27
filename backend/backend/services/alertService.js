@@ -1037,7 +1037,7 @@ module.exports = {
     },
 
     sendSlaEmailToTeamMembers: async function(
-        { projectId, monitor, incidentCommunicationSla, incident, alertTime },
+        { projectId, incidentCommunicationSla, incident, alertTime },
         breached = false
     ) {
         try {
@@ -1069,13 +1069,15 @@ module.exports = {
                 }
 
                 const incidentSla = incidentCommunicationSla.name;
-                const projectName = monitor.projectId.name;
-                const monitorName = monitor.name;
+                const projectName = incident.projectId.name;
+                const projectSlug = incident.projectId.slug;
+                // const monitorName = monitor.name;
                 const incidentId = `#${incident.idNumber}`;
                 const reason = incident.reason;
-                const componentSlug = monitor.componentId.slug;
-                const componentName = monitor.componentId.name;
-                const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.idNumber}`;
+                // const componentSlug = monitor.componentId.slug;
+                // const componentName = monitor.componentId.name;
+                // const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.idNumber}`;
+                const incidentUrl = `${global.dashboardHost}/project/${projectSlug}/incidents/${incident.idNumber}`;
                 let incidentSlaTimeline =
                     incidentCommunicationSla.duration * 60;
                 incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
@@ -1088,10 +1090,10 @@ module.exports = {
                             name: member.name,
                             projectId,
                             incidentSla,
-                            monitorName,
+                            // monitorName,
                             incidentUrl,
                             projectName,
-                            componentName,
+                            // componentName,
                             incidentId,
                             reason,
                             incidentSlaTimeline,
@@ -1104,10 +1106,10 @@ module.exports = {
                             name: member.name,
                             projectId,
                             incidentSla,
-                            monitorName,
+                            // monitorName,
                             incidentUrl,
                             projectName,
-                            componentName,
+                            // componentName,
                             incidentId,
                             reason,
                             incidentSlaTimeline,
