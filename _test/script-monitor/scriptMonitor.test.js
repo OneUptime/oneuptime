@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { runScript } = require("./scriptMonitorV2");
+const { runScript } = require("./scriptMonitor");
 
 describe('ScriptMonitor V2', function() {
   this.timeout(10000);
