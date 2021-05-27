@@ -25,10 +25,7 @@ module.exports = {
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitors.monitorId',
-                    populate: [
-                        { path: 'componentId', select: '_id name slug' },
-                        { path: 'projectId', select: '_id name slug' },
-                    ],
+                    populate: [{ path: 'componentId' }, { path: 'projectId' }],
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
@@ -161,12 +158,15 @@ module.exports = {
                 // handle more than one monitors for this
                 // fix the template
                 // ********************
+                const monitorNames = monitors.map(
+                    monitor => monitor.monitorId.name
+                );
                 const templatesInput = {
                     incidentType: data.incidentType,
                     projectName: project.name,
                     time: Moment().format('h:mm:ss a'),
                     date: Moment().format('MMM Do YYYY'),
-                    monitors: monitors.map(monitor => monitor.monitorId),
+                    monitorName: joinNames(monitorNames),
                 };
 
                 const titleTemplate = Handlebars.compile(
@@ -325,9 +325,8 @@ module.exports = {
                     populate: [
                         {
                             path: 'componentId',
-                            select: 'name slug',
                         },
-                        { path: 'projectId', select: '_id name slug' },
+                        { path: 'projectId' },
                     ],
                 })
                 .populate({
@@ -394,10 +393,7 @@ module.exports = {
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitors.monitorId',
-                    populate: [
-                        { path: 'componentId', select: '_id name slug' },
-                        { path: 'projectId', select: '_id name slug' },
-                    ],
+                    populate: [{ path: 'componentId' }, { path: 'projectId' }],
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
@@ -447,22 +443,6 @@ module.exports = {
             await ZapierService.pushToZapier('incident_created', incident);
             // await RealTimeService.sendCreatedIncident(incident);
 
-            // assuming that all the monitors must be in the same component
-            // having multiple components will make it more complicated
-            const selectedComponentId =
-                incident.monitors[0] &&
-                incident.monitors[0].monitorId.componentId._id;
-            const component = selectedComponentId
-                ? await ComponentService.findOneBy({
-                      _id: selectedComponentId,
-                  })
-                : {};
-
-            const meta = {
-                type: 'Incident',
-                componentId: selectedComponentId,
-                incidentId: incident._id,
-            };
             const notifications = [];
 
             const monitors = incident.monitors.map(
@@ -473,41 +453,45 @@ module.exports = {
                 // handle this asynchronous operation in the background
                 AlertService.sendCreatedIncidentToSubscribers(
                     incident,
-                    component,
                     monitor
                 );
 
                 let notification = {};
                 // send slack notification
                 SlackService.sendNotification(
-                    incident.projectId,
+                    incident.projectId._id || incident.projectId,
                     incident,
                     monitor,
                     INCIDENT_CREATED,
-                    component
+                    monitor.componentId
                 );
                 // send webhook notification
                 WebHookService.sendIntegrationNotification(
-                    incident.projectId,
+                    incident.projectId._id || incident.projectId,
                     incident,
                     monitor,
                     INCIDENT_CREATED,
-                    component
+                    monitor.componentId
                 );
                 // send Ms Teams notification
                 MsTeamsService.sendNotification(
-                    incident.projectId,
+                    incident.projectId._id || incident.projectId,
                     incident,
                     monitor,
                     INCIDENT_CREATED,
-                    component
+                    monitor.componentId
                 );
 
+                const meta = {
+                    type: 'Incident',
+                    componentId: monitor.componentId._id || monitor.componentId,
+                    incidentId: incident._id,
+                };
                 if (!incident.createdById) {
                     if (incident.createdByIncomingHttpRequest) {
                         const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by Incoming HTTP Request`;
                         notification = await NotificationService.create(
-                            incident.projectId,
+                            incident.projectId._id || incident.projectId,
                             msg,
                             'incoming http request',
                             'warning',
@@ -516,7 +500,7 @@ module.exports = {
                     } else {
                         const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by Fyipe`;
                         notification = await NotificationService.create(
-                            incident.projectId,
+                            incident.projectId._id || incident.projectId,
                             msg,
                             'fyipe',
                             'warning',
@@ -526,7 +510,7 @@ module.exports = {
                 } else {
                     const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by ${incident.createdById.name}`;
                     notification = await NotificationService.create(
-                        incident.projectId,
+                        incident.projectId._id || incident.projectId,
                         msg,
                         incident.createdById.name,
                         'warning',
@@ -586,14 +570,14 @@ module.exports = {
 
                 if (isEmpty(httpRequest)) {
                     NotificationService.create(
-                        incident.projectId,
+                        incident.projectId._id || incident.projectId,
                         `An Incident was acknowledged by ${name}`,
                         userId,
                         'acknowledge'
                     );
                 } else {
                     NotificationService.create(
-                        incident.projectId,
+                        incident.projectId._id || incident.projectId,
                         `An Incident was acknowledged by an incoming HTTP request ${httpRequest.name}`,
                         userId,
                         'acknowledge'
@@ -642,7 +626,7 @@ module.exports = {
 
                 for (const monitor of monitors) {
                     WebHookService.sendIntegrationNotification(
-                        incident.projectId,
+                        incident.projectId._id || incident.projectId,
                         incident,
                         monitor,
                         INCIDENT_ACKNOWLEDGED,
@@ -651,7 +635,7 @@ module.exports = {
                     );
 
                     SlackService.sendNotification(
-                        incident.projectId,
+                        incident.projectId._id || incident.projectId,
                         incident,
                         monitor,
                         INCIDENT_ACKNOWLEDGED,
@@ -660,7 +644,7 @@ module.exports = {
                     );
 
                     MsTeamsService.sendNotification(
-                        incident.projectId,
+                        incident.projectId._id || incident.projectId,
                         incident,
                         monitor,
                         INCIDENT_ACKNOWLEDGED,
@@ -915,7 +899,7 @@ module.exports = {
 
             // send slack notification
             SlackService.sendNotification(
-                incident.projectId,
+                incident.projectId._id || incident.projectId,
                 incident,
                 monitor,
                 INCIDENT_RESOLVED,
@@ -924,7 +908,7 @@ module.exports = {
             );
             // Ping webhook
             WebHookService.sendIntegrationNotification(
-                incident.projectId,
+                incident.projectId._id || incident.projectId,
                 incident,
                 monitor,
                 INCIDENT_RESOLVED,
@@ -933,7 +917,7 @@ module.exports = {
             );
             // Ms Teams
             MsTeamsService.sendNotification(
-                incident.projectId,
+                incident.projectId._id || incident.projectId,
                 incident,
                 monitor,
                 INCIDENT_RESOLVED,
@@ -956,7 +940,7 @@ module.exports = {
                 'fyipe'}`;
 
             NotificationService.create(
-                incident.projectId,
+                incident.projectId._id || incident.projectId,
                 msg,
                 resolvedincident.resolvedBy
                     ? resolvedincident.resolvedBy._id
@@ -1117,9 +1101,8 @@ module.exports = {
                             populate: [
                                 {
                                     path: 'componentId',
-                                    select: '_id name slug',
                                 },
-                                { path: 'projectId', select: '_id name slug' },
+                                { path: 'projectId' },
                             ],
                         })
                         .populate('acknowledgedByIncomingHttpRequest', 'name')
@@ -1316,3 +1299,4 @@ const {
 const IncidentUtilitiy = require('../utils/incident');
 const IncidentCommunicationSlaService = require('./incidentCommunicationSlaService');
 const { isEmpty } = require('lodash');
+const joinNames = require('../utils/joinNames');
