@@ -67,7 +67,7 @@ const statusSchema = new Schema({
     // show or hide the probe bar
     hideProbeBar: {
         type: Boolean,
-        default: false,
+        default: true,
     },
     // show or hide uptime (%) on the status page
     hideUptime: {
