@@ -54,6 +54,7 @@ const {
     Groups,
     PerformanceTrackerView,
     PerformanceTracker,
+    AutomationScript,
 } = pages;
 
 export const groups = [
@@ -429,6 +430,29 @@ export const groups = [
                 icon: 'connect',
                 visible: true,
                 component: ScheduledEvent,
+                exact: true,
+                subRoutes: [
+                    {
+                        title: 'Scheduled Event Detail',
+                        path:
+                            '/dashboard/project/:slug/scheduledEvents/:scheduledEventSlug',
+                        icon: 'connect',
+                        visible: true,
+                        component: ScheduledEventDetail,
+                        subRoutes: [],
+                        index: 1,
+                        shortcut: 'e+s',
+                    },
+                ],
+                index: 5,
+                shortcut: 'f+e',
+            },
+            {
+                title: 'Automation Scripts',
+                path: '/dashboard/project/:slug/automateScript',
+                icon: 'performanceTracker',
+                visible: true,
+                component: AutomationScript,
                 exact: true,
                 subRoutes: [
                     {
