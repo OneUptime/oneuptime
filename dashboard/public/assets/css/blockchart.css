@@ -121,7 +121,8 @@ div.block-chart div.bar:last-child {
   border-right: 0;
 }
 
-******* Tipsy Tooltips ******/ .tipsy {
+/******* Tipsy Tooltips ******/ 
+.tipsy {
   font-size: 12px;
   position: absolute;
   padding: 5px;
