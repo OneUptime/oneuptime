@@ -169,6 +169,19 @@ const MonitorCriteriaService = {
                 down_1000_createAlert: true,
                 down_1000_autoAcknowledge: true,
                 down_1000_autoResolve: true,
+                degraded_1000: [
+                    {
+                        match: 'any',
+                        responseType: 'scriptExecution',
+                        filter: 'doesNotExecuteIn',
+                        field1: '5000',
+                        field2: '',
+                        field3: false,
+                    },
+                ],
+                degraded_1000_createAlert: true,
+                degraded_1000_autoAcknowledge: true,
+                degraded_1000_autoResolve: true,
                 type_1000: 'script',
             },
             'server-monitor': {
