@@ -1,5 +1,5 @@
 ## DEPLOYMENT STAGE - PYTHON SDK
-deploy_staging_python-sdk:
+staging_python-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -34,7 +34,7 @@ deploy_staging_python-sdk:
         name: staging
 
 ## DEPLOYMENT STAGE - PYTHON SDK
-deploy_production_python-sdk:
+production_python-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2

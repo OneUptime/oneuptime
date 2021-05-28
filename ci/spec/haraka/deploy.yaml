@@ -1,5 +1,5 @@
 # DEPLOYMENT STAGE - Haraka
-deploy_staging_haraka:
+staging_haraka:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -29,7 +29,7 @@ deploy_staging_haraka:
     environment:
         name: staging
 
-deploy_production_haraka:
+production_haraka:
     stage: Deploy
     allow_failure: true
     retry: 2

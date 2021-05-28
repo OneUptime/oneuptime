@@ -1,5 +1,5 @@
 ## DEPLOYMENT STAGE FOR STAGING - fyipe-gl-manager-staging
-deploy_staging_fyipe-gl-manager:
+staging_fyipe-gl-manager:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -27,7 +27,7 @@ deploy_staging_fyipe-gl-manager:
         name: staging
 
 ## DEPLOYMENT STAGE FOR PRODUCTION - fyipe-gl-manager
-deploy_production_fyipe-gl-manager:
+production_fyipe-gl-manager:
     stage: Deploy
     allow_failure: true
     retry: 2

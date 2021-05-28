@@ -1,5 +1,5 @@
 ## DEPLOYMENT STAGE - JAVA SDK
-deploy_staging_java-sdk:
+staging_java-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -41,7 +41,7 @@ deploy_staging_java-sdk:
     environment:
         name: staging
 
-deploy_production_java-sdk:
+production_java-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2
