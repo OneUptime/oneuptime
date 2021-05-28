@@ -181,11 +181,11 @@ class Collapsible extends Component {
             margin: '0 35px',
         };
 
-        var openClass = this.state.isClosed ? 'is-closed' : 'is-open';
-        var disabledClass = this.props.triggerDisabled ? 'is-disabled' : '';
+        const openClass = this.state.isClosed ? 'is-closed' : 'is-open';
+        const disabledClass = this.props.triggerDisabled ? 'is-disabled' : '';
 
         //If user wants different text when tray is open
-        var trigger =
+        const trigger =
             this.state.isClosed === false &&
             this.props.triggerWhenOpen !== undefined
                 ? this.props.triggerWhenOpen
@@ -197,7 +197,7 @@ class Collapsible extends Component {
         const TriggerElement = this.props.triggerTagName;
 
         // Don't render children until the first opening of the Collapsible if lazy rendering is enabled
-        var children =
+        const children =
             this.props.lazyRender &&
             !this.state.hasBeenOpened &&
             this.state.isClosed &&
@@ -332,6 +332,8 @@ Collapsible.propTypes = {
         'unset',
     ]),
     contentHiddenWhenClosed: PropTypes.bool,
+    className: PropTypes.string,
+    children: PropTypes.object,
     triggerSibling: PropTypes.oneOfType([PropTypes.element, PropTypes.func]),
     tabIndex: PropTypes.number,
     contentContainerTagName: PropTypes.string,

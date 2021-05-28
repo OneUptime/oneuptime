@@ -214,7 +214,7 @@ class Main extends Component {
                 monitorData,
                 'resourceCategory'
             );
-            let uncategorized = monitorData.filter(
+            const uncategorized = monitorData.filter(
                 mon =>
                     mon.resourceCategory === undefined || !mon.resourceCategory
             );
@@ -224,7 +224,7 @@ class Main extends Component {
                     className="uptime-graph-header"
                     style={{ flexDirection: 'column' }}
                 >
-                    {resourceCategories.map((categoryName, i) => {
+                    {resourceCategories.map(categoryName => {
                         const filteredResource = monitorData.filter(
                             resource =>
                                 resource.resourceCategory &&
@@ -236,7 +236,9 @@ class Main extends Component {
                             filteredResource
                         );
                     })}
-                    {this.CollapsableGroup('Uncategorized', uncategorized)}
+                    {uncategorized &&
+                        uncategorized.length > 0 &&
+                        this.CollapsableGroup('Uncategorized', uncategorized)}
                 </div>
             );
         } else {
@@ -248,7 +250,7 @@ class Main extends Component {
         const { probes, activeProbe, statusData } = this.props;
         const theme = statusData.theme === 'Clean Theme' ? true : false;
 
-        let categoryStatuses = monitors.map(monitor => {
+        const categoryStatuses = monitors.map(monitor => {
             const probe =
                 probes && probes.length > 0
                     ? probes[probes.length < 2 ? 0 : activeProbe]
@@ -263,25 +265,33 @@ class Main extends Component {
             : categoryStatuses.includes('degraded')
             ? 'rgba(255, 222, 36, 1)'
             : 'rgba(108, 219, 86, 1)';
+
+        const collapsibleStyle = {
+            backgroundColor: 'rgb(246 246 246)',
+            width: '100%',
+            padding: '7px 10px',
+            fontSize: ' 12px',
+            fontWeight: '400',
+            color: 'black',
+            marginBottom: '0',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            border: '1px solid rgb(236 236 236)',
+        };
+
+        if (!theme) {
+            //if its a classic theme then, change some styles.
+            collapsibleStyle.backgroundColor = 'rgb(247 247 247)';
+            collapsibleStyle.border = '1px solid rgb(228 228 228)';
+        }
+
         return (
             <Collapsible
                 trigger={
                     categoryName.charAt(0).toUpperCase() + categoryName.slice(1)
                 }
-                triggerStyle={{
-                    backgroundColor: 'rgb(232, 232, 232)',
-                    width: '100%',
-                    padding: '7px 10px',
-                    fontSize: ' 12px',
-                    fontWeight: '400',
-                    color: 'black',
-                    marginBottom: '0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    borderTop: ' 1px solid #ccc',
-                    borderBottom: ' 1px solid #ccc',
-                }}
+                triggerStyle={collapsibleStyle}
                 open={true}
                 contentContainerTagName="div"
                 triggerTagName="div"
@@ -566,8 +576,8 @@ class Main extends Component {
         visibleLayout.visible.forEach((item, i) => {
             if (
                 item.key === 'services' &&
-                visibleLayout.visible[i - 1] &&
-                visibleLayout.visible[i - 1].key === 'resources'
+                visibleLayout.visible[i + 1] &&
+                visibleLayout.visible[i + 1].key === 'resources'
             ) {
                 resourcesServiceOverlap = true;
             }
