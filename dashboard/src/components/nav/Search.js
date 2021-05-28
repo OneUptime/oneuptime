@@ -392,6 +392,16 @@ class Search extends Component {
                 return 'db-SideNav-icon--appLog';
             case 'Performance Tracker':
                 return 'db-SideNav-icon--performanceTracker';
+            case 'Home':
+                return 'db-SideNav-icon--home';
+            case 'Report':
+                return 'db-SideNav-icon--report';
+            case 'Back':
+                return 'db-SideNav-icon--back';
+            case 'Security':
+                return 'db-SideNav-icon--security';
+            case 'businessSettings':
+                return 'db-SideNav-icon--businessSettings';
             default:
                 return '';
         }
