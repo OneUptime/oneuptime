@@ -1138,11 +1138,13 @@ margin-left:10px;
 .sp__icon--down {
   background-image: url('../images/arrow-down.svg');
   background-repeat: no-repeat;
+  margin-top:0
 }
 
 .sp__icon--up {
   background-image: url('../images/up-arrow.svg');
   background-repeat: no-repeat;
+  margin-top:0
 }
 
 .sp__icon--forward:hover {

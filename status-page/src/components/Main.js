@@ -7,7 +7,13 @@ import ShouldRender from './ShouldRender';
 import Footer from './Footer';
 import NotesMain from './NotesMain';
 import EventsMain from './EventsMain';
-import { API_URL, ACCOUNTS_URL, getServiceStatus } from '../config';
+import {
+    API_URL,
+    ACCOUNTS_URL,
+    getServiceStatus,
+    filterProbeData,
+    getMonitorStatus,
+} from '../config';
 import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
@@ -220,9 +226,9 @@ class Main extends Component {
                 >
                     {resourceCategories.map((categoryName, i) => {
                         const filteredResource = monitorData.filter(
-                            mon =>
-                                mon.resourceCategory &&
-                                mon.resourceCategory.name === categoryName
+                            resource =>
+                                resource.resourceCategory &&
+                                resource.resourceCategory.name === categoryName
                         );
 
                         return this.CollapsableGroup(
@@ -239,6 +245,23 @@ class Main extends Component {
     };
 
     CollapsableGroup = (categoryName, monitors) => {
+        const { probes, activeProbe } = this.props;
+
+        let categoryStatuses = monitors.map(monitor => {
+            const probe =
+                probes && probes.length > 0
+                    ? probes[probes.length < 2 ? 0 : activeProbe]
+                    : null;
+            const statuses = filterProbeData(monitor, probe);
+            const monitorStatus = getMonitorStatus(statuses);
+            return monitorStatus;
+        });
+
+        const categoryStatusBk = categoryStatuses.includes('offline')
+            ? 'rgba(250, 109, 70, 1)'
+            : categoryStatuses.includes('degraded')
+            ? 'rgba(255, 222, 36, 1)'
+            : 'rgba(108, 219, 86, 1)';
         return (
             <Collapsible
                 trigger={
@@ -247,16 +270,28 @@ class Main extends Component {
                 triggerStyle={{
                     backgroundColor: 'rgb(232, 232, 232)',
                     width: '100%',
-                    padding: '10px',
-                    fontSize: ' 20px',
-                    fontWeight: '500',
+                    padding: '7px 10px',
+                    fontSize: ' 12px',
+                    fontWeight: '400',
                     color: 'black',
                     marginBottom: '25px',
                     display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                 }}
                 open={true}
                 contentContainerTagName="div"
                 triggerTagName="div"
+                transitionTime="200"
+                lazyRender={true}
+                closedIconClass="sp__icon sp__icon--down"
+                openIconClass="sp__icon sp__icon--up"
+                statusColorStyle={{
+                    borderRadius: ' 100px',
+                    height: '8px',
+                    width: '8px',
+                    backgroundColor: categoryStatusBk,
+                }}
             >
                 {monitors.map((monitor, i) => {
                     return (
@@ -676,6 +711,7 @@ class Main extends Component {
                                         style={{
                                             borderTopWidth: '1px',
                                             ...contentBackground,
+                                            padding: 0,
                                         }}
                                     >
                                         {this.groupedMonitors()}
@@ -700,6 +736,7 @@ class Main extends Component {
                                                     borderTopWidth:
                                                         i === 0 && '1px',
                                                     ...contentBackground,
+                                                    padding: 0,
                                                 }}
                                                 key={i}
                                             >

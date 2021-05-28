@@ -178,6 +178,7 @@ class Collapsible extends Component {
             msTransition: this.state.transition,
             transition: this.state.transition,
             overflow: this.state.overflow,
+            margin: '0 20px',
         };
 
         var openClass = this.state.isClosed ? 'is-closed' : 'is-open';
@@ -228,7 +229,7 @@ class Collapsible extends Component {
                 <TriggerElement
                     className={triggerClassString.trim()}
                     onClick={this.handleTriggerClick}
-                    style={this.props.triggerStyle && this.props.triggerStyle}
+                    style={this.props.triggerStyle}
                     onKeyPress={event => {
                         const { key } = event;
                         if (
@@ -244,14 +245,26 @@ class Collapsible extends Component {
                     {...this.props.triggerElementProps}
                 >
                     <div
-                        className={
-                            this.state.isClosed
-                                ? 'sp__icon sp__icon--down'
-                                : 'sp__icon sp__icon--up'
-                        }
-                        style={{ margin: '5px 10px ' }}
-                    />
-                    <span style={{ margin: '5px' }}>{trigger}</span>
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                        }}
+                    >
+                        <div
+                            className={
+                                this.state.isClosed
+                                    ? this.props.closedIconClass
+                                    : this.props.openIconClass
+                            }
+                            style={{ marginRight: '5px ' }}
+                        />
+                        {trigger}
+                    </div>
+
+                    <div>
+                        <div style={this.props.statusColorStyle}></div>
+                    </div>
                 </TriggerElement>
 
                 {this.renderNonClickableTriggerElement()}
@@ -285,6 +298,7 @@ Collapsible.propTypes = {
     classParentString: PropTypes.string,
     openedClassName: PropTypes.string,
     triggerStyle: PropTypes.object,
+    statusColorStyle: PropTypes.object,
     triggerClassName: PropTypes.string,
     triggerOpenedClassName: PropTypes.string,
     contentOuterClassName: PropTypes.string,
@@ -317,6 +331,8 @@ Collapsible.propTypes = {
     triggerSibling: PropTypes.oneOfType([PropTypes.element, PropTypes.func]),
     tabIndex: PropTypes.number,
     contentContainerTagName: PropTypes.string,
+    closedIconClass: PropTypes.string,
+    openIconClass: PropTypes.string,
 };
 
 Collapsible.defaultProps = {
@@ -346,6 +362,9 @@ Collapsible.defaultProps = {
     onTriggerClosing: () => {},
     tabIndex: null,
     contentContainerTagName: 'div',
+    closedIconClass: '',
+    openIconClass: '',
+    statusColorStyle: {},
 };
 
 export default Collapsible;
