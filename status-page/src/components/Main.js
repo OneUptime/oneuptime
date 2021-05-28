@@ -572,16 +572,7 @@ class Main extends Component {
         if (!visibleLayout) {
             visibleLayout = defaultLayout;
         }
-        let resourcesServiceOverlap = false;
-        visibleLayout.visible.forEach((item, i) => {
-            if (
-                item.key === 'services' &&
-                visibleLayout.visible[i + 1] &&
-                visibleLayout.visible[i + 1].key === 'resources'
-            ) {
-                resourcesServiceOverlap = true;
-            }
-        });
+        
         const layoutObj = {
             header: (
                 <>
@@ -972,11 +963,7 @@ class Main extends Component {
                         className="white box"
                         style={{
                             ...contentBackground,
-                            borderBottomLeftRadius:
-                                resourcesServiceOverlap && 0,
-                            borderBottomRightRadius:
-                                resourcesServiceOverlap && 0,
-                            marginTop: resourcesServiceOverlap ? 0 : '50px',
+                            marginTop: '50px',
                         }}
                     >
                         <div className="largestatus">
@@ -1015,17 +1002,13 @@ class Main extends Component {
                         className="content"
                         style={{
                             position: 'relative',
-                            marginTop: resourcesServiceOverlap ? 0 : '50px',
+                            marginTop: '50px',
                         }}
                     >
                         <div
                             className="white box"
                             style={{
-                                ...contentBackground,
-                                borderTopLeftRadius:
-                                    resourcesServiceOverlap && 0,
-                                borderTopRightRadius:
-                                    resourcesServiceOverlap && 0,
+                                ...contentBackground
                             }}
                         >
                             <ShouldRender
