@@ -344,6 +344,21 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                       ])
                     : { stat: false, successReasons: [], failedReasons: [] });
 
+                const {
+                    stat: validDegraded,
+                    successReasons: degradedSuccessReasons,
+                    failedReasons: degradedFailedReasons,
+                    matchedCriterion: matchedDegradedCriterion,
+                } = await (monitor &&
+                monitor.criteria &&
+                monitor.criteria.degraded
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.degraded,
+                          data
+                      )
+                    : { stat: false, successReasons: [], failedReasons: [] });
+
                 if (validUp) {
                     status = 'online';
                     reason = upSuccessReasons;
@@ -352,9 +367,21 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     status = 'offline';
                     reason = [...downSuccessReasons, ...upFailedReasons];
                     matchedCriterion = matchedDownCriterion;
+                } else if (validDegraded) {
+                    status = 'degraded';
+                    reason = [
+                        ...degradedSuccessReasons,
+                        ...upFailedReasons,
+                        ...downFailedReasons,
+                    ];
+                    matchedCriterion = matchedDegradedCriterion;
                 } else {
                     status = 'offline';
-                    reason = [...downFailedReasons, ...upFailedReasons];
+                    reason = [
+                        ...downFailedReasons,
+                        ...upFailedReasons,
+                        ...degradedFailedReasons,
+                    ];
                     if (monitor.criteria.down) {
                         matchedCriterion = monitor.criteria.down.find(
                             criterion => criterion.default === true
