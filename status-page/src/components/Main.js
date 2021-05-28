@@ -245,7 +245,8 @@ class Main extends Component {
     };
 
     CollapsableGroup = (categoryName, monitors) => {
-        const { probes, activeProbe } = this.props;
+        const { probes, activeProbe, statusData } = this.props;
+        const theme = statusData.theme === 'Clean Theme' ? true : false;
 
         let categoryStatuses = monitors.map(monitor => {
             const probe =
@@ -274,10 +275,12 @@ class Main extends Component {
                     fontSize: ' 12px',
                     fontWeight: '400',
                     color: 'black',
-                    marginBottom: '25px',
+                    marginBottom: '0',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
+                    borderTop: ' 1px solid #ccc',
+                    borderBottom: ' 1px solid #ccc',
                 }}
                 open={true}
                 contentContainerTagName="div"
@@ -326,9 +329,12 @@ class Main extends Component {
                                     }
                                 />
                             )}
-                            {i <
-                                this.props.statusData.monitorsData.length -
-                                    1 && (
+
+                            {i < monitors.length - 1 ||
+                            (i === monitors.length - 1 &&
+                                categoryName.toLowerCase() ===
+                                    'uncategorized' &&
+                                !theme) ? (
                                 <div
                                     style={{
                                         margin: '30px 0px',
@@ -336,7 +342,19 @@ class Main extends Component {
                                         height: '1px',
                                     }}
                                 />
-                            )}
+                            ) : (i === monitors.length - 1 &&
+                                  categoryName.toLowerCase() !==
+                                      'uncategorized') ||
+                              (i === monitors.length - 1 &&
+                                  categoryName.toLowerCase() ===
+                                      'uncategorized' &&
+                                  theme) ? (
+                                <div
+                                    style={{
+                                        marginBottom: '30px',
+                                    }}
+                                />
+                            ) : null}
                         </>
                     );
                 })}
@@ -736,7 +754,6 @@ class Main extends Component {
                                                     borderTopWidth:
                                                         i === 0 && '1px',
                                                     ...contentBackground,
-                                                    padding: 0,
                                                 }}
                                                 key={i}
                                             >
@@ -1035,7 +1052,7 @@ class Main extends Component {
                                     className="uptime-graphs box-inner"
                                     style={
                                         isGroupedByMonitorCategory
-                                            ? { paddingBottom: 0 }
+                                            ? { padding: 0 }
                                             : { paddingBottom: 35 }
                                     }
                                 >

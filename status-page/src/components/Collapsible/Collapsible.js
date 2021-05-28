@@ -178,7 +178,7 @@ class Collapsible extends Component {
             msTransition: this.state.transition,
             transition: this.state.transition,
             overflow: this.state.overflow,
-            margin: '0 20px',
+            margin: '0 35px',
         };
 
         var openClass = this.state.isClosed ? 'is-closed' : 'is-open';
@@ -229,7 +229,11 @@ class Collapsible extends Component {
                 <TriggerElement
                     className={triggerClassString.trim()}
                     onClick={this.handleTriggerClick}
-                    style={this.props.triggerStyle}
+                    style={
+                        !this.state.isClosed
+                            ? { ...this.props.triggerStyle, marginBottom: 25 }
+                            : this.props.triggerStyle
+                    }
                     onKeyPress={event => {
                         const { key } = event;
                         if (
