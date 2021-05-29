@@ -10,11 +10,11 @@ audit_ruby-sdk:
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
-        - sudo apt install -y ruby-full
+        - sudo apt install -y ruby-full bundler
         - ruby -v
         - export GEM_HOME="$HOME/.gem"
         - gem update --system
-        - gem install bundler
+        # - gem install bundler
         - echo $PATH
         - which gem
         - gem list bundler
