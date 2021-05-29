@@ -15,6 +15,7 @@ audit_ruby-sdk:
         - export GEM_HOME="$HOME/.gem"
         - gem list bundler
         - gem update --system
+        - bundle update --bundler
         - gem list bundler
         # - gem install bundler
         - cd ruby-sdk/fyipe
