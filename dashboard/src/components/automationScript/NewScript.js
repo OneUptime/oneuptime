@@ -5,19 +5,21 @@ import PropTypes from 'prop-types';
 import { reduxForm, Field, formValueSelector } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { FormLoader } from '../basic/Loader';
-import { openModal, closeModal } from '../../actions/modal';
-import { showUpgradeForm } from '../../actions/project';
 import ShouldRender from '../basic/ShouldRender';
-import { fetchSchedules, scheduleSuccess } from '../../actions/schedule';
 import { ValidateField } from '../../config';
 import NewScriptEditor from './NewScriptEditor';
+import { createAutomatedScript } from '../../actions/automatedScript';
 
 const selector = formValueSelector('NewComponent');
 
 class NewScript extends Component {
     constructor(props) {
         super(props);
-        this.state = {};
+        this.state = {
+            name: '',
+            script: '',
+            loading: false,
+        };
     }
 
     //Client side validation
@@ -33,8 +35,27 @@ class NewScript extends Component {
 
     componentDidUpdate() {}
 
-    cancelEdit = () => {
-        this.props.editComponentSwitch(this.props.index);
+    handleChange = e => {
+        this.setState({ [e.target.id]: e.target.value });
+    };
+
+    setAutomatedScript = value => {
+        this.setState({ ...this.state, script: value });
+    };
+
+    handleSubmit = async e => {
+        this.setState({ loading: true });
+        e.preventDefault();
+        const res = await this.props.createAutomatedScript(this.state);
+        if (res) {
+            this.setState({
+                name: '',
+                script: '',
+                loading: false,
+            });
+        } else {
+            this.setState({ loading: false });
+        }
     };
 
     render() {
@@ -54,7 +75,10 @@ class NewScript extends Component {
                             </div>
                         </div>
 
-                        <form id="form-new-component">
+                        <form
+                            id="form-new-component"
+                            onSubmit={this.handleSubmit}
+                        >
                             <div
                                 className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
                                 style={{ boxShadow: 'none' }}
@@ -76,7 +100,14 @@ class NewScript extends Component {
                                                             type="text"
                                                             name={`name_${this.props.index}`}
                                                             id="name"
-                                                            placeholder="Home Page"
+                                                            value={
+                                                                this.state.name
+                                                            }
+                                                            onChange={
+                                                                this
+                                                                    .handleChange
+                                                            }
+                                                            placeholder="Script Name"
                                                             disabled={false}
                                                             validate={
                                                                 ValidateField.text
@@ -91,7 +122,17 @@ class NewScript extends Component {
                                                         Script
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
-                                                        <NewScriptEditor />
+                                                        <NewScriptEditor
+                                                            setAutomatedScript={value => {
+                                                                this.setAutomatedScript(
+                                                                    value
+                                                                );
+                                                            }}
+                                                            value={
+                                                                this.state
+                                                                    .script
+                                                            }
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
@@ -108,7 +149,7 @@ class NewScript extends Component {
                                         <button
                                             className="bs-Button"
                                             disabled={false}
-                                            onClick={this.cancelEdit}
+                                            // onClick={this.cancelEdit}
                                         >
                                             <span>Cancel</span>
                                         </button>
@@ -116,14 +157,14 @@ class NewScript extends Component {
                                     <button
                                         id="addComponentButton"
                                         className="bs-Button bs-Button--blue"
-                                        disabled={true}
+                                        disabled={false}
                                         type="submit"
                                     >
-                                        <ShouldRender if={true}>
+                                        <ShouldRender if={!this.state.loading}>
                                             <span>Add Script</span>
                                         </ShouldRender>
 
-                                        <ShouldRender if={false}>
+                                        <ShouldRender if={this.state.loading}>
                                             <FormLoader />
                                         </ShouldRender>
                                     </button>
@@ -148,11 +189,7 @@ const NewScriptForm = new reduxForm({
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            openModal,
-            closeModal,
-            fetchSchedules,
-            scheduleSuccess,
-            showUpgradeForm,
+            createAutomatedScript,
         },
         dispatch
     );
@@ -197,7 +234,7 @@ NewScript.propTypes = {
         PropTypes.string.isRequired,
         PropTypes.number.isRequired,
     ]),
-    editComponentSwitch: PropTypes.func.isRequired,
+    createAutomatedScript: PropTypes.func.isRequired,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewScriptForm);

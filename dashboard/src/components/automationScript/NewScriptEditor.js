@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import ShouldRender from '../basic/ShouldRender';
 import AceEditor from 'react-ace';
 import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
+import PropTypes from 'prop-types';
 
-const NewScriptEditor = () => {
-    const [script, setScript] = useState('');
+const NewScriptEditor = props => {
+    // const [script, setScript] = useState('');
     const [filterOption, setFilterOption] = useState('javascript');
 
     const scriptTextChange = newValue => {
-        setScript(newValue);
+        // setScript(newValue);
+        props.setAutomatedScript(newValue);
     };
 
     return (
@@ -47,7 +49,7 @@ const NewScriptEditor = () => {
                                 placeholder="Enter script here"
                                 mode={filterOption}
                                 theme="github"
-                                value={script}
+                                value={props.value}
                                 style={{
                                     backgroundColor: '#fff',
                                     marginTop: '10px',
@@ -78,6 +80,11 @@ const NewScriptEditor = () => {
             </ShouldRender>
         </div>
     );
+};
+
+NewScriptEditor.propTypes = {
+    setAutomatedScript: PropTypes.func.isRequired,
+    value: PropTypes.string.isRequired,
 };
 
 export default NewScriptEditor;
