@@ -1,6 +1,7 @@
 
 let accountsUrl = window.location.origin+'/accounts';
-let backendUrl = window.location.origin+'/api'
+let backendUrl = window.location.hostname==='localhost'? 'http://localhost:3002': window.location.origin+'/api'
+
 
 //eslint-disable-next-line
 function loginUrl(extra) {

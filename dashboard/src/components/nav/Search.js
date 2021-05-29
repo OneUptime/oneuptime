@@ -402,6 +402,28 @@ class Search extends Component {
                 return 'db-SideNav-icon--security';
             case 'businessSettings':
                 return 'db-SideNav-icon--businessSettings';
+            case 'consulting':
+                return 'db-SideNav-icon--consulting';
+            case 'email':
+                return 'db-SideNav-icon--email';
+            case 'sms':
+                return 'db-SideNav-icon--sms';
+            case 'callrouting':
+                return 'db-SideNav-icon--callrouting';
+            case 'integration':
+                return 'db-SideNav-icon--integration';
+            case 'probes':
+                return 'db-SideNav-icon--probes';
+            case 'git':
+                return 'db-SideNav-icon--git';
+            case 'docker':
+                return 'db-SideNav-icon--docker';
+            case 'apis':
+                return 'db-SideNav-icon--apis';
+            case 'user':
+                return 'db-SideNav-icon--user';
+            case 'password':
+                return 'db-SideNav-icon--password';
             default:
                 return '';
         }
