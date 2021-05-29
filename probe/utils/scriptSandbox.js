@@ -112,6 +112,7 @@ const runScript = async (
                 }
 
                 clearInterval(checker);
+                worker.terminate();
             });
             worker.on('error', err => {
                 if (err.errors) {
