@@ -53,6 +53,7 @@ class NewScript extends Component {
                 script: '',
                 loading: false,
             });
+            document.getElementById('name').value = '';
         } else {
             this.setState({ loading: false });
         }
