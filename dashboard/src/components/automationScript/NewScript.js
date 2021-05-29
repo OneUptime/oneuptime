@@ -2,15 +2,13 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { reduxForm, Field, formValueSelector } from 'redux-form';
+import { reduxForm, Field } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { ValidateField } from '../../config';
 import NewScriptEditor from './NewScriptEditor';
 import { createAutomatedScript } from '../../actions/automatedScript';
-
-const selector = formValueSelector('NewComponent');
 
 class NewScript extends Component {
     constructor(props) {
@@ -195,39 +193,14 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const mapStateToProps = (state, ownProps) => {
-    const name = selector(state, 'name_1000');
-    const subProject = selector(state, 'subProject_1000');
-
-    if (ownProps.edit) {
-        const componentSlug = ownProps.match
-            ? ownProps.match.params
-                ? ownProps.match.params.componentSlug
-                : null
-            : null;
-        return {
-            component: state.component,
-            currentProject: state.project.currentProject,
-            name,
-            subProject,
-            subProjects: state.subProject.subProjects.subProjects,
-            schedules: state.schedule.schedules.data,
-            componentId:
-                state.component.currentComponent.component &&
-                state.component.currentComponent.component._id,
-            componentSlug,
-        };
-    } else {
-        return {
-            initialValues: state.component.newComponent.initialValue,
-            component: state.component,
-            currentProject: state.project.currentProject,
-            name,
-            subProject,
-            subProjects: state.subProject.subProjects.subProjects,
-            schedules: state.schedule.schedules.data,
-        };
-    }
+const mapStateToProps = state => {
+    return {
+        initialValues: state.component.newComponent.initialValue,
+        component: state.component,
+        currentProject: state.project.currentProject,
+        subProjects: state.subProject.subProjects.subProjects,
+        schedules: state.schedule.schedules.data,
+    };
 };
 
 NewScript.propTypes = {
