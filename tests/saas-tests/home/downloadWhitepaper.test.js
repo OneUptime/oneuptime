@@ -20,6 +20,7 @@ describe('Download Whitepaper form', () => {
         await page.goto(`${utils.HOME_URL}${queryString}`, {
             waitUntil: 'networkidle2',
         });
+        await init.pageClick(page, '#accept-cookies');
         await page.goto(`${utils.HOME_URL}/enterprise/resources`, {
             waitUntil: 'networkidle2',
         });
