@@ -1,4 +1,5 @@
 const { join } = require("path");
+const {performance} = require('perf_hooks');
 
 // TODO - make this configurable from admin-dashboard
 const runConfig = {
@@ -27,14 +28,26 @@ const {
 } = runConfig;
 
 const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, maxSyncStatementDuration }) => {
-    const { isMainThread, Worker, parentPort, workerData } = require('worker_threads');
+    const {
+        isMainThread,
+        Worker,
+        parentPort,
+        workerData,
+    } = require('worker_threads');
 
     if (isMainThread) {
         // modifiable option in development mode only
-        const { maxScriptRunTime, maxSyncStatementDuration } = options; 
+        const { maxScriptRunTime, maxSyncStatementDuration } = options;
         if (!isCalled) return;
+        const start = performance.now();
         return new Promise(resolve => {
-            const worker = new Worker(__filename, { workerData: { functionCode }, execArgv: [...process.execArgv, '--unhandled-rejections=strict' ] });
+            const worker = new Worker(__filename, {
+                workerData: { functionCode },
+                execArgv: [
+                    ...process.execArgv,
+                    '--unhandled-rejections=strict',
+                ], // handle promise rejection warnings
+            });
 
             let lastMessage = null;
 
@@ -49,6 +62,8 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                             resolve({
                                 success: false,
                                 error: msg.error,
+                                status: 'error',
+                                executionTime: performance.now() - start,
                             });
                         }
                         break;
@@ -56,12 +71,16 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                 }
             });
             worker.on('online', () => {
-                lastMessage = Date.now();                
+                lastMessage = Date.now();
             });
             worker.on('exit', exitCode => {
                 switch (exitCode) {
                     case 0:
-                        resolve({ success: true });
+                        resolve({
+                            success: true,
+                            status: 'completed',
+                            executionTime: performance.now() - start,
+                        });
                         break;
                     case 1: {
                         const message = statementTimeExceeded
@@ -72,14 +91,18 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                         resolve({
                             success: false,
                             message,
+                            status: 'timeout',
+                            executionTime: performance.now() - start,
                         });
                         break;
                     }
                     default:
                         resolve({
                             success: false,
-                            message: "Unknown Error: script terminated"
-                        })
+                            message: 'Unknown Error: script terminated',
+                            status: 'terminated',
+                            executionTime: performance.now() - start,
+                        });
                         break;
                 }
 
@@ -87,10 +110,24 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
             });
             worker.on('error', err => {
                 if (err.errors) {
-                    resolve({ success: false, message: err.message, errors: err.errors});
+                    resolve({
+                        success: false,
+                        message: err.message,
+                        errors: err.errors,
+                        status: 'cbError',
+                        executionTime: performance.now() - start,
+                    });
                     return;
                 }
-                resolve({ success: false, message: err.message });
+
+                resolve({
+                    success: false,
+                    message: err.message,
+                    status: 'error',
+                    executionTime: performance.now() - start,
+                });
+                clearInterval(checker);
+                worker.terminate();
             });
 
             let totalRuntime = 0,
@@ -108,7 +145,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                     // Last ping was too long ago, terminate it
                     if (
                         lastMessage !== null &&
-                        (Date.now() - lastMessage >= maxSyncStatementDuration)
+                        Date.now() - lastMessage >= maxSyncStatementDuration
                     ) {
                         clearInterval(checker);
                         statementTimeExceeded = true;
@@ -126,11 +163,11 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
             eval: false,
             wasm: false,
             require: {
-                root: "./",
-                external: availableImports, 
+                root: './',
+                external: availableImports,
                 import: availableImports,
             },
-            console: "inherit"
+            console: 'inherit',
         });
 
         const scriptCompletedCallback = err => {
@@ -141,11 +178,13 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
 
         const code = workerData.functionCode;
         setInterval(() => parentPort.postMessage('ping'), 500);
-        const sandboxFunction = await vm.run(`module.exports = ${code}`, join(process.cwd(), "node_modules"));
-        
+        const sandboxFunction = await vm.run(
+            `module.exports = ${code}`,
+            join(process.cwd(), 'node_modules')
+        );
+
         await sandboxFunction(scriptCompletedCallback);
         process.exit();
-
     }
 };
 

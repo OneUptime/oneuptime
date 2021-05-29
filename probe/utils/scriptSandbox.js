@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 const { join } = require('path');
+const { performance } = require('perf_hooks');
 
 // TODO - make this configurable from admin-dashboard
 const runConfig = {
@@ -43,6 +44,7 @@ const runScript = async (
         // modifiable option in development mode only
         const { maxScriptRunTime, maxSyncStatementDuration } = options;
         if (!isCalled) return;
+        const start = performance.now();
         return new Promise(resolve => {
             const worker = new Worker(__filename, {
                 workerData: { functionCode },
@@ -65,6 +67,8 @@ const runScript = async (
                             resolve({
                                 success: false,
                                 error: msg.error,
+                                status: 'error',
+                                executionTime: performance.now() - start,
                             });
                         }
                         break;
@@ -77,7 +81,11 @@ const runScript = async (
             worker.on('exit', exitCode => {
                 switch (exitCode) {
                     case 0:
-                        resolve({ success: true });
+                        resolve({
+                            success: true,
+                            status: 'completed',
+                            executionTime: performance.now() - start,
+                        });
                         break;
                     case 1: {
                         const message = statementTimeExceeded
@@ -88,6 +96,8 @@ const runScript = async (
                         resolve({
                             success: false,
                             message,
+                            status: 'timeout',
+                            executionTime: performance.now() - start,
                         });
                         break;
                     }
@@ -95,6 +105,8 @@ const runScript = async (
                         resolve({
                             success: false,
                             message: 'Unknown Error: script terminated',
+                            status: 'terminated',
+                            executionTime: performance.now() - start,
                         });
                         break;
                 }
@@ -107,10 +119,18 @@ const runScript = async (
                         success: false,
                         message: err.message,
                         errors: err.errors,
+                        status: 'cbError',
+                        executionTime: performance.now() - start,
                     });
                     return;
                 }
-                resolve({ success: false, message: err.message });
+
+                resolve({
+                    success: false,
+                    message: err.message,
+                    status: 'error',
+                    executionTime: performance.now() - start,
+                });
                 clearInterval(checker);
                 worker.terminate();
             });
