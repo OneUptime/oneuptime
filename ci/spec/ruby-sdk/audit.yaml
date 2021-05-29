@@ -13,8 +13,9 @@ audit_ruby-sdk:
         - sudo apt install -y ruby-full bundler
         - ruby -v
         - export GEM_HOME="$HOME/.gem"
+        - gem list bundler
         - cd ruby-sdk/fyipe
-        - bundle install
+        # - bundle install
         # - /usr/bin/bundle i
         # - npm ci
         # - npm run audit
