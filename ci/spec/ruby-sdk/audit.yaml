@@ -21,6 +21,7 @@ audit_ruby-sdk:
         # - bundler
         # - locate bundle
         - cd ruby-sdk
+        - bundle install
         # - /usr/bin/bundle i
         # - npm ci
         # - npm run audit
