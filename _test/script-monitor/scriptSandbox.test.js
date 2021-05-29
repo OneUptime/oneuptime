@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { runScript } = require("./scriptMonitor");
+const { runScript } = require("./scriptSandbox");
 
 describe('ScriptMonitor V2', function() {
   this.timeout(10000);
@@ -34,6 +34,9 @@ describe('ScriptMonitor V2', function() {
       const result = await runScript(someFunction.toString(), true);      
       expect(result).to.not.be.undefined;
       expect(result.success).to.be.true;
+      expect(result.status).eq("completed");
+      expect(result.executionTime).to.be.a('number');
+      console.log(result.executionTime);
 
     });
 
@@ -45,6 +48,9 @@ describe('ScriptMonitor V2', function() {
       
       expect(result).to.not.be.undefined;
       expect(result.success).to.be.false;
+      expect(result.status).eq("error");
+      expect(result.executionTime).to.be.a('number');
+      console.log(result.executionTime);
     });
 
     it("should return scriptMonitor error when script returns a value in cb", async function() {
@@ -57,6 +63,9 @@ describe('ScriptMonitor V2', function() {
       expect(result.success).to.be.false;
       expect(result.message).to.be.string("Script monitor resource error");
       expect(result.errors).to.be.ok;
+      expect(result.status).eq("cbError");
+      expect(result.executionTime).to.be.a('number');
+      console.log(result.executionTime);
     });
 
     it("should return timeout error when script takes too long", async function() {
@@ -70,6 +79,9 @@ describe('ScriptMonitor V2', function() {
       expect(result).to.be.ok;
       expect(result.success).to.be.false;
       expect(result.message).contains("Max. script execution time exceeded");
+      expect(result.status).eq("timeout");
+      expect(result.executionTime).to.be.a('number');
+      console.log(result.executionTime);
     });
 
     it("should return timeout error when statement takes too long", async function() {
@@ -83,6 +95,9 @@ describe('ScriptMonitor V2', function() {
       expect(result).to.be.ok;
       expect(result.success).to.be.false;
       expect(result.message).contains("Max. synchronous statement execution time exceeded");
+      expect(result.status).eq("timeout");
+      expect(result.executionTime).to.be.a('number');
+      console.log(result.executionTime);
     });
   });
   
