@@ -6351,13 +6351,21 @@ const checkScriptCondition = (condition, body) => {
      */
     const validity = {};
 
+    if (!condition.filter || !body || !condition.responseType) {
+        return;
+    }
+
     if (condition.responseType === 'scriptExecution') {
-        if (!condition.filter || !body) {
-            return;
+        // we need a catch-all for server-defined
+        // script timeout errors or terminated scripts
+        if (body.statusText === 'timeout') {
+            validity.valid = false;
+            validity.reason = body.error;
+            return validity;
         }
 
         if (condition.filter === 'throwsError') {
-            if (body.error) {
+            if (body.statusText === 'error' && body.error) {
                 validity.valid = true;
                 validity.reason = `Script threw error ${body.error}`;
             } else {
@@ -6365,12 +6373,50 @@ const checkScriptCondition = (condition, body) => {
                 validity.reason = `Script did not throw error`;
             }
         } else if (condition.filter === 'doesNotThrowError') {
-            if (body.error) {
+            if (body.statusText === 'error' && body.error) {
                 validity.valid = false;
                 validity.reason = `Script threw error ${body.error}`;
             } else {
                 validity.valid = true;
                 validity.reason = `Script did not throw error`;
+            }
+        } else if (condition.filter === 'emptyCallback') {
+            if (body.statusText === 'cbError' && body.error) {
+                validity.valid = false;
+                validity.reason = `Script callback invoked with arguments ${JSON.stringify(
+                    body.error
+                )}`;
+            } else {
+                validity.valid = true;
+                validity.reason = `Script callback has no arguments`;
+            }
+        } else if (condition.filter === 'nonEmptyCallback') {
+            if (body.statusText === 'cbError' && body.error) {
+                validity.valid = true;
+                validity.reason = `Script callback invoked with arguments ${JSON.stringify(
+                    body.error
+                )}`;
+            } else {
+                validity.valid = false;
+                validity.reason = `Script callback has no arguments`;
+            }
+        }
+    } else if (condition.responseType === 'executionTime') {
+        if (condition.filter === 'executesIn') {
+            if (body.executionTime <= condition.filter1) {
+                validity.valid = true;
+                validity.reason = `Script executed in ${body.executionTime}ms within ${condition.filter1}ms limit`;
+            } else {
+                validity.valid = false;
+                validity.reason = `Script executed above ${condition.filter1}ms limit`;
+            }
+        } else if (condition.filter === 'doesNotExecuteIn') {
+            if (body.executionTime >= condition.filter1) {
+                validity.valid = true;
+                validity.reason = `Script executed in ${body.executionTime}ms above ${condition.filter1}ms minimum`;
+            } else {
+                validity.valid = false;
+                validity.reason = `Script executed below ${condition.filter1}ms minimum`;
             }
         }
     } else {
