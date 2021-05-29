@@ -14,7 +14,7 @@ const { sendItemResponse } = require('../middlewares/response');
 const { isAuthorized } = require('../middlewares/authorization');
 const { getUser } = require('../middlewares/user');
 
-router.get('/', getUser, isAuthorized, async function(req, res) {
+router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const scripts = await AutomatedService.findBy();
         return sendListResponse(req, res, scripts);
@@ -23,7 +23,7 @@ router.get('/', getUser, isAuthorized, async function(req, res) {
     }
 });
 
-router.post('/', getUser, isAuthorized, async (req, res) => {
+router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
     try {
         const data = req.body;
         if (!data) {
@@ -52,7 +52,10 @@ router.post('/', getUser, isAuthorized, async (req, res) => {
     }
 });
 
-router.delete('/:scriptId', getUser, isAuthorized, async function(req, res) {
+router.delete('/:scriptId/:projectId', getUser, isAuthorized, async function(
+    req,
+    res
+) {
     try {
         const { scriptId } = req.params;
         const msg = await AutomatedService.deleteBy(scriptId);
