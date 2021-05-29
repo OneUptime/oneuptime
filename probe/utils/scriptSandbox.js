@@ -112,9 +112,10 @@ const runScript = async (
                 }
 
                 clearInterval(checker);
-                worker.terminate();
             });
             worker.on('error', err => {
+                clearInterval(checker);
+
                 if (err.errors) {
                     resolve({
                         success: false,
@@ -123,16 +124,15 @@ const runScript = async (
                         status: 'cbError',
                         executionTime: performance.now() - start,
                     });
-                    return;
+                } else {
+                    resolve({
+                        success: false,
+                        message: err.message,
+                        status: 'error',
+                        executionTime: performance.now() - start,
+                    });
                 }
 
-                resolve({
-                    success: false,
-                    message: err.message,
-                    status: 'error',
-                    executionTime: performance.now() - start,
-                });
-                clearInterval(checker);
                 worker.terminate();
             });
 
