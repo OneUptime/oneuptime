@@ -116,7 +116,7 @@ let RenderMonitor = ({
                                 id="monitor-name"
                                 component={RenderSelect}
                                 options={[
-                                    ...allMonitors.map(m => ({
+                                    ...allMonitors.filter((m)=>getParentComponent(m)).map(m => ({
                                         value: m._id,
                                         label: `${
                                             getParentComponent(m).name
