@@ -200,11 +200,6 @@ class NewMonitor extends Component {
                             criterion.type === 'degraded'
                         ) {
                             // do nothing
-                        } else if (
-                            this.props.type === 'script' &&
-                            criterion.type === 'degraded'
-                        ) {
-                            // do nothing
                         } else {
                             const id = uuidv4();
 
@@ -2568,13 +2563,6 @@ class NewMonitor extends Component {
                                                                             criterion.type &&
                                                                         type ===
                                                                             'ip' &&
-                                                                        criterionType.type ===
-                                                                            'degraded'
-                                                                    )
-                                                                        return false;
-                                                                    else if (
-                                                                        criterionType.type ===
-                                                                            criterion.type &&
                                                                         criterionType.type ===
                                                                             'degraded'
                                                                     )
