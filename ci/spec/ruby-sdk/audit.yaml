@@ -17,7 +17,7 @@ audit_ruby-sdk:
         - gem install bundler
         - cd ruby-sdk/fyipe
         - gem list bundler
-        # - bundle install
+        - bundle install
         # - /usr/bin/bundle i
         # - npm ci
         # - npm run audit
