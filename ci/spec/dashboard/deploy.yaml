@@ -1,5 +1,5 @@
 # DEPLOYMENT STAGE - Dashboard
-deploy_staging_dashboard:
+staging_dashboard:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -29,7 +29,7 @@ deploy_staging_dashboard:
     environment:
         name: staging
 
-deploy_production_dashboard:
+production_dashboard:
     stage: Deploy
     allow_failure: true
     retry: 2

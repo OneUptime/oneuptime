@@ -44,7 +44,7 @@ module.exports = {
                     ); //whitepaper name should be stored in moreInfo.
                 }
             }
-            await AirtableService.logLeads({
+            AirtableService.logLeads({
                 name: data.name,
                 email: data.email,
                 phone: data.phone,

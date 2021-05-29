@@ -1,5 +1,5 @@
 # DEPLOYMENT STAGE - HELM CHART
-deploy_staging_helm-chart:
+staging_helm-chart:
     stage: Deploy
     allow_failure: true
     script:
@@ -36,7 +36,7 @@ deploy_staging_helm-chart:
     environment:
         name: staging
 
-deploy_production_helm-chart:
+production_helm-chart:
     stage: Deploy
     allow_failure: true
     script:

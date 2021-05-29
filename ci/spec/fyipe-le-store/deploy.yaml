@@ -1,5 +1,5 @@
 ## DEPLOYMENT STAGE FOR STAGING - fyipe-le-store-staging
-deploy_staging_fyipe-le-store:
+staging_fyipe-le-store:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -27,7 +27,7 @@ deploy_staging_fyipe-le-store:
         name: staging
 
 ## DEPLOYMENT STAGE FOR PRODUCTION - fyipe-le-store
-deploy_production_fyipe-le-store:
+production_fyipe-le-store:
     stage: Deploy
     allow_failure: true
     retry: 2
