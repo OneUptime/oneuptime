@@ -35,6 +35,10 @@ const firstField = [
     'ltEqualTo',
     'contains',
     'doesNotContain',
+    'jsExpression',
+    'evaluateResponse',
+    'executesIn',
+    'doesNotExecuteIn',
     'throwsError',
     'doesNotThrowError',
 ];
@@ -51,6 +55,8 @@ const placeholderfilter = [
     'selfSigned',
     'expiresIn30',
     'expiresIn10',
+    'emptyCallback',
+    'nonEmptyCallback',
 ];
 const mapValue = {
     greaterThan: 'Greater Than',
@@ -62,6 +68,10 @@ const mapValue = {
     ltEqualTo: 'Less Than Equal To',
     contains: 'Contains',
     doesNotContain: 'Does not Contain',
+    jsExpression: 'Javascript Expression',
+    evaluateResponse: 'Evaluate Response',
+    executesIn: 'Executes Within',
+    doesNotExecuteIn: 'Executes Longer Than',
     throwsError: 'Throws error',
     doesNotThrowError: 'Does not throw error',
 };
@@ -134,6 +144,18 @@ const placeholders = {
     },
     doesNotContain: {
         responseBody: 'Does not Contain',
+    },
+    jsExpression: {
+        responseBody: 'request.body === {}',
+    },
+    evaluateResponse: {
+        responseBody: "typeof response === 'object'",
+    },
+    executesIn: {
+        executionTime: '2000',
+    },
+    doesNotExecuteIn: {
+        executionTime: '5000',
     },
     throwsError: {
         error: 'response.error !== {}',
@@ -253,6 +275,11 @@ export class RenderOption extends Component {
                                 {
                                     value: 'scriptExecution',
                                     label: 'Script Execution',
+                                    show: type === 'script',
+                                },
+                                {
+                                    value: 'executionTime',
+                                    label: 'Script Execution Time',
                                     show: type === 'script',
                                 },
                                 {
@@ -592,6 +619,38 @@ export class RenderOption extends Component {
                                             bodyfield &&
                                             bodyfield.responseType ===
                                                 'scriptExecution',
+                                    },
+                                    {
+                                        value: 'emptyCallback',
+                                        label: 'Callback without arguments',
+                                        show:
+                                            bodyfield &&
+                                            bodyfield.responseType ===
+                                                'scriptExecution',
+                                    },
+                                    {
+                                        value: 'nonEmptyCallback',
+                                        label: 'Callback with arguments',
+                                        show:
+                                            bodyfield &&
+                                            bodyfield.responseType ===
+                                                'scriptExecution',
+                                    },
+                                    {
+                                        value: 'executesIn',
+                                        label: 'Script executed within',
+                                        show:
+                                            bodyfield &&
+                                            bodyfield.responseType ===
+                                                'executionTime',
+                                    },
+                                    {
+                                        value: 'doesNotExecuteIn',
+                                        label: 'Script executed longer than',
+                                        show:
+                                            bodyfield &&
+                                            bodyfield.responseType ===
+                                                'executionTime',
                                     },
                                     {
                                         value: 'isValid',
@@ -1058,8 +1117,7 @@ export class RenderOption extends Component {
 
                 {bodyfield &&
                 filterval !== '' &&
-                (bodyfield.responseType === 'responseTime' ||
-                    bodyfield.responseType === 'executes') &&
+                bodyfield.responseType === 'responseTime' &&
                 filterval === 'inBetween' ? (
                     <span
                         style={{
@@ -1072,6 +1130,20 @@ export class RenderOption extends Component {
                 ) : (
                     ''
                 )}
+
+                {bodyfield &&
+                filterval !== '' &&
+                bodyfield.responseType === 'executionTime' ? (
+                    <span
+                        style={{
+                            display: 'inline-block',
+                            marginTop: '37px',
+                        }}
+                    >
+                        ms
+                    </span>
+                ) : null}
+
                 {bodyfield &&
                 filterval !== '' &&
                 bodyfield.responseType === 'incomingTime' &&
