@@ -16,19 +16,16 @@ module.exports = {
                         success,
                         message,
                         errors,
+                        status,
+                        executionTime,
                     } = await scriptSandbox.runScript(code, true);
-
-                    // convert array to string
-                    const errorString = Array.isArray(errors)
-                        ? errors.join(', ')
-                        : errors;
 
                     // normalize response
                     const resp = {
-                        statusMessage: success ? 'success' : 'failed',
-                        error: success
-                            ? undefined
-                            : message + ': ' + errorString,
+                        success,
+                        statusText: status,
+                        error: success ? undefined : message + ': ' + errors,
+                        executionTime,
                     };
 
                     await ApiService.ping(monitor._id, {
