@@ -10,13 +10,14 @@ audit_ruby-sdk:
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
-        - sudo apt-get install -y ruby-full bundler=2.2.18
+        - sudo apt-get install -y ruby-full
         - ruby -v
         - export GEM_HOME="$HOME/.gem"
         - gem list bundler
-        - gem update bundler
+        - gem install bundler
         - gem list bundler
         - bundle update --bundler
+        - gem list bundler
         # - gem install bundler
         - cd ruby-sdk/fyipe
         # - gem list bundler
