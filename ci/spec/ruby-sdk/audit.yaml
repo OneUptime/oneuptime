@@ -16,6 +16,7 @@ audit_ruby-sdk:
         - gem list bundler
         - gem update bundler
         - gem list bundler
+        - bundle update --bundler
         # - gem install bundler
         - cd ruby-sdk/fyipe
         # - gem list bundler
