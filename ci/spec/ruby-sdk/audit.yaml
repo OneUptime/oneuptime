@@ -17,6 +17,7 @@ audit_ruby-sdk:
         - echo $GEM_PATH
         - echo $PATH
         - which bundle
+        - gem env
         # - gem install bundler
         # - gem list bundler
         # - gem uninstall bundler -v 1.16.1
