@@ -226,11 +226,6 @@ export class IncidentList extends Component {
                                                             this.props
                                                                 .currentProject
                                                                 .slug +
-                                                            '/component/' +
-                                                            incident.monitors[0]
-                                                                .monitorId
-                                                                .componentId
-                                                                .slug +
                                                             '/incidents/' +
                                                             incident.idNumber
                                                     );
