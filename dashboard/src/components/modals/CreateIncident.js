@@ -21,12 +21,12 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { fetchCustomFields } from '../../actions/customField';
+import joinNames from '../../utils/joinNames';
 
 class CreateIncident extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            monitorName: '',
             titleEdited: false,
             descriptionEdited: false,
             componentId: props.componentId,
@@ -59,7 +59,6 @@ class CreateIncident extends Component {
             monitorsList,
             monitors: subProjectMonitors,
         } = this.props;
-        const { componentId } = this.state;
 
         const {
             incidentType,
@@ -85,11 +84,7 @@ class CreateIncident extends Component {
         }
 
         if (selectAllMonitors) {
-            const allMonitors =
-                componentId &&
-                monitorsList.filter(
-                    monitor => monitor.componentId._id === componentId
-                );
+            const allMonitors = monitorsList;
             monitors = allMonitors.map(monitor => monitor._id);
         }
 
@@ -160,37 +155,31 @@ class CreateIncident extends Component {
         if (titleEdited && descriptionEdited) return;
 
         const {
-            monitors,
             incidentBasicSettings,
-            data,
             change,
             selectedIncidentType,
             projectName,
+            formValues,
+            monitorsList,
         } = this.props;
 
-        let monitorName = this.state.monitorName;
+        let monitorNames = [];
+        if (formValues.monitors && formValues.monitors.length > 0) {
+            formValues.monitors.forEach(monitorId => {
+                const monitor = monitorsList.find(
+                    monitor => String(monitor._id) === monitorId
+                );
+                if (monitor) monitorNames.push(monitor.name);
+            });
+        }
 
-        const subProjectMonitor = monitors.find(
-            subProjectMonitor => subProjectMonitor._id === data.subProjectId
-        );
-
-        if (
-            name === 'monitors[0]' &&
-            subProjectMonitor &&
-            subProjectMonitor.monitors
-        ) {
-            monitorName = '';
-            for (const monitor of subProjectMonitor.monitors) {
-                if (value === monitor._id) {
-                    monitorName = monitor.name;
-                    this.setState({ monitorName });
-                }
-            }
+        if (formValues.selectAllMonitors) {
+            monitorNames = monitorsList.map(monitor => monitor.name);
         }
 
         const values = {
             incidentType: selectedIncidentType,
-            monitorName,
+            monitorName: joinNames(monitorNames),
             projectName,
             time: moment().format('h:mm:ss a'),
             date: moment().format('MMM Do YYYY'),
@@ -199,7 +188,7 @@ class CreateIncident extends Component {
         if (name === 'incidentType') values[name] = value;
 
         if (values['monitorName'] === '')
-            values['monitorName'] = '{{MonitorName}}';
+            values['monitorName'] = '{{Monitor Name}}';
 
         if (!titleEdited) {
             const titleTemplate = handlebars.compile(
@@ -253,6 +242,7 @@ class CreateIncident extends Component {
                                         name="selectAllMonitors"
                                         className="Checkbox-source"
                                         id="selectAllMonitorsBox"
+                                        onChange={this.substituteVariables()}
                                     />
                                     <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                         <div className="Checkbox-target Box-root">
@@ -319,6 +309,7 @@ class CreateIncident extends Component {
                                                 name="selectAllMonitors"
                                                 className="Checkbox-source"
                                                 id="selectAllMonitorsBox"
+                                                onChange={this.substituteVariables()}
                                             />
                                             <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                                 <div className="Checkbox-target Box-root">
@@ -376,6 +367,7 @@ class CreateIncident extends Component {
                                                   }))
                                                 : []),
                                         ]}
+                                        onChange={this.substituteVariables()}
                                     />
                                     <button
                                         id="addMoreMonitor"
