@@ -14,6 +14,8 @@ audit_ruby-sdk:
         # - rbenv init
         #- curl -fsSL https://github.com/rbenv/rbenv-installer/raw/main/bin/rbenv-doctor | bash
         - rbenv install   2.4.1
+        - gem install bundler
+        - gem env home
         # - sudo apt-get install -y ruby-full
         # - ruby -v
         # - export GEM_HOME="$HOME/.gem"
