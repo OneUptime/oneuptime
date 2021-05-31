@@ -11,11 +11,11 @@ audit_ruby-sdk:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
         - sudo apt-get install -y ruby-full
-        - sudo apt-get remove -y bundler
         - ruby -v
         - export GEM_HOME="$HOME/.gem"
         # - gem install bundler
         - gem list bundler
+        - gem uninstall bundler -v 1.16.1
         - cd ruby-sdk/fyipe
         - gem list bundler
         # - gem list bundler
