@@ -38,13 +38,21 @@ export class IncidentDeleteBox extends Component {
                 );
             }
             const monitors = this.props.incident.monitors;
-            if (monitors.length > 1) {
-                history.push(
-                    `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/monitoring`
-                );
+            if (this.props.componentSlug) {
+                if (monitors.length > 1) {
+                    history.push(
+                        `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/monitoring`
+                    );
+                } else {
+                    history.push(
+                        `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/monitoring/${monitors[0].monitorId.slug}`
+                    );
+                }
             } else {
                 history.push(
-                    `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/monitoring/${monitors[0].monitorId.slug}`
+                    '/dashboard/project/' +
+                        this.props.currentProject.slug +
+                        '/incidents'
                 );
             }
         });
