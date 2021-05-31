@@ -458,7 +458,13 @@ module.exports = {
         }
     },
 
-    exitProject: async function(projectId, userId, deletedById, saveUserSeat) {
+    exitProject: async function(
+        projectId,
+        userId,
+        deletedById,
+        role,
+        saveUserSeat
+    ) {
         try {
             const _this = this;
             let subProject = null;
@@ -535,7 +541,9 @@ module.exports = {
                             (count < 1 &&
                                 countMonitor <= (projectSeats - 1) * 5)
                         ) {
-                            projectSeats = projectSeats - 1;
+                            if (role !== 'Viewer') {
+                                projectSeats = projectSeats - 1;
+                            }
                             if (IS_SAAS_SERVICE) {
                                 await PaymentService.changeSeats(
                                     project.stripeSubscriptionId,
