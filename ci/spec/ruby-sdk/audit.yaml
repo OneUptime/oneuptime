@@ -14,11 +14,11 @@ audit_ruby-sdk:
         - ruby -v
         - export GEM_HOME="$HOME/.gem"
         - gem install bundler
-        - bundle install --path vendor/bundle
+        - bundler
         # - gem install bundler
         - cd ruby-sdk/fyipe
         # - gem list bundler
-        - bi
+        - bundler
         # - /usr/bin/bundle i
         # - npm ci
         # - npm run audit
