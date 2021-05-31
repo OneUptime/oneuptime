@@ -10,21 +10,24 @@ audit_ruby-sdk:
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
-        - sudo apt-get install -y ruby-full
-        - ruby -v
-        - export GEM_HOME="$HOME/.gem"
+        - sudo apt install -y rbenv
+        - rbenv init
+        - curl -fsSL https://github.com/rbenv/rbenv-installer/raw/main/bin/rbenv-doctor | bash
+        # - sudo apt-get install -y ruby-full
+        # - ruby -v
+        # - export GEM_HOME="$HOME/.gem"
         # - gem env
         # - echo $GEM_HOME
         # - echo $GEM_PATH
         # - echo $PATH
         # - which bundle
-        - gem install bundler
-        - gem list bundler
+        # - gem install bundler
+        # - gem list bundler
         # - gem uninstall bundler -v 1.16.1
-        - cd ruby-sdk/fyipe
-        - gem bundle
-        - which bin/bundle
-        - bundler exec bundle install
+        # - cd ruby-sdk/fyipe
+        # - gem bundle
+        # - which bin/bundle
+        # - bundler exec bundle install
         # - gem list bundler
         # - gem list bundler
         # - bundler
