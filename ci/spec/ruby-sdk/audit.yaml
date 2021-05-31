@@ -18,12 +18,12 @@ audit_ruby-sdk:
         # - echo $GEM_PATH
         # - echo $PATH
         # - which bundle
-        - gem install rails
         - gem install bundler
         - gem list bundler
         # - gem uninstall bundler -v 1.16.1
         - cd ruby-sdk/fyipe
-        - which bundle
+        - bin/bundle
+        - which bin/bundle
         - bundler exec bundle install
         # - gem list bundler
         # - gem list bundler
