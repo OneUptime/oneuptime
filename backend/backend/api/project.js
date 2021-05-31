@@ -856,6 +856,18 @@ router.get('/projects/:slug', getUser, isUserMasterAdmin, async function(
     }
 });
 
+router.get('/project-slug/:slug', getUser, async function(req, res) {
+    try {
+        const { slug } = req.params;
+        const project = await ProjectService.findOneBy({
+            slug,
+        });
+        return sendItemResponse(req, res, project);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.put(
     '/:projectId/blockProject',
     getUser,

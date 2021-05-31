@@ -37,6 +37,7 @@ import { fetchComponent } from '../actions/component';
 import HideIncidentBox from '../components/incident/HideIncidentBox';
 import flat from '../utils/flattenArray';
 import joinNames from '../utils/joinNames';
+import { fetchProjectSlug } from '../actions/project';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -287,7 +288,12 @@ class Incident extends React.Component {
             currentProject,
             componentSlug,
             fetchComponent,
+            projectSlug,
+            fetchProjectSlug,
         } = this.props;
+
+        fetchProjectSlug(projectSlug);
+
         if (currentProject && currentProject._id && componentSlug) {
             fetchComponent(currentProject._id, componentSlug);
         }
@@ -307,6 +313,7 @@ class Incident extends React.Component {
             defaultSchedule,
             monitors,
             allMonitors,
+            componentSlug,
         } = this.props;
         const slug = currentProject ? currentProject.slug : null;
         const redirectTo = `/dashboard/project/${slug}/on-call`;
@@ -644,19 +651,47 @@ class Incident extends React.Component {
         return (
             <Dashboard ready={this.ready}>
                 <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'incidents')}
-                        name={componentName}
-                    />
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'incident-log')}
-                        name="Incident Log"
-                    />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name="Incident"
-                        containerType="Incident"
-                    />
+                    {componentSlug && componentName ? (
+                        <>
+                            <BreadCrumbItem
+                                route={getParentRoute(
+                                    pathname,
+                                    null,
+                                    'incidents'
+                                )}
+                                name={componentName}
+                            />
+                            <BreadCrumbItem
+                                route={getParentRoute(
+                                    pathname,
+                                    null,
+                                    'incident-log'
+                                )}
+                                name="Incident Log"
+                            />
+                            <BreadCrumbItem
+                                route={pathname}
+                                name="Incident"
+                                containerType="Incident"
+                            />
+                        </>
+                    ) : (
+                        <>
+                            <BreadCrumbItem
+                                route={getParentRoute(
+                                    pathname,
+                                    null,
+                                    'project-incidents'
+                                )}
+                                name="Incidents"
+                            />
+                            <BreadCrumbItem
+                                route={pathname}
+                                name="Incident"
+                                containerType="Incident"
+                            />
+                        </>
+                    )}
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">
@@ -677,9 +712,13 @@ class Incident extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
-    const projectId =
-        state.component.currentComponent.component &&
-        state.component.currentComponent.component.projectId._id;
+    const { componentSlug, incidentId, slug: projectSlug } = props.match.params;
+
+    const projectId = componentSlug
+        ? state.component.currentComponent.component &&
+          state.component.currentComponent.component.projectId._id
+        : state.project.projectSlug.project &&
+          state.project.projectSlug.project._id;
 
     const scheduleWarning = [];
     state.schedule.subProjectSchedules.forEach(item => {
@@ -695,7 +734,6 @@ const mapStateToProps = (state, props) => {
             defaultSchedule = item.isDefault;
         });
     });
-    const { componentSlug, incidentId } = props.match.params;
 
     let allMonitors =
         state.monitor &&
@@ -738,6 +776,7 @@ const mapStateToProps = (state, props) => {
             state.incidentSla.defaultIncidentCommunicationSla.sla,
         monitors,
         allMonitors,
+        projectSlug,
     };
 };
 
@@ -760,6 +799,7 @@ const mapDispatchToProps = dispatch => {
             fetchIncidentStatusPages,
             fetchDefaultCommunicationSla,
             fetchComponent,
+            fetchProjectSlug,
         },
         dispatch
     );
@@ -808,6 +848,8 @@ Incident.propTypes = {
     requestingComponent: PropTypes.bool,
     monitors: PropTypes.array,
     allMonitors: PropTypes.array,
+    projectSlug: PropTypes.string,
+    fetchProjectSlug: PropTypes.func,
 };
 
 Incident.displayName = 'Incident';

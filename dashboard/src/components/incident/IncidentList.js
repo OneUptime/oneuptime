@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { withRouter } from 'react-router-dom';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 import { history } from '../../store';
@@ -221,14 +222,30 @@ export class IncidentList extends Component {
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
                                             onClick={() => {
                                                 setTimeout(() => {
-                                                    history.push(
-                                                        '/dashboard/project/' +
-                                                            this.props
-                                                                .currentProject
-                                                                .slug +
-                                                            '/incidents/' +
-                                                            incident.idNumber
-                                                    );
+                                                    if (
+                                                        this.props.componentSlug
+                                                    ) {
+                                                        history.push(
+                                                            '/dashboard/project/' +
+                                                                this.props
+                                                                    .currentProject
+                                                                    .slug +
+                                                                '/component/' +
+                                                                this.props
+                                                                    .componentSlug +
+                                                                '/incidents/' +
+                                                                incident.idNumber
+                                                        );
+                                                    } else {
+                                                        history.push(
+                                                            '/dashboard/project/' +
+                                                                this.props
+                                                                    .currentProject
+                                                                    .slug +
+                                                                '/incidents/' +
+                                                                incident.idNumber
+                                                        );
+                                                    }
                                                     this.props.animateSidebar(
                                                         false
                                                     );
@@ -1043,11 +1060,14 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators({ markAsRead, animateSidebar }, dispatch);
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
+    const { componentSlug } = ownProps.match.params;
+    ``;
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
         requesting: state.incident.incidents.requesting,
+        componentSlug,
     };
 }
 
@@ -1069,6 +1089,9 @@ IncidentList.propTypes = {
     animateSidebar: PropTypes.func,
     page: PropTypes.number,
     numberOfPage: PropTypes.number,
+    componentSlug: PropTypes.string,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(IncidentList);
+export default withRouter(
+    connect(mapStateToProps, mapDispatchToProps)(IncidentList)
+);
