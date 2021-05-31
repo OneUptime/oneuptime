@@ -1,4 +1,4 @@
-deploy_production_admin-dashboard:
+production_admin-dashboard:
     stage: Deploy
     allow_failure: true
     script:
@@ -27,7 +27,7 @@ deploy_production_admin-dashboard:
         name: production
 
 # DEPLOYMENT STAGE - Admin Dashboard
-deploy_staging_admin-dashboard:
+staging_admin-dashboard:
     stage: Deploy
     allow_failure: true
     script:

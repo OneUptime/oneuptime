@@ -1,5 +1,5 @@
 ## DEPLOYMENT STAGE -  PHP SDK
-deploy_staging_php-sdk:
+staging_php-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -36,7 +36,7 @@ deploy_staging_php-sdk:
     environment:
         name: staging
 
-deploy_production_php-sdk:
+production_php-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2

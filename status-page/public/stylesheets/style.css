@@ -1135,9 +1135,16 @@ margin-left:10px;
   padding-left: 30px;
 }
 
-.sp__icon--forward {
-  background-image: url('../images/right-arrow.svg');
+.sp__icon--down {
+  background-image: url('../images/arrow-down.svg');
   background-repeat: no-repeat;
+  margin-top:0
+}
+
+.sp__icon--up {
+  background-image: url('../images/up-arrow.svg');
+  background-repeat: no-repeat;
+  margin-top:0
 }
 
 .sp__icon--forward:hover {

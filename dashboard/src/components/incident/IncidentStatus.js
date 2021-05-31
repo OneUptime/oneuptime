@@ -914,7 +914,7 @@ export class IncidentStatus extends Component {
                                                                     <div className="bs-margin-right">
                                                                         <span className="bs-content-create bs-text-bold">
                                                                             Created
-                                                                            by
+                                                                            by{' '}
                                                                         </span>
                                                                         <span className=" bs-text-bold">
                                                                             {this

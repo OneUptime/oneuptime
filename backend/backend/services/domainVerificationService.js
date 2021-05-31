@@ -156,9 +156,10 @@ module.exports = {
             // records is an array of arrays
             // flatten the array to a single array
             const txtRecords = flatten(records);
-            return txtRecords.some(
+            const result = txtRecords.some(
                 txtRecord => verificationToken === txtRecord
             );
+            return { result, txtRecords };
         } catch (error) {
             if (error.code === 'ENODATA') {
                 throw {

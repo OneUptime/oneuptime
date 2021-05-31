@@ -1,4 +1,4 @@
-deploy_production_home:
+production_home:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -28,7 +28,7 @@ deploy_production_home:
         name: production
 
 # DEPLOYMENT STAGE - Home
-deploy_staging_home:
+staging_home:
     stage: Deploy
     allow_failure: true
     retry: 2

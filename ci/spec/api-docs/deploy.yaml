@@ -1,4 +1,4 @@
-deploy_production_api-docs:
+production_api-docs:
     stage: Deploy
     retry: 2
     allow_failure: true
@@ -28,7 +28,7 @@ deploy_production_api-docs:
         name: production
 
 # DEPLOYMENT STAGE - Api docs
-deploy_staging_api-docs:
+staging_api-docs:
     stage: Deploy
     allow_failure: true
     retry: 2

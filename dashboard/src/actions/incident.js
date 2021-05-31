@@ -670,7 +670,7 @@ export function closeIncidentSuccess(incident) {
 }
 
 export function closeIncident(projectId, incidentId) {
-    //This fucntion will switch to incidentId of the params beig passed.
+    //This function will switch to incidentId of the params beig passed.
     return function(dispatch) {
         const promise = postApi(
             `incident/${projectId}/close/${incidentId}`,

@@ -1,5 +1,5 @@
 # DEPLOYMENT STAGE - status-page
-deploy_staging_status-page:
+staging_status-page:
     stage: Deploy
     allow_failure: true
     script:
@@ -28,7 +28,7 @@ deploy_staging_status-page:
     environment:
         name: staging
 
-deploy_production_status-page:
+production_status-page:
     stage: Deploy
     allow_failure: true
     script:

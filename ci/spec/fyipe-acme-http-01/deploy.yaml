@@ -1,5 +1,5 @@
 ## DEPLOYMENT STAGE FOR STAGING - fyipe-acme-http-01-staging
-deploy_staging_fyipe-acme-http-01:
+staging_fyipe-acme-http-01:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -27,7 +27,7 @@ deploy_staging_fyipe-acme-http-01:
         name: staging
 
 ## DEPLOYMENT STAGE FOR PRODUCTION - fyipe-acme-http-01
-deploy_production_fyipe-acme-http-01:
+production_fyipe-acme-http-01:
     stage: Deploy
     allow_failure: true
     retry: 2

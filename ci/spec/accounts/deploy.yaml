@@ -1,4 +1,4 @@
-deploy_production_accounts:
+production_accounts:
     stage: Deploy
     retry: 2
     allow_failure: true
@@ -28,7 +28,7 @@ deploy_production_accounts:
         name: production
 
 # DEPLOYMENT STAGE - Accounts
-deploy_staging_accounts:
+staging_accounts:
     stage: Deploy
     allow_failure: true
     retry: 2
