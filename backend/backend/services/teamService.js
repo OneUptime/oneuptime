@@ -427,7 +427,11 @@ module.exports = {
             if (typeof projectSeats === 'string') {
                 projectSeats = parseInt(projectSeats);
             }
-            const newProjectSeats = projectSeats + extraUsersToAdd;
+            let newProjectSeats = projectSeats;
+
+            if (role !== 'Viewer') {
+                newProjectSeats = projectSeats + extraUsersToAdd;
+            }
 
             if (IS_SAAS_SERVICE) {
                 await PaymentService.changeSeats(
@@ -483,6 +487,7 @@ module.exports = {
         const _this = this;
         let index;
         let subProject = null;
+        let role = null;
         if (userId === teamMemberUserId) {
             const error = new Error('Admin User cannot delete himself');
             error.code = 400;
@@ -525,20 +530,29 @@ module.exports = {
                 throw error;
             } else {
                 if (subProject) {
+                    const checkTeamMember = subProject.users.find(
+                        user => user.userId === teamMemberUserId
+                    );
+                    role = checkTeamMember.role;
                     // removes team member from subProject
                     await ProjectService.exitProject(
                         subProject._id,
                         teamMemberUserId,
-                        userId
+                        userId,
+                        role
                     );
                 } else {
+                    const checkTeamMember = project.users.find(
+                        user => user.userId === teamMemberUserId
+                    );
+                    role = checkTeamMember.role;
                     // removes team member from project
                     await ProjectService.exitProject(
                         project._id,
                         teamMemberUserId,
-                        userId
+                        userId,
+                        role
                     );
-
                     // remove user from all subProjects.
                     const subProjects = await ProjectService.findBy({
                         parentProjectId: project._id,
@@ -549,7 +563,8 @@ module.exports = {
                                 await ProjectService.exitProject(
                                     subProject._id,
                                     teamMemberUserId,
-                                    userId
+                                    userId,
+                                    role
                                 );
                             })
                         );
