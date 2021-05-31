@@ -55,7 +55,8 @@ export class SidebarNavItem extends Component {
                 ':performanceTrackerSlug',
                 match.params.performanceTrackerSlug
             )
-            .replace(':errorTrackerSlug', match.params.errorTrackerSlug);
+            .replace(':errorTrackerSlug', match.params.errorTrackerSlug)
+            .replace(':automatedScriptslug', match.params.automatedScriptslug);
     };
     handleShowMore = () => {
         this.props.toggleProjectSettingsMore(!this.props.toggleMoreBtn);
@@ -68,7 +69,8 @@ export class SidebarNavItem extends Component {
             .replace(/:issueId/, match.params.issueId)
             .replace(/:scheduleSlug/, match.params.scheduleSlug)
             .replace(/:incidentId/, match.params.incidentId)
-            .replace(/:monitorSlug/, match.params.monitorSlug);
+            .replace(/:monitorSlug/, match.params.monitorSlug)
+            .replace(/:automatedScriptslug/, match.params.automatedScriptslug);
         const projectSettingsSubRoutes =
             subRoute.title === 'Monitor' ||
             subRoute.title === 'Incident Settings' ||
@@ -114,6 +116,7 @@ export class SidebarNavItem extends Component {
             .replace(':componentSlug', match.params.componentSlug)
             .replace(':monitorSlug', match.params.monitorSlug)
             .replace(':applicationLogSlug', match.params.applicationLogSlug)
+            .replace(':automatedScriptslug', match.params.automatedScriptslug)
             .replace(
                 ':performanceTrackerSlug',
                 match.params.performanceTrackerSlug
@@ -168,7 +171,11 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/error-track/
             ) &&
-                route.title === 'Error Tracking');
+                route.title === 'Error Tracking') ||
+            (location.pathname.match(
+                /project\/([A-Za-z0-9-]+)\/automateScript\/([A-Za-z0-9-]+)/
+            ) &&
+                route.title === 'Automation Script Details');
 
         const isChildLinkActive = route.subRoutes.some(link => {
             let newPath = link.path.replace(/:slug/, match.params.slug);
@@ -194,6 +201,10 @@ export class SidebarNavItem extends Component {
             newPath = newPath.replace(
                 /:errorTrackerSlug/,
                 match.params.errorTrackerSlug
+            );
+            newPath = newPath.replace(
+                /:automatedScriptslug/,
+                match.params.automatedScriptslug
             );
 
             const response =
@@ -389,6 +400,7 @@ export class SidebarNavItem extends Component {
                 'Error Tracking View',
                 'Error Tracking Detail View',
                 'Performance Tracker View',
+                'Automation Script Details',
             ];
             const moreRoutes =
                 child.title === 'Monitor' ||
