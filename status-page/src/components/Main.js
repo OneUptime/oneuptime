@@ -7,7 +7,13 @@ import ShouldRender from './ShouldRender';
 import Footer from './Footer';
 import NotesMain from './NotesMain';
 import EventsMain from './EventsMain';
-import { API_URL, ACCOUNTS_URL, getServiceStatus } from '../config';
+import {
+    API_URL,
+    ACCOUNTS_URL,
+    getServiceStatus,
+    filterProbeData,
+    getMonitorStatus,
+} from '../config';
 import moment from 'moment';
 import { Helmet } from 'react-helmet';
 import { bindActionCreators } from 'redux';
@@ -27,6 +33,7 @@ import AnnouncementLogs from './AnnouncementLogs';
 import PastEvent from './PastEvent';
 import { fetchFutureEvents, fetchPastEvents } from '../actions/status';
 import OngoingSchedule from './OngoingSchedule';
+import Collapsible from './Collapsible/Collapsible';
 
 const greenBackground = {
     display: 'inline-block',
@@ -183,26 +190,17 @@ class Main extends Component {
         this.setLastAlive();
     }
 
-    groupBy(collection, property) {
-        let i = 0,
-            val,
-            index;
-        const values = [],
-            result = [];
-
-        for (; i < collection.length; i++) {
-            val = collection[i][property]
-                ? collection[i][property]['name']
-                : 'no-category';
-            index = values.indexOf(val);
-            if (index > -1) {
-                result[index].push(collection[i]);
-            } else {
-                values.push(val);
-                result.push([collection[i]]);
+    getCategories(collection, property) {
+        const collectionArray = [];
+        collection.forEach(monitor => {
+            if (
+                monitor[property] &&
+                collectionArray.indexOf(monitor[property].name) === -1
+            ) {
+                collectionArray.push(monitor[property].name);
             }
-        }
-        return result;
+        });
+        return collectionArray;
     }
 
     groupedMonitors = () => {
@@ -212,81 +210,166 @@ class Main extends Component {
             this.props.statusData.monitorsData.length > 0
         ) {
             const monitorData = this.props.statusData.monitorsData;
-            const groupedMonitorData = this.groupBy(
+            const resourceCategories = this.getCategories(
                 monitorData,
-                'monitorCategoryId'
+                'resourceCategory'
             );
-            return groupedMonitorData.map((groupedMonitors, i) => {
-                return (
-                    <div
-                        key={i}
-                        className="uptime-graph-header"
-                        style={{ flexDirection: 'column' }}
-                    >
-                        {groupedMonitors.map((monitor, i) => {
-                            return (
-                                <>
-                                    <MonitorInfo
-                                        monitor={monitor}
-                                        selectedCharts={
-                                            this.props.monitors.filter(
-                                                m =>
-                                                    monitor._id ===
-                                                    m.monitor._id
-                                            )[0]
-                                        }
-                                        key={i}
-                                        id={`monitor${i}`}
-                                        resourceCategory={
-                                            monitor.resourceCategory
-                                        }
-                                        isGroupedByMonitorCategory={
-                                            this.props.statusData
-                                                .isGroupedByMonitorCategory
-                                        }
-                                        theme={
-                                            this.props.statusData.theme ===
-                                            'Clean Theme'
-                                                ? true
-                                                : false
-                                        }
-                                    />
-                                    {this.props.monitors.some(
-                                        m => monitor._id === m.monitor._id
-                                    ) && (
-                                        <LineChartsContainer
-                                            monitor={monitor}
-                                            selectedCharts={
-                                                this.props.monitors.filter(
-                                                    m =>
-                                                        monitor._id ===
-                                                        m.monitor._id
-                                                )[0]
-                                            }
-                                        />
-                                    )}
-                                    {i <
-                                        this.props.statusData.monitorsData
-                                            .length -
-                                            1 && (
-                                        <div
-                                            style={{
-                                                margin: '30px 0px',
-                                                backgroundColor:
-                                                    'rgb(232, 232, 232)',
-                                                height: '1px',
-                                            }}
-                                        />
-                                    )}
-                                </>
-                            );
-                        })}
-                    </div>
-                );
-            });
+            const uncategorized = monitorData.filter(
+                mon =>
+                    mon.resourceCategory === undefined || !mon.resourceCategory
+            );
+
+            return (
+                <div
+                    className="uptime-graph-header"
+                    style={{ flexDirection: 'column' }}
+                >
+                    {resourceCategories.map(categoryName => {
+                        const filteredResource = monitorData.filter(
+                            resource =>
+                                resource.resourceCategory &&
+                                resource.resourceCategory.name === categoryName
+                        );
+
+                        return this.CollapsableGroup(
+                            categoryName,
+                            filteredResource
+                        );
+                    })}
+                    {uncategorized &&
+                        uncategorized.length > 0 &&
+                        this.CollapsableGroup('Uncategorized', uncategorized)}
+                </div>
+            );
         } else {
             return <NoMonitor />;
         }
+    };
+
+    CollapsableGroup = (categoryName, monitors) => {
+        const { probes, activeProbe, statusData } = this.props;
+        const theme = statusData.theme === 'Clean Theme' ? true : false;
+
+        const categoryStatuses = monitors.map(monitor => {
+            const probe =
+                probes && probes.length > 0
+                    ? probes[probes.length < 2 ? 0 : activeProbe]
+                    : null;
+            const statuses = filterProbeData(monitor, probe);
+            const monitorStatus = getMonitorStatus(statuses);
+            return monitorStatus;
+        });
+
+        const categoryStatusBk = categoryStatuses.includes('offline')
+            ? 'rgba(250, 109, 70, 1)'
+            : categoryStatuses.includes('degraded')
+            ? 'rgba(255, 222, 36, 1)'
+            : 'rgba(108, 219, 86, 1)';
+
+        const collapsibleStyle = {
+            backgroundColor: 'rgb(246 246 246)',
+            width: '100%',
+            padding: '7px 10px',
+            fontSize: ' 12px',
+            fontWeight: '400',
+            color: 'black',
+            marginBottom: '0',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            border: '1px solid rgb(236 236 236)',
+        };
+
+        if (!theme) {
+            //if its a classic theme then, change some styles.
+            collapsibleStyle.backgroundColor = 'rgb(247 247 247)';
+            collapsibleStyle.border = '1px solid rgb(228 228 228)';
+        }
+
+        return (
+            <Collapsible
+                trigger={
+                    categoryName.charAt(0).toUpperCase() + categoryName.slice(1)
+                }
+                triggerStyle={collapsibleStyle}
+                open={true}
+                contentContainerTagName="div"
+                triggerTagName="div"
+                transitionTime="200"
+                lazyRender={true}
+                closedIconClass="sp__icon sp__icon--down"
+                openIconClass="sp__icon sp__icon--up"
+                statusColorStyle={{
+                    borderRadius: ' 100px',
+                    height: '8px',
+                    width: '8px',
+                    backgroundColor: categoryStatusBk,
+                }}
+            >
+                {monitors.map((monitor, i) => {
+                    return (
+                        <>
+                            <MonitorInfo
+                                monitor={monitor}
+                                selectedCharts={
+                                    this.props.monitors.filter(
+                                        m => monitor._id === m.monitor._id
+                                    )[0]
+                                }
+                                key={i}
+                                id={`monitor${i}`}
+                                resourceCategory={monitor.resourceCategory}
+                                isGroupedByMonitorCategory={false}
+                                theme={
+                                    this.props.statusData.theme ===
+                                    'Clean Theme'
+                                        ? true
+                                        : false
+                                }
+                            />
+                            {this.props.monitors.some(
+                                m => monitor._id === m.monitor._id
+                            ) && (
+                                <LineChartsContainer
+                                    monitor={monitor}
+                                    selectedCharts={
+                                        this.props.monitors.filter(
+                                            m => monitor._id === m.monitor._id
+                                        )[0]
+                                    }
+                                />
+                            )}
+
+                            {i < monitors.length - 1 ||
+                            (i === monitors.length - 1 &&
+                                categoryName.toLowerCase() ===
+                                    'uncategorized' &&
+                                !theme) ? (
+                                <div
+                                    style={{
+                                        margin: '30px 0px',
+                                        backgroundColor: 'rgb(232, 232, 232)',
+                                        height: '1px',
+                                    }}
+                                />
+                            ) : (i === monitors.length - 1 &&
+                                  categoryName.toLowerCase() !==
+                                      'uncategorized') ||
+                              (i === monitors.length - 1 &&
+                                  categoryName.toLowerCase() ===
+                                      'uncategorized' &&
+                                  theme) ? (
+                                <div
+                                    style={{
+                                        marginBottom: '30px',
+                                    }}
+                                />
+                            ) : null}
+                        </>
+                    );
+                })}
+            </Collapsible>
+        );
     };
 
     selectbutton = index => {
@@ -468,18 +551,19 @@ class Main extends Component {
                     key: 'anouncement',
                 },
                 {
-                    name: 'Ongoing Schedule Events',
+                    name: 'Ongoing Scheduled Events',
                     key: 'ongoingSchedule',
                 },
-                { name: 'Overall Status', key: 'resources' },
+                { name: 'Overall Status of Resources', key: 'resources' },
                 { name: 'Resource List', key: 'services' },
-                { name: 'Incidents', key: 'incidents' },
-                { name: 'Announcement Logs', key: 'AnnouncementLogs' },
+                { name: 'Incidents List', key: 'incidents' },
+                { name: 'Past Announcements List', key: 'AnnouncementLogs' },
                 { name: 'Future Scheduled Events', key: 'maintenance' },
-                { name: 'Past Scheduled Events', key: 'pastEvents' },
                 { name: 'Footer', key: 'footer' },
             ],
-            invisible: [],
+            invisible: [
+                { name: 'Scheduled Events Completed', key: 'pastEvents' },
+            ],
         };
 
         let visibleLayout =
@@ -488,15 +572,7 @@ class Main extends Component {
         if (!visibleLayout) {
             visibleLayout = defaultLayout;
         }
-        let resourcesServiceOverlap = false;
-        visibleLayout.visible.forEach((item, i) => {
-            if (
-                item.key === 'services' &&
-                visibleLayout.visible[i - 1].key === 'resources'
-            ) {
-                resourcesServiceOverlap = true;
-            }
-        });
+        
         const layoutObj = {
             header: (
                 <>
@@ -654,6 +730,7 @@ class Main extends Component {
                                         style={{
                                             borderTopWidth: '1px',
                                             ...contentBackground,
+                                            padding: 0,
                                         }}
                                     >
                                         {this.groupedMonitors()}
@@ -739,7 +816,7 @@ class Main extends Component {
                     }}
                 >
                     <div className="font-largest" style={heading}>
-                        Past Incidents
+                        Incidents
                     </div>
                     <NotesMain
                         projectId={
@@ -765,7 +842,7 @@ class Main extends Component {
                         style={contentBackground}
                     >
                         <div className="font-largest" style={heading}>
-                            Future Scheduled Events
+                            Maintenance Events Scheduled
                         </div>
                         <NewThemeEvent
                             projectId={
@@ -792,7 +869,7 @@ class Main extends Component {
                         style={contentBackground}
                     >
                         <div className="font-largest" style={heading}>
-                            Past Scheduled Events
+                            Scheduled Events Completed
                         </div>
                         <NewThemeEvent
                             projectId={
@@ -886,11 +963,7 @@ class Main extends Component {
                         className="white box"
                         style={{
                             ...contentBackground,
-                            borderBottomLeftRadius:
-                                resourcesServiceOverlap && 0,
-                            borderBottomRightRadius:
-                                resourcesServiceOverlap && 0,
-                            marginTop: resourcesServiceOverlap ? 0 : '50px',
+                            marginTop: '50px',
                         }}
                     >
                         <div className="largestatus">
@@ -929,17 +1002,13 @@ class Main extends Component {
                         className="content"
                         style={{
                             position: 'relative',
-                            marginTop: resourcesServiceOverlap ? 0 : '50px',
+                            marginTop: '50px',
                         }}
                     >
                         <div
                             className="white box"
                             style={{
-                                ...contentBackground,
-                                borderTopLeftRadius:
-                                    resourcesServiceOverlap && 0,
-                                borderTopRightRadius:
-                                    resourcesServiceOverlap && 0,
+                                ...contentBackground
                             }}
                         >
                             <ShouldRender
@@ -976,7 +1045,7 @@ class Main extends Component {
                                     className="uptime-graphs box-inner"
                                     style={
                                         isGroupedByMonitorCategory
-                                            ? { paddingBottom: 0 }
+                                            ? { padding: 0 }
                                             : { paddingBottom: 35 }
                                     }
                                 >

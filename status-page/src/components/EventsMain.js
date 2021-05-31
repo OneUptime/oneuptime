@@ -130,7 +130,7 @@ class EventsMain extends Component {
                                         className="feed-title"
                                         style={subheading}
                                     >
-                                        Future Scheduled Events
+                                        Maintenance Events Scheduled
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender

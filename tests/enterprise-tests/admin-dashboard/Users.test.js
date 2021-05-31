@@ -13,7 +13,6 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();

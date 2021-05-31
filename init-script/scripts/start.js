@@ -1,5 +1,5 @@
 const PKG_VERSION = require('../package.json').version;
-const { find, save, removeMany, deleteDatabase } = require('../util/db');
+const { find, save, deleteDatabase } = require('../util/db');
 const bcrypt = require('bcrypt');
 
 async function run() {

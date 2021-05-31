@@ -1358,8 +1358,8 @@ const _this = {
         });
         await _this.pageClickNavigate(page, '#projectSettings');
         await _this.pageClick(page, '#more');
-        await _this.pageWaitForSelector(page, '#email');        
-        await _this.pageClickNavigate(page, '#email');        
+        await _this.pageWaitForSelector(page, '#email');
+        await _this.pageClickNavigate(page, '#email');
         await _this.pageWaitForSelector(page, '#smtpswitch');
         if (enable)
             await _this.page$Eval(page, '#smtpswitch', elem => elem.click());
@@ -1501,12 +1501,12 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
-       return await Promise.all([
+        return await Promise.all([
             page.click(selector, opts),
-            page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing            
+            page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing
         ]);
     },
-    page$Eval: async function(page, selector, evalFunction, opts) {
+    page$Eval: async function(page, selector, evalFunction) {
         await _this.pageWaitForSelector(page, selector);
         return await page.$eval(selector, evalFunction);
     },

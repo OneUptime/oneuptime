@@ -144,6 +144,8 @@ sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_
 sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_SERVER_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogbydays.remove({'createdAt': { \$lt: ISODate('${THREE_MONTHS_AGO}')}})" 
 sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_SERVER_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogbyhours.remove({'createdAt': { \$lt: ISODate('${THREE_MONTHS_AGO}')}})"
 
+
+echo "Sleeping for 10 minutes..."
 # Sleeping for 10 mins for database server to cool down. 
 sleep 10m
 

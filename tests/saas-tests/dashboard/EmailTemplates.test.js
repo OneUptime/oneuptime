@@ -19,7 +19,6 @@ describe('Email Templates API', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -92,7 +91,7 @@ describe('Email Templates API', () => {
             );
             const subject = 'Updated Subject';
             await init.pageWaitForSelector(page, '#name');
-            await init.pageClick(page, '#name', {clickCount : 3});
+            await init.pageClick(page, '#name', { clickCount: 3 });
             await init.pageType(page, '#name', subject);
             await init.pageClick(page, '#saveTemplate');
             await init.pageWaitForSelector(page, '#ball-beat', {

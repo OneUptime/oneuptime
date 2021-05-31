@@ -378,7 +378,7 @@ describe('Application Security Page', () => {
                     timeout: init.timeout,
                 }
             );
-            await init.pageClick(page, '#name', {clickCount : 3});
+            await init.pageClick(page, '#name', { clickCount: 3 });
             await init.pageType(page, '#name', newApplicationName);
             await init.pageClick(page, '#editApplicationBtn');
             await init.pageWaitForSelector(

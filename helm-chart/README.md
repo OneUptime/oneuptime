@@ -31,7 +31,7 @@ helm install -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saa
 Staging:
 
 ```
-kubectl config set-context do-nyc1-fyipe-staging
+kubectl config set-context do-lon1-fyipe-staging
 helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
 ```
 

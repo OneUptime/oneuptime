@@ -1,5 +1,5 @@
 ## DEPLOYMENT STAGE - JS SDK
-deploy_staging_js-sdk:
+staging_js-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -36,7 +36,7 @@ deploy_staging_js-sdk:
     environment:
         name: staging
 
-deploy_production_js-sdk:
+production_js-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2

@@ -53,8 +53,8 @@ class ScheduleHeaderModal extends Component {
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--default Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                             <span>
-                                                The following Schedule Events
-                                                are ongoing{' '}
+                                                These scheduled events are
+                                                ongoing{' '}
                                             </span>
                                         </span>
                                     </div>

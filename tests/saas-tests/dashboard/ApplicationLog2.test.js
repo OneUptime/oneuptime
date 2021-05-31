@@ -31,7 +31,7 @@ describe('Log Containers', () => {
         await browser.close();
         done();
     });
-    
+
     test(
         'Should create new log container and confirm that it redirects to the details page',
         async done => {
@@ -69,8 +69,8 @@ describe('Log Containers', () => {
             done();
         },
         operationTimeOut
-    );    
-        
+    );
+
     test(
         'Should open edit component for created log container',
         async done => {
@@ -309,7 +309,7 @@ describe('Log Containers', () => {
     );
     test(
         'Should update category for created log container',
-        async done => {            
+        async done => {
             const categoryName = 'Another-Category';
             // create a new resource category
             await init.addResourceCategory(categoryName, page);
@@ -327,11 +327,15 @@ describe('Log Containers', () => {
             // Fill and submit edit Application  log form
             await init.pageWaitForSelector(page, '#form-new-application-log');
             // change category here
-            await init.selectDropdownValue('#resourceCategory', categoryName, page);
+            await init.selectDropdownValue(
+                '#resourceCategory',
+                categoryName,
+                page
+            );
             await init.pageClickNavigate(page, 'button[type=submit]');
             await init.pageWaitForSelector(page, '#addApplicationLogButton', {
                 hidden: true,
-            });            
+            });
             await init.pageWaitForSelector(
                 page,
                 `#${applicationLogName}NewBadge`,

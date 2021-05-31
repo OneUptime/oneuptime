@@ -22,7 +22,7 @@ describe('Profile -> Delete Account Component test', () => {
 
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
-        
+
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
@@ -46,7 +46,9 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#projectSettings');
             await init.pageClick(page, '#projectSettings');
             await init.pageWaitForSelector(page, 'input[name=project_name]');
-            await init.pageClick(page, 'input[name=project_name]', {clickCount : 3});
+            await init.pageClick(page, 'input[name=project_name]', {
+                clickCount: 3,
+            });
             await init.pageType(page, 'input[name=project_name]', projectName);
             await init.pageWaitForSelector(page, 'button[id=btnCreateProject]');
             await init.pageClick(page, 'button[id=btnCreateProject]');
@@ -96,7 +98,7 @@ describe('Profile -> Delete Account Component test', () => {
 
     test(
         'Should not delete account with multiple projects -> multiple users -> single owner',
-        async done => {            
+        async done => {
             const role = 'Member';
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
@@ -145,7 +147,7 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should not delete account without confirmation',
         async done => {
-            const role = 'Owner';            
+            const role = 'Owner';
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });

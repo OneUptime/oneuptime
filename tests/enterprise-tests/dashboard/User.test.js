@@ -18,7 +18,6 @@ describe('Users', () => {
     const operationTimeOut = init.timeout;
     beforeAll(async () => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig); // User-Dashboard
         browser2 = await puppeteer.launch(utils.puppeteerLaunchConfig); // Admin-Dashboard

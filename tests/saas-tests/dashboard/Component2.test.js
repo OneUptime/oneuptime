@@ -13,29 +13,29 @@ const componentName = utils.generateRandomString();
 
 let browser, page;
 describe('Components', () => {
-    const operationTimeOut = init.timeout;    
+    const operationTimeOut = init.timeout;
 
     beforeAll(async () => {
-        jest.setTimeout(init.timeout);        
-              
+        jest.setTimeout(init.timeout);
+
         browser = await puppeteer.launch({
             ...utils.puppeteerLaunchConfig,
-        });        
-        page = await browser.newPage();        
+        });
+        page = await browser.newPage();
 
         await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page);
     });
 
-    afterAll(async (done) => {        
-        await browser.close();      
+    afterAll(async done => {
+        await browser.close();
         done();
     });
 
     test(
         'Should show indicator on how to invite new Team members since no other member exist, then goto team page ',
-        async (done) => {
+        async done => {
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -70,7 +70,7 @@ describe('Components', () => {
     );
     test(
         'Should show indicator on how to create a component since no component exist, then goto component creation ',
-        async (done) => {
+        async done => {
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -105,7 +105,7 @@ describe('Components', () => {
     );
     test(
         'Should create new component',
-        async (done) => {
+        async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -137,7 +137,7 @@ describe('Components', () => {
     );
     test(
         'Should show indicator on how to create a monitor since a component exist, then goto monitor creation',
-        async (done) => {
+        async done => {
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -224,7 +224,7 @@ describe('Components', () => {
 
     test(
         'Should not create new component when details are incorrect',
-        async (done) => {
+        async done => {
             // Navigate to Components page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -250,7 +250,7 @@ describe('Components', () => {
     );
     test(
         'Should show indicator on how to create monitor',
-        async (done) => {
+        async done => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
@@ -264,5 +264,5 @@ describe('Components', () => {
             done();
         },
         operationTimeOut
-    );    
+    );
 });

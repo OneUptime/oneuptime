@@ -25,7 +25,6 @@ describe('Incident Custom Field', () => {
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
-        
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
@@ -78,7 +77,7 @@ describe('Incident Custom Field', () => {
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            
+
             await init.pageClick(page, '.advanced-tab');
 
             await init.pageWaitForSelector(page, '#editCustomField_0', {
@@ -90,7 +89,7 @@ describe('Incident Custom Field', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#fieldName', {clickCount : 3});
+            await init.pageClick(page, '#fieldName', { clickCount: 3 });
             await init.pageType(
                 page,
                 '#fieldName',
@@ -108,7 +107,7 @@ describe('Incident Custom Field', () => {
             await init.pageClick(page, '#updateCustomField');
             await init.pageWaitForSelector(page, '#updateCustomField', {
                 hidden: true,
-            });            
+            });
 
             const updatedField = await init.pageWaitForSelector(
                 page,
