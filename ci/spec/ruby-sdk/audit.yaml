@@ -13,13 +13,17 @@ audit_ruby-sdk:
         - sudo apt-get install -y ruby-full
         - ruby -v
         - export GEM_HOME="$HOME/.gem"
+        - echo $GEM_HOME
+        - echo $GEM_PATH
+        - echo $PATH
+        - which bundle
         # - gem install bundler
-        - gem list bundler
-        - gem uninstall bundler -v 1.16.1
-        - cd ruby-sdk/fyipe
-        - gem list bundler
         # - gem list bundler
-        - bundler
+        # - gem uninstall bundler -v 1.16.1
+        # - cd ruby-sdk/fyipe
+        # - gem list bundler
+        # - gem list bundler
+        # - bundler
         # - /usr/bin/bundle i
         # - npm ci
         # - npm run audit
