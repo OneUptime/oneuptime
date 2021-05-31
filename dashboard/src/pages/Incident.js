@@ -36,6 +36,7 @@ import secondsToHms from '../utils/secondsToHms';
 import { fetchComponent } from '../actions/component';
 import HideIncidentBox from '../components/incident/HideIncidentBox';
 import flat from '../utils/flattenArray';
+import joinNames from '../utils/joinNames';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -336,9 +337,7 @@ class Incident extends React.Component {
             }
         });
 
-        const monitorNames = monitorWithoutSchedule
-            .join(', ')
-            .replace(/, ([^,]*)$/, ' and $1');
+        const monitorNames = joinNames(monitorWithoutSchedule);
 
         if (defaultSchedule !== true) {
             scheduleAlert = (
@@ -428,113 +427,73 @@ class Incident extends React.Component {
                         </div>
                         <div>{scheduleAlert}</div>
                         {this.props.incident &&
-                            this.props.incident.countDowns &&
-                            incidentMonitors.map(monitor => {
-                                const incidentCommunicationSla =
-                                    monitor.incidentCommunicationSla ||
-                                    this.props.defaultIncidentSla;
-                                const countDown = this.props.incident
-                                    .countDowns[monitor._id];
-
-                                if (!incidentCommunicationSla) return null;
-                                if (countDown === '0') return null;
-
-                                return (
-                                    <div
-                                        key={monitor._id}
-                                        className="Box-root Margin-vertical--12"
-                                        style={{
-                                            marginTop: 0,
-                                            cursor: 'pointer',
-                                        }}
-                                        id="slaIndicatorAlert"
-                                    >
-                                        <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
-                                            <div className="Box-root box__yellow--dark Card-shadow--medium Border-radius--4">
-                                                <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
-                                                    <span
-                                                        className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
-                                                        style={{
-                                                            filter:
-                                                                'brightness(0) invert(1)',
-                                                            marginTop: 1,
-                                                            marginRight: 10,
-                                                        }}
-                                                    ></span>
-                                                    <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
-                                                        <span>
-                                                            According to{' '}
-                                                            {incidentCommunicationSla &&
-                                                                incidentCommunicationSla.name}{' '}
-                                                            SLA for the monitor{' '}
-                                                            {monitor.name}, you
-                                                            need to update the
-                                                            incident note for
-                                                            this incident in{' '}
-                                                            {secondsToHms(
-                                                                countDown
-                                                            )}
-                                                            {'. '} Please update
-                                                            the incident note
-                                                        </span>
+                            this.props.incident.countDown &&
+                            (this.props.incident.countDown !== '0:0' ||
+                                this.props.incident.countDown !== '0') && (
+                                <div
+                                    className="Box-root Margin-vertical--12"
+                                    style={{ marginTop: 0, cursor: 'pointer' }}
+                                    id="slaIndicatorAlert"
+                                >
+                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                        <div className="Box-root box__yellow--dark Card-shadow--medium Border-radius--4">
+                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
+                                                <span
+                                                    className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
+                                                    style={{
+                                                        filter:
+                                                            'brightness(0) invert(1)',
+                                                        marginTop: 1,
+                                                        marginRight: 10,
+                                                    }}
+                                                ></span>
+                                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                                    <span>
+                                                        According to the defined
+                                                        SLA attached to this
+                                                        incident, you need to
+                                                        update the incident note
+                                                        for this incident in{' '}
+                                                        {secondsToHms(
+                                                            this.props.incident
+                                                                .countDown
+                                                        )}
                                                     </span>
-                                                </div>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
-                                );
-                            })}
+                                </div>
+                            )}
                         {this.props.incident &&
-                            this.props.incident.breachedCommunicationSlas &&
-                            this.props.incident.breachedCommunicationSlas
-                                .length > 0 &&
-                            this.props.incident.breachedCommunicationSlas.map(
-                                breach => {
-                                    const incidentCommunicationSla =
-                                        breach.monitorId
-                                            .incidentCommunicationSla ||
-                                        this.props.defaultIncidentSla;
-
-                                    if (!incidentCommunicationSla) return null;
-
-                                    return (
-                                        <div
-                                            key={breach.monitorId._id}
-                                            className="Box-root Margin-vertical--12"
-                                            style={{ marginTop: 0 }}
-                                            id="slaBreachedIndicator"
-                                        >
-                                            <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
-                                                <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
-                                                    <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
-                                                        <span
-                                                            className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
-                                                            style={{
-                                                                filter:
-                                                                    'brightness(0) invert(1)',
-                                                                marginTop: 1,
-                                                                marginRight: 10,
-                                                            }}
-                                                        ></span>
-                                                        <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
-                                                            <span>
-                                                                The monitor{' '}
-                                                                {
-                                                                    breach
-                                                                        .monitorId
-                                                                        .name
-                                                                }{' '}
-                                                                have breached
-                                                                the SLA with
-                                                                this incident
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </div>
+                            this.props.incident.breachedCommunicationSla && (
+                                <div
+                                    className="Box-root Margin-vertical--12"
+                                    style={{ marginTop: 0 }}
+                                    id="slaBreachedIndicator"
+                                >
+                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                        <div className="Box-root Box-background--red4 Card-shadow--medium Border-radius--4">
+                                            <div className="bs-ContentSection-content Box-root Flex-flex Flex-alignItems--center Padding-horizontal--20 Padding-vertical--12">
+                                                <span
+                                                    className="db-SideNav-icon db-SideNav-icon--info db-SideNav-icon--selected"
+                                                    style={{
+                                                        filter:
+                                                            'brightness(0) invert(1)',
+                                                        marginTop: 1,
+                                                        marginRight: 10,
+                                                    }}
+                                                ></span>
+                                                <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
+                                                    <span>
+                                                        You&#39;ve breached SLA
+                                                        with this incident
+                                                    </span>
+                                                </span>
                                             </div>
                                         </div>
-                                    );
-                                }
+                                    </div>
+                                </div>
                             )}
                         <TabPanel>
                             <Fade>
@@ -836,10 +795,10 @@ Incident.propTypes = {
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
     fetchIncidentStatusPages: PropTypes.func.isRequired,
     fetchDefaultCommunicationSla: PropTypes.func,
-    defaultIncidentSla: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    // defaultIncidentSla: PropTypes.oneOfType([
+    //     PropTypes.object,
+    //     PropTypes.oneOf([null, undefined]),
+    // ]),
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
     defaultSchedule: PropTypes.bool,

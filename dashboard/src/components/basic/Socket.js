@@ -635,7 +635,6 @@ class SocketApp extends Component {
                 thisObj.props.slacountdown({
                     incident: event.incident,
                     countDown: event.countDown,
-                    monitor: event.monitor,
                 })
             );
         }

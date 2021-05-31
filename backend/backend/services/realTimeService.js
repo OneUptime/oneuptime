@@ -52,7 +52,7 @@ module.exports = {
         }
     },
 
-    sendSlaCountDown: async (incident, countDown, monitor) => {
+    sendSlaCountDown: async (incident, countDown) => {
         try {
             if (!global || !global.io) {
                 return;
@@ -70,7 +70,6 @@ module.exports = {
             global.io.emit(`slaCountDown-${projectId}`, {
                 incident,
                 countDown,
-                monitor,
             });
         } catch (error) {
             ErrorService.log('realTimeService.sendSlaCountDown', error);

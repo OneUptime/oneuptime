@@ -201,11 +201,11 @@ export function resolvescheduledevent(event) {
     };
 }
 
-export function slacountdown({ incident, countDown, monitor }) {
+export function slacountdown({ incident, countDown }) {
     return function(dispatch) {
         dispatch({
             type: 'SLA_COUNT_DOWN',
-            payload: { incident, countDown, monitor },
+            payload: { incident, countDown },
         });
     };
 }
