@@ -22,6 +22,7 @@ audit_ruby-sdk:
         - gem list bundler
         # - gem uninstall bundler -v 1.16.1
         - cd ruby-sdk/fyipe
+        - which bundle
         - bundler exec bundle install
         # - gem list bundler
         # - gem list bundler
