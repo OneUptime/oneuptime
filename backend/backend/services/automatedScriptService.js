@@ -1,4 +1,5 @@
 const ScriptModel = require('../models/automatedScripts');
+const getSlug = require('../utils/getSlug');
 const ErrorService = require('./errorService');
 
 module.exports = {
@@ -24,6 +25,7 @@ module.exports = {
 
             item.name = data.name;
             item.script = data.script;
+            item.slug = getSlug(data.name);
             item = await item.save();
 
             return item;
