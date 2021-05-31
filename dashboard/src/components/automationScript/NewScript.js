@@ -115,26 +115,14 @@ class NewScript extends Component {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="bs-Fieldset-rows">
-                                                <div className="bs-Fieldset-row">
-                                                    <label className="bs-Fieldset-label">
-                                                        Script
-                                                    </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <NewScriptEditor
-                                                            setAutomatedScript={value => {
-                                                                this.setAutomatedScript(
-                                                                    value
-                                                                );
-                                                            }}
-                                                            value={
-                                                                this.state
-                                                                    .script
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <NewScriptEditor
+                                                setAutomatedScript={value => {
+                                                    this.setAutomatedScript(
+                                                        value
+                                                    );
+                                                }}
+                                                value={this.state.script}
+                                            />
                                         </fieldset>
                                     </div>
                                 </div>
