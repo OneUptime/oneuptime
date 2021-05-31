@@ -1,26 +1,38 @@
-import React, { useState } from 'react';
+import React from 'react';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { FormLoader } from '../basic/Loader';
+// import { FormLoader } from '../basic/Loader';
 import { deleteAutomatedScript } from '../../actions/automatedScript';
 
 const AutomatedTabularList = props => {
-    const [loading, setLoading] = useState(false);
     const { scripts } = props;
+    const pathName = props.history.location.pathname;
 
-    const deleteScrip = async id => {
-        setLoading(true);
-        const res = props.deleteAutomatedScript(id);
-        if (res) {
-            setLoading(false);
-        } else {
-            setLoading(false);
-        }
-    };
     return (
         <div className="Box-root Margin-bottom--12">
             <div className="bs-ContentSection Card-root Card-shadow--medium">
+                <div>
+                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                    <span
+                                        style={{ textTransform: 'capitalize' }}
+                                    >
+                                        Automation Script
+                                    </span>
+                                </span>
+                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                    <span>
+                                        Automated script are script created for
+                                        yor project
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div
                     className="Box-root"
                     style={{ overflow: 'hidden', overflowX: 'auto' }}
@@ -42,7 +54,7 @@ const AutomatedTabularList = props => {
                                             </span>
                                         </div>
                                     </td>
-                                    <td
+                                    {/* <td
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                         style={{
                                             height: '1px',
@@ -54,27 +66,27 @@ const AutomatedTabularList = props => {
                                                 <span>Script</span>
                                             </span>
                                         </div>
-                                    </td>
+                                    </td> */}
                                     <td
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                         style={{ height: '1px' }}
                                     >
                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                             <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                <span>View</span>
+                                                <span>Action</span>
                                             </span>
                                         </div>
                                     </td>
-                                    <td
+                                    {/* <td
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                         style={{ height: '1px' }}
                                     >
                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                             <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                {/* <span>View</span> */}
+                                                
                                             </span>
                                         </div>
-                                    </td>
+                                    </td> */}
                                 </tr>
                             </thead>
                             <tbody className="Table-body">
@@ -85,6 +97,11 @@ const AutomatedTabularList = props => {
                                         style={{
                                             height: '50px',
                                             width: '100%',
+                                        }}
+                                        onClick={() => {
+                                            props.history.push(
+                                                `${pathName}/${x.slug}`
+                                            );
                                         }}
                                     >
                                         <td
@@ -98,7 +115,7 @@ const AutomatedTabularList = props => {
                                                 {x.name}
                                             </div>
                                         </td>
-                                        <td
+                                        {/* <td
                                             className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{
                                                 height: '1px',
@@ -108,7 +125,7 @@ const AutomatedTabularList = props => {
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                 {x.script}
                                             </div>
-                                        </td>
+                                        </td> */}
                                         <td
                                             className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{
@@ -126,7 +143,7 @@ const AutomatedTabularList = props => {
                                                 </ShouldRender>
                                             </div>
                                         </td>
-                                        <td
+                                        {/* <td
                                             className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{
                                                 height: '1px',
@@ -155,7 +172,7 @@ const AutomatedTabularList = props => {
                                                     </button>
                                                 </ShouldRender>
                                             </div>
-                                        </td>
+                                        </td> */}
                                     </tr>
                                 ))}
                             </tbody>
@@ -169,7 +186,8 @@ const AutomatedTabularList = props => {
 
 AutomatedTabularList.propTypes = {
     scripts: PropTypes.array.isRequired,
-    deleteAutomatedScript: PropTypes.func.isRequired,
+    history: PropTypes.object.isRequired,
+    // deleteAutomatedScript: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = state => {
