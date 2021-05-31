@@ -4,6 +4,7 @@ import ErrorTracking from './pages/ErrorTracking';
 import ErrorTrackingView from './pages/ErrorTrackingView';
 import ErrorEventView from './pages/ErrorEventView';
 import WebhookSettings from './pages/WebhookSettings';
+import AutomatedScripView from './pages/AutomatedScripView';
 
 const {
     Home,
@@ -456,20 +457,22 @@ export const groups = [
                 exact: true,
                 subRoutes: [
                     {
-                        title: 'Scheduled Event Detail',
+                        title: 'Automation Script Details',
                         path:
-                            '/dashboard/project/:slug/scheduledEvents/:scheduledEventSlug',
-                        icon: 'connect',
+                            '/dashboard/project/:slug/automateScript/:automatedScriptslug',
+                        icon: 'performanceTracker',
                         visible: true,
-                        component: ScheduledEventDetail,
+                        component: AutomatedScripView,
+                        exact: true,
                         subRoutes: [],
-                        index: 1,
-                        shortcut: 'e+s',
+                        index: 3,
+                        shortcut: 'f+e',
                     },
                 ],
-                index: 5,
+                index: 2,
                 shortcut: 'f+e',
             },
+
             {
                 title: 'Reports',
                 path: '/dashboard/project/:slug/reports',
