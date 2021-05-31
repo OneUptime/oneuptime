@@ -13,15 +13,16 @@ audit_ruby-sdk:
         - sudo apt-get install -y ruby-full
         - ruby -v
         - export GEM_HOME="$HOME/.gem"
-        - gem env
-        - echo $GEM_HOME
-        - echo $GEM_PATH
-        - echo $PATH
-        - which bundle
-        # - gem install bundler
-        # - gem list bundler
+        # - gem env
+        # - echo $GEM_HOME
+        # - echo $GEM_PATH
+        # - echo $PATH
+        # - which bundle
+        - gem install bundler
+        - gem list bundler
         # - gem uninstall bundler -v 1.16.1
-        # - cd ruby-sdk/fyipe
+        - cd ruby-sdk/fyipe
+        - bundle exec bundle install
         # - gem list bundler
         # - gem list bundler
         # - bundler
