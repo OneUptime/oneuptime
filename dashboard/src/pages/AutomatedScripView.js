@@ -31,13 +31,10 @@ const AutomatedScripView = props => {
     return (
         <Dashboard>
             <Fade>
-                <BreadCrumbItem
-                    route={parentRoute}
-                    name="Automation Script Details"
-                />
+                <BreadCrumbItem route={parentRoute} name="Automation Scripts" />
                 <BreadCrumbItem
                     route={history.location.pathname}
-                    name={scriptName}
+                    name={'Automation Scripts'}
                     status={''}
                 />
                 <Tabs

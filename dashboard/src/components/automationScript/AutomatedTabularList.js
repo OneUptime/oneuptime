@@ -2,7 +2,6 @@ import React from 'react';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-// import { FormLoader } from '../basic/Loader';
 import { deleteAutomatedScript } from '../../actions/automatedScript';
 
 const AutomatedTabularList = props => {
@@ -54,19 +53,6 @@ const AutomatedTabularList = props => {
                                             </span>
                                         </div>
                                     </td>
-                                    {/* <td
-                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{
-                                            height: '1px',
-                                            minWidth: '210px',
-                                        }}
-                                    >
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                <span>Script</span>
-                                            </span>
-                                        </div>
-                                    </td> */}
                                     <td
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                         style={{ height: '1px' }}
@@ -77,16 +63,6 @@ const AutomatedTabularList = props => {
                                             </span>
                                         </div>
                                     </td>
-                                    {/* <td
-                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{ height: '1px' }}
-                                    >
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                
-                                            </span>
-                                        </div>
-                                    </td> */}
                                 </tr>
                             </thead>
                             <tbody className="Table-body">
@@ -115,17 +91,6 @@ const AutomatedTabularList = props => {
                                                 {x.name}
                                             </div>
                                         </td>
-                                        {/* <td
-                                            className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{
-                                                height: '1px',
-                                                minWidth: '210px',
-                                            }}
-                                        >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                {x.script}
-                                            </div>
-                                        </td> */}
                                         <td
                                             className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{
@@ -143,36 +108,6 @@ const AutomatedTabularList = props => {
                                                 </ShouldRender>
                                             </div>
                                         </td>
-                                        {/* <td
-                                            className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{
-                                                height: '1px',
-                                            }}
-                                        >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <ShouldRender if={true}>
-                                                    <button
-                                                        className="bs-Button Box-background--red Text-color--white"
-                                                        // disabled={loading}
-                                                        onClick={() => {
-                                                            deleteScrip(x._id);
-                                                        }}
-                                                    >
-                                                        <ShouldRender
-                                                            if={!loading}
-                                                        >
-                                                            <span>Delete</span>
-                                                        </ShouldRender>
-
-                                                        <ShouldRender
-                                                            if={loading}
-                                                        >
-                                                            <FormLoader />
-                                                        </ShouldRender>
-                                                    </button>
-                                                </ShouldRender>
-                                            </div>
-                                        </td> */}
                                     </tr>
                                 ))}
                             </tbody>

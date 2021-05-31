@@ -73,7 +73,10 @@ class AutomationScript extends Component {
         return (
             <Dashboard>
                 <Fade>
-                    <BreadCrumbItem route={pathname} name="Automation Script" />
+                    <BreadCrumbItem
+                        route={pathname}
+                        name="Automation Scripts"
+                    />
                     <AutomatedTabularList {...this.props} />
                     <div className="Box-root">
                         <div>

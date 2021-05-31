@@ -175,7 +175,7 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([A-Za-z0-9-]+)\/automateScript\/([A-Za-z0-9-]+)/
             ) &&
-                route.title === 'Automation Script Details');
+                route.title === 'Automation Scripts');
 
         const isChildLinkActive = route.subRoutes.some(link => {
             let newPath = link.path.replace(/:slug/, match.params.slug);
