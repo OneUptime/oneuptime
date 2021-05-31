@@ -572,7 +572,7 @@ class Main extends Component {
         if (!visibleLayout) {
             visibleLayout = defaultLayout;
         }
-        
+
         const layoutObj = {
             header: (
                 <>
@@ -1008,7 +1008,7 @@ class Main extends Component {
                         <div
                             className="white box"
                             style={{
-                                ...contentBackground
+                                ...contentBackground,
                             }}
                         >
                             <ShouldRender
