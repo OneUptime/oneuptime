@@ -140,7 +140,7 @@ export class SidebarNavItem extends Component {
             ) &&
                 route.title === 'Monitors') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
+                /project\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
             ) &&
                 route.title === 'Incident Log') ||
             (location.pathname.match(
@@ -200,7 +200,7 @@ export class SidebarNavItem extends Component {
                 newPath === match.url
                     ? true
                     : (location.pathname.match(
-                          /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
+                          /project\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
                       ) &&
                           link.title === 'Incident') ||
                       (location.pathname.match(
