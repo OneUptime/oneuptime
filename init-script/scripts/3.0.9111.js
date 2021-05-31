@@ -7,25 +7,17 @@ async function run() {
     const incidents = await find(incidentCollection, {
         monitors: { $exists: false },
         notifications: { $exists: false },
-        breachedCommunicationSlas: { $exists: false },
         deleted: false,
     });
 
     for (const incident of incidents) {
         const data = {
-            breachedCommunicationSlas: [],
             notifications: [],
         };
 
         if (incident.monitorId) {
             const monitors = [{ monitorId: ObjectId(incident.monitorId) }];
             data.monitors = monitors;
-        }
-        if (incident.breachedCommunicationSla) {
-            const breachedCommunicationSlas = [
-                { monitorId: ObjectId(incident.monitorId) },
-            ];
-            data.breachedCommunicationSlas = breachedCommunicationSlas;
         }
         if (incident.notificationId) {
             const notifications = [
