@@ -1119,7 +1119,7 @@ module.exports = {
                 }
             }
         } catch (error) {
-            ErrorService.log('AlertService.updateOneBy', error);
+            ErrorService.log('AlertService.sendSlaEmailToTeamMembers', error);
             throw error;
         }
     },
