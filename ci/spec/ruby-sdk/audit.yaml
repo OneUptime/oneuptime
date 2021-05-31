@@ -14,9 +14,7 @@ audit_ruby-sdk:
         - ruby -v
         - export GEM_HOME="$HOME/.gem"
         - gem install bundler
-        - echo "# Bundle aliases" >> ~/.bashrc
-        - echo "alias be='bundle exec'" >> ~/.bashrc
-        - echo "alias bi='bundle install --path vendor/bundle'" >> ~/.bashrc
+        - bundle install --path vendor/bundle
         # - gem install bundler
         - cd ruby-sdk/fyipe
         # - gem list bundler
