@@ -228,6 +228,7 @@ class IncidentLog extends React.Component {
                                                       subProjectIncident._id
                                                   ]
                                         }
+                                        componentSlug={this.props.componentSlug}
                                     />
                                 </div>
                             </div>
@@ -289,6 +290,7 @@ class IncidentLog extends React.Component {
                                                   projectIncident._id
                                               ]
                                     }
+                                    componentSlug={this.props.componentSlug}
                                 />
                             </div>
                         </div>

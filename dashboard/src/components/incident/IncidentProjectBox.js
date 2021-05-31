@@ -171,6 +171,9 @@ const IncidentProjectBox = props => {
                                             subProjectId:
                                                 props.subProjectIncident._id,
                                             componentId: props.componentId,
+                                            componentSlug: props.componentSlug,
+                                            currentProjectId:
+                                                props.currentProjectId,
                                         }),
                                     })
                                 }
@@ -225,6 +228,7 @@ IncidentProjectBox.propTypes = {
     allProjectLength: PropTypes.number,
     modalList: PropTypes.array,
     page: PropTypes.number,
+    componentSlug: PropTypes.string,
 };
 
 export default IncidentProjectBox;

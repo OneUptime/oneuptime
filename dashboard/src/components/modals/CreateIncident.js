@@ -22,6 +22,7 @@ import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { fetchCustomFields } from '../../actions/customField';
 import joinNames from '../../utils/joinNames';
+import { getIncidents, getComponentIncidents } from '../../actions/incident';
 
 class CreateIncident extends Component {
     constructor(props) {
@@ -58,6 +59,12 @@ class CreateIncident extends Component {
             data,
             monitorsList,
             monitors: subProjectMonitors,
+            componentSlug,
+            subProjectId,
+            componentId,
+            getIncidents,
+            getComponentIncidents,
+            currentProjectId,
         } = this.props;
 
         const {
@@ -101,7 +108,7 @@ class CreateIncident extends Component {
             return;
         }
 
-        const subProjectId = data.subProjectId;
+        // const subProjectId = data.subProjectId;
         const subProjectMonitor = subProjectMonitors.find(
             subProjectMonitor => subProjectMonitor._id === data.subProjectId
         );
@@ -131,6 +138,11 @@ class CreateIncident extends Component {
         ).then(
             function() {
                 closeThisDialog();
+                if (componentSlug) {
+                    getComponentIncidents(subProjectId, componentId);
+                } else {
+                    getIncidents(currentProjectId, 0, 10);
+                }
             },
             function() {
                 //do nothing.
@@ -883,6 +895,11 @@ CreateIncident.propTypes = {
     componentId: PropTypes.string,
     monitorsList: PropTypes.array,
     formValues: PropTypes.object,
+    componentSlug: PropTypes.string,
+    getIncidents: PropTypes.func,
+    getComponentIncidents: PropTypes.func,
+    subProjectId: PropTypes.string,
+    currentProjectId: PropTypes.string,
 };
 
 const formName = 'CreateNewIncident';
@@ -895,7 +912,7 @@ const selector = formValueSelector(formName);
 
 function mapStateToProps(state, props) {
     const { data } = props;
-    const { subProjectId, componentId } = data;
+    const { subProjectId, componentId, componentSlug, currentProjectId } = data;
     const { projects } = state.project.projects;
     const { subProjects } = state.subProject.subProjects;
     const monitorsList = [];
@@ -955,6 +972,8 @@ function mapStateToProps(state, props) {
         subProjectId,
         formValues:
             state.form.CreateNewIncident && state.form.CreateNewIncident.values,
+        componentSlug,
+        currentProjectId,
     };
 }
 
@@ -965,6 +984,8 @@ const mapDispatchToProps = dispatch => {
             change,
             fetchCustomFields,
             resetCreateIncident,
+            getIncidents,
+            getComponentIncidents,
         },
         dispatch
     );
