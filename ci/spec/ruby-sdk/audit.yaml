@@ -13,11 +13,11 @@ audit_ruby-sdk:
         - sudo apt-get install -y ruby-full
         - ruby -v
         - export GEM_HOME="$HOME/.gem"
+        - gem env
         - echo $GEM_HOME
         - echo $GEM_PATH
         - echo $PATH
         - which bundle
-        - gem env
         # - gem install bundler
         # - gem list bundler
         # - gem uninstall bundler -v 1.16.1
