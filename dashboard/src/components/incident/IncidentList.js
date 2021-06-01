@@ -239,8 +239,8 @@ export class IncidentList extends Component {
                                                     } else {
                                                         history.push(
                                                             '/dashboard/project/' +
-                                                                this.props
-                                                                    .currentProject
+                                                                incident
+                                                                    .projectId
                                                                     .slug +
                                                                 '/incidents/' +
                                                                 incident.idNumber
