@@ -116,7 +116,8 @@ class ResourceTabularList extends Component {
                     typeof this.props.monitorLogsRequest[
                         componentResource._id
                     ] === 'undefined' ||
-                    this.props.monitorLogsRequest[componentResource._id]
+                    this.props.monitorLogsRequest[componentResource._id] ||
+                    this.props.monitorListRequesting
                 ) {
                     indicator = <ListLoader />;
                 } else {
@@ -546,6 +547,7 @@ function mapStateToProps(state, props) {
         probes: state.probe.probes.data,
         activeProbe: state.monitor.activeProbe,
         monitorLogsRequest: state.monitor.monitorLogsRequest,
+        monitorListRequesting: state.monitor.monitorsList.requesting,
     };
 }
 
@@ -563,6 +565,7 @@ ResourceTabularList.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     monitorLogsRequest: PropTypes.object,
+    monitorListRequesting: PropTypes.bool,
 };
 
 ResourceTabularList.defaultProps = {
