@@ -125,6 +125,19 @@ module.exports = {
             }
 
             let incident = new IncidentModel();
+            let parentCount = 0,
+                deletedParentCount = 0;
+            if (project.parentProjectId) {
+                parentCount = await _this.countBy({
+                    projectId:
+                        project.parentProjectId._id || project.parentProjectId,
+                });
+                deletedParentCount = await _this.countBy({
+                    projectId:
+                        project.parentProjectId._id || project.parentProjectId,
+                    deleted: true,
+                });
+            }
             const incidentsCountInProject = await _this.countBy({
                 projectId: data.projectId,
             });
@@ -144,7 +157,11 @@ module.exports = {
             }
             incident.response = data.response || null;
             incident.idNumber =
-                incidentsCountInProject + deletedIncidentsCountInProject + 1;
+                incidentsCountInProject +
+                deletedIncidentsCountInProject +
+                parentCount +
+                deletedParentCount +
+                1;
             incident.customFields = data.customFields;
             incident.createdByIncomingHttpRequest =
                 data.createdByIncomingHttpRequest;
@@ -154,10 +171,6 @@ module.exports = {
                     projectId: data.projectId,
                 });
 
-                // ****** TODO ********
-                // handle more than one monitors for this
-                // fix the template
-                // ********************
                 const monitorNames = monitors.map(
                     monitor => monitor.monitorId.name
                 );
