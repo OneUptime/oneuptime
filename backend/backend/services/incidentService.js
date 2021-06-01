@@ -1155,8 +1155,7 @@ module.exports = {
                     });
                     fetchedDefault = true;
                 }
-
-                if (!slaList[sla._id]) {
+                if (sla && !slaList[sla._id]) {
                     slaList[sla._id] = sla;
                 }
             }
