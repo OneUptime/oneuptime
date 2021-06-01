@@ -21,8 +21,8 @@ audit_ruby-sdk:
         # - rbenv global 2.4.1
         - ruby -v
         - gem env home
-        - gem install bundler
-        - rbenv rehash
+        - sudo gem install bundler
+        # - rbenv rehash
         # - sudo apt-get install -y ruby-full
         # - ruby -v
         # - export GEM_HOME="$HOME/.gem"
