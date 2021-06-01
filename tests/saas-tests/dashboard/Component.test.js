@@ -681,21 +681,31 @@ describe('Components', () => {
                 visible: true,
                 timeout: init.timeout,
             });
+            //create offline incidence
+            await init.page$Eval(
+                page,
+                `#monitorCreateIncident_${newMonitorName}`,
+                e => e.click()
+            );
+
+            await init.page$Eval(page, `#createIncident`, e => e.click());
+            await init.pageWaitForSelector(page, '#viewIncident-0');
 
             await page.goto(utils.DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#components');
             await init.page$Eval(page, '#components', e => e.click());
 
-            // Check for resourse status Id
+            // Check for resource status Id
             await init.pageWaitForSelector(
                 page,
                 `#resource_status_${newMonitorName}`
             );
+            let element = await page.$(`#resource_status_${newMonitorName}`);
+            let value = await page.evaluate(el => el.textContent, element);
 
+            expect(value.trim()).toEqual('offline');
             done();
         },
         operationTimeOut
     );
-
-    /**Test Split */
 });
