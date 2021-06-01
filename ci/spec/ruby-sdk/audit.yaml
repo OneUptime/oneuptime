@@ -17,10 +17,10 @@ audit_ruby-sdk:
         # - echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
         # - echo 'eval "$(rbenv init -)"' >> ~/.bashrc
         # - exec $SHELL
-        - rbenv global 2.4.1
+        # - rbenv global 2.4.1
         - ruby -v
-        - gem install bundler
         - gem env home
+        - gem install bundler
         - rbenv rehash
         # - sudo apt-get install -y ruby-full
         # - ruby -v
