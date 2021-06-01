@@ -1,5 +1,5 @@
 # DEPLOYMENT STAGE - LICENSING
-deploy_staging_licensing:
+staging_licensing:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -29,7 +29,7 @@ deploy_staging_licensing:
     environment:
         name: staging
 
-deploy_production_licensing:
+production_licensing:
     stage: Deploy
     retry: 2
     allow_failure: true

@@ -1,4 +1,4 @@
-deploy_production_probe:
+production_probe:
     stage: Deploy
     retry: 2
     allow_failure: true
@@ -29,7 +29,7 @@ deploy_production_probe:
         name: production
 
 # DEPLOYMENT STAGE - Probe
-deploy_staging_probe:
+staging_probe:
     stage: Deploy
     retry: 2
     allow_failure: true

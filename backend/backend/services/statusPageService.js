@@ -451,24 +451,21 @@ module.exports = {
             const statusPages = await this.findBy({
                 'monitors.monitor': monitorId,
             });
+            for (const statusPage of statusPages) {
+                const monitors = statusPage.monitors.filter(
+                    monitorData =>
+                        String(
+                            monitorData.monitor._id || monitorData.monitor
+                        ) !== String(monitorId)
+                );
 
-            await Promise.all(
-                statusPages.map(async statusPage => {
-                    const monitors = statusPage.monitors.filter(
-                        monitorData =>
-                            String(monitorData.monitor) !== String(monitorId)
+                if (monitors.length !== statusPage.monitors.length) {
+                    await this.updateOneBy(
+                        { _id: statusPage._id },
+                        { monitors }
                     );
-
-                    if (monitors.length !== statusPage.monitors.length) {
-                        statusPage = await this.updateOneBy(
-                            { _id: statusPage._id },
-                            { monitors }
-                        );
-                    }
-
-                    return statusPage;
-                })
-            );
+                }
+            }
         } catch (error) {
             ErrorService.log('statusPageService.removeMonitor', error);
             throw error;
