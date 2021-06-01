@@ -652,7 +652,7 @@ describe('Components', () => {
     );
 
     test(
-        'Should create component and display component resource status',
+        'Should create component, incident and display correct component resource status',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
