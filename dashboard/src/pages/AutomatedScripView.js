@@ -14,12 +14,9 @@ const AutomatedScripView = props => {
     const pathName = history.location.pathname;
     const parentRoute = getParentRoute(history.location.pathname);
     const scriptName =
-        pathName.split('automateScript/')[1].split('-')[0] || null;
+        pathName.split('automation-scripts/')[1].split('-')[0] || null;
 
     const [tabIndex, setTabIndex] = useState(0);
-    // useEffect(() => {
-    //     console.log(pathName, 'history done come');
-    // }, []);
     const tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
 
@@ -34,8 +31,8 @@ const AutomatedScripView = props => {
                 <BreadCrumbItem route={parentRoute} name="Automation Scripts" />
                 <BreadCrumbItem
                     route={history.location.pathname}
-                    name={'Automation Scripts'}
-                    status={''}
+                    name={scriptName}
+                    pageTitle="Automation Scripts"
                 />
                 <Tabs
                     selectedTabClassName={'custom-tab-selected'}
@@ -51,41 +48,6 @@ const AutomatedScripView = props => {
                                 className={'custom-tab custom-tab-6 basic-tab'}
                             >
                                 Basic
-                            </Tab>
-                            <Tab
-                                className={
-                                    'custom-tab custom-tab-6 subscribers-tab'
-                                }
-                            >
-                                Subscribers
-                            </Tab>
-                            <Tab
-                                className={
-                                    'custom-tab custom-tab-6 announcements-tab'
-                                }
-                            >
-                                Announcements
-                            </Tab>
-                            <Tab
-                                className={
-                                    'custom-tab custom-tab-6 custom-domains-tab'
-                                }
-                            >
-                                Custom Domains
-                            </Tab>
-                            <Tab
-                                className={
-                                    'custom-tab custom-tab-6 branding-tab'
-                                }
-                            >
-                                Branding
-                            </Tab>
-                            <Tab
-                                className={
-                                    'custom-tab custom-tab-6 embedded-tab'
-                                }
-                            >
-                                Embedded
                             </Tab>
                             <Tab
                                 className={
@@ -113,35 +75,6 @@ const AutomatedScripView = props => {
                                                         <TabPanel>
                                                             <Fade>
                                                                 <p>one</p>
-                                                            </Fade>
-                                                        </TabPanel>
-                                                        <TabPanel>
-                                                            <div className="Box-root Margin-bottom--12 bs-ContentSection Card-root Card-shadow--medium>">
-                                                                <p>two</p>
-                                                            </div>
-                                                        </TabPanel>
-                                                        <TabPanel>
-                                                            <div>
-                                                                <p>three</p>
-                                                            </div>
-                                                        </TabPanel>
-                                                        <TabPanel>
-                                                            <Fade>
-                                                                <div className="Box-root Margin-bottom--12">
-                                                                    <p>four</p>
-                                                                </div>
-                                                            </Fade>
-                                                        </TabPanel>
-                                                        <TabPanel>
-                                                            <Fade>
-                                                                <p>five</p>
-                                                            </Fade>
-                                                        </TabPanel>
-                                                        <TabPanel>
-                                                            <Fade>
-                                                                <div className="Box-root Margin-bottom--12">
-                                                                    <p>six</p>
-                                                                </div>
                                                             </Fade>
                                                         </TabPanel>
                                                         <TabPanel>

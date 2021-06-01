@@ -1,16 +1,30 @@
 import React, { useEffect, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { deleteAutomatedScript } from '../../actions/automatedScript';
+import { openModal, closeModal } from '../../actions/modal';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import DataPathHoC from '../DataPathHoC';
+import DeleteAutomatedScript from './DeleteAutomatedScript';
 
 const DeleteScriptBox = props => {
-    const { scripts, name, parentRoute, history } = props;
+    const {
+        scripts,
+        name,
+        parentRoute,
+        history,
+        // closeModal,
+        openModal,
+    } = props;
+
     const [loading, setLoading] = useState(false);
     const [script, setScript] = useState(false);
+    // const [deleteModalId, setDeleteModalId] = useState(false);
     const pathName = history.location.pathname;
-    const scripSlug = pathName.split('automateScript/')[1];
+    const scripSlug = pathName.split('automation-scripts/')[1];
+    const deleteModalId = uuidv4();
 
     const deleteScrip = async () => {
         setLoading(true);
@@ -29,6 +43,15 @@ const DeleteScriptBox = props => {
         });
         setScript(selectedScript);
     }, []);
+
+    // const handleKeyBoard = e => {
+    //     switch (e.key) {
+    //         case 'Escape':
+    //             return closeModal({ id: deleteModalId });
+    //         default:
+    //             return false;
+    //     }
+    // };
 
     return (
         <div className="Box-root Margin-bottom--12">
@@ -53,7 +76,19 @@ const DeleteScriptBox = props => {
                                     id="delete"
                                     className="bs-Button bs-Button--red Box-background--red"
                                     disabled={false}
-                                    onClick={deleteScrip}
+                                    onClick={() =>
+                                        openModal({
+                                            id: deleteModalId,
+                                            onClose: () => '',
+                                            onConfirm: () => deleteScrip(),
+                                            content: DataPathHoC(
+                                                DeleteAutomatedScript,
+                                                {
+                                                    script: script,
+                                                }
+                                            ),
+                                        })
+                                    }
                                 >
                                     <ShouldRender if={!loading}>
                                         <span>Delete</span>
@@ -75,6 +110,8 @@ DeleteScriptBox.propTypes = {
     scripts: PropTypes.array.isRequired,
     history: PropTypes.object.isRequired,
     deleteAutomatedScript: PropTypes.func.isRequired,
+    openModal: PropTypes.func.isRequired,
+    // closeModal: PropTypes.func.isRequired,
     name: PropTypes.string.isRequired,
     parentRoute: PropTypes.string,
 };
@@ -85,6 +122,8 @@ const mapStateToProps = state => {
     };
 };
 
-export default connect(mapStateToProps, { deleteAutomatedScript })(
-    DeleteScriptBox
-);
+export default connect(mapStateToProps, {
+    deleteAutomatedScript,
+    openModal,
+    closeModal,
+})(DeleteScriptBox);
