@@ -450,16 +450,16 @@ export const groups = [
             },
             {
                 title: 'Automation Scripts',
-                path: '/dashboard/project/:slug/automateScript',
+                path: '/dashboard/project/:slug/automation-scripts',
                 icon: 'performanceTracker',
                 visible: true,
                 component: AutomationScript,
                 exact: true,
                 subRoutes: [
                     {
-                        title: 'Automation Script Details',
+                        title: 'Automation Script',
                         path:
-                            '/dashboard/project/:slug/automateScript/:automatedScriptslug',
+                            '/dashboard/project/:slug/automation-scripts/:automatedScriptslug',
                         icon: 'performanceTracker',
                         visible: true,
                         component: AutomatedScripView,

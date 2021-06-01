@@ -173,7 +173,7 @@ export class SidebarNavItem extends Component {
             ) &&
                 route.title === 'Error Tracking') ||
             (location.pathname.match(
-                /project\/([A-Za-z0-9-]+)\/automateScript\/([A-Za-z0-9-]+)/
+                /project\/([A-Za-z0-9-]+)\/automation-scripts\/([A-Za-z0-9-]+)/
             ) &&
                 route.title === 'Automation Scripts');
 
@@ -400,7 +400,7 @@ export class SidebarNavItem extends Component {
                 'Error Tracking View',
                 'Error Tracking Detail View',
                 'Performance Tracker View',
-                'Automation Script Details',
+                'Automation Script',
             ];
             const moreRoutes =
                 child.title === 'Monitor' ||
