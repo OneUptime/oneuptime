@@ -12,231 +12,231 @@ const teamEmail = utils.generateRandomBusinessEmail();
 const newProjectName = 'Test';
 const subProjectName = 'Trial';
 let browser, page;
-describe('Project Setting: Change Plan', () => {
-    const operationTimeOut = init.timeout;
+// describe('Project Setting: Change Plan', () => {
+//     const operationTimeOut = init.timeout;
 
-    beforeAll(async done => {
-        jest.setTimeout(360000);
+//     beforeAll(async done => {
+//         jest.setTimeout(360000);
 
-        browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-        page = await browser.newPage();
-        await page.setUserAgent(utils.agent);
+//         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
+//         page = await browser.newPage();
+//         await page.setUserAgent(utils.agent);
 
-        const user = {
-            email: email,
-            password: password,
-        };
-        // user
-        await init.registerUser(user, page);
+//         const user = {
+//             email: email,
+//             password: password,
+//         };
+//         // user
+//         await init.registerUser(user, page);
 
-        done();
-    });
+//         done();
+//     });
 
-    afterAll(async done => {
-        await browser.close();
-        done();
-    });
+//     afterAll(async done => {
+//         await browser.close();
+//         done();
+//     });
 
-    test(
-        'should change project plan',
-        async () => {
-            await init.growthPlanUpgrade(page);
-            await page.reload({ waitUntil: 'networkidle0' });
-            await init.pageWaitForSelector(page, 'input#Growth_month');
-            const checked = await init.page$Eval(
-                page,
-                'input#Growth_month',
-                input => input.checked
-            );
-            expect(checked).toBe(true);
-        },
-        operationTimeOut
-    );
-    test(
-        'should not update project account when admin recharge account with negative number',
-        async done => {
-            const balance = 0;
-            let creditedBalance = 0;
-            await page.goto(utils.DASHBOARD_URL);
-            await init.pageWaitForSelector(page, '#projectSettings', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#projectSettings');
-            await init.pageWaitForSelector(page, '#billing');
-            await init.pageClick(page, '#billing');
+//     test(
+//         'should change project plan',
+//         async () => {
+//             await init.growthPlanUpgrade(page);
+//             await page.reload({ waitUntil: 'networkidle0' });
+//             await init.pageWaitForSelector(page, 'input#Growth_month');
+//             const checked = await init.page$Eval(
+//                 page,
+//                 'input#Growth_month',
+//                 input => input.checked
+//             );
+//             expect(checked).toBe(true);
+//         },
+//         operationTimeOut
+//     );
+//     test(
+//         'should not update project account when admin recharge account with negative number',
+//         async done => {
+//             const balance = 0;
+//             let creditedBalance = 0;
+//             await page.goto(utils.DASHBOARD_URL);
+//             await init.pageWaitForSelector(page, '#projectSettings', {
+//                 visible: true,
+//                 timeout: init.timeout,
+//             });
+//             await init.pageClick(page, '#projectSettings');
+//             await init.pageWaitForSelector(page, '#billing');
+//             await init.pageClick(page, '#billing');
 
-            // get current balance as $0
-            let spanBalanceElement = await init.pageWaitForSelector(
-                page,
-                '#currentBalance'
-            );
-            spanBalanceElement = await spanBalanceElement.getProperty(
-                'innerText'
-            );
-            spanBalanceElement = await spanBalanceElement.jsonValue();
-            expect(spanBalanceElement).toMatch(`${balance}.00$`);
+//             // get current balance as $0
+//             let spanBalanceElement = await init.pageWaitForSelector(
+//                 page,
+//                 '#currentBalance'
+//             );
+//             spanBalanceElement = await spanBalanceElement.getProperty(
+//                 'innerText'
+//             );
+//             spanBalanceElement = await spanBalanceElement.jsonValue();
+//             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
-            // add $20 to the account then click cancel
-            await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
-            await init.pageClick(page, '#rechargeBalanceAmount');
-            creditedBalance = -20;
-            await init.pageType(
-                page,
-                '#rechargeBalanceAmount',
-                creditedBalance.toString()
-            );
-            await init.pageClick(page, '#rechargeAccount');
+//             // add $20 to the account then click cancel
+//             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
+//             await init.pageClick(page, '#rechargeBalanceAmount');
+//             creditedBalance = -20;
+//             await init.pageType(
+//                 page,
+//                 '#rechargeBalanceAmount',
+//                 creditedBalance.toString()
+//             );
+//             await init.pageClick(page, '#rechargeAccount');
 
-            // confirm the current balance is still $0
-            spanBalanceElement = await init.pageWaitForSelector(
-                page,
-                '#field-error'
-            );
-            spanBalanceElement = await spanBalanceElement.getProperty(
-                'innerText'
-            );
-            spanBalanceElement = await spanBalanceElement.jsonValue();
-            expect(spanBalanceElement).toMatch(
-                `Enter a valid number greater than 0`
-            );
+//             // confirm the current balance is still $0
+//             spanBalanceElement = await init.pageWaitForSelector(
+//                 page,
+//                 '#field-error'
+//             );
+//             spanBalanceElement = await spanBalanceElement.getProperty(
+//                 'innerText'
+//             );
+//             spanBalanceElement = await spanBalanceElement.jsonValue();
+//             expect(spanBalanceElement).toMatch(
+//                 `Enter a valid number greater than 0`
+//             );
 
-            done();
-        },
-        operationTimeOut
-    );
-    test(
-        'should update project account when admin recharge account',
-        async done => {
-            let balance = 0,
-                creditedBalance = 0;
-            await page.goto(utils.DASHBOARD_URL);
-            await init.pageWaitForSelector(page, '#projectSettings', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#projectSettings');
-            await init.pageWaitForSelector(page, '#billing');
-            await init.pageClick(page, '#billing');
+//             done();
+//         },
+//         operationTimeOut
+//     );
+//     test(
+//         'should update project account when admin recharge account',
+//         async done => {
+//             let balance = 0,
+//                 creditedBalance = 0;
+//             await page.goto(utils.DASHBOARD_URL);
+//             await init.pageWaitForSelector(page, '#projectSettings', {
+//                 visible: true,
+//                 timeout: init.timeout,
+//             });
+//             await init.pageClick(page, '#projectSettings');
+//             await init.pageWaitForSelector(page, '#billing');
+//             await init.pageClick(page, '#billing');
 
-            // get current balance as $0
-            let spanBalanceElement = await init.pageWaitForSelector(
-                page,
-                '#currentBalance'
-            );
-            spanBalanceElement = await spanBalanceElement.getProperty(
-                'innerText'
-            );
-            spanBalanceElement = await spanBalanceElement.jsonValue();
-            expect(spanBalanceElement).toMatch(`${balance}.00$`);
+//             // get current balance as $0
+//             let spanBalanceElement = await init.pageWaitForSelector(
+//                 page,
+//                 '#currentBalance'
+//             );
+//             spanBalanceElement = await spanBalanceElement.getProperty(
+//                 'innerText'
+//             );
+//             spanBalanceElement = await spanBalanceElement.jsonValue();
+//             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
-            // add $20 to the account
-            await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
-            await init.pageClick(page, '#rechargeBalanceAmount');
-            creditedBalance = 20;
-            await init.pageType(
-                page,
-                '#rechargeBalanceAmount',
-                creditedBalance.toString()
-            );
-            await init.pageClick(page, '#rechargeAccount');
-            balance += creditedBalance;
+//             // add $20 to the account
+//             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
+//             await init.pageClick(page, '#rechargeBalanceAmount');
+//             creditedBalance = 20;
+//             await init.pageType(
+//                 page,
+//                 '#rechargeBalanceAmount',
+//                 creditedBalance.toString()
+//             );
+//             await init.pageClick(page, '#rechargeAccount');
+//             balance += creditedBalance;
 
-            await init.pageWaitForSelector(page, '#confirmBalanceTopUp');
-            await init.pageClick(page, '#confirmBalanceTopUp');
-            await init.pageWaitForSelector(page, '#confirmBalanceTopUp', {
-                hidden: true,
-            });
+//             await init.pageWaitForSelector(page, '#confirmBalanceTopUp');
+//             await init.pageClick(page, '#confirmBalanceTopUp');
+//             await init.pageWaitForSelector(page, '#confirmBalanceTopUp', {
+//                 hidden: true,
+//             });
 
-            // confirm a pop up comes up and the message is a successful
-            let spanModalElement = await init.pageWaitForSelector(
-                page,
-                '#message-modal-message'
-            );
-            spanModalElement = await spanModalElement.getProperty('innerText');
-            spanModalElement = await spanModalElement.jsonValue();
-            expect(spanModalElement).toMatch(
-                `Transaction successful, your balance is now ${balance}.00$`
-            );
+//             // confirm a pop up comes up and the message is a successful
+//             let spanModalElement = await init.pageWaitForSelector(
+//                 page,
+//                 '#message-modal-message'
+//             );
+//             spanModalElement = await spanModalElement.getProperty('innerText');
+//             spanModalElement = await spanModalElement.jsonValue();
+//             expect(spanModalElement).toMatch(
+//                 `Transaction successful, your balance is now ${balance}.00$`
+//             );
 
-            // click ok
-            await init.pageWaitForSelector(page, '#modal-ok');
-            await init.pageClick(page, '#modal-ok');
-            await init.pageWaitForSelector(page, '#modal-ok', { hidden: true });
+//             // click ok
+//             await init.pageWaitForSelector(page, '#modal-ok');
+//             await init.pageClick(page, '#modal-ok');
+//             await init.pageWaitForSelector(page, '#modal-ok', { hidden: true });
 
-            // confirm the current balance is $20
-            spanBalanceElement = await init.pageWaitForSelector(
-                page,
-                '#currentBalance'
-            );
-            spanBalanceElement = await spanBalanceElement.getProperty(
-                'innerText'
-            );
-            spanBalanceElement = await spanBalanceElement.jsonValue();
-            expect(spanBalanceElement).toMatch(`${balance}.00$`);
+//             // confirm the current balance is $20
+//             spanBalanceElement = await init.pageWaitForSelector(
+//                 page,
+//                 '#currentBalance'
+//             );
+//             spanBalanceElement = await spanBalanceElement.getProperty(
+//                 'innerText'
+//             );
+//             spanBalanceElement = await spanBalanceElement.jsonValue();
+//             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
-            done();
-        },
-        operationTimeOut
-    );
-    test(
-        'should not update project account when admin recharge account and clicks cancel',
-        async done => {
-            const balance = 0;
-            let creditedBalance = 0;
-            await page.goto(utils.DASHBOARD_URL);
-            await init.pageWaitForSelector(page, '#projectSettings', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#projectSettings');
-            await init.pageWaitForSelector(page, '#billing');
-            await init.pageClick(page, '#billing');
+//             done();
+//         },
+//         operationTimeOut
+//     );
+//     test(
+//         'should not update project account when admin recharge account and clicks cancel',
+//         async done => {
+//             const balance = 0;
+//             let creditedBalance = 0;
+//             await page.goto(utils.DASHBOARD_URL);
+//             await init.pageWaitForSelector(page, '#projectSettings', {
+//                 visible: true,
+//                 timeout: init.timeout,
+//             });
+//             await init.pageClick(page, '#projectSettings');
+//             await init.pageWaitForSelector(page, '#billing');
+//             await init.pageClick(page, '#billing');
 
-            // get current balance as $0
-            let spanBalanceElement = await init.pageWaitForSelector(
-                page,
-                '#currentBalance'
-            );
-            spanBalanceElement = await spanBalanceElement.getProperty(
-                'innerText'
-            );
-            spanBalanceElement = await spanBalanceElement.jsonValue();
-            expect(spanBalanceElement).toMatch(`${balance}.00$`);
+//             // get current balance as $0
+//             let spanBalanceElement = await init.pageWaitForSelector(
+//                 page,
+//                 '#currentBalance'
+//             );
+//             spanBalanceElement = await spanBalanceElement.getProperty(
+//                 'innerText'
+//             );
+//             spanBalanceElement = await spanBalanceElement.jsonValue();
+//             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
-            // add $20 to the account then click cancel
-            await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
-            await init.pageClick(page, '#rechargeBalanceAmount');
-            creditedBalance = 20;
-            await init.pageType(
-                page,
-                '#rechargeBalanceAmount',
-                creditedBalance.toString()
-            );
-            await init.pageClick(page, '#rechargeAccount');
+//             // add $20 to the account then click cancel
+//             await init.pageWaitForSelector(page, '#rechargeBalanceAmount');
+//             await init.pageClick(page, '#rechargeBalanceAmount');
+//             creditedBalance = 20;
+//             await init.pageType(
+//                 page,
+//                 '#rechargeBalanceAmount',
+//                 creditedBalance.toString()
+//             );
+//             await init.pageClick(page, '#rechargeAccount');
 
-            await init.pageWaitForSelector(page, '#confirmBalanceTopUp');
-            await init.pageClick(page, '#cancelBalanceTopUp');
-            await init.pageWaitForSelector(page, '#cancelBalanceTopUp', {
-                hidden: true,
-            });
+//             await init.pageWaitForSelector(page, '#confirmBalanceTopUp');
+//             await init.pageClick(page, '#cancelBalanceTopUp');
+//             await init.pageWaitForSelector(page, '#cancelBalanceTopUp', {
+//                 hidden: true,
+//             });
 
-            // confirm the current balance is still $0
-            spanBalanceElement = await init.pageWaitForSelector(
-                page,
-                '#currentBalance'
-            );
-            spanBalanceElement = await spanBalanceElement.getProperty(
-                'innerText'
-            );
-            spanBalanceElement = await spanBalanceElement.jsonValue();
-            expect(spanBalanceElement).toMatch(`${balance}.00$`);
+//             // confirm the current balance is still $0
+//             spanBalanceElement = await init.pageWaitForSelector(
+//                 page,
+//                 '#currentBalance'
+//             );
+//             spanBalanceElement = await spanBalanceElement.getProperty(
+//                 'innerText'
+//             );
+//             spanBalanceElement = await spanBalanceElement.jsonValue();
+//             expect(spanBalanceElement).toMatch(`${balance}.00$`);
 
-            done();
-        },
-        operationTimeOut
-    );
-});
+//             done();
+//         },
+//         operationTimeOut
+//     );
+// });
 
 describe('Member Restriction', () => {
     const operationTimeOut = init.timeout;
@@ -273,6 +273,7 @@ describe('Member Restriction', () => {
         });
         // adding a subProject is only allowed on growth plan and above
         await init.addSubProject(subProjectName, page);
+        await init.saasLogout(page);
 
         done();
     });
@@ -284,10 +285,7 @@ describe('Member Restriction', () => {
 
     test(
         'should show unauthorised modal when a team member who is not an admin or owner of the project tries to update alert option',
-        async done => {
-            browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-            page = await browser.newPage();
-            await page.setUserAgent(utils.agent);
+        async done => {            
 
             await init.registerAndLoggingTeamMember(
                 { email: teamEmail, password },

@@ -617,8 +617,9 @@ const _this = {
     },
     addSubProject: async function(subProjectName, page) {
         const subProjectNameSelector = await _this.page$(
-            page,
-            '#btn_Add_SubProjects'
+            page,       
+            '#btn_Add_SubProjects',
+            { hidden : true } //The function is usually called after dashboard loads hence, 'btn_Add_SubProjects' is hidden
         );
         if (subProjectNameSelector) {
             await _this.pageWaitForSelector(page, '#btn_Add_SubProjects');
@@ -1515,7 +1516,7 @@ const _this = {
         return await page.$$eval(selector, evalFunction);
     },
     page$: async function(page, selector, opts) {
-        await _this.pageWaitForSelector(page, selector);
+        await _this.pageWaitForSelector(page, selector, opts);
         return await page.$(selector, opts);
     },
     page$$: async function(page, selector, opts) {
