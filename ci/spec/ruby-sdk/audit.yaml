@@ -14,9 +14,9 @@ audit_ruby-sdk:
         # - rbenv init
         #- curl -fsSL https://github.com/rbenv/rbenv-installer/raw/main/bin/rbenv-doctor | bash
         # - rbenv install   2.4.1
-        - echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
-        - echo 'eval "$(rbenv init -)"' >> ~/.bashrc
-        - exec $SHELL
+        # - echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
+        # - echo 'eval "$(rbenv init -)"' >> ~/.bashrc
+        # - exec $SHELL
         - rbenv global 3.0.1
         - ruby -v
         - gem install bundler
