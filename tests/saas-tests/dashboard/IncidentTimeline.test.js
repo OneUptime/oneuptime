@@ -48,7 +48,7 @@ describe('Incident Timeline API', () => {
             timeout: init.timeout,
         });
         await init.page$Eval(page, '#url', e => e.click());
-        await init.pageType(page, '#url', utils.HTTP_TEST_SERVER_URL);
+        await init.pageType(page, '#url', 'https://google.com'); //'HTTP_TEST_SERVER' auto generates incidents and this breaks the test. Also, the tests are not dependent on HTTP_TEST_SERVER
         await init.page$Eval(page, 'button[type=submit]', e => e.click());
         await init.pageWaitForSelector(
             page,
@@ -390,9 +390,10 @@ describe('Incident Timeline API', () => {
                 hidden: true,
             });
 
-            const incidentMessage = await init.page$(
+            const incidentMessage = await init.pageWaitForSelector(
                 page,
-                `#content_${type}_incident_message_0`
+                `#content_${type}_incident_message_0`,
+                {hidden : true}
             );
             expect(incidentMessage).toEqual(null);
 
