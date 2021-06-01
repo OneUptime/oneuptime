@@ -96,7 +96,7 @@ export class CustomerBalance extends Component {
                         
                 if (status === 'succeeded') {
                     const creditedBalance = amount_received / 100;
-                    getProjects().then( () => // getProjects() is an async request
+                    getProjects().then( () =>
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
