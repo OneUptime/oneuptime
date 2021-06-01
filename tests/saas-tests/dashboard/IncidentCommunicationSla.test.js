@@ -8,6 +8,7 @@ let browser, page;
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 let slaName = 'fxPro';
+let newSlaName = 'newFxPro';
 const duration = '15';
 const alertTime = '10';
 const component = utils.generateRandomString();
@@ -265,14 +266,7 @@ describe('Incident Communication SLA', () => {
             await init.pageClick(page, '#alertTime');
             await init.pageType(page, '#alertTime', alertTime);
             await init.page$Eval(page, '#isDefault', elem => elem.click());
-            await init.pageClick(page, '#createSlaBtn');
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
+            await init.pageClick(page, '#createSlaBtn');            
 
             const sla = await init.pageWaitForSelector(
                 page,
@@ -332,7 +326,7 @@ describe('Incident Communication SLA', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#name');
+            await init.pageClick(page, '#name', {clickCount: 3});
             await init.pageType(page, '#name', '    ');
             await init.pageClick(page, '#editSlaBtn');
 
@@ -393,22 +387,14 @@ describe('Incident Communication SLA', () => {
             await init.pageWaitForSelector(page, '#communicationSlaForm', {
                 visible: true,
                 timeout: init.timeout,
-            });
-            slaName = 'newFxPro';
-            await init.pageClick(page, '#name');
-            await init.pageType(page, '#name', slaName);
-            await init.pageClick(page, '#editSlaBtn');
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
+            });            
+            await init.pageClick(page, '#name', {clickCount: 3});
+            await init.pageType(page, '#name', newSlaName);
+            await init.pageClick(page, '#editSlaBtn');           
 
             const sla = await init.pageWaitForSelector(
                 page,
-                `#incidentSla_${slaName}`,
+                `#incidentSla_${newSlaName}`,
                 {
                     visible: true,
                     timeout: init.timeout,
@@ -535,30 +521,23 @@ describe('Incident Communication SLA', () => {
 
             await init.pageWaitForSelector(
                 page,
-                `#deleteIncidentSlaBtn_${slaName}`,
+                `#deleteIncidentSlaBtn_${newSlaName}`,
                 {
                     visible: true,
                     timeout: init.timeout,
                 }
             );
-            await init.pageClick(page, `#deleteIncidentSlaBtn_${slaName}`);
+            await init.pageClick(page, `#deleteIncidentSlaBtn_${newSlaName}`);
 
             await init.pageWaitForSelector(page, '#deleteIncidentSlaBtn', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#deleteIncidentSlaBtn');
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
+            await init.pageClick(page, '#deleteIncidentSlaBtn');            
 
             const sla = await init.pageWaitForSelector(
                 page,
-                `#incidentSla_${slaName}`,
+                `#incidentSla_${newSlaName}`,
                 {
                     hidden: true,
                 }
