@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { withRouter } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import {
@@ -336,31 +337,8 @@ export class IncidentStatus extends Component {
         const incidentIdNumber = this.props.incident
             ? this.props.incident.idNumber
             : '';
-        const componentSlug =
-            this.props.incident.monitors[0] &&
-            this.props.incident.monitors[0].monitorId.componentId
-                ? this.props.incident.monitors[0].monitorId.componentId.slug
-                : '';
-        const component =
-            this.props.incident.monitors[0] &&
-            this.props.incident.monitors[0].monitorId.componentId;
         const homeRoute = this.props.currentProject
             ? '/dashboard/project/' + this.props.currentProject.slug
-            : '';
-        const monitorRoute = this.props.currentProject
-            ? '/dashboard/project/' +
-              this.props.currentProject.slug +
-              '/component/' +
-              componentSlug +
-              '/monitoring'
-            : '';
-        const incidentRoute = this.props.currentProject
-            ? '/dashboard/project/' +
-              this.props.currentProject.slug +
-              '/component/' +
-              componentSlug +
-              '/incidents/' +
-              this.props.incident.idNumber
             : '';
 
         const showResolveButton = this.props.multipleIncidentRequest
@@ -455,7 +433,7 @@ export class IncidentStatus extends Component {
                             (this.props.route &&
                                 !(
                                     this.props.route === homeRoute ||
-                                    this.props.route === monitorRoute
+                                    !this.props.incidentId
                                 ))) &&
                         this.props.incident.acknowledged &&
                         this.props.incident.resolved &&
@@ -628,10 +606,7 @@ export class IncidentStatus extends Component {
                                         {this.props.incident.acknowledged &&
                                             this.props.incident.resolved &&
                                             this.props.route &&
-                                            !(
-                                                this.props.route ===
-                                                incidentRoute
-                                            ) && (
+                                            !this.props.incidentId && (
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
                                                     viewBox="0 0 24 24"
@@ -690,10 +665,7 @@ export class IncidentStatus extends Component {
                                                     This is an Active Incident
                                                 </span>
                                             ) : this.props.route &&
-                                              !(
-                                                  this.props.route ===
-                                                  incidentRoute
-                                              ) ? (
+                                              !this.props.incidentId ? (
                                                 <span className="">
                                                     The Incident is Resolved
                                                 </span>
@@ -792,13 +764,19 @@ export class IncidentStatus extends Component {
                                                                                         .currentProject
                                                                                         .slug +
                                                                                     '/component/' +
-                                                                                    componentSlug +
+                                                                                    monitorObj
+                                                                                        .monitorId
+                                                                                        .componentId
+                                                                                        .slug +
                                                                                     '/monitoring'
                                                                                 }
                                                                                 id="backToComponentView"
                                                                             >
                                                                                 {
-                                                                                    component.name
+                                                                                    monitorObj
+                                                                                        .monitorId
+                                                                                        .componentId
+                                                                                        .name
                                                                                 }
                                                                             </Link>
                                                                         </span>
@@ -816,7 +794,10 @@ export class IncidentStatus extends Component {
                                                                                         .currentProject
                                                                                         .slug +
                                                                                     '/component/' +
-                                                                                    componentSlug +
+                                                                                    monitorObj
+                                                                                        .monitorId
+                                                                                        .componentId
+                                                                                        .slug +
                                                                                     '/monitoring/' +
                                                                                     monitorObj
                                                                                         .monitorId
@@ -2297,7 +2278,7 @@ export class IncidentStatus extends Component {
                                 <ShouldRender
                                     if={
                                         this.props.route &&
-                                        !(this.props.route === incidentRoute)
+                                        !this.props.incidentId
                                     }
                                 >
                                     <button
@@ -2307,7 +2288,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/incidents/${incidentIdNumber}`
+                                                    `/dashboard/project/${this.props.currentProject.slug}/incidents/${incidentIdNumber}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false
@@ -2346,7 +2327,7 @@ export class IncidentStatus extends Component {
                                     resolved={this.props.incident.resolved}
                                     route={this.props.route}
                                     homeRoute={homeRoute}
-                                    monitorRoute={monitorRoute}
+                                    // monitorRoute={monitorRoute}
                                     state={this.state}
                                     incidentRequest={this.props.incidentRequest}
                                     multipleIncidentRequest={
@@ -2450,6 +2431,7 @@ const EditIncidentStatusForm = reduxForm({
 })(IncidentStatus);
 const selector = formValueSelector('IncidentStatusForm');
 const mapStateToProps = (state, ownProps) => {
+    const { incidentId } = ownProps.match.params;
     const incident = ownProps.incident;
     const initialValues = {
         title: incident.title,
@@ -2474,6 +2456,7 @@ const mapStateToProps = (state, ownProps) => {
         initialValues,
         description,
         incidentPriority,
+        incidentId,
     };
 };
 
@@ -2509,7 +2492,6 @@ IncidentStatus.propTypes = {
     openModal: PropTypes.func.isRequired,
     projectId: PropTypes.string,
     description: PropTypes.string,
-    componentId: PropTypes.string,
     route: PropTypes.string,
     incidentRequest: PropTypes.object.isRequired,
     multipleIncidentRequest: PropTypes.object,
@@ -2519,9 +2501,9 @@ IncidentStatus.propTypes = {
     escalations: PropTypes.array,
     editable: PropTypes.bool,
     incidentPriorities: PropTypes.array.isRequired,
+    incidentId: PropTypes.string,
 };
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps
-)(EditIncidentStatusForm);
+export default withRouter(
+    connect(mapStateToProps, mapDispatchToProps)(EditIncidentStatusForm)
+);
