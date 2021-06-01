@@ -915,12 +915,18 @@ function mapStateToProps(state, props) {
     const { subProjectId, componentId, componentSlug, currentProjectId } = data;
     const { projects } = state.project.projects;
     const { subProjects } = state.subProject.subProjects;
-    const monitorsList = [];
+    let monitorsList = [];
     state.monitor.monitorsList.monitors.forEach(item => {
         item.monitors.forEach(m => {
             monitorsList.push(m);
         });
     });
+    monitorsList = monitorsList.filter(
+        monitor =>
+            String(monitor.projectId._id || monitor.projectId) ===
+            String(subProjectId)
+    );
+
     let projectName = '';
     for (const project of projects) {
         if (project._id === subProjectId) projectName = project.name;
