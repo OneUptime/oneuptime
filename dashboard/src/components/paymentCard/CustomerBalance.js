@@ -93,11 +93,10 @@ export class CustomerBalance extends Component {
             .then(response => {
                 const { status, amount_received } = response.data;
                 const { paymentIntent } = this.props;
-
+                        
                 if (status === 'succeeded') {
                     const creditedBalance = amount_received / 100;
-                    getProjects();
-
+                    getProjects().then( () =>
                     openModal({
                         id: MessageBoxId,
                         content: MessageBox,
@@ -105,7 +104,7 @@ export class CustomerBalance extends Component {
                         message: `Transaction successful, your balance is now ${(
                             balance + creditedBalance
                         ).toFixed(2)}$`,
-                    });
+                    }));                                        
                 } else {
                     this.handlePaymentIntent(paymentIntent.client_secret);
                 }
