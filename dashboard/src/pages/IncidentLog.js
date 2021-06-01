@@ -56,7 +56,7 @@ class IncidentLog extends React.Component {
             fetchComponent(currentProject._id, componentSlug);
         }
 
-        if (component && componentId) {
+        if (componentSlug && component && componentId) {
             const projectId = component.projectId._id || component.projectId;
             this.props.getComponentIncidents(projectId, componentId);
         } else {
