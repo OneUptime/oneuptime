@@ -78,7 +78,7 @@ describe('Incident Reports API', () => {
                 timeout: init.timeout,
             });
 
-            await page.goto(utils.DASHBOARD_URL, { waitUntil : 'networkidle2'}); // Incident Status is also present on Dashboard
+            await page.goto(utils.DASHBOARD_URL, { waitUntil : 'networkidle2'}); // Incident Status is present on Dashboard and Incident Detail Page
             await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
                 timeout: 100000,
