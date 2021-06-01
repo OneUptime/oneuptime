@@ -2,6 +2,7 @@ PATH
   remote: .
   specs:
     fyipe (1.0.0)
+      gem-release
       httparty (~> 0.17)
 
 GEM
@@ -13,6 +14,7 @@ GEM
     dotenv (2.7.6)
     faker (2.18.0)
       i18n (>= 1.6, < 2)
+    gem-release (2.2.2)
     httparty (0.18.1)
       mime-types (~> 3.0)
       multi_xml (>= 0.5.2)
