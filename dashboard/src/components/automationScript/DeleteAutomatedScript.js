@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 
 const DeleteAutomatedScript = props => {
-    const { confirmThisDialog, closeThisDialog, data } = props;
+    const { confirmThisDialog, closeThisDialog } = props;
     const handleKeyBoard = e => {
         switch (e.key) {
             case 'Escape':
@@ -19,8 +19,6 @@ const DeleteAutomatedScript = props => {
     useEffect(() => {
         window.addEventListener('keydown', handleKeyBoard);
     }, []);
-
-    console.log(data, 'overflow');
 
     return (
         <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -88,7 +86,7 @@ const DeleteAutomatedScript = props => {
 DeleteAutomatedScript.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
-    data: PropTypes.object,
+    // data: PropTypes.object,
 };
 
 export default DeleteAutomatedScript;
