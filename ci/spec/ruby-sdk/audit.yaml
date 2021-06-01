@@ -34,7 +34,7 @@ audit_ruby-sdk:
         - gem list bundler
         # - gem uninstall bundler -v 1.16.1
         - cd ruby-sdk/fyipe
-        - sudo gem update --system
+        # - sudo gem update --system
         - bundle
         # - which bin/bundle
         # - bundler exec bundle install
