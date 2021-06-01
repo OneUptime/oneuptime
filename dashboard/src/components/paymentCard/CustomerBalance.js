@@ -90,11 +90,11 @@ export class CustomerBalance extends Component {
         } = this.props;
         const { MessageBoxId } = this.state;
         return addBalance(projectId, values)
-            .then(response => {                
+            .then(response => {
                 const { status, amount_received } = response.data;
                 const { paymentIntent } = this.props;
                         
-                if (status === 'succeeded') {                    
+                if (status === 'succeeded') {
                     const creditedBalance = amount_received / 100;
                     getProjects().then( () => // getProjects() is an async request
                     openModal({
