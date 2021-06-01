@@ -17,7 +17,7 @@ audit_ruby-sdk:
         # - echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
         # - echo 'eval "$(rbenv init -)"' >> ~/.bashrc
         # - exec $SHELL
-        - rbenv global 3.0.1
+        - rbenv global 2.4.1
         - ruby -v
         - gem install bundler
         - gem env home
