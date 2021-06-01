@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -88,17 +89,17 @@ export class CustomerBalance extends Component {
             balance,
             getProjects,
         } = this.props;
-        const { MessageBoxId } = this.state;
+        const { MessageBoxId } = this.state;        
         return addBalance(projectId, values)
-            .then(response => {
+            .then(response => {                
                 const { status, amount_received } = response.data;
-                const { paymentIntent } = this.props;
-                        
-                if (status === 'succeeded') {
+                const { paymentIntent } = this.props;                            
+
+                if (status === 'succeeded') {                    
                     const creditedBalance = amount_received / 100;
-                    getProjects().then( () =>
+                    getProjects().then( () => 
                     openModal({
-                        id: MessageBoxId,
+                        id: MessageBoxId,                        
                         content: MessageBox,
                         title: 'Message',
                         message: `Transaction successful, your balance is now ${(
