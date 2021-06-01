@@ -15,6 +15,8 @@ test_ruby-sdk:
         - sudo docker build -t fyipeproject/backend:3.0.$CI_PIPELINE_IID ./backend
         - sudo docker run --env-file ./backend/.env  -e ENCRYPTION_KEY=$ENCRYPTION_KEY --net=host -d fyipeproject/backend:3.0.$CI_PIPELINE_IID
         - sudo docker ps
+        - sudo apt install -y rbenv
+        - sudo gem install bundler
         - cd ruby-sdk/fyipe
         - bundle
         - bundle exec rspec
