@@ -12,7 +12,11 @@ import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMemb
 import { LoadingState } from '../components/basic/Loader';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import PropTypes from 'prop-types';
-import { fetchMonitors } from '../actions/monitor';
+import {
+    fetchMonitors,
+    fetchMonitorsIncidents,
+    fetchMonitorLogs,
+} from '../actions/monitor';
 import { loadPage } from '../actions/page';
 import { getSmtpConfig } from '../actions/smsTemplates';
 import IsUserInSubProject from '../components/basic/IsUserInSubProject';
@@ -41,7 +45,26 @@ class DashboardView extends Component {
             : null;
         this.props.fetchComponents(projectId);
         this.props.getSmtpConfig(projectId);
-        this.props.fetchMonitors(projectId);
+        this.props.fetchMonitors(projectId).then(() => {
+            this.props.monitor.monitorsList.monitors.forEach(subProject => {
+                if (subProject.monitors.length > 0) {
+                    subProject.monitors.forEach(monitor => {
+                        this.props.fetchMonitorLogs(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            this.props.startDate,
+                            this.props.endDate
+                        );
+                        this.props.fetchMonitorsIncidents(
+                            monitor.projectId._id || monitor.projectId,
+                            monitor._id,
+                            0,
+                            1
+                        );
+                    });
+                }
+            });
+        });
     };
 
     render() {
@@ -330,6 +353,8 @@ const mapDispatchToProps = dispatch => {
             destroy,
             fetchMonitors,
             loadPage,
+            fetchMonitorsIncidents,
+            fetchMonitorLogs,
             getSmtpConfig,
             fetchComponents,
         },
@@ -411,6 +436,11 @@ DashboardView.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    fetchMonitorsIncidents: PropTypes.func,
+    fetchMonitorLogs: PropTypes.func,
+    monitor: PropTypes.object,
+    startDate: PropTypes.object,
+    endDate: PropTypes.object,
     monitors: PropTypes.array,
     tutorialStat: PropTypes.object,
     getSmtpConfig: PropTypes.func.isRequired,
