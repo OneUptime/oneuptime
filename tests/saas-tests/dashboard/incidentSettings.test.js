@@ -125,7 +125,7 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#incidentSettings');
             await init.pageWaitForSelector(page, 'input[name=title]');
             await init.selectDropdownValue('#incidentPriority', 'low', page);
-            await init.pageClick(page, 'input[name=title]', {clickCount: 3});
+            await init.pageClick(page, 'input[name=title]', { clickCount: 3 });
             await page.keyboard.press('Backspace');
             await init.pageType(
                 page,
@@ -181,7 +181,7 @@ describe('Incident Settings API', () => {
                 monitorName,
                 page
             );
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#monitorCreateIncident_${monitorName}`

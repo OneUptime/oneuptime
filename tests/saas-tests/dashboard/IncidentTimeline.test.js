@@ -393,7 +393,7 @@ describe('Incident Timeline API', () => {
             const incidentMessage = await init.pageWaitForSelector(
                 page,
                 `#content_${type}_incident_message_0`,
-                {hidden : true}
+                { hidden: true }
             );
             expect(incidentMessage).toEqual(null);
 
