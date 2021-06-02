@@ -23,6 +23,7 @@ import { openModal } from '../../actions/modal';
 import _ from 'lodash';
 import moment from 'moment-timezone';
 import Search from './Search';
+import isSubProjectViewer from '../../utils/isSubProjectViewer';
 class TopContent extends Component {
     componentDidMount() {
         const {
@@ -251,6 +252,9 @@ class TopContent extends Component {
                 ? `url(${API_URL}/file/${this.props.profilePic})`
                 : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
         const userId = User.getUserId();
+        const isViewer =
+            this.props.currentProject &&
+            !isSubProjectViewer(userId, this.props.currentProject);
         let count = 0;
         if (
             this.props.notifications &&
@@ -403,13 +407,15 @@ class TopContent extends Component {
                     zIndex: '2',
                     width: '100%',
                     display: 'flex',
-                    justifyContent: 'space-between',
+                    justifyContent: !isViewer ? 'flex-end' : 'space-between',
                 }}
                 className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20 db-Topnav-wrap"
             >
-                <div className="db-Search-wrapper">
-                    <Search />
-                </div>
+                <ShouldRender if={isViewer}>
+                    <div className="db-Search-wrapper">
+                        <Search />
+                    </div>
+                </ShouldRender>
                 <div>
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                         <div
@@ -442,7 +448,8 @@ class TopContent extends Component {
                                     <ShouldRender
                                         if={
                                             activeSchedules &&
-                                            activeSchedules.length > 0
+                                            activeSchedules.length > 0 &&
+                                            isViewer
                                         }
                                     >
                                         {this.renderOnCallSchedule(
@@ -457,11 +464,16 @@ class TopContent extends Component {
                                 ''
                             )}
 
-                            {this.renderActiveIncidents(
-                                incidentCounter,
-                                topNavCardClass
-                            )}
-                            {this.renderOngoingScheduledEvents(topNavCardClass)}
+                            {isViewer &&
+                                this.renderActiveIncidents(
+                                    incidentCounter,
+                                    topNavCardClass
+                                )}
+
+                            {isViewer &&
+                                this.renderOngoingScheduledEvents(
+                                    topNavCardClass
+                                )}
 
                             <div className="Box-root Margin-right--16">
                                 <div
@@ -517,26 +529,29 @@ class TopContent extends Component {
                                 </div>
                             </div>
 
-                            <div className="Box-root Flex-flex">
-                                <div
-                                    tabIndex="-1"
-                                    style={{
-                                        outline: 'none',
-                                        marginRight: '15px',
-                                    }}
-                                >
-                                    <button
-                                        className={
-                                            count
-                                                ? 'db-Notifications-button active-notification'
-                                                : 'db-Notifications-button'
-                                        }
-                                        onClick={this.showNotificationsMenu}
+                            <ShouldRender if={isViewer}>
+                                <div className="Box-root Flex-flex">
+                                    <div
+                                        tabIndex="-1"
+                                        style={{
+                                            outline: 'none',
+                                            marginRight: '15px',
+                                        }}
                                     >
-                                        <span className="db-Notifications-icon db-Notifications-icon--empty" />
-                                    </button>
+                                        <button
+                                            className={
+                                                count
+                                                    ? 'db-Notifications-button active-notification'
+                                                    : 'db-Notifications-button'
+                                            }
+                                            onClick={this.showNotificationsMenu}
+                                        >
+                                            <span className="db-Notifications-icon db-Notifications-icon--empty" />
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            </ShouldRender>
+
                             <div className="Box-root margin-20">
                                 <div>
                                     <div className="Box-root Flex-flex">
