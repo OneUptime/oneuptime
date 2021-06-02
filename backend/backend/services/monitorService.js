@@ -469,15 +469,49 @@ module.exports = {
                         skip
                     );
 
-                    const monitorsWithSchedules = await Promise.all(
+                    const monitorsWithStatus = await Promise.all(
                         monitors.map(async monitor => {
+                            let monitorStatus;
+
+                            let incidentList = [];
+
+                            const monitorIncidents = await IncidentService.findBy(
+                                {
+                                    monitorId: monitor._id,
+                                    resolved: false,
+                                }
+                            );
+
+                            for (const incident of monitorIncidents) {
+                                incidentList.push(incident.incidentType);
+                            }
+
+                            if (monitor.disabled) {
+                                monitorStatus = 'disabled';
+                            } else if (incidentList.includes('offline')) {
+                                monitorStatus = 'offline';
+                            } else if (incidentList.includes('degraded')) {
+                                monitorStatus = 'degraded';
+                            } else {
+                                monitorStatus = 'online';
+                            }
+
+                            return {
+                                ...monitor.toObject(),
+                                status: monitorStatus,
+                            };
+                        })
+                    );
+
+                    const monitorsWithSchedules = await Promise.all(
+                        monitorsWithStatus.map(async monitor => {
                             const monitorSchedules = await ScheduleService.findBy(
                                 {
                                     monitorIds: monitor._id,
                                 }
                             );
                             return {
-                                ...monitor.toObject(),
+                                ...monitor,
                                 schedules: monitorSchedules,
                             };
                         })
