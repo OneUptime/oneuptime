@@ -1040,7 +1040,10 @@ export default function incident(state = initialState, action) {
                     ...state.unresolvedincidents,
                     incidents: state.unresolvedincidents.incidents.map(
                         incident => {
-                            if (incident.monitorId._id === action.payload._id) {
+                            if (
+                                action.payload &&
+                                incident.monitorId._id === action.payload._id
+                            ) {
                                 return {
                                     ...incident,
                                     monitorId: {
