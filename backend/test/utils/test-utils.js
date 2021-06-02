@@ -186,22 +186,16 @@ const methods = {
     /**
    * Example of payload
       const payload = {
-        monitorId,
+        monitors: [monitorId],
         projectId,
         title: "test monitor  is offline.",
         incidentType: "offline",
         description: 'Incident description',
       };
    */
-    createIncident: async ({
-        request,
-        authorization,
-        projectId,
-        monitorId,
-        payload,
-    }) => {
+    createIncident: async ({ request, authorization, projectId, payload }) => {
         return await request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(payload);
     },
