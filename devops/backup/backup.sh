@@ -5,9 +5,8 @@
 ###
 
 # IP of the mongodb servers.
-MONGO_PRIMARY_SERVER_IP='167.172.15.25'
-MONGO_SECONDARY_SERVER_IP='157.230.66.225'
-MONGO_SERVER_PORT="80"
+MONGO_HOSTS='167.172.15.25,157.230.66.225'
+MONGO_PORT="80"
 
 FYIPE_DB_USERNAME='fyipe'
 FYIPE_DB_PASSWORD='password'
@@ -135,14 +134,14 @@ echo ""
 
 # Drop audit logs collection because we dont need to take backup of that.
 echo "Removing audit logs collections. This will take some time." 
-sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_SERVER_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval 'db.auditlogs.drop()'
+sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_HOSTS}" --port="${MONGO_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval 'db.auditlogs.drop()'
 
 # Remove old monitor logs to make backup faster
 echo "Removing old monitor logs. This will take some time."
-sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_SERVER_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogs.remove({'createdAt': { \$lt: ISODate('${THREE_DAYS_AGO}')}})"
-sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_SERVER_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogbyweeks.remove({'createdAt': { \$lt: ISODate('${SIX_MONTHS_AGO}')}})"
-sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_SERVER_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogbydays.remove({'createdAt': { \$lt: ISODate('${THREE_MONTHS_AGO}')}})" 
-sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_PRIMARY_SERVER_IP}" --port="${MONGO_SERVER_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogbyhours.remove({'createdAt': { \$lt: ISODate('${THREE_MONTHS_AGO}')}})"
+sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_HOSTS}" --port="${MONGO_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogs.remove({'createdAt': { \$lt: ISODate('${THREE_DAYS_AGO}')}})"
+sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_HOSTS}" --port="${MONGO_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogbyweeks.remove({'createdAt': { \$lt: ISODate('${SIX_MONTHS_AGO}')}})"
+sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_HOSTS}" --port="${MONGO_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogbydays.remove({'createdAt': { \$lt: ISODate('${THREE_MONTHS_AGO}')}})" 
+sudo mongo ${FYIPE_DB_NAME} --host="${MONGO_HOSTS}" --port="${MONGO_PORT}" --username="$FYIPE_DB_USERNAME" --password="$FYIPE_DB_PASSWORD" --eval "db.monitorlogbyhours.remove({'createdAt': { \$lt: ISODate('${THREE_MONTHS_AGO}')}})"
 
 
 echo "Sleeping for 10 minutes..."
@@ -150,7 +149,7 @@ echo "Sleeping for 10 minutes..."
 sleep 10m
 
 # Take backup from secondary and not from primary. This will not slow primary down.
-if mongodump --forceTableScan --authenticationDatabase="${FYIPE_DB_NAME}" --host="${MONGO_SECONDARY_SERVER_IP}" --db="${FYIPE_DB_NAME}" --port="${MONGO_SERVER_PORT}" --username="${FYIPE_DB_USERNAME}" --password="${FYIPE_DB_PASSWORD}" --archive="$BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"; then
+if mongodump --forceTableScan --authenticationDatabase="${FYIPE_DB_NAME}" --host="${MONGO_HOSTS}" --db="${FYIPE_DB_NAME}" --port="${MONGO_PORT}" --username="${FYIPE_DB_USERNAME}" --password="${FYIPE_DB_PASSWORD}" --archive="$BACKUP_PATH/fyipe-backup-$CURRENT_DATE.archive"; then
     echo  ${green}"BACKUP SUCCESS $"${reset}
     BACKUP_SUCCESS
 else
