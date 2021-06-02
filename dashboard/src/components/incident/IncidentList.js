@@ -169,7 +169,7 @@ export class IncidentList extends Component {
                                 </td>
                             </tr>
                         </thead>
-                        <tbody className="Table-body incidentListItems">
+                        <tbody className="Table-body">
                             {incidents && incidents.length > 0 ? (
                                 incidents.map((incident, i) => {
                                     let probeName = 'Fyipe';
