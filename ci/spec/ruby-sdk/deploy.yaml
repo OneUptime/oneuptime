@@ -30,5 +30,6 @@ deploy_staging_ruby-sdk:
         refs:
             - master
             - hotfix-master
+            - feature-ruby-sdk
     environment:
         name: staging

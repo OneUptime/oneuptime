@@ -118,6 +118,8 @@ include:
   # RUBY-SDK
   - '/ci/spec/ruby-sdk/audit.yaml'
   - '/ci/spec/ruby-sdk/build-n-test.yaml'
+  - '/ci/spec/ruby-sdk/deploy.yaml'
+
 
 
   # # HARAKA
