@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
@@ -150,7 +151,7 @@ export class IncidentStatus extends Component {
     acknowledge = async setLoading => {
         const userId = User.getUserId();
         const projectId =
-            this.props.incident.projectId._id ?? this.props.incident.projectId;
+            this.props.incident.projectId._id ?? this.props.incident.projectId;            
         await this.props
             .acknowledgeIncident(
                 projectId,
@@ -277,13 +278,15 @@ export class IncidentStatus extends Component {
             : null;
     };
 
-    render() {
+    render() {        
+        let isUserSubProjectId = this.props.incident.projectId._id ?? this.props.incident.projectId;
         const subProject =
             this.props.subProjects &&
             this.props.subProjects.filter(
                 subProject =>
-                    subProject._id === this.props.incident.projectId._id // The Id is being looked for during filtering. What it was seeing is an object that contains the ID
-            )[0];
+                    subProject._id === isUserSubProjectId // The Id is being looked for during filtering. What it was seeing is an object that contains the ID
+            )[0];        
+        
         const loggedInUser = User.getUserId();
         const isUserInProject =
             this.props.currentProject &&

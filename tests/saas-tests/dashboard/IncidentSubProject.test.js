@@ -177,13 +177,13 @@ describe('Incident API With SubProjects', () => {
             );
             await init.pageWaitForSelector(page, '#createIncident');
             await init.selectDropdownValue('#incidentType', 'Offline', page);
-            await init.pageType(page, '#title', 'new incident');
+            //await init.pageType(page, '#title', 'new incident');
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
             });
 
-            //await page.reload({ waitUntil: 'networkidle0' });
+            await page.reload({ waitUntil: 'networkidle0' });
             // close incident modal
             await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
@@ -211,63 +211,64 @@ describe('Incident API With SubProjects', () => {
         operationTimeOut
     );
 
-    // test(
-    //     'should acknowledge incident in sub-project for sub-project `member`',
-    //     async () => {
-    //         await init.loginUser(newUser, page);
-    //         // switch to invited project for new user
-    //         await init.switchProject(projectName, page);
-    //         // Navigate to details page of component created
-    //         await init.navigateToComponentDetails(componentName, page);
-    //         // acknowledge incident
-    //         await init.pageWaitForSelector(page, '#btnAcknowledge_0', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageClick(page, '#btnAcknowledge_0');
-    //         await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
-    //             visible: true,
-    //             timeout: operationTimeOut,
-    //         });
+    test(
+        'should acknowledge incident in sub-project for sub-project `member`',
+        async () => {
+            // await init.loginUser(newUser, page);
+            // // switch to invited project for new user
+            // await init.switchProject(projectName, page);
+            // // Navigate to details page of component created
+            // await init.navigateToComponentDetails(componentName, page);
+            await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle2' });
+            // acknowledge incident
+            await init.pageWaitForSelector(page, '#btnAcknowledge_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#btnAcknowledge_0');
+            await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
+                visible: true,
+                timeout: operationTimeOut,
+            });
 
-    //         const acknowledgeTextSelector = await init.page$(
-    //             page,
-    //             '#AcknowledgeText_0'
-    //         );
-    //         expect(acknowledgeTextSelector).toBeDefined();
-    //         await init.logout(page);
-    //     },
-    //     operationTimeOut
-    // );
+            const acknowledgeTextSelector = await init.page$(
+                page,
+                '#AcknowledgeText_0'
+            );
+            expect(acknowledgeTextSelector).toBeDefined();
+            await init.logout(page);
+        },
+        operationTimeOut
+    );
 
-    // test(
-    //     'should resolve incident in sub-project for sub-project `member`',
-    //     async () => {
-    //         await init.loginUser(newUser, page);
-    //         // switch to invited project for new user
-    //         await init.switchProject(projectName, page);
-    //         // Navigate to details page of component created
-    //         await init.navigateToComponentDetails(componentName, page);
-    //         // resolve incident
-    //         await init.pageWaitForSelector(page, '#btnResolve_0', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageClick(page, '#btnResolve_0');
-    //         await init.pageWaitForSelector(page, '#ResolveText_0', {
-    //             visible: true,
-    //             timeout: operationTimeOut,
-    //         });
+    test(
+        'should resolve incident in sub-project for sub-project `member`',
+        async () => {
+            await init.loginUser(newUser, page);
+            // switch to invited project for new user
+            await init.switchProject(projectName, page);
+            // Navigate to details page of component created
+            await init.navigateToComponentDetails(componentName, page);
+            // resolve incident
+            await init.pageWaitForSelector(page, '#btnResolve_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#btnResolve_0');
+            await init.pageWaitForSelector(page, '#ResolveText_0', {
+                visible: true,
+                timeout: operationTimeOut,
+            });
 
-    //         const resolveTextSelector = await init.page$(
-    //             page,
-    //             '#ResolveText_0'
-    //         );
-    //         expect(resolveTextSelector).toBeDefined();
-    //         await init.logout(page);
-    //     },
-    //     operationTimeOut
-    // );
+            const resolveTextSelector = await init.page$(
+                page,
+                '#ResolveText_0'
+            );
+            expect(resolveTextSelector).toBeDefined();
+            await init.logout(page);
+        },
+        operationTimeOut
+    );
 
     // test(
     //     'should update internal and investigation notes of incident in sub-project',
