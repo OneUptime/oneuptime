@@ -1668,7 +1668,7 @@ module.exports = {
                                 incident,
                                 'Subscriber Incident Created',
                                 enabledStatusPage,
-                                null,
+                                {},
                                 subscribers.length,
                                 uuid,
                                 monitor
@@ -1680,7 +1680,7 @@ module.exports = {
                             incident,
                             'Subscriber Incident Created',
                             null,
-                            null,
+                            {},
                             subscribers.length,
                             uuid,
                             monitor
