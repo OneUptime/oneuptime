@@ -150,7 +150,7 @@ export class IncidentStatus extends Component {
     acknowledge = async setLoading => {
         const userId = User.getUserId();
         const projectId =
-            this.props.incident.projectId._id ?? this.props.incident.projectId;            
+            this.props.incident.projectId._id ?? this.props.incident.projectId;
         await this.props
             .acknowledgeIncident(
                 projectId,
