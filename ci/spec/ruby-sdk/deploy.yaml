@@ -1,0 +1,34 @@
+## DEPLOYMENT STAGE - RUBY SDK
+deploy_staging_ruby-sdk:
+    stage: Deploy
+    allow_failure: true
+    retry: 2
+    script:
+        - sudo apt-get update
+        - sudo apt-get install -y curl gcc
+        - sudo apt-get install -y build-essential
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt install -y rbenv
+        - sudo gem install bundler
+        - cd ruby-sdk/fyipe
+        - bundle
+        - git init
+        - git add .
+        - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
+        - bundle exec gem bump 3.0.$CI_PIPELINE_IID
+        - gem build fyipe.gemspec
+        - gem push fyipe-3.0.$CI_PIPELINE_IID.gem -k $RUBYGEM_API_KEY
+        - git init
+        - git add .
+        - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
+        - git checkout staging || git checkout -b staging
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/ruby-sdk.git staging --force
+        - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - master
+            - hotfix-master
+    environment:
+        name: staging
