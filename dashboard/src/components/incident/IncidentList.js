@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
@@ -418,7 +419,7 @@ export class IncidentList extends Component {
                                             >
                                                 <div
                                                     className="db-ListViewItem-cellContent Box-root Padding-all--8"
-                                                    id="incident_title"
+                                                    id={`incident_${this.props.incidents.name}_title`}
                                                 >
                                                     <ReactMarkdown
                                                         source={incident.title}

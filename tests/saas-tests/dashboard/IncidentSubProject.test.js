@@ -112,7 +112,7 @@ describe('Incident API With SubProjects', () => {
             });
             const incidentTitleSelector = await init.page$(
                 page,
-                '#incident_title'
+                `#incident_${projectMonitorName}_title`
             );
 
             let textContent = await incidentTitleSelector.getProperty(
@@ -139,7 +139,7 @@ describe('Incident API With SubProjects', () => {
 
             const incidentTitleSelector = await init.page$(
                 page,
-                '#incident_title',
+                `#incident_${projectMonitorName}_title`,
                 {hidden: true}
             );
             expect(incidentTitleSelector).toBeNull();
@@ -196,7 +196,7 @@ describe('Incident API With SubProjects', () => {
             await init.pageWaitForSelector(page, `#incident_${projectMonitorName1}_0`);
             const incidentTitleSelector = await init.page$(
                 page,
-                '#incident_title'
+                `#incident_${projectMonitorName1}_title`
             );
 
             let textContent = await incidentTitleSelector.getProperty(
@@ -236,7 +236,7 @@ describe('Incident API With SubProjects', () => {
                 '#AcknowledgeText_0'
             );
             expect(acknowledgeTextSelector).toBeDefined();
-            await init.logout(page);
+            //await init.logout(page);
         },
         operationTimeOut
     );
@@ -244,11 +244,12 @@ describe('Incident API With SubProjects', () => {
     test(
         'should resolve incident in sub-project for sub-project `member`',
         async () => {
-            await init.loginUser(newUser, page);
-            // switch to invited project for new user
-            await init.switchProject(projectName, page);
-            // Navigate to details page of component created
-            await init.navigateToComponentDetails(componentName, page);
+            // await init.loginUser(newUser, page);
+            // // switch to invited project for new user
+            // await init.switchProject(projectName, page);
+            // // Navigate to details page of component created
+            await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle2' });
+            // await init.navigateToComponentDetails(componentName, page);
             // resolve incident
             await init.pageWaitForSelector(page, '#btnResolve_0', {
                 visible: true,
@@ -265,7 +266,7 @@ describe('Incident API With SubProjects', () => {
                 '#ResolveText_0'
             );
             expect(resolveTextSelector).toBeDefined();
-            await init.logout(page);
+            //await init.logout(page);
         },
         operationTimeOut
     );
