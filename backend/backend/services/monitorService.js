@@ -469,15 +469,68 @@ module.exports = {
                         skip
                     );
 
-                    const monitorsWithSchedules = await Promise.all(
+                    const monitorsWithStatus = await Promise.all(
                         monitors.map(async monitor => {
+                            const monitorIncidents = await IncidentService.findBy(
+                                {
+                                    monitorId: monitor._id,
+                                }
+                            );
+
+                            let startDate = moment().subtract(30, 'd');
+                            let endDate = moment();
+
+                            const monitorStatuses = await _this.getMonitorStatuses(
+                                monitor._id,
+                                startDate,
+                                endDate
+                            );
+
+                            let monitorStatus, probe, logs;
+
+                            if (monitor.disabled) {
+                                monitorStatus = 'disabled';
+                            } else if (monitorStatuses && monitorStatuses[0]) {
+                                monitorStatus =
+                                    monitorStatuses[0].statuses[0].status;
+                            } else {
+                                probe =
+                                    monitor && probes && probes.length > 0
+                                        ? probes[
+                                              probes.length < 2
+                                                  ? 0
+                                                  : activeProbe
+                                          ]
+                                        : null;
+                                logs = filterProbeData(
+                                    monitor,
+                                    probe,
+                                    startDate,
+                                    endDate
+                                ).logs;
+                                monitorStatus = await _this.getMonitorStatus(
+                                    monitorIncidents,
+                                    [],
+                                    monitor.type
+                                );
+                            }
+
+                            return {
+                                ...monitor.toObject(),
+                                status: monitorStatus,
+                            };
+                        })
+                    );
+
+                    const monitorsWithSchedules = await Promise.all(
+                        monitorsWithStatus.map(async monitor => {
                             const monitorSchedules = await ScheduleService.findBy(
                                 {
                                     monitorIds: monitor._id,
                                 }
                             );
                             return {
-                                ...monitor.toObject(),
+                                ...monitor,
                                 schedules: monitorSchedules,
                             };
                         })
@@ -835,6 +888,121 @@ module.exports = {
             return probeStatuses;
         } catch (error) {
             ErrorService.log('monitorService.getMonitorStatuses', error);
+            throw error;
+        }
+    },
+    async getMonitorStatus(incidents, logs, type) {
+        try {
+            const incident =
+                incidents && incidents.length > 0 ? incidents[0] : null;
+            const log = logs && logs.length > 0 ? logs[0] : null;
+            const statusCompare =
+                incident && log
+                    ? await _this.compareStatus(incident, log)
+                    : incident
+                    ? !incident.resolved
+                        ? incident.incidentType
+                        : 'online'
+                    : log
+                    ? log.status
+                    : type === 'server monitor'
+                    ? 'No Data'
+                    : 'online';
+            return statusCompare || 'online';
+        } catch (error) {
+            ErrorService.log('monitorService.getMonitorStatus', error);
+            throw error;
+        }
+    },
+
+    async compareStatus(incident, log) {
+        try {
+            return moment(incident.createdAt).isSameOrAfter(
+                moment(log.createdAt)
+            )
+                ? !incident.resolved
+                    ? incident.incidentType
+                    : 'online'
+                : log.status;
+        } catch (error) {
+            ErrorService.log('monitorService.compareStatus', error);
+            throw error;
+        }
+    },
+
+    async filterProbeData(monitor, probe, startDate, endDate) {
+        try {
+            const monitorLogs = monitor.logs;
+            const monitorStatuses = monitor.statuses;
+
+            const start = moment(new Date(startDate));
+            const end = moment(new Date(endDate));
+
+            const probesLog =
+                monitorLogs && monitorLogs.length > 0
+                    ? probe
+                        ? monitorLogs.filter(probeLogs => {
+                              return (
+                                  probeLogs._id === null ||
+                                  probeLogs._id === probe._id
+                              );
+                          })
+                        : monitorLogs
+                    : [];
+            let logs =
+                probesLog &&
+                probesLog[0] &&
+                probesLog[0].logs &&
+                probesLog[0].logs.length > 0
+                    ? probesLog[0].logs
+                    : [];
+            logs =
+                logs && logs.length > 0
+                    ? logs.filter(log =>
+                          moment(new Date(log.createdAt)).isBetween(
+                              start,
+                              end,
+                              'day',
+                              '[]'
+                          )
+                      )
+                    : [];
+
+            const probesStatus =
+                monitorStatuses && monitorStatuses.length > 0
+                    ? probe
+                        ? monitorStatuses.filter(probeStatuses => {
+                              return (
+                                  probeStatuses._id === null ||
+                                  probeStatuses._id === probe._id
+                              );
+                          })
+                        : monitorStatuses
+                    : [];
+            let statuses =
+                probesStatus &&
+                probesStatus[0] &&
+                probesStatus[0].statuses &&
+                probesStatus[0].statuses.length > 0
+                    ? probesStatus[0].statuses
+                    : [];
+            statuses =
+                statuses && statuses.length > 0
+                    ? statuses.filter(
+                          status =>
+                              moment(new Date(status.startTime)).isBefore(
+                                  end
+                              ) &&
+                              (status.endTime === null ||
+                                  moment(new Date(status.endTime)).isAfter(
+                                      start
+                                  ))
+                      )
+                    : [];
+
+            return { logs, statuses };
+        } catch (error) {
+            ErrorService.log('monitorService.filterProbeData', error);
             throw error;
         }
     },

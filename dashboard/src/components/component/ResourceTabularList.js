@@ -7,23 +7,16 @@ import {
     fetchComponentResources,
     addCurrentComponent,
 } from '../../actions/component';
-import { getMonitorStatus, filterProbeData } from '../../config';
 import { bindActionCreators } from 'redux';
 import threatLevel from '../../utils/threatLevel';
 import StatusIndicator from '../monitor/StatusIndicator';
-import moment from 'moment';
 import IssueIndicator from '../security/IssueIndicator';
 import sortByName from '../../utils/sortByName';
 import { animateSidebar } from '../../actions/animateSidebar';
-
 class ResourceTabularList extends Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = {
-            startDate: moment().subtract(30, 'd'),
-            endDate: moment(),
-        };
     }
     generateUrlLink(componentResource) {
         const { currentProject, componentSlug } = this.props;
@@ -64,12 +57,11 @@ class ResourceTabularList extends Component {
     generateResourceStatus(componentResource) {
         let statusColor = 'slate';
         let statusDescription = 'TBD';
-        let indicator, monitor, logs, probe;
+        let indicator, monitor;
         let appSecurityStatus = 'currently scanning',
-            containerSecurityStatus = 'currently scanning',
-            monitorStatus = '';
-        const { monitors, probes, activeProbe } = this.props;
-        const { startDate, endDate } = this.state;
+            containerSecurityStatus = 'currently scanning';
+        const { monitors } = this.props;
+
         let data = null;
         switch (componentResource.type) {
             case 'website monitor':
@@ -85,51 +77,15 @@ class ResourceTabularList extends Component {
                 monitor = monitors.filter(
                     monitor => monitor._id === componentResource._id
                 )[0];
-                // Monitor already exists in the list of monitors
-                if (monitor) {
-                    if (monitor.disabled) {
-                        // Get the latest status here if the monitor is changing status elsewheree
-                        monitorStatus = 'disabled';
-                    } else if (monitor.statuses && monitor.statuses[0]) {
-                        // Get the latest status here if the monitor is changing status elsewheree
-                        monitorStatus = monitor.statuses[0].statuses[0].status;
-                    } else {
-                        // Get the latest status here if the page is just loading
-                        probe =
-                            monitor && probes && probes.length > 0
-                                ? probes[probes.length < 2 ? 0 : activeProbe]
-                                : null;
-                        logs = filterProbeData(
-                            monitor,
-                            probe,
-                            startDate,
-                            endDate
-                        ).logs;
-                        monitorStatus = getMonitorStatus(
-                            monitor.incidents,
-                            logs,
-                            componentResource.type
-                        );
-                    }
-                }
-                if (
-                    typeof this.props.monitorLogsRequest[
-                        componentResource._id
-                    ] === 'undefined' ||
-                    this.props.monitorLogsRequest[componentResource._id] ||
-                    this.props.monitorListRequesting
-                ) {
-                    indicator = <ListLoader />;
-                } else {
-                    indicator = (
-                        <StatusIndicator
-                            status={monitorStatus}
-                            resourceName={componentResource.name}
-                            monitorName={monitor && monitor.name}
-                        />
-                    );
-                    statusDescription = monitorStatus;
-                }
+
+                indicator = (
+                    <StatusIndicator
+                        status={monitor.status}
+                        resourceName={componentResource.name}
+                        monitorName={monitor && monitor.name}
+                    />
+                );
+                statusDescription = monitor.status;
 
                 break;
             case 'application security':
@@ -556,16 +512,12 @@ ResourceTabularList.propTypes = {
     currentProject: PropTypes.object,
     componentSlug: PropTypes.string,
     monitors: PropTypes.array,
-    probes: PropTypes.array,
     animateSidebar: PropTypes.func,
     addCurrentComponent: PropTypes.func,
-    activeProbe: PropTypes.number,
     componentName: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
-    monitorLogsRequest: PropTypes.object,
-    monitorListRequesting: PropTypes.bool,
 };
 
 ResourceTabularList.defaultProps = {
