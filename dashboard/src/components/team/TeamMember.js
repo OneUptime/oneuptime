@@ -100,19 +100,17 @@ export class TeamMember extends Component {
         const loggedInUserIsOwner = teamMembers.some(
             user => user.userId === loggedInUser && user.role === 'Owner'
         );
-        const thisUserIsAViewer = teamMembers.some(
-            user => user.userId === userId && user.role === 'Viewer'
-        );
-        const thisUserIsAMember = teamMembers.some(
-            user => user.userId === userId && user.role === 'Member'
-        );
-        const thisUserIsAdmin = teamMembers.some(
-            user => user.userId === userId && user.role === 'Administrator'
-        );
-        const thereAreOtherAdmins = teamMembers.some(
+
+        const isOwner = teamMembers.find(
             user =>
-                user.userId !== loggedInUser &&
-                (user.role === 'Administrator' || user.role === 'Owner') &&
+                user.userId === loggedInUser &&
+                user.role === 'Owner' &&
+                user.name
+        );
+        const isAdmin = teamMembers.find(
+            user =>
+                user.userId === loggedInUser &&
+                user.role === 'Administrator' &&
                 user.name
         );
 
@@ -186,15 +184,7 @@ export class TeamMember extends Component {
                 <div className="bs-ObjectList-cell bs-u-v-middle"></div>
                 <div className="bs-ObjectList-cell bs-u-right bs-u-shrink bs-u-v-middle Flex-alignContent--spaceBetween">
                     <div>
-                        <ShouldRender
-                            if={
-                                (loggedInUserIsOwner &&
-                                    (thisUserIsAMember ||
-                                        thisUserIsAdmin ||
-                                        thisUserIsAViewer)) ||
-                                (loggedInUserIsOwner && thereAreOtherAdmins)
-                            }
-                        >
+                        <ShouldRender if={isAdmin || isOwner}>
                             <div className="Flex-flex Flex-alignContent--spaceBetween">
                                 <Dropdown disabled={updating}>
                                     {!updating && (

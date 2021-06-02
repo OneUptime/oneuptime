@@ -22,6 +22,8 @@ import DataPathHoC from '../DataPathHoC';
 import MessageBox from './MessageBox';
 import formatEmails from '../../utils/formatEmails';
 import HasProjectOwner from '../basic/HasProjectOwner';
+import Badge from '../common/Badge';
+import { IS_SAAS_SERVICE } from '../../config';
 
 function validate(values) {
     const errors = {};
@@ -277,10 +279,25 @@ export class FormModal extends Component {
                                                         <div className="db-RoleRadioListLabel">
                                                             <div className="db-RoleRadioListLabel-name">
                                                                 <span>
+                                                                    Status Page
                                                                     Viewer
                                                                 </span>
+                                                                {IS_SAAS_SERVICE && (
+                                                                    <Badge color="green">
+                                                                        Free
+                                                                    </Badge>
+                                                                )}
                                                             </div>
                                                             <div className="db-RoleRadioListLabel-description">
+                                                                {IS_SAAS_SERVICE && (
+                                                                    <div>
+                                                                        <strong>
+                                                                            Viewers
+                                                                            are
+                                                                            free
+                                                                        </strong>
+                                                                    </div>
+                                                                )}
                                                                 <span>
                                                                     Viewers are
                                                                     your

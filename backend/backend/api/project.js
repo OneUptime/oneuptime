@@ -9,6 +9,7 @@ const AirtableService = require('../services/airtableService');
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
+const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const { IS_SAAS_SERVICE } = require('../config/server');
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -256,7 +257,7 @@ router.put(
     '/:projectId/renameProject',
     getUser,
     isAuthorized,
-    isUserOwner,
+    isUserAdmin,
     async function(req, res) {
         try {
             const projectId = req.params.projectId;

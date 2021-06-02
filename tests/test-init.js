@@ -617,9 +617,9 @@ const _this = {
     },
     addSubProject: async function(subProjectName, page) {
         const subProjectNameSelector = await _this.page$(
-            page,       
+            page,
             '#btn_Add_SubProjects',
-            { hidden : true } //The function is usually called after dashboard loads. Hence, '#btn_Add_SubProjects' is hidden.
+            { hidden: true } //The function is usually called after dashboard loads. Hence, '#btn_Add_SubProjects' is hidden.
         );
         if (subProjectNameSelector) {
             await _this.pageWaitForSelector(page, '#btn_Add_SubProjects');
