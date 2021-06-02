@@ -6,6 +6,7 @@ const ScheduledEventNoteService = require('./scheduledEventNoteService');
 const AlertService = require('./alertService');
 const moment = require('moment');
 const getSlug = require('../utils/getSlug');
+const MonitorService = require('./monitorService');
 
 module.exports = {
     create: async function({ projectId }, data, recurring) {
@@ -29,6 +30,19 @@ module.exports = {
             data.monitors = data.monitors.map(monitor => ({
                 monitorId: monitor,
             }));
+
+            if (!data.monitorDuringEvent) {
+                for (const monitor of data.monitors) {
+                    await MonitorService.updateOneBy(
+                        {
+                            _id: monitor.monitorId,
+                        },
+                        {
+                            shouldNotMonitor: true,
+                        }
+                    );
+                }
+            }
 
             data.projectId = projectId;
             if (data && data.name) {
@@ -125,6 +139,31 @@ module.exports = {
             data.monitors = data.monitors.map(monitor => ({
                 monitorId: monitor,
             }));
+
+            if (!data.monitorDuringEvent) {
+                for (const monitor of data.monitors) {
+                    await MonitorService.updateOneBy(
+                        {
+                            _id: monitor.monitorId,
+                        },
+                        {
+                            shouldNotMonitor: true,
+                        }
+                    );
+                }
+            } else {
+                for (const monitor of data.monitors) {
+                    await MonitorService.updateOneBy(
+                        {
+                            _id: monitor.monitorId,
+                        },
+                        {
+                            shouldNotMonitor: false,
+                        }
+                    );
+                }
+            }
+
             if (data && data.name) {
                 data.slug = getSlug(data.name);
             }
@@ -191,6 +230,19 @@ module.exports = {
                 },
                 { new: true }
             );
+
+            if (scheduledEvent && !scheduledEvent.monitorDuringEvent) {
+                for (const monitor of scheduledEvent.monitors) {
+                    await MonitorService.updateOneBy(
+                        {
+                            _id: monitor.monitorId._id || monitor.monitorId,
+                        },
+                        {
+                            shouldNotMonitor: false,
+                        }
+                    );
+                }
+            }
 
             if (!scheduledEvent) {
                 const error = new Error(
@@ -432,6 +484,21 @@ module.exports = {
                 { $set: data },
                 { new: true }
             );
+            if (
+                resolvedScheduledEvent &&
+                !resolvedScheduledEvent.monitorDuringEvent
+            ) {
+                for (const monitor of resolvedScheduledEvent.monitors) {
+                    await MonitorService.updateOneBy(
+                        {
+                            _id: monitor.monitorId._id || monitor.monitorId,
+                        },
+                        {
+                            shouldNotMonitor: false,
+                        }
+                    );
+                }
+            }
 
             if (resolvedScheduledEvent.recurring) {
                 let newStartDate;

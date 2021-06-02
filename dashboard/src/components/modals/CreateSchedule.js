@@ -819,10 +819,9 @@ class CreateSchedule extends React.Component {
                                                         <div className="Checkbox-label Box-root Margin-left--8">
                                                             <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                 <span>
-                                                                    Do not
-                                                                    monitor this
+                                                                    Monitor this
                                                                     monitor
-                                                                    during this
+                                                                    during
                                                                     Maintenance
                                                                     Event
                                                                 </span>
@@ -1069,7 +1068,7 @@ const mapStateToProps = (state, ownProps) => {
         minStartDate,
         monitors,
         initialValues: {
-            monitorDuringEvent: true,
+            monitorDuringEvent: false,
             alertSubscriber: true,
             callScheduleOnEvent: true,
             showEventOnStatusPage: true,

@@ -154,6 +154,10 @@ const monitorSchema = new Schema({
             fieldType: String,
         },
     ],
+    shouldNotMonitor: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 monitorSchema.virtual('project', {
