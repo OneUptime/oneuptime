@@ -101,13 +101,13 @@ export class TeamMember extends Component {
             user => user.userId === loggedInUser && user.role === 'Owner'
         );
 
-        const checkOwner = teamMembers.filter(
+        const isOwner = teamMembers.find(
             user =>
                 user.userId === loggedInUser &&
                 user.role === 'Owner' &&
                 user.name
         );
-        const checkAdministration = teamMembers.filter(
+        const isAdmin = teamMembers.find(
             user =>
                 user.userId === loggedInUser &&
                 user.role === 'Administrator' &&
@@ -184,12 +184,7 @@ export class TeamMember extends Component {
                 <div className="bs-ObjectList-cell bs-u-v-middle"></div>
                 <div className="bs-ObjectList-cell bs-u-right bs-u-shrink bs-u-v-middle Flex-alignContent--spaceBetween">
                     <div>
-                        <ShouldRender
-                            if={
-                                checkAdministration.length > 0 ||
-                                checkOwner.length > 0
-                            }
-                        >
+                        <ShouldRender if={isAdmin || isOwner}>
                             <div className="Flex-flex Flex-alignContent--spaceBetween">
                                 <Dropdown disabled={updating}>
                                     {!updating && (
