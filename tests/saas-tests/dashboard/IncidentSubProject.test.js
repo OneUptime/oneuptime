@@ -309,47 +309,7 @@ describe('Incident API With SubProjects', () => {
 
             /** Investigation is no longer on the UI
              * INCIDENT_NOTES Tab has been refactored as well
-             */
-            // type = 'investigation';
-            // //await init.gotoTab(utils.incidentTabIndexes.INCIDENT_NOTES, page);
-            // // fill investigation message thread form
-            // await init.pageWaitForSelector(page, `#add-${type}-message`);
-            // await init.page$Eval(page, `#add-${type}-message`, e => e.click());
-            // await init.pageWaitForSelector(
-            //     page,
-            //     `#form-new-incident-${type}-message`
-            // );
-            // await init.pageClick(page, `textarea[id=new-${type}]`);
-            // await init.pageType(
-            //     page,
-            //     `textarea[id=new-${type}]`,
-            //     investigationNote
-            // );
-            // await init.selectDropdownValue(
-            //     '#incident_state',
-            //     'investigating',
-            //     page
-            // );
-            // await init.pageClick(page, `#${type}-addButton`);
-            // await init.pageWaitForSelector(page, `#${type}-addButton`, {
-            //     hidden: true,
-            // });
-
-            // await page.reload({ waitUntil: 'networkidle0' });
-            // // click on incident notes tab
-            // await init.gotoTab(utils.incidentTabIndexes.INCIDENT_NOTES, page);
-
-            // const investigationMessage = await init.page$(
-            //     page,
-            //     `#content_${type}_incident_message_0`
-            // );
-            // let investigationContent = await investigationMessage.getProperty(
-            //     'innerText'
-            // );
-
-            // investigationContent = await investigationContent.jsonValue();
-            // expect(investigationContent).toEqual(`${investigationNote}`);
-            // await init.logout(page);
+             */            
         },
         operationTimeOut
     );
@@ -407,7 +367,7 @@ describe('Incident API With SubProjects', () => {
                 });
             }
             
-            await page.reload({ waitUntil: 'networkidle0' });            
+            await page.reload({ waitUntil: 'networkidle2', timeout: init.timeout });            
 
             let maxInternalMessages = await init.pageWaitForSelector(
                 page,
@@ -415,41 +375,7 @@ describe('Incident API With SubProjects', () => {
                 { visible: true, timeout: init.timeout }
             );
             expect(maxInternalMessages).toBeDefined();
-            /**Incident Timeline is no longer among the tabs */
-            // let countIncidentTimelines = incidentTimelineRows.length;
-
-            // expect(countIncidentTimelines).toEqual(10);
-
-            // await init.page$Eval(page, '#btnTimelineNext', e => e.click());
-            // await init.pageWaitForSelector(page, '.ball-beat', {
-            //     visible: true,
-            //     timeout: init.timeout,
-            // });
-            // await init.pageWaitForSelector(page, '.ball-beat', {
-            //     hidden: true,
-            // });
-            // incidentTimelineRows = await init.page$$(
-            //     page,
-            //     '#incidentTimeline tr.incidentListItem'
-            // );
-            // countIncidentTimelines = incidentTimelineRows.length;
-            // expect(countIncidentTimelines).toEqual(5);
-
-            // await init.page$Eval(page, '#btnTimelinePrev', e => e.click());
-            // await init.pageWaitForSelector(page, '.ball-beat', {
-            //     visible: true,
-            //     timeout: init.timeout,
-            // });
-            // await init.pageWaitForSelector(page, '.ball-beat', {
-            //     hidden: true,
-            // });
-            // incidentTimelineRows = await init.page$$(
-            //     page,
-            //     '#incidentTimeline tr.incidentListItem'
-            // );
-            // countIncidentTimelines = incidentTimelineRows.length;
-            // expect(countIncidentTimelines).toEqual(10);
-            // await init.logout(page);
+            /**Incident Timeline is no longer among the tabs */            
         },
         operationTimeOut
     );
@@ -462,14 +388,17 @@ describe('Incident API With SubProjects', () => {
            
             await init.pageClick(page,`#createIncident_${projectMonitorName1}`);
             await init.pageClick(page, `#createIncident`);
-
+            
             await init.pageWaitForSelector(page, 'tr.incidentListItem', {
                 visible: true,
                 timeout: init.timeout,
             });
-            const incidentRows = await init.page$$(page, 'tr.incidentListItem');
-            const countIncidents = incidentRows.length;
-            expect(countIncidents).toEqual(2);            
+            await page.reload({waitUntil: 'networkidle2'});
+            
+            let countIncidents = await init.pageWaitForSelector(page, '#numberOfIncidents');
+            countIncidents = await countIncidents.getProperty('innerText');
+            countIncidents = await countIncidents.jsonValue();
+            expect(countIncidents).toEqual("2");            
         },
         operationTimeOut
     );
