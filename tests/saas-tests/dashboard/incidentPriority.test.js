@@ -151,7 +151,7 @@ describe('Incident Priority API', () => {
             await init.pageWaitForSelector(page, editButtonLastRowIndentifier);
             await init.pageClick(page, editButtonLastRowIndentifier);
             await init.pageWaitForSelector(page, '#EditIncidentPriority');
-            await init.pageClick(page, 'input[name=name]', {clickCount:3});
+            await init.pageClick(page, 'input[name=name]', { clickCount: 3 });
             await page.keyboard.press('Backspace');
             await init.pageType(page, 'input[name=name]', newPriorityName);
             await init.pageClick(page, '#EditIncidentPriority');

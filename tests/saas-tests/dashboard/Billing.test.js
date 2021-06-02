@@ -285,8 +285,7 @@ describe('Member Restriction', () => {
 
     test(
         'should show unauthorised modal when a team member who is not an admin or owner of the project tries to update alert option',
-        async done => {            
-
+        async done => {
             await init.registerAndLoggingTeamMember(
                 { email: teamEmail, password },
                 page
