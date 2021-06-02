@@ -142,7 +142,7 @@ describe('Incoming HTTP Request', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#name', {clickCount : 3});
+            await init.pageClick(page, '#name', { clickCount: 3 });
             // change the name of the incoming http request
             await init.pageType(page, '#name', 'newName');
             await init.pageClick(page, '#editIncomingRequest');
