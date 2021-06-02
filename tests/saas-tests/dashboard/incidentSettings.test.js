@@ -3,7 +3,7 @@ const utils = require('../../test-utils');
 const init = require('../../test-init');
 const {
     incidentDefaultSettings,
-} = require('../../../../backend/backend/config/incidentDefaultSettings');
+} = require('../../../backend/backend/config/incidentDefaultSettings');
 require('should');
 let browser, page;
 // user credentials
@@ -125,7 +125,7 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#incidentSettings');
             await init.pageWaitForSelector(page, 'input[name=title]');
             await init.selectDropdownValue('#incidentPriority', 'low', page);
-            await init.pageClick(page, 'input[name=title]');
+            await init.pageClick(page, 'input[name=title]', {clickCount: 3});
             await page.keyboard.press('Backspace');
             await init.pageType(
                 page,
@@ -181,9 +181,7 @@ describe('Incident Settings API', () => {
                 monitorName,
                 page
             );
-            await page.reload({
-                waitUntil: 'networkidle0',
-            });
+            
             await init.pageWaitForSelector(
                 page,
                 `#monitorCreateIncident_${monitorName}`
@@ -339,14 +337,14 @@ describe('Incident Settings API', () => {
 
             let newDefaultPriority = await init.pageWaitForSelector(
                 page,
-                `span#priorityDefault_${customPriority}_1_default`,
+                `span#priority_${customPriority}_1_default`,
                 { visible: true, timeout: init.timeout }
             );
             newDefaultPriority = await newDefaultPriority.getProperty(
                 'innerText'
             );
             newDefaultPriority = await newDefaultPriority.jsonValue();
-            expect(newDefaultPriority).toMatch('Default');
+            expect(newDefaultPriority).toMatch('DEFAULT');
 
             done();
         },
