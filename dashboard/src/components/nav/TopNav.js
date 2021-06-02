@@ -252,7 +252,7 @@ class TopContent extends Component {
                 ? `url(${API_URL}/file/${this.props.profilePic})`
                 : 'url(https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y)';
         const userId = User.getUserId();
-        const isViewer =
+        const isNotViewer =
             this.props.currentProject &&
             !isSubProjectViewer(userId, this.props.currentProject);
         let count = 0;
@@ -407,11 +407,11 @@ class TopContent extends Component {
                     zIndex: '2',
                     width: '100%',
                     display: 'flex',
-                    justifyContent: !isViewer ? 'flex-end' : 'space-between',
+                    justifyContent: isNotViewer ? 'space-between' : 'flex-end',
                 }}
                 className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20 db-Topnav-wrap"
             >
-                <ShouldRender if={isViewer}>
+                <ShouldRender if={isNotViewer}>
                     <div className="db-Search-wrapper">
                         <Search />
                     </div>
@@ -449,7 +449,7 @@ class TopContent extends Component {
                                         if={
                                             activeSchedules &&
                                             activeSchedules.length > 0 &&
-                                            isViewer
+                                            isNotViewer
                                         }
                                     >
                                         {this.renderOnCallSchedule(
@@ -464,13 +464,13 @@ class TopContent extends Component {
                                 ''
                             )}
 
-                            {isViewer &&
+                            {isNotViewer &&
                                 this.renderActiveIncidents(
                                     incidentCounter,
                                     topNavCardClass
                                 )}
 
-                            {isViewer &&
+                            {isNotViewer &&
                                 this.renderOngoingScheduledEvents(
                                     topNavCardClass
                                 )}
@@ -529,7 +529,7 @@ class TopContent extends Component {
                                 </div>
                             </div>
 
-                            <ShouldRender if={isViewer}>
+                            <ShouldRender if={isNotViewer}>
                                 <div className="Box-root Flex-flex">
                                     <div
                                         tabIndex="-1"
