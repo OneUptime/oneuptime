@@ -390,6 +390,9 @@ module.exports = {
                     role: role,
                 });
             }
+            const existingUsers = await _this.getTeamMembersBy({
+                parentProjectId: project._id,
+            });
 
             if (subProject) {
                 members = members.concat(subProject.users);
@@ -426,6 +429,14 @@ module.exports = {
             let projectSeats = project.seats;
             if (typeof projectSeats === 'string') {
                 projectSeats = parseInt(projectSeats);
+            }
+            for (const email of emails) {
+                const user = existingUsers.find(
+                    data => String(data.email) === String(email)
+                );
+                if (user) {
+                    extraUsersToAdd = extraUsersToAdd - 1;
+                }
             }
             let newProjectSeats = projectSeats;
 
@@ -487,7 +498,7 @@ module.exports = {
         const _this = this;
         let index;
         let subProject = null;
-        let role = null;
+
         if (userId === teamMemberUserId) {
             const error = new Error('Admin User cannot delete himself');
             error.code = 400;
@@ -530,28 +541,18 @@ module.exports = {
                 throw error;
             } else {
                 if (subProject) {
-                    const checkTeamMember = subProject.users.find(
-                        user => user.userId === teamMemberUserId
-                    );
-                    role = checkTeamMember.role;
                     // removes team member from subProject
                     await ProjectService.exitProject(
                         subProject._id,
                         teamMemberUserId,
-                        userId,
-                        role
+                        userId
                     );
                 } else {
-                    const checkTeamMember = project.users.find(
-                        user => user.userId === teamMemberUserId
-                    );
-                    role = checkTeamMember.role;
                     // removes team member from project
                     await ProjectService.exitProject(
                         project._id,
                         teamMemberUserId,
-                        userId,
-                        role
+                        userId
                     );
                     // remove user from all subProjects.
                     const subProjects = await ProjectService.findBy({
@@ -563,8 +564,7 @@ module.exports = {
                                 await ProjectService.exitProject(
                                     subProject._id,
                                     teamMemberUserId,
-                                    userId,
-                                    role
+                                    userId
                                 );
                             })
                         );
@@ -658,6 +658,7 @@ module.exports = {
             const nextRole = role;
             let index;
             let subProject = null;
+            let subProjects = null;
             let project = await ProjectService.findOneBy({ _id: projectId });
 
             if (project.parentProjectId) {
@@ -675,6 +676,18 @@ module.exports = {
                     user => user.userId === teamMemberUserId
                 );
             }
+
+            subProjects = await ProjectService.findBy({
+                parentProjectId: project._id,
+            });
+            const prevTeams = subProjects.concat(project).map(res => res.users);
+            const prevFlatTeams = flatten(prevTeams);
+            const prevTeamArr = prevFlatTeams.filter(
+                user => String(user.userId) === String(teamMemberUserId)
+            );
+            const checkPrevViewer = prevTeamArr.every(
+                data => data.role === 'Viewer'
+            );
 
             // Checks if user to be updated is present in the project.
             if (index === -1) {
@@ -710,9 +723,7 @@ module.exports = {
                         // save project
                         project = await ProjectService.saveProject(project);
                         // update user role for all subProjects.
-                        const subProjects = await ProjectService.findBy({
-                            parentProjectId: project._id,
-                        });
+
                         await Promise.all(
                             subProjects.map(async subProject => {
                                 index = subProject.users.findIndex(
@@ -781,6 +792,32 @@ module.exports = {
                         teamMembers: team,
                         projectId,
                     });
+                    const teams = response.map(res => res.team);
+                    const flatTeams = flatten(teams);
+                    const teamArr = flatTeams.filter(
+                        team => String(team.userId) === String(teamMemberUserId)
+                    );
+                    const checkCurrentViewer = teamArr.every(
+                        data => data.role === 'Viewer'
+                    );
+                    let projectSeats = project.seats;
+
+                    if (typeof projectSeats === 'string') {
+                        projectSeats = parseInt(projectSeats);
+                    }
+                    if (nextRole === 'Viewer' && checkCurrentViewer) {
+                        projectSeats = projectSeats - 1;
+                    } else if (previousRole === 'Viewer' && checkPrevViewer) {
+                        projectSeats = projectSeats + 1;
+                    }
+                    await PaymentService.changeSeats(
+                        project.stripeSubscriptionId,
+                        projectSeats
+                    );
+                    await ProjectService.updateOneBy(
+                        { _id: project._id },
+                        { seats: projectSeats.toString() }
+                    );
                     return response;
                 }
             }
@@ -803,3 +840,4 @@ const VerificationTokenModel = require('../models/verificationToken');
 const crypto = require('crypto');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const { emaildomains } = require('../config/emaildomains');
+const flatten = require('../utils/flattenArray');
