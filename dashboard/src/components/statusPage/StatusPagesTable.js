@@ -42,6 +42,15 @@ class StatusPagesTable extends Component {
             );
         }
     }
+
+    componentDidUpdate() {
+        if (!this.state[this.props.projectId]) {
+            this.props.subProjectStatusPages.forEach(proj => {
+                this.setState({ [proj._id]: 1 });
+            });
+        }
+    }
+
     switchStatusPages = (statusPage, path) => {
         this.props.switchStatusPage(statusPage);
         history.push(path);
