@@ -1042,6 +1042,7 @@ export default function incident(state = initialState, action) {
                         incident => {
                             if (
                                 action.payload &&
+                                incident.monitorId &&
                                 incident.monitorId._id === action.payload._id
                             ) {
                                 return {
