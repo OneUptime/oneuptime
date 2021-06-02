@@ -225,8 +225,7 @@ describe('Incident API With SubProjects', () => {
     test(
         'should resolve incident in sub-project for sub-project `member`',
         async () => {            
-            await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle2' });
-            // await init.navigateToComponentDetails(componentName, page);
+            await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle2' });            
             // resolve incident
             await init.pageWaitForSelector(page, '#btnResolve_0', {
                 visible: true,
