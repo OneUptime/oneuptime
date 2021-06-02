@@ -458,33 +458,39 @@ module.exports = {
         }
     },
 
-    uniqueSubMember: async function({ flat, details }) {
+    getUniqueMembersIndividualProject: async function({
+        isFlatenArr,
+        members,
+    }) {
         try {
             let result = [];
-            if (!flat) {
-                for (const arr of details) {
+            if (!isFlatenArr) {
+                for (const member of members) {
                     const track = {},
                         data = [];
-                    for (const a of arr) {
-                        if (!track[a.userId]) {
-                            track[a.userId] = a.userId;
-                            data.push(a);
+                    for (const user of member) {
+                        if (!track[user.userId]) {
+                            track[user.userId] = user.userId;
+                            data.push(user);
                         }
                     }
                     result = [...result, data];
                 }
             } else {
                 const track = {};
-                for (const a of details) {
-                    if (!track[a.userId]) {
-                        track[a.userId] = a.userId;
-                        result.push(a);
+                for (const member of members) {
+                    if (!track[member.userId]) {
+                        track[member.userId] = member.userId;
+                        result.push(member);
                     }
                 }
             }
             return result;
         } catch (error) {
-            ErrorService.log('projectService.uniqueSubMember', error);
+            ErrorService.log(
+                'projectService.getUniqueMembersIndividualProject',
+                error
+            );
             throw error;
         }
     },
@@ -514,24 +520,29 @@ module.exports = {
             subProjects = await _this.findBy({
                 parentProjectId: project?._id,
             });
-            const con = subProjects.concat(project);
-            let sub = subProjects.map(user => user.users);
-            sub = await _this.uniqueSubMember({ details: sub, flat: false });
-            const pro = await _this.uniqueSubMember({
-                details: project?.users || [],
-                flat: true,
+            const allMembers = subProjects.concat(project);
+            let subMembers = subProjects.map(user => user.users);
+            subMembers = await _this.getUniqueMembersIndividualProject({
+                members: subMembers,
+                isFlatenArr: false,
             });
-            const flatSub = flattenArray(sub);
-            const teams = flatSub.concat(pro);
+            const projectMembers = await _this.getUniqueMembersIndividualProject(
+                {
+                    members: project?.users || [],
+                    isFlatenArr: true,
+                }
+            );
+            const flatSubMembers = flattenArray(subMembers);
+            const teams = flatSubMembers.concat(projectMembers);
             const filteredTeam = teams.filter(
                 user =>
                     String(user.userId) === String(userId) &&
                     String(user._id) !== String(teamMember?._id)
             );
-            const filteredTeam2 = teams.filter(
+            const teamByUserId = teams.filter(
                 user => String(user.userId) === String(userId)
             );
-            const check = filteredTeam.every(data => data.role === 'Viewer');
+            const isViewer = filteredTeam.every(data => data.role === 'Viewer');
             if (project) {
                 const users = subProject ? subProject.users : project.users;
                 projectId = subProject ? subProject._id : project._id;
@@ -591,15 +602,17 @@ module.exports = {
                             // check if project seat after reduction still caters for monitors.
                         }
                     }
-                    if (con[con.length - 1]._id === projectId) {
+                    const confirmParentProject =
+                        allMembers[allMembers.length - 1]._id === projectId;
+                    if (confirmParentProject) {
                         if (
-                            !filteredTeam2.every(data => data.role === 'Viewer')
+                            !teamByUserId.every(data => data.role === 'Viewer')
                         ) {
                             projectSeats = projectSeats - 1;
                             _this.updateSeatDetails(project, projectSeats);
                             return;
                         }
-                    } else if (teamMember.role !== 'Viewer' && check) {
+                    } else if (teamMember.role !== 'Viewer' && isViewer) {
                         projectSeats = projectSeats - 1;
                         _this.updateSeatDetails(project, projectSeats);
                         return;
