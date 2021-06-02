@@ -375,7 +375,9 @@ describe('Incident API With SubProjects', () => {
                 { visible: true, timeout: init.timeout }
             );
             expect(maxInternalMessages).toBeDefined();
-            /**Incident Timeline is no longer among the tabs */            
+            /**Incident Timeline is no longer among the tabs 
+             * The UI has been refactored
+             */            
         },
         operationTimeOut
     );
