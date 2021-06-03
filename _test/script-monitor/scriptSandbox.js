@@ -38,6 +38,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
     if (isMainThread) {
         // modifiable option in development mode only
         const { maxScriptRunTime, maxSyncStatementDuration } = options;
+
         if (!isCalled) return;
         const start = performance.now();
         return new Promise(resolve => {
@@ -49,21 +50,27 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                 ], // handle promise rejection warnings
             });
 
+            const consoleLogs = [];
             let lastMessage = null;
 
-            worker.on('message', msg => {
-                switch (msg) {
+            worker.on('message', ({type, payload}) => {
+                switch (type) {
                     case 'ping': {
                         lastMessage = Date.now();
                         break;
                     }
+                    case 'log':{
+                        consoleLogs.push(payload);
+                        break;
+                    }
                     default: {
-                        if (msg.error) {
+                        if (type.error) {
                             resolve({
                                 success: false,
-                                error: msg.error,
+                                error: type.error,
                                 status: 'error',
                                 executionTime: performance.now() - start,
+                                consoleLogs,
                             });
                         }
                         break;
@@ -80,6 +87,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                             success: true,
                             status: 'completed',
                             executionTime: performance.now() - start,
+                            consoleLogs,
                         });
                         break;
                     case 1: {
@@ -93,6 +101,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                             message,
                             status: 'timeout',
                             executionTime: performance.now() - start,
+                            consoleLogs,
                         });
                         break;
                     }
@@ -102,6 +111,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                             message: 'Unknown Error: script terminated',
                             status: 'terminated',
                             executionTime: performance.now() - start,
+                            consoleLogs,
                         });
                         break;
                 }
@@ -116,6 +126,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                         errors: err.errors,
                         status: 'cbError',
                         executionTime: performance.now() - start,
+                        consoleLogs,
                     });
                     return;
                 }
@@ -125,6 +136,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                     message: err.message,
                     status: 'error',
                     executionTime: performance.now() - start,
+                    consoleLogs,
                 });
                 clearInterval(checker);
                 worker.terminate();
@@ -167,7 +179,19 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                 external: availableImports,
                 import: availableImports,
             },
-            console: 'inherit',
+            console: 'redirect',
+        });
+
+        vm.on('console.log', (log) => {
+            parentPort.postMessage({type: 'log', payload: `[log]: ${log}`});
+        });
+
+        vm.on('console.error', (error) => {
+            parentPort.postMessage({type: 'log', payload: `[error]: ${error}`});
+        });
+
+        vm.on('console.warn', (error) => {
+            parentPort.postMessage({type: 'log', payload: `[warn]: ${error}`});
         });
 
         const scriptCompletedCallback = err => {
@@ -177,7 +201,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
         };
 
         const code = workerData.functionCode;
-        setInterval(() => parentPort.postMessage('ping'), 500);
+        setInterval(() => parentPort.postMessage({type: 'ping'}), 500);
         const sandboxFunction = await vm.run(
             `module.exports = ${code}`,
             join(process.cwd(), 'node_modules')

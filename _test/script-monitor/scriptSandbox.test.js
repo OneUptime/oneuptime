@@ -27,6 +27,8 @@ describe('ScriptMonitor V2', function() {
 
         const res = await axios.get("http://localhost:5050/test");
         // const res = await request.get("http://localhost:5050/test");
+        console.log("hello");
+        console.log("world!");
         
         done();
       }
@@ -37,11 +39,17 @@ describe('ScriptMonitor V2', function() {
       expect(result.status).eq("completed");
       expect(result.executionTime).to.be.a('number');
       console.log(result.executionTime);
+      
+      expect(result.consoleLogs.length).eql(2);
+      expect(result.consoleLogs).to.include('[log]: hello');
+      expect(result.consoleLogs).to.include('[log]: world!');
 
     });
 
     it("should return false for error thrown in script", async function() {
       const someFunction = async (done) => {
+        console.log('Error log');
+        console.error('Bad Error');
         throw new Error("Bad error");
       }
       const result = await runScript(someFunction.toString(), true);
@@ -50,7 +58,12 @@ describe('ScriptMonitor V2', function() {
       expect(result.success).to.be.false;
       expect(result.status).eq("error");
       expect(result.executionTime).to.be.a('number');
+      
       console.log(result.executionTime);
+
+      expect(result.consoleLogs.length).eql(2);
+      expect(result.consoleLogs).to.include('[error]: Bad Error');
+      expect(result.consoleLogs).to.include('[log]: Error log');
     });
 
     it("should return scriptMonitor error when script returns a value in cb", async function() {
