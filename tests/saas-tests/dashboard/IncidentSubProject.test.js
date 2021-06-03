@@ -391,7 +391,7 @@ describe('Incident API With SubProjects', () => {
             await init.pageClick(page,`#createIncident_${projectMonitorName1}`);
             await init.pageClick(page, `#createIncident`);
             
-            await init.pageWaitForSelector(page, 'tr.incidentListItem', {
+            await init.pageWaitForSelector(page, 'tr.createdIncidentListItem', {
                 visible: true,
                 timeout: init.timeout,
             });
