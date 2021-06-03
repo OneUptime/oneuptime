@@ -205,7 +205,7 @@ export class IncidentList extends Component {
                                                     : 'Unknown Monitor'
                                             }_${i}`}
                                             key={incident._id}
-                                            className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
+                                            className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink createdIncidentListItem"
                                             onClick={() => {
                                                 setTimeout(() => {
                                                     history.push(

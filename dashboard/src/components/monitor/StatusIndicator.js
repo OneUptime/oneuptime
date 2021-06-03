@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 function StatusIndicator({ status, resourceName, monitorName }) {
     // When resource Name is passed, it renders the status with the same color
     let statusColor, content;
-    switch (status) {
+    switch (status.toLowerCase()) {
         case 'online':
             statusColor = 'green';
             break;
@@ -41,7 +41,7 @@ function StatusIndicator({ status, resourceName, monitorName }) {
         : (content = (
               <div
                   className={`db-Badge Box-background--${statusColor}`}
-                  id={`${monitorName}-${status}`}
+                  id={`${monitorName}-${status.toLowerCase()}`}
               ></div>
           ));
 
