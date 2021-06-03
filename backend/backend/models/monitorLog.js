@@ -28,5 +28,11 @@ const monitorLogSchema = new Schema({
     },
     sslCertificate: Object,
     kubernetesLog: Object,
+    scriptMetadata: {
+        executionTime: Number,
+        consoleLogs: [String],
+        error: String,
+        statusText: String,
+    },
 });
 module.exports = mongoose.model('MonitorLog', monitorLogSchema);

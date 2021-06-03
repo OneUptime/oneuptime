@@ -352,10 +352,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 } = await (monitor &&
                 monitor.criteria &&
                 monitor.criteria.degraded
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.degraded,
-                          data
+                    ? ProbeService.scriptConditions(
+                          resp,
+                          monitor.criteria.degraded
                       )
                     : { stat: false, successReasons: [], failedReasons: [] });
 
@@ -571,6 +570,15 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                         );
                     }
                 }
+            }
+
+            if (type === 'script') {
+                data.scriptMetadata = {
+                    executionTime: resp.executionTime,
+                    consoleLogs: resp.consoleLogs,
+                    error: resp.error,
+                    statusText: resp.statusText,
+                };
             }
 
             data.matchedCriterion = matchedCriterion;
