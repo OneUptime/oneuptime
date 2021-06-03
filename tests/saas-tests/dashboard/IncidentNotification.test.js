@@ -610,7 +610,7 @@ describe('Incident Created test', () => {
     //     'Should open modal for unresolved incident when close button is clicked',
     //     async () => {
     //
-    //             await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+    //             await page.goto(utils.DASHBOARD_URL);
     //             await init.pageWaitForSelector(page, '#closeIncident_0', {
     //                 visible: true,
     //             });
