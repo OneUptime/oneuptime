@@ -53,7 +53,7 @@ describe('Stripe cards API', () => {
             );
             const frame = await stripeIframe.contentFrame();
             frame.waitForSelector('input[name=cardnumber]');
-            await frame.type('input[name=cardnumber]', '5555555555554444', { //Similar cards number are rejected
+            await frame.type('input[name=cardnumber]', '5555555555554444', { // 4242... has been used during account reg. Similar cards number are rejected
                 delay: 200,
             });
             frame.waitForSelector('input[name=exp-date]');
@@ -158,7 +158,7 @@ describe('Stripe cards API', () => {
 
             const frame = await stripeIframe.contentFrame();
             frame.waitForSelector('input[name=cardnumber]');
-            await frame.type('input[name=cardnumber]', '42444242424242424242', {
+            await frame.type('input[name=cardnumber]', '42444242424242424242', { // This is a proper invalid card
                 delay: 200,
             });
             frame.waitForSelector('input[name=exp-date]');
