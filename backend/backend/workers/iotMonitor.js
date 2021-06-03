@@ -57,10 +57,10 @@ const job = async (monitor, res) => {
                 manuallyCreated: false,
             });
             if (!incident1.length) {
-                incident1 = await IncidentService.createIncident(
-                    { monitorId: monitor._id, projectId: monitor.projectId },
-                    null
-                );
+                incident1 = await IncidentService.create({
+                    monitors: [monitor._id],
+                    projectId: monitor.projectId,
+                });
                 await ZapierService.pushToZapier('incident_created', incident1);
             }
         }

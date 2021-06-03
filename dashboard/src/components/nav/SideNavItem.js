@@ -144,6 +144,10 @@ export class SidebarNavItem extends Component {
             ) &&
                 route.title === 'Incident Log') ||
             (location.pathname.match(
+                /project\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
+            ) &&
+                route.title === 'Incidents') ||
+            (location.pathname.match(
                 /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/application-log/
             ) &&
                 route.title === 'Logs') ||
@@ -203,6 +207,10 @@ export class SidebarNavItem extends Component {
                           /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
                       ) &&
                           link.title === 'Incident') ||
+                      (location.pathname.match(
+                          /project\/([A-Za-z0-9-]+)\/incidents\/([0-9]+)/
+                      ) &&
+                          link.title === 'Incident detail') ||
                       (location.pathname.match(
                           /project\/([A-Za-z0-9-]+)\/component\/([A-Za-z0-9-]+)\/security\/container/
                       ) &&
@@ -377,6 +385,7 @@ export class SidebarNavItem extends Component {
             const removedLinks = [
                 'Schedule',
                 'Incident',
+                'Incident detail',
                 'Monitor View',
                 'Website Issues',
                 'Component View',

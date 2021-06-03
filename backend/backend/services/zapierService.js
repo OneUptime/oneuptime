@@ -64,16 +64,21 @@ module.exports = {
                     resolved: false,
                 };
                 const incidents = await IncidentService.findBy(findquery);
-                await Promise.all(
-                    incidents.map(async incident => {
+                for (const incident of incidents) {
+                    const monitors = incident.monitors.map(
+                        monitor => monitor.monitorId
+                    );
+                    for (const monitor of monitors) {
                         zapierResponseArray.push(
                             await _this.mapIncidentToResponse(
                                 incident,
-                                zapierResponse
+                                zapierResponse,
+                                null,
+                                monitor
                             )
                         );
-                    })
-                );
+                    }
+                }
 
                 return zapierResponseArray;
             } else {
@@ -110,7 +115,7 @@ module.exports = {
                     incidentMessages.map(async incidentNote => {
                         zapierResponseArray.push(
                             await _this.mapIncidentToResponse(
-                                '',
+                                null,
                                 zapierResponse,
                                 incidentNote
                             )
@@ -175,16 +180,21 @@ module.exports = {
                     resolved: false,
                 };
                 const incidents = await IncidentService.findBy(findquery);
-                await Promise.all(
-                    incidents.map(async incident => {
+                for (const incident of incidents) {
+                    const monitors = incident.monitors.map(
+                        monitor => monitor.monitorId
+                    );
+                    for (const monitor of monitors) {
                         zapierResponseArray.push(
                             await _this.mapIncidentToResponse(
                                 incident,
-                                zapierResponse
+                                zapierResponse,
+                                null,
+                                monitor
                             )
                         );
-                    })
-                );
+                    }
+                }
 
                 return zapierResponseArray;
             } else {
@@ -215,17 +225,21 @@ module.exports = {
                     resolved: true,
                 };
                 const incidents = await IncidentService.findBy(findquery);
-
-                await Promise.all(
-                    incidents.map(async incident => {
+                for (const incident of incidents) {
+                    const monitors = incident.monitors.map(
+                        monitor => monitor.monitorId
+                    );
+                    for (const monitor of monitors) {
                         zapierResponseArray.push(
                             await _this.mapIncidentToResponse(
                                 incident,
-                                zapierResponse
+                                zapierResponse,
+                                null,
+                                monitor
                             )
                         );
-                    })
-                );
+                    }
+                }
 
                 return zapierResponseArray;
             } else {
@@ -247,7 +261,7 @@ module.exports = {
                 });
                 let incident = new IncidentModel();
                 incident.projectId = monitorObj.projectId._id;
-                incident.monitorId = monitorObj._id;
+                incident.monitors = [{ monitorId: monitorObj._id }];
                 incident.createdByZapier = true;
                 incident = await incident.save();
 
@@ -289,7 +303,7 @@ module.exports = {
         await Promise.all(
             monitors.map(async monitor => {
                 let lastIncident = await IncidentService.findOneBy({
-                    monitorId: monitor,
+                    'monitors.monitorId': monitor,
                     acknowledged: false,
                 });
                 lastIncident = await IncidentService.acknowledge(
@@ -325,7 +339,7 @@ module.exports = {
         await Promise.all(
             monitors.map(async monitor => {
                 let incidents = await IncidentService.findBy({
-                    monitorId: monitor,
+                    'monitors.monitorId': monitor,
                     acknowledged: false,
                 });
                 incidents = await Promise.all(
@@ -397,7 +411,7 @@ module.exports = {
         await Promise.all(
             monitors.map(async monitor => {
                 let lastIncident = await IncidentService.findOneBy({
-                    monitorId: monitor,
+                    'monitors.monitorId': monitor,
                     resolved: false,
                 });
                 lastIncident = await IncidentService.resolve(
@@ -433,7 +447,7 @@ module.exports = {
         await Promise.all(
             monitors.map(async monitor => {
                 let incidents = await IncidentService.findBy({
-                    monitorId: monitor,
+                    'monitors.monitorId': monitor,
                     resolved: false,
                 });
                 incidents = await Promise.all(
@@ -499,7 +513,12 @@ module.exports = {
         return zapierResponse;
     },
 
-    mapIncidentToResponse: async function(incident, incidentObj, incidentNote) {
+    mapIncidentToResponse: async function(
+        incident,
+        incidentObj,
+        incidentNote,
+        monitor
+    ) {
         try {
             if (incidentNote) {
                 incidentObj.content = incidentNote.content;
@@ -536,9 +555,9 @@ module.exports = {
                     incidentObj.createdById = incident.createdById
                         ? incident.createdById.name
                         : 'Fyipe';
-                    const monitor = await MonitorService.findOneBy({
-                        _id: incident.monitorId,
-                    });
+                    // const monitor = await MonitorService.findOneBy({
+                    //     _id: incident.monitorId,
+                    // });
                     incidentObj.monitorName = monitor.name;
                     incidentObj.monitorType = monitor.type;
                     incidentObj.monitorData = monitor.data[monitor.type];
@@ -597,35 +616,45 @@ module.exports = {
                     _id: project.parentProjectId._id,
                 });
             }
+            const monitorIds = incident.monitors.map(
+                monitor => monitor.monitorId._id
+            );
             const zap = await _this.findBy({
                 projectId: project._id,
                 type: type,
-                $or: [{ monitors: incident.monitorId._id }, { monitors: [] }],
+                // $or: [{ monitors: incident.monitorId._id }, { monitors: [] }],
+                $or: [{ monitors: { $all: monitorIds } }, { monitors: [] }],
             });
 
             if (zap && zap.length) {
-                zap.map(async z => {
+                for (const z of zap) {
                     let zapierResponse = {};
                     if (project) {
                         zapierResponse.projectName = project.name;
                         zapierResponse.projectId = project._id;
                         if (incident) {
-                            zapierResponse = await _this.mapIncidentToResponse(
-                                incident,
-                                zapierResponse,
-                                incidentNote
+                            const monitors = incident.monitors.map(
+                                monitor => monitor.monitorId
                             );
-                            axios({
-                                method: 'POST',
-                                url: z.url,
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                data: JSON.stringify([zapierResponse]),
-                            });
+                            for (const monitor of monitors) {
+                                zapierResponse = await _this.mapIncidentToResponse(
+                                    incident,
+                                    zapierResponse,
+                                    incidentNote,
+                                    monitor
+                                );
+                                axios({
+                                    method: 'POST',
+                                    url: z.url,
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    data: JSON.stringify([zapierResponse]),
+                                });
+                            }
                         }
                     }
-                });
+                }
             }
         } catch (error) {
             ErrorService.log('ZapierService.pushToZapier', error);

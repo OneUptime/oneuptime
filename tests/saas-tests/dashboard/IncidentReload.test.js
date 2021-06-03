@@ -82,11 +82,11 @@ describe('Fyipe Monitor Reload', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#incidentLog');
-            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`, {
+            await init.pageWaitForSelector(page, `#incident_0`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, `#incident_${monitorName}_0`);
+            await init.pageClick(page, `#incident_0`);
             await init.pageWaitForSelector(page, '#incident_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -127,11 +127,11 @@ describe('Fyipe Monitor Reload', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#incidents');
-            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`, {
+            await init.pageWaitForSelector(page, `#incident_0`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, `#incident_${monitorName}_0`);
+            await init.pageClick(page, `#incident_0`);
             await init.pageWaitForSelector(page, '#incident_0', {
                 visible: true,
                 timeout: init.timeout,

@@ -191,10 +191,10 @@ describe('Incident Alerts', function () {
       );
 
       const incidentCreationEndpointResponse = await request
-        .post(`/incident/${projectId}/${monitorId}`)
+        .post(`/incident/${projectId}/create-incident`)
         .set('Authorization', authorization)
         .send({
-          monitorId,
+          monitors: [monitorId],
           projectId,
           title: "test monitor  is offline.",
           incidentType: "offline",
@@ -276,10 +276,10 @@ describe('Incident Alerts', function () {
       );
 
       const incidentCreationEndpointResponse = await request
-        .post(`/incident/${projectId}/${monitorId}`)
+        .post(`/incident/${projectId}/create-incident`)
         .set('Authorization', authorization)
         .send({
-          monitorId,
+          monitors: [monitorId],
           projectId,
           title: "test monitor  is offline.",
           incidentType: "offline",
@@ -369,10 +369,10 @@ describe('Incident Alerts', function () {
       );
 
       const incidentCreationEndpointResponse = await request
-        .post(`/incident/${projectId}/${monitorId}`)
+        .post(`/incident/${projectId}/create-incident`)
         .set('Authorization', authorization)
         .send({
-          monitorId,
+          monitors: [monitorId],
           projectId,
           title: "test monitor  is offline.",
           incidentType: "offline",
@@ -474,10 +474,10 @@ describe('Incident Alerts', function () {
       expect(customTwilioSettingResponse).to.have.status(200);
 
       const incidentCreationEndpointResponse = await request
-        .post(`/incident/${projectId}/${monitorId}`)
+        .post(`/incident/${projectId}/create-incident`)
         .set('Authorization', authorization)
         .send({
-          monitorId,
+          monitors: [monitorId],
           projectId,
           title: "test monitor  is offline.",
           incidentType: "offline",
@@ -565,10 +565,10 @@ describe('Incident Alerts', function () {
       }
   
       const incidentCreationEndpointResponse = await request
-        .post(`/incident/${projectId}/${monitorId}`)
+        .post(`/incident/${projectId}/create-incident`)
         .set('Authorization', authorization)
         .send({
-          monitorId,
+          monitors: [monitorId],
           projectId,
           title: "test monitor  is offline.",
           incidentType: "offline",

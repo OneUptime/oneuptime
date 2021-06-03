@@ -12,7 +12,9 @@ module.exports = {
 
             incidentMessage = await incidentMessage.save();
 
-            IncidentService.refreshInterval(data.incidentId);
+            if (!data.ignoreCounter) {
+                await IncidentService.refreshInterval(data.incidentId);
+            }
 
             incidentMessage = await this.findOneBy({
                 _id: incidentMessage._id,

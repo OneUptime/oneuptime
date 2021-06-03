@@ -412,13 +412,8 @@ describe('Incident Created test', () => {
             await init.page$Eval(page, '#incidents', e => e.click());
 
             // Acknowledge the second incident
-            await init.pageWaitForSelector(
-                page,
-                `tr#incident_${monitorName}_1`
-            );
-            await init.page$Eval(page, `tr#incident_${monitorName}_1`, e =>
-                e.click()
-            );
+            await init.pageWaitForSelector(page, `tr#incident_1`);
+            await init.page$Eval(page, `tr#incident_1`, e => e.click());
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await init.page$Eval(page, '#btnAcknowledge_0', e => e.click());
 
@@ -428,13 +423,8 @@ describe('Incident Created test', () => {
             await init.page$Eval(page, '#incidents', e => e.click());
 
             // Acknowledge the third incident
-            await init.pageWaitForSelector(
-                page,
-                `tr#incident_${monitorName}_2`
-            );
-            await init.page$Eval(page, `tr#incident_${monitorName}_2`, e =>
-                e.click()
-            );
+            await init.pageWaitForSelector(page, `tr#incident_2`);
+            await init.page$Eval(page, `tr#incident_2`, e => e.click());
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await init.page$Eval(page, '#btnAcknowledge_0', e => e.click());
 

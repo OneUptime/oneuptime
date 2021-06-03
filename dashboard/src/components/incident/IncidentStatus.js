@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { withRouter } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import {
@@ -162,7 +163,7 @@ export class IncidentStatus extends Component {
                 this.setState({ resolveLoad: false });
                 this.props.markAsRead(
                     projectId,
-                    this.props.incident.notificationId
+                    this.props.incident.notifications
                 );
                 if (setLoading) {
                     setLoading(false);
@@ -204,7 +205,7 @@ export class IncidentStatus extends Component {
                 }
                 this.props.markAsRead(
                     projectId,
-                    this.props.incident.notificationId
+                    this.props.incident.notifications
                 );
                 this.props.getIncidentTimeline(
                     this.props.currentProject._id,
@@ -245,36 +246,61 @@ export class IncidentStatus extends Component {
     };
 
     getOnCallTeamMembers = () => {
-        const monitorId =
-            (this.props.multiple &&
-                this.props.incident &&
-                this.props.incident.monitorId) ||
-            (this.props.incident && this.props.incident.monitorId)
-                ? this.props.incident.monitorId._id
-                : '';
-        let escalation = this.props.escalations
+        const monitors = this.props.incident.monitors.map(
+            monitor => monitor.monitorId
+        );
+        const escalationArray = [];
+
+        const escalation = this.props.escalations
             ? this.props.escalations.find(
                   escalation =>
                       escalation.scheduleId && escalation.scheduleId.isDefault
               )
             : null;
+        escalation && escalationArray.push(escalation);
+
         if (!escalation) {
-            escalation = this.props.escalations
-                ? this.props.escalations.find(
-                      escalation =>
-                          escalation.scheduleId &&
-                          escalation.scheduleId.monitorIds &&
-                          escalation.scheduleId.monitorIds.length > 0 &&
-                          escalation.scheduleId.monitorIds.some(
-                              monitor => monitor._id === monitorId
-                          )
-                  )
-                : null;
+            for (const monitorObj of monitors) {
+                const foundEscalation = this.props.escalations
+                    ? this.props.escalations.find(
+                          escalation =>
+                              escalation.scheduleId &&
+                              escalation.scheduleId.monitorIds &&
+                              escalation.scheduleId.monitorIds.length > 0 &&
+                              escalation.scheduleId.monitorIds.some(
+                                  monitor => monitor._id === monitorObj._id
+                              )
+                      )
+                    : null;
+                foundEscalation && escalationArray.push(foundEscalation);
+            }
         }
 
-        return escalation && escalation.teams && escalation.teams[0]
-            ? escalation.teams[0].teamMembers
-            : null;
+        const teamMembers = [];
+        escalationArray.forEach(escalation => {
+            if (escalation && escalation.teams && escalation.teams[0]) {
+                teamMembers.push(...escalation.teams[0].teamMembers);
+            }
+        });
+
+        return teamMembers;
+    };
+
+    handleMonitorList = monitors => {
+        if (monitors.length === 1) {
+            return monitors[0].monitorId.name;
+        }
+        if (monitors.length === 2) {
+            return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name}`;
+        }
+        if (monitors.length === 3) {
+            return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
+        }
+        if (monitors.length > 3) {
+            return `${monitors[0].monitorId.name}, ${
+                monitors[1].monitorId.name
+            } and ${monitors.length - 2} others`;
+        }
     };
 
     render() {
@@ -293,17 +319,20 @@ export class IncidentStatus extends Component {
                 user => user.userId === loggedInUser
             );
         let isUserInSubProject = false;
-        if (isUserInProject) isUserInSubProject = true;
-        else
+        if (isUserInProject) {
+            isUserInSubProject = true;
+        } else {
             isUserInSubProject = subProject.users.some(
                 user => user.userId === loggedInUser
             );
+        }
+
         const monitorName =
             (this.props.multiple &&
                 this.props.incident &&
-                this.props.incident.monitorId) ||
-            (this.props.incident && this.props.incident.monitorId)
-                ? this.props.incident.monitorId.name
+                this.handleMonitorList(this.props.incident.monitors)) ||
+            (this.props.incident && this.props.incident.monitors)
+                ? this.handleMonitorList(this.props.incident.monitors)
                 : '';
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
@@ -311,26 +340,8 @@ export class IncidentStatus extends Component {
         const incidentIdNumber = this.props.incident
             ? this.props.incident.idNumber
             : '';
-        const componentSlug = this.props.incident.monitorId.componentId
-            ? this.props.incident.monitorId.componentId.slug
-            : '';
         const homeRoute = this.props.currentProject
             ? '/dashboard/project/' + this.props.currentProject.slug
-            : '';
-        const monitorRoute = this.props.currentProject
-            ? '/dashboard/project/' +
-              this.props.currentProject.slug +
-              '/component/' +
-              componentSlug +
-              '/monitoring'
-            : '';
-        const incidentRoute = this.props.currentProject
-            ? '/dashboard/project/' +
-              this.props.currentProject.slug +
-              '/component/' +
-              componentSlug +
-              '/incidents/' +
-              this.props.incident.idNumber
             : '';
 
         const showResolveButton = this.props.multipleIncidentRequest
@@ -425,7 +436,7 @@ export class IncidentStatus extends Component {
                             (this.props.route &&
                                 !(
                                     this.props.route === homeRoute ||
-                                    this.props.route === monitorRoute
+                                    !this.props.incidentId
                                 ))) &&
                         this.props.incident.acknowledged &&
                         this.props.incident.resolved &&
@@ -460,13 +471,17 @@ export class IncidentStatus extends Component {
                                         <div className="bs-incident-title bs-i-title-right">
                                             <div className="bs--header">
                                                 <div className="bs-font-header">
-                                                    {monitorName} is{' '}
+                                                    {monitorName}{' '}
+                                                    {this.props.incident
+                                                        .monitors.length > 1
+                                                        ? 'are'
+                                                        : 'is'}{' '}
                                                     {
                                                         this.props.incident
                                                             .incidentType
                                                     }
                                                 </div>
-                                                {((incidentReason &&
+                                                {/* {((incidentReason &&
                                                     incidentReason.length >
                                                         1) ||
                                                     this.props.incident
@@ -481,7 +496,7 @@ export class IncidentStatus extends Component {
                                                         Acknowledge and Resolve
                                                         this incident.
                                                     </div>
-                                                )}
+                                                )} */}
                                                 {this.props.incident
                                                     .manuallyCreated &&
                                                     this.props.incident
@@ -594,10 +609,7 @@ export class IncidentStatus extends Component {
                                         {this.props.incident.acknowledged &&
                                             this.props.incident.resolved &&
                                             this.props.route &&
-                                            !(
-                                                this.props.route ===
-                                                incidentRoute
-                                            ) && (
+                                            !this.props.incidentId && (
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
                                                     viewBox="0 0 24 24"
@@ -656,10 +668,7 @@ export class IncidentStatus extends Component {
                                                     This is an Active Incident
                                                 </span>
                                             ) : this.props.route &&
-                                              !(
-                                                  this.props.route ===
-                                                  incidentRoute
-                                              ) ? (
+                                              !this.props.incidentId ? (
                                                 <span className="">
                                                     The Incident is Resolved
                                                 </span>
@@ -732,70 +741,83 @@ export class IncidentStatus extends Component {
                                                     </div>
                                                     <div className="bs-content">
                                                         <label className="">
-                                                            Monitor
+                                                            Monitor(s)
                                                         </label>
-                                                        <div className="bs-content-inside">
-                                                            <span className="value">
-                                                                <Link
-                                                                    style={{
-                                                                        textDecoration:
-                                                                            'underline',
-                                                                    }}
-                                                                    to={
-                                                                        '/dashboard/project/' +
-                                                                        this
-                                                                            .props
-                                                                            .currentProject
-                                                                            .slug +
-                                                                        '/component/' +
-                                                                        componentSlug +
-                                                                        '/monitoring'
-                                                                    }
-                                                                    id="backToComponentView"
-                                                                >
-                                                                    {
-                                                                        this
-                                                                            .props
-                                                                            .incident
-                                                                            .monitorId
-                                                                            .componentId
-                                                                            .name
-                                                                    }
-                                                                </Link>
-                                                            </span>
-                                                            {' / '}
-                                                            <span className="value">
-                                                                <Link
-                                                                    style={{
-                                                                        textDecoration:
-                                                                            'underline',
-                                                                    }}
-                                                                    to={
-                                                                        '/dashboard/project/' +
-                                                                        this
-                                                                            .props
-                                                                            .currentProject
-                                                                            .slug +
-                                                                        '/component/' +
-                                                                        componentSlug +
-                                                                        '/monitoring/' +
-                                                                        this
-                                                                            .props
-                                                                            .incident
-                                                                            .monitorId
-                                                                            .slug
-                                                                    }
-                                                                    id="backToMonitorView"
-                                                                >
-                                                                    {
-                                                                        this
-                                                                            .props
-                                                                            .incident
-                                                                            .monitorId
-                                                                            .name
-                                                                    }
-                                                                </Link>
-                                                            </span>
+                                                        <div>
+                                                            {this.props.incident.monitors.map(
+                                                                monitorObj => (
+                                                                    <div
+                                                                        key={
+                                                                            monitorObj
+                                                                                .monitorId
+                                                                                ._id
+                                                                        }
+                                                                        className="bs-content-inside"
+                                                                    >
+                                                                        <span className="value">
+                                                                            <Link
+                                                                                style={{
+                                                                                    textDecoration:
+                                                                                        'underline',
+                                                                                }}
+                                                                                to={
+                                                                                    '/dashboard/project/' +
+                                                                                    this
+                                                                                        .props
+                                                                                        .currentProject
+                                                                                        .slug +
+                                                                                    '/component/' +
+                                                                                    monitorObj
+                                                                                        .monitorId
+                                                                                        .componentId
+                                                                                        .slug +
+                                                                                    '/monitoring'
+                                                                                }
+                                                                                id="backToComponentView"
+                                                                            >
+                                                                                {
+                                                                                    monitorObj
+                                                                                        .monitorId
+                                                                                        .componentId
+                                                                                        .name
+                                                                                }
+                                                                            </Link>
+                                                                        </span>
+                                                                        {' / '}
+                                                                        <span className="value">
+                                                                            <Link
+                                                                                style={{
+                                                                                    textDecoration:
+                                                                                        'underline',
+                                                                                }}
+                                                                                to={
+                                                                                    '/dashboard/project/' +
+                                                                                    this
+                                                                                        .props
+                                                                                        .currentProject
+                                                                                        .slug +
+                                                                                    '/component/' +
+                                                                                    monitorObj
+                                                                                        .monitorId
+                                                                                        .componentId
+                                                                                        .slug +
+                                                                                    '/monitoring/' +
+                                                                                    monitorObj
+                                                                                        .monitorId
+                                                                                        .slug
+                                                                                }
+                                                                                id="backToMonitorView"
+                                                                            >
+                                                                                {
+                                                                                    monitorObj
+                                                                                        .monitorId
+                                                                                        .name
+                                                                                }
+                                                                            </Link>
+                                                                        </span>
+                                                                    </div>
+                                                                )
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="bs-content">
@@ -2258,8 +2280,9 @@ export class IncidentStatus extends Component {
                             <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-bottom--12">
                                 <ShouldRender
                                     if={
+                                        this.props.incident &&
                                         this.props.route &&
-                                        !(this.props.route === incidentRoute)
+                                        !this.props.incidentId
                                     }
                                 >
                                     <button
@@ -2269,7 +2292,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/incidents/${incidentIdNumber}`
+                                                    `/dashboard/project/${this.props.incident.projectId.slug}/incidents/${incidentIdNumber}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false
@@ -2278,7 +2301,7 @@ export class IncidentStatus extends Component {
                                             this.props.markAsRead(
                                                 projectId,
                                                 this.props.incident
-                                                    .notificationId
+                                                    .notifications
                                             );
                                             this.props.animateSidebar(true);
                                         }}
@@ -2308,7 +2331,7 @@ export class IncidentStatus extends Component {
                                     resolved={this.props.incident.resolved}
                                     route={this.props.route}
                                     homeRoute={homeRoute}
-                                    monitorRoute={monitorRoute}
+                                    incidentId={this.props.incidentId}
                                     state={this.state}
                                     incidentRequest={this.props.incidentRequest}
                                     multipleIncidentRequest={
@@ -2412,11 +2435,14 @@ const EditIncidentStatusForm = reduxForm({
 })(IncidentStatus);
 const selector = formValueSelector('IncidentStatusForm');
 const mapStateToProps = (state, ownProps) => {
+    const { incidentId } = ownProps.match.params;
     const incident = ownProps.incident;
     const initialValues = {
         title: incident.title,
         description: incident.description,
-        incidentPriority: incident.incidentPriority._id,
+        incidentPriority: incident.incidentPriority
+            ? incident.incidentPriority._id
+            : '',
     };
     const { description, incidentPriority } = selector(
         state,
@@ -2434,6 +2460,7 @@ const mapStateToProps = (state, ownProps) => {
         initialValues,
         description,
         incidentPriority,
+        incidentId,
     };
 };
 
@@ -2469,7 +2496,6 @@ IncidentStatus.propTypes = {
     openModal: PropTypes.func.isRequired,
     projectId: PropTypes.string,
     description: PropTypes.string,
-    componentId: PropTypes.string,
     route: PropTypes.string,
     incidentRequest: PropTypes.object.isRequired,
     multipleIncidentRequest: PropTypes.object,
@@ -2479,9 +2505,9 @@ IncidentStatus.propTypes = {
     escalations: PropTypes.array,
     editable: PropTypes.bool,
     incidentPriorities: PropTypes.array.isRequired,
+    incidentId: PropTypes.string,
 };
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps
-)(EditIncidentStatusForm);
+export default withRouter(
+    connect(mapStateToProps, mapDispatchToProps)(EditIncidentStatusForm)
+);

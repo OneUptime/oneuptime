@@ -68,10 +68,11 @@ describe('Zapier API', function() {
                                         .send(monitor)
                                         .end(function(err, res) {
                                             monitorId = res.body._id;
+                                            incidentData.monitors = [monitorId];
                                             const authorization = `Basic ${token}`;
                                             request
                                                 .post(
-                                                    `/incident/${projectId}/${monitorId}`
+                                                    `/incident/${projectId}/create-incident`
                                                 )
                                                 .set(
                                                     'Authorization',
@@ -81,7 +82,7 @@ describe('Zapier API', function() {
                                                 .end(function() {
                                                     request
                                                         .post(
-                                                            `/incident/${projectId}/${monitorId}`
+                                                            `/incident/${projectId}/create-incident`
                                                         )
                                                         .set(
                                                             'Authorization',
@@ -550,12 +551,12 @@ describe('Zapier API', function() {
     it('should acknowledge all incident', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData)
             .end(function() {
                 request
-                    .post(`/incident/${projectId}/${monitorId}`)
+                    .post(`/incident/${projectId}/create-incident`)
                     .set('Authorization', authorization)
                     .send(incidentData)
                     .end(function() {

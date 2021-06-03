@@ -1030,7 +1030,7 @@ function mapStateToProps(state, props) {
     const monitorId = props.monitorId ? props.monitorId : null;
     const monitorLogs = monitorId ? state.monitor.monitorLogs[monitorId] : {};
 
-    if (monitorLogs) {
+    if (monitorLogs && monitorLogs.logs) {
         monitorLogs.logs = monitorLogs.logs.map(log => {
             if (log.kubernetesLog) {
                 const initialData = { ...log.kubernetesLog };

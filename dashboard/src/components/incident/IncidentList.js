@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { withRouter } from 'react-router-dom';
 import moment from 'moment';
 import { ListLoader } from '../basic/Loader';
 import { history } from '../../store';
@@ -12,6 +13,25 @@ import { API_URL } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 
 export class IncidentList extends Component {
+    handleMonitorList = monitors => {
+        if (monitors.length === 0) {
+            return 'No monitor in this incident';
+        }
+        if (monitors.length === 1) {
+            return monitors[0].monitorId.name;
+        }
+        if (monitors.length === 2) {
+            return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name}`;
+        }
+        if (monitors.length === 3) {
+            return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
+        }
+
+        return `${monitors[0].monitorId.name}, ${
+            monitors[1].monitorId.name
+        } and ${monitors.length - 2} others`;
+    };
+
     render() {
         if (
             this.props.incidents &&
@@ -93,7 +113,7 @@ export class IncidentList extends Component {
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                            <span>Monitor</span>
+                                            <span>Monitor(s)</span>
                                         </span>
                                     </div>
                                 </td>
@@ -197,29 +217,35 @@ export class IncidentList extends Component {
 
                                     return (
                                         <tr
-                                            id={`incident_${
-                                                incident.monitorId
-                                                    ? incident.monitorId.name
-                                                    : this.props.incidents.name
-                                                    ? this.props.incidents.name
-                                                    : 'Unknown Monitor'
-                                            }_${i}`}
+                                            id={`incident_${i}`}
                                             key={incident._id}
                                             className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
                                             onClick={() => {
                                                 setTimeout(() => {
-                                                    history.push(
-                                                        '/dashboard/project/' +
-                                                            this.props
-                                                                .currentProject
-                                                                .slug +
-                                                            '/component/' +
-                                                            incident.monitorId
-                                                                .componentId
-                                                                .slug +
-                                                            '/incidents/' +
-                                                            incident.idNumber
-                                                    );
+                                                    if (
+                                                        this.props.componentSlug
+                                                    ) {
+                                                        history.push(
+                                                            '/dashboard/project/' +
+                                                                this.props
+                                                                    .currentProject
+                                                                    .slug +
+                                                                '/component/' +
+                                                                this.props
+                                                                    .componentSlug +
+                                                                '/incidents/' +
+                                                                incident.idNumber
+                                                        );
+                                                    } else {
+                                                        history.push(
+                                                            '/dashboard/project/' +
+                                                                incident
+                                                                    .projectId
+                                                                    .slug +
+                                                                '/incidents/' +
+                                                                incident.idNumber
+                                                        );
+                                                    }
                                                     this.props.animateSidebar(
                                                         false
                                                     );
@@ -227,7 +253,7 @@ export class IncidentList extends Component {
                                                 this.props.markAsRead(
                                                     this.props.currentProject
                                                         ._id,
-                                                    incident.notificationId
+                                                    incident.notifications
                                                 );
                                                 this.props.animateSidebar(true);
                                             }}
@@ -249,7 +275,10 @@ export class IncidentList extends Component {
                                                 }}
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                    {`${incident.monitorId.name}/${incident.monitorId.componentId.name} `}
+                                                    {incident.monitors &&
+                                                        this.handleMonitorList(
+                                                            incident.monitors
+                                                        )}
                                                 </div>
                                             </td>
                                             <td
@@ -1031,11 +1060,14 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators({ markAsRead, animateSidebar }, dispatch);
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
+    const { componentSlug } = ownProps.match.params;
+    ``;
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
         requesting: state.incident.incidents.requesting,
+        componentSlug,
     };
 }
 
@@ -1057,6 +1089,9 @@ IncidentList.propTypes = {
     animateSidebar: PropTypes.func,
     page: PropTypes.number,
     numberOfPage: PropTypes.number,
+    componentSlug: PropTypes.string,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(IncidentList);
+export default withRouter(
+    connect(mapStateToProps, mapDispatchToProps)(IncidentList)
+);

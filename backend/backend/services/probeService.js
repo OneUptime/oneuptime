@@ -362,7 +362,7 @@ module.exports = {
                     incidentIds = [
                         IncidentService.create({
                             projectId: monitor.projectId,
-                            monitorId: data.monitorId,
+                            monitors: [data.monitorId],
                             createdById: null,
                             incidentType: 'online',
                             probeId: data.probeId,
@@ -412,7 +412,7 @@ module.exports = {
                     incidentIds = [
                         IncidentService.create({
                             projectId: monitor.projectId,
-                            monitorId: data.monitorId,
+                            monitors: [data.monitorId],
                             createdById: null,
                             incidentType: 'degraded',
                             probeId: data.probeId,
@@ -462,7 +462,7 @@ module.exports = {
                     incidentIds = [
                         IncidentService.create({
                             projectId: monitor.projectId,
-                            monitorId: data.monitorId,
+                            monitors: [data.monitorId],
                             createdById: null,
                             incidentType: 'offline',
                             probeId: data.probeId,

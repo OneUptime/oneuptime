@@ -148,7 +148,7 @@ describe('Subscribers Alert logs API', () => {
             await init.pageWaitForSelector(page, '#incidentType');
             await init.selectDropdownValue('#incidentType', 'offline', page);
             await init.pageClick(page, '#createIncident');
-            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
+            await init.pageWaitForSelector(page, `#incident_0`);
             await init.pageWaitForSelector(page, '#notificationscroll');
             await init.pageClick(page, '#viewIncident-0');
             await init.pageWaitForSelector(page, '#incident_0');

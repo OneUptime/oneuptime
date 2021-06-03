@@ -46,6 +46,7 @@ class CreateManualIncident extends Component {
             createIncidentReset,
         } = this.props;
         const { projectId, monitorId } = this.props.data;
+        const monitor = [monitorId];
         this.setState({ incidentType: values.incidentType });
 
         const customFields = this.props.customFields.map(field => ({
@@ -60,7 +61,7 @@ class CreateManualIncident extends Component {
 
         createNewIncident(
             projectId,
-            monitorId,
+            monitor,
             values.incidentType,
             values.title,
             values.description,
@@ -76,14 +77,16 @@ class CreateManualIncident extends Component {
 
     handleKeyBoard = e => {
         const { createIncidentReset } = this.props;
-        switch (e.key) {
-            case 'Escape':
+
+        if (e.key) {
+            if (e.key === 'Escape') {
                 createIncidentReset();
-                return this.handleCloseModal();
-            case 'Enter':
-                return document.getElementById('createIncident').click();
-            default:
-                return false;
+                this.handleCloseModal();
+            }
+            if (e.key === 'Enter' && e.target.localName !== 'textarea') {
+                document.getElementById('createIncident') &&
+                    document.getElementById('createIncident').click();
+            }
         }
     };
 

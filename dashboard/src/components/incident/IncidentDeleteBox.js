@@ -23,7 +23,7 @@ export class IncidentDeleteBox extends Component {
         const projectId =
             this.props.incident.projectId._id || this.props.incident.projectId;
         const incidentId = this.props.incident._id;
-        const monitorSlug = this.props.monitorSlug;
+        // const monitorSlug = this.props.monitorSlug;
         const componentSlug = this.props.componentSlug;
 
         const promise = this.props.deleteIncident(projectId, incidentId);
@@ -37,9 +37,24 @@ export class IncidentDeleteBox extends Component {
                     }
                 );
             }
-            history.push(
-                `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/monitoring/${monitorSlug}`
-            );
+            const monitors = this.props.incident.monitors;
+            if (this.props.componentSlug) {
+                if (monitors.length > 1) {
+                    history.push(
+                        `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/monitoring`
+                    );
+                } else {
+                    history.push(
+                        `/dashboard/project/${this.props.currentProject.slug}/component/${componentSlug}/monitoring/${monitors[0].monitorId.slug}`
+                    );
+                }
+            } else {
+                history.push(
+                    '/dashboard/project/' +
+                        this.props.currentProject.slug +
+                        '/incidents'
+                );
+            }
         });
         return promise;
     };
@@ -126,7 +141,7 @@ IncidentDeleteBox.propTypes = {
     incident: PropTypes.object.isRequired,
     deleteIncident: PropTypes.func.isRequired,
     deleting: PropTypes.bool.isRequired,
-    monitorSlug: PropTypes.string,
+    // monitorSlug: PropTypes.string,
     currentProject: PropTypes.object,
     componentSlug: PropTypes.string,
 };

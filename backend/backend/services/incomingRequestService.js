@@ -703,7 +703,6 @@ module.exports = {
                                 })
                             );
 
-                            data.monitorId = monitor._id;
                             if (
                                 !monitorsWithIncident.includes(
                                     String(monitor._id)
@@ -716,6 +715,7 @@ module.exports = {
                                         data
                                     );
                                 } else {
+                                    data.monitors = [monitor._id];
                                     incident = await IncidentService.create(
                                         data
                                     );
@@ -811,7 +811,6 @@ module.exports = {
                                 })
                             );
 
-                            data.monitorId = monitor._id;
                             if (filterMatch === 'any') {
                                 if (
                                     !monitorsWithIncident.includes(
@@ -825,6 +824,7 @@ module.exports = {
                                             data
                                         );
                                     } else {
+                                        data.monitors = [monitor._id];
                                         incident = await IncidentService.create(
                                             data
                                         );
@@ -842,6 +842,7 @@ module.exports = {
                                         data
                                     );
                                 } else {
+                                    data.monitors = [monitor._id];
                                     incident = await IncidentService.create(
                                         data
                                     );
@@ -1019,7 +1020,6 @@ module.exports = {
                                         })
                                     );
 
-                                    data.monitorId = monitor._id;
                                     if (filterMatch === 'any') {
                                         if (
                                             !monitorsWithIncident.includes(
@@ -1033,6 +1033,7 @@ module.exports = {
                                                     data
                                                 );
                                             } else {
+                                                data.monitors = [monitor._id];
                                                 incident = await IncidentService.create(
                                                     data
                                                 );
@@ -1050,6 +1051,7 @@ module.exports = {
                                                 data
                                             );
                                         } else {
+                                            data.monitors = [monitor._id];
                                             incident = await IncidentService.create(
                                                 data
                                             );
@@ -1261,7 +1263,6 @@ module.exports = {
                                         })
                                     );
 
-                                    data.monitorId = monitor._id;
                                     if (filterMatch === 'any') {
                                         if (
                                             !monitorsWithIncident.includes(
@@ -1275,6 +1276,7 @@ module.exports = {
                                                     data
                                                 );
                                             } else {
+                                                data.monitors = [monitor._id];
                                                 incident = await IncidentService.create(
                                                     data
                                                 );
@@ -1292,6 +1294,7 @@ module.exports = {
                                                 data
                                             );
                                         } else {
+                                            data.monitors = [monitor._id];
                                             incident = await IncidentService.create(
                                                 data
                                             );
@@ -1341,11 +1344,17 @@ module.exports = {
                                     String(incident._id)
                                 )
                             ) {
+                                data.monitors = incident.monitors.map(
+                                    monitor => monitor.monitorId
+                                );
                                 await IncidentMessageService.create(data);
                                 noteResponse.push(incident);
                                 incidentsWithNote.push(String(incident._id));
                             }
                         } else {
+                            data.monitors = incident.monitors.map(
+                                monitor => monitor.monitorId
+                            );
                             await IncidentMessageService.create(data);
                             noteResponse.push(incident);
                         }
@@ -1572,6 +1581,9 @@ module.exports = {
                                                 String(incident._id)
                                             )
                                         ) {
+                                            data.monitors = incident.monitors.map(
+                                                monitor => monitor.monitorId
+                                            );
                                             await IncidentMessageService.create(
                                                 data
                                             );
@@ -1581,6 +1593,9 @@ module.exports = {
                                             );
                                         }
                                     } else {
+                                        data.monitors = incident.monitors.map(
+                                            monitor => monitor.monitorId
+                                        );
                                         await IncidentMessageService.create(
                                             data
                                         );

@@ -2951,6 +2951,7 @@ const _this = {
                 emailTemplate,
                 'Subscriber Incident Created'
             );
+            const projectId = incident.projectId._id || incident.projectId;
             const data = {
                 incidentTime,
                 monitorName: UppercaseFirstLetter(monitorName),
@@ -2958,7 +2959,7 @@ const _this = {
                 userId,
                 projectName: UppercaseFirstLetter(projectName),
                 trackEmailAsViewedUrl,
-                projectId: incident.projectId,
+                projectId,
                 incidentType: UppercaseFirstLetter(incident.incidentType),
                 incidentDescription: incident.description,
                 componentName: UppercaseFirstLetter(componentName),
@@ -2969,9 +2970,7 @@ const _this = {
             };
             template = template(data);
             subject = subject(data);
-            let smtpSettings = await _this.getProjectSmtpSettings(
-                incident.projectId
-            );
+            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
             smtpServer = 'internal';
             if (!smtpSettings.internalSmtp) {
                 smtpServer = smtpSettings.host;
@@ -3518,6 +3517,7 @@ const _this = {
                 emailTemplate,
                 'Subscriber Incident Acknowldeged'
             );
+            const projectId = incident.projectId._id || incident.projectId;
             const data = {
                 incidentTime,
                 monitorName: UppercaseFirstLetter(monitorName),
@@ -3525,7 +3525,7 @@ const _this = {
                 userId,
                 projectName: UppercaseFirstLetter(projectName),
                 trackEmailAsViewedUrl,
-                projectId: incident.projectId,
+                projectId,
                 incidentType: UppercaseFirstLetter(incident.incidentType),
                 componentName: UppercaseFirstLetter(componentName),
                 statusPageUrl,
@@ -3536,9 +3536,7 @@ const _this = {
             };
             template = template(data);
             subject = subject(data);
-            let smtpSettings = await _this.getProjectSmtpSettings(
-                incident.projectId
-            );
+            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
             smtpServer = 'internal';
             if (!smtpSettings.internalSmtp) {
                 smtpServer = smtpSettings.host;
@@ -3731,13 +3729,14 @@ const _this = {
                 'Investigation note is created'
             );
 
+            const projectId = incident.projectId._id || incident.projectId;
             const data = {
                 incidentTime,
                 monitorName: UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
                 projectName: UppercaseFirstLetter(projectName),
-                projectId: incident.projectId,
+                projectId,
                 incidentType: incident.incidentType,
                 incidentId: incident.idNumber,
                 componentName: UppercaseFirstLetter(componentName),
@@ -3750,9 +3749,7 @@ const _this = {
             };
             template = template(data);
             subject = subject(data);
-            let smtpSettings = await _this.getProjectSmtpSettings(
-                incident.projectId
-            );
+            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
             smtpServer = 'internal';
             if (!smtpSettings.internalSmtp) {
                 smtpServer = smtpSettings.host;
@@ -4740,6 +4737,7 @@ const _this = {
                 emailTemplate,
                 'Subscriber Incident Resolved'
             );
+            const projectId = incident.projectId._id || incident.projectId;
             const data = {
                 incidentTime,
                 monitorName: UppercaseFirstLetter(monitorName),
@@ -4747,7 +4745,7 @@ const _this = {
                 userId,
                 projectName: UppercaseFirstLetter(projectName),
                 trackEmailAsViewedUrl,
-                projectId: incident.projectId,
+                projectId,
                 incidentType: UppercaseFirstLetter(incident.incidentType),
                 componentName: UppercaseFirstLetter(componentName),
                 statusPageUrl,
@@ -4758,9 +4756,7 @@ const _this = {
             };
             template = template(data);
             subject = subject(data);
-            let smtpSettings = await _this.getProjectSmtpSettings(
-                incident.projectId
-            );
+            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
             smtpServer = 'internal';
             if (!smtpSettings.internalSmtp) {
                 smtpServer = smtpSettings.host;

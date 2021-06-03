@@ -23,6 +23,24 @@ class AlertDetailsModal extends Component {
         }
     };
 
+    handleMonitorList = monitors => {
+        if (monitors.length === 0) {
+            return 'Unknown';
+        }
+        if (monitors.length === 1) {
+            return monitors[0].name;
+        }
+        if (monitors.length === 2) {
+            return `${monitors[0].name} and ${monitors[1].name}`;
+        }
+        if (monitors.length === 3) {
+            return `${monitors[0].name}, ${monitors[1].name} and ${monitors[2].name}`;
+        }
+
+        return `${monitors[0].name}, ${monitors[1].name} and ${monitors.length -
+            2} others`;
+    };
+
     render() {
         const { closeThisDialog } = this.props;
         return (
@@ -46,7 +64,11 @@ class AlertDetailsModal extends Component {
                                             Monitor
                                         </label>
                                         <div className="bs-Fieldset-fields Margin-top--6">
-                                            <div>{this.props.data.monitor}</div>
+                                            <div>
+                                                {this.handleMonitorList(
+                                                    this.props.data.monitors
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="bs-Fieldset-row">

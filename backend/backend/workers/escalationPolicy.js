@@ -93,10 +93,16 @@ module.exports = {
                 }
                 //and the rest happens here.
 
-                AlertService.sendAlertsToTeamMembersInSchedule({
-                    schedule,
-                    incident,
-                });
+                const monitors = incident.monitors.map(
+                    monitor => monitor.monitorId
+                );
+                for (const monitor of monitors) {
+                    AlertService.sendAlertsToTeamMembersInSchedule({
+                        schedule,
+                        incident,
+                        monitorId: monitor._id,
+                    });
+                }
             }
         } catch (error) {
             ErrorService.log(

@@ -20,7 +20,7 @@ const FooterButton = props => {
                         (props.route &&
                             !(
                                 props.route === props.homeRoute ||
-                                props.route === props.monitorRoute
+                                !props.incidentId
                             ))) && (
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -78,7 +78,7 @@ const FooterButton = props => {
                           (props.route &&
                               !(
                                   props.route === props.homeRoute ||
-                                  props.route === props.monitorRoute
+                                  !props.incidentId
                               ))
                         ? 'The Incident is Resolved'
                         : null}
@@ -96,10 +96,10 @@ FooterButton.propTypes = {
     onClick: PropTypes.func,
     route: PropTypes.string,
     homeRoute: PropTypes.string,
-    monitorRoute: PropTypes.string,
     state: PropTypes.object.isRequired,
     multipleIncidentRequest: PropTypes.object.isRequired,
     incidentRequest: PropTypes.object.isRequired,
+    incidentId: PropTypes.string,
 };
 
 export default FooterButton;
