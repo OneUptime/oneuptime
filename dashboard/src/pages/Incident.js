@@ -435,8 +435,7 @@ class Incident extends React.Component {
                         <div>{scheduleAlert}</div>
                         {this.props.incident &&
                             this.props.incident.countDown &&
-                            (this.props.incident.countDown !== '0:0' ||
-                                this.props.incident.countDown !== '0') && (
+                            this.props.incident.countDown !== '0' && (
                                 <div
                                     className="Box-root Margin-vertical--12"
                                     style={{ marginTop: 0, cursor: 'pointer' }}
@@ -456,8 +455,8 @@ class Incident extends React.Component {
                                                 ></span>
                                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                                     <span>
-                                                        According to the defined
-                                                        SLA attached to this
+                                                        According to the SLA
+                                                        attached to this
                                                         incident, you need to
                                                         update the incident note
                                                         for this incident in{' '}
