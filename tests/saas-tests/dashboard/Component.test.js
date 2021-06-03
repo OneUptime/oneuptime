@@ -372,10 +372,8 @@ describe('Components', () => {
             // bring monitor window to the front so as to resolve incident
             await monitorPage.bringToFront();
             // open incident details
-            await monitorPage.waitForSelector(`#incident_${monitorName}_0`);
-            await monitorPage.$eval(`#incident_${monitorName}_0`, e =>
-                e.click()
-            );
+            await monitorPage.waitForSelector(`#incident_0`);
+            await monitorPage.$eval(`#incident_0`, e => e.click());
 
             // click acknowledge button
             // acknowledge incident

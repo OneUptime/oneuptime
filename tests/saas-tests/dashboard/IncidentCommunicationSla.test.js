@@ -428,11 +428,11 @@ describe('Incident Communication SLA', () => {
                 hidden: true,
             });
 
-            await init.pageWaitForSelector(page, `#incident_${monitor}_0`, {
+            await init.pageWaitForSelector(page, `#incident_0`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, `#incident_${monitor}_0`);
+            await init.pageClick(page, `#incident_0`);
             const slaIndicator = await init.pageWaitForSelector(
                 page,
                 '#slaIndicatorAlert',
@@ -461,11 +461,11 @@ describe('Incident Communication SLA', () => {
         'should hide incident communication SLA notification when an incident is acknowledged',
         async done => {
             await init.addIncident(monitor, 'offline', page);
-            await init.pageWaitForSelector(page, `#incident_${monitor}_0`, {
+            await init.pageWaitForSelector(page, `#incident_0`, {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, `#incident_${monitor}_0`);
+            await init.pageClick(page, `#incident_0`);
 
             await init.pageWaitForSelector(page, '#btnAcknowledge_0', {
                 visible: true,
