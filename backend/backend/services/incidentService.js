@@ -70,11 +70,7 @@ module.exports = {
             let monitors = await MonitorService.findBy({
                 _id: { $in: data.monitors },
             });
-            monitors = monitors
-                .filter(monitor => !monitor.disabled)
-                .map(monitor => ({
-                    monitorId: monitor._id,
-                }));
+            monitors = monitors.filter(monitor => !monitor.disabled);
             if (monitors.length === 0) {
                 const error = new Error(
                     'You need at least one enabled monitor to create an incident'
@@ -82,8 +78,11 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
-
-            monitors = monitors.filter(monitor => !monitor.shouldNotMonitor);
+            monitors = monitors
+                .filter(monitor => !monitor.shouldNotMonitor)
+                .map(monitor => ({
+                    monitorId: monitor._id,
+                }));
             if (monitors && monitors.length > 0) {
                 const { matchedCriterion } = data;
 
