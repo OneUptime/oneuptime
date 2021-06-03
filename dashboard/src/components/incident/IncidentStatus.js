@@ -2278,6 +2278,7 @@ export class IncidentStatus extends Component {
                             <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--flexEnd Padding-horizontal--20 Padding-bottom--12">
                                 <ShouldRender
                                     if={
+                                        this.props.incident &&
                                         this.props.route &&
                                         !this.props.incidentId
                                     }
@@ -2289,7 +2290,7 @@ export class IncidentStatus extends Component {
                                         onClick={() => {
                                             setTimeout(() => {
                                                 history.push(
-                                                    `/dashboard/project/${this.props.currentProject.slug}/incidents/${incidentIdNumber}`
+                                                    `/dashboard/project/${this.props.incident.projectId.slug}/incidents/${incidentIdNumber}`
                                                 );
                                                 this.props.animateSidebar(
                                                     false
