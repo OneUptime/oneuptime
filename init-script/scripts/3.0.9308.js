@@ -7,7 +7,6 @@ async function run() {
     const incidents = await find(incidentCollection, {
         monitors: { $exists: false },
         notifications: { $exists: false },
-        deleted: false,
     });
 
     for (const incident of incidents) {
