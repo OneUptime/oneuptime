@@ -49,6 +49,10 @@ module.exports = {
 
             const { matchedCriterion } = data;
 
+            if (monitor && monitor.shouldNotMonitor) {
+                return {};
+            }
+
             if (monitor && monitor.disabled) {
                 const error = new Error('Monitor is disabled.');
                 ErrorService.log('incidentService.create', error);
