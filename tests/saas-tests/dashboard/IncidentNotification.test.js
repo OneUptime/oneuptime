@@ -327,11 +327,12 @@ describe('Incident Created test', () => {
         'Should show active incidents on the dashboard',
         async () => {
             await page.goto(utils.DASHBOARD_URL);
-            await init.pageWaitForSelector(page, 'span#activeIncidents', {
+            await init.pageClick(page, '#closeIncident_0');
+            await init.pageWaitForSelector(page, '#activeIncidents', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, 'span#activeIncidents');
+            await init.pageClick(page, '#activeIncidents');
             await init.pageWaitForSelector(page, '.activeIncidentList');
             let activeIncidents = await init.page$$Eval(
                 page,
