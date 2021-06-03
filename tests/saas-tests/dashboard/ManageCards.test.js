@@ -53,7 +53,7 @@ describe('Stripe cards API', () => {
             );
             const frame = await stripeIframe.contentFrame();
             frame.waitForSelector('input[name=cardnumber]');
-            await frame.type('input[name=cardnumber]', '5555555555554444', { // 4242... has been used during account reg. Similar cards number are rejected
+            await frame.type('input[name=cardnumber]', '5555555555554444', { // 4242... has been used during account reg. Similar cards number are rejected. The new number is from stripe documentations.
                 delay: 200,
             });
             frame.waitForSelector('input[name=exp-date]');
