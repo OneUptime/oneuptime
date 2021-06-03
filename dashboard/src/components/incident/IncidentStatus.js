@@ -2329,7 +2329,7 @@ export class IncidentStatus extends Component {
                                     resolved={this.props.incident.resolved}
                                     route={this.props.route}
                                     homeRoute={homeRoute}
-                                    // monitorRoute={monitorRoute}
+                                    incidentId={this.props.incidentId}
                                     state={this.state}
                                     incidentRequest={this.props.incidentRequest}
                                     multipleIncidentRequest={
