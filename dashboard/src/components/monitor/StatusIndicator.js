@@ -1,11 +1,11 @@
+/*eslint-disable*/
 import React from 'react';
 import PropTypes from 'prop-types';
 
 function StatusIndicator({ status, resourceName, monitorName }) {
     // When resource Name is passed, it renders the status with the same color
     let statusColor, content;
-
-    switch (status.toLowerCase()) {
+    switch (status) {
         case 'online':
             statusColor = 'green';
             break;
@@ -41,7 +41,7 @@ function StatusIndicator({ status, resourceName, monitorName }) {
         : (content = (
               <div
                   className={`db-Badge Box-background--${statusColor}`}
-                  id={`${monitorName}-${status.toLowerCase()}`}
+                  id={`${monitorName}-${status}`}
               ></div>
           ));
 

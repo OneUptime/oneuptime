@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
@@ -63,7 +64,7 @@ class IncidentHeaderModal extends Component {
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--default Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>
+                                            <span id="incident_header_modal">
                                                 {data.incidents.length === 0
                                                     ? 'No incidents currently active'
                                                     : 'These incidents are currently active.'}
@@ -78,7 +79,7 @@ class IncidentHeaderModal extends Component {
                                             <ul>
                                                 {data.incidents.map(
                                                     incident => (
-                                                        <li key={incident._id}>
+                                                        <li key={incident._id} className="activeIncidentList">
                                                             <span
                                                                 style={{
                                                                     fontWeight:
