@@ -18,6 +18,7 @@ module.exports = {
                         errors,
                         status,
                         executionTime,
+                        consoleLogs,
                     } = await scriptSandbox.runScript(code, true);
 
                     // normalize response
@@ -26,6 +27,7 @@ module.exports = {
                         statusText: status,
                         error: success ? undefined : message + ': ' + errors,
                         executionTime,
+                        consoleLogs,
                     };
 
                     await ApiService.ping(monitor._id, {
