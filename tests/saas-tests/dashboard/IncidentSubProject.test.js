@@ -32,9 +32,7 @@ describe('Incident API With SubProjects', () => {
         await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page);
-        await init.logout(page);
-        await init.registerUser(newUser, page);
-        await init.logout(page);
+        await init.growthPlanUpgrade(page);
     });
 
     afterAll(async done => {
@@ -105,10 +103,14 @@ describe('Incident API With SubProjects', () => {
                 elem.click()
             );
 
-            await init.pageWaitForSelector(page, '#incident_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName}_0`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             const incidentTitleSelector = await init.page$(
                 page,
                 '#incident_0  #incident_title'

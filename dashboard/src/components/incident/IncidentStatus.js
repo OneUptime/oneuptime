@@ -304,12 +304,14 @@ export class IncidentStatus extends Component {
     };
 
     render() {
+        const isUserSubProjectId =
+            this.props.incident.projectId._id ?? this.props.incident.projectId;
         const subProject =
             this.props.subProjects &&
             this.props.subProjects.filter(
-                subProject =>
-                    subProject._id === this.props.incident.projectId._id // The Id is being looked for during filtering. What it was seeing is an object that contains the ID
+                subProject => subProject._id === isUserSubProjectId // The Id is being looked for during filtering. What it was seeing is an object that contains the ID
             )[0];
+
         const loggedInUser = User.getUserId();
         const isUserInProject =
             this.props.currentProject &&

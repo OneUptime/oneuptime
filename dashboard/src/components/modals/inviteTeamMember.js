@@ -289,15 +289,6 @@ export class FormModal extends Component {
                                                                 )}
                                                             </div>
                                                             <div className="db-RoleRadioListLabel-description">
-                                                                {IS_SAAS_SERVICE && (
-                                                                    <div>
-                                                                        <strong>
-                                                                            Viewers
-                                                                            are
-                                                                            free
-                                                                        </strong>
-                                                                    </div>
-                                                                )}
                                                                 <span>
                                                                     Viewers are
                                                                     your
@@ -309,7 +300,14 @@ export class FormModal extends Component {
                                                                     view private
                                                                     status page
                                                                     of this
-                                                                    project.
+                                                                    project.{' '}
+                                                                    {IS_SAAS_SERVICE && (
+                                                                        <span>
+                                                                            Viewers
+                                                                            are
+                                                                            free.
+                                                                        </span>
+                                                                    )}
                                                                 </span>
                                                             </div>
                                                             <div className="db-RoleRadioListLabel-info">

@@ -649,5 +649,61 @@ describe('Components', () => {
         operationTimeOut
     );
 
-    /**Test Split */
+    test(
+        'Should create component, incident and display correct component resource status',
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: 'networkidle0',
+            });
+            // Navigate to Components page
+            await init.pageWaitForSelector(page, '#components');
+            await init.page$Eval(page, '#components', e => e.click());
+
+            // Fill and submit New Component form
+            await init.pageWaitForSelector(page, '#form-new-component');
+            await init.pageType(page, 'input[id=name]', newComponentName);
+            await init.page$Eval(page, 'button[type=submit]', e => e.click());
+
+            await init.pageWaitForSelector(page, '#form-new-monitor');
+            await init.pageClick(page, 'input[id=name]');
+            await init.pageType(page, 'input[id=name]', newMonitorName);
+            await init.pageClick(page, '[data-testId=type_url]');
+            await init.pageWaitForSelector(page, '#url', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#url');
+            await init.pageType(page, '#url', 'https://google.com');
+            await init.page$Eval(page, 'button[type=submit]', e => e.click());
+            await init.pageWaitForSelector(page, `#cb${newMonitorName}`, {
+                visible: true,
+                timeout: init.timeout,
+            });
+            //create offline incidence
+            await init.page$Eval(
+                page,
+                `#monitorCreateIncident_${newMonitorName}`,
+                e => e.click()
+            );
+
+            await init.page$Eval(page, `#createIncident`, e => e.click());
+            await init.pageWaitForSelector(page, '#viewIncident-0');
+
+            await page.goto(utils.DASHBOARD_URL);
+            await init.pageWaitForSelector(page, '#components');
+            await init.page$Eval(page, '#components', e => e.click());
+
+            // Check for resource status Id
+            await init.pageWaitForSelector(
+                page,
+                `#resource_status_${newMonitorName}`
+            );
+            let element = await page.$(`#resource_status_${newMonitorName}`);
+            let value = await page.evaluate(el => el.textContent, element);
+
+            expect(value.trim()).toEqual('offline');
+            done();
+        },
+        operationTimeOut
+    );
 });

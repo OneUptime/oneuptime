@@ -83,173 +83,181 @@ module.exports = {
                 throw error;
             }
 
-            const { matchedCriterion } = data;
+            monitors = monitors.filter(monitor => !monitor.shouldNotMonitor);
+            if (monitors && monitors.length > 0) {
+                const { matchedCriterion } = data;
 
-            const project = await ProjectService.findOneBy({
-                _id: data.projectId,
-            });
-            const users =
-                project && project.users && project.users.length
-                    ? project.users.map(({ userId }) => userId)
-                    : [];
+                const project = await ProjectService.findOneBy({
+                    _id: data.projectId,
+                });
+                const users =
+                    project && project.users && project.users.length
+                        ? project.users.map(({ userId }) => userId)
+                        : [];
 
-            let errorMsg;
-            if (data.customFields && data.customFields.length > 0) {
-                for (const field of data.customFields) {
-                    if (
-                        field.uniqueField &&
-                        field.fieldValue &&
-                        field.fieldValue.trim()
-                    ) {
-                        const incident = await _this.findOneBy({
-                            customFields: {
-                                $elemMatch: {
-                                    fieldName: field.fieldName,
-                                    fieldType: field.fieldType,
-                                    fieldValue: field.fieldValue,
+                let errorMsg;
+                if (data.customFields && data.customFields.length > 0) {
+                    for (const field of data.customFields) {
+                        if (
+                            field.uniqueField &&
+                            field.fieldValue &&
+                            field.fieldValue.trim()
+                        ) {
+                            const incident = await _this.findOneBy({
+                                customFields: {
+                                    $elemMatch: {
+                                        fieldName: field.fieldName,
+                                        fieldType: field.fieldType,
+                                        fieldValue: field.fieldValue,
+                                    },
                                 },
-                            },
-                        });
+                            });
 
-                        if (incident) {
-                            errorMsg = `The field ${field.fieldName} must be unique for all incidents`;
+                            if (incident) {
+                                errorMsg = `The field ${field.fieldName} must be unique for all incidents`;
+                            }
                         }
                     }
                 }
-            }
 
-            if (errorMsg) {
-                const error = new Error(errorMsg);
-                error.code = 400;
-                throw error;
-            }
+                if (errorMsg) {
+                    const error = new Error(errorMsg);
+                    error.code = 400;
+                    throw error;
+                }
 
-            let incident = new IncidentModel();
-            let parentCount = 0,
-                deletedParentCount = 0;
-            if (project.parentProjectId) {
-                parentCount = await _this.countBy({
-                    projectId:
-                        project.parentProjectId._id || project.parentProjectId,
-                });
-                deletedParentCount = await _this.countBy({
-                    projectId:
-                        project.parentProjectId._id || project.parentProjectId,
-                    deleted: true,
-                });
-            }
-            const incidentsCountInProject = await _this.countBy({
-                projectId: data.projectId,
-            });
-            const deletedIncidentsCountInProject = await _this.countBy({
-                projectId: data.projectId,
-                deleted: true,
-            });
-
-            incident.projectId = data.projectId || null;
-            incident.monitors = monitors;
-            incident.createdById = data.createdById || null;
-            incident.notClosedBy = users;
-            incident.incidentType = data.incidentType;
-            incident.manuallyCreated = data.manuallyCreated || false;
-            if (data.reason && data.reason.length > 0) {
-                incident.reason = data.reason.join('\n');
-            }
-            incident.response = data.response || null;
-            incident.idNumber =
-                incidentsCountInProject +
-                deletedIncidentsCountInProject +
-                parentCount +
-                deletedParentCount +
-                1;
-            incident.customFields = data.customFields;
-            incident.createdByIncomingHttpRequest =
-                data.createdByIncomingHttpRequest;
-
-            if (!incident.manuallyCreated) {
-                const incidentSettings = await IncidentSettingsService.findOne({
+                let incident = new IncidentModel();
+                let parentCount = 0,
+                    deletedParentCount = 0;
+                if (project.parentProjectId) {
+                    parentCount = await _this.countBy({
+                        projectId:
+                            project.parentProjectId._id ||
+                            project.parentProjectId,
+                    });
+                    deletedParentCount = await _this.countBy({
+                        projectId:
+                            project.parentProjectId._id ||
+                            project.parentProjectId,
+                        deleted: true,
+                    });
+                }
+                const incidentsCountInProject = await _this.countBy({
                     projectId: data.projectId,
                 });
+                const deletedIncidentsCountInProject = await _this.countBy({
+                    projectId: data.projectId,
+                    deleted: true,
+                });
 
-                const monitorNames = monitors.map(
-                    monitor => monitor.monitorId.name
-                );
-                const templatesInput = {
-                    incidentType: data.incidentType,
-                    projectName: project.name,
-                    time: Moment().format('h:mm:ss a'),
-                    date: Moment().format('MMM Do YYYY'),
-                    monitorName: joinNames(monitorNames),
-                };
-
-                const titleTemplate = Handlebars.compile(
-                    incidentSettings.title
-                );
-                const descriptionTemplate = Handlebars.compile(
-                    incidentSettings.description
-                );
-
-                incident.title =
-                    matchedCriterion && matchedCriterion.title
-                        ? matchedCriterion.title
-                        : titleTemplate(templatesInput);
-                incident.description =
-                    matchedCriterion && matchedCriterion.description
-                        ? matchedCriterion.description
-                        : descriptionTemplate(templatesInput);
-                incident.criterionCause = {
-                    ...matchedCriterion,
-                };
-
-                incident.incidentPriority = incidentSettings.incidentPriority;
-
-                if (data.probeId) {
-                    incident.probes = [
-                        {
-                            probeId: data.probeId,
-                            updatedAt: Date.now(),
-                            status: true,
-                            reportedStatus: data.incidentType,
-                        },
-                    ];
+                incident.projectId = data.projectId || null;
+                incident.monitors = monitors;
+                incident.createdById = data.createdById || null;
+                incident.notClosedBy = users;
+                incident.incidentType = data.incidentType;
+                incident.manuallyCreated = data.manuallyCreated || false;
+                if (data.reason && data.reason.length > 0) {
+                    incident.reason = data.reason.join('\n');
                 }
-            } else {
-                incident.title = data.title;
-                incident.description = data.description;
-                incident.incidentPriority = data.incidentPriority;
+                incident.response = data.response || null;
+                incident.idNumber =
+                    incidentsCountInProject +
+                    deletedIncidentsCountInProject +
+                    parentCount +
+                    deletedParentCount +
+                    1;
+                incident.customFields = data.customFields;
+                incident.createdByIncomingHttpRequest =
+                    data.createdByIncomingHttpRequest;
+
+                if (!incident.manuallyCreated) {
+                    const incidentSettings = await IncidentSettingsService.findOne(
+                        {
+                            projectId: data.projectId,
+                        }
+                    );
+
+                    const monitorNames = monitors.map(
+                        monitor => monitor.monitorId.name
+                    );
+                    const templatesInput = {
+                        incidentType: data.incidentType,
+                        projectName: project.name,
+                        time: Moment().format('h:mm:ss a'),
+                        date: Moment().format('MMM Do YYYY'),
+                        monitorName: joinNames(monitorNames),
+                    };
+
+                    const titleTemplate = Handlebars.compile(
+                        incidentSettings.title
+                    );
+                    const descriptionTemplate = Handlebars.compile(
+                        incidentSettings.description
+                    );
+
+                    incident.title =
+                        matchedCriterion && matchedCriterion.title
+                            ? matchedCriterion.title
+                            : titleTemplate(templatesInput);
+                    incident.description =
+                        matchedCriterion && matchedCriterion.description
+                            ? matchedCriterion.description
+                            : descriptionTemplate(templatesInput);
+                    incident.criterionCause = {
+                        ...matchedCriterion,
+                    };
+
+                    incident.incidentPriority =
+                        incidentSettings.incidentPriority;
+
+                    if (data.probeId) {
+                        incident.probes = [
+                            {
+                                probeId: data.probeId,
+                                updatedAt: Date.now(),
+                                status: true,
+                                reportedStatus: data.incidentType,
+                            },
+                        ];
+                    }
+                } else {
+                    incident.title = data.title;
+                    incident.description = data.description;
+                    incident.incidentPriority = data.incidentPriority;
+                }
+
+                incident = await incident.save();
+                incident = await _this.findOneBy({ _id: incident._id });
+
+                // ********* TODO ************
+                // notification is an array of notifications
+                // ***************************
+                const notifications = await _this._sendIncidentCreatedAlert(
+                    incident
+                );
+
+                incident.notifications = notifications.map(notification => ({
+                    notificationId: notification._id,
+                }));
+                incident = await incident.save();
+
+                await RealTimeService.sendCreatedIncident(incident);
+
+                await IncidentTimelineService.create({
+                    incidentId: incident._id,
+                    createdById: data.createdById,
+                    probeId: data.probeId,
+                    status: data.incidentType,
+                });
+
+                // ********* TODO ************
+                // handle multiple monitors for this
+                // it should now accept array of monitors id
+                // ***************************
+                _this.startInterval(data.projectId, monitors, incident);
+
+                return incident;
             }
-
-            incident = await incident.save();
-            incident = await _this.findOneBy({ _id: incident._id });
-
-            // ********* TODO ************
-            // notification is an array of notifications
-            // ***************************
-            const notifications = await _this._sendIncidentCreatedAlert(
-                incident
-            );
-
-            incident.notifications = notifications.map(notification => ({
-                notificationId: notification._id,
-            }));
-            incident = await incident.save();
-
-            await RealTimeService.sendCreatedIncident(incident);
-
-            await IncidentTimelineService.create({
-                incidentId: incident._id,
-                createdById: data.createdById,
-                probeId: data.probeId,
-                status: data.incidentType,
-            });
-
-            // ********* TODO ************
-            // handle multiple monitors for this
-            // it should now accept array of monitors id
-            // ***************************
-            _this.startInterval(data.projectId, monitors, incident);
-
-            return incident;
         } catch (error) {
             ErrorService.log('incidentService.create', error);
             throw error;

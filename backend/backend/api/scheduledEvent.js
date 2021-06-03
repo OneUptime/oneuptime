@@ -10,6 +10,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const { getSubProjects } = require('../middlewares/subProject');
 const ScheduledEventNoteService = require('../services/scheduledEventNoteService');
 const moment = require('moment');
+const MonitorService = require('../services/monitorService');
 
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
@@ -292,6 +293,19 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
                 code: 400,
                 message: 'Event has already been cancelled',
             });
+        }
+
+        if (fetchEvent && !fetchEvent.monitorDuringEvent) {
+            for (const monitor of fetchEvent.monitors) {
+                await MonitorService.updateOneBy(
+                    {
+                        _id: monitor.monitorId._id || monitor.monitorId,
+                    },
+                    {
+                        shouldNotMonitor: false,
+                    }
+                );
+            }
         }
 
         const event = await ScheduledEventService.updateBy(

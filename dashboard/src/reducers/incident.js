@@ -1051,6 +1051,8 @@ export default function incident(state = initialState, action) {
                             let monitors = incident.monitors;
                             monitors = monitors.map(monitor => {
                                 if (
+                                    action.payload &&
+                                    monitor.monitorId &&
                                     monitor.monitorId._id === action.payload._id
                                 ) {
                                     monitor.monitorId = action.payload;
