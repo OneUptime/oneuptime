@@ -92,83 +92,83 @@ describe('Monitor API With SubProjects', () => {
         operationTimeOut
     );
 
-    // test(
-    //     'should create a monitor in sub-project for valid `admin`',
-    //     async done => {
-    //         const user = { email: email, password };
-    //         await init.loginUser(user, page);
-    //         // Navigate to details page of component created
-    //         await init.navigateToComponentDetails(componentName, page);
-    //         // switch to invited project for new user
-    //         await init.pageWaitForSelector(page, '#monitors');
-    //         await init.pageWaitForSelector(page, '#form-new-monitor');
-    //         await init.pageWaitForSelector(page, 'input[id=name]', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageClick(page, 'input[id=name]');
-    //         await page.focus('input[id=name]');
-    //         await init.pageType(page, 'input[id=name]', subProjectMonitorName);
-    //         await init.pageClick(page, '[data-testId=type_url]');
-    //         await init.pageWaitForSelector(page, '#url', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageClick(page, '#url');
-    //         await init.pageType(page, '#url', 'https://google.com');
-    //         await init.pageClick(page, 'button[type=submit]');
-    //         let spanElement = await init.pageWaitForSelector(
-    //             page,
-    //             `#monitor-title-${subProjectMonitorName}`,
-    //             { visible: true, timeout: init.timeout }
-    //         );
+    test(
+        'should create a monitor in sub-project for valid `admin`',
+        async done => {
+            const user = { email: email, password };
+            await init.loginUser(user, page);
+            // Navigate to details page of component created
+            await init.navigateToComponentDetails(componentName, page);
+            // switch to invited project for new user
+            await init.pageWaitForSelector(page, '#monitors');
+            await init.pageWaitForSelector(page, '#form-new-monitor');
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, 'input[id=name]');
+            await page.focus('input[id=name]');
+            await init.pageType(page, 'input[id=name]', subProjectMonitorName);
+            await init.pageClick(page, '[data-testId=type_url]');
+            await init.pageWaitForSelector(page, '#url', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#url');
+            await init.pageType(page, '#url', 'https://google.com');
+            await init.pageClick(page, 'button[type=submit]');
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                `#monitor-title-${subProjectMonitorName}`,
+                { visible: true, timeout: init.timeout }
+            );
 
-    //         spanElement = await spanElement.getProperty('innerText');
-    //         spanElement = await spanElement.jsonValue();
-    //         expect(spanElement).toBe(subProjectMonitorName);
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            expect(spanElement).toBe(subProjectMonitorName);
 
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+            done();
+        },
+        operationTimeOut
+    );
 
-    // test(
-    //     'should create a monitor in parent project for valid `admin`',
-    //     async done => {
-    //         const monitorName = utils.generateRandomString();
-    //         await page.goto(utils.DASHBOARD_URL, {
-    //             waitUntil: ['networkidle2'],
-    //         });
-    //         // Navigate to details page of component created
-    //         await init.navigateToComponentDetails(componentName, page);
+    test(
+        'should create a monitor in parent project for valid `admin`',
+        async done => {
+            const monitorName = utils.generateRandomString();
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            // Navigate to details page of component created
+            await init.navigateToComponentDetails(componentName, page);
 
-    //         await init.pageWaitForSelector(page, '#form-new-monitor', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageWaitForSelector(page, 'input[id=name]', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageClick(page, 'input[id=name]');
-    //         await page.focus('input[id=name]');
-    //         await init.pageType(page, 'input[id=name]', monitorName);
-    //         await init.pageClick(page, '[data-testId=type_manual]');
-    //         await init.pageClick(page, 'button[type=submit]');
-    //         let spanElement = await init.pageWaitForSelector(
-    //             page,
-    //             `#monitor-title-${monitorName}`,
-    //             { visible: true, timeout: operationTimeOut }
-    //         );
+            await init.pageWaitForSelector(page, '#form-new-monitor', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, 'input[id=name]', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, 'input[id=name]');
+            await page.focus('input[id=name]');
+            await init.pageType(page, 'input[id=name]', monitorName);
+            await init.pageClick(page, '[data-testId=type_manual]');
+            await init.pageClick(page, 'button[type=submit]');
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                `#monitor-title-${monitorName}`,
+                { visible: true, timeout: operationTimeOut }
+            );
 
-    //         spanElement = await spanElement.getProperty('innerText');
-    //         spanElement = await spanElement.jsonValue();
-    //         expect(spanElement).toBe(monitorName);
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            expect(spanElement).toBe(monitorName);
 
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+            done();
+        },
+        operationTimeOut
+    );
 
     // test(
     //     // eslint-disable-next-line quotes
