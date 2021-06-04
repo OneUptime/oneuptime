@@ -269,7 +269,6 @@ export function createNewIncident(
                     type: 'ADD_NEW_INCIDENT_TO_MONITORS',
                     payload: createIncident.data,
                 });
-                return { createIncident };
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -283,7 +282,6 @@ export function createNewIncident(
                     error = 'Network Error';
                 }
                 dispatch(createIncidentError(errors(error)));
-                return { error };
             }
         );
 
