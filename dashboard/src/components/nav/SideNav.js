@@ -18,7 +18,7 @@ import { API_URL, User } from '../../config';
 import { getSubProjects } from '../../actions/subProject';
 
 class SideNav extends Component {
-    state = { navLoading: true };
+    state = { navLoading: false };
     componentDidMount() {
         if (this.props.currentProject) {
             this.props.switchToProjectViewer(
@@ -26,7 +26,9 @@ class SideNav extends Component {
                 this.props.subProjects,
                 this.props.currentProject
             );
-            this.updateNavLoading(false);
+            this.updateNavLoading('projectShow');
+        } else {
+            this.updateNavLoading('noProjectShow');
         }
     }
     componentDidUpdate(prevProps) {
@@ -42,7 +44,7 @@ class SideNav extends Component {
                         res.data.data,
                         this.props.currentProject
                     );
-                    this.updateNavLoading(false);
+                    this.updateNavLoading('projectShow');
                 });
         }
     }
@@ -229,6 +231,12 @@ class SideNav extends Component {
                             route.path =
                                 '/dashboard/project/:slug/status-pages';
                         }
+                        if (
+                            route.title === 'Back to Dashboard' &&
+                            !this.props.currentProject
+                        ) {
+                            route.path = '/dashboard/project/project';
+                        }
                         return (
                             route.visible &&
                             route.title !== 'Team Member Profile'
@@ -237,12 +245,14 @@ class SideNav extends Component {
                     return group;
                 });
         } else {
-            groupsToRender = groups
-                .filter(group => !group.isPublic)
-                .filter(group => !group.visibleOnComponentDetail)
-                .filter(group => !group.visibleOnProfile)
-                .filter(group => group.visible)
-                .filter(group => !group.visibleForProjectViewer);
+            if (this.state.navLoading === 'projectShow') {
+                groupsToRender = groups
+                    .filter(group => !group.isPublic)
+                    .filter(group => !group.visibleOnComponentDetail)
+                    .filter(group => !group.visibleOnProfile)
+                    .filter(group => group.visible)
+                    .filter(group => !group.visibleForProjectViewer);
+            }
         }
 
         return (
@@ -269,7 +279,8 @@ class SideNav extends Component {
                                     : ' animate-out'
                             }`}
                         >
-                            {!this.state.navLoading &&
+                            {(this.state.navLoading === 'projectShow' ||
+                                this.state.navLoading === 'noProjectShow') &&
                                 groupsToRender.map((group, index, array) => {
                                     const marginClass =
                                         index === array.length - 1

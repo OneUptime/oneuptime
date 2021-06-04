@@ -698,8 +698,8 @@ describe('Components', () => {
                 page,
                 `#resource_status_${newMonitorName}`
             );
-            let element = await page.$(`#resource_status_${newMonitorName}`);
-            let value = await page.evaluate(el => el.textContent, element);
+            const element = await page.$(`#resource_status_${newMonitorName}`);
+            const value = await page.evaluate(el => el.textContent, element);
 
             expect(value.trim()).toEqual('offline');
             done();

@@ -355,7 +355,7 @@ export class SidebarNavItem extends Component {
                             }
                         >
                             <RenderListItems
-                                slug={this.props.currentProject.slug}
+                                slug={this.props.currentProject?.slug}
                                 schedule={schedule}
                                 active={match.url}
                                 onLoad={title => loadPage(title)}

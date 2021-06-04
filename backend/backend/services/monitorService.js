@@ -473,7 +473,7 @@ module.exports = {
                         monitors.map(async monitor => {
                             let monitorStatus;
 
-                            let incidentList = [];
+                            const incidentList = [];
 
                             const monitorIncidents = await IncidentService.findBy(
                                 {
