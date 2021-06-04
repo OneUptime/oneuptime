@@ -1347,54 +1347,60 @@ class CreateIncomingRequest extends Component {
                                                 </fieldset>
                                             )}
 
-                                        <fieldset style={{ paddingTop: 0 }}>
-                                            <div className="bs-Fieldset-rows">
-                                                <div
-                                                    className="bs-Fieldset-row"
-                                                    style={{ padding: 0 }}
-                                                >
-                                                    <label
-                                                        className="bs-Fieldset-label Text-align--left"
-                                                        htmlFor="showAdvancedOptions"
-                                                        style={{
-                                                            flexBasis: '20%',
-                                                        }}
-                                                    ></label>
+                                        {formValues && formValues.nextAction && (
+                                            <fieldset style={{ paddingTop: 0 }}>
+                                                <div className="bs-Fieldset-rows">
                                                     <div
-                                                        className="bs-Fieldset-fields"
-                                                        style={{
-                                                            flexBasis: '80%',
-                                                            maxWidth: '80%',
-                                                        }}
+                                                        className="bs-Fieldset-row"
+                                                        style={{ padding: 0 }}
                                                     >
-                                                        <div
-                                                            className="bs-Fieldset-field"
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="showAdvancedOptions"
                                                             style={{
-                                                                width: '100%',
-                                                                padding:
-                                                                    '10px 0px',
-                                                                textDecoration:
-                                                                    'underline',
+                                                                flexBasis:
+                                                                    '20%',
+                                                            }}
+                                                        ></label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                flexBasis:
+                                                                    '80%',
+                                                                maxWidth: '80%',
                                                             }}
                                                         >
                                                             <div
+                                                                className="bs-Fieldset-field"
                                                                 style={{
-                                                                    cursor:
-                                                                        'pointer',
+                                                                    width:
+                                                                        '100%',
+                                                                    padding:
+                                                                        '10px 0px',
+                                                                    textDecoration:
+                                                                        'underline',
                                                                 }}
-                                                                onClick={
-                                                                    this
-                                                                        .toggleShowAdvancedOptions
-                                                                }
-                                                                id="advancedOptionsBtn"
                                                             >
-                                                                Advanced Options
+                                                                <div
+                                                                    style={{
+                                                                        cursor:
+                                                                            'pointer',
+                                                                    }}
+                                                                    onClick={
+                                                                        this
+                                                                            .toggleShowAdvancedOptions
+                                                                    }
+                                                                    id="advancedOptionsBtn"
+                                                                >
+                                                                    Advanced
+                                                                    Options
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </fieldset>
+                                            </fieldset>
+                                        )}
 
                                         {formValues &&
                                             formValues.showAdvancedOptions &&
