@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 function StatusIndicator({ status, resourceName, monitorName }) {
     // When resource Name is passed, it renders the status with the same color
     let statusColor, content;
-
+    
     switch (status.toLowerCase()) {
         case 'online':
             statusColor = 'green';

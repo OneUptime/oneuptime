@@ -219,7 +219,7 @@ export class IncidentList extends Component {
                                         <tr
                                             id={`incident_${i}`}
                                             key={incident._id}
-                                            className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
+                                            className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink createdIncidentListItem"
                                             onClick={() => {
                                                 setTimeout(() => {
                                                     if (
