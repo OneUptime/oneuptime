@@ -17,9 +17,9 @@ deploy_staging_ruby-sdk:
         # - git commit -m "staging commit version 3.0.$CI_PIPELINE_IID"
         # - mkdir ~/.gem
         - GEMPATH=~/.gem/credentials
-        - cat $GEMPATH
 
-        # # - touch  $GEMPATH
+        - touch $GEMPATH
+        - cat $GEMPATH
         # - echo "---" >> $GEMPATH
         # - echo ":fyipegem:$RUBYGEM_API_KEY" >> $GEMPATH
         # - cat $GEMPATH
