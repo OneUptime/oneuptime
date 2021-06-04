@@ -6381,7 +6381,7 @@ const checkScriptCondition = (condition, body) => {
                 validity.reason = `Script did not throw error`;
             }
         } else if (condition.filter === 'emptyCallback') {
-            if (body.statusText === 'cbError' && body.error) {
+            if (body.statusText === 'nonEmptyCb' && body.error) {
                 validity.valid = false;
                 validity.reason = `Script callback invoked with arguments ${JSON.stringify(
                     body.error
@@ -6391,7 +6391,7 @@ const checkScriptCondition = (condition, body) => {
                 validity.reason = `Script callback has no arguments`;
             }
         } else if (condition.filter === 'nonEmptyCallback') {
-            if (body.statusText === 'cbError' && body.error) {
+            if (body.statusText === 'nonEmptyCb' && body.error) {
                 validity.valid = true;
                 validity.reason = `Script callback invoked with arguments ${JSON.stringify(
                     body.error

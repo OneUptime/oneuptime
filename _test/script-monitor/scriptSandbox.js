@@ -123,7 +123,7 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
                         success: false,
                         message: err.message,
                         errors: err.errors,
-                        status: 'cbError',
+                        status: 'nonEmptyCb',
                         executionTime: performance.now() - start,
                         consoleLogs,
                     });
