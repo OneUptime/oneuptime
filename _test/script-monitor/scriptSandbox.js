@@ -38,7 +38,6 @@ const runScript = async (functionCode, isCalled, options = { maxScriptRunTime, m
     if (isMainThread) {
         // modifiable option in development mode only
         const { maxScriptRunTime, maxSyncStatementDuration } = options;
-
         if (!isCalled) return;
         const start = performance.now();
         return new Promise(resolve => {
