@@ -98,7 +98,10 @@ class IncidentHeaderModal extends Component {
                                             <ul>
                                                 {data.incidents.map(
                                                     incident => (
-                                                        <li key={incident._id} className="activeIncidentList">
+                                                        <li
+                                                            key={incident._id}
+                                                            className="activeIncidentList"
+                                                        >
                                                             <span
                                                                 style={{
                                                                     fontWeight:
