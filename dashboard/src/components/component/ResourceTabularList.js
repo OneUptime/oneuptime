@@ -57,7 +57,7 @@ class ResourceTabularList extends Component {
     generateResourceStatus(componentResource) {
         let statusColor = 'slate';
         let statusDescription = 'TBD';
-        let indicator, monitor;
+        let indicator, monitor, status;
         let appSecurityStatus = 'currently scanning',
             containerSecurityStatus = 'currently scanning';
         const { monitors } = this.props;
@@ -77,15 +77,16 @@ class ResourceTabularList extends Component {
                 monitor = monitors.filter(
                     monitor => monitor._id === componentResource._id
                 )[0];
+                status = monitor && monitor.status ? monitor.status : 'online';
 
                 indicator = (
                     <StatusIndicator
-                        status={monitor.status}
+                        status={status}
                         resourceName={componentResource.name}
                         monitorName={monitor && monitor.name}
                     />
                 );
-                statusDescription = monitor.status;
+                statusDescription = status;
 
                 break;
             case 'application security':

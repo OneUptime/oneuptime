@@ -63,9 +63,10 @@ describe('Subcriber Alert API', function() {
                                         .send(monitor)
                                         .end(function(err, res) {
                                             monitorId = res.body._id;
+                                            incidentData.monitors = [monitorId];
                                             request
                                                 .post(
-                                                    `/incident/${projectId}/${monitorId}`
+                                                    `/incident/${projectId}/create-incident`
                                                 )
                                                 .set(
                                                     'Authorization',

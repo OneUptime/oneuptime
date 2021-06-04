@@ -29,7 +29,10 @@ class IncidentHeaderModal extends Component {
 
     navigatToIncident = incident => {
         const { data } = this.props;
-        const componentSlug = incident.monitorId.componentId.slug;
+        const componentSlug =
+            incident &&
+            incident.monitors[0] &&
+            incident.monitors[0].monitorId.componentId.slug;
         setTimeout(() => {
             history.push(
                 '/dashboard/project/' +
@@ -45,6 +48,23 @@ class IncidentHeaderModal extends Component {
         this.props.markAsRead(data.currentProjectId, incident.notificationId);
         this.props.animateSidebar(true);
         this.props.closeThisDialog();
+    };
+
+    handleMonitorList = monitors => {
+        if (monitors.length === 1) {
+            return `${monitors[0].monitorId.name} is`;
+        }
+        if (monitors.length === 2) {
+            return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name} are`;
+        }
+        if (monitors.length === 3) {
+            return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name} are`;
+        }
+        if (monitors.length > 3) {
+            return `${monitors[0].monitorId.name}, ${
+                monitors[1].monitorId.name
+            } and ${monitors.length - 2} others are`;
+        }
     };
 
     render() {
@@ -100,12 +120,9 @@ class IncidentHeaderModal extends Component {
                                                                 }
                                                             </span>
                                                             :{' '}
-                                                            {
-                                                                incident
-                                                                    .monitorId
-                                                                    .name
-                                                            }{' '}
-                                                            is{' '}
+                                                            {this.handleMonitorList(
+                                                                incident.monitors
+                                                            )}{' '}
                                                             {
                                                                 incident.incidentType
                                                             }

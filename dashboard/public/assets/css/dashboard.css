@@ -5954,7 +5954,7 @@ pre.bs-PropertyList-definition, pre.bs-PropertyList-property {
   display: flex;
   flex: 0 0 55%;
   flex-direction: column;
-  max-width: 350px;
+  /* max-width: 350px; */
   padding-left: 5px;
 }
 

@@ -300,7 +300,14 @@ export class FormModal extends Component {
                                                                     view private
                                                                     status page
                                                                     of this
-                                                                    project. {IS_SAAS_SERVICE && <span>Viewers are free.</span>}
+                                                                    project.{' '}
+                                                                    {IS_SAAS_SERVICE && (
+                                                                        <span>
+                                                                            Viewers
+                                                                            are
+                                                                            free.
+                                                                        </span>
+                                                                    )}
                                                                 </span>
                                                             </div>
                                                             <div className="db-RoleRadioListLabel-info">

@@ -521,7 +521,12 @@ const _this = {
         await _this.navigateToComponentDetails(component, page);
 
         // Navigate to details page of monitor assumed created
-        await _this.pageClickNavigate(page, `#more-details-${monitor}`);
+        // await _this.pageClickNavigate(page, `#more-details-${monitor}`);
+        await _this.pageWaitForSelector(page, `#more-details-${monitor}`, {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClick(page, `#more-details-${monitor}`);
 
         await _this.pageWaitForSelector(page, `#monitor-title-${monitor}`, {
             visible: true,
@@ -873,40 +878,25 @@ const _this = {
         });
     },
     addIncidentToProject: async function(monitorName, projectName, page) {
-        const createIncidentSelector = await _this.page$(
+        await _this.pageWaitForSelector(page, '#incidentLog');
+        await _this.page$Eval(page, '#incidentLog', e => e.click());
+
+        await _this.pageWaitForSelector(
             page,
             `#btnCreateIncident_${projectName}`,
-            { visible: true, timeout: _this.timeout }
+            {
+                visible: true,
+                timeout: _this.timeout,
+            }
         );
-        if (createIncidentSelector) {
-            await _this.pageWaitForSelector(
-                page,
-                `#btnCreateIncident_${projectName}`
-            );
-            await _this.page$Eval(
-                page,
-                `#btnCreateIncident_${projectName}`,
-                e => e.click()
-            );
-            await _this.pageWaitForSelector(page, '#frmIncident');
-            await _this.selectDropdownValue('#monitorList', monitorName, page);
-            await _this.page$Eval(page, '#createIncident', e => e.click());
-        } else {
-            await _this.pageWaitForSelector(page, '#incidentLog');
-            await _this.page$Eval(page, '#incidentLog', e => e.click());
-            await _this.pageWaitForSelector(
-                page,
-                `#btnCreateIncident_${projectName}`
-            );
-            await _this.page$Eval(
-                page,
-                `#btnCreateIncident_${projectName}`,
-                e => e.click()
-            );
-            await _this.pageWaitForSelector(page, '#frmIncident');
-            await _this.selectDropdownValue('#monitorList', monitorName, page);
-            await _this.page$Eval(page, '#createIncident', e => e.click());
-        }
+        await _this.page$Eval(page, `#btnCreateIncident_${projectName}`, e =>
+            e.click()
+        );
+        await _this.pageWaitForSelector(page, '#frmIncident');
+        await _this.page$Eval(page, '#addMoreMonitor', e => e.click());
+        await _this.selectDropdownValue('#monitorfield_0', monitorName, page);
+        await _this.page$Eval(page, '#createIncident', e => e.click());
+
         await _this.pageWaitForSelector(page, '#createIncident', {
             hidden: true,
         });

@@ -141,10 +141,8 @@ describe('Custom Twilio Settings', () => {
             await init.page$Eval(page, '#closeIncident_0', elem =>
                 elem.click()
             );
-            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
-            await init.page$Eval(page, `#incident_${monitorName}_0`, elem =>
-                elem.click()
-            );
+            await init.pageWaitForSelector(page, `#incident_0`);
+            await init.page$Eval(page, `#incident_0`, elem => elem.click());
             await init.pageWaitForSelector(page, '#incident_0');
 
             await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
@@ -180,10 +178,8 @@ describe('Custom Twilio Settings', () => {
                 page
             );
 
-            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
-            await init.page$Eval(page, `#incident_${monitorName}_0`, elem =>
-                elem.click()
-            );
+            await init.pageWaitForSelector(page, `#incident_0`);
+            await init.page$Eval(page, `#incident_0`, elem => elem.click());
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await init.page$Eval(page, '#btnAcknowledge_0', e => e.click());
             await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
@@ -226,10 +222,8 @@ describe('Custom Twilio Settings', () => {
                 page
             );
 
-            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
-            await init.page$Eval(page, `#incident_${monitorName}_0`, elem =>
-                elem.click()
-            );
+            await init.pageWaitForSelector(page, `#incident_0`);
+            await init.page$Eval(page, `#incident_0`, elem => elem.click());
             await init.pageWaitForSelector(page, '#btnResolve_0');
             await init.page$Eval(page, '#btnResolve_0', e => e.click());
             await init.pageWaitForSelector(page, '#ResolveText_0', {

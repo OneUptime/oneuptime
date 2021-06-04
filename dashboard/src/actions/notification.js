@@ -91,20 +91,27 @@ export function fetchNotifications(projectId) {
     };
 }
 
-export function markAsRead(projectId, notificationId) {
+export function markAsRead(projectId, notificationIds) {
     return async function(dispatch) {
         try {
             const userId = User.getUserId();
+            notificationIds = notificationIds.map(
+                notification =>
+                    notification.notificationId ||
+                    notification.notificaitonId._id
+            );
             const notifications = await putApi(
-                `notification/${projectId}/${notificationId}/read`
+                `notification/${projectId}/read`,
+                { notificationIds }
             );
-
-            dispatch(
-                notificationReadSuccess({
-                    notificationId: notifications.data,
-                    userId,
-                })
-            );
+            for (const notificationId of notifications.data) {
+                dispatch(
+                    notificationReadSuccess({
+                        notificationId,
+                        userId,
+                    })
+                );
+            }
         } catch (error) {
             let payload;
             if (error && error.response && error.response.data)
