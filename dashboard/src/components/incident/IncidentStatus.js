@@ -304,9 +304,7 @@ export class IncidentStatus extends Component {
         }
     };
 
-    render() {
-        console.log("Project Id: ", this.props.incident.projectId)
-        console.log("Current P: ", this.props.currentProject._id)
+    render() {        
         const isUserSubProjectId =
             this.props.incident.projectId._id ?? this.props.incident.projectId;
         const subProject =

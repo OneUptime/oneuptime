@@ -46,9 +46,9 @@ describe('Monitor Detail API', () => {
         await browser.close();
         done();
     });
-
+    
     test(
-        'Should navigate to details of monitor created with correct details',
+        'Should navigate to monitor details and create a new subscriber',
         async done => {
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
@@ -57,20 +57,40 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            let spanElement = await init.pageWaitForSelector(
+            // click on subscribers tab
+            await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
+
+            const addButtonSelector = '#addSubscriberButton';
+            await init.pageWaitForSelector(page, addButtonSelector);
+            await init.page$Eval(page, addButtonSelector, e => e.click());
+
+            await init.pageWaitForSelector(page, '#alertViaId');
+
+            await init.selectDropdownValue('#alertViaId', 'email', page);
+            await init.pageType(page, 'input[name=email]', subscriberEmail);
+            await init.page$Eval(page, '#createSubscriber', e => e.click());
+            await init.pageWaitForSelector(page, '#createSubscriber', {
+                hidden: true,
+            });
+
+            const createdSubscriberSelector = '#subscriber_contact';
+
+            await init.pageWaitForSelector(page, createdSubscriberSelector);
+
+            const createdSubscriberEmail = await init.page$Eval(
                 page,
-                `#monitor-title-${monitorName}`
+                createdSubscriberSelector,
+                el => el.textContent
             );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
-            spanElement.should.be.exactly(monitorName);
+
+            expect(createdSubscriberEmail).toEqual(subscriberEmail);
             done();
         },
         operationTimeOut
     );
 
     test(
-        'Should navigate to monitor details and create an incident',
+        'Should navigate to monitor details and get list of subscribers and paginate subscribers',
         async done => {
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
@@ -79,177 +99,74 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            await init.pageWaitForSelector(
-                page,
-                `#createIncident_${monitorName}`
-            );
-            await init.page$Eval(page, `#createIncident_${monitorName}`, e =>
-                e.click()
-            );
-            await init.pageWaitForSelector(page, '#createIncident');
-            await init.selectDropdownValue('#incidentType', 'Offline', page);
-            await init.selectDropdownValue(
-                '#incidentPriority',
-                priorityName,
-                page
-            );
-            await init.pageClick(page, '#title', {clickCount: 3});
-            // await page.keyboard.press('Backspace');
-            await init.pageType(page, '#title', incidentTitle);
-            await init.page$Eval(page, '#createIncident', e => e.click());
-            await init.pageWaitForSelector(page, '#closeIncident_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.page$Eval(page, '#closeIncident_0', elem =>
-                elem.click()
-            );
+            // click on subscribers tab
+            await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
+            const addButtonSelector = '#addSubscriberButton';
+            await init.pageWaitForSelector(page, addButtonSelector);
 
-            await init.pageWaitForSelector(page, '#numberOfIncidents');
+            for (let i = 0; i < 5; i++) {
+                await init.page$Eval(page, addButtonSelector, e => e.click());
+                await init.pageWaitForSelector(page, '#alertViaId');
+                await init.selectDropdownValue('#alertViaId', 'email', page);
+                await init.pageType(
+                    page,
+                    'input[name=email]',
+                    utils.generateRandomBusinessEmail()
+                );
+                await init.page$Eval(page, '#createSubscriber', e => e.click());
+                await init.pageWaitForSelector(page, '#createSubscriber', {
+                    hidden: true,
+                });
+            }
 
-            const selector = await init.page$Eval(
+            const createdSubscriberSelector = '#numberOfSubscribers';
+
+            await init.pageWaitForSelector(page, createdSubscriberSelector);
+
+            let subscriberRows = await init.page$Eval(
                 page,
-                '#numberOfIncidents',
+                createdSubscriberSelector,
                 elem => elem.textContent
             );
-            expect(selector).toMatch('1');
+            let countSubscribers = subscriberRows;
+            // Total number of subscribers is rendered and not first 5.
+            expect(countSubscribers).toEqual('6');
 
-            await init.pageWaitForSelector(page, `#name_${priorityName}`, {
-                visible: true,
-                timeout: init.timeout,
-            });
-            const selector1 = `#name_${priorityName}`;
-            const rowContent = await init.page$Eval(
-                page,
-                selector1,
-                e => e.textContent
-            );
-            expect(rowContent).toMatch(priorityName);
-            done();
-        },
-        operationTimeOut
-    );
-
-    test(
-        "Should navigate to monitor's incident details and edit details",
-        async done => {
-            // Navigate to Monitor details
-            await init.navigateToMonitorDetails(
-                componentName,
-                monitorName,
-                page
-            );
-
-            const selector = `#incident_0`;
-            await init.pageWaitForSelector(page, selector);
-            await init.page$Eval(page, selector, e => e.click());
-            const incidentTitleSelector = '#incidentTitle';
-            await init.pageWaitForSelector(page, incidentTitleSelector, {
-                visible: true,
-                timeout: init.timeout,
-            });
-            let currentTitle = await init.page$Eval(
-                page,
-                incidentTitleSelector,
-                e => e.textContent
-            );
-            expect(currentTitle).toEqual(incidentTitle);
-            // The Edit Button has been removed and replaced with another functions
-            await init.pageClick(page, '#incidentTitle');
-            await init.pageClick(page, '#title', {clickCount: 3});
-            await page.keyboard.press('Backspace');
-            await init.pageType(page, '#title', newIncidentTitle);
-            await page.keyboard.press('Enter');
-            await init.pageWaitForSelector(page, incidentTitleSelector);
-            currentTitle = await init.page$Eval(
-                page,
-                incidentTitleSelector,
-                e => e.textContent
-            );
-            expect(currentTitle).toEqual(newIncidentTitle);
-            done();
-        },
-        operationTimeOut
-    );
-
-    test(
-        'Should navigate to monitor details and open the incident creation pop up',
-        async done => {
-            // Navigate to Monitor details
-            await init.navigateToMonitorDetails(
-                componentName,
-                monitorName,
-                page
-            );
-
-            // tab the create incident button over thee monitor view header
-            await init.pageWaitForSelector(
-                page,
-                `#monitorCreateIncident_${monitorName}`
-            );
-            await init.page$Eval(
-                page,
-                `#monitorCreateIncident_${monitorName}`,
-                e => e.click()
-            );
-            await init.pageWaitForSelector(page, '#incidentTitleLabel');
-            let spanElement = await init.pageWaitForSelector(
-                page,
-                `#incidentTitleLabel`
-            );
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
-            spanElement.should.be.exactly('Create New Incident');
-            done();
-        },
-        operationTimeOut
-    );
-
-    test(
-        'Should navigate to monitor details and get list of incidents and paginate incidents',
-        async done => {
-            // Navigate to Monitor details
-            await init.navigateToMonitorDetails(
-                componentName,
-                monitorName,
-                page
-            );
-
-            const nextSelector = await init.pageWaitForSelector(
-                page,
-                '#btnNext'
-            );
+            const nextSelector = await init.page$(page, '#btnNextSubscriber');
             await nextSelector.click();
 
-            let incidentRows = '#numberOfIncidents';
+            await init.pageWaitForSelector(page, createdSubscriberSelector);
 
-            let countIncidents = await init.page$Eval(
+            subscriberRows = await init.page$Eval(
                 page,
-                incidentRows,
+                createdSubscriberSelector,
                 elem => elem.textContent
             );
-            expect(countIncidents).toEqual('1');
+            countSubscribers = subscriberRows;
 
-            const prevSelector = await init.pageWaitForSelector(
-                page,
-                '#btnPrev'
-            );
+            // Navigating to the next page did not affect the subscriber count.
+            expect(countSubscribers).toEqual('6');
+
+            const prevSelector = await init.page$(page, '#btnPrevSubscriber');
             await prevSelector.click();
+            await init.pageWaitForSelector(page, createdSubscriberSelector);
 
-            incidentRows = '#numberOfIncidents';
-            countIncidents = await init.page$Eval(
+            subscriberRows = await init.page$Eval(
                 page,
-                incidentRows,
+                createdSubscriberSelector,
                 elem => elem.textContent
             );
-            expect(countIncidents).toEqual('1');
+            countSubscribers = subscriberRows;
+
+            expect(countSubscribers).toEqual('6');
             done();
         },
         operationTimeOut
     );
 
+    //MS Teams
     test(
-        'Should delete an incident and redirect to the monitor page',
+        'Should navigate to monitor details and create a msteams webhook',
         async done => {
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
@@ -257,391 +174,222 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            const selector = `#incident_0`;
-            await init.pageWaitForSelector(page, selector);
-            await init.page$Eval(page, selector, e => e.click());
 
-            // click on advance option tab
-            await init.gotoTab(utils.incidentTabIndexes.ADVANCE, page);
+            // click on integrations tab
+            await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
 
-            await init.pageWaitForSelector(page, '#deleteIncidentButton', {
-                visible: true,
-                timeout: 100000,
-            });
-            await init.page$Eval(page, '#deleteIncidentButton', e => e.click());
-            await init.pageWaitForSelector(page, '#confirmDeleteIncident', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.page$Eval(page, '#confirmDeleteIncident', e =>
-                e.click()
-            );
-            await init.pageWaitForSelector(page, `#cb${monitorName}`, {
-                visible: true,
-                timeout: init.timeout,
+            const addButtonSelector = '#addMsTeamsButton';
+            await init.pageWaitForSelector(page, addButtonSelector);
+            await init.page$Eval(page, addButtonSelector, e => e.click());
+
+            await init.pageWaitForSelector(page, '#endpoint');
+
+            // Name is required to submit a msteams webhook AND only name is rendered. webHookEndPoint only shows when edit button is clicked.
+            await init.pageType(page, '#webHookName', webHookName);
+            await init.pageType(page, '#endpoint', webhookEndpoint);
+
+            await page.evaluate(() => {
+                document.querySelector('input[name=incidentCreated]').click();
             });
 
-            // click on basic tab
-            await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
+            const createdWebhookSelector = `#msteam_${webHookName}`;
 
-            let incidentCountSpanElement = await init.pageWaitForSelector(
+            await init.page$Eval(page, '#createMsTeams', e => e.click());
+            await init.pageWaitForSelector(page, '#createMsTeams', {
+                hidden: true,
+            });
+            await init.pageWaitForSelector(page, createdWebhookSelector, {
+                visible: true,
+                timeout: 50000,
+            });
+            // When an MSTeams is created, only 'Name' and 'Action' are rendered
+            //MSTeams Endpoint is no longer rendered
+            const createdWebhookName = await init.page$Eval(
                 page,
-                `#numberOfIncidents`
+                createdWebhookSelector,
+                el => el.textContent
             );
-            incidentCountSpanElement = await incidentCountSpanElement.getProperty(
-                'innerText'
-            );
-            incidentCountSpanElement = await incidentCountSpanElement.jsonValue();
-
-            expect(incidentCountSpanElement).toMatch('0 Incident');
+            expect(createdWebhookName).toEqual(webHookName);
             done();
         },
         operationTimeOut
     );
 
-    // test(
-    //     'Should navigate to monitor details and create a new subscriber',
-    //     async done => {
-    //         // Navigate to Monitor details
-    //         await init.navigateToMonitorDetails(
-    //             componentName,
-    //             monitorName,
-    //             page
-    //         );
+    test(
+        'Should navigate to monitor details and update a msteams webhook',
+        async done => {
+            // Navigate to Monitor details
+            await init.navigateToMonitorDetails(
+                componentName,
+                monitorName,
+                page
+            );
+            // click on integrations tab
+            await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
 
-    //         // click on subscribers tab
-    //         await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
+            const existingWebhookSelector = `#msteam_${webHookName}`;
 
-    //         const addButtonSelector = '#addSubscriberButton';
-    //         await init.pageWaitForSelector(page, addButtonSelector);
-    //         await init.page$Eval(page, addButtonSelector, e => e.click());
+            await init.pageWaitForSelector(page, existingWebhookSelector);
 
-    //         await init.pageWaitForSelector(page, '#alertViaId');
+            const existingWebhookName = await init.page$Eval(
+                page,
+                existingWebhookSelector,
+                el => el.textContent
+            );
 
-    //         await init.selectDropdownValue('#alertViaId', 'email', page);
-    //         await init.pageType(page, 'input[name=email]', subscriberEmail);
-    //         await init.page$Eval(page, '#createSubscriber', e => e.click());
-    //         await init.pageWaitForSelector(page, '#createSubscriber', {
-    //             hidden: true,
-    //         });
+            expect(existingWebhookName).toEqual(webHookName);
 
-    //         const createdSubscriberSelector = '#subscriber_contact';
+            const editWebhookButtonSelector = `#edit_msteam_${webHookName}`;
+            await init.page$Eval(page, editWebhookButtonSelector, e =>
+                e.click()
+            );
 
-    //         await init.pageWaitForSelector(page, createdSubscriberSelector);
+            const newWebhookEndpoint = utils.generateRandomWebsite();
+            await init.pageClick(page, '#webHookName');
+            await init.pageType(page, '#webHookName', newWebHookName);
+            await init.pageClick(page, '#endpoint');
+            await init.pageType(page, '#endpoint', newWebhookEndpoint);
+            await init.page$Eval(page, '#msteamsUpdate', e => e.click());
+            await init.pageWaitForSelector(page, '#msteamsUpdate', {
+                hidden: true,
+            });
+            await init.pageWaitForSelector(page, `#msteam_${newWebHookName}`);
+            const updatedWebhookName = await init.page$Eval(
+                page,
+                `#msteam_${newWebHookName}`,
+                el => el.textContent
+            );
+            expect(updatedWebhookName).toEqual(newWebHookName);
+            done();
+        },
+        operationTimeOut
+    );
 
-    //         const createdSubscriberEmail = await init.page$Eval(
-    //             page,
-    //             createdSubscriberSelector,
-    //             el => el.textContent
-    //         );
+    test(
+        'Should navigate to monitor details and delete a msteams webhook',
+        async done => {
+            // Navigate to Monitor details
+            await init.navigateToMonitorDetails(
+                componentName,
+                monitorName,
+                page
+            );
+            // click on integrations tab
+            await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
 
-    //         expect(createdSubscriberEmail).toEqual(subscriberEmail);
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
-//
-    // test(
-    //     'Should navigate to monitor details and get list of subscribers and paginate subscribers',
-    //     async done => {
-    //         // Navigate to Monitor details
-    //         await init.navigateToMonitorDetails(
-    //             componentName,
-    //             monitorName,
-    //             page
-    //         );
+            const createdWebhookSelector = '.msteam-length';
+            await init.pageWaitForSelector(page, createdWebhookSelector);
 
-    //         // click on subscribers tab
-    //         await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
-    //         const addButtonSelector = '#addSubscriberButton';
-    //         await init.pageWaitForSelector(page, addButtonSelector);
+            let webhookRows = await init.page$$(page, createdWebhookSelector);
+            let countWebhooks = webhookRows.length;
 
-    //         for (let i = 0; i < 5; i++) {
-    //             await init.page$Eval(page, addButtonSelector, e => e.click());
-    //             await init.pageWaitForSelector(page, '#alertViaId');
-    //             await init.selectDropdownValue('#alertViaId', 'email', page);
-    //             await init.pageType(
-    //                 page,
-    //                 'input[name=email]',
-    //                 utils.generateRandomBusinessEmail()
-    //             );
-    //             await init.page$Eval(page, '#createSubscriber', e => e.click());
-    //             await init.pageWaitForSelector(page, '#createSubscriber', {
-    //                 hidden: true,
-    //             });
-    //         }
+            expect(countWebhooks).toEqual(1);
 
-    //         const createdSubscriberSelector = '#numberOfSubscribers';
+            const deleteWebhookButtonSelector = `#delete_msteam_${newWebHookName}`;
+            await init.page$Eval(page, deleteWebhookButtonSelector, e =>
+                e.click()
+            );
 
-    //         await init.pageWaitForSelector(page, createdSubscriberSelector);
+            await init.pageWaitForSelector(page, '#msteamsDelete');
+            await init.page$Eval(page, '#msteamsDelete', e => e.click());
+            await init.pageWaitForSelector(page, '#msteamsDelete', {
+                hidden: true,
+            });
 
-    //         let subscriberRows = await init.page$Eval(
-    //             page,
-    //             createdSubscriberSelector,
-    //             elem => elem.textContent
-    //         );
-    //         let countSubscribers = subscriberRows;
-    //         // Total number of subscribers is rendered and not first 5.
-    //         expect(countSubscribers).toEqual('6');
+            webhookRows = await init.page$$(page, createdWebhookSelector);
+            countWebhooks = webhookRows.length;
 
-    //         const nextSelector = await init.page$(page, '#btnNextSubscriber');
-    //         await nextSelector.click();
+            expect(countWebhooks).toEqual(0);
+            done();
+        },
+        operationTimeOut
+    );
 
-    //         await init.pageWaitForSelector(page, createdSubscriberSelector);
+    test(
+        'Should navigate to monitor details and get list of msteams webhooks and paginate them',
+        async done => {
+            // Navigate to Monitor details
+            await init.navigateToMonitorDetails(
+                componentName,
+                monitorName,
+                page
+            );
 
-    //         subscriberRows = await init.page$Eval(
-    //             page,
-    //             createdSubscriberSelector,
-    //             elem => elem.textContent
-    //         );
-    //         countSubscribers = subscriberRows;
+            // click on integrations tab
+            await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
 
-    //         // Navigating to the next page did not affect the subscriber count.
-    //         expect(countSubscribers).toEqual('6');
+            const addButtonSelector = '#addMsTeamsButton';
+            await init.pageWaitForSelector(page, addButtonSelector);
 
-    //         const prevSelector = await init.page$(page, '#btnPrevSubscriber');
-    //         await prevSelector.click();
-    //         await init.pageWaitForSelector(page, createdSubscriberSelector);
+            for (let i = 0; i < 11; i++) {
+                await init.page$Eval(page, addButtonSelector, e => e.click());
+                await init.pageWaitForSelector(page, '#endpoint');
+                await init.pageType(
+                    page,
+                    '#webHookName',
+                    utils.generateRandomString()
+                );
+                await init.pageType(
+                    page,
+                    '#endpoint',
+                    utils.generateRandomWebsite()
+                );
+                await page.evaluate(() => {
+                    document
+                        .querySelector('input[name=incidentCreated]')
+                        .click();
+                });
+                await init.page$Eval(page, '#createMsTeams', e => e.click());
+                await init.pageWaitForSelector(page, '#createMsTeams', {
+                    hidden: true,
+                });
+            }
 
-    //         subscriberRows = await init.page$Eval(
-    //             page,
-    //             createdSubscriberSelector,
-    //             elem => elem.textContent
-    //         );
-    //         countSubscribers = subscriberRows;
+            await page.reload({ waitUntil: 'networkidle0' });
 
-    //         expect(countSubscribers).toEqual('6');
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+            // click on integrations tab
+            await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
 
-    // //MS Teams
-    // test(
-    //     'Should navigate to monitor details and create a msteams webhook',
-    //     async done => {
-    //         // Navigate to Monitor details
-    //         await init.navigateToMonitorDetails(
-    //             componentName,
-    //             monitorName,
-    //             page
-    //         );
+            const createdWebhookSelector = '.msteam-length';
+            await init.pageWaitForSelector(page, createdWebhookSelector);
 
-    //         // click on integrations tab
-    //         await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
+            let webhookRows = await init.page$$(page, createdWebhookSelector);
+            let countWebhooks = webhookRows.length;
 
-    //         const addButtonSelector = '#addMsTeamsButton';
-    //         await init.pageWaitForSelector(page, addButtonSelector);
-    //         await init.page$Eval(page, addButtonSelector, e => e.click());
+            expect(countWebhooks).toEqual(10);
 
-    //         await init.pageWaitForSelector(page, '#endpoint');
+            await init.pageWaitForSelector(page, '#btnNextMsTeams', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.page$Eval(page, '#btnNextMsTeams', elem => elem.click());
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
+            await init.pageWaitForSelector(page, createdWebhookSelector);
 
-    //         // Name is required to submit a msteams webhook AND only name is rendered. webHookEndPoint only shows when edit button is clicked.
-    //         await init.pageType(page, '#webHookName', webHookName);
-    //         await init.pageType(page, '#endpoint', webhookEndpoint);
+            webhookRows = await init.page$$(page, createdWebhookSelector);
+            countWebhooks = webhookRows.length;
+            expect(countWebhooks).toEqual(1);
 
-    //         await page.evaluate(() => {
-    //             document.querySelector('input[name=incidentCreated]').click();
-    //         });
+            await init.pageWaitForSelector(page, '#btnPrevMsTeams', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.page$Eval(page, '#btnPrevMsTeams', elem => elem.click());
+            await init.pageWaitForSelector(page, '.ball-beat', {
+                hidden: true,
+            });
+            await init.pageWaitForSelector(page, createdWebhookSelector);
 
-    //         const createdWebhookSelector = `#msteam_${webHookName}`;
+            webhookRows = await init.page$$(page, createdWebhookSelector);
+            countWebhooks = webhookRows.length;
 
-    //         await init.page$Eval(page, '#createMsTeams', e => e.click());
-    //         await init.pageWaitForSelector(page, '#createMsTeams', {
-    //             hidden: true,
-    //         });
-    //         await init.pageWaitForSelector(page, createdWebhookSelector, {
-    //             visible: true,
-    //             timeout: 50000,
-    //         });
-    //         // When an MSTeams is created, only 'Name' and 'Action' are rendered
-    //         //MSTeams Endpoint is no longer rendered
-    //         const createdWebhookName = await init.page$Eval(
-    //             page,
-    //             createdWebhookSelector,
-    //             el => el.textContent
-    //         );
-    //         expect(createdWebhookName).toEqual(webHookName);
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
-
-    // test(
-    //     'Should navigate to monitor details and update a msteams webhook',
-    //     async done => {
-    //         // Navigate to Monitor details
-    //         await init.navigateToMonitorDetails(
-    //             componentName,
-    //             monitorName,
-    //             page
-    //         );
-    //         // click on integrations tab
-    //         await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
-
-    //         const existingWebhookSelector = `#msteam_${webHookName}`;
-
-    //         await init.pageWaitForSelector(page, existingWebhookSelector);
-
-    //         const existingWebhookName = await init.page$Eval(
-    //             page,
-    //             existingWebhookSelector,
-    //             el => el.textContent
-    //         );
-
-    //         expect(existingWebhookName).toEqual(webHookName);
-
-    //         const editWebhookButtonSelector = `#edit_msteam_${webHookName}`;
-    //         await init.page$Eval(page, editWebhookButtonSelector, e =>
-    //             e.click()
-    //         );
-
-    //         const newWebhookEndpoint = utils.generateRandomWebsite();
-    //         await init.pageClick(page, '#webHookName');
-    //         await init.pageType(page, '#webHookName', newWebHookName);
-    //         await init.pageClick(page, '#endpoint');
-    //         await init.pageType(page, '#endpoint', newWebhookEndpoint);
-    //         await init.page$Eval(page, '#msteamsUpdate', e => e.click());
-    //         await init.pageWaitForSelector(page, '#msteamsUpdate', {
-    //             hidden: true,
-    //         });
-    //         await init.pageWaitForSelector(page, `#msteam_${newWebHookName}`);
-    //         const updatedWebhookName = await init.page$Eval(
-    //             page,
-    //             `#msteam_${newWebHookName}`,
-    //             el => el.textContent
-    //         );
-    //         expect(updatedWebhookName).toEqual(newWebHookName);
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
-
-    // test(
-    //     'Should navigate to monitor details and delete a msteams webhook',
-    //     async done => {
-    //         // Navigate to Monitor details
-    //         await init.navigateToMonitorDetails(
-    //             componentName,
-    //             monitorName,
-    //             page
-    //         );
-    //         // click on integrations tab
-    //         await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
-
-    //         const createdWebhookSelector = '.msteam-length';
-    //         await init.pageWaitForSelector(page, createdWebhookSelector);
-
-    //         let webhookRows = await init.page$$(page, createdWebhookSelector);
-    //         let countWebhooks = webhookRows.length;
-
-    //         expect(countWebhooks).toEqual(1);
-
-    //         const deleteWebhookButtonSelector = `#delete_msteam_${newWebHookName}`;
-    //         await init.page$Eval(page, deleteWebhookButtonSelector, e =>
-    //             e.click()
-    //         );
-
-    //         await init.pageWaitForSelector(page, '#msteamsDelete');
-    //         await init.page$Eval(page, '#msteamsDelete', e => e.click());
-    //         await init.pageWaitForSelector(page, '#msteamsDelete', {
-    //             hidden: true,
-    //         });
-
-    //         webhookRows = await init.page$$(page, createdWebhookSelector);
-    //         countWebhooks = webhookRows.length;
-
-    //         expect(countWebhooks).toEqual(0);
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
-
-    // test(
-    //     'Should navigate to monitor details and get list of msteams webhooks and paginate them',
-    //     async done => {
-    //         // Navigate to Monitor details
-    //         await init.navigateToMonitorDetails(
-    //             componentName,
-    //             monitorName,
-    //             page
-    //         );
-
-    //         // click on integrations tab
-    //         await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
-
-    //         const addButtonSelector = '#addMsTeamsButton';
-    //         await init.pageWaitForSelector(page, addButtonSelector);
-
-    //         for (let i = 0; i < 11; i++) {
-    //             await init.page$Eval(page, addButtonSelector, e => e.click());
-    //             await init.pageWaitForSelector(page, '#endpoint');
-    //             await init.pageType(
-    //                 page,
-    //                 '#webHookName',
-    //                 utils.generateRandomString()
-    //             );
-    //             await init.pageType(
-    //                 page,
-    //                 '#endpoint',
-    //                 utils.generateRandomWebsite()
-    //             );
-    //             await page.evaluate(() => {
-    //                 document
-    //                     .querySelector('input[name=incidentCreated]')
-    //                     .click();
-    //             });
-    //             await init.page$Eval(page, '#createMsTeams', e => e.click());
-    //             await init.pageWaitForSelector(page, '#createMsTeams', {
-    //                 hidden: true,
-    //             });
-    //         }
-
-    //         await page.reload({ waitUntil: 'networkidle0' });
-
-    //         // click on integrations tab
-    //         await init.gotoTab(utils.monitorTabIndexes.INTEGRATION, page);
-
-    //         const createdWebhookSelector = '.msteam-length';
-    //         await init.pageWaitForSelector(page, createdWebhookSelector);
-
-    //         let webhookRows = await init.page$$(page, createdWebhookSelector);
-    //         let countWebhooks = webhookRows.length;
-
-    //         expect(countWebhooks).toEqual(10);
-
-    //         await init.pageWaitForSelector(page, '#btnNextMsTeams', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.page$Eval(page, '#btnNextMsTeams', elem => elem.click());
-    //         await init.pageWaitForSelector(page, '.ball-beat', {
-    //             hidden: true,
-    //         });
-    //         await init.pageWaitForSelector(page, createdWebhookSelector);
-
-    //         webhookRows = await init.page$$(page, createdWebhookSelector);
-    //         countWebhooks = webhookRows.length;
-    //         expect(countWebhooks).toEqual(1);
-
-    //         await init.pageWaitForSelector(page, '#btnPrevMsTeams', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.page$Eval(page, '#btnPrevMsTeams', elem => elem.click());
-    //         await init.pageWaitForSelector(page, '.ball-beat', {
-    //             hidden: true,
-    //         });
-    //         await init.pageWaitForSelector(page, createdWebhookSelector);
-
-    //         webhookRows = await init.page$$(page, createdWebhookSelector);
-    //         countWebhooks = webhookRows.length;
-
-    //         expect(countWebhooks).toEqual(10);
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+            expect(countWebhooks).toEqual(10);
+            done();
+        },
+        operationTimeOut
+    );
 
     // test(
     //     'Should navigate to monitor details and create a slack webhook',
