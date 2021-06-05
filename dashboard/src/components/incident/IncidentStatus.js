@@ -1685,7 +1685,7 @@ export class IncidentStatus extends Component {
                                                                             style={{
                                                                                 width: 212,
                                                                             }}
-                                                                            handleBlur={this.props.handleSubmit( // The RenderField Component has been edited
+                                                                            handleBlur={this.props.handleSubmit( // The RenderField Component has been refactored
                                                                                 this
                                                                                     .firstFormSubmit
                                                                             )}
