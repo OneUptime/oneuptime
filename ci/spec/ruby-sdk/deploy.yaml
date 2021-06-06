@@ -20,7 +20,7 @@ deploy_staging_ruby-sdk:
         - rm $GEMPATH || true # reomve previous saved file or just continue if it doesnt exist (new container)
         - touch $GEMPATH # start recreation
         - echo "---" >> $GEMPATH
-        - echo ":fyipegem:\ $RUBYGEM_API_KEY" >> $GEMPATH
+        - echo ":fyipegem: $RUBYGEM_API_KEY" >> $GEMPATH
         - cat $GEMPATH
         - chmod 0600 $GEMPATH
         - bundle exec gem bump 3.0.$CI_PIPELINE_IID
