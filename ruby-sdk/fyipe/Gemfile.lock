@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    fyipe (3.0.1)
+    fyipe (3.0.2)
       gem-release
       httparty (~> 0.17)
 
