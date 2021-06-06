@@ -60,6 +60,7 @@ const incomingRequestSchema = new Schema(
                 filterText: Schema.Types.Mixed,
             },
         ],
+        createSeparateIncident: { type: Boolean, default: false },
     },
     { timestamps: true }
 );
