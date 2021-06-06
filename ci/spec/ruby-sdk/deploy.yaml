@@ -19,7 +19,7 @@ deploy_staging_ruby-sdk:
         - GEMPATH=~/.gem/credentials
         - rm $GEMPATH || true # reomve previous saved file or just continue if it doesnt exist (new container)
         - touch $GEMPATH # start recreation
-        - CUSTOMSPACE=
+        - CUSTOMSPACE=~
         - echo "---" >> $GEMPATH
         - echo ":fyipegem:$CUSTOMSPACE$RUBYGEM_API_KEY" >> $GEMPATH
         - cat $GEMPATH
