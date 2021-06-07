@@ -2066,92 +2066,98 @@ export function MonitorChart({
         );
     } else if (type === 'script') {
         monitorInfo = (
-            <>
-                <div className="db-Trend">
-                    <div className="block-chart-side line-chart">
-                        <div className="db-TrendRow">
-                            {isCurrentlyNotMonitoring ? (
-                                <div className="db-Trend-colInformation probe-offline">
+            <div className="db-Trend">
+                <div className="block-chart-side line-chart">
+                    <div className="db-TrendRow">
+                        {isCurrentlyNotMonitoring ? (
+                            <div className="db-Trend-colInformation probe-offline">
+                                <div
+                                    className="db-Trend-rowTitle"
+                                    title="Currently not monitoring"
+                                >
+                                    <div className="db-Trend-title">
+                                        <strong>
+                                            <span className="chart-font">
+                                                Currently not monitoring
+                                            </span>
+                                        </strong>
+                                    </div>
+                                </div>
+                                <div className="db-Trend-rowTitle">
+                                    <div className="db-Trend-title description">
+                                        <small>
+                                            <span className="chart-font">
+                                                We&apos;re currently not
+                                                monitoring this monitor from
+                                                this probe because the probe is
+                                                offline.
+                                            </span>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="db-Trend-colInformation">
                                     <div
                                         className="db-Trend-rowTitle"
-                                        title="Currently not monitoring"
+                                        title="Monitor Status"
                                     >
                                         <div className="db-Trend-title">
-                                            <strong>
-                                                <span className="chart-font">
-                                                    Currently not monitoring
-                                                </span>
-                                            </strong>
+                                            <span className="chart-font">
+                                                Monitor Status
+                                            </span>
                                         </div>
                                     </div>
-                                    <div className="db-Trend-rowTitle">
-                                        <div className="db-Trend-title description">
-                                            <small>
-                                                <span className="chart-font">
-                                                    We&apos;re currently not
-                                                    monitoring this monitor from
-                                                    this probe because the probe
-                                                    is offline.
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
+                                                <span
+                                                    className={`chart-font Text-color--${statusColor}`}
+                                                >
+                                                    {monitorStatus}
                                                 </span>
-                                            </small>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
-                            ) : (
-                                <>
-                                    <div className="db-Trend-colInformation">
-                                        <div
-                                            className="db-Trend-rowTitle"
-                                            title="Monitor Status"
-                                        >
-                                            <div className="db-Trend-title">
-                                                <span className="chart-font">
-                                                    Monitor Status
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="db-Trend-row">
-                                            <div className="db-Trend-col db-Trend-colValue">
-                                                <span>
-                                                    {' '}
-                                                    <span
-                                                        id={`monitor-status-${monitor.name}`}
-                                                        className={`chart-font Text-color--${statusColor}`}
-                                                    >
-                                                        {monitorStatus}
-                                                    </span>
-                                                </span>
-                                            </div>
+                                <div className="db-Trend-colInformation">
+                                    <div
+                                        className="db-Trend-rowTitle"
+                                        title="Uptime Stats"
+                                    >
+                                        <div className="db-Trend-title">
+                                            <span className="chart-font">
+                                                Uptime Stats
+                                            </span>
                                         </div>
                                     </div>
-                                    <div className="db-Trend-colInformation">
-                                        <div
-                                            className="db-Trend-rowTitle"
-                                            title="Uptime Stats"
-                                        >
-                                            <div className="db-Trend-title">
+                                    <div className="db-Trend-row">
+                                        <div className="db-Trend-col db-Trend-colValue">
+                                            <span>
+                                                {' '}
                                                 <span className="chart-font">
-                                                    Uptime Stats
+                                                    {uptime} %
                                                 </span>
-                                            </div>
-                                        </div>
-                                        <div className="db-Trend-row">
-                                            <div className="db-Trend-col db-Trend-colValue">
-                                                <span>
-                                                    {' '}
-                                                    <span className="chart-font">
-                                                        {uptime} %
-                                                    </span>
-                                                </span>
-                                            </div>
+                                            </span>
                                         </div>
                                     </div>
-                                </>
-                            )}
-                        </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
-            </>
+                {!isCurrentlyNotMonitoring && (
+                    <div className="block-chart-main line-chart">
+                        <AreaChart
+                            type={type}
+                            data={data}
+                            name={'monitorStatus'}
+                        />
+                    </div>
+                )}
+            </div>
         );
     } else {
         monitorInfo = (

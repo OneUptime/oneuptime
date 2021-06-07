@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import * as _ from 'lodash';
 import { formatDecimal, formatBytes } from '../../config';
+import toPascalCase from 'to-pascal-case';
 
 const noDataStyle = {
     textAlign: 'center',
@@ -43,6 +44,27 @@ CustomTooltip.propTypes = {
     active: PropTypes.bool,
     payload: PropTypes.array,
 };
+
+// interpolates status to numeric value so we can display it on chart
+const interpolatedStatus = status => {
+    switch (status) {
+        case 'offline':
+            return 0;
+        case 'online':
+            return 100;
+        case 'degraded':
+            return 50;
+        default:
+            return 0;
+    }
+};
+
+// interpolates status in data objects array
+// and appends interpolated status
+const interpolateData = (data = []) =>
+    data.map(val => {
+        return { ...val, interpolatedStatus: interpolatedStatus(val.status) };
+    });
 
 class AreaChart extends Component {
     parseValue(data, name, display, symbol) {
@@ -138,6 +160,12 @@ class AreaChart extends Component {
                                   .length
                           ) || 0
                     : 0;
+            case 'monitorStatus':
+                return data.interpolatedStatus
+                    ? display
+                        ? toPascalCase(data.status)
+                        : data.interpolatedStatus
+                    : 0;
             default:
                 return display ? `${data || 0} ${symbol || ''}` : data || 0;
         }
@@ -198,6 +226,13 @@ class AreaChart extends Component {
                 </div>
             );
         }
+
+        // interpolate status first for script monitor
+        let preprocessedData;
+        if (type === 'script') {
+            preprocessedData = interpolateData(data);
+        }
+
         if (data && data.length > 0) {
             processedData = (type === 'manual' || type === 'incomingHttpRequest'
                 ? data.map(a => {
@@ -210,6 +245,14 @@ class AreaChart extends Component {
                               true,
                               symbol
                           ),
+                      };
+                  })
+                : type === 'script'
+                ? preprocessedData.map(a => {
+                      return {
+                          name: a.intervalDate || this.parseDate(a.createdAt),
+                          v: this.parseValue(a, name),
+                          display: this.parseValue(a, name, true, symbol),
                       };
                   })
                 : data.map(a => {
