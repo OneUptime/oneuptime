@@ -66,7 +66,7 @@ export class IncidentStatus extends Component {
     };
     firstFormSubmit = values => {
         const incidentId = this.props.incident._id;
-        const projectId = this.props.currentProject._id;
+        const projectId = this.props.incident.projectId._id ?? this.props.incident.projectId;
         const incidentType = this.props.incident.incidentType;
         const description = this.props.incident.description;
         const incidentPriority = this.props.incident.incidentPriority._id;
@@ -96,7 +96,7 @@ export class IncidentStatus extends Component {
     };
     secondFormSubmit = () => {
         const incidentId = this.props.incident._id;
-        const projectId = this.props.currentProject._id;
+        const projectId = this.props.incident.projectId._id ?? this.props.incident.projectId;
         const incidentType = this.props.incident.incidentType;
         const title = this.props.incident.title;
         const description = this.props.description;
@@ -126,7 +126,7 @@ export class IncidentStatus extends Component {
     };
     thirdFormSubmit = (e, value) => {
         const incidentId = this.props.incident._id;
-        const projectId = this.props.currentProject._id;
+        const projectId = this.props.incident.projectId._id ?? this.props.incident.projectId;
         const incidentType = this.props.incident.incidentType;
         const title = this.props.incident.title;
         const description = this.props.incident.description;
