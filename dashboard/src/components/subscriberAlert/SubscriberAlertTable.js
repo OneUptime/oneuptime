@@ -14,7 +14,7 @@ function HTD1() {
         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                 <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                    <span>Monitor</span>
+                    <span>Monitor(s)</span>
                 </span>
             </div>
         </td>
@@ -324,8 +324,26 @@ function SubscriberAlertTableHeader() {
 }
 
 class SubscriberAlertTableRowsClass extends React.Component {
+    handleMonitorList = monitors => {
+        if (monitors.length === 0) {
+            return 'Unknown';
+        }
+        if (monitors.length === 1) {
+            return monitors[0].name;
+        }
+        if (monitors.length === 2) {
+            return `${monitors[0].name} and ${monitors[1].name}`;
+        }
+        if (monitors.length === 3) {
+            return `${monitors[0].name}, ${monitors[1].name} and ${monitors[2].name}`;
+        }
+
+        return `${monitors[0].name}, ${monitors[1].name} and ${monitors.length -
+            2} others`;
+    };
+
     render() {
-        const { alerts, monitor } = this.props;
+        const { alerts, monitors } = this.props;
         return alerts.length > 0
             ? alerts.map((alert, index) => (
                   <tr
@@ -335,7 +353,6 @@ class SubscriberAlertTableRowsClass extends React.Component {
                           this.props.openModal({
                               id: uuidv4(),
                               content: DataPathHoC(AlertDetails, {
-                                  monitor: monitor ? monitor.name : 'Unknown',
                                   subscriber: alert.subscriberId
                                       ? alert.subscriberId.contactEmail ||
                                         (alert.subscriberId.contactPhone &&
@@ -351,11 +368,12 @@ class SubscriberAlertTableRowsClass extends React.Component {
                                   alertStatus: alert.alertStatus,
                                   eventType: alert.eventType,
                                   errorMessage: alert.errorMessage,
+                                  monitors,
                               }),
                           })
                       }
                   >
-                      <TD1 text={monitor ? monitor.name : 'Unknown'} />
+                      <TD1 text={this.handleMonitorList(monitors)} />
 
                       <TD2
                           text={
@@ -385,8 +403,8 @@ class SubscriberAlertTableRowsClass extends React.Component {
 SubscriberAlertTableRowsClass.displayName = 'SubscriberAlertTableRowsClass';
 SubscriberAlertTableRowsClass.propTypes = {
     alerts: PropTypes.array.isRequired,
-    monitor: PropTypes.object.isRequired,
     openModal: PropTypes.func.isRequired,
+    monitors: PropTypes.array,
 };
 
 const SubscriberAlertTableRows = connect(null, dispatch =>

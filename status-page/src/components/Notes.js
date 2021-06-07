@@ -57,6 +57,25 @@ class Notes extends Component {
         history.push(`/status-page/${statusPageSlug}/incident/${noteIdNumber}`);
     };
 
+    handleMonitorList = monitors => {
+        if (monitors) {
+            if (monitors.length === 1) {
+                return monitors[0].monitorId.name;
+            }
+            if (monitors.length === 2) {
+                return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name}`;
+            }
+            if (monitors.length === 3) {
+                return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
+            }
+            if (monitors.length > 3) {
+                return `${monitors[0].monitorId.name}, ${
+                    monitors[1].monitorId.name
+                } and ${monitors.length - 2} others`;
+            }
+        }
+    };
+
     render() {
         const {
             statusPageSlug,
@@ -151,7 +170,7 @@ class Notes extends Component {
                                     className="ongoing__affectedmonitor--content"
                                     style={{ color: 'rgba(0, 0, 0, 0.5)' }}
                                 >
-                                    {note.monitorId && note.monitorId.name}
+                                    {this.handleMonitorList(note.monitors)}
                                 </span>
                             </div>
                             <div

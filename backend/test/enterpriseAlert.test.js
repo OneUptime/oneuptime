@@ -53,6 +53,7 @@ describe('Enterprise Alert API', function() {
                                     })
                                     .end(function(err, res) {
                                         monitorId = res.body._id;
+                                        incidentData.monitors = [monitorId];
                                         done();
                                     });
                             });
@@ -74,7 +75,7 @@ describe('Enterprise Alert API', function() {
     it('should create alert with valid details for project with no billing plan', function(done) {
         const authorization = `Basic ${token}`;
         request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData)
             .end(function(err, res) {

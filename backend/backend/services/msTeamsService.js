@@ -60,7 +60,7 @@ module.exports = {
     // send notification to slack workspace channels
     async notify(project, monitor, incident, integration, component, duration) {
         try {
-            const uri = `${global.dashboardHost}/project/${component.projectId._id}/${component._id}/incidents/${incident._id}`;
+            const uri = `${global.dashboardHost}/project/${component.projectId.slug}/incidents/${incident._id}`;
             const yellow = '#fedc56';
             const green = '#028A0F';
             let payload;
@@ -194,7 +194,12 @@ module.exports = {
             throw error;
         }
     },
-    sendIncidentNoteNotification: async function(projectId, incident, data) {
+    sendIncidentNoteNotification: async function(
+        projectId,
+        incident,
+        data,
+        monitor
+    ) {
         try {
             const self = this;
             let response;
@@ -206,7 +211,7 @@ module.exports = {
             const query = {
                 projectId: projectId,
                 integrationType: 'msteams',
-                monitorId: incident.monitorId._id,
+                monitorId: monitor._id,
                 'notificationOptions.incidentNoteAdded': true,
             };
 
@@ -217,7 +222,8 @@ module.exports = {
                     project,
                     incident,
                     integration,
-                    data
+                    data,
+                    monitor
                 );
             }
             return response;
@@ -231,9 +237,9 @@ module.exports = {
     },
 
     // send notification to slack workspace channels
-    async noteNotify(project, incident, integration, data) {
+    async noteNotify(project, incident, integration, data, monitor) {
         try {
-            const uri = `${global.dashboardHost}/project/${project.slug}/${integration.monitorId.componentId._id}/incidents/${incident._id}`;
+            const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
             const yellow = '#fedc56';
             const payload = {
                 '@context': 'https://schema.org/extensions',
@@ -243,7 +249,7 @@ module.exports = {
                 sections: [
                     {
                         activityTitle: `[Incident Note Created](${uri})`,
-                        activitySubtitle: `${incident.monitorId.componentId.name} / ${incident.monitorId.name}`,
+                        activitySubtitle: `${monitor.componentId.name} / ${monitor.name}`,
                         facts: [
                             { Name: 'State', value: `${data.incident_state}` },
                             { Name: 'Created By', value: `${data.created_by}` },

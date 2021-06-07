@@ -31,7 +31,8 @@ class NotificationMenu extends Component {
     }
 
     markAsRead(notification) {
-        this.props.markAsRead(notification.projectId, notification._id);
+        const notificationIds = [{ notificationId: notification._id }];
+        this.props.markAsRead(notification.projectId, notificationIds);
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('EVENT: DASHBOARD > NOTIFICATION MARKED AS READ', {});
         }

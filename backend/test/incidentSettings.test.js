@@ -158,9 +158,13 @@ describe('Incident Settings API', function() {
 
     it('should not substitute variables with their values when an incident is created manually.', async () => {
         const authorization = `Basic ${token}`;
-        const payload = { ...incidentData, ...incidentSettings };
+        const payload = {
+            ...incidentData,
+            ...incidentSettings,
+            monitors: [monitorId],
+        };
         const res = await request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(payload);
 

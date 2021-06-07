@@ -7,7 +7,7 @@
 #Important: Highly dependent on *-alpine image.
 ###
 
-FROM node:15.0.1-alpine3.12
+FROM node:16.0.1-alpine3.12
 
 #set language enviroments
 ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
