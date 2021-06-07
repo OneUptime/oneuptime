@@ -1025,7 +1025,30 @@ function compareStatus(incident, log) {
 }
 
 export const getMonitorStatus = (incidents, logs, type) => {
-    const incident = incidents && incidents.length > 0 ? incidents[0] : null;
+    const activeOfflineIncident =
+        incidents &&
+        incidents.filter(
+            incident =>
+                !incident.resolved && incident.incidentType === 'offline'
+        );
+
+    const activeDegradedIncident =
+        incidents &&
+        incidents.filter(
+            incident =>
+                !incident.resolved && incident.incidentType === 'degraded'
+        );
+
+    const lastIncident =
+        incidents && incidents.length > 0 ? incidents[0] : null;
+
+    const incident =
+        activeOfflineIncident.length > 0
+            ? activeOfflineIncident[0]
+            : activeDegradedIncident.length > 0
+            ? activeDegradedIncident[0]
+            : lastIncident;
+
     const log = logs && logs.length > 0 ? logs[0] : null;
     const statusCompare =
         incident && log
@@ -1039,6 +1062,7 @@ export const getMonitorStatus = (incidents, logs, type) => {
             : type === 'server monitor'
             ? 'No Data'
             : 'online';
+
     return statusCompare || 'online';
 };
 
