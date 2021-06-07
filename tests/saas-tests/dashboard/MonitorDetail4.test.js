@@ -152,15 +152,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, createdWebhookSelector);
             webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
-            expect(countWebhooks).toEqual(1);
-
-            await page.reload({timeout: init.timeout});
-            await init.pageClick(page, '.integrations-tab');
-
-            let webhookPage = await init.pageWaitForSelector(page, '#webhook-page-list');
-            webhookPage = await webhookPage.getProperty('innertText');
-            webhookPage = await webhookPage.jsonValue();
-            expect(webhookPage).toMatch('Page 1 of 2 (11 Webhooks)');
+            expect(countWebhooks).toEqual(1);            
             
             done();
         },
