@@ -1532,13 +1532,19 @@ export default (state = INITIAL_STATE, action) => {
                 }
                 return note;
             });
-            if (
-                !incidentFound &&
-                statusPageMonitorIds.includes(
-                    String(action.payload.monitorId._id)
-                )
-            ) {
-                notes = [action.payload, ...notes];
+            const monitors = action.payload
+                ? action.payload.monitors.map(monitor => monitor.monitorId)
+                : [];
+            // once we find at least one monitor in the statusPageMonitorIds array
+            // we break out of the loop and add the incident to the list
+            for (const monitor of monitors) {
+                if (
+                    !incidentFound &&
+                    statusPageMonitorIds.includes(String(monitor._id))
+                ) {
+                    notes = [action.payload, ...notes];
+                    break;
+                }
             }
             return {
                 ...state,

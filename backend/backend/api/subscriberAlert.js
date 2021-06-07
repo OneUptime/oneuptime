@@ -103,18 +103,23 @@ router.get('/:projectId/incident/:incidentId', async (req, res) => {
             projectId,
             idNumber,
         });
-        incidentId = incidentId._id;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const subscriberAlerts = await SubscriberAlertService.findBy(
-            { incidentId: incidentId, projectId: projectId },
-            skip,
-            limit
-        );
-        const count = await SubscriberAlertService.countBy({
-            incidentId: incidentId,
-            projectId: projectId,
-        });
+
+        let subscriberAlerts = [],
+            count = 0;
+        if (incidentId) {
+            incidentId = incidentId._id;
+            subscriberAlerts = await SubscriberAlertService.findBy(
+                { incidentId: incidentId, projectId: projectId },
+                skip,
+                limit
+            );
+            count = await SubscriberAlertService.countBy({
+                incidentId: incidentId,
+                projectId: projectId,
+            });
+        }
         return sendListResponse(req, res, subscriberAlerts, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

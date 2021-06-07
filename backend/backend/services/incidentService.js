@@ -18,20 +18,28 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .populate('acknowledgedBy', 'name')
-                .populate('monitorId', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
-                .populate('projectId', 'name')
+                .populate('projectId')
                 .populate('probes.probeId')
                 .populate('incidentPriority', 'name color')
                 .populate({
-                    path: 'monitorId',
-                    select: '_id name type slug',
-                    populate: { path: 'componentId', select: '_id name slug' },
+                    path: 'monitors.monitorId',
+                    populate: [{ path: 'componentId' }, { path: 'projectId' }],
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
                 .populate('createdByIncomingHttpRequest', 'name')
+                .populate({
+                    path: 'breachedCommunicationSlas.monitorId',
+                    populate: [
+                        {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                        { path: 'projectId', select: '_id name slug' },
+                    ],
+                })
                 .sort({ createdAt: 'desc' });
             return incidents;
         } catch (error) {
@@ -43,22 +51,41 @@ module.exports = {
     create: async function(data) {
         try {
             const _this = this;
-            const monitor = await MonitorService.findOneBy({
-                _id: data.monitorId,
-            });
 
-            const { matchedCriterion } = data;
-
-            if (monitor && monitor.shouldNotMonitor) {
-                return {};
-            }
-
-            if (monitor && monitor.disabled) {
-                const error = new Error('Monitor is disabled.');
-                ErrorService.log('incidentService.create', error);
+            if (!data.monitors || data.monitors.length === 0) {
+                const error = new Error(
+                    'You need at least one monitor to create an incident'
+                );
                 error.code = 400;
                 throw error;
-            } else {
+            }
+            if (!isArrayUnique(data.monitors)) {
+                const error = new Error(
+                    'You cannot have multiple selection of the same monitor'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            let monitors = await MonitorService.findBy({
+                _id: { $in: data.monitors },
+            });
+            monitors = monitors.filter(monitor => !monitor.disabled);
+            if (monitors.length === 0) {
+                const error = new Error(
+                    'You need at least one enabled monitor to create an incident'
+                );
+                error.code = 400;
+                throw error;
+            }
+            monitors = monitors
+                .filter(monitor => !monitor.shouldNotMonitor)
+                .map(monitor => ({
+                    monitorId: monitor._id,
+                }));
+            if (monitors && monitors.length > 0) {
+                const { matchedCriterion } = data;
+
                 const project = await ProjectService.findOneBy({
                     _id: data.projectId,
                 });
@@ -98,118 +125,137 @@ module.exports = {
                     throw error;
                 }
 
-                if (monitor) {
-                    let incident = new IncidentModel();
-                    const incidentsCountInProject = await _this.countBy({
-                        projectId: data.projectId,
+                let incident = new IncidentModel();
+                let parentCount = 0,
+                    deletedParentCount = 0;
+                if (project.parentProjectId) {
+                    parentCount = await _this.countBy({
+                        projectId:
+                            project.parentProjectId._id ||
+                            project.parentProjectId,
                     });
-                    const deletedIncidentsCountInProject = await _this.countBy({
-                        projectId: data.projectId,
+                    deletedParentCount = await _this.countBy({
+                        projectId:
+                            project.parentProjectId._id ||
+                            project.parentProjectId,
                         deleted: true,
                     });
-
-                    incident.projectId = data.projectId || null;
-                    incident.monitorId = data.monitorId || null;
-                    incident.createdById = data.createdById || null;
-                    incident.notClosedBy = users;
-                    incident.incidentType = data.incidentType;
-                    incident.manuallyCreated = data.manuallyCreated || false;
-                    if (data.reason && data.reason.length > 0) {
-                        incident.reason = data.reason.join('\n');
-                    }
-                    incident.response = data.response || null;
-                    incident.idNumber =
-                        incidentsCountInProject +
-                        deletedIncidentsCountInProject +
-                        1;
-                    incident.customFields = data.customFields;
-                    incident.createdByIncomingHttpRequest =
-                        data.createdByIncomingHttpRequest;
-
-                    if (!incident.manuallyCreated) {
-                        const incidentSettings = await IncidentSettingsService.findOne(
-                            {
-                                projectId: data.projectId,
-                            }
-                        );
-
-                        const templatesInput = {
-                            incidentType: data.incidentType,
-                            monitorName: monitor.name,
-                            projectName: project.name,
-                            time: Moment().format('h:mm:ss a'),
-                            date: Moment().format('MMM Do YYYY'),
-                        };
-
-                        const titleTemplate = Handlebars.compile(
-                            incidentSettings.title
-                        );
-                        const descriptionTemplate = Handlebars.compile(
-                            incidentSettings.description
-                        );
-
-                        incident.title =
-                            matchedCriterion && matchedCriterion.title
-                                ? matchedCriterion.title
-                                : titleTemplate(templatesInput);
-                        incident.description =
-                            matchedCriterion && matchedCriterion.description
-                                ? matchedCriterion.description
-                                : descriptionTemplate(templatesInput);
-                        incident.criterionCause = {
-                            ...matchedCriterion,
-                        };
-
-                        incident.incidentPriority =
-                            incidentSettings.incidentPriority;
-
-                        if (data.probeId) {
-                            incident.probes = [
-                                {
-                                    probeId: data.probeId,
-                                    updatedAt: Date.now(),
-                                    status: true,
-                                    reportedStatus: data.incidentType,
-                                },
-                            ];
-                        }
-                    } else {
-                        incident.title = data.title;
-                        incident.description = data.description;
-                        incident.incidentPriority = data.incidentPriority;
-                    }
-
-                    incident = await incident.save();
-                    incident = await _this.findOneBy({ _id: incident._id });
-
-                    const notification = await _this._sendIncidentCreatedAlert(
-                        incident
-                    );
-                    incident.notificationId = notification._id;
-                    incident = await incident.save();
-
-                    await RealTimeService.sendCreatedIncident(incident);
-
-                    await IncidentTimelineService.create({
-                        incidentId: incident._id,
-                        createdById: data.createdById,
-                        probeId: data.probeId,
-                        status: data.incidentType,
-                    });
-
-                    _this.startInterval(
-                        data.projectId,
-                        data.monitorId,
-                        incident
-                    );
-
-                    return incident;
-                } else {
-                    const error = new Error('Monitor is not present.');
-                    ErrorService.log('incidentService.create', error);
-                    error.code = 400;
-                    throw error;
                 }
+                const incidentsCountInProject = await _this.countBy({
+                    projectId: data.projectId,
+                });
+                const deletedIncidentsCountInProject = await _this.countBy({
+                    projectId: data.projectId,
+                    deleted: true,
+                });
+
+                incident.projectId = data.projectId || null;
+                incident.monitors = monitors;
+                incident.createdById = data.createdById || null;
+                incident.notClosedBy = users;
+                incident.incidentType = data.incidentType;
+                incident.manuallyCreated = data.manuallyCreated || false;
+                if (data.reason && data.reason.length > 0) {
+                    incident.reason = data.reason.join('\n');
+                }
+                incident.response = data.response || null;
+                incident.idNumber =
+                    incidentsCountInProject +
+                    deletedIncidentsCountInProject +
+                    parentCount +
+                    deletedParentCount +
+                    1;
+                incident.customFields = data.customFields;
+                incident.createdByIncomingHttpRequest =
+                    data.createdByIncomingHttpRequest;
+
+                if (!incident.manuallyCreated) {
+                    const incidentSettings = await IncidentSettingsService.findOne(
+                        {
+                            projectId: data.projectId,
+                        }
+                    );
+
+                    const monitorNames = monitors.map(
+                        monitor => monitor.monitorId.name
+                    );
+                    const templatesInput = {
+                        incidentType: data.incidentType,
+                        projectName: project.name,
+                        time: Moment().format('h:mm:ss a'),
+                        date: Moment().format('MMM Do YYYY'),
+                        monitorName: joinNames(monitorNames),
+                    };
+
+                    const titleTemplate = Handlebars.compile(
+                        incidentSettings.title
+                    );
+                    const descriptionTemplate = Handlebars.compile(
+                        incidentSettings.description
+                    );
+
+                    incident.title =
+                        matchedCriterion && matchedCriterion.title
+                            ? matchedCriterion.title
+                            : titleTemplate(templatesInput);
+                    incident.description =
+                        matchedCriterion && matchedCriterion.description
+                            ? matchedCriterion.description
+                            : descriptionTemplate(templatesInput);
+                    incident.criterionCause = {
+                        ...matchedCriterion,
+                    };
+
+                    incident.incidentPriority =
+                        incidentSettings.incidentPriority;
+
+                    if (data.probeId) {
+                        incident.probes = [
+                            {
+                                probeId: data.probeId,
+                                updatedAt: Date.now(),
+                                status: true,
+                                reportedStatus: data.incidentType,
+                            },
+                        ];
+                    }
+                } else {
+                    incident.title = data.title;
+                    incident.description = data.description;
+                    incident.incidentPriority = data.incidentPriority;
+                }
+
+                incident = await incident.save();
+                incident = await _this.findOneBy({ _id: incident._id });
+
+                // ********* TODO ************
+                // notification is an array of notifications
+                // ***************************
+                const notifications = await _this._sendIncidentCreatedAlert(
+                    incident
+                );
+
+                incident.notifications = notifications.map(notification => ({
+                    notificationId: notification._id,
+                }));
+                incident = await incident.save();
+
+                await RealTimeService.sendCreatedIncident(incident);
+
+                await IncidentTimelineService.create({
+                    incidentId: incident._id,
+                    createdById: data.createdById,
+                    probeId: data.probeId,
+                    status: data.incidentType,
+                });
+
+                // ********* TODO ************
+                // handle multiple monitors for this
+                // it should now accept array of monitors id
+                // ***************************
+                _this.startInterval(data.projectId, monitors, incident);
+
+                return incident;
             }
         } catch (error) {
             ErrorService.log('incidentService.create', error);
@@ -287,19 +333,33 @@ module.exports = {
             query.deleted = false;
             const incident = await IncidentModel.findOne(query)
                 .populate('acknowledgedBy', 'name')
-                .populate('monitorId', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
                 .populate('incidentPriority', 'name color')
                 .populate('probes.probeId')
-                .populate({
-                    path: 'monitorId',
-                    select: '_id name slug',
-                    populate: { path: 'componentId', select: '_id name slug' },
-                })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
-                .populate('createdByIncomingHttpRequest', 'name');
+                .populate('createdByIncomingHttpRequest', 'name')
+                .populate({
+                    path: 'monitors.monitorId',
+                    populate: [
+                        {
+                            path: 'componentId',
+                        },
+                        { path: 'projectId' },
+                    ],
+                })
+                .populate({
+                    path: 'breachedCommunicationSlas.monitorId',
+                    populate: [
+                        {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                        { path: 'projectId', select: '_id name slug' },
+                    ],
+                })
+                .populate('projectId');
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.findOne', error);
@@ -352,13 +412,23 @@ module.exports = {
                 .populate('probes.probeId')
                 .populate('incidentPriority', 'name color')
                 .populate({
-                    path: 'monitorId',
-                    select: '_id name slug',
-                    populate: { path: 'componentId', select: '_id name slug' },
+                    path: 'monitors.monitorId',
+                    populate: [{ path: 'componentId' }, { path: 'projectId' }],
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
                 .populate('createdByIncomingHttpRequest', 'name')
+                .populate({
+                    path: 'breachedCommunicationSlas.monitorId',
+                    populate: [
+                        {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                        { path: 'projectId', select: '_id name slug' },
+                    ],
+                })
+                .populate('projectId')
                 .execPopulate();
 
             RealTimeService.updateIncident(updatedIncident);
@@ -390,88 +460,87 @@ module.exports = {
 
     async _sendIncidentCreatedAlert(incident) {
         try {
-            await AlertService.sendCreatedIncident(incident);
             await ZapierService.pushToZapier('incident_created', incident);
             // await RealTimeService.sendCreatedIncident(incident);
 
-            const monitor = await MonitorService.findOneBy({
-                _id: incident.monitorId,
-            });
-            const component = await ComponentService.findOneBy({
-                _id:
-                    monitor.componentId && monitor.componentId._id
-                        ? monitor.componentId._id
-                        : monitor.componentId,
-            });
+            const notifications = [];
 
-            // handle this asynchronous operation in the background
-            AlertService.sendCreatedIncidentToSubscribers(incident, component);
-            const meta = {
-                type: 'Incident',
-                componentId:
-                    monitor.componentId && monitor.componentId._id
-                        ? monitor.componentId._id
-                        : monitor.componentId,
-                incidentId: incident._id,
-            };
-            let notification = {};
+            const monitors = incident.monitors.map(
+                monitor => monitor.monitorId
+            );
+            for (const monitor of monitors) {
+                await AlertService.sendCreatedIncident(incident, monitor);
+                // handle this asynchronous operation in the background
+                AlertService.sendCreatedIncidentToSubscribers(
+                    incident,
+                    monitor
+                );
 
-            // send slack notification
-            SlackService.sendNotification(
-                incident.projectId,
-                incident,
-                incident.monitorId,
-                INCIDENT_CREATED,
-                component
-            );
-            // send webhook notification
-            WebHookService.sendIntegrationNotification(
-                incident.projectId,
-                incident,
-                incident.monitorId,
-                INCIDENT_CREATED,
-                component
-            );
-            // send Ms Teams notification
-            MsTeamsService.sendNotification(
-                incident.projectId,
-                incident,
-                incident.monitorId,
-                INCIDENT_CREATED,
-                component
-            );
+                let notification = {};
+                // send slack notification
+                SlackService.sendNotification(
+                    incident.projectId._id || incident.projectId,
+                    incident,
+                    monitor,
+                    INCIDENT_CREATED,
+                    monitor.componentId
+                );
+                // send webhook notification
+                WebHookService.sendIntegrationNotification(
+                    incident.projectId._id || incident.projectId,
+                    incident,
+                    monitor,
+                    INCIDENT_CREATED,
+                    monitor.componentId
+                );
+                // send Ms Teams notification
+                MsTeamsService.sendNotification(
+                    incident.projectId._id || incident.projectId,
+                    incident,
+                    monitor,
+                    INCIDENT_CREATED,
+                    monitor.componentId
+                );
 
-            if (!incident.createdById) {
-                if (incident.createdByIncomingHttpRequest) {
-                    const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by Incoming HTTP Request`;
-                    notification = await NotificationService.create(
-                        incident.projectId,
-                        msg,
-                        'incoming http request',
-                        'warning',
-                        meta
-                    );
+                const meta = {
+                    type: 'Incident',
+                    componentId: monitor.componentId._id || monitor.componentId,
+                    incidentId: incident._id,
+                };
+                if (!incident.createdById) {
+                    if (incident.createdByIncomingHttpRequest) {
+                        const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by Incoming HTTP Request`;
+                        notification = await NotificationService.create(
+                            incident.projectId._id || incident.projectId,
+                            msg,
+                            'incoming http request',
+                            'warning',
+                            meta
+                        );
+                    } else {
+                        const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by Fyipe`;
+                        notification = await NotificationService.create(
+                            incident.projectId._id || incident.projectId,
+                            msg,
+                            'fyipe',
+                            'warning',
+                            meta
+                        );
+                    }
                 } else {
-                    const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by Fyipe`;
+                    const msg = `New ${incident.incidentType} Incident was created for ${monitor.name} by ${incident.createdById.name}`;
                     notification = await NotificationService.create(
-                        incident.projectId,
+                        incident.projectId._id || incident.projectId,
                         msg,
-                        'fyipe',
+                        incident.createdById.name,
                         'warning',
                         meta
                     );
                 }
-            } else {
-                const msg = `New ${incident.incidentType} Incident was created for ${incident.monitorId.name} by ${incident.createdById.name}`;
-                notification = await NotificationService.create(
-                    incident.projectId,
-                    msg,
-                    incident.createdById.name,
-                    'warning',
-                    meta
-                );
+
+                notifications.push(notification);
             }
-            return notification;
+            return notifications;
         } catch (error) {
             ErrorService.log(
                 'incidentService._sendIncidentCreatedAlert',
@@ -515,7 +584,43 @@ module.exports = {
                     }
                 );
 
-                _this.refreshInterval(incidentId);
+                const downtimestring = IncidentUtilitiy.calculateHumanReadableDownTime(
+                    incident.createdAt
+                );
+
+                if (isEmpty(httpRequest)) {
+                    NotificationService.create(
+                        incident.projectId._id || incident.projectId,
+                        `An Incident was acknowledged by ${name}`,
+                        userId,
+                        'acknowledge'
+                    );
+                } else {
+                    NotificationService.create(
+                        incident.projectId._id || incident.projectId,
+                        `An Incident was acknowledged by an incoming HTTP request ${httpRequest.name}`,
+                        userId,
+                        'acknowledge'
+                    );
+                }
+
+                incident = await _this.findOneBy({ _id: incident._id });
+
+                // Ping webhook
+                const monitors = incident.monitors.map(
+                    monitor => monitor.monitorId
+                );
+
+                // assuming all the monitors in the incident is from the same component
+                // which makes sense, since having multiple component will make things more complicated
+                const component = await ComponentService.findOneBy({
+                    _id:
+                        monitors[0] &&
+                        monitors[0].componentId &&
+                        monitors[0].componentId._id
+                            ? monitors[0].componentId._id
+                            : monitors[0].componentId,
+                });
 
                 // automatically create acknowledgement incident note
                 IncidentMessageService.create({
@@ -525,38 +630,9 @@ module.exports = {
                     type: 'investigation',
                     incident_state: 'Acknowledged',
                     post_statuspage: true,
+                    monitors,
+                    ignoreCounter: true,
                 });
-
-                const downtimestring = IncidentUtilitiy.calculateHumanReadableDownTime(
-                    incident.createdAt
-                );
-
-                if (isEmpty(httpRequest)) {
-                    NotificationService.create(
-                        incident.projectId,
-                        `An Incident was acknowledged by ${name}`,
-                        userId,
-                        'acknowledge'
-                    );
-                } else {
-                    NotificationService.create(
-                        incident.projectId,
-                        `An Incident was acknowledged by an incoming HTTP request ${httpRequest.name}`,
-                        userId,
-                        'acknowledge'
-                    );
-                }
-                // Ping webhook
-                const monitor = await MonitorService.findOneBy({
-                    _id: incident.monitorId,
-                });
-                const component = await ComponentService.findOneBy({
-                    _id:
-                        monitor.componentId && monitor.componentId._id
-                            ? monitor.componentId._id
-                            : monitor.componentId,
-                });
-                incident = await _this.findOneBy({ _id: incident._id });
 
                 await IncidentTimelineService.create({
                     incidentId: incidentId,
@@ -566,37 +642,45 @@ module.exports = {
                     status: 'acknowledged',
                 });
 
-                await AlertService.sendAcknowledgedIncidentToSubscribers(
-                    incident
-                );
-                await AlertService.sendAcknowledgedIncidentMail(incident);
+                _this.refreshInterval(incidentId);
 
-                WebHookService.sendIntegrationNotification(
-                    incident.projectId,
-                    incident,
-                    monitor,
-                    INCIDENT_ACKNOWLEDGED,
-                    component,
-                    downtimestring
-                );
+                for (const monitor of monitors) {
+                    WebHookService.sendIntegrationNotification(
+                        incident.projectId._id || incident.projectId,
+                        incident,
+                        monitor,
+                        INCIDENT_ACKNOWLEDGED,
+                        component,
+                        downtimestring
+                    );
 
-                SlackService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    INCIDENT_ACKNOWLEDGED,
-                    component,
-                    downtimestring
-                );
+                    SlackService.sendNotification(
+                        incident.projectId._id || incident.projectId,
+                        incident,
+                        monitor,
+                        INCIDENT_ACKNOWLEDGED,
+                        component,
+                        downtimestring
+                    );
 
-                MsTeamsService.sendNotification(
-                    incident.projectId,
-                    incident,
-                    incident.monitorId,
-                    INCIDENT_ACKNOWLEDGED,
-                    component,
-                    downtimestring
-                );
+                    MsTeamsService.sendNotification(
+                        incident.projectId._id || incident.projectId,
+                        incident,
+                        monitor,
+                        INCIDENT_ACKNOWLEDGED,
+                        component,
+                        downtimestring
+                    );
+
+                    await AlertService.sendAcknowledgedIncidentToSubscribers(
+                        incident,
+                        monitor
+                    );
+                    await AlertService.sendAcknowledgedIncidentMail(
+                        incident,
+                        monitor
+                    );
+                }
 
                 RealTimeService.incidentAcknowledged(incident);
                 ZapierService.pushToZapier('incident_acknowledge', incident);
@@ -658,27 +742,11 @@ module.exports = {
 
             incident = await _this.updateOneBy({ _id: incidentId }, data);
 
-            _this.clearInterval(incidentId);
-
             incident = await _this.findOneBy({ _id: incident._id });
 
-            if (incident.probes && incident.probes.length > 0) {
-                incident.probes.forEach(async probe => {
-                    await MonitorStatusService.create({
-                        monitorId: incident.monitorId._id,
-                        probeId: probe.probeId ? probe.probeId._id : null,
-                        manuallyCreated: userId ? true : false,
-                        status: 'online',
-                    });
-                });
-            } else {
-                MonitorStatusService.create({
-                    monitorId: incident.monitorId._id,
-                    probeId,
-                    manuallyCreated: userId ? true : false,
-                    status: 'online',
-                });
-            }
+            const monitors = incident.monitors.map(
+                monitor => monitor.monitorId
+            );
 
             // automatically create resolved incident note
             IncidentMessageService.create({
@@ -688,6 +756,8 @@ module.exports = {
                 type: 'investigation',
                 incident_state: 'Resolved',
                 post_statuspage: true,
+                monitors,
+                ignoreCounter: true,
             });
 
             await IncidentTimelineService.create({
@@ -698,7 +768,34 @@ module.exports = {
                 status: 'resolved',
             });
 
-            await _this.sendIncidentResolvedNotification(incident, name);
+            _this.clearInterval(incidentId);
+
+            for (const monitor of monitors) {
+                if (incident.probes && incident.probes.length > 0) {
+                    for (const probe of incident.probes) {
+                        await MonitorStatusService.create({
+                            monitorId: monitor._id,
+                            probeId: probe.probeId ? probe.probeId._id : null,
+                            manuallyCreated: userId ? true : false,
+                            status: 'online',
+                        });
+                    }
+                } else {
+                    await MonitorStatusService.create({
+                        monitorId: monitor._id,
+                        probeId,
+                        manuallyCreated: userId ? true : false,
+                        status: 'online',
+                    });
+                }
+
+                await _this.sendIncidentResolvedNotification(
+                    incident,
+                    name,
+                    monitor
+                );
+            }
+
             RealTimeService.incidentResolved(incident);
             ZapierService.pushToZapier('incident_resolve', incident);
 
@@ -772,14 +869,12 @@ module.exports = {
             componentId,
         });
         const monitorIds = monitors.map(monitor => monitor._id);
-        const incidents = await _this.findBy(
-            { monitorId: { $in: monitorIds } },
-            10,
-            0
-        );
-        const count = await _this.countBy({
-            monitorId: { $in: monitorIds },
-        });
+
+        const query = {
+            'monitors.monitorId': { $in: monitorIds },
+        };
+        const incidents = await _this.findBy(query, 10, 0);
+        const count = await _this.countBy(query);
         const componentIncidents = [
             { incidents, _id: projectId, count, skip: 0, limit: 10 },
         ];
@@ -797,23 +892,18 @@ module.exports = {
             componentId: componentId,
         });
         const monitorIds = monitors.map(monitor => monitor._id);
-        const incidents = await _this.findBy(
-            { projectId: projectId, monitorId: { $in: monitorIds } },
-            limit,
-            skip
-        );
-        const count = await _this.countBy({
-            projectId: projectId,
-            monitorId: { $in: monitorIds },
-        });
+
+        const query = {
+            projectId,
+            'monitors.monitorId': { $in: monitorIds },
+        };
+        const incidents = await _this.findBy(query, limit, skip);
+        const count = await _this.countBy(query);
         return { incidents, count, _id: projectId };
     },
-    sendIncidentResolvedNotification: async function(incident, name) {
+    sendIncidentResolvedNotification: async function(incident, name, monitor) {
         try {
             const _this = this;
-            const monitor = await MonitorService.findOneBy({
-                _id: incident.monitorId,
-            });
             const component = await ComponentService.findOneBy({
                 _id:
                     monitor.componentId && monitor.componentId._id
@@ -829,45 +919,48 @@ module.exports = {
 
             // send slack notification
             SlackService.sendNotification(
-                incident.projectId,
+                incident.projectId._id || incident.projectId,
                 incident,
-                incident.monitorId,
+                monitor,
                 INCIDENT_RESOLVED,
                 component,
                 downtimestring
             );
             // Ping webhook
             WebHookService.sendIntegrationNotification(
-                incident.projectId,
+                incident.projectId._id || incident.projectId,
                 incident,
-                resolvedincident.monitorId,
+                monitor,
                 INCIDENT_RESOLVED,
                 component,
                 downtimestring
             );
             // Ms Teams
             MsTeamsService.sendNotification(
-                incident.projectId,
+                incident.projectId._id || incident.projectId,
                 incident,
-                incident.monitorId,
+                monitor,
                 INCIDENT_RESOLVED,
                 component,
                 downtimestring
             );
 
             // send notificaton to subscribers
-            await AlertService.sendResolvedIncidentToSubscribers(incident);
-            await AlertService.sendResolveIncidentMail(incident);
+            await AlertService.sendResolvedIncidentToSubscribers(
+                incident,
+                monitor
+            );
+            await AlertService.sendResolveIncidentMail(incident, monitor);
 
             const msg = `${
-                resolvedincident.monitorId.name
+                monitor.name
             } monitor was down for ${downtimestring} and is now resolved by ${name ||
                 (resolvedincident.resolvedBy &&
                     resolvedincident.resolvedBy.name) ||
                 'fyipe'}`;
 
             NotificationService.create(
-                incident.projectId,
+                incident.projectId._id || incident.projectId,
                 msg,
                 resolvedincident.resolvedBy
                     ? resolvedincident.resolvedBy._id
@@ -885,17 +978,24 @@ module.exports = {
 
     sendIncidentNoteAdded: async function(projectId, incident, data) {
         try {
-            await SlackService.sendIncidentNoteNotification(
-                projectId,
-                incident,
-                data
+            const monitors = incident.monitors.map(
+                monitor => monitor.monitorId
             );
+            for (const monitor of monitors) {
+                await SlackService.sendIncidentNoteNotification(
+                    projectId,
+                    incident,
+                    data,
+                    monitor
+                );
 
-            await MsTeamsService.sendIncidentNoteNotification(
-                projectId,
-                incident,
-                data
-            );
+                await MsTeamsService.sendIncidentNoteNotification(
+                    projectId,
+                    incident,
+                    data,
+                    monitor
+                );
+            }
 
             await ZapierService.pushToZapier('incident_note', incident, data);
         } catch (error) {
@@ -963,24 +1063,85 @@ module.exports = {
      */
     removeMonitor: async function(monitorId, userId) {
         try {
-            const incidents = await this.findBy({ monitorId: monitorId });
+            const incidents = await this.findBy({
+                'monitors.monitorId': monitorId,
+            });
 
             await Promise.all(
                 incidents.map(async incident => {
                     // only delete the incident, since the monitor can be restored
-                    const deletedIncident = await IncidentModel.findOneAndUpdate(
-                        { _id: incident._id },
-                        {
-                            $set: {
-                                deleted: true,
-                                deletedAt: Date.now(),
-                                deletedById: userId,
-                            },
-                        },
-                        { new: true }
-                    );
+                    const monitors = incident.monitors
+                        .map(
+                            monitor =>
+                                monitor.monitorId._id || monitor.monitorId
+                        )
+                        .filter(id => String(id) !== String(monitorId));
 
-                    await RealTimeService.deleteIncident(deletedIncident);
+                    let updatedIncident = null;
+                    if (monitors.length === 0) {
+                        // no more monitor in monitors array
+                        // delete incident
+                        updatedIncident = await IncidentModel.findOneAndUpdate(
+                            {
+                                _id: incident._id,
+                            },
+                            {
+                                $set: {
+                                    deleted: true,
+                                    deletedAt: Date.now(),
+                                    deletedById: userId,
+                                    monitors,
+                                },
+                            },
+                            { new: true }
+                        );
+                    } else {
+                        updatedIncident = await IncidentModel.findOneAndUpdate(
+                            {
+                                _id: incident._id,
+                            },
+                            {
+                                $set: {
+                                    monitors,
+                                },
+                            },
+                            { new: true }
+                        );
+                    }
+
+                    updatedIncident = await updatedIncident
+                        .populate('acknowledgedBy', 'name')
+                        .populate('monitorId', 'name')
+                        .populate('resolvedBy', 'name')
+                        .populate('createdById', 'name')
+                        .populate('probes.probeId')
+                        .populate('incidentPriority', 'name color')
+                        .populate({
+                            path: 'monitors.monitorId',
+                            populate: [
+                                {
+                                    path: 'componentId',
+                                },
+                                { path: 'projectId' },
+                            ],
+                        })
+                        .populate('acknowledgedByIncomingHttpRequest', 'name')
+                        .populate('resolvedByIncomingHttpRequest', 'name')
+                        .populate('createdByIncomingHttpRequest', 'name')
+                        .populate({
+                            path: 'breachedCommunicationSlas.monitorId',
+                            populate: [
+                                {
+                                    path: 'componentId',
+                                    select: 'name slug',
+                                },
+                                { path: 'projectId', select: '_id name slug' },
+                            ],
+                        })
+                        .populate('projectId')
+                        .execPopulate();
+
+                    await RealTimeService.deleteIncident(updatedIncident);
                 })
             );
         } catch (error) {
@@ -989,68 +1150,106 @@ module.exports = {
         }
     },
 
-    startInterval: async function(projectId, monitorId, incident) {
+    startInterval: async function(projectId, monitors, incident) {
         const _this = this;
-        const monitor = await MonitorService.findOneBy({
-            _id: monitorId,
+
+        monitors = monitors.map(monitor => monitor.monitorId);
+        const monitorList = await MonitorService.findBy({
+            _id: { $in: monitors },
         });
-        let incidentCommunicationSla = monitor.incidentCommunicationSla;
+        // refetch the incident
+        const currentIncident = await _this.findOneBy({
+            _id: incident._id,
+        });
 
-        if (!incidentCommunicationSla) {
-            incidentCommunicationSla = await IncidentCommunicationSlaService.findOneBy(
-                {
-                    projectId: projectId,
-                    isDefault: true,
+        if (!currentIncident.breachedCommunicationSla) {
+            const slaList = {};
+            let fetchedDefault = false;
+            for (const monitor of monitorList) {
+                let sla = monitor.incidentCommunicationSla;
+                // don't fetch default communication sla twice
+                if (!sla && !fetchedDefault) {
+                    sla = await IncidentCommunicationSlaService.findOneBy({
+                        projectId: projectId,
+                        isDefault: true,
+                    });
+                    fetchedDefault = true;
                 }
-            );
-        }
-
-        if (incidentCommunicationSla && !incidentCommunicationSla.deleted) {
-            let countDown = incidentCommunicationSla.duration * 60;
-            const alertTime = incidentCommunicationSla.alertTime * 60;
-
-            const data = {
-                projectId,
-                monitor,
-                incidentCommunicationSla,
-                incident,
-                alertTime,
-            };
-
-            // count down every second
-            const intervalId = setInterval(async () => {
-                countDown -= 1;
-
-                // const minutes = Math.floor(countDown / 60);
-                // let seconds = countDown % 60;
-                // seconds =
-                //     seconds < 10 && seconds !== 0 ? `0${seconds}` : seconds;
-                await RealTimeService.sendSlaCountDown(
-                    incident,
-                    `${countDown}`
-                );
-
-                if (countDown === alertTime) {
-                    // send mail to team
-                    await AlertService.sendSlaEmailToTeamMembers(data);
+                if (sla && !slaList[sla._id]) {
+                    slaList[sla._id] = sla;
                 }
+            }
 
-                if (countDown === 0) {
-                    _this.clearInterval(incident._id);
-                    await _this.updateOneBy(
-                        { _id: incident._id },
-                        { breachedCommunicationSla: true }
-                    );
-
-                    // send mail to team
-                    await AlertService.sendSlaEmailToTeamMembers(data, true);
+            // grab the lowest sla and apply to the incident
+            let lowestSla = {};
+            for (const [, value] of Object.entries(slaList)) {
+                if (!lowestSla.duration) {
+                    lowestSla = value;
+                } else {
+                    lowestSla =
+                        Number(value.duration) < Number(lowestSla.duration)
+                            ? value
+                            : lowestSla;
                 }
-            }, 1000);
+            }
 
-            intervals.push({
-                incidentId: incident._id,
-                intervalId,
-            });
+            if (!isEmpty(lowestSla)) {
+                const incidentCommunicationSla = lowestSla;
+
+                if (
+                    incidentCommunicationSla &&
+                    !incidentCommunicationSla.deleted
+                ) {
+                    let countDown = incidentCommunicationSla.duration * 60;
+                    const alertTime = incidentCommunicationSla.alertTime * 60;
+
+                    const data = {
+                        projectId,
+                        incidentCommunicationSla,
+                        incident: currentIncident,
+                        alertTime,
+                    };
+
+                    // count down every second
+                    const intervalId = setInterval(async () => {
+                        countDown -= 1;
+
+                        // const minutes = Math.floor(countDown / 60);
+                        // let seconds = countDown % 60;
+                        // seconds =
+                        //     seconds < 10 && seconds !== 0 ? `0${seconds}` : seconds;
+                        await RealTimeService.sendSlaCountDown(
+                            currentIncident,
+                            `${countDown}`
+                        );
+
+                        if (countDown === alertTime) {
+                            // send mail to team
+                            await AlertService.sendSlaEmailToTeamMembers(data);
+                        }
+
+                        if (countDown === 0) {
+                            _this.clearInterval(currentIncident._id);
+
+                            await _this.updateOneBy(
+                                { _id: currentIncident._id },
+                                { breachedCommunicationSla: true }
+                            );
+
+                            // send mail to team
+                            await AlertService.sendSlaEmailToTeamMembers(
+                                data,
+                                true
+                            );
+                        }
+                    }, 1000);
+
+                    intervals.push({
+                        incidentId: currentIncident._id,
+                        intervalId,
+                    });
+                }
+            }
         }
     },
 
@@ -1071,15 +1270,25 @@ module.exports = {
                 _this.clearInterval(incidentId);
 
                 const incident = await _this.findOneBy({ _id: incidentId });
-                _this.startInterval(
+                await _this.startInterval(
                     incident.projectId,
-                    incident.monitorId,
+                    incident.monitors,
                     incident
                 );
+                break;
             }
         }
     },
 };
+
+/**
+ * @description checks if an array contains duplicate values
+ * @param {array} myArray the array to be checked
+ * @returns {boolean} true or false
+ */
+function isArrayUnique(myArray) {
+    return myArray.length === new Set(myArray).size;
+}
 
 let intervals = [];
 
@@ -1109,3 +1318,4 @@ const {
 const IncidentUtilitiy = require('../utils/incident');
 const IncidentCommunicationSlaService = require('./incidentCommunicationSlaService');
 const { isEmpty } = require('lodash');
+const joinNames = require('../utils/joinNames');

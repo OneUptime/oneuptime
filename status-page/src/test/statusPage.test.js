@@ -124,6 +124,8 @@ describe('Status page monitors check', function() {
         monitorId = monitorRequest.body._id;
         monitorName = monitorRequest.body.name;
         scheduledEventMonitorId = monitorId;
+        onlineIncident.monitors = [monitorId];
+        degradeIncident.monitors = [monitorId];
 
         scheduledEvent.startDate = today;
         scheduledEvent.endDate = tomorrow;
@@ -484,7 +486,7 @@ describe('Status page monitors check', function() {
     it('should display incident on status page', async function() {
         // add an online incident
         const incident = await request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(onlineIncident);
         incidentId = incident.body._id;
@@ -529,7 +531,7 @@ describe('Status page monitors check', function() {
     it('should display Some services are degraded', async function() {
         // add a degraded incident
         await request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(degradeIncident);
 

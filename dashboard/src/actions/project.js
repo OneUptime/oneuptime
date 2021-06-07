@@ -1372,3 +1372,50 @@ export function fetchTrial(projectId) {
         return promise;
     };
 }
+
+export function fetchProjectSlugRequest() {
+    return {
+        type: types.FETCH_PROJECT_SLUG_REQUEST,
+    };
+}
+
+export function fetchProjectSlugSuccess(payload) {
+    return {
+        type: types.FETCH_PROJECT_SLUG_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchProjectSlugFailure(error) {
+    return {
+        type: types.FETCH_PROJECT_SLUG_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchProjectSlug(slug) {
+    return function(dispatch) {
+        const promise = getApi(`project/project-slug/${slug}`);
+
+        dispatch(fetchProjectSlugRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(fetchProjectSlugSuccess(response.data));
+            },
+            function(error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(fetchProjectSlugFailure(errorMsg));
+            }
+        );
+
+        return promise;
+    };
+}

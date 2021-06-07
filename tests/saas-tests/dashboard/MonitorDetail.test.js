@@ -140,7 +140,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            const selector = `#incident_${monitorName}_0`;
+            const selector = `#incident_0`;
             await init.pageWaitForSelector(page, selector);
             await init.page$Eval(page, selector, e => e.click());
             const incidentTitleSelector = '#incidentTitle';
@@ -257,7 +257,7 @@ describe('Monitor Detail API', () => {
                 monitorName,
                 page
             );
-            const selector = `#incident_${monitorName}_0`;
+            const selector = `#incident_0`;
             await init.pageWaitForSelector(page, selector);
             await init.page$Eval(page, selector, e => e.click());
 
