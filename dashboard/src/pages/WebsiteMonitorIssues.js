@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -135,10 +134,6 @@ class WebsiteMonitorIssues extends React.Component {
                                                                     ? `${monitorState.monitorIssue.performance}%`
                                                                     : '-'}
                                                             </small>
-                                                            <small>
-                                                                <ShouldRender if={monitorState.monitorIssue.performance}>{monitorState.monitorrIssue.performance}%</ShouldRender>
-                                                                <ShouldRender if={!(monitorState.monitorIssue.performance)}>-</ShouldRender>
-                                                            </small>
                                                         </span>
                                                     </span>
                                                 </div>
@@ -171,10 +166,6 @@ class WebsiteMonitorIssues extends React.Component {
                                                                     .accessibility
                                                                     ? `${monitorState.monitorIssue.accessibility}%`
                                                                     : '-'}
-                                                            </small>
-                                                            <small>
-                                                                <ShouldRender if={monitorState.monitorIssue.accessibility}>{monitorState.monitorrIssue.accessibility}%</ShouldRender>
-                                                                <ShouldRender if={!(monitorState.monitorIssue.accessibility)}>-</ShouldRender>
                                                             </small>
                                                         </span>
                                                     </span>
@@ -209,10 +200,6 @@ class WebsiteMonitorIssues extends React.Component {
                                                                     ? `${monitorState.monitorIssue.bestPractices}%`
                                                                     : '-'}
                                                             </small>
-                                                            <small>
-                                                                <ShouldRender if={monitorState.monitorIssue.bestPractices}>{monitorState.monitorrIssue.bestPractices}%</ShouldRender>
-                                                                <ShouldRender if={!(monitorState.monitorIssue.bestPractices)}>-</ShouldRender>
-                                                            </small>
                                                         </span>
                                                     </span>
                                                 </div>
@@ -246,10 +233,6 @@ class WebsiteMonitorIssues extends React.Component {
                                                                     ? `${monitorState.monitorIssue.seo}%`
                                                                     : '-'}
                                                             </small>
-                                                            <small>
-                                                                <ShouldRender if={monitorState.monitorIssue.seo}>{monitorState.monitorrIssue.seo}%</ShouldRender>
-                                                                <ShouldRender if={!(monitorState.monitorIssue.seo)}>-</ShouldRender>
-                                                            </small>
                                                         </span>
                                                     </span>
                                                 </div>
@@ -282,10 +265,6 @@ class WebsiteMonitorIssues extends React.Component {
                                                                     .pwa
                                                                     ? `${monitorState.monitorIssue.pwa}%`
                                                                     : '-'}
-                                                            </small>
-                                                            <small>
-                                                                <ShouldRender if={monitorState.monitorIssue.pwa}>{monitorState.monitorrIssue.pwa}%</ShouldRender>
-                                                                <ShouldRender if={!(monitorState.monitorIssue.pwa)}>-</ShouldRender>
                                                             </small>
                                                         </span>
                                                     </span>
