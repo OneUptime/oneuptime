@@ -19,7 +19,7 @@ test_ruby-sdk:
         - sudo gem install bundler
         - cd ruby-sdk/fyipe
         - bundle install --gemfile=fyipe.gemspec
-        - bundle exec rspec
+        - bundle exec --gemfile=fyipe.gemspec rspec
         - cd ..
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
