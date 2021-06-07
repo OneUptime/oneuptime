@@ -38,8 +38,8 @@ describe('Monitor Detail API', () => {
     afterAll(async done => {
         await browser.close();
         done();
-    });    
-    
+    });
+
     test(
         'Should navigate to monitor details and create a webhook',
         async done => {
@@ -154,20 +154,14 @@ describe('Monitor Detail API', () => {
             countWebhooks = webhookRows.length;
             expect(countWebhooks).toEqual(1);
 
-            // await init.pageWaitForSelector(page, '#btnPrevWebhook', {
-            //     visible: true,
-            //     timeout: init.timeout,
-            // });
-            // await init.page$Eval(page, '#btnPrevWebhook', elem => elem.click());
-            // await init.pageWaitForSelector(page, '.ball-beat', {
-            //     hidden: true,
-            // });
-            // await init.pageWaitForSelector(page, createdWebhookSelector);
+            await page.reload({timeout: init.timeout});
+            await init.pageClick(page, '.integrations-tab');
 
-            // webhookRows = await init.page$$(page, createdWebhookSelector);
-            // countWebhooks = webhookRows.length;
-
-            // expect(countWebhooks).toEqual(10);
+            let webhookPage = await init.pageWaitForSelector(page, '#webhook-page-list');
+            webhookPage = await webhookPage.getProperty('innertText');
+            webhookPage = await webhookPage.jsonValue();
+            expect(webhookPage).toEqaul('Page 1 of 2 (11 Webhooks)');
+            
             done();
         },
         operationTimeOut
