@@ -55,9 +55,10 @@ deploy_production_ruby-sdk:
         - sudo gem install bundler
         - cd ruby-sdk/fyipe
         - bundle install
-        - git add .
-        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
+        # - git add .
+        # - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
         - git checkout -f master
+        - git merge staging
         - mkdir -p ~/.gem
         - GEMPATH=~/.gem/credentials
         - rm $GEMPATH || true # reomve previous saved file or just continue if it doesnt exist (new container)
