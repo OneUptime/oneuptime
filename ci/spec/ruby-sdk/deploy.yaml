@@ -52,7 +52,6 @@ deploy_production_ruby-sdk:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt install -y rbenv
         - sudo gem install bundler
-        - cd php-sdk
         - cd ruby-sdk/fyipe
         - bundle
         - git add .
