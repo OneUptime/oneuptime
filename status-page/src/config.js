@@ -219,7 +219,9 @@ export function getServiceStatus(monitorsData, probes) {
     monitorsData.forEach(monitor => {
         probes.forEach(probe => {
             const statuses = filterProbeData(monitor, probe);
-            const monitorStatus = getMonitorStatus(statuses);
+            const monitorStatus = monitor.status
+                ? monitor.status
+                : getMonitorStatus(statuses);
             if (monitorStatus === 'offline') {
                 onlineServices--;
             }

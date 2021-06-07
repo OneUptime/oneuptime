@@ -378,7 +378,9 @@ class MonitorInfo extends Component {
             statuses && statuses.length > 0
                 ? calculateTime(statuses, now, range)
                 : calculateTime([], now, range);
-        const monitorStatus = getMonitorStatus(statuses);
+        const monitorStatus = monitor.status
+            ? monitor.status
+            : getMonitorStatus(statuses);
 
         const uptime =
             uptimePercent !== 100 && !isNaN(uptimePercent)
