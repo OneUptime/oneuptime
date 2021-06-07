@@ -160,7 +160,7 @@ describe('Monitor Detail API', () => {
             let webhookPage = await init.pageWaitForSelector(page, '#webhook-page-list');
             webhookPage = await webhookPage.getProperty('innertText');
             webhookPage = await webhookPage.jsonValue();
-            expect(webhookPage).toEqaul('Page 1 of 2 (11 Webhooks)');
+            expect(webhookPage).toMatch('Page 1 of 2 (11 Webhooks)');
             
             done();
         },
