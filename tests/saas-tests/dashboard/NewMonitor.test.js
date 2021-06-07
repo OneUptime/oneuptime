@@ -101,144 +101,144 @@ describe('New Monitor API', () => {
         operationTimeOut
     );
 
-    test(
-        "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Growth plan => 10 Monitors/User)",
-        async done => {
-            const projectName = utils.generateRandomString();
-            const componentName = utils.generateRandomString();
-            await init.addGrowthProject(projectName, page);
-            // create a component
-            // Redirects automatically component to details page
-            await init.addComponent(componentName, page);
+    // test(
+    //     "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Growth plan => 10 Monitors/User)",
+    //     async done => {
+    //         const projectName = utils.generateRandomString();
+    //         const componentName = utils.generateRandomString();
+    //         await init.addGrowthProject(projectName, page);
+    //         // create a component
+    //         // Redirects automatically component to details page
+    //         await init.addComponent(componentName, page);
 
-            for (let i = 0; i < 10; i++) {
-                const monitorName = utils.generateRandomString();
+    //         for (let i = 0; i < 10; i++) {
+    //             const monitorName = utils.generateRandomString();
 
-                await init.addNewMonitorToComponent(
-                    page,
-                    componentName,
-                    monitorName
-                );
-                await init.pageWaitForSelector(page, '.ball-beat', {
-                    hidden: true,
-                });
-            }
-            // try to add more monitor
-            const monitorName = utils.generateRandomString();
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: ['networkidle2'],
-            });
-            await init.pageWaitForSelector(page, '#components', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#components');
-            await init.pageWaitForSelector(page, '#component0', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, `#more-details-${componentName}`);
-            await init.pageWaitForSelector(page, '#form-new-monitor', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, 'input[id=name]', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, 'input[id=name]', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, 'input[id=name]');
-            await page.focus('input[id=name]');
-            await init.pageType(page, 'input[id=name]', monitorName);
-            // Added new URL-Montior
-            await init.pageClick(page, '[data-testId=type_url]');
-            await init.pageWaitForSelector(page, '#url', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#url');
-            await init.pageType(page, '#url', 'https://google.com');
-            await init.pageClick(page, 'button[type=submit]');
+    //             await init.addNewMonitorToComponent(
+    //                 page,
+    //                 componentName,
+    //                 monitorName
+    //             );
+    //             await init.pageWaitForSelector(page, '.ball-beat', {
+    //                 hidden: true,
+    //             });
+    //         }
+    //         // try to add more monitor
+    //         const monitorName = utils.generateRandomString();
+    //         await page.goto(utils.DASHBOARD_URL, {
+    //             waitUntil: ['networkidle2'],
+    //         });
+    //         await init.pageWaitForSelector(page, '#components', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageClick(page, '#components');
+    //         await init.pageWaitForSelector(page, '#component0', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageClick(page, `#more-details-${componentName}`);
+    //         await init.pageWaitForSelector(page, '#form-new-monitor', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageWaitForSelector(page, 'input[id=name]', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageWaitForSelector(page, 'input[id=name]', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageClick(page, 'input[id=name]');
+    //         await page.focus('input[id=name]');
+    //         await init.pageType(page, 'input[id=name]', monitorName);
+    //         // Added new URL-Montior
+    //         await init.pageClick(page, '[data-testId=type_url]');
+    //         await init.pageWaitForSelector(page, '#url', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageClick(page, '#url');
+    //         await init.pageType(page, '#url', 'https://google.com');
+    //         await init.pageClick(page, 'button[type=submit]');
 
-            const pricingPlanModal = await init.pageWaitForSelector(
-                page,
-                '#pricingPlanModal',
-                { visible: true, timeout: init.timeout }
-            );
-            expect(pricingPlanModal).toBeTruthy();
-            done();
-        },
-        operationTimeOut
-    );
+    //         const pricingPlanModal = await init.pageWaitForSelector(
+    //             page,
+    //             '#pricingPlanModal',
+    //             { visible: true, timeout: init.timeout }
+    //         );
+    //         expect(pricingPlanModal).toBeTruthy();
+    //         done();
+    //     },
+    //     operationTimeOut
+    // );
 
-    test(
-        'should not show any upgrade modal if the project plan is on Scale plan and above',
-        async done => {
-            const projectName = utils.generateRandomString();
-            const componentName = utils.generateRandomString();
-            await init.addScaleProject(projectName, page);
-            // create a component
-            // Redirects automatically component to details page
-            await init.addComponent(componentName, page);
+    // test(
+    //     'should not show any upgrade modal if the project plan is on Scale plan and above',
+    //     async done => {
+    //         const projectName = utils.generateRandomString();
+    //         const componentName = utils.generateRandomString();
+    //         await init.addScaleProject(projectName, page);
+    //         // create a component
+    //         // Redirects automatically component to details page
+    //         await init.addComponent(componentName, page);
 
-            for (let i = 0; i < 15; i++) {
-                const monitorName = utils.generateRandomString();
+    //         for (let i = 0; i < 15; i++) {
+    //             const monitorName = utils.generateRandomString();
 
-                await init.addNewMonitorToComponent(
-                    page,
-                    componentName,
-                    monitorName
-                );
-                await init.pageWaitForSelector(page, '.ball-beat', {
-                    hidden: true,
-                });
-            }
+    //             await init.addNewMonitorToComponent(
+    //                 page,
+    //                 componentName,
+    //                 monitorName
+    //             );
+    //             await init.pageWaitForSelector(page, '.ball-beat', {
+    //                 hidden: true,
+    //             });
+    //         }
 
-            // try to add more monitor
-            const monitorName = utils.generateRandomString();
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: ['networkidle2'],
-            });
-            await init.pageWaitForSelector(page, '#components', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#components');
-            await init.pageWaitForSelector(page, '#component0', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, `#more-details-${componentName}`);
-            await init.pageWaitForSelector(page, '#form-new-monitor');
-            await init.pageWaitForSelector(page, 'input[id=name]');
-            await init.pageWaitForSelector(page, 'input[id=name]', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, 'input[id=name]');
-            await page.focus('input[id=name]');
-            await init.pageType(page, 'input[id=name]', monitorName);
-            // Added new URL-Montior
-            await init.pageClick(page, '[data-testId=type_url]');
-            await init.pageWaitForSelector(page, '#url', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#url');
-            await init.pageType(page, '#url', 'https://google.com');
-            await init.pageClick(page, 'button[type=submit]');
+    //         // try to add more monitor
+    //         const monitorName = utils.generateRandomString();
+    //         await page.goto(utils.DASHBOARD_URL, {
+    //             waitUntil: ['networkidle2'],
+    //         });
+    //         await init.pageWaitForSelector(page, '#components', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageClick(page, '#components');
+    //         await init.pageWaitForSelector(page, '#component0', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageClick(page, `#more-details-${componentName}`);
+    //         await init.pageWaitForSelector(page, '#form-new-monitor');
+    //         await init.pageWaitForSelector(page, 'input[id=name]');
+    //         await init.pageWaitForSelector(page, 'input[id=name]', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageClick(page, 'input[id=name]');
+    //         await page.focus('input[id=name]');
+    //         await init.pageType(page, 'input[id=name]', monitorName);
+    //         // Added new URL-Montior
+    //         await init.pageClick(page, '[data-testId=type_url]');
+    //         await init.pageWaitForSelector(page, '#url', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageClick(page, '#url');
+    //         await init.pageType(page, '#url', 'https://google.com');
+    //         await init.pageClick(page, 'button[type=submit]');
 
-            const pricingPlanModal = await init.pageWaitForSelector(
-                page,
-                '#pricingPlanModal',
-                { hidden: true }
-            );
-            expect(pricingPlanModal).toBeNull();
-            done();
-        },
-        operationTimeOut
-    );
+    //         const pricingPlanModal = await init.pageWaitForSelector(
+    //             page,
+    //             '#pricingPlanModal',
+    //             { hidden: true }
+    //         );
+    //         expect(pricingPlanModal).toBeNull();
+    //         done();
+    //     },
+    //     operationTimeOut
+    // );
 });

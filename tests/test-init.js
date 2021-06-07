@@ -699,10 +699,10 @@ const _this = {
             waitUntil: 'networkidle2',
         });
         await _this.pageWaitForSelector(page, '#components');
-        await _this.pageClickNavigate(page, '#components');
+        await _this.pageClick(page, '#components');
         await _this.pageWaitForSelector(page, '#component0');
         await _this.pageWaitForSelector(page, `#more-details-${componentName}`);
-        await _this.pageClickNavigate(page, `#more-details-${componentName}`);
+        await _this.pageClick(page, `#more-details-${componentName}`);
         await _this.pageWaitForSelector(page, '#form-new-monitor');
         await _this.pageWaitForSelector(page, 'input[id=name]');
         await _this.pageClick(page, 'input[id=name]');
@@ -715,7 +715,7 @@ const _this = {
         });
         await _this.pageClick(page, '#url');
         await _this.pageType(page, '#url', 'https://google.com');
-        await _this.pageClickNavigate(page, 'button[type=submit]');
+        await _this.pageClick(page, 'button[type=submit]');
         await _this.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
             visible: true,
         });
