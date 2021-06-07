@@ -41,20 +41,26 @@ module.exports = {
         smtpServer,
     }) {
         try {
-            let item = new EmailStatusModel();
+            const globalConfig = await GlobalConfigService.findOneBy({
+                name: 'emailLogMonitoringStatus',
+            });
+            if (globalConfig && globalConfig.value) {
+                let item = new EmailStatusModel();
 
-            item.status = status;
-            item.from = from;
-            item.to = to;
-            item.subject = subject;
-            item.body = body;
-            item.template = template;
-            item.content = content;
-            item.error = error;
-            item.smtpServer = smtpServer;
-            item = await item.save();
+                item.status = status;
+                item.from = from;
+                item.to = to;
+                item.subject = subject;
+                item.body = body;
+                item.template = template;
+                item.content = content;
+                item.error = error;
+                item.smtpServer = smtpServer;
+                item = await item.save();
 
-            return item;
+                return item;
+            }
+            return;
         } catch (error) {
             ErrorService.log('emailStatusService.create', error);
             throw error;
@@ -180,3 +186,4 @@ module.exports = {
 
 const EmailStatusModel = require('../models/emailStatus');
 const ErrorService = require('./errorService');
+const GlobalConfigService = require('./globalConfigService');
