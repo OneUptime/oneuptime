@@ -8,16 +8,9 @@ let browser, page;
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const monitorName = utils.generateRandomString();
-const newMonitorName = utils.generateRandomString();
-const urlMonitorName = utils.generateRandomString();
 const componentName = utils.generateRandomString();
-const subscriberEmail = utils.generateRandomBusinessEmail();
-const webHookName = utils.generateRandomString();
-const newWebHookName = utils.generateRandomString();
 const webhookEndpoint = utils.generateRandomWebsite();
 const priorityName = utils.generateRandomString();
-const incidentTitle = utils.generateRandomString();
-const newIncidentTitle = utils.generateRandomString();
 
 describe('Monitor Detail API', () => {
     const operationTimeOut = init.timeout;
