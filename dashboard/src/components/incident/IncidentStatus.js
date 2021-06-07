@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
@@ -303,7 +304,7 @@ export class IncidentStatus extends Component {
         }
     };
 
-    render() {
+    render() {        
         const isUserSubProjectId =
             this.props.incident.projectId._id ?? this.props.incident.projectId;
         const subProject =
