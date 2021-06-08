@@ -4,7 +4,8 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import SideNav from './nav/SideNav';
 import TopNav from './nav/TopNav';
-import { getProjects } from '../actions/project';
+import { getProjects, switchProject } from '../actions/project';
+import { getSubProjects } from '../actions/subProject';
 import CreateProjectModal from './project/CreateProjectModal';
 import UpgradePlanModal from './project/UpgradePlanModal';
 import DeleteProjectModal from './project/DeleteProjectModal';
@@ -49,7 +50,30 @@ export class DashboardApp extends Component {
     }
 
     componentDidMount() {
-        const { project, ready, getProjects } = this.props;
+        const {
+            project,
+            ready,
+            nextProject,
+            projectId,
+            dispatch,
+            getProjects,
+        } = this.props;
+
+        // eslint-disable-next-line no-console
+        console.log('******', nextProject, projectId);
+        if (projectId === null && nextProject && nextProject._id) {
+            // eslint-disable-next-line no-console
+            console.log('******', 'cjeos');
+            this.props.getSubProjects(nextProject._id).then(res => {
+                const { data: subProjects } = res.data;
+                this.props.switchProject(dispatch, nextProject, subProjects);
+                this.props.switchToProjectViewerNav(
+                    User.getUserId(),
+                    subProjects,
+                    nextProject
+                );
+            });
+        }
 
         if (
             project.projects &&
@@ -354,6 +378,7 @@ DashboardApp.displayName = 'DashboardApp';
 
 DashboardApp.propTypes = {
     project: PropTypes.object.isRequired,
+    nextProject: PropTypes.object.isRequired,
     profile: PropTypes.object.isRequired,
     notification: PropTypes.object.isRequired,
     match: PropTypes.object,
@@ -371,12 +396,16 @@ DashboardApp.propTypes = {
     close: PropTypes.func,
     name: PropTypes.string,
     switchToProjectViewerNav: PropTypes.bool,
+    switchProject: PropTypes.func.isRequired,
+    dispatch: PropTypes.func.isRequired,
+    getSubProjects: PropTypes.func,
 };
 
 const mapStateToProps = state => ({
     project: state.project,
     profile: state.profileSettings,
     projectId: state.project.currentProject && state.project.currentProject._id,
+    nextProject: state.project.projects && state.project.projects.projects[0],
     notification: state.notifications,
     currentModal:
         state.modal.modals && state.modal.modals.length > 0
@@ -393,6 +422,9 @@ const mapDispatchToProps = dispatch =>
             hideProfileMenu,
             closeNotificationMenu,
             closeModal,
+            getSubProjects,
+            switchProject,
+            dispatch,
         },
         dispatch
     );
