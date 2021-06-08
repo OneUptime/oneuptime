@@ -17,7 +17,7 @@ audit_ruby-sdk:
         - which bundle
         - gem list bundler
         - cd ruby-sdk/fyipe
-        - bundle install --gemfile=fyipe.gemspec
+        - bundle install
         - cd ..
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
