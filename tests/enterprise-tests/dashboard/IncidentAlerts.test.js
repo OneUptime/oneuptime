@@ -51,7 +51,7 @@ describe('Schedule', () => {
             page,
             {
                 countryCode: '+1',
-                phoneNumber: '9173976123',
+                phoneNumber: '9173976128',
             }
         );
         await init.addSchedule(callScheduleName, page);
@@ -102,9 +102,6 @@ describe('Schedule', () => {
 
             const firstOncallAlertStatusSelector =
                 '#TeamAlertLogBox tbody tr:nth-last-of-type(1) td:last-of-type';
-            const secondOncallAlertStatusSelector =
-                '#TeamAlertLogBox tbody tr:nth-last-of-type(2) td:last-of-type';
-
             await init.pageWaitForSelector(
                 page,
                 firstOncallAlertStatusSelector
@@ -115,14 +112,8 @@ describe('Schedule', () => {
                 firstOncallAlertStatusSelector,
                 element => element.textContent
             );
-            const secondOncallAlertStatus = await init.page$Eval(
-                page,
-                secondOncallAlertStatusSelector,
-                element => element.textContent
-            );
 
             expect(firstOncallAlertStatus).toEqual('Success');
-            expect(secondOncallAlertStatus).toEqual('Success');
 
             await init.pageWaitForSelector(page, '#subscriberAlertTable');
             const subscriberAlertStatusSelector =

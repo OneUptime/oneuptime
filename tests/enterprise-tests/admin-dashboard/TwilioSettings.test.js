@@ -5,7 +5,7 @@ const init = require('../../test-init');
 require('should');
 let browser, page;
 // user credentials
-const email = 'masteradmin@hackerbay.io';
+const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 const phoneNumber = '+19173976235';
 
@@ -76,13 +76,13 @@ describe('Twilio Settings API', () => {
             await init.pageType(
                 page,
                 'input[name=authentication-token]',
-                process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN
+                utils.twilioCredentials.authToken
             );
             await init.pageClick(page, 'input[name=phone]');
             await init.pageType(
                 page,
                 'input[name=phone]',
-                process.env.TEST_TWILIO_PHONE
+                utils.twilioCredentials.phoneNumber
             );
 
             await init.pageClick(page, 'input[name=alert-limit]');
@@ -132,13 +132,13 @@ describe('Twilio Settings API', () => {
             await init.pageType(
                 page,
                 'input[name=account-sid]',
-                process.env.TEST_TWILIO_ACCOUNT_SID
+                utils.twilioCredentials.accountSid
             );
             await init.pageClick(page, 'input[name=authentication-token]');
             await init.pageType(
                 page,
                 'input[name=authentication-token]',
-                process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN
+                utils.twilioCredentials.authToken
             );
             await init.pageClick(page, 'input[name=phone]');
             await init.pageType(page, 'input[name=phone]', '+123');
@@ -195,19 +195,19 @@ describe('Twilio Settings API', () => {
             await init.pageType(
                 page,
                 'input[name=account-sid]',
-                process.env.TEST_TWILIO_ACCOUNT_SID
+                utils.twilioCredentials.accountSid
             );
             await init.pageClick(page, 'input[name=authentication-token]');
             await init.pageType(
                 page,
                 'input[name=authentication-token]',
-                process.env.TEST_TWILIO_ACCOUNT_AUTH_TOKEN
+                utils.twilioCredentials.authToken
             );
             await init.pageClick(page, 'input[name=phone]');
             await init.pageType(
                 page,
                 'input[name=phone]',
-                process.env.TEST_TWILIO_PHONE
+                utils.twilioCredentials.phoneNumber
             );
 
             await init.pageClick(page, 'input[name=alert-limit]');
@@ -233,7 +233,7 @@ describe('Twilio Settings API', () => {
                 e => e.value
             );
 
-            expect(value).toEqual(process.env.TEST_TWILIO_ACCOUNT_SID);
+            expect(value).toEqual(utils.twilioCredentials.accountSid);
 
             done();
         },

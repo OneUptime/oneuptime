@@ -43,7 +43,7 @@ describe('Enterprise Disabled Billing API', () => {
             });
             await init.pageClick(page, '#projectSettings');
 
-            const projectBilling = await init.page$(page, '#billingSetting');
+            const projectBilling = await page.$('#billingSetting');
             expect(projectBilling).toBeNull();
             done();
         },
@@ -62,7 +62,7 @@ describe('Enterprise Disabled Billing API', () => {
             });
             await init.pageClick(page, '#profile-menu');
 
-            const profileBilling = await init.page$(page, '#cbBilling');
+            const profileBilling = await page.$('#cbBilling');
             expect(profileBilling).toBeNull();
             done();
         },

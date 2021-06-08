@@ -198,27 +198,41 @@ const StatusPageProjectBox = props => {
                 <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
                     <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                         <span>
-                            <span
-                                id={`status_page_count_${props.subProjectName}`}
-                                className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
-                            >
-                                {numberOfPages > 0
-                                    ? `Page ${
-                                          props.pages
-                                      } of ${numberOfPages} (${
-                                          props.subProjectStatusPage.count
-                                      } Status Page${
-                                          props.subProjectStatusPage.count === 1
-                                              ? ''
-                                              : 's'
-                                      })`
-                                    : `${
-                                          props.subProjectStatusPage.count
-                                      } Status Page${
-                                          props.subProjectStatusPage.count === 1
-                                              ? ''
-                                              : 's'
-                                      }`}
+                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                <ShouldRender
+                                    if={
+                                        props.subProjectStatusPage &&
+                                        props.subProjectStatusPage.count
+                                    }
+                                >
+                                    Page {props.pages} of {numberOfPages} (
+                                    <span
+                                        id={`status_page_count_${props.subProjectName}`}
+                                    >
+                                        {props.subProjectStatusPage.count}
+                                    </span>{' '}
+                                    Log
+                                    <ShouldRender
+                                        if={
+                                            props.subProjectStatusPage.count > 0
+                                        }
+                                    >
+                                        s
+                                    </ShouldRender>
+                                    )
+                                </ShouldRender>
+                                <ShouldRender
+                                    if={
+                                        props.subProjectStatusPage &&
+                                        props.subProjectStatusPage.count === 0
+                                    }
+                                >
+                                    <span
+                                        id={`status_page_count_${props.subProjectName}`}
+                                    >
+                                        0 Status Pages
+                                    </span>
+                                </ShouldRender>
                             </span>
                         </span>
                     </span>

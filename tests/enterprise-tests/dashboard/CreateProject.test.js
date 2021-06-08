@@ -53,13 +53,6 @@ describe('Enterprise Project API', () => {
                 'input[id=name]',
                 utils.generateRandomString()
             );
-
-            const projectPlan = await init.page$(
-                page,
-                'input[id=Startup_month]'
-            );
-            expect(projectPlan).toBeDefined(); // Startup_month is part of the modal that gets popped out.
-
             await init.pageClick(page, 'button[type=submit]');
             // eslint-disable-next-line no-undef
             localStorageData = await page.evaluate(() => {

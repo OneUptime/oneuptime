@@ -478,7 +478,7 @@ export class CallLogsList extends Component {
                                     </div>
                                 </button>
                             </div>
-                            {/* <div className="Box-root">
+                            <div className="Box-root">
                                 <button
                                     id="deleteLog"
                                     onClick={this.handleDelete}
@@ -493,7 +493,7 @@ export class CallLogsList extends Component {
                                         </span>
                                     </div>
                                 </button>
-                            </div> */}
+                            </div>
                         </div>
                     </div>
                 </div>

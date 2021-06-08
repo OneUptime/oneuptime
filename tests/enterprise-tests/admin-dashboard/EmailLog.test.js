@@ -5,7 +5,7 @@ const init = require('../../test-init');
 require('should');
 
 // user credentials
-const email = 'masteradmin@hackerbay.io';
+const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 let browser, page;
 describe('Email Logs', () => {
@@ -23,6 +23,7 @@ describe('Email Logs', () => {
             password: password,
         };
         await init.registerEnterpriseUser(user, page, false);
+        await init.addEmailCredentials(page, email);
     });
 
     afterAll(async () => {
@@ -33,8 +34,11 @@ describe('Email Logs', () => {
         'Should delete all email logs from the table',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
+            await init.testSmptSettings(page, email);
             await init.pageWaitForSelector(page, '#probes');
             await init.pageClick(page, '#probes');
+            await init.pageWaitForSelector(page, '#logs');
+            await init.pageClick(page, '#logs');
             await init.pageWaitForSelector(page, '#emailLogs');
             await init.pageClick(page, '#emailLogs');
             await init.pageWaitForSelector(page, '#deleteLog');
@@ -47,11 +51,11 @@ describe('Email Logs', () => {
 
             const rowNum = await init.page$$Eval(
                 page,
-                'tbody tr.Table-row',
-                rows => rows.length
+                'tbody tr',
+                row => row.textContent
             );
 
-            expect(rowNum).toEqual(0);
+            expect(rowNum).toEqual(undefined);
         },
         operationTimeOut
     );
@@ -60,8 +64,11 @@ describe('Email Logs', () => {
         'Should not delete email logs from the table',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
+            await init.testSmptSettings(page, email);
             await init.pageWaitForSelector(page, '#probes');
             await init.pageClick(page, '#probes');
+            await init.pageWaitForSelector(page, '#logs');
+            await init.pageClick(page, '#logs');
             await init.pageWaitForSelector(page, '#emailLogs');
             await init.pageClick(page, '#emailLogs');
             await init.pageWaitForSelector(page, '#deleteLog');
@@ -81,110 +88,19 @@ describe('Email Logs', () => {
     );
 
     test(
-        'Should check if logs are prefilled again after deleting logs',
-        async () => {
-            await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await init.pageWaitForSelector(page, '#probes');
-            await init.pageClick(page, '#probes');
-            await init.pageWaitForSelector(page, '#emailLogs');
-            await init.pageClick(page, '#emailLogs');
-            await init.pageWaitForSelector(page, '#deleteLog');
-            await init.pageClick(page, '#deleteLog');
-            await init.pageWaitForSelector(page, '#confirmDelete');
-            await init.pageClick(page, '#confirmDelete');
-            await init.pageWaitForSelector(page, '#probes');
-            await init.pageClick(page, '#probes');
-            await init.pageWaitForSelector(page, '#emailLogs');
-            await init.pageClick(page, '#emailLogs');
-
-            const rowNum = await init.page$$Eval(
-                page,
-                'tbody tr.Table-row',
-                rows => rows.length
-            );
-
-            expect(rowNum).toBeGreaterThanOrEqual(0);
-        },
-        operationTimeOut
-    );
-
-    test(
-        'Should show email log(s) that match the search parameter(s)',
-        async () => {
-            await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await init.pageWaitForSelector(page, '#probes');
-            await init.pageClick(page, '#probes');
-            await init.pageWaitForSelector(page, '#emailLogs');
-            await init.pageClick(page, '#emailLogs');
-            await init.pageWaitForSelector(page, '#searchEmailLog');
-            await init.pageClick(page, '#searchEmailLog');
-            await init.pageType(page, '#searchEmailLog', 'probe');
-
-            const rowNum = await init.page$$Eval(
-                page,
-                'tbody tr.Table-row',
-                rows => rows.length
-            );
-
-            expect(rowNum).toBeGreaterThanOrEqual(0);
-        },
-        operationTimeOut
-    );
-
-    test(
-        'Should not show any email log if the search parameter(s) does not match any log',
-        async () => {
-            await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await init.pageWaitForSelector(page, '#probes');
-            await init.pageClick(page, '#probes');
-            await init.pageWaitForSelector(page, '#emailLogs');
-            await init.pageClick(page, '#emailLogs');
-            await init.pageWaitForSelector(page, '#searchEmailLog');
-            await init.pageClick(page, '#searchEmailLog');
-            await init.pageType(page, '#searchEmailLog', 'somerandom');
-
-            const rowNum = await init.page$$Eval(
-                page,
-                'tbody tr.Table-row',
-                rows => rows.length
-            );
-
-            expect(rowNum).toEqual(0);
-        },
-        operationTimeOut
-    );
-
-    test(
         'Should note that email logs are currently enabled',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
+            await init.pageWaitForSelector(page, '#logs');
+            await init.pageClick(page, '#logs');
             await init.pageWaitForSelector(page, '#emailLogs');
             await init.pageClick(page, '#emailLogs');
-
-            // count currently available logs
-            let logCount = await init.pageWaitForSelector(page, `#log-count`);
-            logCount = await logCount.getProperty('innerText');
-            logCount = await logCount.jsonValue();
-            logCount = Number(logCount.split(' ')[0]);
-
-            // goto other pages
-            await init.pageWaitForSelector(page, '#probes');
-            await init.pageClick(page, '#probes');
-
-            // come back to logs page
-            await init.pageWaitForSelector(page, '#emailLogs');
-            await init.pageClick(page, '#emailLogs');
-
-            // get the new log count
-            let newLogCount = await init.pageWaitForSelector(
+            const alertPanelElement = await init.pageWaitForSelector(
                 page,
-                `#log-count`
+                `#emailLogDisabled`,
+                { hidden: true }
             );
-            newLogCount = await newLogCount.getProperty('innerText');
-            newLogCount = await newLogCount.jsonValue();
-            newLogCount = Number(newLogCount.split(' ')[0]);
-            // validate that the number has change
-            expect(newLogCount).toBeGreaterThan(logCount);
+            expect(alertPanelElement).toEqual(null);
         },
         operationTimeOut
     );
@@ -192,6 +108,9 @@ describe('Email Logs', () => {
         'Should disable email logs',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
+            await init.testSmptSettings(page, email);
+            await init.pageWaitForSelector(page, '#logs');
+            await init.pageClick(page, '#logs');
             await init.pageWaitForSelector(page, '#emailLogs');
             await init.pageClick(page, '#emailLogs');
 
@@ -204,15 +123,17 @@ describe('Email Logs', () => {
             await init.pageClick(page, '#emailLog');
 
             // turn email log off
-            await init.page$Eval(page, 'input[name=emailStatusToggler]', e =>
-                e.click()
-            );
+            await init.pageWaitForSelector(page, '.Toggler-wrap');
+            await init.pageClick(page, '.Toggler-wrap');
 
             // click the submit button
             await init.pageWaitForSelector(page, '#emailLogSubmit');
             await init.pageClick(page, '#emailLogSubmit');
 
-            // go back to email logs page
+            // go back to logs page
+            await init.pageWaitForSelector(page, '#logs');
+            await init.pageClick(page, '#logs');
+            //go to email logs page
             await init.pageWaitForSelector(page, '#emailLogs');
             await init.pageClick(page, '#emailLogs');
 
@@ -227,9 +148,11 @@ describe('Email Logs', () => {
     );
 
     test(
-        'Should validate that email logs are currently disabled and on page change no email is logged',
+        'Should validate that email logs are currently disabled and not save when an email related activity is performed',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
+            await init.pageWaitForSelector(page, '#logs');
+            await init.pageClick(page, '#logs');
             await init.pageWaitForSelector(page, '#emailLogs');
             await init.pageClick(page, '#emailLogs');
 
@@ -241,23 +164,28 @@ describe('Email Logs', () => {
             expect(alertPanelElement).toBeDefined();
 
             // count currently available logs
-            let logCount = await init.pageWaitForSelector(page, `#log-count`);
+            let logCount = await init.pageWaitForSelector(
+                page,
+                `#email-log-count`
+            );
             logCount = await logCount.getProperty('innerText');
             logCount = await logCount.jsonValue();
             logCount = Number(logCount.split(' ')[0]);
 
-            // goto other pages
-            await init.pageWaitForSelector(page, '#probes');
-            await init.pageClick(page, '#probes');
+            // test smpt credential inorder to get an email
+            await init.testSmptSettings(page, email);
 
             // come back to logs page
+            await init.pageWaitForSelector(page, '#logs');
+            await init.pageClick(page, '#logs');
+
             await init.pageWaitForSelector(page, '#emailLogs');
             await init.pageClick(page, '#emailLogs');
 
             // validate that the number doesnt change
             let newLogCount = await init.pageWaitForSelector(
                 page,
-                `#log-count`
+                `#email-log-count`
             );
             newLogCount = await newLogCount.getProperty('innerText');
             newLogCount = await newLogCount.jsonValue();
@@ -268,14 +196,20 @@ describe('Email Logs', () => {
         operationTimeOut
     );
     test(
-        'Should validate that email logs are enabled and on page change email is logged',
+        'Should validate that email logs are enabled and on performing email related activity email is logged again',
         async () => {
             await page.goto(utils.ADMIN_DASHBOARD_URL);
+            //await init.testSmptSettings(page, email);
+            await init.pageWaitForSelector(page, '#logs');
+            await init.pageClick(page, '#logs');
             await init.pageWaitForSelector(page, '#emailLogs');
             await init.pageClick(page, '#emailLogs');
 
             // count number of logs
-            let logCount = await init.pageWaitForSelector(page, `#log-count`);
+            let logCount = await init.pageWaitForSelector(
+                page,
+                `#email-log-count`
+            );
             logCount = await logCount.getProperty('innerText');
             logCount = await logCount.jsonValue();
             logCount = Number(logCount.split(' ')[0]);
@@ -300,14 +234,19 @@ describe('Email Logs', () => {
             await init.pageWaitForSelector(page, '#emailLogSubmit');
             await init.pageClick(page, '#emailLogSubmit');
 
-            // go back to email logs
+            // create email log by testing smpt settings
+            await init.testSmptSettings(page, email);
+            //go back to log email
+            await init.pageWaitForSelector(page, '#logs');
+            await init.pageClick(page, '#logs');
+
             await init.pageWaitForSelector(page, '#emailLogs');
             await init.pageClick(page, '#emailLogs');
 
             // count new number of logs
             let newLogCount = await init.pageWaitForSelector(
                 page,
-                `#log-count`
+                `#email-log-count`
             );
             newLogCount = await newLogCount.getProperty('innerText');
             newLogCount = await newLogCount.jsonValue();

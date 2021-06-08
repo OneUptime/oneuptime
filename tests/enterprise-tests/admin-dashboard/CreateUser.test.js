@@ -4,10 +4,13 @@ const init = require('../../test-init');
 
 require('should');
 // user credentials
-const email = 'masteradmin@hackerbay.io';
 const userEmail = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 let browser, page;
+const masterAdmin = {
+    email: 'masteradmin@hackerbay.io',
+    password: '1234567890',
+};
 describe('Enterprise User API', () => {
     const operationTimeOut = init.timeout;
 
@@ -24,7 +27,7 @@ describe('Enterprise User API', () => {
         };
         // user
         await init.registerEnterpriseUser(user, page, false);
-
+        await browser.close();
         done();
     });
 
@@ -42,12 +45,7 @@ describe('Enterprise User API', () => {
 
             const newEmail = utils.generateRandomBusinessEmail();
 
-            const user = {
-                email: email,
-                password: password,
-            };
-
-            await init.loginUser(user, page);
+            await init.loginAdminUser(masterAdmin, page);
 
             await init.pageWaitForSelector(page, '#add_user');
             await init.pageClick(page, '#add_user');
@@ -94,15 +92,13 @@ describe('Enterprise User API', () => {
             page = await browser.newPage();
             await page.setUserAgent(utils.agent);
 
-            const user = {
-                email: email,
-                password: password,
-            };
-
-            await init.loginUser(user, page);
+            await init.loginAdminUser(masterAdmin, page);
 
             for (let i = 0; i < 10; i++) {
                 // add new user
+                await page.goto(utils.ADMIN_DASHBOARD_URL, {
+                    waitUntil: 'networkidle0',
+                });
                 await init.pageWaitForSelector(page, '#add_user');
                 await init.pageClick(page, '#add_user');
 
@@ -172,12 +168,7 @@ describe('Enterprise User API', () => {
             page = await browser.newPage();
             await page.setUserAgent(utils.agent);
 
-            const user = {
-                email: email,
-                password: password,
-            };
-
-            await init.loginUser(user, page);
+            await init.loginAdminUser(masterAdmin, page);
 
             await init.pageWaitForSelector(page, '#add_user');
             await init.pageClick(page, '#add_user');

@@ -30,7 +30,10 @@ class About extends Component {
                 return (
                     <tr key={i}>
                         <td>
-                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                            <span
+                                className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                id="probe-version"
+                            >
                                 {probe.probeName} Version
                             </span>
                         </td>
@@ -97,7 +100,10 @@ class About extends Component {
                                             </tr>
                                             <tr>
                                                 <td>
-                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    <span
+                                                        className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                        id="server-version"
+                                                    >
                                                         Server Version
                                                     </span>
                                                 </td>
@@ -120,7 +126,10 @@ class About extends Component {
                                             </tr>
                                             <tr>
                                                 <td>
-                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    <span
+                                                        className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                        id="admin-dashboard-version"
+                                                    >
                                                         Admin Dashboard Version
                                                     </span>
                                                 </td>
@@ -143,7 +152,10 @@ class About extends Component {
                                             </tr>
                                             <tr>
                                                 <td>
-                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    <span
+                                                        className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                        id="dashboard-version"
+                                                    >
                                                         Dashboard Version
                                                     </span>
                                                 </td>
@@ -166,7 +178,10 @@ class About extends Component {
                                             </tr>
                                             <tr>
                                                 <td>
-                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    <span
+                                                        className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                        id="docs-version"
+                                                    >
                                                         Docs Version
                                                     </span>
                                                 </td>
@@ -187,7 +202,10 @@ class About extends Component {
                                             </tr>
                                             <tr>
                                                 <td>
-                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                                    <span
+                                                        className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--24 Text-typeface--base Text-wrap--wrap"
+                                                        id="helm-version"
+                                                    >
                                                         Helm Chart Version
                                                     </span>
                                                 </td>

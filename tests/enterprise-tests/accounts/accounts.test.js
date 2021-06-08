@@ -37,7 +37,7 @@ describe('Enterprise Accounts API', () => {
         'Should login valid user',
         async done => {
             await init.logout(page);
-            await init.loginAdminUser(user, page);
+            await init.loginUser(user, page);
 
             const localStorageData = await page.evaluate(() => {
                 const json = {};
