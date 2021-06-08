@@ -36,7 +36,6 @@ deploy_staging_ruby-sdk:
         refs:
             - master
             - hotfix-master
-            - feature-ruby-sdk
     environment:
         name: staging
 
@@ -77,6 +76,6 @@ deploy_production_ruby-sdk:
         refs:
             - release
             - hotfix-release
-            # - feature-ruby-sdk
+            - feature-ruby-sdk
     environment:
         name: production
