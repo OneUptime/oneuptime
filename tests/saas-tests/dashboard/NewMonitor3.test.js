@@ -12,7 +12,7 @@ const user = {
     password,
 };
 describe('New Monitor API', () => {
-    const operationTimeOut = 1000000; // Custom Timeout is needed
+    const operationTimeOut = 1000000;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
@@ -28,17 +28,19 @@ describe('New Monitor API', () => {
     afterAll(async done => {
         await browser.close();
         done();
-    });
+    });    
 
     test(
-        "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Startup plan => 5 Monitors/User)",
+        'should not show any upgrade modal if the project plan is on Scale plan and above',
         async done => {
+            const projectName = utils.generateRandomString();
             const componentName = utils.generateRandomString();
+            await init.addScaleProject(projectName, page);
             // create a component
             // Redirects automatically component to details page
             await init.addComponent(componentName, page);
 
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 15; i++) {
                 const monitorName = utils.generateRandomString();
 
                 await init.addNewMonitorToComponent(
@@ -50,6 +52,7 @@ describe('New Monitor API', () => {
                     hidden: true,
                 });
             }
+
             // try to add more monitor
             const monitorName = utils.generateRandomString();
             await page.goto(utils.DASHBOARD_URL, {
@@ -65,14 +68,8 @@ describe('New Monitor API', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, `#more-details-${componentName}`);
-            await init.pageWaitForSelector(page, '#form-new-monitor', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, 'input[id=name]', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(page, '#form-new-monitor');
+            await init.pageWaitForSelector(page, 'input[id=name]');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
@@ -93,12 +90,11 @@ describe('New Monitor API', () => {
             const pricingPlanModal = await init.pageWaitForSelector(
                 page,
                 '#pricingPlanModal',
-                { visible: true, timeout: init.timeout }
+                { hidden: true }
             );
-            expect(pricingPlanModal).toBeTruthy();
+            expect(pricingPlanModal).toBeNull();
             done();
         },
         operationTimeOut
     );
-        
 });
