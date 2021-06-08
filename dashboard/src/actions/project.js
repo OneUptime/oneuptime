@@ -133,7 +133,11 @@ export function getProjects(switchToProjectId) {
                             project =>
                                 project._id === User.getCurrentProjectId()
                         );
-                        dispatch(switchProject(dispatch, project[0]));
+                        if (project && project.length > 0) {
+                            dispatch(switchProject(dispatch, project[0]));
+                        } else {
+                            dispatch(switchProject(dispatch, projects[0]));
+                        }
                     } else {
                         dispatch(switchProject(dispatch, projects[0]));
                     }
