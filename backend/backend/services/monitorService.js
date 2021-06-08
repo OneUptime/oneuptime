@@ -477,7 +477,7 @@ module.exports = {
 
                             const monitorIncidents = await IncidentService.findBy(
                                 {
-                                    monitorId: monitor._id,
+                                    'monitors.monitorId': monitor._id,
                                     resolved: false,
                                 }
                             );
@@ -992,7 +992,7 @@ module.exports = {
             const _this = this;
             const monitorTime = await _this.findOneBy({ _id: monitorId });
             const monitorIncidents = await IncidentService.findBy({
-                monitorId,
+                'monitors.monitorId': monitorId,
             });
             const dateNow = moment().utc();
             let days = moment(dateNow)
@@ -1138,7 +1138,7 @@ module.exports = {
                         }
                     );
                     await IncidentService.restoreBy({
-                        monitorId,
+                        'monitors.monitorId': monitorId,
                         deleted: true,
                     });
                     await AlertService.restoreBy({ monitorId, deleted: true });

@@ -67,12 +67,17 @@ class CreateManualIncident extends Component {
             values.description,
             values.incidentPriority === '' ? null : values.incidentPriority,
             customFields
-        ).then(() => {
-            createIncidentReset();
-            closeModal({
-                id: createIncidentModalId,
+        )
+            .then(() => {
+                createIncidentReset();
+                closeModal({
+                    id: createIncidentModalId,
+                });
+            })
+            .catch(() => {
+                // added this to fix
+                // unhandled error bug
             });
-        });
     };
 
     handleKeyBoard = e => {

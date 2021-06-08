@@ -11,8 +11,8 @@ const user = {
     email,
     password,
 };
-describe('Enterprise Monitor SubProject API', () => {
-    const operationTimeOut = init.timeout;
+describe('New Monitor API', () => {
+    const operationTimeOut = 1000000;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
@@ -21,55 +21,63 @@ describe('Enterprise Monitor SubProject API', () => {
         page = await browser.newPage();
         await page.setUserAgent(utils.agent);
         // user
-        await init.registerEnterpriseUser(user, page);
-
+        await init.registerUser(user, page);
         done();
     });
 
     afterAll(async done => {
         await browser.close();
         done();
-    });
+    });    
 
     test(
-        'Should create a monitor in sub-project for valid `admin`',
+        'should not show any upgrade modal if the project plan is on Scale plan and above',
         async done => {
-            const subProjectName = utils.generateRandomString();
+            const projectName = utils.generateRandomString();
             const componentName = utils.generateRandomString();
-            const subProjectMonitorName = utils.generateRandomString();
-
-            await init.adminLogout(page);
-            await init.loginUser(user, page);
-            await page.reload({
-                waitUntil: 'networkidle2',
-            });
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle2',
-            });
-
-            // add sub-project
-            await init.addSubProject(subProjectName, page);
-
-            // Create Component first
+            await init.addScaleProject(projectName, page);
+            // create a component
             // Redirects automatically component to details page
             await init.addComponent(componentName, page);
 
-            // switch to invited project for new user
-            await init.pageWaitForSelector(page, '#monitors', {
+            for (let i = 0; i < 15; i++) {
+                const monitorName = utils.generateRandomString();
+
+                await init.addNewMonitorToComponent(
+                    page,
+                    componentName,
+                    monitorName
+                );
+                await init.pageWaitForSelector(page, '.ball-beat', {
+                    hidden: true,
+                });
+            }
+
+            // try to add more monitor
+            const monitorName = utils.generateRandomString();
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#components', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageWaitForSelector(page, '#form-new-monitor', {
+            await init.pageClick(page, '#components');
+            await init.pageWaitForSelector(page, '#component0', {
                 visible: true,
                 timeout: init.timeout,
             });
+            await init.pageClick(page, `#more-details-${componentName}`);
+            await init.pageWaitForSelector(page, '#form-new-monitor');
+            await init.pageWaitForSelector(page, 'input[id=name]');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
-            await init.pageType(page, 'input[id=name]', subProjectMonitorName);
+            await init.pageType(page, 'input[id=name]', monitorName);
+            // Added new URL-Montior
             await init.pageClick(page, '[data-testId=type_url]');
             await init.pageWaitForSelector(page, '#url', {
                 visible: true,
@@ -79,16 +87,12 @@ describe('Enterprise Monitor SubProject API', () => {
             await init.pageType(page, '#url', 'https://google.com');
             await init.pageClick(page, 'button[type=submit]');
 
-            let spanElement = await init.pageWaitForSelector(
+            const pricingPlanModal = await init.pageWaitForSelector(
                 page,
-                `#monitor-title-${subProjectMonitorName}`,
-                { visible: true, timeout: init.timeout }
+                '#pricingPlanModal',
+                { hidden: true }
             );
-
-            spanElement = await spanElement.getProperty('innerText');
-            spanElement = await spanElement.jsonValue();
-            expect(spanElement).toBe(subProjectMonitorName);
-
+            expect(pricingPlanModal).toBeNull();
             done();
         },
         operationTimeOut

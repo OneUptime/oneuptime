@@ -42,11 +42,6 @@ describe('Sub-Project API', () => {
     test(
         'should create a new sub-project',
         async done => {
-            // await page.goto(utils.DASHBOARD_URL, {
-            //     waitUntil: 'networkidle2',
-            // });
-            //Growth Plan is needed for a subproject
-            await init.growthPlanUpgrade(page);
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
@@ -216,6 +211,7 @@ describe('Sub-Project API', () => {
         );
         oldStatusPageCounter = Number(oldStatusPageCounter.split(' ')[0]);
         await init.addStatusPageToProject(statusPageName, newProjectName, page);
+        await init.addStatusPageToProject(statusPageName, subProjectName, page);
         await init.pageWaitForSelector(
             page,
             `#status_page_count_${newProjectName}`,
@@ -238,35 +234,18 @@ describe('Sub-Project API', () => {
         async done => {
             // Login as viewer
             await init.logout(page);
-            await init.loginUser({ email, password }, page);
-            await init.pageWaitForSelector(page, '#AccountSwitcherId', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#AccountSwitcherId');
-            await init.pageWaitForSelector(page, '#accountSwitcher', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            const element = await init.page$(
-                page,
-                `#accountSwitcher > div[title=${newProjectName}]`
-            );
-            element.click();
+            await init.loginProjectViewer({ email, password }, page);
+            await init.pageWaitForSelector(page, '#statusPages');
+            await init.pageClick(page, '#statusPages');
+
             await init.pageWaitForSelector(page, '#statusPageTable_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            const projectStatusPages = await init.page$(
-                page,
-                '#statusPageTable'
-            );
+            const projectStatusPages = await page.$('#statusPageTable');
             expect(projectStatusPages).toEqual(null);
 
-            const subProjectStatusPages = await init.page$(
-                page,
-                '#statusPageTable_0'
-            );
+            const subProjectStatusPages = await page.$('#statusPageTable_0');
             expect(subProjectStatusPages).not.toEqual(null);
             done();
         },
@@ -277,7 +256,7 @@ describe('Sub-Project API', () => {
         'should display project and subproject status pages to project viewers',
         async done => {
             await init.logout(page);
-            await init.loginUser(projectViewer, page);
+            await init.loginProjectViewer(projectViewer, page);
             await init.pageWaitForSelector(page, '#AccountSwitcherId', {
                 visible: true,
                 timeout: init.timeout,
@@ -314,7 +293,7 @@ describe('Sub-Project API', () => {
 
     test('should redirect viewer to external status page', async done => {
         await init.logout(page);
-        await init.loginUser(projectViewer, page);
+        await init.loginProjectViewer(projectViewer, page);
         await init.pageWaitForSelector(page, '#AccountSwitcherId', {
             visible: true,
             timeout: init.timeout,
@@ -335,7 +314,7 @@ describe('Sub-Project API', () => {
             { visible: true, timeout: init.timeout }
         );
         rowItem.click();
-        const statusPage = await init.page$(page, `#cb${statusPageName}`);
+        const statusPage = await page.$(`#cb${statusPageName}`);
         expect(statusPage).toEqual(null);
         done();
     });

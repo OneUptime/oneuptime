@@ -10,6 +10,7 @@ const { isEmpty } = require('lodash');
 const IncidentMessageService = require('../services/incidentMessageService');
 const IncidentPrioritiesService = require('../services/incidentPrioritiesService');
 const IncidentSettingsService = require('../services/incidentSettingsService');
+const joinNames = require('../utils/joinNames');
 // const RealTimeService = require('./realTimeService');
 
 module.exports = {
@@ -622,14 +623,141 @@ module.exports = {
                         const monitors = await MonitorService.findBy({
                             projectId: data.projectId,
                         });
-                        for (const monitor of monitors) {
+
+                        if (
+                            incomingRequest &&
+                            incomingRequest.createSeparateIncident
+                        ) {
+                            for (const monitor of monitors) {
+                                const dataConfig = {
+                                    monitorName: monitor.name,
+                                    projectName: monitor.projectId.name,
+                                    componentName: monitor.componentId.name,
+                                    request: data.request,
+                                };
+
+                                let _incident;
+                                if (
+                                    data.customFields &&
+                                    data.customFields.length > 0
+                                ) {
+                                    for (const field of data.customFields) {
+                                        if (
+                                            field.uniqueField &&
+                                            field.fieldValue &&
+                                            field.fieldValue.trim()
+                                        ) {
+                                            _incident = await IncidentService.findOneBy(
+                                                {
+                                                    customFields: {
+                                                        $elemMatch: {
+                                                            fieldName:
+                                                                field.fieldName,
+                                                            fieldType:
+                                                                field.fieldType,
+                                                            uniqueField:
+                                                                field.uniqueField,
+                                                            fieldValue: handleVariable(
+                                                                field.fieldValue,
+                                                                dataConfig
+                                                            ),
+                                                        },
+                                                    },
+                                                }
+                                            );
+                                        }
+                                    }
+                                }
+
+                                data.title = handleVariable(
+                                    data.title,
+                                    dataConfig
+                                );
+                                data.description = handleVariable(
+                                    data.description,
+                                    dataConfig
+                                );
+                                const incidentType = handleVariable(
+                                    data.incidentType,
+                                    dataConfig
+                                );
+                                data.incidentType = [
+                                    'offline',
+                                    'online',
+                                    'degraded',
+                                ].includes(incidentType)
+                                    ? incidentType
+                                    : 'offline';
+
+                                const incidentPriority = handleVariable(
+                                    data.incidentPriority,
+                                    dataConfig
+                                );
+                                const priorityObj = {};
+                                incidentPriorities.forEach(
+                                    priority =>
+                                        (priorityObj[priority.name] =
+                                            priority._id)
+                                );
+                                data.incidentPriority =
+                                    priorityObj[incidentPriority] ||
+                                    incidentSettings.incidentPriority;
+
+                                data.customFields = data.customFields.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: handleVariable(
+                                            String(field.fieldValue),
+                                            dataConfig
+                                        ),
+                                    })
+                                );
+
+                                if (
+                                    !monitorsWithIncident.includes(
+                                        String(monitor._id)
+                                    )
+                                ) {
+                                    let incident;
+                                    if (_incident) {
+                                        incident = await IncidentService.updateOneBy(
+                                            { _id: _incident._id },
+                                            data
+                                        );
+                                    } else {
+                                        data.monitors = [monitor._id];
+                                        incident = await IncidentService.create(
+                                            data
+                                        );
+                                    }
+                                    incidentResponse.push(incident);
+                                    monitorsWithIncident.push(
+                                        String(monitor._id)
+                                    );
+                                }
+                            }
+                        } else {
+                            const monitorNames = monitors.map(
+                                monitor => monitor.name
+                            );
+                            const componentNames = [];
+                            monitors.forEach(monitor => {
+                                if (
+                                    !componentNames.includes(
+                                        monitor.componentId.name
+                                    )
+                                ) {
+                                    componentNames.push(
+                                        monitor.componentId.name
+                                    );
+                                }
+                            });
                             const dataConfig = {
-                                monitorName: monitor.name,
-                                projectName: monitor.projectId.name,
-                                componentName: monitor.componentId.name,
+                                monitorName: joinNames(monitorNames),
+                                projectName: incomingRequest.projectId.name,
+                                componentName: joinNames(componentNames),
                                 request: data.request,
                             };
-
                             let _incident;
                             if (
                                 data.customFields &&
@@ -662,7 +790,6 @@ module.exports = {
                                     }
                                 }
                             }
-
                             data.title = handleVariable(data.title, dataConfig);
                             data.description = handleVariable(
                                 data.description,
@@ -702,37 +829,173 @@ module.exports = {
                                     ),
                                 })
                             );
-
-                            if (
-                                !monitorsWithIncident.includes(
-                                    String(monitor._id)
-                                )
-                            ) {
-                                let incident;
-                                if (_incident) {
-                                    incident = await IncidentService.updateOneBy(
-                                        { _id: _incident._id },
-                                        data
-                                    );
-                                } else {
-                                    data.monitors = [monitor._id];
-                                    incident = await IncidentService.create(
-                                        data
-                                    );
-                                }
-                                incidentResponse.push(incident);
-                                monitorsWithIncident.push(String(monitor._id));
+                            data.monitors = monitors.map(
+                                monitor => monitor._id
+                            );
+                            let incident;
+                            if (_incident) {
+                                incident = await IncidentService.updateOneBy(
+                                    { _id: _incident._id },
+                                    data
+                                );
+                            } else {
+                                incident = await IncidentService.create(data);
                             }
+                            incidentResponse.push(incident);
                         }
                     } else {
                         // grab the monitor from monitorId {_id, name}
                         const monitors = incomingRequest.monitors
                             .map(monitor => monitor.monitorId)
                             .filter(monitor => !monitor.deleted);
-                        for (const monitor of monitors) {
+                        if (
+                            incomingRequest &&
+                            incomingRequest.createSeparateIncident
+                        ) {
+                            for (const monitor of monitors) {
+                                const dataConfig = {
+                                    monitorName: monitor.name,
+                                    componentName: monitor.componentId.name,
+                                    projectName: incomingRequest.projectId.name,
+                                    request: data.request,
+                                };
+
+                                let _incident;
+                                if (
+                                    data.customFields &&
+                                    data.customFields.length > 0
+                                ) {
+                                    for (const field of data.customFields) {
+                                        if (
+                                            field.uniqueField &&
+                                            field.fieldValue &&
+                                            field.fieldValue.trim()
+                                        ) {
+                                            _incident = await IncidentService.findOneBy(
+                                                {
+                                                    customFields: {
+                                                        $elemMatch: {
+                                                            fieldName:
+                                                                field.fieldName,
+                                                            fieldType:
+                                                                field.fieldType,
+                                                            uniqueField:
+                                                                field.uniqueField,
+                                                            fieldValue: handleVariable(
+                                                                field.fieldValue,
+                                                                dataConfig
+                                                            ),
+                                                        },
+                                                    },
+                                                }
+                                            );
+                                        }
+                                    }
+                                }
+
+                                data.title = handleVariable(
+                                    data.title,
+                                    dataConfig
+                                );
+                                data.description = handleVariable(
+                                    data.description,
+                                    dataConfig
+                                );
+
+                                const incidentType = handleVariable(
+                                    data.incidentType,
+                                    dataConfig
+                                );
+                                data.incidentType = [
+                                    'offline',
+                                    'online',
+                                    'degraded',
+                                ].includes(incidentType)
+                                    ? incidentType
+                                    : 'offline';
+
+                                const incidentPriority = handleVariable(
+                                    data.incidentPriority,
+                                    dataConfig
+                                );
+                                const priorityObj = {};
+                                incidentPriorities.forEach(
+                                    priority =>
+                                        (priorityObj[priority.name] =
+                                            priority._id)
+                                );
+                                data.incidentPriority =
+                                    priorityObj[incidentPriority] ||
+                                    incidentSettings.incidentPriority;
+
+                                data.customFields = data.customFields.map(
+                                    field => ({
+                                        ...field,
+                                        fieldValue: handleVariable(
+                                            String(field.fieldValue),
+                                            dataConfig
+                                        ),
+                                    })
+                                );
+
+                                if (filterMatch === 'any') {
+                                    if (
+                                        !monitorsWithIncident.includes(
+                                            String(monitor._id)
+                                        )
+                                    ) {
+                                        let incident;
+                                        if (_incident) {
+                                            incident = await IncidentService.updateOneBy(
+                                                { _id: _incident._id },
+                                                data
+                                            );
+                                        } else {
+                                            data.monitors = [monitor._id];
+                                            incident = await IncidentService.create(
+                                                data
+                                            );
+                                        }
+                                        incidentResponse.push(incident);
+                                        monitorsWithIncident.push(
+                                            String(monitor._id)
+                                        );
+                                    }
+                                } else {
+                                    let incident;
+                                    if (_incident) {
+                                        incident = await IncidentService.updateOneBy(
+                                            { _id: _incident._id },
+                                            data
+                                        );
+                                    } else {
+                                        data.monitors = [monitor._id];
+                                        incident = await IncidentService.create(
+                                            data
+                                        );
+                                    }
+                                    incidentResponse.push(incident);
+                                }
+                            }
+                        } else {
+                            const monitorNames = monitors.map(
+                                monitor => monitor.name
+                            );
+                            const componentNames = [];
+                            monitors.forEach(monitor => {
+                                if (
+                                    !componentNames.includes(
+                                        monitor.componentId.name
+                                    )
+                                ) {
+                                    componentNames.push(
+                                        monitor.componentId.name
+                                    );
+                                }
+                            });
                             const dataConfig = {
-                                monitorName: monitor.name,
-                                componentName: monitor.componentId.name,
+                                monitorName: joinNames(monitorNames),
+                                componentName: joinNames(componentNames),
                                 projectName: incomingRequest.projectId.name,
                                 request: data.request,
                             };
@@ -811,29 +1074,22 @@ module.exports = {
                                 })
                             );
 
+                            data.monitors = monitors.map(
+                                monitor => monitor._id
+                            );
                             if (filterMatch === 'any') {
-                                if (
-                                    !monitorsWithIncident.includes(
-                                        String(monitor._id)
-                                    )
-                                ) {
-                                    let incident;
-                                    if (_incident) {
-                                        incident = await IncidentService.updateOneBy(
-                                            { _id: _incident._id },
-                                            data
-                                        );
-                                    } else {
-                                        data.monitors = [monitor._id];
-                                        incident = await IncidentService.create(
-                                            data
-                                        );
-                                    }
-                                    incidentResponse.push(incident);
-                                    monitorsWithIncident.push(
-                                        String(monitor._id)
+                                let incident;
+                                if (_incident) {
+                                    incident = await IncidentService.updateOneBy(
+                                        { _id: _incident._id },
+                                        data
+                                    );
+                                } else {
+                                    incident = await IncidentService.create(
+                                        data
                                     );
                                 }
+                                incidentResponse.push(incident);
                             } else {
                                 let incident;
                                 if (_incident) {
@@ -842,7 +1098,6 @@ module.exports = {
                                         data
                                     );
                                 } else {
-                                    data.monitors = [monitor._id];
                                     incident = await IncidentService.create(
                                         data
                                     );
@@ -935,11 +1190,160 @@ module.exports = {
                                     }
                                 }
 
-                                for (const monitor of monitors) {
+                                if (
+                                    incomingRequest &&
+                                    incomingRequest.createSeparateIncident
+                                ) {
+                                    for (const monitor of monitors) {
+                                        const dataConfig = {
+                                            monitorName: monitor.name,
+                                            projectName: monitor.projectId.name,
+                                            componentName:
+                                                monitor.componentId.name,
+                                            request: data.request,
+                                        };
+
+                                        let _incident;
+                                        if (
+                                            data.customFields &&
+                                            data.customFields.length > 0
+                                        ) {
+                                            for (const field of data.customFields) {
+                                                if (
+                                                    field.uniqueField &&
+                                                    field.fieldValue &&
+                                                    field.fieldValue.trim()
+                                                ) {
+                                                    _incident = await IncidentService.findOneBy(
+                                                        {
+                                                            customFields: {
+                                                                $elemMatch: {
+                                                                    fieldName:
+                                                                        field.fieldName,
+                                                                    fieldType:
+                                                                        field.fieldType,
+                                                                    uniqueField:
+                                                                        field.uniqueField,
+                                                                    fieldValue: handleVariable(
+                                                                        field.fieldValue,
+                                                                        dataConfig
+                                                                    ),
+                                                                },
+                                                            },
+                                                        }
+                                                    );
+                                                }
+                                            }
+                                        }
+
+                                        data.title = handleVariable(
+                                            data.title,
+                                            dataConfig
+                                        );
+                                        data.description = handleVariable(
+                                            data.description,
+                                            dataConfig
+                                        );
+                                        const incidentType = handleVariable(
+                                            data.incidentType,
+                                            dataConfig
+                                        );
+                                        data.incidentType = [
+                                            'offline',
+                                            'online',
+                                            'degraded',
+                                        ].includes(incidentType)
+                                            ? incidentType
+                                            : 'offline';
+
+                                        const incidentPriority = handleVariable(
+                                            data.incidentPriority,
+                                            dataConfig
+                                        );
+                                        const priorityObj = {};
+                                        incidentPriorities.forEach(
+                                            priority =>
+                                                (priorityObj[priority.name] =
+                                                    priority._id)
+                                        );
+                                        data.incidentPriority =
+                                            priorityObj[incidentPriority] ||
+                                            incidentSettings.incidentPriority;
+
+                                        data.customFields = data.customFields.map(
+                                            field => ({
+                                                ...field,
+                                                fieldValue: handleVariable(
+                                                    String(field.fieldValue),
+                                                    dataConfig
+                                                ),
+                                            })
+                                        );
+
+                                        if (filterMatch === 'any') {
+                                            if (
+                                                !monitorsWithIncident.includes(
+                                                    String(monitor._id)
+                                                )
+                                            ) {
+                                                let incident;
+                                                if (_incident) {
+                                                    incident = await IncidentService.updateOneBy(
+                                                        { _id: _incident._id },
+                                                        data
+                                                    );
+                                                } else {
+                                                    data.monitors = [
+                                                        monitor._id,
+                                                    ];
+                                                    incident = await IncidentService.create(
+                                                        data
+                                                    );
+                                                }
+                                                incidentResponse.push(incident);
+                                                monitorsWithIncident.push(
+                                                    String(monitor._id)
+                                                );
+                                            }
+                                        } else {
+                                            let incident;
+                                            if (_incident) {
+                                                incident = await IncidentService.updateOneBy(
+                                                    { _id: _incident._id },
+                                                    data
+                                                );
+                                            } else {
+                                                data.monitors = [monitor._id];
+                                                incident = await IncidentService.create(
+                                                    data
+                                                );
+                                            }
+                                            incidentResponse.push(incident);
+                                        }
+                                    }
+                                } else {
+                                    const monitorNames = monitors.map(
+                                        monitor => monitor.name
+                                    );
+                                    const componentNames = [];
+                                    monitors.forEach(monitor => {
+                                        if (
+                                            !componentNames.includes(
+                                                monitor.componentId.name
+                                            )
+                                        ) {
+                                            componentNames.push(
+                                                monitor.componentId.name
+                                            );
+                                        }
+                                    });
                                     const dataConfig = {
-                                        monitorName: monitor.name,
-                                        projectName: monitor.projectId.name,
-                                        componentName: monitor.componentId.name,
+                                        monitorName: joinNames(monitorNames),
+                                        projectName:
+                                            incomingRequest.projectId.name,
+                                        componentName: joinNames(
+                                            componentNames
+                                        ),
                                         request: data.request,
                                     };
 
@@ -1020,29 +1424,22 @@ module.exports = {
                                         })
                                     );
 
+                                    data.monitors = monitors.map(
+                                        monitor => monitor._id
+                                    );
                                     if (filterMatch === 'any') {
-                                        if (
-                                            !monitorsWithIncident.includes(
-                                                String(monitor._id)
-                                            )
-                                        ) {
-                                            let incident;
-                                            if (_incident) {
-                                                incident = await IncidentService.updateOneBy(
-                                                    { _id: _incident._id },
-                                                    data
-                                                );
-                                            } else {
-                                                data.monitors = [monitor._id];
-                                                incident = await IncidentService.create(
-                                                    data
-                                                );
-                                            }
-                                            incidentResponse.push(incident);
-                                            monitorsWithIncident.push(
-                                                String(monitor._id)
+                                        let incident;
+                                        if (_incident) {
+                                            incident = await IncidentService.updateOneBy(
+                                                { _id: _incident._id },
+                                                data
+                                            );
+                                        } else {
+                                            incident = await IncidentService.create(
+                                                data
                                             );
                                         }
+                                        incidentResponse.push(incident);
                                     } else {
                                         let incident;
                                         if (_incident) {
@@ -1051,7 +1448,6 @@ module.exports = {
                                                 data
                                             );
                                         } else {
-                                            data.monitors = [monitor._id];
                                             incident = await IncidentService.create(
                                                 data
                                             );
@@ -1201,10 +1597,136 @@ module.exports = {
                                     }
                                 }
 
-                                for (const monitor of monitors) {
+                                if (
+                                    incomingRequest &&
+                                    incomingRequest.createSeparateIncident
+                                ) {
+                                    for (const monitor of monitors) {
+                                        const dataConfig = {
+                                            monitorName: monitor.name,
+                                            componentName:
+                                                monitor.componentId.name,
+                                            projectName:
+                                                incomingRequest.projectId.name,
+                                            request: data.request,
+                                        };
+
+                                        let _incident;
+                                        if (
+                                            data.customFields &&
+                                            data.customFields.length > 0
+                                        ) {
+                                            for (const field of data.customFields) {
+                                                if (
+                                                    field.uniqueField &&
+                                                    field.fieldValue &&
+                                                    field.fieldValue.trim()
+                                                ) {
+                                                    _incident = await IncidentService.findOneBy(
+                                                        {
+                                                            customFields: {
+                                                                $elemMatch: {
+                                                                    fieldName:
+                                                                        field.fieldName,
+                                                                    fieldType:
+                                                                        field.fieldType,
+                                                                    uniqueField:
+                                                                        field.uniqueField,
+                                                                    fieldValue: handleVariable(
+                                                                        field.fieldValue,
+                                                                        dataConfig
+                                                                    ),
+                                                                },
+                                                            },
+                                                        }
+                                                    );
+                                                }
+                                            }
+                                        }
+
+                                        data.title = handleVariable(
+                                            data.title,
+                                            dataConfig
+                                        );
+
+                                        data.description = handleVariable(
+                                            data.description,
+                                            dataConfig
+                                        );
+
+                                        data.customFields = data.customFields.map(
+                                            field => ({
+                                                ...field,
+                                                fieldValue: handleVariable(
+                                                    String(field.fieldValue),
+                                                    dataConfig
+                                                ),
+                                            })
+                                        );
+
+                                        if (filterMatch === 'any') {
+                                            if (
+                                                !monitorsWithIncident.includes(
+                                                    String(monitor._id)
+                                                )
+                                            ) {
+                                                let incident;
+                                                if (_incident) {
+                                                    incident = await IncidentService.updateOneBy(
+                                                        { _id: _incident._id },
+                                                        data
+                                                    );
+                                                } else {
+                                                    data.monitors = [
+                                                        monitor._id,
+                                                    ];
+                                                    incident = await IncidentService.create(
+                                                        data
+                                                    );
+                                                }
+                                                incidentResponse.push(incident);
+                                                monitorsWithIncident.push(
+                                                    String(monitor._id)
+                                                );
+                                            }
+                                        } else {
+                                            let incident;
+                                            if (_incident) {
+                                                incident = await IncidentService.updateOneBy(
+                                                    { _id: _incident._id },
+                                                    data
+                                                );
+                                            } else {
+                                                data.monitors = [monitor._id];
+                                                incident = await IncidentService.create(
+                                                    data
+                                                );
+                                            }
+                                            incidentResponse.push(incident);
+                                        }
+                                    }
+                                } else {
+                                    const monitorNames = monitors.map(
+                                        monitor => monitor.name
+                                    );
+                                    const componentNames = [];
+                                    monitors.forEach(monitor => {
+                                        if (
+                                            !componentNames.includes(
+                                                monitor.componentId.name
+                                            )
+                                        ) {
+                                            componentNames.push(
+                                                monitor.componentId.name
+                                            );
+                                        }
+                                    });
+
                                     const dataConfig = {
-                                        monitorName: monitor.name,
-                                        componentName: monitor.componentId.name,
+                                        monitorName: joinNames(monitorNames),
+                                        componentName: joinNames(
+                                            componentNames
+                                        ),
                                         projectName:
                                             incomingRequest.projectId.name,
                                         request: data.request,
@@ -1263,29 +1785,22 @@ module.exports = {
                                         })
                                     );
 
+                                    data.monitors = monitors.map(
+                                        monitor => monitor._id
+                                    );
                                     if (filterMatch === 'any') {
-                                        if (
-                                            !monitorsWithIncident.includes(
-                                                String(monitor._id)
-                                            )
-                                        ) {
-                                            let incident;
-                                            if (_incident) {
-                                                incident = await IncidentService.updateOneBy(
-                                                    { _id: _incident._id },
-                                                    data
-                                                );
-                                            } else {
-                                                data.monitors = [monitor._id];
-                                                incident = await IncidentService.create(
-                                                    data
-                                                );
-                                            }
-                                            incidentResponse.push(incident);
-                                            monitorsWithIncident.push(
-                                                String(monitor._id)
+                                        let incident;
+                                        if (_incident) {
+                                            incident = await IncidentService.updateOneBy(
+                                                { _id: _incident._id },
+                                                data
+                                            );
+                                        } else {
+                                            incident = await IncidentService.create(
+                                                data
                                             );
                                         }
+                                        incidentResponse.push(incident);
                                     } else {
                                         let incident;
                                         if (_incident) {
@@ -1294,7 +1809,6 @@ module.exports = {
                                                 data
                                             );
                                         } else {
-                                            data.monitors = [monitor._id];
                                             incident = await IncidentService.create(
                                                 data
                                             );

@@ -256,7 +256,9 @@ class Main extends Component {
                     ? probes[probes.length < 2 ? 0 : activeProbe]
                     : null;
             const statuses = filterProbeData(monitor, probe);
-            const monitorStatus = getMonitorStatus(statuses);
+            const monitorStatus = monitor.status
+                ? monitor.status
+                : getMonitorStatus(statuses);
             return monitorStatus;
         });
 

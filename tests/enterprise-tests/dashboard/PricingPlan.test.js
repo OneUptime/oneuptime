@@ -36,8 +36,6 @@ describe('Status Page', () => {
         'should not show upgrade modal if IS_SAAS_SERVICE is false',
         async done => {
             await init.loginUser(user, page);
-            //Pricing Plan is selectable for a user under growth plane.
-            await init.growthPlanUpgrade(page);
             await page.reload({
                 waitUntil: 'networkidle2',
             });
@@ -79,7 +77,7 @@ describe('Status Page', () => {
                 elem.click()
             );
 
-            const modal = await init.page$(page, '#pricingPlanModal');
+            const modal = await page.$('#pricingPlanModal');
 
             expect(modal).toBeNull();
             done();

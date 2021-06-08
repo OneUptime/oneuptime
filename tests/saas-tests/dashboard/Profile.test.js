@@ -47,7 +47,7 @@ describe('Profile -> Delete Account Component test', () => {
             });
             await init.pageClick(page, '#profileSettings');
             await init.pageWaitForSelector(page, 'input[name=name]');
-            await init.pageClick(page, 'input[name=name]');
+            await init.pageClick(page, 'input[name=name]', {clickCount: 3});
             await init.pageType(page, 'input[name=name]', name);
             await init.pageWaitForSelector(page, 'button[type=submit]');
             await init.pageClick(page, 'button[type=submit]');

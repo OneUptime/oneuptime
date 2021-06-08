@@ -93,7 +93,7 @@ const fields = [
         label: 'SMTP Secure',
         // eslint-disable-next-line react/display-name, react/prop-types
         component: ({ input: { value, onChange } }) => (
-            <label className="Toggler-wrap">
+            <label className="Toggler-wrap" id="label_smpt_secure">
                 <input
                     className="btn-toggler"
                     checked={value}
@@ -463,6 +463,7 @@ export class Component extends React.Component {
                                 </button>
                                 <button
                                     className="bs-Button bs-Button--blue"
+                                    id="save-smpt-settings"
                                     disabled={settings && settings.requesting}
                                     type="submit"
                                 >
@@ -515,7 +516,7 @@ function mapStateToProps(state) {
         settings: state.settings,
         initialValues: state.settings[settingsType],
         smtpForm: state.form['smtp-form'] || {},
-        smtpTestForm: state.form['smtp-test-form'] || {}
+        smtpTestForm: state.form['smtp-test-form'] || {},
     };
 }
 
