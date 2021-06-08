@@ -12,7 +12,7 @@ const user = {
     password,
 };
 describe('New Monitor API', () => {
-    const operationTimeOut = 1000000; // Custom Timeout is needed
+    const operationTimeOut = 1000000;
 
     beforeAll(async done => {
         jest.setTimeout(init.timeout);
@@ -31,14 +31,16 @@ describe('New Monitor API', () => {
     });
 
     test(
-        "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Startup plan => 5 Monitors/User)",
+        "should show upgrade modal if the current monitor count of a project equals it's monitor limit (Growth plan => 10 Monitors/User)",
         async done => {
+            const projectName = utils.generateRandomString();
             const componentName = utils.generateRandomString();
+            await init.addGrowthProject(projectName, page);
             // create a component
             // Redirects automatically component to details page
             await init.addComponent(componentName, page);
 
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 10; i++) {
                 const monitorName = utils.generateRandomString();
 
                 await init.addNewMonitorToComponent(
@@ -100,5 +102,5 @@ describe('New Monitor API', () => {
         },
         operationTimeOut
     );
-      /** Test Split*/  
+    /** Test Split*/  
 });
