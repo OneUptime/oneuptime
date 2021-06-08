@@ -50,7 +50,7 @@ describe('Project', () => {
             elem[0].click();
 
             await page.waitForNavigation({ waitUntil: 'networkidle0' });
-            const planBox = await init.page$(page, '#planBox');
+            const planBox = await page.$('#planBox');
             expect(planBox).toBeNull();
         },
         operationTimeOut

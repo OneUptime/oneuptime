@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import uuid from 'uuid';
+import ShouldRender from '../basic/ShouldRender';
 
 import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
@@ -411,19 +412,25 @@ export class EmailLogsList extends Component {
                                     id="log-count"
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
-                                    {this.props.emailLogs &&
-                                    this.props.emailLogs.count
-                                        ? `Page ${
-                                              this.props.page
-                                          } of ${numberOfPages} (${this.props
-                                              .emailLogs &&
-                                              this.props.emailLogs.count} Log${
-                                              this.props.emailLogs &&
-                                              this.props.emailLogs.count === 1
-                                                  ? ''
-                                                  : 's'
-                                          })`
-                                        : null}
+                                    <ShouldRender
+                                        if={
+                                            this.props.emailLogs &&
+                                            this.props.emailLogs.count
+                                        }
+                                    >
+                                        Page {this.props.page} of{' '}
+                                        {numberOfPages} (
+                                        <span id="email-log-count">
+                                            {this.props.emailLogs.count}
+                                        </span>{' '}
+                                        Log
+                                        <ShouldRender
+                                            if={this.props.emailLogs.count > 0}
+                                        >
+                                            s
+                                        </ShouldRender>
+                                        )
+                                    </ShouldRender>
                                 </span>
                             </span>
                         </span>
@@ -478,7 +485,7 @@ export class EmailLogsList extends Component {
                                     </div>
                                 </button>
                             </div>
-                            {/* <div className="Box-root">
+                            <div className="Box-root">
                                 <button
                                     id="deleteLog"
                                     onClick={this.handleDelete}
@@ -493,7 +500,7 @@ export class EmailLogsList extends Component {
                                         </span>
                                     </div>
                                 </button>
-                            </div> */}
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -7,7 +7,6 @@ require('should');
 
 // user credentials
 const userEmail = utils.generateRandomBusinessEmail();
-const email = 'masteradmin@hackerbay.io';
 const password = '1234567890';
 
 describe('Enterprise License API', () => {
@@ -26,6 +25,7 @@ describe('Enterprise License API', () => {
         };
         // user
         await init.registerEnterpriseUser(user, page, false);
+        //await browser.close();
         done();
     });
 
@@ -37,17 +37,7 @@ describe('Enterprise License API', () => {
     test(
         'Should not confirm expired license',
         async done => {
-            browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-            page = await browser.newPage();
-            await page.setUserAgent(utils.agent);
-
-            const user = {
-                email: email,
-                password: password,
-            };
-
-            await init.loginUser(user, page);
-
+            await page.goto(utils.ADMIN_DASHBOARD_URL);
             await init.pageWaitForSelector(page, '#settings');
             await init.pageClick(page, '#settings');
 
