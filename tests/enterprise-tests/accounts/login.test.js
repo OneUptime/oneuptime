@@ -182,17 +182,15 @@ describe('SSO login', () => {
             expect(chain.length).not.toBe(0);
 
             await init.pageClick(page, '#username');
-            await init.pageType(page, '#username', email);
+            await init.pageType(page, '#username', 'user1');
 
             await init.pageClick(page, '#password');
-            await init.pageType(page, '#password', password);
+            await init.pageType(page, '#password', 'user1pass');
 
             await Promise.all([
                 page.waitForNavigation('networkidle2'),
                 init.pageClick(page, 'button'),
             ]);
-
-            //await init.pageWaitForSelector(page, '#createButton');
 
             done();
         },
