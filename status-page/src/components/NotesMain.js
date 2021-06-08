@@ -57,7 +57,7 @@ class NotesMain extends Component {
         this.props.showIncidentCard(true);
         this.props.getStatusPageNote(
             this.props.projectId,
-            this.props.statusPageId,
+            this.props.statusPageSlug,
             0
         );
     };
@@ -70,7 +70,7 @@ class NotesMain extends Component {
         );
         this.props.fetchLastIncidentTimelines(
             this.props.projectId,
-            this.props.statusPageId
+            this.props.statusPageSlug
         );
     };
 
