@@ -37,6 +37,9 @@ router.get('/challenge/authorization/:token', async (req, res) => {
     try {
         const { token } = req.params;
         const acmeChallenge = await SslService.findOneBy({ token });
+        if (!acmeChallenge) {
+            return sendItemResponse(req, res, '');
+        }
         return sendItemResponse(req, res, acmeChallenge.keyAuthorization);
     } catch (error) {
         return sendErrorResponse(req, res, error);
