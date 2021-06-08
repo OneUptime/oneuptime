@@ -22,6 +22,11 @@ let apiHost = 'http://localhost:3002/api';
 if (process.env.BACKEND_URL) {
     apiHost = 'http://' + process.env.BACKEND_URL + '/api';
 }
+if (process.env.FYIPE_HOST) {
+    apiHost = process.env.BACKEND_PROTOCOL
+        ? `${process.env.BACKEND_PROTOCOL}://${process.env.FYIPE_HOST}/api`
+        : `http://${process.env.FYIPE_HOST}/api`;
+}
 
 app.get(['/env.js', '/status-page/env.js'], function(req, res) {
     let REACT_APP_FYIPE_HOST = null;

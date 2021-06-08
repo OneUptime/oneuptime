@@ -210,7 +210,7 @@ module.exports = {
     getTeamMembers: async function(projectId) {
         const _this = this;
         const subProject = await ProjectService.findOneBy({ _id: projectId });
-        if (subProject.parentProjectId) {
+        if (subProject && subProject.parentProjectId) {
             const project = await ProjectService.findOneBy({
                 _id: subProject.parentProjectId,
             });
@@ -218,9 +218,12 @@ module.exports = {
                 _id: project._id,
             });
         }
-        return await _this.getTeamMembersBy({
-            _id: subProject._id,
-        });
+        if (subProject) {
+            return await _this.getTeamMembersBy({
+                _id: subProject._id,
+            });
+        }
+        return [];
     },
 
     isValidBusinessEmails: function(emails) {
