@@ -1025,15 +1025,20 @@ function compareStatus(incident, log) {
 }
 
 export const getMonitorStatus = (incidents, logs, type) => {
-    const activeOfflineIncident =
+    let activeOfflineIncident = [];
+    let activeDegradedIncident = [];
+
+    activeOfflineIncident =
         incidents &&
+        incidents.length > 0 &&
         incidents.filter(
             incident =>
                 !incident.resolved && incident.incidentType === 'offline'
         );
 
-    const activeDegradedIncident =
+    activeDegradedIncident =
         incidents &&
+        incidents.length > 0 &&
         incidents.filter(
             incident =>
                 !incident.resolved && incident.incidentType === 'degraded'
@@ -1043,9 +1048,9 @@ export const getMonitorStatus = (incidents, logs, type) => {
         incidents && incidents.length > 0 ? incidents[0] : null;
 
     const incident =
-        activeOfflineIncident.length > 0
+        activeOfflineIncident && activeOfflineIncident.length > 0
             ? activeOfflineIncident[0]
-            : activeDegradedIncident.length > 0
+            : activeDegradedIncident && activeDegradedIncident.length > 0
             ? activeDegradedIncident[0]
             : lastIncident;
 
