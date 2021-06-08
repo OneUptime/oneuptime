@@ -327,12 +327,14 @@ router.get('/tlsCredential', async function(req, res) {
             user
         );
 
-        let domainObj;
-        statusPage.domains.forEach(eachDomain => {
-            if (eachDomain.domain === domain) {
-                domainObj = eachDomain;
-            }
-        });
+        let domainObj = {};
+        statusPage &&
+            statusPage.domains &&
+            statusPage.domains.forEach(eachDomain => {
+                if (eachDomain.domain === domain) {
+                    domainObj = eachDomain;
+                }
+            });
 
         return sendItemResponse(req, res, {
             cert: domainObj.cert,
