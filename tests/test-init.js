@@ -1435,11 +1435,8 @@ const _this = {
                 visible: true,
                 timeout: _this.timeout,
             });
-            await _this.pageClickNavigate(page, '#monitor');
-            await page.reload({
-                waitUntil: 'networkidle2',
-            });
-            await _this.gotoTab(2, page);
+            await _this.pageClickNavigate(page, '#monitor');                       
+            await _this.pageClick(page, '.monitor-sla-advanced');
         } else {
             await _this.pageWaitForSelector(page, '#more');
             await _this.pageClick(page, '#more');
