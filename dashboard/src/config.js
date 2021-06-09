@@ -1733,8 +1733,37 @@ print(response)`,
                 },
                 errorTracking:
                     "No quickstart available at the moment. We're working on them and they will be launched soon. ",
-                logs:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                logs: {
+                    installation: {
+                        package: 'Gem Install',
+                        command: `
+$ gem install fyipe`,
+                    },
+                    usage: `
+require 'fyipe'
+                
+// constructor
+logger = FyipeLogger.new(                    
+    '${apiUrl ? apiUrl : 'API_URL'}',
+    '${
+        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+    }',                    
+    '${applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'}'
+);
+                
+# Sending an object log to the server
+
+item = {
+    "user" => "Test User",
+    "page" => "Landing Page"
+}
+                
+response = logger.log(item)
+
+# response after logging a request
+puts response
+                `,
+                },
             },
             {
                 id: 'go',

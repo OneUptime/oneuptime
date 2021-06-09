@@ -17,7 +17,7 @@ Via Gem
 ## Basic Usage for Logging
 
 ```ruby
-# TODO require properly
+require 'fyipe'
 
 # constructor
 logger = FyipeLogger.new(
