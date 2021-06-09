@@ -690,7 +690,9 @@ export default function incident(state = initialState, action) {
         case types.DELETE_PROJECT_INCIDENTS:
             incidents = Object.assign([], state.incidents);
             incidents = incidents.filter(
-                incident => incident.projectId !== action.payload
+                incident =>
+                    (incident.projectId._id || incident.projectId) !==
+                    action.payload
             );
             return Object.assign({}, state, {
                 incidents: {

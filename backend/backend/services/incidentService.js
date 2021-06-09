@@ -1271,7 +1271,7 @@ module.exports = {
 
                 const incident = await _this.findOneBy({ _id: incidentId });
                 await _this.startInterval(
-                    incident.projectId,
+                    incident.projectId._id || incident.projectId,
                     incident.monitors,
                     incident
                 );

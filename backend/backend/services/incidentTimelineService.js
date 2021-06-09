@@ -29,7 +29,7 @@ module.exports = {
                 const _incidentTimeline = Object.assign(
                     {},
                     incidentTimeline._doc,
-                    { projectId: incident.projectId }
+                    { projectId: incident.projectId._id || incident.projectId }
                 );
                 RealTimeService.updateIncidentTimeline(_incidentTimeline);
             }
