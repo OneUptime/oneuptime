@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -2001,7 +2002,11 @@ export function MonitorChart({
                 </ShouldRender>
             </>
         );
-    } else if (type === 'manual' || type === 'incomingHttpRequest') {
+    } else if (
+        type === 'manual' ||
+        type === 'incomingHttpRequest' ||
+        type === 'script'
+    ) {
         monitorInfo = (
             <div className="db-Trend">
                 <div className="block-chart-side line-chart">
@@ -2055,6 +2060,7 @@ export function MonitorChart({
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
+                    {console.log('timeBlock', timeBlock)}
                     <AreaChart
                         type={type}
                         data={timeBlock}

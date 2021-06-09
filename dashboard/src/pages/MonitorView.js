@@ -708,7 +708,12 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'ip')
+                                                                                        'ip' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'script')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">

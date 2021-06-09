@@ -641,15 +641,8 @@ module.exports = {
         }
     },
 
-    scriptConditions: (payload, resp, con) => {
-        const status = resp
-            ? resp.status
-                ? resp.status
-                : resp.statusCode
-                ? resp.statusCode
-                : null
-            : null;
-        const body = resp && resp.body ? resp.body : null;
+    scriptConditions: (resp, con) => {
+        const body = resp ?? null;
         const successReasons = [];
         const failedReasons = [];
 
@@ -665,9 +658,7 @@ module.exports = {
                     condition.criteria.condition === 'and'
                 ) {
                     stat = checkScriptAnd(
-                        payload,
                         condition.criteria,
-                        status,
                         body,
                         successReasons,
                         failedReasons
@@ -679,9 +670,7 @@ module.exports = {
                     condition.criteria.condition === 'or'
                 ) {
                     stat = checkScriptOr(
-                        payload,
                         condition.criteria,
-                        status,
                         body,
                         successReasons,
                         failedReasons
@@ -6353,7 +6342,7 @@ const checkOr = async (
  * @param {'and' | 'or'} conditionLogic
  * @returns {{ valid : boolean, reason : string} | undefined} whether the condition is satisfied
  */
-const checkScriptCondition = (condition, payload, body) => {
+const checkScriptCondition = (condition, body) => {
     if (!condition || !condition.responseType) {
         return;
     }
@@ -6362,35 +6351,21 @@ const checkScriptCondition = (condition, payload, body) => {
      */
     const validity = {};
 
-    if (condition.responseType === 'executes') {
-        if (!condition.filter || !condition.field1 || !payload) {
-            return;
-        }
+    if (!condition.filter || !body || !condition.responseType) {
+        return;
+    }
 
-        if (condition.filter === 'executesIn') {
-            if (payload <= condition.field1) {
-                validity.valid = true;
-                validity.reason = `Script executed in ${condition.field1} ms`;
-            } else {
-                validity.valid = false;
-                validity.reason = `Script did not execute in ${condition.field1} ms`;
-            }
-        } else if (condition.filter === 'doesNotExecuteIn') {
-            if (payload > condition.field1) {
-                validity.valid = true;
-                validity.reason = `Script did not execute in ${condition.field1} ms`;
-            } else {
-                validity.valid = false;
-                validity.reason = `Script executed in ${condition.field1} ms`;
-            }
-        }
-    } else if (condition.responseType === 'error') {
-        if (!condition.filter || !body) {
-            return;
+    if (condition.responseType === 'scriptExecution') {
+        // we need a catch-all for server-defined
+        // script timeout errors or terminated scripts
+        if (body.statusText === 'timeout') {
+            validity.valid = false;
+            validity.reason = body.error;
+            return validity;
         }
 
         if (condition.filter === 'throwsError') {
-            if (body.error) {
+            if (body.statusText === 'error' && body.error) {
                 validity.valid = true;
                 validity.reason = `Script threw error ${body.error}`;
             } else {
@@ -6398,35 +6373,61 @@ const checkScriptCondition = (condition, payload, body) => {
                 validity.reason = `Script did not throw error`;
             }
         } else if (condition.filter === 'doesNotThrowError') {
-            if (body.error) {
+            if (body.statusText === 'error' && body.error) {
                 validity.valid = false;
                 validity.reason = `Script threw error ${body.error}`;
             } else {
                 validity.valid = true;
                 validity.reason = `Script did not throw error`;
             }
+        } else if (condition.filter === 'emptyCallback') {
+            if (body.statusText === 'nonEmptyCb' && body.error) {
+                validity.valid = false;
+                validity.reason = `Script callback invoked with arguments ${JSON.stringify(
+                    body.error
+                )}`;
+            } else {
+                validity.valid = true;
+                validity.reason = `Script callback has no arguments`;
+            }
+        } else if (condition.filter === 'nonEmptyCallback') {
+            if (body.statusText === 'nonEmptyCb' && body.error) {
+                validity.valid = true;
+                validity.reason = `Script callback invoked with arguments ${JSON.stringify(
+                    body.error
+                )}`;
+            } else {
+                validity.valid = false;
+                validity.reason = `Script callback has no arguments`;
+            }
         }
-    } else if (condition.responseType === 'javascriptExpression') {
-        if (condition.filter === body) {
-            validity.valid = true;
-            validity.reason = `Script has matching Javascript expression`;
-        } else {
-            validity.valid = false;
-            validity.reason = `Script did not have Javascript expression`;
+    } else if (condition.responseType === 'executionTime') {
+        if (condition.filter === 'executesIn') {
+            if (body.executionTime <= condition.filter1) {
+                validity.valid = true;
+                validity.reason = `Script executed in ${body.executionTime}ms within ${condition.filter1}ms limit`;
+            } else {
+                validity.valid = false;
+                validity.reason = `Script executed above ${condition.filter1}ms limit`;
+            }
+        } else if (condition.filter === 'doesNotExecuteIn') {
+            if (body.executionTime >= condition.filter1) {
+                validity.valid = true;
+                validity.reason = `Script executed in ${body.executionTime}ms above ${condition.filter1}ms minimum`;
+            } else {
+                validity.valid = false;
+                validity.reason = `Script executed below ${condition.filter1}ms minimum`;
+            }
         }
+    } else {
+        // if for some strange reason
+        return;
     }
 
     return validity;
 };
 
-const checkScriptAnd = (
-    payload,
-    con,
-    statusCode,
-    body,
-    successReasons,
-    failedReasons
-) => {
+const checkScriptAnd = (con, body, successReasons, failedReasons) => {
     let valid = true;
     if (con && con.criteria && con.criteria.length > 0) {
         for (let i = 0; i < con.criteria.length; i++) {
@@ -6440,9 +6441,7 @@ const checkScriptAnd = (
                 ) {
                     // check script and
                     const subConditionValid = checkScriptAnd(
-                        payload,
                         con.criteria[i],
-                        statusCode,
                         body,
                         successReasons,
                         failedReasons
@@ -6456,9 +6455,7 @@ const checkScriptAnd = (
                 ) {
                     // check script or
                     const subConditionValid = checkScriptOr(
-                        payload,
                         con.criteria[i],
-                        statusCode,
                         body,
                         successReasons,
                         failedReasons
@@ -6468,11 +6465,7 @@ const checkScriptAnd = (
                     }
                 }
             } else {
-                const validity = checkScriptCondition(
-                    con.criteria[i],
-                    payload,
-                    body
-                );
+                const validity = checkScriptCondition(con.criteria[i], body);
                 if (validity) {
                     if (validity.valid) {
                         successReasons.push(validity.reason);
@@ -6488,14 +6481,7 @@ const checkScriptAnd = (
     return valid;
 };
 
-const checkScriptOr = (
-    payload,
-    con,
-    statusCode,
-    body,
-    successReasons,
-    failedReasons
-) => {
+const checkScriptOr = (con, body, successReasons, failedReasons) => {
     let valid = false;
     if (con && con.criteria && con.criteria.length > 0) {
         for (let i = 0; i < con.criteria.length; i++) {
@@ -6509,9 +6495,7 @@ const checkScriptOr = (
                 ) {
                     // check script or
                     const subConditionValid = checkScriptOr(
-                        payload,
                         con.criteria[i],
-                        statusCode,
                         body,
                         successReasons,
                         failedReasons
@@ -6525,9 +6509,7 @@ const checkScriptOr = (
                 ) {
                     // check script and
                     const subConditionValid = checkScriptAnd(
-                        payload,
                         con.criteria[i],
-                        statusCode,
                         body,
                         successReasons,
                         failedReasons
@@ -6537,11 +6519,7 @@ const checkScriptOr = (
                     }
                 }
             } else {
-                const validity = checkScriptCondition(
-                    con.criteria[i],
-                    payload,
-                    body
-                );
+                const validity = checkScriptCondition(con.criteria[i], body);
                 if (validity) {
                     if (validity.valid) {
                         valid = true;

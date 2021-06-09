@@ -1587,16 +1587,6 @@ const _this = {
         });
         return await page.click(selector, opts);
     },
-    pageClickNavigate: async function(page, selector, opts) {
-        await _this.pageWaitForSelector(page, selector, {
-            visible: true,
-            timeout: _this.timeout,
-        });
-        return await Promise.all([
-            page.click(selector, opts),
-            page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing
-        ]);
-    },
     page$Eval: async function(page, selector, evalFunction) {
         await _this.pageWaitForSelector(page, selector);
         return await page.$eval(selector, evalFunction);
@@ -1635,6 +1625,16 @@ const _this = {
         } else {
             return false;
         }
+    },
+    pageClickNavigate: async function(page, selector, opts) {
+        await _this.pageWaitForSelector(page, selector, {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        return await Promise.all([
+            page.click(selector, opts),
+            page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing
+        ]);
     },
 };
 
