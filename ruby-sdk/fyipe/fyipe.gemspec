@@ -12,11 +12,11 @@ Gem::Specification.new do |spec|
     spec.license               = 'MIT'
     spec.platform              = Gem::Platform::RUBY
     spec.required_ruby_version = '>= 2.5.0'
-    spec.files = Dir['README.md', 'LICENSE',
-                 'CHANGELOG.md', 'ruby-sdk/**/*.rb',
-                 'ruby-sdk/**/*.rake',
-                 'fyipe.gemspec', '.github/*.md',
-                 'Gemfile', 'Rakefile']
+
+    all_files = `git ls-files`.split("\n")
+    test_files = `git ls-files -- {spec}/*`.split("\n")
+
+    spec.files = all_files - test_files
     spec.extra_rdoc_files = ['README.md']
     spec.add_dependency 'httparty', '~> 0.17'
     spec.add_dependency 'gem-release'
