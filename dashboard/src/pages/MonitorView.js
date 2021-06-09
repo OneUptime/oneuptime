@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { Fragment } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -41,6 +42,7 @@ import { fetchMonitorSlas } from '../actions/monitorSla';
 import ThirdPartyVariables from '../components/monitor/ThirdPartyVariables';
 import MonitorViewChangeComponentBox from '../components/monitor/MonitorViewChangeComponentBox';
 import { fetchComponent } from '../actions/component';
+import subProject from '../reducers/subProject';
 class MonitorView extends React.Component {
     // eslint-disable-next-line
     constructor(props) {
@@ -77,6 +79,8 @@ class MonitorView extends React.Component {
 
     componentDidUpdate(prevProps) {
         const { monitor } = this.props;
+        console.log("Prev Props: ", prevProps);
+        console.log("Component DidUpdate Monitor: ", monitor);
         if (
             String(prevProps.componentSlug) !==
                 String(this.props.componentSlug) ||
@@ -92,12 +96,15 @@ class MonitorView extends React.Component {
                     this.props.componentSlug
                 );
             }
-        }
+        }        
+        console.log("Component DidUpdate MonitorID: ",this.props.monitorId);
         if (monitor && String(prevProps.monitor._id) !== String(monitor._id)) {
             const subProjectId = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId
                 : '';
             subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
+            console.log("Component DidUpdate subProjectID: ",subProjectId);
+            console.log("Component DidUpdate MonitorID: ",this.props.monitorId);
             if (monitor.type === 'url') {
                 this.props.fetchLighthouseLogs(
                     monitor.projectId._id || monitor.projectId,
@@ -147,6 +154,7 @@ class MonitorView extends React.Component {
             fetchComponent,
             currentProject,
         } = this.props;
+        console.log("Ready Monitor: ", monitor);
         if (currentProject && currentProject._id && componentSlug) {
             fetchComponent(currentProject._id, componentSlug);
         }
@@ -163,6 +171,8 @@ class MonitorView extends React.Component {
                 ? monitor.projectId._id || monitor.projectId
                 : '';
             subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
+            console.log("Ready SubProjectID: ", subProjectId);
+            console.log("Ready MonitorID: ",this.props.monitorId);
             if (monitor.type === 'url') {
                 this.props.fetchLighthouseLogs(
                     monitor.projectId._id || monitor.projectId,
