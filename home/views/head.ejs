@@ -161,13 +161,27 @@
         for (const param of params) {
             sourceObj = { ...sourceObj, [`${param[0]}`]: param[1] }
         }
+
+        function delete_cookie(name, path, domain) {
+            if (get_cookie(name)) {
+                document.cookie = name + "=" +
+                    ((path) ? ";path=" + path : "") +
+                    ((domain) ? ";domain=" + domain : "") +
+                    ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
+            }
+        }
+
         // Set a Cookie
         function setCookie(cName, cValue, expDays) {
+            //delete previously set cookie. 
+            delete_cookie(cName, "/", window.location.hostname);
+
             let date = new Date();
             date.setTime(date.getTime() + (expDays * 24 * 60 * 60 * 1000));
             const expires = "expires=" + date.toUTCString();
+            const path = "path=/";
             // Remember to set back the domain since you used localhost for development purposes
-            document.cookie = cName + "=" + cValue + "; " + expires + ";" + "; " + "domain=" + window.location.hostname;
+            document.cookie = cName + "=" + cValue + "; " + expires + ";" + path + "; " + "domain=" + window.location.hostname;
         }
         // Apply setCookie
         setCookie('source', JSON.stringify(sourceObj), 1);
