@@ -1,4 +1,5 @@
 require 'securerandom'
+require_relative 'logtype'
 
 class Util 
 
@@ -8,5 +9,9 @@ class Util
 
     def v4()
         return SecureRandom.uuid
+    end
+
+    def getErrorType(val)
+        return LogType::val
     end
 end
