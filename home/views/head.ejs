@@ -162,19 +162,14 @@
             sourceObj = { ...sourceObj, [`${param[0]}`]: param[1] }
         }
 
-        function delete_cookie(name, path, domain) {
-            if (get_cookie(name)) {
-                document.cookie = name + "=" +
-                    ((path) ? ";path=" + path : "") +
-                    ((domain) ? ";domain=" + domain : "") +
-                    ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
-            }
+        function delete_cookie(name) {
+            document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         }
 
         // Set a Cookie
         function setCookie(cName, cValue, expDays) {
             //delete previously set cookie. 
-            delete_cookie(cName, "/", window.location.hostname);
+            delete_cookie(cName);
 
             let date = new Date();
             date.setTime(date.getTime() + (expDays * 24 * 60 * 60 * 1000));
