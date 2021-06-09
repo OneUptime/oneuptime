@@ -1,3 +1,3 @@
 module Fyipe
-    VERSION = '3.0.125'
+    VERSION = '3.0.0'
 end
