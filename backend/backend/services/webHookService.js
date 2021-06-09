@@ -121,7 +121,7 @@ module.exports = {
         { note, incidentState, statusNoteStatus } = {}
     ) {
         try {
-            const uri = `${global.dashboardHost}/project/${component.projectId.slug}/incidents/${incident._id}`;
+            const uri = `${global.dashboardHost}/project/${project.slug}/incidents/${incident._id}`;
             const yellow = '#fedc56';
             const green = '#028A0F';
             let payload;
