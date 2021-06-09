@@ -23,9 +23,9 @@ deploy_staging_ruby-sdk:
         - echo "---" >> $GEMPATH
         - echo ":fyipegem:$CUSTOMSPACE$RUBYGEM_API_KEY" >> $GEMPATH
         - chmod 0600 $GEMPATH
-        - bundle exec gem bump -v 3.0.$CI_PIPELINE_IID
+        - bundle exec gem bump -v 3.0.$CI_PIPELINE_IID-qa
         - gem build fyipe.gemspec
-        - gem push fyipe-3.0.$CI_PIPELINE_IID.gem -k fyipegem
+        - gem push fyipe-3.0.$CI_PIPELINE_IID-qa.gem -k fyipegem
         - git checkout staging || git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/ruby-sdk.git staging --force
         - cd ..
@@ -36,6 +36,7 @@ deploy_staging_ruby-sdk:
         refs:
             - master
             - hotfix-master
+            - feature-ruby-sdk
     environment:
         name: staging
 
