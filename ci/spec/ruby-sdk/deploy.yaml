@@ -36,7 +36,6 @@ deploy_staging_ruby-sdk:
         refs:
             - master
             - hotfix-master
-            - feature-ruby-sdk
     environment:
         name: staging
 
@@ -50,7 +49,6 @@ deploy_production_ruby-sdk:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - sudo apt install -y rbenv
-        - sudo gem update --system
         - sudo gem install bundler
         - cd ruby-sdk/fyipe
         - bundle install
@@ -77,6 +75,6 @@ deploy_production_ruby-sdk:
         refs:
             - release
             - hotfix-release
-            # - feature-ruby-sdk
+            - feature-ruby-sdk
     environment:
         name: production
