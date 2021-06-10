@@ -34,10 +34,11 @@ class FyipeListener
         return @timelineObj.getTimeline()
     end
 
-    def clearTimeline(eventId):
+    def clearTimeline(eventId)
         # set a new eventId
         @currentEventId = eventId
         # this will reset the state of the timeline array
         return @timelineObj.clearTimeline()
+    end
     
 end
