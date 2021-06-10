@@ -1,8 +1,9 @@
 class FyipeTimelineManager
     def initialize(options)
         @options = options
-        @timelineStack = []
+        @timeLineStack = []
     end
+
 
     def addToTimeline(item)
         addItemToTimeline(item)
@@ -18,9 +19,11 @@ class FyipeTimelineManager
         @timeLineStack = []
     end 
 
-    private_class_method def addItemToTimeline(item)
+   
+    private
+    def addItemToTimeline(item)
         # get the size of the stack
-        if (@options['maxTimeline'] != nil and (@timeLineStack.length() == @options['maxTimeline']))
+        if (@options['maxTimeline'] != nil && (@timeLineStack.length() == @options[:maxTimeline].to_i))
             return # It discards new timeline update once maximum is reached
         end
 
