@@ -148,7 +148,7 @@ router.post(
     isAuthorized,
     async function(req, res) {
         // include date range
-        try {            
+        try {
             const { startDate, endDate } = req.body;
             let query = {
                 'monitors.monitorId': { $in: [req.params.monitorId] },
