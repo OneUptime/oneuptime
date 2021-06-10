@@ -12,11 +12,6 @@ const automatedScriptSchema = new Schema(
             ref: 'Project',
             index: true,
         },
-        createdById: {
-            type: Schema.Types.ObjectId,
-            ref: 'User',
-            index: true,
-        },
         deleted: {
             type: Boolean,
             default: false,
@@ -57,11 +52,6 @@ const automatedScriptSchema = new Schema(
                 },
             },
         ],
-        status: {
-            type: String,
-            enum: ['success', 'running', 'failed'],
-            default: 'running',
-        },
     },
     { timestamps: true }
 );
