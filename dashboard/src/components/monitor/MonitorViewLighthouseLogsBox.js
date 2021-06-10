@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -83,7 +84,11 @@ export class MonitorViewLighthouseLogsBox extends Component {
     };
 
     scanWebsites = async () => {
-        const { currentProject, monitor, editMonitor } = this.props;
+        const { currentProject, monitor, editMonitor } = this.props;        
+        if(monitor.name){
+            delete monitor.name
+        }
+        console.log("Scan Monitor 2: ", monitor);
         await editMonitor(currentProject._id, {
             ...monitor,
             lighthouseScanStatus: 'scan',
