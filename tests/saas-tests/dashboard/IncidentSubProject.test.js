@@ -498,7 +498,7 @@ describe('Incident API With SubProjects', () => {
 
     test(
         'should get list of incidents and paginate for incidents in sub-project',
-        async done => {
+        async () => { 
             await init.loginUser(newUser, page);
             // switch to invited project for new user
             await init.switchProject(projectName, page);
@@ -511,9 +511,6 @@ describe('Incident API With SubProjects', () => {
                 page
             );
 
-    test(
-        'should get list of incidents and paginate for incidents in sub-project',
-        async () => {            
             // Navigate to details page of component created
             await init.navigateToMonitorDetails(componentName, projectMonitorName1, page);
            

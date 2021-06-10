@@ -152,8 +152,8 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, createdWebhookSelector);
             webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
-            expect(countWebhooks).toEqual(1);            
-            
+            expect(countWebhooks).toEqual(1);
+
             done();
         },
         operationTimeOut

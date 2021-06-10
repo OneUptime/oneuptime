@@ -325,7 +325,7 @@ router.put(
     isUserAdmin,
     async function(req, res) {
         try {
-            const data = req.body;            
+            const data = req.body;
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,

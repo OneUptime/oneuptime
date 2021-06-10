@@ -219,7 +219,7 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
-                        
+
             if (data) {
                 if (data.name) {
                     data.slug = getSlug(data.name);

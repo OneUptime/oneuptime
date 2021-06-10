@@ -1538,7 +1538,7 @@ const _this = {
                 visible: true,
                 timeout: _this.timeout,
             });
-            await _this.pageClickNavigate(page, '#monitor');                       
+            await _this.pageClickNavigate(page, '#monitor');
             await _this.pageClick(page, '.monitor-sla-advanced');
         } else {
             await _this.pageWaitForSelector(page, '#more');
