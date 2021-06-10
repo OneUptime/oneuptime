@@ -19,6 +19,7 @@ module.exports = {
 
             query.deleted = false;
             const notifications = await NotificationModel.find(query)
+                .lean()
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
@@ -179,6 +180,7 @@ module.exports = {
 
             query.deleted = false;
             const notification = await NotificationModel.findOne(query)
+                .lean()
                 .populate('projectId', 'name')
                 .populate({
                     path: 'meta.incidentId',

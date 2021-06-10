@@ -17,7 +17,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const sslChallenge = await SslModel.findOne(query);
+            const sslChallenge = await SslModel.findOne(query).lean();
             return sslChallenge;
         } catch (error) {
             ErrorService.log('sslService.findOneBy', error);
@@ -39,6 +39,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const sslChallenges = await SslModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);

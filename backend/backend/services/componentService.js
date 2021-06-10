@@ -185,6 +185,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const components = await ComponentModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -205,6 +206,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const component = await ComponentModel.findOne(query)
+                .lean()
                 .populate('projectId', 'name')
                 .populate('componentCategoryId', 'name');
             return component;
@@ -221,10 +223,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const count = await ComponentModel.countDocuments(query).populate(
-                'project',
-                'name'
-            );
+            const count = await ComponentModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('componentService.countBy', error);

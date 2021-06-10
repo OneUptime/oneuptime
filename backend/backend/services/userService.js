@@ -13,6 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const users = await UserModel.find(query)
+                .lean()
                 .select('-password')
                 .sort([['lastActive', -1]])
                 .limit(limit)
@@ -124,9 +125,9 @@ module.exports = {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            const user = await UserModel.findOne(query).sort([
-                ['createdAt', -1],
-            ]);
+            const user = await UserModel.findOne(query)
+                .lean()
+                .sort([['createdAt', -1]]);
             if ((user && !IS_SAAS_SERVICE) || user) {
                 // find user subprojects and parent projects
                 let userProjects = await ProjectService.findBy({

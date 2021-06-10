@@ -8,6 +8,7 @@ module.exports = {
 
             const incidentPriorities = await incidentPriorityModel
                 .find(query)
+                .lean()
                 .limit(limit)
                 .skip(skip);
 
@@ -23,9 +24,9 @@ module.exports = {
                 query = {};
             }
             query.deleted = false;
-            const incidentPriorities = await incidentPriorityModel.findOne(
-                query
-            );
+            const incidentPriorities = await incidentPriorityModel
+                .findOne(query)
+                .lean();
             return incidentPriorities;
         } catch (error) {
             ErrorService.log('IncidentPrioritiesService.findOne', error);

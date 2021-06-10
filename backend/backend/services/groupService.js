@@ -16,6 +16,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const groups = await GroupModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -143,7 +144,7 @@ module.exports = {
                 ErrorService.log('groupService.update', error);
                 throw error;
             }
-            const group = await GroupModel.findOneAndUpdate(
+            let group = await GroupModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
@@ -151,12 +152,8 @@ module.exports = {
                 {
                     new: true,
                 }
-            )
-                .populate('projectId', 'name')
-                .populate({
-                    path: 'teams',
-                    select: 'name email',
-                });
+            );
+            group = await this.findOneBy(query);
             return group;
         } catch (error) {
             ErrorService.log('escalationService.updateOneBy', error);

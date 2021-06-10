@@ -13,6 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const callRouting = await CallRoutingModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -101,9 +102,9 @@ module.exports = {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            const callRouting = await CallRoutingModel.findOne(query).sort([
-                ['createdAt', -1],
-            ]);
+            const callRouting = await CallRoutingModel.findOne(query)
+                .lean()
+                .sort([['createdAt', -1]]);
             return callRouting;
         } catch (error) {
             ErrorService.log('callRoutingService.findOneBy', error);

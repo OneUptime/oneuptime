@@ -17,7 +17,9 @@ module.exports = {
         try {
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;
-            const incidentSettings = await incidentSettingsModel.findOne(query);
+            const incidentSettings = await incidentSettingsModel
+                .findOne(query)
+                .lean();
             if (!incidentSettings) {
                 const { projectId } = query;
                 if (!projectId) return incidentDefaultSettings;

@@ -13,6 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const schedules = await ScheduleModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -43,6 +44,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const schedule = await ScheduleModel.findOne(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .populate('userIds', 'name')
                 .populate('createdById', 'name')

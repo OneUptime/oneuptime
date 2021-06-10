@@ -106,6 +106,7 @@ module.exports = {
 
             query.deleted = false;
             const subscriberAlerts = await SubscriberAlertModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -130,6 +131,7 @@ module.exports = {
 
             query.deleted = false;
             const subscriberAlert = await SubscriberAlertModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .populate('subscriberId', 'name')

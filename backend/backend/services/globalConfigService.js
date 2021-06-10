@@ -172,6 +172,7 @@ module.exports = {
             }
 
             const globalConfigs = await GlobalConfigModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
@@ -214,7 +215,7 @@ module.exports = {
                 query = {};
             }
 
-            const globalConfig = await GlobalConfigModel.findOne(query);
+            const globalConfig = await GlobalConfigModel.findOne(query).lean();
 
             if (globalConfig && globalConfig.name === 'twilio') {
                 globalConfig.value[

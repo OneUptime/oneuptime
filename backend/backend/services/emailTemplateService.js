@@ -104,6 +104,7 @@ module.exports = {
 
             query.deleted = false;
             const emailTemplates = await EmailTemplateModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -123,6 +124,7 @@ module.exports = {
 
             query.deleted = false;
             const emailTemplate = await EmailTemplateModel.findOne(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name');
             return emailTemplate;

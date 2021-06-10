@@ -14,6 +14,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const SmsCount = await SmsCountModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -34,6 +35,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const SmsCount = await SmsCountModel.findOne(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .populate('userId', 'name')
                 .populate('projectId', 'name');

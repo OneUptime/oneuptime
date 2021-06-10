@@ -92,6 +92,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const alerts = await AlertModel.find(query)
+                .lean()
                 .sort(sort)
                 .limit(limit)
                 .skip(skip)
