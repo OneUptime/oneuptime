@@ -2,13 +2,19 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm, Field, FieldArray, reset } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { ValidateField } from '../../config';
-import NewScriptEditor from './NewScriptEditor';
-import { createAutomatedScript } from '../../actions/automatedScript';
+import {
+    createAutomatedScript,
+    resetScripts,
+    fetchAutomatedScript,
+} from '../../actions/automatedScript';
+import { RenderSelect } from '../basic/RenderSelect';
+import AceEditor from 'react-ace';
+import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 
 class NewScript extends Component {
     constructor(props) {
@@ -16,48 +22,340 @@ class NewScript extends Component {
         this.state = {
             name: '',
             script: '',
-            loading: false,
+            type: 'javascript',
         };
     }
 
-    //Client side validation
-    validate = values => {
-        const errors = {};
-
-        if (!ValidateField.text(values[`name_${this.props.index}`])) {
-            errors.name = 'Name is required.';
-        }
-
-        return errors;
-    };
-
-    componentDidUpdate() {}
-
-    handleChange = e => {
-        this.setState({ [e.target.id]: e.target.value });
-    };
+    componentDidMount() {
+        this.props.resetScripts();
+    }
 
     setAutomatedScript = value => {
         this.setState({ ...this.state, script: value });
     };
 
-    handleSubmit = async e => {
-        this.setState({ loading: true });
-        e.preventDefault();
-        const res = await this.props.createAutomatedScript(this.state);
-        if (res) {
-            this.setState({
-                name: '',
-                script: '',
-                loading: false,
+    submit = (values, dispatch) => {
+        const successEvent = values.successEvent.filter(data => data);
+        const failureEvent = values.failureEvent.filter(data => data);
+        values.successEvent = successEvent;
+        values.failureEvent = failureEvent;
+        const { type, script } = this.state;
+        const { currentProject } = this.props;
+        const payload = { ...values, scriptType: type, script };
+        this.props
+            .createAutomatedScript(currentProject._id, payload)
+            .then(() => {
+                this.props.fetchAutomatedScript(currentProject._id, 0, 10);
+                dispatch(reset('newScript'));
+                this.setState({
+                    type: 'javascript',
+                    script: '',
+                });
             });
-            document.getElementById('name').value = '';
-        } else {
-            this.setState({ loading: false });
+    };
+
+    renderSuccessEvent = ({ fields }) => {
+        const { script, schedules, successEventValues } = this.props;
+        const scheduleOption =
+            schedules && schedules.length > 0
+                ? schedules.map(schedule => ({
+                      value: schedule._id,
+                      label: schedule.name,
+                  }))
+                : [];
+        const scriptOption =
+            script && script.length > 0
+                ? script.map(s => ({
+                      value: s._id,
+                      label: s.name,
+                  }))
+                : [];
+        if (fields.length === 0) {
+            fields.push();
         }
+        return (
+            <>
+                {fields.map((field, index) => {
+                    const optionObj =
+                        successEventValues[index] &&
+                        successEventValues[index].type === 'callSchedule'
+                            ? scheduleOption
+                            : successEventValues[index] &&
+                              successEventValues[index].type ===
+                                  'automatedScript'
+                            ? scriptOption
+                            : [];
+
+                    return (
+                        <div className="bs-a-script" key={index}>
+                            <div className="bs-as-pad-10">
+                                {index === 0 && (
+                                    <div className="bs-as-tag">Type</div>
+                                )}
+                                <Field
+                                    className="db-select-nw Table-cell--width--maximized bs-script-select"
+                                    component={RenderSelect}
+                                    name={`${field}.type`}
+                                    id={`script_${index}`}
+                                    placeholder="Automation script"
+                                    style={{
+                                        height: '28px',
+                                        width: '100%',
+                                    }}
+                                    validate={
+                                        successEventValues[0] &&
+                                        (successEventValues[0].type ||
+                                            successEventValues[0].resource) &&
+                                        ValidateField.select
+                                    }
+                                    options={[
+                                        {
+                                            value: '',
+                                            label: 'None',
+                                        },
+                                        {
+                                            value: 'callSchedule',
+                                            label: 'Call Schedule',
+                                        },
+                                        {
+                                            value: 'automatedScript',
+                                            label: 'Automated Script',
+                                        },
+                                    ]}
+                                />
+                            </div>
+                            <div className="bs-as-pad-10">
+                                {index === 0 && (
+                                    <div className="bs-as-tag">Resource</div>
+                                )}
+                                <Field
+                                    className="db-select-nw Table-cell--width--maximized bs-script-select"
+                                    component={RenderSelect}
+                                    name={`${field}.resource`}
+                                    id={`script_${index}`}
+                                    placeholder="Automation script"
+                                    style={{
+                                        height: '28px',
+                                        width: '100%',
+                                    }}
+                                    validate={
+                                        successEventValues[0] &&
+                                        (successEventValues[0].type ||
+                                            successEventValues[0].resource) &&
+                                        ValidateField.select
+                                    }
+                                    options={[
+                                        {
+                                            value: '',
+                                            label: 'None',
+                                        },
+                                        ...optionObj,
+                                    ]}
+                                />
+                            </div>
+                            <div
+                                className="Box-root Flex-flex Flex-alignItems--center bs-script-btn"
+                                style={{ marginBottom: index === 0 && '-27px' }}
+                            >
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    style={{
+                                        borderRadius: '50%',
+                                        padding: '0 6px',
+                                    }}
+                                    onClick={() => {
+                                        fields.push();
+                                    }}
+                                    type="button"
+                                >
+                                    <img
+                                        src="/dashboard/assets/img/plus.svg"
+                                        style={{
+                                            height: '10px',
+                                            width: '10px',
+                                        }}
+                                        alt=""
+                                    />
+                                </button>
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    style={{
+                                        borderRadius: '50%',
+                                        padding: '0 6px',
+                                    }}
+                                    onClick={() => {
+                                        fields.remove(index);
+                                    }}
+                                >
+                                    <img
+                                        src="/dashboard/assets/img/minus.svg"
+                                        style={{
+                                            height: '10px',
+                                            width: '10px',
+                                        }}
+                                        alt=""
+                                    />
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })}
+            </>
+        );
+    };
+
+    renderFailureEvent = ({ fields }) => {
+        const { script, schedules, failureEventValues } = this.props;
+        const scheduleOption =
+            schedules && schedules.length > 0
+                ? schedules.map(schedule => ({
+                      value: schedule._id,
+                      label: schedule.name,
+                  }))
+                : [];
+        const scriptOption =
+            script && script.length > 0
+                ? script.map(s => ({
+                      value: s._id,
+                      label: s.name,
+                  }))
+                : [];
+        if (fields.length === 0) {
+            fields.push();
+        }
+        return (
+            <>
+                {fields.map((field, index) => {
+                    const optionObj =
+                        failureEventValues[index] &&
+                        failureEventValues[index].type === 'callSchedule'
+                            ? scheduleOption
+                            : failureEventValues[index] &&
+                              failureEventValues[index].type ===
+                                  'automatedScript'
+                            ? scriptOption
+                            : [];
+
+                    return (
+                        <div className="bs-a-script" key={index}>
+                            <div className="bs-as-pad-10">
+                                {index === 0 && (
+                                    <div className="bs-as-tag">Type</div>
+                                )}
+                                <Field
+                                    className="db-select-nw Table-cell--width--maximized bs-script-select"
+                                    component={RenderSelect}
+                                    name={`${field}.type`}
+                                    id={`script_${index}`}
+                                    placeholder="Automation script"
+                                    style={{
+                                        height: '28px',
+                                        width: '100%',
+                                    }}
+                                    validate={
+                                        failureEventValues[0] &&
+                                        (failureEventValues[0].type ||
+                                            failureEventValues[0].resource) &&
+                                        ValidateField.select
+                                    }
+                                    options={[
+                                        {
+                                            value: '',
+                                            label: 'None',
+                                        },
+                                        {
+                                            value: 'callSchedule',
+                                            label: 'Call Schedule',
+                                        },
+                                        {
+                                            value: 'automatedScript',
+                                            label: 'Automated Script',
+                                        },
+                                    ]}
+                                />
+                            </div>
+                            <div className="bs-as-pad-10">
+                                {index === 0 && (
+                                    <div className="bs-as-tag">Resource</div>
+                                )}
+                                <Field
+                                    className="db-select-nw Table-cell--width--maximized bs-script-select"
+                                    component={RenderSelect}
+                                    name={`${field}.resource`}
+                                    id={`script_${index}`}
+                                    placeholder="Automation script"
+                                    style={{
+                                        height: '28px',
+                                        width: '100%',
+                                    }}
+                                    validate={
+                                        failureEventValues[0] &&
+                                        (failureEventValues[0].type ||
+                                            failureEventValues[0].resource) &&
+                                        ValidateField.select
+                                    }
+                                    options={[
+                                        {
+                                            value: '',
+                                            label: 'None',
+                                        },
+                                        ...optionObj,
+                                    ]}
+                                />
+                            </div>
+                            <div
+                                className="Box-root Flex-flex Flex-alignItems--center bs-script-btn"
+                                style={{ marginBottom: index === 0 && '-27px' }}
+                            >
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    style={{
+                                        borderRadius: '50%',
+                                        padding: '0 6px',
+                                    }}
+                                    onClick={() => {
+                                        fields.push();
+                                    }}
+                                    type="button"
+                                >
+                                    <img
+                                        src="/dashboard/assets/img/plus.svg"
+                                        style={{
+                                            height: '10px',
+                                            width: '10px',
+                                        }}
+                                        alt=""
+                                    />
+                                </button>
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    style={{
+                                        borderRadius: '50%',
+                                        padding: '0 6px',
+                                    }}
+                                    onClick={() => {
+                                        fields.remove(index);
+                                    }}
+                                >
+                                    <img
+                                        src="/dashboard/assets/img/minus.svg"
+                                        style={{
+                                            height: '10px',
+                                            width: '10px',
+                                        }}
+                                        alt=""
+                                    />
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })}
+            </>
+        );
     };
 
     render() {
+        const { addScriptsError, requesting } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -76,7 +374,7 @@ class NewScript extends Component {
 
                         <form
                             id="form-new-component"
-                            onSubmit={this.handleSubmit}
+                            onSubmit={this.props.handleSubmit(this.submit)}
                         >
                             <div
                                 className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
@@ -97,15 +395,8 @@ class NewScript extends Component {
                                                                 RenderField
                                                             }
                                                             type="text"
-                                                            name={`name_${this.props.index}`}
+                                                            name={`name`}
                                                             id="name"
-                                                            value={
-                                                                this.state.name
-                                                            }
-                                                            onChange={
-                                                                this
-                                                                    .handleChange
-                                                            }
                                                             placeholder="Script Name"
                                                             disabled={false}
                                                             validate={
@@ -115,43 +406,212 @@ class NewScript extends Component {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <NewScriptEditor
-                                                setAutomatedScript={value => {
-                                                    this.setAutomatedScript(
-                                                        value
-                                                    );
-                                                }}
-                                                value={this.state.script}
-                                            />
+                                            <div className="bs-Fieldset-rows">
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">
+                                                        Script Type
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <Dropdown>
+                                                            <Dropdown.Toggle
+                                                                id="filterToggle"
+                                                                title={
+                                                                    this.state
+                                                                        .type
+                                                                }
+                                                                className="bs-Button bs-DeprecatedButton"
+                                                                style={{
+                                                                    textTransform:
+                                                                        'capitalize',
+                                                                }}
+                                                            />
+                                                            <Dropdown.Menu>
+                                                                <MenuItem
+                                                                    title="javascript"
+                                                                    onClick={() => {
+                                                                        this.setState(
+                                                                            {
+                                                                                type:
+                                                                                    'javascript',
+                                                                            }
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    JavaScript
+                                                                </MenuItem>
+                                                                <MenuItem
+                                                                    title="bash"
+                                                                    onClick={() => {
+                                                                        this.setState(
+                                                                            {
+                                                                                type:
+                                                                                    'bash',
+                                                                            }
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    Bash
+                                                                </MenuItem>
+                                                            </Dropdown.Menu>
+                                                        </Dropdown>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-rows">
+                                                <div className="bs-Fieldset-row">
+                                                    <label className="bs-Fieldset-label">
+                                                        Script
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields">
+                                                        <AceEditor
+                                                            placeholder="Enter script here"
+                                                            mode="javascript"
+                                                            theme="github"
+                                                            value={
+                                                                this.state
+                                                                    .script
+                                                            }
+                                                            style={{
+                                                                backgroundColor:
+                                                                    '#fff',
+                                                                marginTop:
+                                                                    '10px',
+                                                                marginLeft:
+                                                                    '-4px',
+                                                                borderRadius:
+                                                                    '4px',
+                                                                boxShadow:
+                                                                    '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
+                                                            }}
+                                                            name={`automated-script`}
+                                                            id="automatedScript"
+                                                            editorProps={{
+                                                                $blockScrolling: true,
+                                                            }}
+                                                            setOptions={{
+                                                                enableBasicAutocompletion: true,
+                                                                enableLiveAutocompletion: true,
+                                                                enableSnippets: true,
+                                                                showGutter: false,
+                                                            }}
+                                                            height="150px"
+                                                            highlightActiveLine={
+                                                                true
+                                                            }
+                                                            onChange={value => {
+                                                                this.setAutomatedScript(
+                                                                    value
+                                                                );
+                                                            }}
+                                                            fontSize="14px"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </fieldset>
                                     </div>
                                 </div>
                             </div>
+                            <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                <div className="Box-root">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>
+                                            <ShouldRender if={true}>
+                                                <span>Success Event</span>
+                                            </ShouldRender>
+                                        </span>
+                                    </span>
+                                    <div>
+                                        This events runs when the script is
+                                        successful.
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
+                                style={{ boxShadow: 'none' }}
+                            >
+                                <div>
+                                    <div
+                                        className="bs-Fieldset-wrapper Box-root Margin-bottom--2"
+                                        style={{ padding: '30px' }}
+                                    >
+                                        <FieldArray
+                                            name="successEvent"
+                                            component={this.renderSuccessEvent}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
+                                <div className="Box-root">
+                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
+                                        <span>
+                                            <ShouldRender if={true}>
+                                                <span>Failure Event</span>
+                                            </ShouldRender>
+                                        </span>
+                                    </span>
+                                    <div>
+                                        This events runs when the script fails.
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
+                                style={{ boxShadow: 'none' }}
+                            >
+                                <div>
+                                    <div
+                                        className="bs-Fieldset-wrapper Box-root Margin-bottom--2"
+                                        style={{ padding: '30px' }}
+                                    >
+                                        <FieldArray
+                                            name="failureEvent"
+                                            component={this.renderFailureEvent}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                             <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                                <div className="bs-Tail-copy">
-                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"></div>
+                                <div
+                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                    style={{
+                                        marginTop: '5px',
+                                        alignItems: 'center',
+                                    }}
+                                >
+                                    {addScriptsError && (
+                                        <>
+                                            <div
+                                                className="Box-root Margin-right--8"
+                                                style={{ marginTop: '2px' }}
+                                            >
+                                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                            </div>
+                                            <div className="Box-root">
+                                                <span
+                                                    id="monitorError"
+                                                    style={{ color: 'red' }}
+                                                >
+                                                    {addScriptsError &&
+                                                        addScriptsError}
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                                 <div>
-                                    <ShouldRender if={true}>
-                                        <button
-                                            className="bs-Button"
-                                            disabled={false}
-                                            // onClick={this.cancelEdit}
-                                        >
-                                            <span>Cancel</span>
-                                        </button>
-                                    </ShouldRender>
                                     <button
                                         id="addComponentButton"
                                         className="bs-Button bs-Button--blue"
                                         disabled={false}
                                         type="submit"
                                     >
-                                        <ShouldRender if={!this.state.loading}>
+                                        <ShouldRender if={!requesting}>
                                             <span>Add Script</span>
                                         </ShouldRender>
-
-                                        <ShouldRender if={this.state.loading}>
+                                        <ShouldRender if={requesting}>
                                             <FormLoader />
                                         </ShouldRender>
                                     </button>
@@ -168,7 +628,7 @@ class NewScript extends Component {
 NewScript.displayName = 'NewScript';
 
 const NewScriptForm = new reduxForm({
-    form: 'NewScript',
+    form: 'newScript',
     destroyOnUnmount: true,
     enableReinitialize: true,
 })(NewScript);
@@ -177,26 +637,53 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             createAutomatedScript,
+            resetScripts,
+            fetchAutomatedScript,
         },
         dispatch
     );
 
 const mapStateToProps = state => {
+    const schedules = [];
+    state.schedule.subProjectSchedules.forEach(elem => {
+        elem.schedules.forEach(schedule => {
+            schedules.push(schedule);
+        });
+    });
     return {
-        initialValues: state.component.newComponent.initialValue,
-        component: state.component,
         currentProject: state.project.currentProject,
-        subProjects: state.subProject.subProjects.subProjects,
-        schedules: state.schedule.schedules.data,
+        addScriptsError: state.automatedScripts.addScripts.error,
+        requesting: state.automatedScripts.addScripts.requesting,
+        script: state.automatedScripts.fetchScripts.scripts,
+        successEventValues:
+            state.form &&
+            state.form.newScript &&
+            state.form.newScript.values &&
+            state.form.newScript.values.successEvent,
+        failureEventValues:
+            state.form &&
+            state.form.newScript &&
+            state.form.newScript.values &&
+            state.form.newScript.values.failureEvent,
+        schedules,
     };
 };
 
 NewScript.propTypes = {
-    index: PropTypes.oneOfType([
-        PropTypes.string.isRequired,
-        PropTypes.number.isRequired,
-    ]),
     createAutomatedScript: PropTypes.func.isRequired,
+    handleSubmit: PropTypes.func.isRequired,
+    currentProject: PropTypes.object,
+    addScriptsError: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    requesting: PropTypes.bool,
+    resetScripts: PropTypes.func,
+    script: PropTypes.array,
+    fetchAutomatedScript: PropTypes.func,
+    schedules: PropTypes.array,
+    successEventValues: PropTypes.array,
+    failureEventValues: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewScriptForm);
