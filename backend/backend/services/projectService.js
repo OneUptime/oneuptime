@@ -676,7 +676,9 @@ module.exports = {
                         _id: project._id,
                     });
                 }
-                const projectObj = Object.assign({}, project._doc, { users });
+                const projectObj = Object.assign({}, project._doc || project, {
+                    users,
+                });
                 return projectObj;
             })
         );
@@ -737,7 +739,7 @@ module.exports = {
                     );
                     project.users = users;
                 }
-                return Object.assign({}, project._doc, { users });
+                return Object.assign({}, project._doc || project, { users });
             })
         );
         return { projects, count };
@@ -842,7 +844,9 @@ module.exports = {
                         _id: project._id,
                     });
                 }
-                const projectObj = Object.assign({}, project._doc, { users });
+                const projectObj = Object.assign({}, project._doc || project, {
+                    users,
+                });
                 return projectObj;
             })
         );

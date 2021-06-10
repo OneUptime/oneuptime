@@ -157,7 +157,7 @@ module.exports = {
                         { _id: { $in: projectIds } },
                     ],
                 });
-                return await Object.assign({}, user._doc, {
+                return await Object.assign({}, user._doc || user, {
                     projects: userProjects,
                 });
             }
@@ -848,7 +848,7 @@ module.exports = {
                         { _id: { $in: projectIds } },
                     ],
                 });
-                return await Object.assign({}, user._doc, {
+                return await Object.assign({}, user._doc || user, {
                     projects: userProjects,
                 });
             })
@@ -934,7 +934,7 @@ module.exports = {
                         { _id: { $in: projectIds } },
                     ],
                 });
-                return await Object.assign({}, user._doc, {
+                return await Object.assign({}, user._doc || user, {
                     projects: userProjects,
                 });
             })

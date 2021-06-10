@@ -793,7 +793,7 @@ router.get(
                         const sortMsg = statusPageNote.message.reverse();
 
                         updatedNotes.push({
-                            ...note._doc,
+                            ...note,
                             message: sortMsg,
                         });
                     }
@@ -909,7 +909,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
                     const sortMsg = statusPageNote.message.reverse();
 
                     updatedNotes.push({
-                        ...note._doc,
+                        ...note,
                         message: sortMsg,
                     });
                 }
@@ -1446,7 +1446,7 @@ router.get(
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
                 const updatedLogs = [];
                 for (const log of announcementLogs) {
-                    updatedLogs.push({ ...log._doc });
+                    updatedLogs.push({ ...log });
                 }
                 announcementLogs = formatNotes(updatedLogs, 20);
                 announcementLogs = checkDuplicateDates(announcementLogs);

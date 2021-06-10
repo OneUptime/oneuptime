@@ -496,7 +496,7 @@ module.exports = {
                             }
 
                             return {
-                                ...monitor.toObject(),
+                                ...monitor,
                                 status: monitorStatus,
                             };
                         })

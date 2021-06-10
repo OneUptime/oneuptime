@@ -164,7 +164,7 @@ module.exports = {
         try {
             const probe = await this.findOneBy({ _id: probeId });
             if (probe) {
-                delete probe._doc.deleted;
+                delete probe.deleted;
                 await RealTimeService.updateProbe(probe, monitorId);
             }
         } catch (error) {
