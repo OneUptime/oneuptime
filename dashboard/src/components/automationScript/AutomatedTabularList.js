@@ -57,7 +57,7 @@ const AutomatedTabularList = props => {
                                         className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                         style={{ height: '1px' }}
                                     >
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8 bs-table-display-end">
                                             <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
                                                 <span>Action</span>
                                             </span>
@@ -97,7 +97,7 @@ const AutomatedTabularList = props => {
                                                 height: '1px',
                                             }}
                                         >
-                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8 bs-table-display-end">
                                                 <ShouldRender if={true}>
                                                     <button
                                                         className="bs-Button"
@@ -122,12 +122,11 @@ const AutomatedTabularList = props => {
 AutomatedTabularList.propTypes = {
     scripts: PropTypes.array.isRequired,
     history: PropTypes.object.isRequired,
-    // deleteAutomatedScript: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = state => {
     return {
-        scripts: state.automatedScripts.scripts,
+        scripts: state.automatedScripts.fetchScripts.scripts,
     };
 };
 
