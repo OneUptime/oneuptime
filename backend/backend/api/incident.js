@@ -3,7 +3,6 @@
  * Copyright HackerBay, Inc.
  *
  */
-/*eslint-disable*/
 const express = require('express');
 const moment = require('moment');
 const IncidentService = require('../services/incidentService');
