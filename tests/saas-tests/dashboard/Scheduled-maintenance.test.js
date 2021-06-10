@@ -277,129 +277,129 @@ describe('Check scheduled maintenace', () => {
             await init.pageClick(page, 'input[name=endDate]');
             await init.pageClick(
                 page,
-                'div.MuiPickersCalendar-week:nth-child(5) > div:nth-child(6)'
+                'div.MuiPickersCalendar-week:nth-child(5) > div:nth-child(4)'
             ); // To select the last week and last day of the month.
             await init.pageClick(
                 page,
                 'span.MuiTypography-body1:nth-child(14)'
             ); // This selects '11'
-            // await init.pageClick(
-            //     page,
-            //     'span.MuiPickersClockNumber-clockNumber:nth-child(15)'
-            // ); // This selects '55'. 11:55 is the highest possible value from the clock library html elements
-            // await init.pageClick(
-            //     page,
-            //     'div.MuiDialogActions-root button:nth-child(2)'
-            // );
-            // await init.pageWaitForSelector(
-            //     page,
-            //     'div.MuiDialogActions-root button:nth-child(2)',
-            //     { hidden: true }
-            // );
-            // await init.pageClick(page, '#createScheduledEventButton');
-            // await init.pageWaitForSelector(page, '#scheduledEventForm', {
-            //     hidden: true,
-            // });
-            // // This is to confirm that the created scheduled maintenance is present and monitor is there.
-            // let scheduledMaintenance = await init.pageWaitForSelector(
-            //     page,
-            //     `#monitor-${monitorName}`,
-            //     {
-            //         visible: true,
-            //     }
-            // );
-            // scheduledMaintenance = await scheduledMaintenance.getProperty(
-            //     'innerText'
-            // );
-            // scheduledMaintenance = await scheduledMaintenance.jsonValue();
-            // expect(scheduledMaintenance).toMatch(monitorName);
+            await init.pageClick(
+                page,
+                'span.MuiPickersClockNumber-clockNumber:nth-child(15)'
+            ); // This selects '55'. 11:55 is the highest possible value from the clock library html elements
+            await init.pageClick(
+                page,
+                'div.MuiDialogActions-root button:nth-child(2)'
+            );
+            await init.pageWaitForSelector(
+                page,
+                'div.MuiDialogActions-root button:nth-child(2)',
+                { hidden: true }
+            );
+            await init.pageClick(page, '#createScheduledEventButton');
+            await init.pageWaitForSelector(page, '#scheduledEventForm', {
+                hidden: true,
+            });
+            // This is to confirm that the created scheduled maintenance is present and monitor is there.
+            let scheduledMaintenance = await init.pageWaitForSelector(
+                page,
+                `#monitor-${monitorName}`,
+                {
+                    visible: true,
+                }
+            );
+            scheduledMaintenance = await scheduledMaintenance.getProperty(
+                'innerText'
+            );
+            scheduledMaintenance = await scheduledMaintenance.jsonValue();
+            expect(scheduledMaintenance).toMatch(monitorName);
 
             done();
         },
         init.timeout
     );
 
-    // test(
-    //     'should view scheduled maintenance details in status-page',
-    //     async done => {
-    //         await init.pageWaitForSelector(page, '#statusPages', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageClick(page, '#statusPages');
-    //         await init.pageWaitForSelector(page, '#statusPagesListContainer', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageWaitForSelector(page, '#viewStatusPage', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageClick(page, '#viewStatusPage');
+    test(
+        'should view scheduled maintenance details in status-page',
+        async done => {
+            await init.pageWaitForSelector(page, '#statusPages', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#statusPages');
+            await init.pageWaitForSelector(page, '#statusPagesListContainer', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageWaitForSelector(page, '#viewStatusPage', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#viewStatusPage');
 
-    //         await init.pageWaitForSelector(page, '#publicStatusPageUrl', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         let link = await init.page$(
-    //             page,
-    //             '#publicStatusPageUrl > span > a'
-    //         );
-    //         link = await link.getProperty('href');
-    //         link = await link.jsonValue();
-    //         await page.goto(link);
+            await init.pageWaitForSelector(page, '#publicStatusPageUrl', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            let link = await init.page$(
+                page,
+                '#publicStatusPageUrl > span > a'
+            );
+            link = await link.getProperty('href');
+            link = await link.jsonValue();
+            await page.goto(link);
 
-    //         // To confirm scheduled maintenance name
-    //         await init.pageWaitForSelector(
-    //             page,
-    //             `#event-name-${scheduledMaintenanceName}`
-    //         );
-    //         const eventName = await init.page$Eval(
-    //             page,
-    //             `#event-name-${scheduledMaintenanceName}`,
-    //             elem => elem.textContent
-    //         );
-    //         expect(eventName).toMatch(scheduledMaintenanceName);
+            // To confirm scheduled maintenance name
+            await init.pageWaitForSelector(
+                page,
+                `#event-name-${scheduledMaintenanceName}`
+            );
+            const eventName = await init.page$Eval(
+                page,
+                `#event-name-${scheduledMaintenanceName}`,
+                elem => elem.textContent
+            );
+            expect(eventName).toMatch(scheduledMaintenanceName);
 
-    //         // To confirm scheduled maintenance description
-    //         await init.pageWaitForSelector(
-    //             page,
-    //             `#event-description-${scheduledMaintenanceDescription}`,
-    //             { visible: true, timeout: init.timeout }
-    //         );
-    //         const eventDescription = await init.page$Eval(
-    //             page,
-    //             `#event-description-${scheduledMaintenanceDescription}`,
-    //             elem => elem.textContent
-    //         );
-    //         expect(eventDescription).toMatch(scheduledMaintenanceDescription);
+            // To confirm scheduled maintenance description
+            await init.pageWaitForSelector(
+                page,
+                `#event-description-${scheduledMaintenanceDescription}`,
+                { visible: true, timeout: init.timeout }
+            );
+            const eventDescription = await init.page$Eval(
+                page,
+                `#event-description-${scheduledMaintenanceDescription}`,
+                elem => elem.textContent
+            );
+            expect(eventDescription).toMatch(scheduledMaintenanceDescription);
 
-    //         // To confirm scheduled maintenance date
-    //         await init.pageWaitForSelector(page, '#event-date', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         const eventDate = await init.page$Eval(
-    //             page,
-    //             '#event-date',
-    //             elem => elem.textContent
-    //         );
-    //         expect(eventDate).toBeDefined();
+            // To confirm scheduled maintenance date
+            await init.pageWaitForSelector(page, '#event-date', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            const eventDate = await init.page$Eval(
+                page,
+                '#event-date',
+                elem => elem.textContent
+            );
+            expect(eventDate).toBeDefined();
 
-    //         // To confirm this is a future scheduled maintenance
-    //         await init.pageWaitForSelector(page, '#ongoing-event', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         const futureEvent = await init.page$Eval(
-    //             page,
-    //             '#ongoing-event',
-    //             elem => elem.textContent
-    //         );
-    //         expect(futureEvent).toMatch(futureEvent);
+            // To confirm this is a future scheduled maintenance
+            await init.pageWaitForSelector(page, '#ongoing-event', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            const futureEvent = await init.page$Eval(
+                page,
+                '#ongoing-event',
+                elem => elem.textContent
+            );
+            expect(futureEvent).toMatch(futureEvent);
 
-    //         done();
-    //     },
-    //     init.timeout
-    // );
+            done();
+        },
+        init.timeout
+    );
 });
