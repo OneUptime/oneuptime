@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { Fragment } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -76,7 +77,7 @@ class MonitorView extends React.Component {
     }
 
     componentDidUpdate(prevProps) {
-        const { monitor } = this.props;
+        const { monitor } = this.props;       
         if (
             String(prevProps.componentSlug) !==
                 String(this.props.componentSlug) ||
@@ -92,12 +93,12 @@ class MonitorView extends React.Component {
                     this.props.componentSlug
                 );
             }
-        }
+        }                
         if (monitor && String(prevProps.monitor._id) !== String(monitor._id)) {
             const subProjectId = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId
                 : '';
-            subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
+            subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.            
             if (monitor.type === 'url') {
                 this.props.fetchLighthouseLogs(
                     monitor.projectId._id || monitor.projectId,
@@ -147,6 +148,7 @@ class MonitorView extends React.Component {
             fetchComponent,
             currentProject,
         } = this.props;
+        
         if (currentProject && currentProject._id && componentSlug) {
             fetchComponent(currentProject._id, componentSlug);
         }
@@ -162,7 +164,7 @@ class MonitorView extends React.Component {
             const subProjectId = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId
                 : '';
-            subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
+            subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.            
             if (monitor.type === 'url') {
                 this.props.fetchLighthouseLogs(
                     monitor.projectId._id || monitor.projectId,
@@ -708,12 +710,7 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'ip' ||
-                                                                                    this
-                                                                                        .props
-                                                                                        .monitor
-                                                                                        .type ===
-                                                                                        'script')
+                                                                                        'ip')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">
