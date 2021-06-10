@@ -1062,7 +1062,6 @@ const mapDispatchToProps = dispatch => {
 
 function mapStateToProps(state, ownProps) {
     const { componentSlug } = ownProps.match.params;
-    ``;
     return {
         monitorState: state.monitor,
         currentProject: state.project.currentProject,
