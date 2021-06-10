@@ -219,9 +219,9 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
-
+            console.log("Data: ", data)
             if (data) {
-                if (data.name) {
+                if (data.name) {                    
                     data.slug = getSlug(data.name);
                 }
                 await MonitorModel.findOneAndUpdate(
