@@ -47,7 +47,8 @@ describe('API test', () => {
             });
             const elementHandle = await init.page$(
                 page,
-                '#offline_0 > span > span'
+                '#offline_0 > span > span',
+                {hidden: true} //Probe is expected to be online
             );
             if (elementHandle) {
                 // Probe is offline

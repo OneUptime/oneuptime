@@ -130,6 +130,25 @@ const _this = {
             }
         }
     },
+    loginProjectViewer: async function(user, page) {
+        const { email, password } =
+            utils.BACKEND_URL.includes('localhost') ||
+            utils.BACKEND_URL.includes('staging')
+                ? user
+                : {
+                      email: 'user@fyipe.com',
+                      password: 'mVzkm{LAP)mNC8t23ehqifb2p',
+                  };
+        await page.goto(utils.ACCOUNTS_URL + '/login', {
+            waitUntil: 'networkidle2',
+        });
+        await _this.pageWaitForSelector(page, '#login-button');
+        await _this.pageClick(page, 'input[name=email]');
+        await _this.pageType(page, 'input[name=email]', email);
+        await _this.pageClick(page, 'input[name=password]');
+        await _this.pageType(page, 'input[name=password]', password);
+        await _this.pageClick(page, 'button[type=submit]');
+    },
     loginUser: async function(user, page) {
         const { email, password } =
             utils.BACKEND_URL.includes('localhost') ||
@@ -170,6 +189,87 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
+
+        return;
+    },
+    testSmptSettings: async function(page, email) {
+        await _this.pageWaitForSelector(page, '#settings');
+        await _this.pageClick(page, '#settings');
+        await _this.pageWaitForSelector(page, '#smtp');
+        await _this.pageClick(page, '#smtp');
+        await _this.pageWaitForSelector(page, '#testSmtpSettingsButton');
+        await _this.pageClick(page, '#testSmtpSettingsButton');
+        await _this.pageWaitForSelector(page, '#testEmail');
+        await _this.pageType(page, '#testEmail', email);
+        await _this.pageWaitForSelector(page, '#customSmtpBtn');
+        await _this.pageClick(page, '#customSmtpBtn');
+        await _this.pageWaitForSelector(page, '#confirmSmtpTest');
+        await _this.pageClick(page, '#confirmSmtpTest');
+        await _this.pageWaitForSelector(page, '#confirmDelete');
+        await _this.pageClick(page, '#confirmDelete');
+    },
+    addEmailCredentials: async function(page, email) {
+        await _this.pageWaitForSelector(page, '#settings');
+        await _this.pageClick(page, '#settings');
+        await _this.pageWaitForSelector(page, '#smtp');
+        await _this.pageClick(page, '#smtp');
+        await _this.pageWaitForSelector(page, '#email-enabled');
+        await _this.pageClick(page, '#email-enabled');
+        await _this.pageWaitForSelector(page, '#customSmtp');
+        await _this.pageClick(page, '#customSmtp');
+        await _this.pageWaitForSelector(page, '#email');
+        await _this.pageClick(page, 'input[name=email]');
+        await _this.pageType(
+            page,
+            'input[name=email]',
+            utils.smtpCredential.user
+        );
+        await _this.pageClick(page, 'input[name=password]');
+        await _this.pageType(
+            page,
+            'input[name=password]',
+            utils.smtpCredential.pass
+        );
+        await _this.pageClick(page, 'input[name=smtp-server]');
+        await _this.pageType(
+            page,
+            'input[name=smtp-server]',
+            utils.smtpCredential.host
+        );
+
+        await _this.pageClick(page, 'input[name=smtp-port]');
+        await _this.pageType(
+            page,
+            'input[name=smtp-port]',
+            utils.smtpCredential.port
+        );
+
+        await _this.pageClick(page, 'input[name=from]');
+        await _this.pageType(
+            page,
+            'input[name=from]',
+            utils.smtpCredential.from
+        );
+
+        await _this.pageClick(page, 'input[name=from-name]');
+        await _this.pageType(page, 'input[name=from-name]', 'Hackerbay');
+
+        await _this.pageWaitForSelector(page, '#label_smpt_secure');
+        await _this.pageClick(page, '#label_smpt_secure');
+
+        await _this.pageWaitForSelector(page, 'button[type=submit]');
+        await _this.pageClick(page, 'button[type=submit]');
+
+        await _this.pageWaitForSelector(page, '#testSmtpSettingsButton');
+        await _this.pageClick(page, '#testSmtpSettingsButton');
+        await _this.pageWaitForSelector(page, '#testEmail');
+        await _this.pageType(page, '#testEmail', email);
+        await _this.pageWaitForSelector(page, '#customSmtpBtn');
+        await _this.pageClick(page, '#customSmtpBtn');
+        await _this.pageWaitForSelector(page, '#confirmSmtpTest');
+        await _this.pageClick(page, '#confirmSmtpTest');
+        await _this.pageWaitForSelector(page, '#confirmDelete');
+        await _this.pageClick(page, '#confirmDelete');
     },
     registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {
@@ -179,7 +279,8 @@ const _this = {
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
         });
-        const signUp = await _this.page$(page, '#signUpLink');
+        const signUp = await _this.isElementOnPage(page, '#signUpLink');
+
         if (signUp) {
             await page.goto(utils.ACCOUNTS_URL + '/register', {
                 waitUntil: 'networkidle2',
@@ -216,6 +317,7 @@ const _this = {
             await _this.loginAdminUser(masterAdmin, page);
         }
         // create the user from admin dashboard
+        //await _this.loginAdminUser(masterAdmin, page);
         const { email } = user;
         await _this.pageWaitForSelector(page, '#add_user');
         await _this.pageClick(page, '#add_user');
@@ -516,6 +618,7 @@ const _this = {
             page.waitForNavigation(),
         ]);
     },
+
     navigateToMonitorDetails: async function(component, monitor, page) {
         // Navigate to Components page
         await _this.navigateToComponentDetails(component, page);
@@ -621,7 +724,7 @@ const _this = {
         });
     },
     addSubProject: async function(subProjectName, page) {
-        const subProjectNameSelector = await _this.page$(
+        const subProjectNameSelector = await _this.isElementOnPage(
             page,
             '#btn_Add_SubProjects',
             { hidden: true } //The function is usually called after dashboard loads. Hence, '#btn_Add_SubProjects' is hidden.
@@ -1435,11 +1538,8 @@ const _this = {
                 visible: true,
                 timeout: _this.timeout,
             });
-            await _this.pageClickNavigate(page, '#monitor');
-            await page.reload({
-                waitUntil: 'networkidle2',
-            });
-            await _this.gotoTab(2, page);
+            await _this.pageClickNavigate(page, '#monitor');                       
+            await _this.pageClick(page, '.monitor-sla-advanced');
         } else {
             await _this.pageWaitForSelector(page, '#more');
             await _this.pageClick(page, '#more');
@@ -1487,16 +1587,6 @@ const _this = {
         });
         return await page.click(selector, opts);
     },
-    pageClickNavigate: async function(page, selector, opts) {
-        await _this.pageWaitForSelector(page, selector, {
-            visible: true,
-            timeout: _this.timeout,
-        });
-        return await Promise.all([
-            page.click(selector, opts),
-            page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing
-        ]);
-    },
     page$Eval: async function(page, selector, evalFunction) {
         await _this.pageWaitForSelector(page, selector);
         return await page.$eval(selector, evalFunction);
@@ -1535,6 +1625,16 @@ const _this = {
         } else {
             return false;
         }
+    },
+    pageClickNavigate: async function(page, selector, opts) {
+        await _this.pageWaitForSelector(page, selector, {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        return await Promise.all([
+            page.click(selector, opts),
+            page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing
+        ]);
     },
 };
 

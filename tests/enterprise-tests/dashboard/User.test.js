@@ -33,6 +33,7 @@ describe('Users', () => {
 
     afterAll(async done => {
         await browser.close();
+        await browser2.close();
         done();
     });
     /**  This test works by running user dashboard and admin dashboard in two seperate browsers.
@@ -78,11 +79,10 @@ describe('Users', () => {
     it(
         'should be able to restore deleted users (using admin account)',
         async done => {
-            await init.loginUser(admin, page);
+            await init.loginAdminUser(admin, page);
             await init.pageWaitForSelector(
                 page,
-                `#deleted__${user.email.split('@')[0]}`,
-                { visible: true, timeout: init.timeout }
+                `#deleted__${user.email.split('@')[0]}`
             );
             await init.pageClick(page, `#deleted__${user.email.split('@')[0]}`);
 

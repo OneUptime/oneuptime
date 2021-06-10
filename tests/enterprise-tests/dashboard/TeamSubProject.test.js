@@ -41,7 +41,6 @@ describe('Enterprise Team SubProject API', () => {
 
             await init.loginUser(user, page);
             //SubProject is only available for 'Growth Plan and above'
-            await init.growthPlanUpgrade(page);
             await page.reload({
                 waitUntil: 'networkidle2',
             });

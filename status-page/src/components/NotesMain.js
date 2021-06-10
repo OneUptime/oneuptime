@@ -70,7 +70,7 @@ class NotesMain extends Component {
         );
         this.props.fetchLastIncidentTimelines(
             this.props.projectId,
-            this.props.statusPageId
+            this.props.statusPageSlug
         );
     };
 

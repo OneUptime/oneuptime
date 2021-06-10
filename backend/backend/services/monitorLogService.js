@@ -36,6 +36,9 @@ module.exports = {
             Log.sslCertificate = data.sslCertificate;
             Log.kubernetesLog = data.kubernetesData || {};
 
+            // script log details
+            Log.scriptMetadata = data.scriptMetadata;
+
             const savedLog = await Log.save();
 
             const now = new Date();

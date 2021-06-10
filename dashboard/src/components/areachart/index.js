@@ -43,7 +43,6 @@ CustomTooltip.propTypes = {
     active: PropTypes.bool,
     payload: PropTypes.array,
 };
-
 class AreaChart extends Component {
     parseValue(data, name, display, symbol) {
         switch (name) {
@@ -198,8 +197,11 @@ class AreaChart extends Component {
                 </div>
             );
         }
+
         if (data && data.length > 0) {
-            processedData = (type === 'manual' || type === 'incomingHttpRequest'
+            processedData = (type === 'manual' ||
+            type === 'incomingHttpRequest' ||
+            type === 'script'
                 ? data.map(a => {
                       return {
                           name: this.parseDate(a.date),
@@ -226,7 +228,9 @@ class AreaChart extends Component {
                 <Chart data={processedData}>
                     <Tooltip content={<CustomTooltip />} />
                     <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                    {type === 'manual' || type === 'incomingHttpRequest' ? (
+                    {type === 'manual' ||
+                    type === 'incomingHttpRequest' ||
+                    type === 'script' ? (
                         <YAxis reversed hide />
                     ) : (
                         ''
@@ -238,7 +242,8 @@ class AreaChart extends Component {
                             _.toLower(
                                 `${
                                     type === 'manual' ||
-                                    type === 'incomingHttpRequest'
+                                    type === 'incomingHttpRequest' ||
+                                    type === 'script'
                                         ? 'average'
                                         : 'max'
                                 } ${name}`

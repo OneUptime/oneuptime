@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
@@ -65,7 +66,7 @@ export class IncidentStatus extends Component {
     };
     firstFormSubmit = values => {
         const incidentId = this.props.incident._id;
-        const projectId = this.props.incident.projectId;
+        const projectId = this.props.incident.projectId._id ?? this.props.incident.projectId;
         const incidentType = this.props.incident.incidentType;
         const description = this.props.incident.description;
         const incidentPriority = this.props.incident.incidentPriority._id;
@@ -95,7 +96,7 @@ export class IncidentStatus extends Component {
     };
     secondFormSubmit = () => {
         const incidentId = this.props.incident._id;
-        const projectId = this.props.incident.projectId;
+        const projectId = this.props.incident.projectId._id ?? this.props.incident.projectId;
         const incidentType = this.props.incident.incidentType;
         const title = this.props.incident.title;
         const description = this.props.description;
@@ -125,7 +126,7 @@ export class IncidentStatus extends Component {
     };
     thirdFormSubmit = (e, value) => {
         const incidentId = this.props.incident._id;
-        const projectId = this.props.incident.projectId;
+        const projectId = this.props.incident.projectId._id ?? this.props.incident.projectId;
         const incidentType = this.props.incident.incidentType;
         const title = this.props.incident.title;
         const description = this.props.incident.description;
@@ -303,7 +304,7 @@ export class IncidentStatus extends Component {
         }
     };
 
-    render() {
+    render() {        
         const isUserSubProjectId =
             this.props.incident.projectId._id ?? this.props.incident.projectId;
         const subProject =
@@ -1685,7 +1686,7 @@ export class IncidentStatus extends Component {
                                                                             style={{
                                                                                 width: 212,
                                                                             }}
-                                                                            onBlur={this.props.handleSubmit(
+                                                                            handleBlur={this.props.handleSubmit( // The RenderField Component has been refactored
                                                                                 this
                                                                                     .firstFormSubmit
                                                                             )}

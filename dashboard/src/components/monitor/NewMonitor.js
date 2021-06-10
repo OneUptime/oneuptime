@@ -64,16 +64,22 @@ import ScheduleInput from '../schedule/ScheduleInput';
 const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
 
+const defaultScript =
+    '// objects/modules available to "require"- request, puppeteer, axios. We can add more later. \n\n' +
+    'async function (done) {\n' +
+    '   // write any javascript here \n' +
+    '   done();\n' +
+    '}\n';
+
 class NewMonitor extends Component {
     constructor(props) {
         super(props);
         this.state = {
             advance: false,
             script:
-                (props.editMonitorProp &&
-                    props.editMonitorProp.data &&
-                    props.editMonitorProp.data.script) ||
-                '',
+                props.editMonitorProp &&
+                props.editMonitorProp.data &&
+                props.editMonitorProp.data.script,
 
             showAllMonitors: false,
             type: props.edit ? props.editMonitorProp.type : props.type,
@@ -131,6 +137,10 @@ class NewMonitor extends Component {
     handleKeyBoard = e => {
         switch (e.key) {
             case 'Enter':
+                // prevent form submission while using ace editor
+                if (e.target.name === `script_editor_${this.props.index}`) {
+                    return true;
+                }
                 if (document.getElementById('addMonitorButton'))
                     return document.getElementById('addMonitorButton').click();
                 else return false;
@@ -635,7 +645,7 @@ class NewMonitor extends Component {
 
         this.setState({
             advance: false,
-            script: '',
+            script: defaultScript,
             type: this.props.edit
                 ? this.props.editMonitorProp.type
                 : this.props.type,
@@ -1959,6 +1969,9 @@ class NewMonitor extends Component {
                                                                                 .state
                                                                                 .script
                                                                         }
+                                                                        defaultValue={
+                                                                            defaultScript
+                                                                        }
                                                                         style={{
                                                                             backgroundColor:
                                                                                 '#fff',
@@ -1987,6 +2000,12 @@ class NewMonitor extends Component {
                                                                                 .scriptTextChange
                                                                         }
                                                                         fontSize="14px"
+                                                                        onLoad={editor => {
+                                                                            // give the inner text area a name
+                                                                            // so that we can reference it later
+                                                                            const elem = editor.textInput.getElement();
+                                                                            elem.name = `script_editor_${this.props.index}`;
+                                                                        }}
                                                                     />
                                                                 </span>
                                                             </span>

@@ -535,6 +535,7 @@ module.exports = {
     },
 
     async getProbeMonitors(probeId, date) {
+        const moment = require('moment');
         try {
             const newdate = new Date();
             const monitors = await MonitorModel.find({
@@ -542,7 +543,31 @@ module.exports = {
                     {
                         deleted: false,
                         disabled: false,
-                        scriptRunStatus: { $nin: ['inProgress'] },
+                        $and: [
+                            {
+                                type: {
+                                    $in: ['script'],
+                                },
+                            },
+                            {
+                                $or: [
+                                    {
+                                        scriptRunStatus: {
+                                            $nin: ['inProgress'],
+                                        },
+                                    },
+                                    // script monitors that have been running for too long (10mins)**
+                                    // or weren't completed due to a crash
+                                    {
+                                        lastPingTime: {
+                                            $lte: moment()
+                                                .subtract(10, 'minutes')
+                                                .toDate(),
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
                     },
                     {
                         $or: [

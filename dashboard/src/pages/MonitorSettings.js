@@ -68,14 +68,14 @@ class MonitorSettings extends React.Component {
                                     >
                                         <Tab
                                             className={
-                                                'custom-tab custom-tab-2'
+                                                'custom-tab custom-tab-2 monitor-sla'
                                             }
                                         >
                                             Monitor SLA
                                         </Tab>
                                         <Tab
                                             className={
-                                                'custom-tab custom-tab-2'
+                                                'custom-tab custom-tab-2 monitor-sla-advanced'
                                             }
                                         >
                                             Advanced
