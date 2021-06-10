@@ -317,9 +317,7 @@ router.get('/:projectId', async function(req, res) {
 //get subscribers by monitorId
 // req.params-> {projectId, monitorId};
 // Returns: response subscriber, error message
-router.get('/:projectId/monitor/:monitorId', async function(req, res) {   
-    console.log("Subscriber Project ID: ", req.params.projectId);
-    console.log("Subscriber Monitor ID: ", req.params.monitorId); 
+router.get('/:projectId/monitor/:monitorId', async function(req, res) {
     try {
         const monitorId = req.params.monitorId;
         const skip = req.query.skip || 0;
@@ -387,8 +385,6 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
 // Returns: response subscriber, error message
 router.get('/:projectId/:subscriberId', async function(req, res) {
     try {
-     console.log("Second Subscriber Project ID: ", req.params.projectId);
-    console.log("Second Subscriber ID: ", req.params.subscriberId);
         const projectId = req.params.projectId;
         const subscriberId = req.params.subscriberId;
         const subscriber = await SubscriberService.findByOne({
