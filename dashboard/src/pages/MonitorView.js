@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import React, { Fragment } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
