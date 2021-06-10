@@ -3,6 +3,7 @@
  * Copyright HackerBay, Inc.
  *
  */
+
 const express = require('express');
 const moment = require('moment');
 const IncidentService = require('../services/incidentService');
