@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -11,7 +11,7 @@ import DeleteAutomatedScript from './DeleteAutomatedScript';
 
 const DeleteScriptBox = props => {
     const {
-        scripts,
+        // scripts,
         name,
         parentRoute,
         history,
@@ -20,10 +20,10 @@ const DeleteScriptBox = props => {
     } = props;
 
     const [loading, setLoading] = useState(false);
-    const [script, setScript] = useState(false);
+    const [script] = useState(false);
     // const [deleteModalId, setDeleteModalId] = useState(false);
-    const pathName = history.location.pathname;
-    const scripSlug = pathName.split('automation-scripts/')[1];
+    // const pathName = history.location.pathname;
+    // const scripSlug = pathName.split('automation-scripts/')[1];
     const deleteModalId = uuidv4();
 
     const deleteScrip = async () => {
@@ -37,12 +37,12 @@ const DeleteScriptBox = props => {
         }
     };
 
-    useEffect(() => {
-        const selectedScript = scripts.find(x => {
-            return x.slug == scripSlug;
-        });
-        setScript(selectedScript);
-    }, []);
+    // useEffect(() => {
+    //     const selectedScript = scripts.find(x => {
+    //         return x.slug == scripSlug;
+    //     });
+    //     setScript(selectedScript);
+    // }, []);
 
     // const handleKeyBoard = e => {
     //     switch (e.key) {
@@ -107,7 +107,7 @@ const DeleteScriptBox = props => {
 };
 
 DeleteScriptBox.propTypes = {
-    scripts: PropTypes.array.isRequired,
+    // scripts: PropTypes.array.isRequired,
     history: PropTypes.object.isRequired,
     deleteAutomatedScript: PropTypes.func.isRequired,
     openModal: PropTypes.func.isRequired,
