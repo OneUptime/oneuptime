@@ -1,4 +1,5 @@
 require_relative 'fyipe/util'
+require_relative 'fyipe/fyipeListener'
 class FyipeTracker
     # FyipeLogger constructor.
     # @param string apiUrl
@@ -12,9 +13,13 @@ class FyipeTracker
         @errorTrackerKey = errorTrackerKey
         @tags = []
         @fingerprint = []
+        @options = {
+            'maxTimeline': 5
+        }
         setUpOptions(options)
         @util = Util.new(@options)
         setEventId()
+        @listenerObj = FyipeListener.new(getEventId(), @options)
     end
 
     def setApiUrl(apiUrl)
@@ -23,7 +28,7 @@ class FyipeTracker
 
     def setUpOptions(options)
         # TODO set up options
-        @options = nil
+        # @options = nil
     end
 
     def setEventId()
@@ -32,5 +37,19 @@ class FyipeTracker
     
     def getEventId()
         return @eventId
+    end
+
+    def addToTimeline(category, content, type)
+        timelineObj =  {
+            "category": category,
+            "data": content,
+            "type": type
+        }
+
+        @listenerObj.logCustomTimelineEvent(timelineObj)
+    end
+
+    def getTimeline()
+        return @listenerObj.getTimeline()
     end
 end
