@@ -15,32 +15,28 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const incidents = await IncidentModel.find(query)
+                .lean()
                 .limit(limit)
                 .skip(skip)
                 .populate('acknowledgedBy', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
-                .populate('projectId')
+                .populate('projectId', 'name slug')
                 .populate('probes.probeId')
                 .populate('incidentPriority', 'name color')
                 .populate({
                     path: 'monitors.monitorId',
-                    populate: [{ path: 'componentId' }, { path: 'projectId' }],
+                    select: 'name slug componentId projectId',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
                 })
                 .populate('acknowledgedByIncomingHttpRequest', 'name')
                 .populate('resolvedByIncomingHttpRequest', 'name')
                 .populate('createdByIncomingHttpRequest', 'name')
-                .populate({
-                    path: 'breachedCommunicationSlas.monitorId',
-                    populate: [
-                        {
-                            path: 'componentId',
-                            select: 'name slug',
-                        },
-                        { path: 'projectId', select: '_id name slug' },
-                    ],
-                })
                 .sort({ createdAt: 'desc' });
+
             return incidents;
         } catch (error) {
             ErrorService.log('incidentService.findBy', error);
@@ -332,6 +328,7 @@ module.exports = {
 
             query.deleted = false;
             const incident = await IncidentModel.findOne(query)
+                .lean()
                 .populate('acknowledgedBy', 'name')
                 .populate('resolvedBy', 'name')
                 .populate('createdById', 'name')
@@ -342,24 +339,16 @@ module.exports = {
                 .populate('createdByIncomingHttpRequest', 'name')
                 .populate({
                     path: 'monitors.monitorId',
-                    populate: [
-                        {
-                            path: 'componentId',
-                        },
-                        { path: 'projectId' },
-                    ],
-                })
-                .populate({
-                    path: 'breachedCommunicationSlas.monitorId',
+                    select: 'name slug componentId projectId',
                     populate: [
                         {
                             path: 'componentId',
                             select: 'name slug',
                         },
-                        { path: 'projectId', select: '_id name slug' },
+                        { path: 'projectId', select: 'name slug' },
                     ],
                 })
-                .populate('projectId');
+                .populate('projectId', 'name slug');
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.findOne', error);
@@ -404,32 +393,9 @@ module.exports = {
                 },
                 { new: true }
             );
-            updatedIncident = await updatedIncident
-                .populate('acknowledgedBy', 'name')
-                .populate('monitorId', 'name')
-                .populate('resolvedBy', 'name')
-                .populate('createdById', 'name')
-                .populate('probes.probeId')
-                .populate('incidentPriority', 'name color')
-                .populate({
-                    path: 'monitors.monitorId',
-                    populate: [{ path: 'componentId' }, { path: 'projectId' }],
-                })
-                .populate('acknowledgedByIncomingHttpRequest', 'name')
-                .populate('resolvedByIncomingHttpRequest', 'name')
-                .populate('createdByIncomingHttpRequest', 'name')
-                .populate({
-                    path: 'breachedCommunicationSlas.monitorId',
-                    populate: [
-                        {
-                            path: 'componentId',
-                            select: 'name slug',
-                        },
-                        { path: 'projectId', select: '_id name slug' },
-                    ],
-                })
-                .populate('projectId')
-                .execPopulate();
+            updatedIncident = _this.findOneBy({
+                _id: updatedIncident._id,
+            });
 
             RealTimeService.updateIncident(updatedIncident);
 
@@ -1062,6 +1028,7 @@ module.exports = {
      * @param {string} userId the id of the user
      */
     removeMonitor: async function(monitorId, userId) {
+        const _this = this;
         try {
             const incidents = await this.findBy({
                 'monitors.monitorId': monitorId,
@@ -1109,37 +1076,9 @@ module.exports = {
                         );
                     }
 
-                    updatedIncident = await updatedIncident
-                        .populate('acknowledgedBy', 'name')
-                        .populate('monitorId', 'name')
-                        .populate('resolvedBy', 'name')
-                        .populate('createdById', 'name')
-                        .populate('probes.probeId')
-                        .populate('incidentPriority', 'name color')
-                        .populate({
-                            path: 'monitors.monitorId',
-                            populate: [
-                                {
-                                    path: 'componentId',
-                                },
-                                { path: 'projectId' },
-                            ],
-                        })
-                        .populate('acknowledgedByIncomingHttpRequest', 'name')
-                        .populate('resolvedByIncomingHttpRequest', 'name')
-                        .populate('createdByIncomingHttpRequest', 'name')
-                        .populate({
-                            path: 'breachedCommunicationSlas.monitorId',
-                            populate: [
-                                {
-                                    path: 'componentId',
-                                    select: 'name slug',
-                                },
-                                { path: 'projectId', select: '_id name slug' },
-                            ],
-                        })
-                        .populate('projectId')
-                        .execPopulate();
+                    updatedIncident = _this.findOneBy({
+                        _id: updatedIncident._id,
+                    });
 
                     await RealTimeService.deleteIncident(updatedIncident);
                 })
@@ -1271,7 +1210,7 @@ module.exports = {
 
                 const incident = await _this.findOneBy({ _id: incidentId });
                 await _this.startInterval(
-                    incident.projectId,
+                    incident.projectId._id || incident.projectId,
                     incident.monitors,
                     incident
                 );

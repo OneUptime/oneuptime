@@ -18,6 +18,7 @@ module.exports = {
                 domain: 1,
                 createdAt: 1,
             })
+                .lean()
                 .sort([['createdAt', -1]])
                 .skip(skip)
                 .limit(limit);
@@ -113,7 +114,7 @@ module.exports = {
             if (!query.deleted) {
                 query.deleted = false;
             }
-            const sso = await SsoModel.findOne(query);
+            const sso = await SsoModel.findOne(query).lean();
             return sso;
         } catch (error) {
             ErrorService.log('ssoService.findOneBy', error);

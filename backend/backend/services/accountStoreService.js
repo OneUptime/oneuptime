@@ -17,7 +17,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const account = await AccountModel.findOne(query);
+            const account = await AccountModel.findOne(query).lean();
             return account;
         } catch (error) {
             ErrorService.log('accountStoreService.findOneBy', error);
@@ -39,6 +39,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const accounts = await AccountModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);

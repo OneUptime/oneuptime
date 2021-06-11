@@ -19,6 +19,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const items = await CallLogsModel.find(query)
+                .lean()
                 .limit(limit)
                 .skip(skip)
                 .sort(sort)

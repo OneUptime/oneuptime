@@ -70,6 +70,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const applicationLogs = await ApplicationLogModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -78,7 +79,7 @@ module.exports = {
                     select: 'name slug projectId',
                     populate: {
                         path: 'projectId',
-                        select: 'name',
+                        select: 'name slug',
                     },
                 })
                 .populate('resourceCategory', 'name');
@@ -97,6 +98,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const applicationLog = await ApplicationLogModel.findOne(query)
+                .lean()
                 .populate('componentId', 'name')
                 .populate('resourceCategory', 'name');
             return applicationLog;

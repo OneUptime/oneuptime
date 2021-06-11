@@ -137,10 +137,9 @@ module.exports = {
                 ...data,
             });
 
-            incomingRequest = await incomingRequest
-                .populate('monitors.monitorId', 'name')
-                .populate('projectId', 'name')
-                .execPopulate();
+            incomingRequest = await _this.findOneBy({
+                _id: incomingRequest._id,
+            });
 
             // await RealTimeService.addScheduledEvent(incomingRequest);
 
@@ -348,10 +347,9 @@ module.exports = {
                 );
             }
 
-            updatedIncomingRequest = await updatedIncomingRequest
-                .populate('monitors.monitorId', 'name deleted')
-                .populate('projectId', 'name')
-                .execPopulate();
+            updatedIncomingRequest = await _this.findOneBy({
+                _id: query.requestId,
+            });
 
             if (!updatedIncomingRequest) {
                 const error = new Error(

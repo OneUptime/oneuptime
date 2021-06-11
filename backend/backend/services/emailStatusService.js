@@ -19,6 +19,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const items = await EmailStatusModel.find(query)
+                .lean()
                 .limit(limit)
                 .skip(skip)
                 .sort(sort);
@@ -123,7 +124,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            const item = await EmailStatusModel.findOne(query);
+            const item = await EmailStatusModel.findOne(query).lean();
             return item;
         } catch (error) {
             ErrorService.log('emailStatusService.findOne', error);

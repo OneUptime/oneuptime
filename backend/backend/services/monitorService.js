@@ -295,6 +295,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const monitors = await MonitorModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -318,6 +319,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const monitor = await MonitorModel.findOne(query)
+                .lean()
                 .populate('projectId', ['_id', 'name', 'slug'])
                 .populate('componentId', ['_id', 'name', 'slug'])
                 .populate('resourceCategory', 'name')
@@ -337,10 +339,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const count = await MonitorModel.countDocuments(query).populate(
-                'project',
-                'name'
-            );
+            const count = await MonitorModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('monitorService.countBy', error);
@@ -497,7 +496,7 @@ module.exports = {
                             }
 
                             return {
-                                ...monitor.toObject(),
+                                ...monitor,
                                 status: monitorStatus,
                             };
                         })

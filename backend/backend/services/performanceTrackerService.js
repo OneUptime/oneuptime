@@ -47,17 +47,9 @@ module.exports = {
             data.slug = name.toLowerCase();
 
             let performanceTracker = await PerformanceTrackerModel.create(data);
-            performanceTracker = await performanceTracker
-                .populate({
-                    path: 'componentId',
-                    select: 'name slug',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name slug',
-                    },
-                })
-                .populate('createdById', 'name email')
-                .execPopulate();
+            performanceTracker = await _this.findOneBy({
+                _id: performanceTracker._id,
+            });
             return performanceTracker;
         } catch (error) {
             ErrorService.log('performanceTrackerService.create', error);
@@ -85,6 +77,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const performanceTracker = await PerformanceTrackerModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -114,6 +107,7 @@ module.exports = {
             const performanceTracker = await PerformanceTrackerModel.findOne(
                 query
             )
+                .lean()
                 .populate({
                     path: 'componentId',
                     select: 'name slug',

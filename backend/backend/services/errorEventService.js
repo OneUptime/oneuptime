@@ -45,6 +45,7 @@ module.exports = {
 
             if (!query.deleted) delete query.deleted;
             const errorEvent = await ErrorEventModel.findOne(query)
+                .lean()
                 .populate('errorTrackerId', 'name')
                 .populate('issueId', [
                     '_id',
@@ -83,6 +84,7 @@ module.exports = {
 
             if (!query.deleted) delete query.deleted;
             const errorEvents = await ErrorEventModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)

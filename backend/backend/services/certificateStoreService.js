@@ -17,7 +17,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const certificate = await CertificateModel.findOne(query);
+            const certificate = await CertificateModel.findOne(query).lean();
             return certificate;
         } catch (error) {
             ErrorService.log('certificateStoreService.findOneBy', error);
@@ -39,6 +39,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const certificates = await CertificateModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);

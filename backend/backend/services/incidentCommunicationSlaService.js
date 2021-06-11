@@ -92,6 +92,7 @@ module.exports = {
             const incidentCommunicationSla = await IncidentCommunicationSlaModel.find(
                 query
             )
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -206,9 +207,7 @@ module.exports = {
                 throw error;
             }
 
-            updatedIncidentCommunicationSla = await updatedIncidentCommunicationSla
-                .populate('projectId')
-                .execPopulate();
+            updatedIncidentCommunicationSla = await this.findOneBy(query);
 
             return updatedIncidentCommunicationSla;
         } catch (error) {

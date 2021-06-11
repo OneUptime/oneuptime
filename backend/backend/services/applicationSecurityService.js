@@ -70,6 +70,7 @@ module.exports = {
             const applicationSecurity = await ApplicationSecurityModel.findOne(
                 query
             )
+                .lean()
                 .populate('componentId')
                 .populate('resourceCategory', 'name')
                 .populate('gitCredential');
@@ -97,6 +98,7 @@ module.exports = {
             const applicationSecurities = await ApplicationSecurityModel.find(
                 query
             )
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)

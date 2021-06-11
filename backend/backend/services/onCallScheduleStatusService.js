@@ -25,6 +25,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const items = await OnCallScheduleStatusModel.find(query)
+                .lean()
                 .limit(limit)
                 .skip(skip)
                 .populate('projectId')

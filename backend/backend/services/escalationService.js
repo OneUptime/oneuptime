@@ -19,6 +19,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const escalations = await EscalationModel.find(query)
+                .lean()
                 .sort(sort)
                 .limit(limit)
                 .skip(skip)

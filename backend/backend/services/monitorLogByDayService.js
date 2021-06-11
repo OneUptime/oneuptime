@@ -82,6 +82,7 @@ module.exports = {
                 query,
                 filter
             )
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
@@ -99,7 +100,7 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLog = await MonitorLogByDayModel.findOne(query);
+            const monitorLog = await MonitorLogByDayModel.findOne(query).lean();
 
             return monitorLog;
         } catch (error) {

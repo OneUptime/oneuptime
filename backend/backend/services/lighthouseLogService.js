@@ -88,6 +88,7 @@ module.exports = {
             }
 
             const lighthouseLogs = await LighthouseLogModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -106,9 +107,9 @@ module.exports = {
                 query = {};
             }
 
-            const lighthouseLog = await LighthouseLogModel.findOne(
-                query
-            ).populate('probeId');
+            const lighthouseLog = await LighthouseLogModel.findOne(query)
+                .lean()
+                .populate('probeId');
 
             return lighthouseLog;
         } catch (error) {
