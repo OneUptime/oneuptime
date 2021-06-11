@@ -8,12 +8,51 @@ import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import { bindActionCreators } from 'redux';
 import RunAutomationScript from '../modals/RunAutomationScript';
+import { fetchAutomatedScript } from '../../actions/automatedScript';
 
 const AutomatedTabularList = props => {
     const [automatedId] = useState(uuidv4);
-    const { scripts } = props;
+    const { scripts, count, requesting } = props.scriptsObj;
+    let { skip, limit } = props.scriptsObj;
     const projectId = props.currentProject && props.currentProject._id;
     const pathName = props.history.location.pathname;
+
+    if (skip && typeof skip === 'string') {
+        skip = parseInt(skip, 10);
+    }
+    if (limit && typeof limit === 'string') {
+        limit = parseInt(limit, 10);
+    }
+    if (!skip) skip = 0;
+    if (!limit) limit = 0;
+
+    let canNext = count && count > skip + limit ? true : false;
+    let canPrev = skip <= 0 ? false : true;
+
+    if (requesting || !scripts) {
+        canNext = false;
+        canPrev = false;
+    }
+
+    const nextClicked = async () => {
+        const projectId = props.currentProject && props.currentProject._id;
+        const { skip } = props.scriptsObj;
+        await props.fetchAutomatedScript(
+            projectId,
+            parseInt(skip, 10) + 10,
+            10
+        );
+    };
+
+    const prevClicked = async () => {
+        const projectId = props.currentProject && props.currentProject._id;
+        const { skip } = props.scriptsObj;
+        await props.fetchAutomatedScript(
+            projectId,
+            parseInt(skip, 10) - 10,
+            10
+        );
+    };
 
     return (
         <div className="Box-root Margin-bottom--12">
@@ -219,26 +258,81 @@ const AutomatedTabularList = props => {
                         </table>
                     )}
                 </div>
+                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                    <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
+                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                            <span>
+                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                    <ShouldRender if={count}>
+                                        <span id="numberOfSubscribers">
+                                            {count}
+                                        </span>{' '}
+                                        {count && count > 1
+                                            ? 'Scripts'
+                                            : 'Script'}
+                                    </ShouldRender>
+                                </span>
+                            </span>
+                        </span>
+                    </div>
+                    <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                            <div className="Box-root Margin-right--8">
+                                <button
+                                    id="btnPrevSubscriber"
+                                    onClick={prevClicked}
+                                    className={'Button bs-ButtonLegacy'}
+                                    disabled={!canPrev}
+                                    data-db-analytics-name="list_view.pagination.previous"
+                                    type="button"
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Previous</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                            <div className="Box-root">
+                                <button
+                                    id="btnNextSubscriber"
+                                    onClick={nextClicked}
+                                    className={'Button bs-ButtonLegacy'}
+                                    disabled={!canNext}
+                                    data-db-analytics-name="list_view.pagination.next"
+                                    type="button"
+                                >
+                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                            <span>Next</span>
+                                        </span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
 };
 
 AutomatedTabularList.propTypes = {
-    scripts: PropTypes.array.isRequired,
+    scriptsObj: PropTypes.object,
     history: PropTypes.object.isRequired,
     openModal: PropTypes.func,
     currentProject: PropTypes.object,
+    fetchAutomatedScript: PropTypes.func,
 };
 
 const mapStateToProps = state => {
     return {
-        scripts: state.automatedScripts.fetchScripts.scripts,
+        scriptsObj: state.automatedScripts.fetchScripts,
     };
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ openModal }, dispatch);
+    bindActionCreators({ openModal, fetchAutomatedScript }, dispatch);
 
 export default connect(
     mapStateToProps,
