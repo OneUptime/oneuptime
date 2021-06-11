@@ -43,10 +43,9 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const log = await LogModel.findOne(query).populate(
-                'applicationLogId',
-                'name'
-            );
+            const log = await LogModel.findOne(query)
+                .lean()
+                .populate('applicationLogId', 'name');
             return log;
         } catch (error) {
             ErrorService.log('logService.findOneBy', error);
@@ -73,6 +72,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const logs = await LogModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)

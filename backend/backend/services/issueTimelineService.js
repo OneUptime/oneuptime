@@ -28,6 +28,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const issueTimeline = await IssueTimelineModel.findOne(query)
+                .lean()
                 .populate('issueId', 'name')
                 .populate('createdById', 'name');
             return issueTimeline;
@@ -45,6 +46,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const issues = await IssueTimelineModel.find(query)
+                .lean()
                 .populate('issueId', 'name')
                 .populate('createdById', 'name');
             return issues;

@@ -99,6 +99,7 @@ module.exports = {
 
             query.deleted = false;
             const smsTemplates = await SmsTemplateModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -118,6 +119,7 @@ module.exports = {
 
             query.deleted = false;
             const smsTemplate = await SmsTemplateModel.findOne(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name');
             return smsTemplate;

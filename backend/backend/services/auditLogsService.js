@@ -12,6 +12,7 @@ module.exports = {
             if (!query) query = {};
 
             const auditLogs = await AuditLogsModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)

@@ -13,6 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const projects = await ProjectModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -202,6 +203,7 @@ module.exports = {
             }
             if (!query.deleted) query.deleted = false;
             const project = await ProjectModel.findOne(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .populate('userId', 'name')
                 .populate('parentProjectId', 'name');
@@ -674,7 +676,9 @@ module.exports = {
                         _id: project._id,
                     });
                 }
-                const projectObj = Object.assign({}, project._doc, { users });
+                const projectObj = Object.assign({}, project._doc || project, {
+                    users,
+                });
                 return projectObj;
             })
         );
@@ -735,7 +739,7 @@ module.exports = {
                     );
                     project.users = users;
                 }
-                return Object.assign({}, project._doc, { users });
+                return Object.assign({}, project._doc || project, { users });
             })
         );
         return { projects, count };
@@ -840,7 +844,9 @@ module.exports = {
                         _id: project._id,
                     });
                 }
-                const projectObj = Object.assign({}, project._doc, { users });
+                const projectObj = Object.assign({}, project._doc || project, {
+                    users,
+                });
                 return projectObj;
             })
         );

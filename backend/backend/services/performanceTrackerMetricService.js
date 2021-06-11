@@ -44,6 +44,7 @@ module.exports = {
             const performanceTrackerMetrics = await PerformanceTrackerMetricModel.find(
                 query
             )
+                .lean()
                 .sort([[sortCriteria, sort]])
                 .limit(limit)
                 .skip(skip)
@@ -76,6 +77,7 @@ module.exports = {
             const performanceTrackerMetrics = await PerformanceTrackerMetricModel.find(
                 query
             )
+                .lean()
                 .sort([[sortCriteria, sort]])
                 .populate({
                     path: 'performanceTrackerId',
@@ -158,7 +160,7 @@ module.exports = {
 
             const performanceTrackerMetric = await PerformanceTrackerMetricModel.findOne(
                 query
-            );
+            ).lean();
             return performanceTrackerMetric;
         } catch (error) {
             ErrorService.log(
@@ -279,7 +281,7 @@ module.exports = {
                 _this.structureMetricsError(appId, receivedAt, receivedAt),
             ]);
             // send realtime update to frontend
-            // handle this in the backend, so we don't delay api calls
+            // handle this in the background, so we don't delay api calls
             RealTimeService.sendTimeMetrics(appId, time);
             RealTimeService.sendThroughputMetrics(appId, count);
             RealTimeService.sendErrorMetrics(appId, error);

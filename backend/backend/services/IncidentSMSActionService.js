@@ -3,6 +3,7 @@ module.exports = {
         try {
             const alerts = await incidentSMSActionModel
                 .find(query)
+                .lean()
                 .sort([['createdAt', -1]]);
             return alerts;
         } catch (error) {

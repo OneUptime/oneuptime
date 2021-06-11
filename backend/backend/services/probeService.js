@@ -89,6 +89,7 @@ module.exports = {
 
             query.deleted = false;
             const probe = await ProbeModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
@@ -106,7 +107,9 @@ module.exports = {
             }
 
             query.deleted = false;
-            const probe = await ProbeModel.findOne(query, { deleted: false });
+            const probe = await ProbeModel.findOne(query, {
+                deleted: false,
+            }).lean();
             return probe;
         } catch (error) {
             ErrorService.log('ProbeService.findOneBy', error);
@@ -161,7 +164,7 @@ module.exports = {
         try {
             const probe = await this.findOneBy({ _id: probeId });
             if (probe) {
-                delete probe._doc.deleted;
+                delete probe.deleted;
                 await RealTimeService.updateProbe(probe, monitorId);
             }
         } catch (error) {

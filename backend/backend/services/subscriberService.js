@@ -101,6 +101,7 @@ module.exports = {
 
             query.deleted = false;
             const subscribers = await SubscriberModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -146,6 +147,7 @@ module.exports = {
 
             query.deleted = false;
             const subscribers = await SubscriberModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .populate('projectId')
                 .populate('monitorId')
@@ -292,6 +294,7 @@ module.exports = {
             }
             query.deleted = false;
             const subscriber = await SubscriberModel.findOne(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .populate('projectId', 'name')
                 .populate('monitorId', 'name');

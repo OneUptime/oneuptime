@@ -11,7 +11,7 @@ module.exports = {
                 query = {};
             }
             query.deleted = false;
-            const zap = await ZapierModel.find(query);
+            const zap = await ZapierModel.find(query).lean();
 
             return zap;
         } catch (error) {

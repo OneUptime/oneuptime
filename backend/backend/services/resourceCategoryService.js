@@ -114,6 +114,7 @@ module.exports = {
 
             query.deleted = false;
             let resourceCategories = await ResourceCategoryModel.find(query)
+                .lean()
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 });
