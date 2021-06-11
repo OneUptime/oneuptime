@@ -519,7 +519,6 @@ module.exports = {
             nextEscalationPolicy._id.toString() !==
                 activeEscalation._id.toString()
         ) {
-            // callScheduleStatus.alertedEveryone = true;
             const query = { _id: callScheduleStatus._id };
             const data = { alertedEveryone: true };
             await OnCallScheduleStatusService.updateOneBy({ query, data });

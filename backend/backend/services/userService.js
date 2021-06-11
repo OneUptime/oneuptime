@@ -230,11 +230,9 @@ module.exports = {
                     user => String(user.userAgent) === String(data.userAgent)
                 );
                 await user.identification.splice(findIndex, 1);
-                // await user.save();
             } else {
                 if (!checkExist) {
                     await user.identification.push(data);
-                    // await user.save();
                 }
             }
             const userData = await this.updateOneBy(
