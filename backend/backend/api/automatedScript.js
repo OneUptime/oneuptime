@@ -37,12 +37,17 @@ router.get(
     async (req, res) => {
         try {
             const { automatedSlug } = req.params;
+            const { skip, limit } = req.query;
             const { _id } = await AutomatedService.findOneBy({
                 slug: automatedSlug,
             });
-            const response = await AutomatedService.getAutomatedLogService({
-                automationScriptId: _id,
-            });
+            const response = await AutomatedService.getAutomatedLogService(
+                {
+                    automationScriptId: _id,
+                },
+                skip,
+                limit
+            );
             const count = await AutomatedService.countLogBy({
                 automationScriptId: _id,
             });
