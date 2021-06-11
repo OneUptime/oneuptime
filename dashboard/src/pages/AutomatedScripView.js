@@ -32,7 +32,7 @@ const AutomatedScripView = props => {
         const projectId = props.currentProject?._id;
         const automatedSlug = props.match.params.automatedScriptslug;
         if (projectId) {
-            props.fetchSingleAutomatedScript(projectId, automatedSlug);
+            props.fetchSingleAutomatedScript(projectId, automatedSlug, 0, 10);
         }
     }, [props.currentProject]);
 
@@ -45,9 +45,52 @@ const AutomatedScripView = props => {
         setTabIndex(index);
     };
 
-    const script = props.location.state.script;
-
     const scriptLogs = props.script;
+    const requesting = props.requesting;
+    const count = props.script && props.script.count;
+    let skip = props.script && props.script.skip,
+        limit = props.script && props.script.limit;
+
+    if (skip && typeof skip === 'string') {
+        skip = parseInt(skip, 10);
+    }
+    if (limit && typeof limit === 'string') {
+        limit = parseInt(limit, 10);
+    }
+    if (!skip) skip = 0;
+    if (!limit) limit = 0;
+
+    let canNext = count && count > skip + limit ? true : false;
+    let canPrev = skip <= 0 ? false : true;
+
+    if (requesting || !scriptLogs) {
+        canNext = false;
+        canPrev = false;
+    }
+
+    const nextClicked = async () => {
+        const projectId = props.currentProject && props.currentProject._id;
+        const automatedSlug = props.match.params.automatedScriptslug;
+        const skip = props.script && props.script.skip;
+        await props.fetchSingleAutomatedScript(
+            projectId,
+            automatedSlug,
+            parseInt(skip, 10) + 10,
+            10
+        );
+    };
+
+    const prevClicked = async () => {
+        const projectId = props.currentProject && props.currentProject._id;
+        const automatedSlug = props.match.params.automatedScriptslug;
+        const skip = props.script && props.script.skip;
+        await props.fetchSingleAutomatedScript(
+            projectId,
+            automatedSlug,
+            parseInt(skip, 10) - 10,
+            10
+        );
+    };
     return (
         <Dashboard>
             <Fade>
@@ -286,7 +329,8 @@ const AutomatedScripView = props => {
                                                                                                                                     {
                                                                                                                                         viewJsonModalId,
                                                                                                                                         jsonLog: {
-                                                                                                                                            script,
+                                                                                                                                            script:
+                                                                                                                                                'jdjjd',
                                                                                                                                         },
                                                                                                                                         title: `Automated Script Log`,
                                                                                                                                         rootName:
@@ -332,6 +376,84 @@ const AutomatedScripView = props => {
                                                                                         currently
                                                                                     </div>
                                                                                 </ShouldRender>
+                                                                                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                                                                                    <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
+                                                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                            <span>
+                                                                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                                    <ShouldRender
+                                                                                                        if={
+                                                                                                            count
+                                                                                                        }
+                                                                                                    >
+                                                                                                        <span id="numberOfLogs">
+                                                                                                            {
+                                                                                                                count
+                                                                                                            }
+                                                                                                        </span>{' '}
+                                                                                                        {count &&
+                                                                                                        count >
+                                                                                                            1
+                                                                                                            ? 'Logs'
+                                                                                                            : 'Log'}
+                                                                                                    </ShouldRender>
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                            <div className="Box-root Margin-right--8">
+                                                                                                <button
+                                                                                                    id="btnPrevSubscriber"
+                                                                                                    onClick={
+                                                                                                        prevClicked
+                                                                                                    }
+                                                                                                    className={
+                                                                                                        'Button bs-ButtonLegacy'
+                                                                                                    }
+                                                                                                    disabled={
+                                                                                                        !canPrev
+                                                                                                    }
+                                                                                                    data-db-analytics-name="list_view.pagination.previous"
+                                                                                                    type="button"
+                                                                                                >
+                                                                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                                                            <span>
+                                                                                                                Previous
+                                                                                                            </span>
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                </button>
+                                                                                            </div>
+                                                                                            <div className="Box-root">
+                                                                                                <button
+                                                                                                    id="btnNextSubscriber"
+                                                                                                    onClick={
+                                                                                                        nextClicked
+                                                                                                    }
+                                                                                                    className={
+                                                                                                        'Button bs-ButtonLegacy'
+                                                                                                    }
+                                                                                                    disabled={
+                                                                                                        !canNext
+                                                                                                    }
+                                                                                                    data-db-analytics-name="list_view.pagination.next"
+                                                                                                    type="button"
+                                                                                                >
+                                                                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                                                            <span>
+                                                                                                                Next
+                                                                                                            </span>
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -377,11 +499,13 @@ AutomatedScripView.propTypes = {
     match: PropTypes.object,
     script: PropTypes.object,
     location: PropTypes.object,
+    requesting: PropTypes.bool,
 };
 
 const mapStateToProps = state => ({
     currentProject: state.project.currentProject,
     script: state.automatedScripts.individualScript.log,
+    requesting: state.automatedScripts.individualScript.requesting,
 });
 
 const mapDispatchToProps = dispatch =>
