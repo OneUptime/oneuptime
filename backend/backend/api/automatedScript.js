@@ -36,12 +36,17 @@ router.get(
     isAuthorized,
     async (req, res) => {
         try {
-            const { automatedSlug, projectId } = req.params;
-            const response = await AutomatedService.getAutomatedService({
-                projectId,
+            const { automatedSlug } = req.params;
+            const { _id } = await AutomatedService.findOneBy({
                 slug: automatedSlug,
             });
-            return sendListResponse(req, res, response);
+            const response = await AutomatedService.getAutomatedLogService({
+                automationScriptId: _id,
+            });
+            const count = await AutomatedService.countLogBy({
+                automationScriptId: _id,
+            });
+            return sendListResponse(req, res, response, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -51,9 +56,7 @@ router.get(
 router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
     try {
         const data = req.body;
-        const userId = req.user ? req.user.id : null;
         data.projectId = req.params.projectId;
-        data.createdById = userId;
         if (!data) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -97,12 +100,38 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
         if (data.failureEvent.length > 0) {
             data.failureEvent = formatEvent(data.failureEvent);
         }
-        const response = await AutomatedService.create(data);
+        const response = await AutomatedService.createScript(data);
         return sendItemResponse(req, res, response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
+
+router.put(
+    '/:projectId/:automatedScriptId/run',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const { automatedScriptId } = req.params;
+            const userId = req.user ? req.user.id : null;
+            const data = {
+                triggerByUser: userId,
+            };
+            const response = await AutomatedService.createLog(
+                automatedScriptId,
+                data
+            );
+            await AutomatedService.updateOne(
+                { _id: automatedScriptId },
+                { updatedAt: new Date() }
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 router.delete('/:scriptId/:projectId', getUser, isAuthorized, async function(
     req,
