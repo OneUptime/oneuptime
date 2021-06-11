@@ -45,7 +45,9 @@ const AutomatedScripView = props => {
         setTabIndex(index);
     };
 
-    const script = props.script;
+    const script = props.location.state.script;
+
+    const scriptLogs = props.script;
     return (
         <Dashboard>
             <Fade>
@@ -166,115 +168,170 @@ const AutomatedScripView = props => {
                                                                                             Action
                                                                                         </div>
                                                                                     </header>
+                                                                                    {scriptLogs &&
+                                                                                        scriptLogs
+                                                                                            .data
+                                                                                            .length >
+                                                                                            0 &&
+                                                                                        scriptLogs.data.map(
+                                                                                            (
+                                                                                                log,
+                                                                                                index
+                                                                                            ) => {
+                                                                                                return (
+                                                                                                    <div
+                                                                                                        key={
+                                                                                                            index
+                                                                                                        }
+                                                                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                                                                                        style={{
+                                                                                                            backgroundColor:
+                                                                                                                'white',
+                                                                                                            cursor:
+                                                                                                                'pointer',
+                                                                                                        }}
+                                                                                                    >
+                                                                                                        <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
+                                                                                                            <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
+                                                                                                                <ShouldRender
+                                                                                                                    if={
+                                                                                                                        log.triggerByUser
+                                                                                                                    }
+                                                                                                                >
+                                                                                                                    {
+                                                                                                                        log
+                                                                                                                            .triggerByUser
+                                                                                                                            ?.name
+                                                                                                                    }
+                                                                                                                </ShouldRender>
+                                                                                                                <ShouldRender
+                                                                                                                    if={
+                                                                                                                        log.triggerByScript
+                                                                                                                    }
+                                                                                                                >
+                                                                                                                    {
+                                                                                                                        log
+                                                                                                                            .triggerByScript
+                                                                                                                            ?.name
+                                                                                                                    }
+                                                                                                                </ShouldRender>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                                                            <div
+                                                                                                                className="bs-ObjectList-cell-row"
+                                                                                                                id={`monitor`}
+                                                                                                            >
+                                                                                                                {moment(
+                                                                                                                    log.createdAt
+                                                                                                                ).format(
+                                                                                                                    'MMMM Do YYYY, h:mm a'
+                                                                                                                )}
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                                                            <div className="Box-root">
+                                                                                                                {log.status ===
+                                                                                                                'success' ? (
+                                                                                                                    <Badge color="green">
+                                                                                                                        {
+                                                                                                                            log.status
+                                                                                                                        }
+                                                                                                                    </Badge>
+                                                                                                                ) : log.status ===
+                                                                                                                  'running' ? (
+                                                                                                                    <Badge color="yellow">
+                                                                                                                        {
+                                                                                                                            log.status
+                                                                                                                        }
+                                                                                                                    </Badge>
+                                                                                                                ) : log.status ===
+                                                                                                                  'failure' ? (
+                                                                                                                    <Badge color="red">
+                                                                                                                        {
+                                                                                                                            log.status
+                                                                                                                        }
+                                                                                                                    </Badge>
+                                                                                                                ) : null}
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <div
+                                                                                                            className="bs-ObjectList-cell bs-u-v-middle"
+                                                                                                            style={{
+                                                                                                                display:
+                                                                                                                    'flex',
+                                                                                                                justifyContent:
+                                                                                                                    'flex-end',
+                                                                                                                alignItems:
+                                                                                                                    'center',
+                                                                                                                paddingTop:
+                                                                                                                    '20px',
+                                                                                                            }}
+                                                                                                        >
+                                                                                                            <div className="Box-root">
+                                                                                                                <button
+                                                                                                                    title="view log"
+                                                                                                                    id={`automated_log_json_`}
+                                                                                                                    disabled={
+                                                                                                                        false
+                                                                                                                    }
+                                                                                                                    className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                                                                                    type="button"
+                                                                                                                    onClick={() =>
+                                                                                                                        props.openModal(
+                                                                                                                            {
+                                                                                                                                id: viewJsonModalId,
+                                                                                                                                content: DataPathHoC(
+                                                                                                                                    ViewJsonLogs,
+                                                                                                                                    {
+                                                                                                                                        viewJsonModalId,
+                                                                                                                                        jsonLog: {
+                                                                                                                                            script,
+                                                                                                                                        },
+                                                                                                                                        title: `Automated Script Log`,
+                                                                                                                                        rootName:
+                                                                                                                                            'automatedScript',
+                                                                                                                                    }
+                                                                                                                                ),
+                                                                                                                            }
+                                                                                                                        )
+                                                                                                                    }
+                                                                                                                >
+                                                                                                                    <span>
+                                                                                                                        View
+                                                                                                                        Log
+                                                                                                                    </span>
+                                                                                                                </button>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                );
+                                                                                            }
+                                                                                        )}
+                                                                                </div>
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        scriptLogs &&
+                                                                                        scriptLogs
+                                                                                            .data
+                                                                                            .length ===
+                                                                                            0
+                                                                                    }
+                                                                                >
                                                                                     <div
-                                                                                        key={`automated`}
-                                                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
                                                                                         style={{
-                                                                                            backgroundColor:
-                                                                                                'white',
-                                                                                            cursor:
-                                                                                                'pointer',
+                                                                                            textAlign:
+                                                                                                'center',
+                                                                                            padding:
+                                                                                                '12px',
                                                                                         }}
                                                                                     >
-                                                                                        <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
-                                                                                            <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
-                                                                                                {
-                                                                                                    script
-                                                                                                        ?.createdById
-                                                                                                        ?.name
-                                                                                                }
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                                                            <div
-                                                                                                className="bs-ObjectList-cell-row"
-                                                                                                id={`monitor`}
-                                                                                            >
-                                                                                                {moment(
-                                                                                                    script.createdAt
-                                                                                                ).format(
-                                                                                                    'MMMM Do YYYY, h:mm a'
-                                                                                                )}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                                                            <div className="Box-root">
-                                                                                                {script.status ===
-                                                                                                'success' ? (
-                                                                                                    <Badge color="green">
-                                                                                                        {
-                                                                                                            script.status
-                                                                                                        }
-                                                                                                    </Badge>
-                                                                                                ) : script.status ===
-                                                                                                  'running' ? (
-                                                                                                    <Badge color="yellow">
-                                                                                                        {
-                                                                                                            script.status
-                                                                                                        }
-                                                                                                    </Badge>
-                                                                                                ) : script.status ===
-                                                                                                  'failure' ? (
-                                                                                                    <Badge color="red">
-                                                                                                        {
-                                                                                                            script.status
-                                                                                                        }
-                                                                                                    </Badge>
-                                                                                                ) : null}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        <div
-                                                                                            className="bs-ObjectList-cell bs-u-v-middle"
-                                                                                            style={{
-                                                                                                display:
-                                                                                                    'flex',
-                                                                                                justifyContent:
-                                                                                                    'flex-end',
-                                                                                                alignItems:
-                                                                                                    'center',
-                                                                                                paddingTop:
-                                                                                                    '20px',
-                                                                                            }}
-                                                                                        >
-                                                                                            <div className="Box-root">
-                                                                                                <button
-                                                                                                    title="view log"
-                                                                                                    id={`automated_log_json_`}
-                                                                                                    disabled={
-                                                                                                        false
-                                                                                                    }
-                                                                                                    className="bs-Button bs-DeprecatedButton Margin-left--8"
-                                                                                                    type="button"
-                                                                                                    onClick={() =>
-                                                                                                        props.openModal(
-                                                                                                            {
-                                                                                                                id: viewJsonModalId,
-                                                                                                                content: DataPathHoC(
-                                                                                                                    ViewJsonLogs,
-                                                                                                                    {
-                                                                                                                        viewJsonModalId,
-                                                                                                                        jsonLog: {
-                                                                                                                            script:
-                                                                                                                                script.script,
-                                                                                                                        },
-                                                                                                                        title: `Automated Script Log`,
-                                                                                                                        rootName:
-                                                                                                                            'automatedScript',
-                                                                                                                    }
-                                                                                                                ),
-                                                                                                            }
-                                                                                                        )
-                                                                                                    }
-                                                                                                >
-                                                                                                    <span>
-                                                                                                        View
-                                                                                                        Log
-                                                                                                    </span>
-                                                                                                </button>
-                                                                                            </div>
-                                                                                        </div>
+                                                                                        You&#39;ve
+                                                                                        no
+                                                                                        log
+                                                                                        currently
                                                                                     </div>
-                                                                                </div>
+                                                                                </ShouldRender>
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -319,11 +376,12 @@ AutomatedScripView.propTypes = {
     currentProject: PropTypes.object,
     match: PropTypes.object,
     script: PropTypes.object,
+    location: PropTypes.object,
 };
 
 const mapStateToProps = state => ({
     currentProject: state.project.currentProject,
-    script: state.automatedScripts.individualScript.data,
+    script: state.automatedScripts.individualScript.log,
 });
 
 const mapDispatchToProps = dispatch =>
