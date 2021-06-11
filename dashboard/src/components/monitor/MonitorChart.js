@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -2060,7 +2059,6 @@ export function MonitorChart({
                     </div>
                 </div>
                 <div className="block-chart-main line-chart">
-                    {console.log('timeBlock', timeBlock)}
                     <AreaChart
                         type={type}
                         data={timeBlock}
