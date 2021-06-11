@@ -509,7 +509,7 @@ module.exports = {
                 escalationId = escalationId._id;
             }
 
-            if (activeEscalation._id.toString() === escalationId.toString()) {
+            if (String(activeEscalation._id) === String(escalationId)) {
                 found = true;
             }
         }
@@ -519,8 +519,10 @@ module.exports = {
             nextEscalationPolicy._id.toString() !==
                 activeEscalation._id.toString()
         ) {
-            callScheduleStatus.alertedEveryone = true;
-            await callScheduleStatus.save();
+            // callScheduleStatus.alertedEveryone = true;
+            const query = { _id: callScheduleStatus._id };
+            const data = { alertedEveryone: true };
+            await OnCallScheduleStatusService.updateOneBy({ query, data });
             return; //can't escalate anymore.
         }
 
@@ -532,7 +534,12 @@ module.exports = {
         });
         callScheduleStatus.activeEscalation = nextEscalationPolicy;
 
-        await callScheduleStatus.save();
+        const query = { _id: callScheduleStatus._id };
+        const data = {
+            escalations: callScheduleStatus.escalations,
+            activeEscalation: callScheduleStatus.activeEscalation,
+        };
+        await OnCallScheduleStatusService.updateOneBy({ query, data });
 
         _this.sendAlertsToTeamMembersInEscalationPolicy({
             escalation: nextEscalationPolicy,
@@ -617,7 +624,12 @@ module.exports = {
         onCallScheduleStatus.escalations[
             onCallScheduleStatus.escalations.length - 1
         ] = currentEscalationStatus;
-        await onCallScheduleStatus.save();
+        await OnCallScheduleStatusService.updateOneBy({
+            query: { _id: onCallScheduleStatus._id },
+            data: {
+                escalations: onCallScheduleStatus.escalations,
+            },
+        });
 
         const allUsers = [...activeTeam.teamMembers, ...filterdUserIds];
         for (const teamMember of allUsers) {
@@ -633,8 +645,12 @@ module.exports = {
                         JSON.stringify(onCallScheduleStatus.schedule)) &&
                 isOnDuty
             ) {
-                onCallScheduleStatus.isOnDuty = true;
-                onCallScheduleStatus.save();
+                await OnCallScheduleStatusService.updateOneBy({
+                    query: { _id: onCallScheduleStatus._id },
+                    data: {
+                        isOnDuty: true,
+                    },
+                });
             }
 
             const user = await UserService.findOneBy({

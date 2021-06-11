@@ -40,8 +40,14 @@ module.exports = {
 
                 // #2
                 if (!notAcknowledgedCallScheduleStatus.incident) {
-                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true;
-                    notAcknowledgedCallScheduleStatus.save();
+                    // notAcknowledgedCallScheduleStatus.incidentAcknowledged = true;
+                    // notAcknowledgedCallScheduleStatus.save();
+                    await OnCallScheduleStatusService.updateOneBy({
+                        query: { _id: notAcknowledgedCallScheduleStatus._id },
+                        data: {
+                            incidentAcknowledged: true,
+                        },
+                    });
                     continue;
                 }
 
@@ -50,14 +56,26 @@ module.exports = {
                 });
 
                 if (!incident) {
-                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true;
-                    notAcknowledgedCallScheduleStatus.save();
+                    // notAcknowledgedCallScheduleStatus.incidentAcknowledged = true;
+                    // notAcknowledgedCallScheduleStatus.save();
+                    await OnCallScheduleStatusService.updateOneBy({
+                        query: { _id: notAcknowledgedCallScheduleStatus._id },
+                        data: {
+                            incidentAcknowledged: true,
+                        },
+                    });
                     continue;
                 }
 
                 if (incident && incident.acknowledged) {
-                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true;
-                    notAcknowledgedCallScheduleStatus.save();
+                    // notAcknowledgedCallScheduleStatus.incidentAcknowledged = true;
+                    // notAcknowledgedCallScheduleStatus.save();
+                    await OnCallScheduleStatusService.updateOneBy({
+                        query: { _id: notAcknowledgedCallScheduleStatus._id },
+                        data: {
+                            incidentAcknowledged: true,
+                        },
+                    });
                     continue;
                 }
 

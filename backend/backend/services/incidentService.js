@@ -222,19 +222,23 @@ module.exports = {
                 }
 
                 incident = await incident.save();
-                incident = await _this.findOneBy({ _id: incident._id });
 
                 // ********* TODO ************
                 // notification is an array of notifications
                 // ***************************
+                const populatedIncident = await _this.findOneBy({
+                    _id: incident._id,
+                });
                 const notifications = await _this._sendIncidentCreatedAlert(
-                    incident
+                    populatedIncident
                 );
 
                 incident.notifications = notifications.map(notification => ({
                     notificationId: notification._id,
                 }));
                 incident = await incident.save();
+
+                incident = await _this.findOneBy({ _id: incident._id });
 
                 await RealTimeService.sendCreatedIncident(incident);
 

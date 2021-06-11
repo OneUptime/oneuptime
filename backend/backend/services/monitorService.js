@@ -912,8 +912,10 @@ module.exports = {
                     projectSeats
                 );
             }
-            project.seats = projectSeats.toString();
-            await ProjectService.saveProject(project);
+            await ProjectService.updateOneBy(
+                { _id: project._id },
+                { seats: String(projectSeats) }
+            );
             return 'A new seat added. Now you can add a monitor';
         } catch (error) {
             ErrorService.log('monitorService.addSeat', error);

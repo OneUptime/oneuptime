@@ -230,14 +230,17 @@ module.exports = {
                     user => String(user.userAgent) === String(data.userAgent)
                 );
                 await user.identification.splice(findIndex, 1);
-                await user.save();
+                // await user.save();
             } else {
                 if (!checkExist) {
                     await user.identification.push(data);
-                    await user.save();
+                    // await user.save();
                 }
             }
-            const userData = await UserModel.findOne({ _id: userId });
+            const userData = await this.updateOneBy(
+                { _id: user._id },
+                { identification: user.identification }
+            );
             return userData;
         } catch (error) {
             ErrorService.log('userService.updatePush', error);
