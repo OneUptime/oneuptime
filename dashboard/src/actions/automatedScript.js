@@ -1,4 +1,4 @@
-import { postApi, getApi, deleteApi } from '../api';
+import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/automatedScript';
 import errors from '../errors';
 
@@ -91,7 +91,7 @@ export function fetchSingleAutomatedScript(projectId, automatedSlug) {
 
         promise.then(
             function(response) {
-                dispatch(fetchSingleAutomatedScriptSuccess(response.data.data));
+                dispatch(fetchSingleAutomatedScriptSuccess(response.data));
             },
             function(error) {
                 if (error && error.response && error.response.data) {
@@ -136,6 +136,35 @@ export function fetchAutomatedScript(projectId, skip, limit) {
         promise.then(
             function(response) {
                 dispatch(fetchAutomatedScriptSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchAutomatedScriptFailure(error));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function runScript(projectId, automatedScriptId) {
+    return function(dispatch) {
+        const promise = putApi(
+            `automated-scripts/${projectId}/${automatedScriptId}/run`
+        );
+
+        promise.then(
+            function(response) {
+                return response.data;
             },
             function(error) {
                 if (error && error.response && error.response.data)
