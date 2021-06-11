@@ -78,7 +78,6 @@ module.exports = {
 
     createLog: async function(id, data) {
         try {
-            console.log(data);
             const scriptLog = new ScriptModelLog();
             scriptLog.automationScriptId = id || null;
             scriptLog.triggerByUser = data.triggerByUser || null;
