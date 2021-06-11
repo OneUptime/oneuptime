@@ -40,7 +40,7 @@ describe('Monitor Detail API', () => {
     afterAll(async done => {
         await browser.close();
         done();
-    });    
+    });
 
     test(
         'Should navigate to monitor details and create a slack webhook',
@@ -117,9 +117,9 @@ describe('Monitor Detail API', () => {
             );
 
             const newWebhookEndpoint = utils.generateRandomWebsite();
-            await init.pageClick(page, '#webHookName', {clickCount: 3});
+            await init.pageClick(page, '#webHookName', { clickCount: 3 });
             await init.pageType(page, '#webHookName', newWebHookName);
-            await init.pageClick(page, '#endpoint', {clickCount: 3});
+            await init.pageClick(page, '#endpoint', { clickCount: 3 });
             await init.pageType(page, '#endpoint', newWebhookEndpoint);
             await init.page$Eval(page, '#slackUpdate', e => e.click());
             await init.pageWaitForSelector(page, '#slackUpdate', {
@@ -154,8 +154,8 @@ describe('Monitor Detail API', () => {
             const createdWebhookSelector = '.slack-list';
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
-            let webhookRows = await init.page$$(page, createdWebhookSelector);
-            let countWebhooks = webhookRows.length;
+            const webhookRows = await init.page$$(page, createdWebhookSelector);
+            const countWebhooks = webhookRows.length;
 
             expect(countWebhooks).toEqual(1);
 
@@ -169,11 +169,16 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#slackDelete', {
                 hidden: true,
             });
-            
-            let newWebhookRows = await init.pageWaitForSelector(page, '#No_SlackTeam');            
+
+            let newWebhookRows = await init.pageWaitForSelector(
+                page,
+                '#No_SlackTeam'
+            );
             newWebhookRows = await newWebhookRows.getProperty('innerText');
-            newWebhookRows = await newWebhookRows.jsonValue();            
-            expect(newWebhookRows).toMatch("You don't have any webhook added. Do you want to add one?");            
+            newWebhookRows = await newWebhookRows.jsonValue();
+            expect(newWebhookRows).toMatch(
+                "You don't have any webhook added. Do you want to add one?"
+            );
             done();
         },
         operationTimeOut

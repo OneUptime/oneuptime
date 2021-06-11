@@ -119,7 +119,9 @@ describe('Resource Category', () => {
                 page
             );
 
-            const noOption = await init.page$(page, 'div.css-1gl4k7y', {hidden: true});            
+            const noOption = await init.page$(page, 'div.css-1gl4k7y', {
+                hidden: true,
+            });
 
             if (!noOption) {
                 resourceCategoryCheck = true;

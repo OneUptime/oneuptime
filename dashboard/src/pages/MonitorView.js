@@ -147,6 +147,7 @@ class MonitorView extends React.Component {
             fetchComponent,
             currentProject,
         } = this.props;
+
         if (currentProject && currentProject._id && componentSlug) {
             fetchComponent(currentProject._id, componentSlug);
         }

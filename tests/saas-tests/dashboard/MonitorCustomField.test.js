@@ -44,12 +44,12 @@ describe('Monitor Custom Field', () => {
         'should configure monitor custom field in a project',
         async done => {
             await init.addCustomField(page, monitorFieldText, 'monitor');
-                       
+
             const firstCustomField = await init.pageWaitForSelector(
                 page,
                 `#customfield_${monitorFieldText.fieldName}`,
                 { visible: true, timeout: init.timeout }
-            );            
+            );
             expect(firstCustomField).toBeDefined();
             done();
         },
@@ -77,7 +77,7 @@ describe('Monitor Custom Field', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#monitor');
-           
+
             await init.pageClick(page, '.monitor-sla-advanced');
 
             await init.pageWaitForSelector(page, '#editCustomField_0', {
@@ -89,7 +89,7 @@ describe('Monitor Custom Field', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#fieldName', {clickCount: 3});
+            await init.pageClick(page, '#fieldName', { clickCount: 3 });
             await init.pageType(
                 page,
                 '#fieldName',
@@ -137,9 +137,9 @@ describe('Monitor Custom Field', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#monitor');
-            
+
             await init.pageClick(page, '.monitor-sla-advanced');
-            
+
             await init.pageWaitForSelector(page, '#deleteCustomField_0', {
                 visible: true,
                 timeout: init.timeout,

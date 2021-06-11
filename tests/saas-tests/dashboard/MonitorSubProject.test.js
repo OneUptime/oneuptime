@@ -78,11 +78,13 @@ describe('Monitor API With SubProjects', () => {
             const newComponentForm = await init.page$(
                 page,
                 '#form-new-component',
-                {hidden: true}
+                { hidden: true }
             );
             expect(newComponentForm).toEqual(null);
 
-            const newMonitorForm = await init.page$(page, '#form-new-monitor', {hidden: true});
+            const newMonitorForm = await init.page$(page, '#form-new-monitor', {
+                hidden: true,
+            });
             expect(newMonitorForm).toEqual(null);
             await init.saasLogout(page);
             // });
@@ -186,7 +188,7 @@ describe('Monitor API With SubProjects', () => {
             const projectBadgeSelector = await init.page$(
                 page,
                 `#badge_${projectName}`,
-                {hidden: true}
+                { hidden: true }
             );
 
             expect(projectBadgeSelector).toEqual(null);

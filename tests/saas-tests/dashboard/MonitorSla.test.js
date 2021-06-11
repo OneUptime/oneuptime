@@ -118,7 +118,7 @@ describe('Monitor SLA', () => {
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', slaName);
             await init.page$Eval(page, '#isDefault', elem => elem.click());
-            await init.pageClick(page, '#createSlaBtn');            
+            await init.pageClick(page, '#createSlaBtn');
 
             const slaError = await init.pageWaitForSelector(page, `#slaError`, {
                 visible: true,
@@ -381,7 +381,7 @@ describe('Monitor SLA', () => {
                 monitorUptime,
                 page
             );
-            await init.pageClick(page, '#createSlaBtn');            
+            await init.pageClick(page, '#createSlaBtn');
 
             const monitorSla = await init.pageWaitForSelector(
                 page,
@@ -423,7 +423,7 @@ describe('Monitor SLA', () => {
                 timeout: init.timeout,
             });
             await init.page$Eval(page, '#isDefault', elem => elem.click()); // set isDefault to false
-            await init.pageClick(page, '#editSlaBtn');            
+            await init.pageClick(page, '#editSlaBtn');
 
             const setDefaultBtn = await init.pageWaitForSelector(
                 page,
@@ -495,7 +495,7 @@ describe('Monitor SLA', () => {
             });
             await init.pageClick(page, '#deleteMonitorSlaBtn_0');
             await init.pageWaitForSelector(page, '#DeleteMonitorSlaBtn');
-            await init.pageClick(page, '#DeleteMonitorSlaBtn');            
+            await init.pageClick(page, '#DeleteMonitorSlaBtn');
 
             const monitorSla = await init.pageWaitForSelector(
                 page,

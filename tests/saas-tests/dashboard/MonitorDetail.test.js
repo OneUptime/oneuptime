@@ -87,7 +87,7 @@ describe('Monitor Detail API', () => {
                 priorityName,
                 page
             );
-            await init.pageClick(page, '#title', {clickCount: 3});
+            await init.pageClick(page, '#title', { clickCount: 3 });
             // await page.keyboard.press('Backspace');
             await init.pageType(page, '#title', incidentTitle);
             await init.page$Eval(page, '#createIncident', e => e.click());
@@ -150,7 +150,7 @@ describe('Monitor Detail API', () => {
             expect(currentTitle).toEqual(incidentTitle);
             // The Edit Button has been removed and replaced with another functions
             await init.pageClick(page, '#incidentTitle');
-            await init.pageClick(page, '#title', {clickCount: 3});
+            await init.pageClick(page, '#title', { clickCount: 3 });
             await page.keyboard.press('Backspace');
             await init.pageType(page, '#title', newIncidentTitle);
             await page.keyboard.press('Enter');

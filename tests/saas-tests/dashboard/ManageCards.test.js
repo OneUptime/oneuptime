@@ -32,8 +32,8 @@ describe('Stripe cards API', () => {
 
     test(
         'should add a valid card',
-        async done => {            
-            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout})
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageClick(page, '#profile-menu');
             await init.pageClick(page, '#profileBilling');
             await init.pageWaitForSelector(page, '#placeholder-right');
@@ -53,7 +53,8 @@ describe('Stripe cards API', () => {
             );
             const frame = await stripeIframe.contentFrame();
             frame.waitForSelector('input[name=cardnumber]');
-            await frame.type('input[name=cardnumber]', '5555555555554444', { // 4242... has been used during account reg. Similar cards number are rejected. The new number is from stripe documentations.
+            await frame.type('input[name=cardnumber]', '5555555555554444', {
+                // 4242... has been used during account reg. Similar cards number are rejected. The new number is from stripe documentations.
                 delay: 200,
             });
             frame.waitForSelector('input[name=exp-date]');
@@ -158,7 +159,8 @@ describe('Stripe cards API', () => {
 
             const frame = await stripeIframe.contentFrame();
             frame.waitForSelector('input[name=cardnumber]');
-            await frame.type('input[name=cardnumber]', '42444242424242424242', { // This is a proper invalid card
+            await frame.type('input[name=cardnumber]', '42444242424242424242', {
+                // This is a proper invalid card
                 delay: 200,
             });
             frame.waitForSelector('input[name=exp-date]');

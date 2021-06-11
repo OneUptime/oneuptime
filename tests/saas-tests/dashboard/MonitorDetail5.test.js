@@ -39,7 +39,7 @@ describe('Monitor Detail API', () => {
     afterAll(async done => {
         await browser.close();
         done();
-    });        
+    });
     test(
         'Should navigate to monitor details and get list of website scans',
         async done => {

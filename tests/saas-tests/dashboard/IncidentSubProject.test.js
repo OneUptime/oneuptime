@@ -511,15 +511,19 @@ describe('Incident API With SubProjects', () => {
                 page
             );
 
-    test(
-        'should get list of incidents and paginate for incidents in sub-project',
-        async () => {            
             // Navigate to details page of component created
-            await init.navigateToMonitorDetails(componentName, projectMonitorName1, page);
-           
-            await init.pageClick(page,`#createIncident_${projectMonitorName1}`);
+            await init.navigateToMonitorDetails(
+                componentName,
+                projectMonitorName1,
+                page
+            );
+
+            await init.pageClick(
+                page,
+                `#createIncident_${projectMonitorName1}`
+            );
             await init.pageClick(page, `#createIncident`);
-            
+
             await init.pageWaitForSelector(page, 'tr.incidentListItem', {
                 visible: true,
                 timeout: init.timeout,

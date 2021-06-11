@@ -35,7 +35,7 @@ describe('Incident Created test', () => {
         await init.registerUser(user, page);
     });
 
-    afterAll(async (done) => {
+    afterAll(async done => {
         await browser.close();
         done();
     });
@@ -46,12 +46,14 @@ describe('Incident Created test', () => {
             const projectName = 'Project1';
             const componentName = 'HomePage';
 
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             // Rename project
             await init.pageWaitForSelector(page, '#projectSettings');
             await init.page$Eval(page, '#projectSettings', e => e.click());
             await init.pageWaitForSelector(page, 'input[name=project_name]');
-            await init.pageClick(page, 'input[name=project_name]', {clickCount : 3});
+            await init.pageClick(page, 'input[name=project_name]', {
+                clickCount: 3,
+            });
             await init.pageType(page, 'input[name=project_name]', projectName);
             await init.pageWaitForSelector(page, 'button[id=btnCreateProject]');
             await init.page$Eval(page, 'button[id=btnCreateProject]', e =>
@@ -70,14 +72,14 @@ describe('Incident Created test', () => {
                 componentName
             );
             await init.addIncident(monitorName, 'Degraded', page, 'Low');
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, 'button[id=viewIncident-0]');
             await init.page$Eval(page, 'button[id=viewIncident-0]', e =>
                 e.click()
             );
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await init.page$Eval(page, '#btnAcknowledge_0', e => e.click());
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             const closeAllButton = await init.pageWaitForSelector(
                 page,
                 '#incidents-close-all-btn',
@@ -90,7 +92,7 @@ describe('Incident Created test', () => {
     it(
         'it should show close all incident button on the homepage when any there are resolved incidents',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#btnResolve_0');
             await init.page$Eval(page, '#btnResolve_0', e => e.click());
             await init.pageWaitForSelector(page, '#ResolveText_0', {
@@ -109,7 +111,7 @@ describe('Incident Created test', () => {
     it(
         'should close all resolved incident on the homepage',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#incidents-close-all-btn');
             await init.page$Eval(page, '#incidents-close-all-btn', elem =>
                 elem.click()
@@ -128,7 +130,7 @@ describe('Incident Created test', () => {
     test(
         'Should show a pop up when an incident is created',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.addIncident(monitorName, 'Degraded', page, 'Low');
 
             const viewIncidentButton = await init.pageWaitForSelector(
@@ -147,7 +149,7 @@ describe('Incident Created test', () => {
             const projectName = 'Project1';
             const role = 'Member';
 
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, 'button[id=viewIncident-0]');
             await init.page$Eval(page, 'button[id=viewIncident-0]', e =>
                 e.click()
@@ -155,7 +157,7 @@ describe('Incident Created test', () => {
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await init.page$Eval(page, '#btnAcknowledge_0', e => e.click());
             // await init.pageWaitForSelector(page, '#ResolveText_0', { visible: true, timeout: init.timeout });
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             // Invite member on the project
             await init.pageWaitForSelector(page, '#teamMembers');
@@ -182,12 +184,12 @@ describe('Incident Created test', () => {
             const viewIncidentButton = await init.page$(
                 page,
                 'button[id=viewIncident-0]',
-                {hidden: true}
+                { hidden: true }
             );
             expect(viewIncidentButton).toBe(null);
             await init.saasLogout(page);
             await init.loginUser(user, page);
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#btnResolve_0');
             await init.page$Eval(page, '#btnResolve_0', e => e.click());
         },
@@ -199,7 +201,7 @@ describe('Incident Created test', () => {
             const projectName = 'Project1';
 
             await init.addIncident(monitorName, 'Degraded', page, 'Low');
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, 'button[id=viewIncident-0]');
             await init.page$Eval(page, 'button[id=viewIncident-0]', e =>
                 e.click()
@@ -212,7 +214,7 @@ describe('Incident Created test', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.saasLogout(page);
             await init.loginUser(user1, page);
@@ -221,7 +223,7 @@ describe('Incident Created test', () => {
             const viewIncidentButton = await init.page$(
                 page,
                 'button[id=viewIncident-0]',
-                {hidden: true}
+                { hidden: true }
             );
             expect(viewIncidentButton).toBe(null);
             await init.saasLogout(page);
@@ -235,7 +237,7 @@ describe('Incident Created test', () => {
         async () => {
             const projectName = 'Project1';
 
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.addIncident(monitorName, 'Degraded', page, 'Low');
             await init.saasLogout(page);
@@ -255,7 +257,7 @@ describe('Incident Created test', () => {
     test(
         'Should navigate to incident detail page when the view button is clicked',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#components', {
                 visible: true,
                 timeout: init.timeout,
@@ -311,7 +313,7 @@ describe('Incident Created test', () => {
         async () => {
             const projectName = 'Project1';
 
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.switchProject(projectName, page);
 
             const viewIncidentButton = await init.page$(
@@ -326,7 +328,7 @@ describe('Incident Created test', () => {
     test(
         'Should show active incidents on the dashboard',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageClick(page, '#closeIncident_0');
             await init.pageWaitForSelector(page, '#activeIncidents', {
                 visible: true,
@@ -334,12 +336,12 @@ describe('Incident Created test', () => {
             });
             await init.pageClick(page, '#activeIncidents');
             await init.pageWaitForSelector(page, '.activeIncidentList');
-            let activeIncidents = await init.page$$Eval(
+            const activeIncidents = await init.page$$Eval(
                 page,
                 '.activeIncidentList',
                 rows => rows.length
             );
-            
+
             expect(activeIncidents).toEqual(2);
             await init.saasLogout(page);
             await init.loginUser(user, page);
@@ -350,17 +352,23 @@ describe('Incident Created test', () => {
     test(
         'Should display a modal when active incidents is clicked',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});            
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#activeIncidents');
             await init.page$Eval(page, '#activeIncidents', e => e.click());
             await init.pageWaitForSelector(page, '#incident_header_modal');
-            let activeIncidents = await init.page$(page, '#incident_header_modal', {
-                visible: true,
-                timeout: init.timeout,
-            });
+            let activeIncidents = await init.page$(
+                page,
+                '#incident_header_modal',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             activeIncidents = await activeIncidents.getProperty('innerText');
             activeIncidents = await activeIncidents.jsonValue();
-            expect(activeIncidents).toEqual('These incidents are currently active.');
+            expect(activeIncidents).toEqual(
+                'These incidents are currently active.'
+            );
             await init.saasLogout(page);
             await init.loginUser(user, page);
         },
@@ -407,7 +415,7 @@ describe('Incident Created test', () => {
     test(
         'Should display a message if there are no incidents to display after filtering',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#incidents');
             await init.page$Eval(page, '#incidents', e => e.click());
 
@@ -459,7 +467,7 @@ describe('Incident Created test', () => {
     test(
         'Should filter unresolved incidents',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#components');
             await init.page$Eval(page, '#components', e => e.click());
 
@@ -495,7 +503,7 @@ describe('Incident Created test', () => {
     test(
         'Should clear filters',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#components');
             await init.page$Eval(page, '#components', e => e.click());
 
@@ -533,7 +541,7 @@ describe('Incident Created test', () => {
         async () => {
             const componentName = 'NewComponent';
 
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.addComponent(componentName, page);
             await init.addMonitorToComponent(
                 null,
@@ -542,7 +550,7 @@ describe('Incident Created test', () => {
                 componentName
             );
             await init.addIncident(monitorName2, 'Offline', page, 'High');
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, '#incidents');
             await init.page$Eval(page, '#incidents', e => e.click());
@@ -562,7 +570,7 @@ describe('Incident Created test', () => {
         async () => {
             const projectName = 'Project1';
 
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#incidents');
             await init.page$Eval(page, '#incidents', e => e.click());
             await init.pageWaitForSelector(
@@ -619,7 +627,7 @@ describe('Incident Created test', () => {
         async () => {
             const projectName = 'Project1';
 
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             // remove existing notification
             await init.pageWaitForSelector(page, '#incidents');
             await init.page$Eval(page, '#incidents', e => e.click());
@@ -643,7 +651,7 @@ describe('Incident Created test', () => {
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
             });
-            await page.goto(utils.DASHBOARD_URL, {timeout : init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.page$Eval(
                 page,
                 `#${monitorName2}_ViewIncidentDetails`,

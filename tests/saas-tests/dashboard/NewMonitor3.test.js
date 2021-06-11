@@ -28,7 +28,7 @@ describe('New Monitor API', () => {
     afterAll(async done => {
         await browser.close();
         done();
-    });    
+    });
 
     test(
         'should not show any upgrade modal if the project plan is on Scale plan and above',
