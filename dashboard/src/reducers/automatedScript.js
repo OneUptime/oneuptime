@@ -22,7 +22,7 @@ const INITIAL_STATE = {
         error: null,
     },
     individualScript: {
-        data: {},
+        log: null,
         requesting: false,
         success: false,
         error: null,
@@ -86,7 +86,7 @@ export default function component(state = INITIAL_STATE, action) {
         case FETCH_SINGLE_SCRIPT_SUCCESS:
             return Object.assign({}, state, {
                 individualScript: {
-                    data: action.payload,
+                    log: action.payload,
                     requesting: false,
                     success: true,
                     error: null,
@@ -96,7 +96,7 @@ export default function component(state = INITIAL_STATE, action) {
         case FETCH_SINGLE_SCRIPT_FAILURE:
             return Object.assign({}, state, {
                 individualScript: {
-                    data: {},
+                    log: null,
                     requesting: false,
                     success: false,
                     error: action.payload,
@@ -106,7 +106,7 @@ export default function component(state = INITIAL_STATE, action) {
         case FETCH_SINGLE_SCRIPT_REQUEST:
             return Object.assign({}, state, {
                 individualScript: {
-                    data: {},
+                    log: null,
                     requesting: true,
                     success: false,
                     error: null,
