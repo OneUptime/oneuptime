@@ -82,10 +82,15 @@ export function fetchSingleAutomatedScriptFailure(data) {
     };
 }
 
-export function fetchSingleAutomatedScript(projectId, automatedSlug) {
+export function fetchSingleAutomatedScript(
+    projectId,
+    automatedSlug,
+    skip,
+    limit
+) {
     return function(dispatch) {
         const promise = getApi(
-            `automated-scripts/${projectId}/${automatedSlug}`
+            `automated-scripts/${projectId}/${automatedSlug}?skip=${skip}&limit=${limit}`
         );
         dispatch(fetchSingleAutomatedScriptRequest());
 
