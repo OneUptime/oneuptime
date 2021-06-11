@@ -113,13 +113,22 @@ module.exports = {
         }
     },
 
-    findAllLogs: async function(query) {
+    findAllLogs: async function(query, skip, limit) {
         try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 10;
+
+            if (typeof skip === 'string') skip = parseInt(skip);
+
+            if (typeof limit === 'string') limit = parseInt(limit);
             if (!query) {
                 query = {};
             }
             query.deleted = false;
             const response = await ScriptModelLog.find(query)
+                .limit(limit)
+                .skip(skip)
                 .populate('automationScriptId', 'name')
                 .populate('triggerByUser', 'name')
                 .populate('triggerByScript', 'name');
@@ -148,10 +157,10 @@ module.exports = {
         }
     },
 
-    getAutomatedLogService: async function(query) {
+    getAutomatedLogService: async function(query, skip, limit) {
         try {
             const _this = this;
-            const response = await _this.findAllLogs(query);
+            const response = await _this.findAllLogs(query, skip, limit);
             return response;
         } catch (error) {
             ErrorService.log('automatedScript.getAutomatedLogService', error);
