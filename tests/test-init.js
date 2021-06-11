@@ -1307,7 +1307,8 @@ const _this = {
         });
         await _this.pageClick(page, `#${eventBtn}`);
         // navigate to the note tab section
-        await _this.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
+        // await _this.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
+        await _this.pageClick(page, '.timeline-tab');
         await _this.pageWaitForSelector(page, `#add-${type}-message`, {
             visible: true,
         });
