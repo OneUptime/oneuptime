@@ -87,6 +87,8 @@ export default function component(state = INITIAL_STATE, action) {
             return Object.assign({}, state, {
                 individualScript: {
                     log: action.payload,
+                    skip: action.payload.skip,
+                    limit: action.payload.limit,
                     requesting: false,
                     success: true,
                     error: null,
