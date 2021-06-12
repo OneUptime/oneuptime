@@ -224,7 +224,11 @@ module.exports = {
                 // if different, resolve last incident, create a new incident and monitor status
                 if (lastStatus) {
                     // check 3 times just to make sure
-                    if (data.retryCount >= 0 && data.retryCount < 3)
+                    if (
+                        typeof data.retry === 'boolean' &&
+                        data.retryCount >= 0 &&
+                        data.retryCount < 3
+                    )
                         return { retry: true, retryCount: data.retryCount };
 
                     // grab all the criteria in a monitor
@@ -357,7 +361,11 @@ module.exports = {
                         return incident;
                     });
                 } else {
-                    if (data.retryCount >= 0 && data.retryCount < 3)
+                    if (
+                        typeof data.retry === 'boolean' &&
+                        data.retryCount >= 0 &&
+                        data.retryCount < 3
+                    )
                         return { retry: true, retryCount: data.retryCount };
                     incidentIds = [
                         IncidentService.create({
@@ -407,7 +415,11 @@ module.exports = {
                         return incident;
                     });
                 } else {
-                    if (data.retryCount >= 0 && data.retryCount < 3)
+                    if (
+                        typeof data.retry === 'boolean' &&
+                        data.retryCount >= 0 &&
+                        data.retryCount < 3
+                    )
                         return { retry: true, retryCount: data.retryCount };
                     incidentIds = [
                         IncidentService.create({
@@ -457,8 +469,13 @@ module.exports = {
                         return incident;
                     });
                 } else {
-                    if (data.retryCount >= 0 && data.retryCount < 3)
+                    if (
+                        typeof data.retry === 'boolean' &&
+                        data.retryCount >= 0 &&
+                        data.retryCount < 3
+                    )
                         return { retry: true, retryCount: data.retryCount };
+
                     incidentIds = [
                         IncidentService.create({
                             projectId: monitor.projectId,
@@ -477,6 +494,7 @@ module.exports = {
             }
             incidentIds = await Promise.all(incidentIds);
             incidentIds = incidentIds.map(i => i._id);
+
             return incidentIds;
         } catch (error) {
             ErrorService.log('ProbeService.incidentCreateOrUpdate', error);
