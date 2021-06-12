@@ -167,11 +167,12 @@ module.exports = {
                             createdDomain._id || existingBaseDomain._id,
                     },
                 ];
-                const result = await statusPage.save();
-
-                return await this.findOneBy({
-                    _id: result._id,
-                });
+                return await this.updateOneBy(
+                    { _id: statusPage._id },
+                    {
+                        domains: statusPage.domains,
+                    }
+                );
             } else {
                 const error = new Error(
                     'Status page not found or does not exist'
@@ -323,8 +324,11 @@ module.exports = {
 
             statusPage.domains = updatedDomainList;
 
-            const result = await statusPage.save();
-            return await this.findOneBy({ _id: result._id });
+            const result = await this.updateOneBy(
+                { _id: statusPage._id },
+                { domains: statusPage.domains }
+            );
+            return result;
         } catch (error) {
             ErrorService.log('statusPageService.updateDomain', error);
             throw error;
@@ -366,7 +370,10 @@ module.exports = {
             }
 
             statusPage.domains = remainingDomains;
-            return statusPage.save();
+            return await this.updateOneBy(
+                { _id: statusPage._id },
+                { domains: statusPage.domains }
+            );
         } catch (error) {
             ErrorService.log('statusPageService.deleteDomain', error);
             throw error;
