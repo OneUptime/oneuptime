@@ -128,7 +128,7 @@ const runScript = async (
                         success: false,
                         message: err.message,
                         errors: err.errors,
-                        status: 'nonEmptyCb',
+                        status: 'nonEmptyCallback',
                         executionTime: performance.now() - start,
                         consoleLogs,
                     });
