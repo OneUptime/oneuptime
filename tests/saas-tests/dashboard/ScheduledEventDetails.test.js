@@ -336,53 +336,53 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
         },
         operationTimeOut
     );
-    // test(
-    //     'should visit the advance section and delete the schedule maintenance',
-    //     async done => {
-    //         await page.goto(utils.DASHBOARD_URL, {
-    //             waitUntil: ['networkidle2'],
-    //         });
-    //         await init.pageWaitForSelector(page, '#scheduledMaintenance', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageClick(page, '#scheduledMaintenance');
+    test(
+        'should visit the advance section and delete the schedule maintenance',
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#scheduledMaintenance', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#scheduledMaintenance');
 
-    //         await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageClick(page, '#viewScheduledEvent_0');
-    //         // navigate to the advance tab section
-    //         await init.gotoTab(utils.scheduleEventTabIndexes.ADVANCE, page);
+            await init.pageWaitForSelector(page, '#viewScheduledEvent_0', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#viewScheduledEvent_0');
+            // navigate to the advance tab section            
+            await init.pageClick(page, ".advanced-options-tab");
 
-    //         // look for the delete button and click on it
-    //         await init.pageWaitForSelector(page, '#deleteScheduleEvent', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageClick(page, '#deleteScheduleEvent');
+            // look for the delete button and click on it
+            await init.pageWaitForSelector(page, '#deleteScheduleEvent', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#deleteScheduleEvent');
 
-    //         // find the confirm delete button in the pop up and click on it
-    //         await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
-    //             visible: true,
-    //             timeout: init.timeout,
-    //         });
-    //         await init.pageClick(page, '#deleteScheduleModalBtn');
-    //         // confirm that the element is deleted and redirected to the list of all schedule event page
-    //         await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
-    //             hidden: true,
-    //         });
-    //         const scheduledEventList = await init.pageWaitForSelector(
-    //             page,
-    //             '.scheduled-event-list-item',
-    //             {
-    //                 hidden: true,
-    //             }
-    //         );
-    //         expect(scheduledEventList).toBeNull();
-    //         done();
-    //     },
-    //     operationTimeOut
-    // );
+            // find the confirm delete button in the pop up and click on it
+            await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#deleteScheduleModalBtn');
+            // confirm that the element is deleted and redirected to the list of all schedule event page
+            await init.pageWaitForSelector(page, '#deleteScheduleModalBtn', {
+                hidden: true,
+            });
+            const scheduledEventList = await init.pageWaitForSelector(
+                page,
+                '.scheduled-event-list-item',
+                {
+                    hidden: true,
+                }
+            );
+            expect(scheduledEventList).toBeNull();
+            done();
+        },
+        operationTimeOut
+    );
 });
