@@ -64,8 +64,9 @@ describe('Twilio API', function() {
             .send(monitor);
         expect(res).to.have.status(200);
         monitorId = res.body._id;
+        incidentData.monitors = [monitorId];
         res = await request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData);
         expect(res).to.have.status(200);

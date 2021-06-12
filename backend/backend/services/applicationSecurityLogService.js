@@ -53,6 +53,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const securityLog = await ApplicationSecurityLogModel.findOne(query)
+                .lean()
                 .populate('securityId')
                 .populate('componentId');
 
@@ -77,6 +78,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const securityLogs = await ApplicationSecurityLogModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)

@@ -12,7 +12,9 @@ module.exports = {
 
             incidentMessage = await incidentMessage.save();
 
-            IncidentService.refreshInterval(data.incidentId);
+            if (!data.ignoreCounter) {
+                await IncidentService.refreshInterval(data.incidentId);
+            }
 
             incidentMessage = await this.findOneBy({
                 _id: incidentMessage._id,
@@ -62,6 +64,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const incidentMessage = await IncidentMessageModel.findOne(query)
+                .lean()
                 .populate('incidentId', 'idNumber name')
                 .populate('createdById', 'name');
             return incidentMessage;
@@ -83,6 +86,7 @@ module.exports = {
             }
             if (!query.deleted) query.deleted = false;
             const incidentMessages = await IncidentMessageModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]]) // fetch from latest to oldest
                 .limit(limit)
                 .skip(skip)

@@ -5,7 +5,7 @@ module.exports = {
         await GlobalConfigService.create({
             name: 'smtp',
             value: {
-                'email-enabled': false,
+                'email-enabled': true,
                 email: 'ibukun.o.dairo@gmail.com',
                 password: 'ZEC1kY9xFN6aVf3j',
                 'from-name': 'Ibukun',
@@ -13,6 +13,7 @@ module.exports = {
                 'smtp-server': 'smtp-relay.sendinblue.com',
                 'smtp-port': '465',
                 'smtp-secure': true,
+                customSmtp: true,
             },
         });
         //

@@ -1,6 +1,7 @@
 /* eslint-disable no-undef */
 
 process.env.PORT = 3020;
+process.env.IS_SAAS_SERVICE = true;
 const HTTP_TEST_SERVER_URL = 'http://localhost:3010';
 const expect = require('chai').expect;
 const userData = require('./data/user');
@@ -134,9 +135,6 @@ describe('Incident API', function() {
                 'http://127.0.0.1:3010/api/webhooks/external_subscriber',
             webhookMethod: 'post',
         });
-
-        expect(res2).to.have.status(200);
-        expect(res2.body.name).to.be.equal(monitor.name);
     });
 
     after(async function() {
@@ -166,8 +164,9 @@ describe('Incident API', function() {
             .get('/api/webhooks/external_subscriber');
         expect(webhookTest).to.have.status(404);
 
+        incidentData.monitors = [monitorId];
         const res = await request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData);
         incidentId = res.body._id;
@@ -292,6 +291,7 @@ describe('Incident API', function() {
     });
 
     it('should acknowledge an incident and send email to users', async function() {
+        const date = moment().subtract(1, 'minutes');
         const authorization = `Basic ${token}`;
         const res = await markIncidentAsAcknowledged({
             request,
@@ -299,7 +299,6 @@ describe('Incident API', function() {
             projectId,
             incidentId,
         });
-        const date = moment().subtract(1, 'minutes');
         const emailStatus = await EmailStatusService.findBy({
             template: 'incident_acknowledged',
             createdAt: { $gt: date },
@@ -311,6 +310,7 @@ describe('Incident API', function() {
     });
 
     it('should resolve an incident and send email to users', async function() {
+        const date = moment().subtract(1, 'minutes');
         const authorization = `Basic ${token}`;
         const res = await markIncidentAsResolved({
             request,
@@ -318,7 +318,6 @@ describe('Incident API', function() {
             projectId,
             incidentId,
         });
-        const date = moment().subtract(1, 'minutes');
         const emailStatus = await EmailStatusService.findBy({
             template: 'incident_resolved',
             createdAt: { $gt: date },
@@ -580,8 +579,9 @@ describe('Incident API', function() {
                 },
             ]);
         expect(createEscalation).to.have.status(200);
+        incidentData.monitors = [monitorId];
         const createdIncident = await request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData);
         expect(createdIncident).to.have.status(200);
@@ -635,8 +635,9 @@ describe('Incident API', function() {
             },
         });
         await IncidentService.hardDeleteBy({ projectId: projectId });
+        incidentData.monitors = [monitorId];
         const createdIncident = await request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData);
         await sleep(10000);
@@ -674,6 +675,10 @@ describe('Incident API with Sub-Projects', function() {
     this.timeout(60000);
     before(async function() {
         this.timeout(60000);
+
+        incidentData.monitors = [monitorId];
+        incidentData.projectId = projectId;
+
         const authorization = `Basic ${token}`;
         // create a subproject for parent project
         await GlobalConfig.initTestConfig();
@@ -738,7 +743,7 @@ describe('Incident API with Sub-Projects', function() {
         });
         const authorization = `Basic ${res1.body.tokens.jwtAccessToken}`;
         const res2 = await request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData);
         expect(res2).to.have.status(400);
@@ -750,7 +755,7 @@ describe('Incident API with Sub-Projects', function() {
     it('should create an incident in parent project.', async function() {
         const authorization = `Basic ${token}`;
         const res = await request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(incidentData);
         incidentId = res.body._id;
@@ -761,9 +766,9 @@ describe('Incident API with Sub-Projects', function() {
     it('should create an incident in sub-project.', async function() {
         const authorization = `Basic ${newUserToken}`;
         const res = await request
-            .post(`/incident/${subProjectId}/${monitorId}`)
+            .post(`/incident/${subProjectId}/create-incident`)
             .set('Authorization', authorization)
-            .send(incidentData);
+            .send({ ...incidentData, projectId: subProjectId });
         subProjectIncidentId = res.body._id;
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');

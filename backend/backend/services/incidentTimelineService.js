@@ -28,8 +28,10 @@ module.exports = {
             if (incident) {
                 const _incidentTimeline = Object.assign(
                     {},
-                    incidentTimeline._doc,
-                    { projectId: incident.projectId }
+                    incidentTimeline._doc || incidentTimeline,
+                    {
+                        projectId: incident.projectId._id || incident.projectId,
+                    }
                 );
                 RealTimeService.updateIncidentTimeline(_incidentTimeline);
             }
@@ -100,6 +102,7 @@ module.exports = {
             query.deleted = false;
 
             const incidentTimelines = await IncidentTimelineModel.find(query)
+                .lean()
                 .sort({ createdAt: 1 })
                 .limit(limit)
                 .skip(skip)
@@ -121,6 +124,7 @@ module.exports = {
             query.deleted = false;
 
             const incidentTimeline = await IncidentTimelineModel.findOne(query)
+                .lean()
                 .populate('createdById', 'name')
                 .populate('probeId', 'probeName');
 

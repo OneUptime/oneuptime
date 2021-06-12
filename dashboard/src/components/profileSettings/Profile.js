@@ -1272,6 +1272,7 @@ export class ProfileSetting extends Component {
                                                         style={{
                                                             marginTop: '10px',
                                                         }}
+                                                        id="twoFactorLabel"
                                                     >
                                                         <input
                                                             className="btn-toggler"

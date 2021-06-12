@@ -41,8 +41,6 @@ describe('User logout', () => {
             await init.pageClick(page, '#logout-button');
             await page.waitForNavigation({ waitUntil: 'networkidle2' });
             await page.goto(utils.ADMIN_DASHBOARD_URL);
-            await page.waitForNavigation({ waitUntil: 'networkidle2' });
-
             expect(page.url()).toEqual(`${utils.ACCOUNTS_URL}/accounts/login`);
             done();
         },

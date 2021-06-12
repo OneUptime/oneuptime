@@ -5,7 +5,7 @@ const init = require('../../test-init');
 let browser, page;
 require('should');
 const operationTimeOut = init.timeout;
-const email = 'masteradmin@hackerbay.io';
+const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 const moveToSsoPage = async page => {
@@ -32,8 +32,11 @@ const createSso = async (page, data) => {
     await init.pageClick(page, '#domain');
     await init.pageType(page, '#domain', data.domain);
 
-    await init.pageClick(page, '#samlSsoUrl');
-    await init.pageType(page, '#samlSsoUrl', data.samlSsoUrl);
+    await init.pageClick(page, '#entityId');
+    await init.pageType(page, '#entityId', data.applicationId);
+
+    await init.pageClick(page, '#remoteLoginUrl');
+    await init.pageType(page, '#remoteLoginUrl', data.samlSsoUrl);
 
     await init.pageClick(page, '#certificateFingerprint');
     await init.pageType(
@@ -65,6 +68,7 @@ describe('SSO login', () => {
         await moveToSsoPage(page);
         await createSso(page, {
             'saml-enabled': false,
+            applicationId: 'hackerbay.io',
             domain: `disabled-domain.hackerbay.io`,
             samlSsoUrl:
                 'http://localhost:9876/simplesaml/saml2/idp/SSOService.php',
@@ -75,6 +79,7 @@ describe('SSO login', () => {
         await createSso(page, {
             'saml-enabled': true,
             domain: `tests.hackerbay.io`,
+            applicationId: 'hackerbay.io',
             samlSsoUrl:
                 'http://localhost:9876/simplesaml/saml2/idp/SSOService.php',
             certificateFingerprint: 'AZERTYUIOP',
@@ -105,10 +110,12 @@ describe('SSO login', () => {
                 'input[name=email]',
                 'email@inexistent-domain.hackerbay.io'
             );
-            await init.pageClick(page, 'button[type=submit]');
-            await page.waitForResponse(response =>
-                response.url().includes('/login')
-            );
+            await Promise.all([
+                init.pageClick(page, 'button[type=submit]'),
+                page.waitForResponse(response =>
+                    response.url().includes('/login')
+                ),
+            ]);
             const html = await init.page$Eval(
                 page,
                 '#main-body',
@@ -175,17 +182,15 @@ describe('SSO login', () => {
             expect(chain.length).not.toBe(0);
 
             await init.pageClick(page, '#username');
-            await init.pageType(page, '#username', email);
+            await init.pageType(page, '#username', 'user1');
 
             await init.pageClick(page, '#password');
-            await init.pageType(page, '#password', password);
+            await init.pageType(page, '#password', 'user1pass');
 
             await Promise.all([
                 page.waitForNavigation('networkidle2'),
                 init.pageClick(page, 'button'),
             ]);
-
-            await init.pageWaitForSelector(page, '#createButton');
 
             done();
         },

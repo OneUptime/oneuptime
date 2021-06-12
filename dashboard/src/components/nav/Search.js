@@ -216,10 +216,8 @@ class Search extends Component {
             this.props.addIncident(searchObj.incident);
             this.props.animateSidebar(false);
         }, 200);
-        this.props.markAsRead(
-            this.props.currentProject._id,
-            searchObj.notificationId
-        );
+        const notifications = [{ notificationId: searchObj.notificationId }];
+        this.props.markAsRead(this.props.currentProject._id, notifications);
         this.props.animateSidebar(true);
     };
     loadErrorTracker = (currentProject, searchObj) => {

@@ -154,12 +154,14 @@ export class MonitorViewLogsBox extends Component {
                                     {this.props.incidentId ? (
                                         <span>
                                             Here&#39;s all of the monitor logs
-                                            that created this incident.
+                                            of {this.props.monitorName} that
+                                            created this incident.
                                         </span>
                                     ) : (
                                         <span>
                                             Here&#39;s all of the logs for the
-                                            monitor created by the{' '}
+                                            monitor {this.props.monitorName}{' '}
+                                            created by the{' '}
                                             {this.props.monitorType ===
                                                 'server-monitor' &&
                                             !this.props.agentless

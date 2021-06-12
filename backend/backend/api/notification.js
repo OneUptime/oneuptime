@@ -37,30 +37,28 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
     }
 });
 
-router.put(
-    '/:projectId/:notificationId/read',
-    getUser,
-    isAuthorized,
-    async function(req, res) {
-        try {
-            const notificationId = req.params.notificationId;
-            const userId = req.user ? req.user.id : null;
+router.put('/:projectId/read', getUser, isAuthorized, async function(req, res) {
+    try {
+        // const notificationId = req.params.notificationId;
+        const userId = req.user ? req.user.id : null;
+
+        const { notificationIds } = req.body;
+        const notifications = [];
+        for (const notificationId of notificationIds) {
             const notification = await NotificationService.updateOneBy(
                 { _id: notificationId },
                 { read: [userId] }
             );
             if (notification) {
-                return sendItemResponse(req, res, notification);
-            } else {
-                const error = new Error('Notification not found.');
-                error.code = 400;
-                return sendErrorResponse(req, res, error);
+                notifications.push(notificationId);
             }
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
         }
+
+        return sendItemResponse(req, res, notifications);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
-);
+});
 
 router.put(
     '/:projectId/:notificationId/closed',

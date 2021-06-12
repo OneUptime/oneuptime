@@ -36,6 +36,9 @@ module.exports = {
             Log.sslCertificate = data.sslCertificate;
             Log.kubernetesLog = data.kubernetesData || {};
 
+            // script log details
+            Log.scriptMetadata = data.scriptMetadata;
+
             const savedLog = await Log.save();
 
             const now = new Date();
@@ -212,6 +215,7 @@ module.exports = {
             }
 
             const monitorLogs = await MonitorLogModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -230,9 +234,9 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLog = await MonitorLogModel.findOne(query).populate(
-                'probeId'
-            );
+            const monitorLog = await MonitorLogModel.findOne(query)
+                .lean()
+                .populate('probeId');
 
             return monitorLog;
         } catch (error) {

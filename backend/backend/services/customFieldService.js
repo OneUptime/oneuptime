@@ -27,9 +27,9 @@ module.exports = {
                 ...data,
             });
 
-            customField = await customField
-                .populate('projectId', 'name')
-                .execPopulate();
+            customField = await this.findOneBy({
+                _id: customField._id,
+            });
 
             return customField;
         } catch (error) {

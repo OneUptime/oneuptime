@@ -10,9 +10,9 @@ module.exports = {
      * @param {Object} incident the current incident
      * @returns {Object[]} list of schedules
      */
-    getSchedulesForAlerts: async function(incident) {
+    getSchedulesForAlerts: async function(incident, monitor) {
         try {
-            const monitorId = incident.monitorId._id || incident.monitorId;
+            const monitorId = monitor._id;
             const projectId = incident.projectId._id || incident.projectId;
 
             const {
@@ -92,6 +92,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const alerts = await AlertModel.find(query)
+                .lean()
                 .sort(sort)
                 .limit(limit)
                 .skip(skip)
@@ -292,23 +293,30 @@ module.exports = {
         }
     },
 
-    sendCreatedIncident: async function(incident) {
+    sendCreatedIncident: async function(incident, monitor) {
         try {
             if (incident) {
                 const _this = this;
 
-                const schedules = await this.getSchedulesForAlerts(incident);
+                const scheduleList = await this.getSchedulesForAlerts(
+                    incident,
+                    monitor
+                );
 
-                if (schedules.length > 0) {
-                    for (const schedule of schedules) {
+                // for (const schedules of scheduleList) {
+                //     console.log('***** each schedle *******', schedules);
+                // }
+                if (scheduleList.length > 0) {
+                    for (const schedule of scheduleList) {
                         _this.sendAlertsToTeamMembersInSchedule({
                             schedule,
                             incident,
+                            monitorId: monitor._id,
                         });
                     }
                 } else {
                     OnCallScheduleStatusService.create({
-                        project: incident.projectId,
+                        project: incident.projectId._id || incident.projectId,
                         incident: incident._id,
                         activeEscalation: null,
                         schedule: null,
@@ -324,14 +332,16 @@ module.exports = {
         }
     },
 
-    sendAlertsToTeamMembersInSchedule: async function({ schedule, incident }) {
+    sendAlertsToTeamMembersInSchedule: async function({
+        schedule,
+        incident,
+        monitorId,
+    }) {
         const _this = this;
-        const monitorId = incident.monitorId._id
-            ? incident.monitorId._id
-            : incident.monitorId;
         const projectId = incident.projectId._id
             ? incident.projectId._id
             : incident.projectId;
+
         const monitor = await MonitorService.findOneBy({ _id: monitorId });
 
         if (!schedule || !incident) {
@@ -454,7 +464,7 @@ module.exports = {
             !shouldSendCallReminder &&
             !shouldSendPushReminder
         ) {
-            _this.escalate({ schedule, incident, alertProgress });
+            _this.escalate({ schedule, incident, alertProgress, monitor });
         } else {
             _this.sendAlertsToTeamMembersInEscalationPolicy({
                 escalation,
@@ -467,15 +477,11 @@ module.exports = {
         }
     },
 
-    escalate: async function({ schedule, incident, alertProgress }) {
+    escalate: async function({ schedule, incident, alertProgress, monitor }) {
         const _this = this;
         const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
             query: { incident: incident._id, schedule: schedule._id },
         });
-        const monitorId = incident.monitorId._id
-            ? incident.monitorId._id
-            : incident.monitorId;
-        const monitor = await MonitorService.findOneBy({ _id: monitorId });
 
         if (callScheduleStatuses.length === 0) {
             return;
@@ -503,7 +509,7 @@ module.exports = {
                 escalationId = escalationId._id;
             }
 
-            if (activeEscalation._id.toString() === escalationId.toString()) {
+            if (String(activeEscalation._id) === String(escalationId)) {
                 found = true;
             }
         }
@@ -513,8 +519,9 @@ module.exports = {
             nextEscalationPolicy._id.toString() !==
                 activeEscalation._id.toString()
         ) {
-            callScheduleStatus.alertedEveryone = true;
-            await callScheduleStatus.save();
+            const query = { _id: callScheduleStatus._id };
+            const data = { alertedEveryone: true };
+            await OnCallScheduleStatusService.updateOneBy({ query, data });
             return; //can't escalate anymore.
         }
 
@@ -526,7 +533,12 @@ module.exports = {
         });
         callScheduleStatus.activeEscalation = nextEscalationPolicy;
 
-        await callScheduleStatus.save();
+        const query = { _id: callScheduleStatus._id };
+        const data = {
+            escalations: callScheduleStatus.escalations,
+            activeEscalation: callScheduleStatus.activeEscalation,
+        };
+        await OnCallScheduleStatusService.updateOneBy({ query, data });
 
         _this.sendAlertsToTeamMembersInEscalationPolicy({
             escalation: nextEscalationPolicy,
@@ -611,7 +623,12 @@ module.exports = {
         onCallScheduleStatus.escalations[
             onCallScheduleStatus.escalations.length - 1
         ] = currentEscalationStatus;
-        await onCallScheduleStatus.save();
+        await OnCallScheduleStatusService.updateOneBy({
+            query: { _id: onCallScheduleStatus._id },
+            data: {
+                escalations: onCallScheduleStatus.escalations,
+            },
+        });
 
         const allUsers = [...activeTeam.teamMembers, ...filterdUserIds];
         for (const teamMember of allUsers) {
@@ -627,8 +644,12 @@ module.exports = {
                         JSON.stringify(onCallScheduleStatus.schedule)) &&
                 isOnDuty
             ) {
-                onCallScheduleStatus.isOnDuty = true;
-                onCallScheduleStatus.save();
+                await OnCallScheduleStatusService.updateOneBy({
+                    query: { _id: onCallScheduleStatus._id },
+                    data: {
+                        isOnDuty: true,
+                    },
+                });
             }
 
             const user = await UserService.findOneBy({
@@ -642,7 +663,7 @@ module.exports = {
             if (!isOnDuty) {
                 if (escalation.call && shouldSendCallReminder) {
                     await _this.create({
-                        projectId: incident.projectId,
+                        projectId: incident.projectId._id || incident.projectId,
                         monitorId,
                         alertVia: AlertType.Call,
                         userId: user._id,
@@ -657,7 +678,7 @@ module.exports = {
                 }
                 if (escalation.email && shouldSendEmailReminder) {
                     await _this.create({
-                        projectId: incident.projectId,
+                        projectId: incident.projectId._id || incident.projectId,
                         monitorId,
                         alertVia: AlertType.Email,
                         userId: user._id,
@@ -672,7 +693,7 @@ module.exports = {
                 }
                 if (escalation.sms && shouldSendSMSReminder) {
                     await _this.create({
-                        projectId: incident.projectId,
+                        projectId: incident.projectId._id || incident.projectId,
                         monitorId,
                         alertVia: AlertType.SMS,
                         userId: user._id,
@@ -687,7 +708,7 @@ module.exports = {
                 }
                 if (escalation.push && shouldSendPushReminder) {
                     await _this.create({
-                        projectId: incident.projectId,
+                        projectId: incident.projectId._id || incident.projectId,
                         monitorId,
                         alertVia: AlertType.Push,
                         userId: user._id,
@@ -833,7 +854,7 @@ module.exports = {
             return Promise.all(promiseFuncs)
                 .then(async () => {
                     return await _this.create({
-                        projectId: incident.projectId,
+                        projectId: incident.projectId._id || incident.projectId,
                         monitorId: monitor._id,
                         schedule: schedule._id,
                         escalation: escalation._id,
@@ -848,7 +869,7 @@ module.exports = {
                 })
                 .catch(async e => {
                     return await _this.create({
-                        projectId: incident.projectId,
+                        projectId: incident.projectId._id || incident.projectId,
                         monitorId: monitor._id,
                         schedule: schedule._id,
                         escalation: escalation._id,
@@ -865,7 +886,7 @@ module.exports = {
                 });
         } else {
             return await _this.create({
-                projectId: incident.projectId,
+                projectId: incident.projectId._id || incident.projectId,
                 monitorId: monitor._id,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -904,12 +925,12 @@ module.exports = {
             expiresIn: 12 * 60 * 60 * 1000,
         });
 
-        const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const ack_url = `${global.apiHost}/incident/${incident.projectId}/acknowledge/${incident._id}?${queryString}`;
-        const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const projectId = incident.projectId._id || incident.projectId;
+        const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
+        const ack_url = `${global.apiHost}/incident/${projectId}/acknowledge/${incident._id}?${queryString}`;
+        const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
-        const projectId = incident.projectId;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
             date = moment(incident.createdAt)
@@ -945,7 +966,7 @@ module.exports = {
                     errorMessageText = 'Alert Disabled on Admin Dashboard';
                 }
                 return await _this.create({
-                    projectId: incident.projectId,
+                    projectId: incident.projectId._id || incident.projectId,
                     monitorId,
                     schedule: schedule._id,
                     escalation: escalation._id,
@@ -986,7 +1007,7 @@ module.exports = {
                 email: user.email,
                 userId: user._id,
                 firstName: firstName.split(' ')[0],
-                projectId: incident.projectId,
+                projectId: incident.projectId._id || incident.projectId,
                 acknowledgeUrl: ack_url,
                 resolveUrl: resolve_url,
                 accessToken,
@@ -1000,7 +1021,7 @@ module.exports = {
                 emailProgress,
             });
             return await _this.create({
-                projectId: incident.projectId,
+                projectId: incident.projectId._id || incident.projectId,
                 monitorId,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -1014,7 +1035,7 @@ module.exports = {
             });
         } catch (e) {
             return await _this.create({
-                projectId: incident.projectId,
+                projectId: incident.projectId._id || incident.projectId,
                 monitorId,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -1032,7 +1053,7 @@ module.exports = {
     },
 
     sendSlaEmailToTeamMembers: async function(
-        { projectId, monitor, incidentCommunicationSla, incident, alertTime },
+        { projectId, incidentCommunicationSla, incident, alertTime },
         breached = false
     ) {
         try {
@@ -1064,13 +1085,15 @@ module.exports = {
                 }
 
                 const incidentSla = incidentCommunicationSla.name;
-                const projectName = monitor.projectId.name;
-                const monitorName = monitor.name;
+                const projectName = incident.projectId.name;
+                const projectSlug = incident.projectId.slug;
+                // const monitorName = monitor.name;
                 const incidentId = `#${incident.idNumber}`;
                 const reason = incident.reason;
-                const componentSlug = incident.monitorId.componentId.slug;
-                const componentName = incident.monitorId.componentId.name;
-                const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.idNumber}`;
+                // const componentSlug = monitor.componentId.slug;
+                // const componentName = monitor.componentId.name;
+                // const incidentUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${componentSlug}/incidents/${incident.idNumber}`;
+                const incidentUrl = `${global.dashboardHost}/project/${projectSlug}/incidents/${incident.idNumber}`;
                 let incidentSlaTimeline =
                     incidentCommunicationSla.duration * 60;
                 incidentSlaTimeline = secondsToHms(incidentSlaTimeline);
@@ -1083,10 +1106,10 @@ module.exports = {
                             name: member.name,
                             projectId,
                             incidentSla,
-                            monitorName,
+                            // monitorName,
                             incidentUrl,
                             projectName,
-                            componentName,
+                            // componentName,
                             incidentId,
                             reason,
                             incidentSlaTimeline,
@@ -1099,10 +1122,10 @@ module.exports = {
                             name: member.name,
                             projectId,
                             incidentSla,
-                            monitorName,
+                            // monitorName,
                             incidentUrl,
                             projectName,
-                            componentName,
+                            // componentName,
                             incidentId,
                             reason,
                             incidentSlaTimeline,
@@ -1112,7 +1135,7 @@ module.exports = {
                 }
             }
         } catch (error) {
-            ErrorService.log('AlertService.updateOneBy', error);
+            ErrorService.log('AlertService.sendSlaEmailToTeamMembers', error);
             throw error;
         }
     },
@@ -1132,13 +1155,14 @@ module.exports = {
         let alert;
         const date = new Date();
         const monitorId = monitor._id;
+        const projectId = incident.projectId._id || incident.projectId;
         const accessToken = UserService.getAccessToken({
             userId: user._id,
             expiresIn: 12 * 60 * 60 * 1000,
         });
         if (!user.alertPhoneNumber) {
             return await _this.create({
-                projectId: incident.projectId,
+                projectId,
                 schedule: schedule._id,
                 escalation: escalation._id,
                 onCallScheduleStatus: onCallScheduleStatus._id,
@@ -1164,7 +1188,7 @@ module.exports = {
                 ? true
                 : false;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
-            incident.projectId
+            projectId
         );
 
         if (
@@ -1183,7 +1207,7 @@ module.exports = {
                 errorMessageText = 'Alert Disabled for this project';
             }
             return await _this.create({
-                projectId: incident.projectId,
+                projectId,
                 schedule: schedule._id,
                 escalation: escalation._id,
                 onCallScheduleStatus: onCallScheduleStatus._id,
@@ -1201,7 +1225,7 @@ module.exports = {
 
         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
             const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
-                incident.projectId,
+                projectId,
                 user.alertPhoneNumber
             );
             if (!doesPhoneNumberComplyWithHighRiskConfig) {
@@ -1218,7 +1242,7 @@ module.exports = {
                         'Calls to High Risk country not enabled for this project';
                 }
                 return await _this.create({
-                    projectId: incident.projectId,
+                    projectId,
                     monitorId,
                     schedule: schedule._id,
                     escalation: escalation._id,
@@ -1243,7 +1267,7 @@ module.exports = {
 
             if (!status.success) {
                 return await _this.create({
-                    projectId: incident.projectId,
+                    projectId,
                     monitorId,
                     schedule: schedule._id,
                     escalation: escalation._id,
@@ -1265,7 +1289,7 @@ module.exports = {
             user.alertPhoneNumber,
             accessToken,
             incident._id,
-            incident.projectId,
+            projectId,
             incident.incidentType,
             callProgress
         );
@@ -1309,7 +1333,7 @@ module.exports = {
 
                 if (!balanceStatus.error) {
                     await AlertChargeService.create(
-                        incident.projectId,
+                        projectId,
                         balanceStatus.chargeAmount,
                         balanceStatus.closingBalance,
                         alert._id,
@@ -1387,7 +1411,7 @@ module.exports = {
                 errorMessageText = 'Error';
             }
             return await _this.create({
-                projectId: incident.projectId,
+                projectId: incident.projectId._id || incident.projectId,
                 schedule: schedule._id,
                 escalation: escalation._id,
                 onCallScheduleStatus: onCallScheduleStatus._id,
@@ -1405,7 +1429,7 @@ module.exports = {
 
         if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
             const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
-                incident.projectId,
+                incident.projectId._id || incident.projectId,
                 user.alertPhoneNumber
             );
             if (!doesPhoneNumberComplyWithHighRiskConfig) {
@@ -1422,7 +1446,7 @@ module.exports = {
                         'SMS to High Risk country not enabled for this project';
                 }
                 return await _this.create({
-                    projectId: incident.projectId,
+                    projectId: incident.projectId._id || incident.projectId,
                     monitorId,
                     schedule: schedule._id,
                     escalation: escalation._id,
@@ -1447,7 +1471,7 @@ module.exports = {
 
             if (!status.success) {
                 return await _this.create({
-                    projectId: incident.projectId,
+                    projectId: incident.projectId._id || incident.projectId,
                     monitorId,
                     schedule: schedule._id,
                     escalation: escalation._id,
@@ -1478,7 +1502,7 @@ module.exports = {
 
         if (sendResult && sendResult.code && sendResult.code === 400) {
             await _this.create({
-                projectId: incident.projectId,
+                projectId: incident.projectId._id || incident.projectId,
                 monitorId,
                 alertVia: AlertType.SMS,
                 userId: user._id,
@@ -1495,7 +1519,7 @@ module.exports = {
         } else if (sendResult) {
             const alertStatus = 'Success';
             alert = await _this.create({
-                projectId: incident.projectId,
+                projectId: incident.projectId._id || incident.projectId,
                 schedule: schedule._id,
                 escalation: escalation._id,
                 onCallScheduleStatus: onCallScheduleStatus._id,
@@ -1520,7 +1544,7 @@ module.exports = {
 
                 if (!balanceStatus.error) {
                     await AlertChargeService.create(
-                        incident.projectId,
+                        incident.projectId._id || incident.projectId,
                         balanceStatus.chargeAmount,
                         balanceStatus.closingBalance,
                         alert._id,
@@ -1539,43 +1563,45 @@ module.exports = {
         statusPageNoteData
     ) {
         try {
-            const monitor = await MonitorService.findOneBy({
-                _id: incident.monitorId,
-            });
-            const component = await componentService.findOneBy({
-                _id: monitor.componentId,
-            });
-
-            let incidentStatus;
-            if (incident.resolved) {
-                incidentStatus = INCIDENT_RESOLVED;
-            } else if (incident.acknowledged) {
-                incidentStatus = INCIDENT_ACKNOWLEDGED;
-            } else {
-                incidentStatus = INCIDENT_CREATED;
-            }
-            const downTimeString = calculateHumanReadableDownTime(
-                incident.createdAt
+            const monitors = incident.monitors.map(
+                monitor => monitor.monitorId
             );
+            for (const monitor of monitors) {
+                const component = await componentService.findOneBy({
+                    _id: monitor.componentId,
+                });
 
-            WebHookService.sendIntegrationNotification(
-                projectId,
-                incident,
-                monitor,
-                incidentStatus,
-                component,
-                downTimeString,
-                {
-                    note: statusPageNoteData.content,
-                    incidentState: statusPageNoteData.incident_state,
-                    statusNoteStatus: statusPageNoteData.statusNoteStatus,
+                let incidentStatus;
+                if (incident.resolved) {
+                    incidentStatus = INCIDENT_RESOLVED;
+                } else if (incident.acknowledged) {
+                    incidentStatus = INCIDENT_ACKNOWLEDGED;
+                } else {
+                    incidentStatus = INCIDENT_CREATED;
                 }
-            ).catch(error => {
-                ErrorService.log(
-                    'AlertService.sendInvestigationNoteToProjectWebhooks',
-                    error
+                const downTimeString = calculateHumanReadableDownTime(
+                    incident.createdAt
                 );
-            });
+
+                WebHookService.sendIntegrationNotification(
+                    projectId,
+                    incident,
+                    monitor,
+                    incidentStatus,
+                    component,
+                    downTimeString,
+                    {
+                        note: statusPageNoteData.content,
+                        incidentState: statusPageNoteData.incident_state,
+                        statusNoteStatus: statusPageNoteData.statusNoteStatus,
+                    }
+                ).catch(error => {
+                    ErrorService.log(
+                        'AlertService.sendInvestigationNoteToProjectWebhooks',
+                        error
+                    );
+                });
+            }
         } catch (error) {
             ErrorService.log(
                 'AlertService.sendStatusPageNoteNotificationToProjectWebhooks',
@@ -1593,41 +1619,36 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
-            const monitor = await MonitorService.findOneBy({
-                _id: incident.monitorId._id,
-            });
-            // eslint-disable-next-line no-unused-vars
-            const component = await ComponentService.findOneBy({
-                _id:
-                    monitor.componentId && monitor.componentId._id
-                        ? monitor.componentId._id
-                        : monitor.componentId,
-            });
-            if (incident) {
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
-                const subscribers = await SubscriberService.subscribersForAlert(
-                    {
-                        monitorId: monitorId,
-                        subscribed: true,
-                    }
-                );
-                for (const subscriber of subscribers) {
-                    await _this.sendSubscriberAlert(
-                        subscriber,
-                        incident,
-                        'Investigation note is created',
-                        null,
+
+            const monitors = incident.monitors.map(
+                monitor => monitor.monitorId
+            );
+            for (const monitor of monitors) {
+                if (incident) {
+                    const monitorId = monitor._id;
+                    const subscribers = await SubscriberService.subscribersForAlert(
                         {
-                            note: data.content,
-                            incidentState: data.incident_state,
-                            noteType: data.incident_state,
-                            statusNoteStatus,
-                        },
-                        subscribers.length,
-                        uuid
+                            monitorId: monitorId,
+                            subscribed: true,
+                        }
                     );
+                    for (const subscriber of subscribers) {
+                        await _this.sendSubscriberAlert(
+                            subscriber,
+                            incident,
+                            'Investigation note is created',
+                            null,
+                            {
+                                note: data.content,
+                                incidentState: data.incident_state,
+                                noteType: data.incident_state,
+                                statusNoteStatus,
+                            },
+                            subscribers.length,
+                            uuid,
+                            monitor
+                        );
+                    }
                 }
             }
         } catch (error) {
@@ -1636,14 +1657,12 @@ module.exports = {
         }
     },
 
-    sendCreatedIncidentToSubscribers: async function(incident, component) {
+    sendCreatedIncidentToSubscribers: async function(incident, monitor) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
             if (incident) {
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
+                const monitorId = monitor && monitor._id;
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
                         monitorId: monitorId,
@@ -1665,9 +1684,10 @@ module.exports = {
                                 incident,
                                 'Subscriber Incident Created',
                                 enabledStatusPage,
-                                null,
+                                {},
                                 subscribers.length,
-                                uuid
+                                uuid,
+                                monitor
                             );
                         }
                     } else {
@@ -1676,9 +1696,10 @@ module.exports = {
                             incident,
                             'Subscriber Incident Created',
                             null,
-                            component,
+                            {},
                             subscribers.length,
-                            uuid
+                            uuid,
+                            monitor
                         );
                     }
                 }
@@ -1692,22 +1713,21 @@ module.exports = {
         }
     },
 
-    sendAcknowledgedIncidentMail: async function(incident) {
+    sendAcknowledgedIncidentMail: async function(incident, monitor) {
         try {
             const _this = this;
             if (incident) {
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
-
                 const projectId = incident.projectId._id
                     ? incident.projectId._id
                     : incident.projectId;
 
-                const schedules = await this.getSchedulesForAlerts(incident);
+                const schedules = await this.getSchedulesForAlerts(
+                    incident,
+                    monitor
+                );
 
-                const monitor = await MonitorService.findOneBy({
-                    _id: monitorId,
+                monitor = await MonitorService.findOneBy({
+                    _id: monitor._id,
                 });
                 const project = await ProjectService.findOneBy({
                     _id: projectId,
@@ -1798,8 +1818,8 @@ module.exports = {
                         if (!isOnDuty) {
                             if (escalation.email) {
                                 await _this.create({
-                                    projectId: incident.projectId,
-                                    monitorId,
+                                    projectId,
+                                    monitorId: monitor._id,
                                     alertVia: AlertType.Email,
                                     userId: user._id,
                                     incidentId: incident._id,
@@ -1854,11 +1874,11 @@ module.exports = {
             expiresIn: 12 * 60 * 60 * 1000,
         });
 
-        const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const resolve_url = `${global.apiHost}/incident/${incident.projectId}/resolve/${incident._id}?${queryString}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const projectId = incident.projectId._id || incident.projectId;
+        const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
+        const resolve_url = `${global.apiHost}/incident/${projectId}/resolve/${incident._id}?${queryString}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
-        const projectId = incident.projectId;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
             date = moment(date)
@@ -1894,7 +1914,7 @@ module.exports = {
                     errorMessageText = 'Alert Disabled on Admin Dashboard';
                 }
                 return await _this.create({
-                    projectId: incident.projectId,
+                    projectId,
                     monitorId: monitor._id,
                     schedule: schedule._id,
                     escalation: escalation._id,
@@ -1954,7 +1974,7 @@ module.exports = {
                 email: user.email,
                 userId: user._id,
                 firstName: firstName.split(' ')[0],
-                projectId: incident.projectId,
+                projectId,
                 resolveUrl: resolve_url,
                 accessToken,
                 incidentType: incident.incidentType,
@@ -1974,7 +1994,7 @@ module.exports = {
                     : 'Unknown User',
             });
             return await _this.create({
-                projectId: incident.projectId,
+                projectId,
                 monitorId: monitor._id,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -1987,7 +2007,7 @@ module.exports = {
             });
         } catch (e) {
             return await _this.create({
-                projectId: incident.projectId,
+                projectId,
                 monitorId: monitor._id,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -2003,22 +2023,21 @@ module.exports = {
         }
     },
 
-    sendResolveIncidentMail: async function(incident) {
+    sendResolveIncidentMail: async function(incident, monitor) {
         try {
             const _this = this;
             if (incident) {
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
-
                 const projectId = incident.projectId._id
                     ? incident.projectId._id
                     : incident.projectId;
 
-                const schedules = await this.getSchedulesForAlerts(incident);
+                const schedules = await this.getSchedulesForAlerts(
+                    incident,
+                    monitor
+                );
 
-                const monitor = await MonitorService.findOneBy({
-                    _id: monitorId,
+                monitor = await MonitorService.findOneBy({
+                    _id: monitor._id,
                 });
                 const project = await ProjectService.findOneBy({
                     _id: projectId,
@@ -2109,8 +2128,8 @@ module.exports = {
                         if (!isOnDuty) {
                             if (escalation.email) {
                                 await _this.create({
-                                    projectId: incident.projectId,
-                                    monitorId,
+                                    projectId,
+                                    monitorId: monitor._id,
                                     alertVia: AlertType.Email,
                                     userId: user._id,
                                     incidentId: incident._id,
@@ -2162,10 +2181,10 @@ module.exports = {
             expiresIn: 12 * 60 * 60 * 1000,
         });
 
-        const queryString = `projectId=${incident.projectId}&userId=${user._id}&accessToken=${accessToken}`;
-        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${incident.monitorId.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
+        const projectId = incident.projectId._id || incident.projectId;
+        const queryString = `projectId=${projectId}&userId=${user._id}&accessToken=${accessToken}`;
+        const view_url = `${global.dashboardHost}/project/${project.slug}/component/${monitor.componentId.slug}/incidents/${incident.idNumber}?${queryString}`;
         const firstName = user.name;
-        const projectId = incident.projectId;
 
         if (user.timezone && TimeZoneNames.indexOf(user.timezone) > -1) {
             date = moment(date)
@@ -2201,7 +2220,7 @@ module.exports = {
                     errorMessageText = 'Alert Disabled on Admin Dashboard';
                 }
                 return await _this.create({
-                    projectId: incident.projectId,
+                    projectId,
                     monitorId: monitor._id,
                     schedule: schedule._id,
                     escalation: escalation._id,
@@ -2259,7 +2278,7 @@ module.exports = {
                 email: user.email,
                 userId: user._id,
                 firstName: firstName.split(' ')[0],
-                projectId: incident.projectId,
+                projectId,
                 accessToken,
                 incidentType: incident.incidentType,
                 projectName: project.name,
@@ -2278,7 +2297,7 @@ module.exports = {
                     : 'Unknown User',
             });
             return await _this.create({
-                projectId: incident.projectId,
+                projectId,
                 monitorId: monitor._id,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -2291,7 +2310,7 @@ module.exports = {
             });
         } catch (e) {
             return await _this.create({
-                projectId: incident.projectId,
+                projectId,
                 monitorId: monitor._id,
                 schedule: schedule._id,
                 escalation: escalation._id,
@@ -2307,17 +2326,14 @@ module.exports = {
         }
     },
 
-    sendAcknowledgedIncidentToSubscribers: async function(incident) {
+    sendAcknowledgedIncidentToSubscribers: async function(incident, monitor) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
             if (incident) {
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
-                        monitorId: monitorId,
+                        monitorId: monitor._id,
                         subscribed: true,
                     }
                 );
@@ -2337,7 +2353,8 @@ module.exports = {
                                 enabledStatusPage,
                                 {},
                                 subscribers.length,
-                                uuid
+                                uuid,
+                                monitor
                             );
                         }
                     } else {
@@ -2348,7 +2365,8 @@ module.exports = {
                             null,
                             {},
                             subscribers.length,
-                            uuid
+                            uuid,
+                            monitor
                         );
                     }
                 }
@@ -2362,17 +2380,14 @@ module.exports = {
         }
     },
 
-    sendResolvedIncidentToSubscribers: async function(incident) {
+    sendResolvedIncidentToSubscribers: async function(incident, monitor) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
             if (incident) {
-                const monitorId = incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId;
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
-                        monitorId: monitorId,
+                        monitorId: monitor._id,
                         subscribed: true,
                     }
                 );
@@ -2392,7 +2407,8 @@ module.exports = {
                                 enabledStatusPage,
                                 {},
                                 subscribers.length,
-                                uuid
+                                uuid,
+                                monitor
                             );
                         }
                     } else {
@@ -2403,7 +2419,8 @@ module.exports = {
                             null,
                             {},
                             subscribers.length,
-                            uuid
+                            uuid,
+                            monitor
                         );
                     }
                 }
@@ -2424,7 +2441,8 @@ module.exports = {
         statusPage,
         { note, incidentState, noteType, statusNoteStatus } = {},
         totalSubscribers,
-        id
+        id,
+        monitor
     ) {
         try {
             const _this = this;
@@ -2433,14 +2451,13 @@ module.exports = {
                 note && incidentState && statusNoteStatus;
             const statusPageNoteAlertEventType = `Investigation note ${statusNoteStatus}`;
 
+            const projectId = incident.projectId._id || incident.projectId;
             const project = await ProjectService.findOneBy({
-                _id: incident.projectId,
+                _id: projectId,
             });
             // get thee monitor
-            const monitor = await MonitorService.findOneBy({
-                _id: incident.monitorId._id
-                    ? incident.monitorId._id
-                    : incident.monitorId,
+            monitor = await MonitorService.findOneBy({
+                _id: monitor._id,
             });
             // get the component
             const component = await ComponentService.findOneBy({
@@ -2449,7 +2466,7 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
-            const statusUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/component/${component.slug}/incidents/${incident.idNumber}`;
+            const statusUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/incidents/${incident.idNumber}`;
 
             let statusPageUrl;
             if (statusPage) {
@@ -2506,7 +2523,7 @@ module.exports = {
                         eventType = 'identified';
                     }
                     return await SubscriberAlertService.create({
-                        projectId: incident.projectId,
+                        projectId,
                         incidentId: incident._id,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Webhook,
@@ -2528,9 +2545,9 @@ module.exports = {
                 try {
                     webhookNotificationSent = await WebHookService.sendSubscriberNotification(
                         subscriber,
-                        incident.projectId,
+                        projectId,
                         incident,
-                        incident.monitorId,
+                        monitor._id,
                         component,
                         downTimeString,
                         { note, incidentState, statusNoteStatus }
@@ -2554,7 +2571,7 @@ module.exports = {
                         eventType = 'identified';
                     }
                     SubscriberAlertService.create({
-                        projectId: incident.projectId,
+                        projectId,
                         incidentId: incident._id,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Webhook,
@@ -2591,7 +2608,7 @@ module.exports = {
                         ? true
                         : false;
                 const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
-                    incident.projectId
+                    projectId
                 );
 
                 const investigationNoteNotificationEmailDisabled =
@@ -2630,7 +2647,7 @@ module.exports = {
                         eventType = 'identified';
                     }
                     return await SubscriberAlertService.create({
-                        projectId: incident.projectId,
+                        projectId,
                         incidentId: incident._id,
                         subscriberId: subscriber._id,
                         alertVia: AlertType.Email,
@@ -2643,7 +2660,7 @@ module.exports = {
                     });
                 }
                 const emailTemplate = await EmailTemplateService.findOneBy({
-                    projectId: incident.projectId,
+                    projectId,
                     emailType: templateType,
                 });
 
@@ -2659,7 +2676,7 @@ module.exports = {
                     eventType = 'identified';
                 }
                 const subscriberAlert = await SubscriberAlertService.create({
-                    projectId: incident.projectId,
+                    projectId,
                     incidentId: incident._id,
                     subscriberId: subscriber._id,
                     alertVia: AlertType.Email,
@@ -2669,8 +2686,8 @@ module.exports = {
                     id,
                 });
                 const alertId = subscriberAlert._id;
-                const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${incident.projectId}/${alertId}/viewed`;
-                const unsubscribeUrl = `${global.homeHost}/unsubscribe/${incident.monitorId._id}/${subscriber._id}`;
+                const trackEmailAsViewedUrl = `${global.apiHost}/subscriberAlert/${projectId}/${alertId}/viewed`;
+                const unsubscribeUrl = `${global.homeHost}/unsubscribe/${monitor._id}/${subscriber._id}`;
                 let alertStatus = null;
                 try {
                     if (templateType === 'Subscriber Incident Acknowldeged') {
@@ -2860,7 +2877,7 @@ module.exports = {
                             : false;
 
                     const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
-                        incident.projectId
+                        projectId
                     );
 
                     const investigationNoteNotificationSMSDisabled =
@@ -2905,7 +2922,7 @@ module.exports = {
                             eventType = 'identified';
                         }
                         return await SubscriberAlertService.create({
-                            projectId: incident.projectId,
+                            projectId,
                             incidentId: incident._id,
                             subscriberId: subscriber._id,
                             alertVia: AlertType.SMS,
@@ -2930,7 +2947,7 @@ module.exports = {
                             user => user.role === 'Owner'
                         )[0];
                         const doesPhoneNumberComplyWithHighRiskConfig = await _this.doesPhoneNumberComplyWithHighRiskConfig(
-                            incident.projectId,
+                            projectId,
                             contactPhone
                         );
                         if (!doesPhoneNumberComplyWithHighRiskConfig) {
@@ -2961,7 +2978,7 @@ module.exports = {
                                 eventType = 'identified';
                             }
                             return await SubscriberAlertService.create({
-                                projectId: incident.projectId,
+                                projectId,
                                 incidentId: incident._id,
                                 subscriberId: subscriber._id,
                                 alertVia: AlertType.SMS,
@@ -2997,7 +3014,7 @@ module.exports = {
 
                         if (!status.success) {
                             return await SubscriberAlertService.create({
-                                projectId: incident.projectId,
+                                projectId,
                                 incidentId: incident._id,
                                 subscriberId: subscriber._id,
                                 alertVia: AlertType.SMS,
@@ -3013,7 +3030,7 @@ module.exports = {
 
                     let sendResult;
                     const smsTemplate = await SmsTemplateService.findOneBy({
-                        projectId: incident.projectId,
+                        projectId,
                         smsType: templateType,
                     });
                     let eventType;
@@ -3032,7 +3049,7 @@ module.exports = {
                     }
                     const subscriberAlert = await SubscriberAlertService.create(
                         {
-                            projectId: incident.projectId,
+                            projectId,
                             incidentId: incident._id,
                             subscriberId: subscriber._id,
                             alertVia: AlertType.SMS,
@@ -3060,7 +3077,7 @@ module.exports = {
                                         smsTemplate,
                                         incident,
                                         project.name,
-                                        incident.projectId,
+                                        projectId,
                                         component.name,
                                         statusPageUrl,
                                         customFields,
@@ -3075,7 +3092,7 @@ module.exports = {
                                         smsTemplate,
                                         incident,
                                         project.name,
-                                        incident.projectId,
+                                        projectId,
                                         component.name,
                                         statusPageUrl,
                                         customFields,
@@ -3102,7 +3119,7 @@ module.exports = {
                                         smsTemplate,
                                         incident,
                                         project.name,
-                                        incident.projectId,
+                                        projectId,
                                         component.name,
                                         statusPageUrl,
                                         customFields,
@@ -3117,7 +3134,7 @@ module.exports = {
                                         smsTemplate,
                                         incident,
                                         project.name,
-                                        incident.projectId,
+                                        projectId,
                                         component.name,
                                         statusPageUrl,
                                         customFields,
@@ -3138,7 +3155,7 @@ module.exports = {
                                 smsTemplate,
                                 incident,
                                 project.name,
-                                incident.projectId,
+                                projectId,
                                 component.name,
                                 statusUrl,
                                 customFields,
@@ -3155,7 +3172,7 @@ module.exports = {
                                         smsTemplate,
                                         incident,
                                         project.name,
-                                        incident.projectId,
+                                        projectId,
                                         component.name,
                                         statusPageUrl,
                                         customFields
@@ -3169,7 +3186,7 @@ module.exports = {
                                         smsTemplate,
                                         incident,
                                         project.name,
-                                        incident.projectId,
+                                        projectId,
                                         component.name,
                                         statusPageUrl,
                                         customFields
@@ -3220,13 +3237,11 @@ module.exports = {
 
                                 if (!balanceStatus.error) {
                                     await AlertChargeService.create(
-                                        incident.projectId,
+                                        projectId,
                                         balanceStatus.chargeAmount,
                                         balanceStatus.closingBalance,
                                         null,
-                                        incident.monitorId._id
-                                            ? incident.monitorId._id
-                                            : incident.monitorId,
+                                        monitor._id,
                                         incident._id,
                                         contactPhone,
                                         alertId

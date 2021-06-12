@@ -13,6 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const users = await UserModel.find(query)
+                .lean()
                 .select('-password')
                 .sort([['lastActive', -1]])
                 .limit(limit)
@@ -124,9 +125,9 @@ module.exports = {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            const user = await UserModel.findOne(query).sort([
-                ['createdAt', -1],
-            ]);
+            const user = await UserModel.findOne(query)
+                .lean()
+                .sort([['createdAt', -1]]);
             if ((user && !IS_SAAS_SERVICE) || user) {
                 // find user subprojects and parent projects
                 let userProjects = await ProjectService.findBy({
@@ -156,7 +157,7 @@ module.exports = {
                         { _id: { $in: projectIds } },
                     ],
                 });
-                return await Object.assign({}, user._doc, {
+                return await Object.assign({}, user._doc || user, {
                     projects: userProjects,
                 });
             }
@@ -229,14 +230,15 @@ module.exports = {
                     user => String(user.userAgent) === String(data.userAgent)
                 );
                 await user.identification.splice(findIndex, 1);
-                await user.save();
             } else {
                 if (!checkExist) {
                     await user.identification.push(data);
-                    await user.save();
                 }
             }
-            const userData = await UserModel.findOne({ _id: userId });
+            const userData = await this.updateOneBy(
+                { _id: user._id },
+                { identification: user.identification }
+            );
             return userData;
         } catch (error) {
             ErrorService.log('userService.updatePush', error);
@@ -847,7 +849,7 @@ module.exports = {
                         { _id: { $in: projectIds } },
                     ],
                 });
-                return await Object.assign({}, user._doc, {
+                return await Object.assign({}, user._doc || user, {
                     projects: userProjects,
                 });
             })
@@ -933,7 +935,7 @@ module.exports = {
                         { _id: { $in: projectIds } },
                     ],
                 });
-                return await Object.assign({}, user._doc, {
+                return await Object.assign({}, user._doc || user, {
                     projects: userProjects,
                 });
             })

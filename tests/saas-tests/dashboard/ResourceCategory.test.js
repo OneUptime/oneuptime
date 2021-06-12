@@ -119,7 +119,9 @@ describe('Resource Category', () => {
                 page
             );
 
-            const noOption = await init.page$(page, 'div.css-1gl4k7y');
+            const noOption = await init.page$(page, 'div.css-1gl4k7y', {
+                hidden: true,
+            });
 
             if (!noOption) {
                 resourceCategoryCheck = true;
@@ -259,7 +261,7 @@ describe('Member Restriction', () => {
             page
         );
         await init.addResourceCategory(resourceCategory, page);
-        await init.logout(page);
+        await init.saasLogout(page);
         done();
     });
 

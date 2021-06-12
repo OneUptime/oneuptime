@@ -190,7 +190,7 @@ module.exports = {
             await this.updateMonitorSlaStat(query);
 
             let errorMsg;
-            if (data.customFields && data.customFields.length > 0) {
+            if (data && data.customFields && data.customFields.length > 0) {
                 const monitor = await _this.findOneBy(query);
                 for (const field of data.customFields) {
                     if (field.uniqueField) {
@@ -295,6 +295,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const monitors = await MonitorModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -318,6 +319,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const monitor = await MonitorModel.findOne(query)
+                .lean()
                 .populate('projectId', ['_id', 'name', 'slug'])
                 .populate('componentId', ['_id', 'name', 'slug'])
                 .populate('resourceCategory', 'name')
@@ -337,10 +339,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const count = await MonitorModel.countDocuments(query).populate(
-                'project',
-                'name'
-            );
+            const count = await MonitorModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('monitorService.countBy', error);
@@ -473,11 +472,11 @@ module.exports = {
                         monitors.map(async monitor => {
                             let monitorStatus;
 
-                            let incidentList = [];
+                            const incidentList = [];
 
                             const monitorIncidents = await IncidentService.findBy(
                                 {
-                                    monitorId: monitor._id,
+                                    'monitors.monitorId': monitor._id,
                                     resolved: false,
                                 }
                             );
@@ -497,7 +496,7 @@ module.exports = {
                             }
 
                             return {
-                                ...monitor.toObject(),
+                                ...monitor,
                                 status: monitorStatus,
                             };
                         })
@@ -535,6 +534,7 @@ module.exports = {
     },
 
     async getProbeMonitors(probeId, date) {
+        const moment = require('moment');
         try {
             const newdate = new Date();
             const monitors = await MonitorModel.find({
@@ -542,7 +542,31 @@ module.exports = {
                     {
                         deleted: false,
                         disabled: false,
-                        scriptRunStatus: { $nin: ['inProgress'] },
+                        $and: [
+                            {
+                                type: {
+                                    $in: ['script'],
+                                },
+                            },
+                            {
+                                $or: [
+                                    {
+                                        scriptRunStatus: {
+                                            $nin: ['inProgress'],
+                                        },
+                                    },
+                                    // script monitors that have been running for too long (10mins)**
+                                    // or weren't completed due to a crash
+                                    {
+                                        lastPingTime: {
+                                            $lte: moment()
+                                                .subtract(10, 'minutes')
+                                                .toDate(),
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
                     },
                     {
                         $or: [
@@ -827,9 +851,10 @@ module.exports = {
             let probes;
             const probeStatuses = [];
             if (
-                (monitor.type === 'server-monitor' &&
+                (monitor &&
+                    monitor.type === 'server-monitor' &&
                     !monitor.agentlessConfig) ||
-                monitor.type === 'manual'
+                (monitor && monitor.type === 'manual')
             ) {
                 probes = [undefined];
             } else {
@@ -887,8 +912,10 @@ module.exports = {
                     projectSeats
                 );
             }
-            project.seats = projectSeats.toString();
-            await ProjectService.saveProject(project);
+            await ProjectService.updateOneBy(
+                { _id: project._id },
+                { seats: String(projectSeats) }
+            );
             return 'A new seat added. Now you can add a monitor';
         } catch (error) {
             ErrorService.log('monitorService.addSeat', error);
@@ -966,7 +993,7 @@ module.exports = {
             const _this = this;
             const monitorTime = await _this.findOneBy({ _id: monitorId });
             const monitorIncidents = await IncidentService.findBy({
-                monitorId,
+                'monitors.monitorId': monitorId,
             });
             const dateNow = moment().utc();
             let days = moment(dateNow)
@@ -1112,7 +1139,7 @@ module.exports = {
                         }
                     );
                     await IncidentService.restoreBy({
-                        monitorId,
+                        'monitors.monitorId': monitorId,
                         deleted: true,
                     });
                     await AlertService.restoreBy({ monitorId, deleted: true });

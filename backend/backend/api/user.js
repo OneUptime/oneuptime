@@ -309,7 +309,7 @@ router.get('/sso/login', async function(req, res) {
                 message: 'Domain not found.',
             });
         }
-        const { 'saml-enabled': samlEnabled, samlSsoUrl } = sso;
+        const { 'saml-enabled': samlEnabled, remoteLoginUrl } = sso;
 
         if (!samlEnabled) {
             return sendErrorResponse(req, res, {
@@ -321,9 +321,8 @@ router.get('/sso/login', async function(req, res) {
         const sp = new saml2.ServiceProvider({
             entity_id: sso.entityId,
         });
-
         const idp = new saml2.IdentityProvider({
-            sso_login_url: samlSsoUrl,
+            sso_login_url: remoteLoginUrl,
         });
 
         sp.create_login_request_url(idp, {}, function(error, login_url) {

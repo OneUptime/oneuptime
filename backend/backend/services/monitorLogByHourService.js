@@ -77,6 +77,7 @@ module.exports = {
             }
 
             const monitorLogsByHour = await MonitorLogByHourModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
@@ -94,7 +95,9 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLog = await MonitorLogByHourModel.findOne(query);
+            const monitorLog = await MonitorLogByHourModel.findOne(
+                query
+            ).lean();
 
             return monitorLog;
         } catch (error) {

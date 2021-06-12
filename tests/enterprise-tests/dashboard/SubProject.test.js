@@ -27,7 +27,6 @@ describe('Sub-Project API', () => {
 
         // user
         await init.registerEnterpriseUser(user, page);
-        await init.growthPlanUpgrade(page);
 
         done();
     });

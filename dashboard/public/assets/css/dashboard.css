@@ -5954,7 +5954,7 @@ pre.bs-PropertyList-definition, pre.bs-PropertyList-property {
   display: flex;
   flex: 0 0 55%;
   flex-direction: column;
-  max-width: 350px;
+  /* max-width: 350px; */
   padding-left: 5px;
 }
 
@@ -35340,6 +35340,19 @@ padding-left:20px
 
 .status-tab {
   width: 14.28% !important;
+}
+
+.console-log-view-container {
+  background-color: #000000;
+  width: 100%;
+  height: 100%;
+  font-family: monospace;
+  color: #FFFFFF;
+  padding: 10px;
+}
+
+.console-log-view-container .line-items {
+  white-space: pre-wrap;
 }
 
 @media (max-width: 930px) {

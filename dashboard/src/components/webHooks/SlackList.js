@@ -154,7 +154,7 @@ class SlackList extends React.Component {
                                 padding: '0 10px',
                             }}
                         >
-                            <span>
+                            <span id="No_SlackTeam">
                                 You don&#39;t have any webhook added. Do you
                                 want to add one?
                             </span>

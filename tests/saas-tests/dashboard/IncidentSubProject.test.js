@@ -32,7 +32,7 @@ describe('Incident API With SubProjects', () => {
         await page.setUserAgent(utils.agent);
 
         await init.registerUser(user, page);
-        await init.growthPlanUpgrade(page);        
+        await init.growthPlanUpgrade(page);
     });
 
     afterAll(async done => {
@@ -42,8 +42,10 @@ describe('Incident API With SubProjects', () => {
 
     test(
         'should create an incident in parent project for valid `admin`',
-        async () => {            
-            await page.goto(utils.DASHBOARD_URL, { waitUntil : 'networkidle2'});
+        async done => {
+            await init.loginUser(user, page);
+            await init.addGrowthProject(projectName, page);
+
             // add sub-project
             await init.addSubProject(subProjectName, page);
             // Create Component
@@ -85,7 +87,8 @@ describe('Incident API With SubProjects', () => {
                 `#create_incident_${projectMonitorName}`
             );
             await init.pageWaitForSelector(page, '#createIncident');
-            await init.selectDropdownValue('#incidentType', 'Offline', page);            
+            await init.selectDropdownValue('#incidentType', 'Offline', page);
+            // await init.pageType(page, '#title', 'new incident');
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
@@ -100,13 +103,17 @@ describe('Incident API With SubProjects', () => {
                 elem.click()
             );
 
-            await init.pageWaitForSelector(page, `#incident_${projectMonitorName}_0`, {
-                visible: true,
-                timeout: init.timeout,
-            });
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName}_0`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
             const incidentTitleSelector = await init.page$(
                 page,
-                `#incident_${projectMonitorName}_title`
+                '#incident_0  #incident_title'
             );
 
             let textContent = await incidentTitleSelector.getProperty(
@@ -115,43 +122,59 @@ describe('Incident API With SubProjects', () => {
             textContent = await textContent.jsonValue();
             expect(textContent.toLowerCase()).toEqual(
                 `${projectMonitorName} is offline.`.toLowerCase()
-            );           
+            );
+            await init.logout(page);
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should not display created incident status in a different component',
-        async () => {           
+        async done => {
+            await init.loginUser(user, page);
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
             });
             // Navigate to details page of monitor
             await init.navigateToComponentDetails(newComponentName, page);
 
-            const incidentTitleSelector = await init.page$(
+            const incidentTitleSelector = await init.pageWaitForSelector(
                 page,
-                `#incident_${projectMonitorName}_title`,
-                {hidden: true}
+                '#incident_0 #incident_title',
+                {
+                    hidden: true,
+                    timeout: init.timeout,
+                }
             );
             expect(incidentTitleSelector).toBeNull();
-           await init.saasLogout(page);
+            await init.logout(page);
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should create an incident in sub-project for sub-project `member`',
-        async () => {            
-            await init.registerAndLoggingTeamMember(newUser, page);
+        async done => {
+            await init.loginUser(newUser, page);
+            // switch to invited project for new user
+            await init.switchProject(projectName, page);
+
             // close incident modal
-            await init.pageWaitForSelector(page, '#closeIncident_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.page$Eval(page, '#closeIncident_0', elem =>
-                elem.click()
+            const closeModal = await init.pageWaitForSelector(
+                page,
+                '#closeIncident_0',
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
             );
+            if (closeModal) {
+                await init.page$Eval(page, '#closeIncident_0', elem =>
+                    elem.click()
+                );
+            }
 
             // Navigate to details page of monitor
             await init.navigateToComponentDetails(componentName, page);
@@ -165,7 +188,8 @@ describe('Incident API With SubProjects', () => {
                 `#create_incident_${projectMonitorName1}`
             );
             await init.pageWaitForSelector(page, '#createIncident');
-            await init.selectDropdownValue('#incidentType', 'Offline', page);            
+            await init.selectDropdownValue('#incidentType', 'Offline', page);
+            // await init.pageType(page, '#title', 'new incident');
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
                 hidden: true,
@@ -181,10 +205,23 @@ describe('Incident API With SubProjects', () => {
                 elem.click()
             );
 
-            await init.pageWaitForSelector(page, `#incident_${projectMonitorName1}_0`);
+            await init.pageWaitForSelector(
+                page,
+                `#more-details-${projectMonitorName1}`,
+                {
+                    visible: true,
+                }
+            );
+            await init.pageClick(page, `#more-details-${projectMonitorName1}`);
+
+            await init.pageWaitForSelector(
+                page,
+                '#incident_0 #incident_title',
+                { visible: true }
+            );
             const incidentTitleSelector = await init.page$(
                 page,
-                `#incident_${projectMonitorName1}_title`
+                '#incident_0 #incident_title'
             );
 
             let textContent = await incidentTitleSelector.getProperty(
@@ -193,15 +230,29 @@ describe('Incident API With SubProjects', () => {
             textContent = await textContent.jsonValue();
             expect(textContent.toLowerCase()).toEqual(
                 `${projectMonitorName1} is offline.`.toLowerCase()
-            );            
+            );
+            await init.logout(page);
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should acknowledge incident in sub-project for sub-project `member`',
-        async () => {            
-            await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle2' });
+        async done => {
+            await init.loginUser(newUser, page);
+            // switch to invited project for new user
+            await init.switchProject(projectName, page);
+            // Navigate to details page of created component/monitor
+            await init.navigateToMonitorDetails(
+                componentName,
+                projectMonitorName1,
+                page
+            );
+
+            await init.pageWaitForSelector(page, `#incident_0`);
+            await init.pageClick(page, '#incident_0');
+
             // acknowledge incident
             await init.pageWaitForSelector(page, '#btnAcknowledge_0', {
                 visible: true,
@@ -217,15 +268,29 @@ describe('Incident API With SubProjects', () => {
                 page,
                 '#AcknowledgeText_0'
             );
-            expect(acknowledgeTextSelector).toBeDefined();            
+            expect(acknowledgeTextSelector).toBeDefined();
+            await init.logout(page);
+            done();
         },
         operationTimeOut
     );
 
     test(
         'should resolve incident in sub-project for sub-project `member`',
-        async () => {            
-            await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle2' });            
+        async done => {
+            await init.loginUser(newUser, page);
+            // switch to invited project for new user
+            await init.switchProject(projectName, page);
+            // Navigate to details page of created component/monitor
+            await init.navigateToMonitorDetails(
+                componentName,
+                projectMonitorName1,
+                page
+            );
+
+            await init.pageWaitForSelector(page, `#incident_0`);
+            await init.pageClick(page, '#incident_0');
+
             // resolve incident
             await init.pageWaitForSelector(page, '#btnResolve_0', {
                 visible: true,
@@ -241,40 +306,35 @@ describe('Incident API With SubProjects', () => {
                 page,
                 '#ResolveText_0'
             );
-            expect(resolveTextSelector).toBeDefined();            
+            expect(resolveTextSelector).toBeDefined();
+            await init.logout(page);
+            done();
         },
         operationTimeOut
     );
 
     test(
-        'should update internal and investigation notes of incident in sub-project',
-        async () => {
-           // const investigationNote = utils.generateRandomString();
-            const internalNote = utils.generateRandomString();            
+        'should update internal and investigation notes of incident in sub-project (Postmortem notes)',
+        async done => {
+            // const investigationNote = utils.generateRandomString();
+            const internalNote = utils.generateRandomString();
+            await init.loginUser(newUser, page);
+            // switch to invited project for new user
+            await init.switchProject(projectName, page);
             // Navigate to details page of component created
-            await init.navigateToComponentDetails(componentName, page);
+            await init.navigateToMonitorDetails(
+                componentName,
+                projectMonitorName1,
+                page
+            );
 
-            await init.pageWaitForSelector(
-                page,
-                `#incident_${projectMonitorName1}_0`,
-                {
-                    visible: true,
-                    timeout: init.timeout,
-                }
-            );
-            await init.page$Eval(
-                page,
-                `#incident_${projectMonitorName1}_0`,
-                e => e.click()
-            );
-            await init.pageWaitForSelector(page, '#incident_0', {
+            await init.pageWaitForSelector(page, `#incident_0`, {
                 visible: true,
                 timeout: init.timeout,
             });
+            await init.page$Eval(page, `#incident_0`, e => e.click());
 
-            // code refactoring           
-
-            let type = 'internal';
+            const type = 'internal';
             // fill internal message thread form
             await init.pageWaitForSelector(page, `#add-${type}-message`);
             await init.page$Eval(page, `#add-${type}-message`, e => e.click());
@@ -294,8 +354,14 @@ describe('Incident API With SubProjects', () => {
                 hidden: true,
             });
             await page.reload({ waitUntil: 'networkidle0' });
-            // code refactoring            
 
+            await init.pageWaitForSelector(
+                page,
+                `#content_${type}_incident_message_0`,
+                {
+                    visible: true,
+                }
+            );
             const internalMessage = await init.page$(
                 page,
                 `#content_${type}_incident_message_0`
@@ -307,100 +373,166 @@ describe('Incident API With SubProjects', () => {
             internalContent = await internalContent.jsonValue();
             expect(internalContent).toEqual(internalNote);
 
-            /** Investigation is no longer on the UI
-             * INCIDENT_NOTES Tab has been refactored as well
-             */            
+            await init.logout(page);
+            done();
         },
         operationTimeOut
     );
 
-    test(
-        'should get incident timeline and paginate for incident timeline in sub-project',
-        async () => {
-            const internalNote = utils.generateRandomString();
-            const type = 'internal';
-            
-            // Navigate to Component details
-            await init.navigateToComponentDetails(componentName, page);
+    /**
+     * NOTE TO TEAM
+     *
+     * This particular test case is no longer needed in our codebase
+     * If the need arises in the future, then we refactor this
+     */
 
-            await init.pageWaitForSelector(
-                page,
-                `#incident_${projectMonitorName1}_0`,
-                {
-                    visible: true,
-                    timeout: init.timeout,
-                }
-            );
-            await init.page$Eval(
-                page,
-                `#incident_${projectMonitorName1}_0`,
-                e => e.click()
-            );
-            await init.pageWaitForSelector(page, '#incident_0', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            // code refactoring           
+    // test(
+    //     'should get incident timeline and paginate for incident timeline in sub-project',
+    //     async done => {
+    //         const internalNote = utils.generateRandomString();
+    //         const type = 'internal';
+    //         await init.loginUser(newUser, page);
+    //         // switch to invited project for new user
+    //         await init.switchProject(projectName, page);
+    //         // Navigate to Component details
+    //         await init.navigateToMonitorDetails(
+    //             componentName,
+    //             projectMonitorName1,
+    //             page
+    //         );
 
-            for (let i = 0; i < 10; i++) {
-                await init.page$Eval(page, `#add-${type}-message`, e =>
-                    e.click()
-                );
-                await init.pageWaitForSelector(
-                    page,
-                    `#form-new-incident-${type}-message`
-                );
-                await init.pageClick(page, `textarea[id=new-${type}]`);
-                await init.pageType(
-                    page,
-                    `textarea[id=new-${type}]`,
-                    `${internalNote}`
-                );
-                await init.selectDropdownValue(
-                    '#incident_state',
-                    'update',
-                    page
-                );
-                await init.pageClick(page, `#${type}-addButton`);
-                await init.pageWaitForSelector(page, `#${type}-addButton`, {
-                    hidden: true,
-                });
-            }
-            
-            await page.reload({ waitUntil: 'networkidle2', timeout: init.timeout });            
+    //         await init.pageWaitForSelector(page, `#incident_0`, {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.page$Eval(page, `#incident_0`, e => e.click());
+    //         await init.pageWaitForSelector(page, '#incident_0', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         // click on incident notes tab
+    //         await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
-            let maxInternalMessages = await init.pageWaitForSelector(
-                page,
-                `#${type}_incident_message_10`,
-                { visible: true, timeout: init.timeout }
-            );
-            expect(maxInternalMessages).toBeDefined();
-            /**Incident Timeline is no longer among the tabs 
-             * The UI has been refactored
-             */            
-        },
-        operationTimeOut
-    );
+    //         for (let i = 0; i < 10; i++) {
+    //             await init.page$Eval(page, `#add-${type}-message`, e =>
+    //                 e.click()
+    //             );
+    //             await init.pageWaitForSelector(
+    //                 page,
+    //                 `#form-new-incident-${type}-message`
+    //             );
+    //             await init.pageClick(page, `textarea[id=new-${type}]`);
+    //             await init.pageType(
+    //                 page,
+    //                 `textarea[id=new-${type}]`,
+    //                 `${internalNote}`
+    //             );
+    //             await init.selectDropdownValue(
+    //                 '#incident_state',
+    //                 'update',
+    //                 page
+    //             );
+    //             await init.pageClick(page, `#${type}-addButton`);
+    //             await init.pageWaitForSelector(page, `#${type}-addButton`, {
+    //                 hidden: true,
+    //             });
+    //         }
+    //         // click on incident timeline tab
+    //         await init.gotoTab(
+    //             utils.incidentTabIndexes.INCIDENT_TIMELINE,
+    //             page
+    //         );
+    //         await page.reload({ waitUntil: 'networkidle0' });
+    //         await init.gotoTab(
+    //             utils.incidentTabIndexes.INCIDENT_TIMELINE,
+    //             page
+    //         );
+
+    //         await init.pageWaitForSelector(
+    //             page,
+    //             '#incidentTimeline tr.incidentListItem',
+    //             { visible: true, timeout: init.timeout }
+    //         );
+    //         let incidentTimelineRows = await init.page$$(
+    //             page,
+    //             '#incidentTimeline tr.incidentListItem'
+    //         );
+    //         let countIncidentTimelines = incidentTimelineRows.length;
+
+    //         expect(countIncidentTimelines).toEqual(10);
+
+    //         await init.page$Eval(page, '#btnTimelineNext', e => e.click());
+    //         await init.pageWaitForSelector(page, '.ball-beat', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageWaitForSelector(page, '.ball-beat', {
+    //             hidden: true,
+    //         });
+    //         incidentTimelineRows = await init.page$$(
+    //             page,
+    //             '#incidentTimeline tr.incidentListItem'
+    //         );
+    //         countIncidentTimelines = incidentTimelineRows.length;
+    //         expect(countIncidentTimelines).toEqual(5);
+
+    //         await init.page$Eval(page, '#btnTimelinePrev', e => e.click());
+    //         await init.pageWaitForSelector(page, '.ball-beat', {
+    //             visible: true,
+    //             timeout: init.timeout,
+    //         });
+    //         await init.pageWaitForSelector(page, '.ball-beat', {
+    //             hidden: true,
+    //         });
+    //         incidentTimelineRows = await init.page$$(
+    //             page,
+    //             '#incidentTimeline tr.incidentListItem'
+    //         );
+    //         countIncidentTimelines = incidentTimelineRows.length;
+    //         expect(countIncidentTimelines).toEqual(10);
+    //         await init.logout(page);
+    //         done();
+    //     },
+    //     operationTimeOut
+    // );
 
     test(
         'should get list of incidents and paginate for incidents in sub-project',
-        async () => {            
+        async done => {
+            await init.loginUser(newUser, page);
+            // switch to invited project for new user
+            await init.switchProject(projectName, page);
             // Navigate to details page of component created
-            await init.navigateToMonitorDetails(componentName, projectMonitorName1, page);
-           
-            await init.pageClick(page,`#createIncident_${projectMonitorName1}`);
+            await init.navigateToComponentDetails(componentName, page);
+
+            await init.addIncidentToProject(
+                projectMonitorName1,
+                subProjectName,
+                page
+            );
+
+            // Navigate to details page of component created
+            await init.navigateToMonitorDetails(
+                componentName,
+                projectMonitorName1,
+                page
+            );
+
+            await init.pageClick(
+                page,
+                `#createIncident_${projectMonitorName1}`
+            );
             await init.pageClick(page, `#createIncident`);
-            
+
             await init.pageWaitForSelector(page, 'tr.incidentListItem', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.reload({waitUntil: 'networkidle2'});
-            
-            let countIncidents = await init.pageWaitForSelector(page, '#numberOfIncidents');
-            countIncidents = await countIncidents.getProperty('innerText');
-            countIncidents = await countIncidents.jsonValue();
-            expect(countIncidents).toEqual("2");            
+            const incidentRows = await init.page$$(page, 'tr.incidentListItem');
+            const countIncidents = incidentRows.length;
+            expect(countIncidents).toBeGreaterThanOrEqual(1);
+            await init.logout(page);
+            done();
         },
         operationTimeOut
     );

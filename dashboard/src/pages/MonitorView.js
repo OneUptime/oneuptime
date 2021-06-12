@@ -62,6 +62,7 @@ class MonitorView extends React.Component {
         }
 
         const { currentProject, componentSlug, fetchComponent } = this.props;
+
         if (currentProject) {
             componentSlug && fetchComponent(currentProject._id, componentSlug);
             const userId = User.getUserId();
@@ -146,6 +147,7 @@ class MonitorView extends React.Component {
             fetchComponent,
             currentProject,
         } = this.props;
+
         if (currentProject && currentProject._id && componentSlug) {
             fetchComponent(currentProject._id, componentSlug);
         }
@@ -707,7 +709,12 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'ip')
+                                                                                        'ip' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'script')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">

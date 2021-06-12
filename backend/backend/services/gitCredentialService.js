@@ -9,9 +9,9 @@ module.exports = {
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;
 
-            const gitCredential = await GitCredentialModel.findOne(
-                query
-            ).populate('projectId');
+            const gitCredential = await GitCredentialModel.findOne(query)
+                .lean()
+                .populate('projectId');
             return gitCredential;
         } catch (error) {
             ErrorService.log('gitCredentialService.findOneBy', error);
@@ -33,6 +33,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const gitCredentials = await GitCredentialModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -89,13 +90,14 @@ module.exports = {
                 data.iv = iv;
             }
 
-            const gitCredential = await GitCredentialModel.findOneAndUpdate(
+            let gitCredential = await GitCredentialModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
                 },
                 { new: true }
-            ).populate('projectId');
+            );
+            gitCredential = await this.findOneBy({ _id: gitCredential._id });
 
             if (!gitCredential) {
                 const error = new Error(

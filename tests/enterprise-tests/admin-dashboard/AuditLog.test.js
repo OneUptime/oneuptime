@@ -6,7 +6,7 @@ let browser, page;
 require('should');
 
 // user credentials
-const email = 'masteradmin@hackerbay.io';
+const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
 
 describe('Audit Logs', () => {
@@ -47,14 +47,13 @@ describe('Audit Logs', () => {
             await init.pageWaitForSelector(page, '#confirmDelete', {
                 hidden: true,
             });
-
             const rowNum = await init.page$$Eval(
                 page,
-                'tbody tr.Table-row',
-                rows => rows.length
+                'tbody tr',
+                row => row.textContent
             );
 
-            expect(rowNum).toEqual(0);
+            expect(rowNum).toEqual(undefined);
         },
         operationTimeOut
     );
@@ -84,7 +83,6 @@ describe('Audit Logs', () => {
         },
         operationTimeOut
     );
-
     test(
         'Should check if logs are prefilled again after deleting logs',
         async () => {
@@ -141,7 +139,6 @@ describe('Audit Logs', () => {
         },
         operationTimeOut
     );
-
     test(
         'Should not show any audit log if the search parameter(s) does not match any log',
         async () => {
@@ -158,11 +155,11 @@ describe('Audit Logs', () => {
 
             const rowNum = await init.page$$Eval(
                 page,
-                'tbody tr.Table-row',
-                rows => rows.length
+                'tbody tr',
+                row => row.textContent
             );
 
-            expect(rowNum).toEqual(0);
+            expect(rowNum).toEqual(undefined);
         },
         operationTimeOut
     );
@@ -199,6 +196,7 @@ describe('Audit Logs', () => {
                 page,
                 `#audit-log-count`
             );
+
             newLogCount = await newLogCount.getProperty('innerText');
             newLogCount = await newLogCount.jsonValue();
             newLogCount = Number(newLogCount);

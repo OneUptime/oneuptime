@@ -10,6 +10,7 @@ import { openModal, closeModal } from '../../actions/modal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import SmsLogsContentViewModal from './SmsLogsContentViewModal';
 import SmsLogsErrorViewModal from './SmsLogsErrorViewModal';
+import ShouldRender from '../basic/ShouldRender';
 
 import { history } from '../../store';
 
@@ -432,19 +433,25 @@ export class SmsLogsList extends Component {
                                     id="log-count"
                                     className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                 >
-                                    {this.props.smsLogs &&
-                                    this.props.smsLogs.count
-                                        ? `Page ${
-                                              this.props.page
-                                          } of ${numberOfPages} (${this.props
-                                              .smsLogs &&
-                                              this.props.smsLogs.count} Log${
-                                              this.props.smsLogs &&
-                                              this.props.smsLogs.count === 1
-                                                  ? ''
-                                                  : 's'
-                                          })`
-                                        : null}
+                                    <ShouldRender
+                                        if={
+                                            this.props.smsLogs &&
+                                            this.props.smsLogs.count
+                                        }
+                                    >
+                                        Page {this.props.page} of{' '}
+                                        {numberOfPages} (
+                                        <span id="sms-log-count">
+                                            {this.props.smsLogs.count}
+                                        </span>{' '}
+                                        Log
+                                        <ShouldRender
+                                            if={this.props.smsLogs.count > 0}
+                                        >
+                                            s
+                                        </ShouldRender>
+                                        )
+                                    </ShouldRender>
                                 </span>
                             </span>
                         </span>
@@ -499,7 +506,7 @@ export class SmsLogsList extends Component {
                                     </div>
                                 </button>
                             </div>
-                            {/* <div className="Box-root">
+                            <div className="Box-root">
                                 <button
                                     id="deleteLog"
                                     onClick={this.handleDelete}
@@ -514,7 +521,7 @@ export class SmsLogsList extends Component {
                                         </span>
                                     </div>
                                 </button>
-                            </div> */}
+                            </div>
                         </div>
                     </div>
                 </div>

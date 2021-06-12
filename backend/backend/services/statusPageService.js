@@ -167,11 +167,12 @@ module.exports = {
                             createdDomain._id || existingBaseDomain._id,
                     },
                 ];
-                const result = await statusPage.save();
-
-                return result
-                    .populate('domains.domainVerificationToken')
-                    .execPopulate();
+                return await this.updateOneBy(
+                    { _id: statusPage._id },
+                    {
+                        domains: statusPage.domains,
+                    }
+                );
             } else {
                 const error = new Error(
                     'Status page not found or does not exist'
@@ -323,10 +324,11 @@ module.exports = {
 
             statusPage.domains = updatedDomainList;
 
-            const result = await statusPage.save();
-            return result
-                .populate('domains.domainVerificationToken')
-                .execPopulate();
+            const result = await this.updateOneBy(
+                { _id: statusPage._id },
+                { domains: statusPage.domains }
+            );
+            return result;
         } catch (error) {
             ErrorService.log('statusPageService.updateDomain', error);
             throw error;
@@ -368,7 +370,10 @@ module.exports = {
             }
 
             statusPage.domains = remainingDomains;
-            return statusPage.save();
+            return await this.updateOneBy(
+                { _id: statusPage._id },
+                { domains: statusPage.domains }
+            );
         } catch (error) {
             ErrorService.log('statusPageService.deleteDomain', error);
             throw error;
@@ -480,6 +485,7 @@ module.exports = {
 
             query.deleted = false;
             const statusPage = await StatusPageModel.findOne(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .populate('projectId')
                 .populate('monitorIds', 'name')
@@ -517,7 +523,7 @@ module.exports = {
             }
             if (!query.deleted) query.deleted = false;
 
-            const updatedStatusPage = await StatusPageModel.findOneAndUpdate(
+            let updatedStatusPage = await StatusPageModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
@@ -525,7 +531,10 @@ module.exports = {
                 {
                     new: true,
                 }
-            ).populate('domains.domainVerificationToken');
+            );
+            updatedStatusPage = await this.findOneBy({
+                _id: updatedStatusPage._id,
+            });
             return updatedStatusPage;
         } catch (error) {
             ErrorService.log('statusPageService.updateOneBy', error);
@@ -542,7 +551,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
             let updatedData = await StatusPageModel.updateMany(query, {
                 $set: data,
-            }).populate('domains.domainVerificationToken');
+            });
             updatedData = await this.findBy(query);
             return updatedData;
         } catch (error) {
@@ -583,7 +592,7 @@ module.exports = {
             if (monitorIds && monitorIds.length) {
                 const notes = await IncidentService.findBy(
                     {
-                        monitorId: { $in: monitorIds },
+                        'monitors.monitorId': { $in: monitorIds },
                         hideIncident: false,
                         ...option,
                     },
@@ -591,7 +600,7 @@ module.exports = {
                     skip
                 );
                 const count = await IncidentService.countBy({
-                    monitorId: { $in: monitorIds },
+                    'monitors.monitorId': { $in: monitorIds },
                     hideIncident: false,
                     ...option,
                 });
@@ -1057,10 +1066,10 @@ module.exports = {
                 statuspage && statuspage.monitors.map(m => m.monitor._id);
             if (monitorIds && monitorIds.length) {
                 const incidents = await IncidentService.findBy({
-                    monitorId: { $in: monitorIds },
+                    'monitors.monitorId': { $in: monitorIds },
                 });
                 const count = await IncidentService.countBy({
-                    monitorId: { $in: monitorIds },
+                    'monitors.monitorId': { $in: monitorIds },
                 });
                 return { incidents, count };
             } else {
@@ -1164,19 +1173,24 @@ module.exports = {
     getStatusPagesForIncident: async (incidentId, skip, limit) => {
         try {
             // first get the monitor, then scan status page collection containing the monitor
-            const { monitorId } = await IncidentModel.findById(
-                incidentId
-            ).select('monitorId');
+            let { monitors } = await IncidentModel.findById(incidentId).select(
+                'monitors.monitorId'
+            );
+
             let statusPages = [];
             let count = 0;
-            if (monitorId) {
+            if (monitors) {
+                monitors = monitors.map(
+                    monitor => monitor.monitorId._id || monitor.monitorId
+                );
                 count = await StatusPageModel.find({
-                    'monitors.monitor': monitorId,
-                }).countDocuments({ 'monitors.monitor': monitorId });
+                    'monitors.monitor': { $in: monitors },
+                }).countDocuments({ 'monitors.monitor': { $in: monitors } });
                 if (count) {
                     statusPages = await StatusPageModel.find({
-                        'monitors.monitor': monitorId,
+                        'monitors.monitor': { $in: monitors },
                     })
+                        .lean()
                         .populate('projectId')
                         .populate('monitors.monitor')
                         .skip(skip)
@@ -1298,6 +1312,7 @@ module.exports = {
 
             query.deleted = false;
             const allAnnouncements = await AnnouncementModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -1479,6 +1494,7 @@ module.exports = {
 
             query.deleted = false;
             const announcementLogs = await AnnouncementLogModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)

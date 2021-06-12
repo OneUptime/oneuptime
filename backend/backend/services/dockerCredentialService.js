@@ -20,6 +20,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const dockerCredentials = await DockerCredentialModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -36,9 +37,9 @@ module.exports = {
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;
 
-            const dockerCredential = await DockerCredentialModel.findOne(
-                query
-            ).populate('projectId');
+            const dockerCredential = await DockerCredentialModel.findOne(query)
+                .lean()
+                .populate('projectId');
             return dockerCredential;
         } catch (error) {
             ErrorService.log('dockerCredentialService.findOneBy', error);
@@ -113,7 +114,10 @@ module.exports = {
                     $set: data,
                 },
                 { new: true }
-            ).populate('projectId');
+            );
+            dockerCredential = await this.findOneBy({
+                _id: dockerCredential._id,
+            });
 
             if (!dockerCredential) {
                 const error = new Error(

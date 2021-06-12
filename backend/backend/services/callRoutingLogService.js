@@ -13,6 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const callRoutingLog = await CallRoutingLogModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -90,6 +91,7 @@ module.exports = {
             }
             if (!query.deleted) query.deleted = false;
             const logs = await CallRoutingLogModel.findOne(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .populate('userId');
             return logs;

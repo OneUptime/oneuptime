@@ -14,6 +14,12 @@ const initialState = {
         success: false,
         project: {},
     },
+    projectSlug: {
+        requesting: false,
+        error: null,
+        success: false,
+        project: null,
+    },
     projectSwitcherVisible: false,
     resetToken: {
         success: false,
@@ -997,6 +1003,39 @@ export default function project(state = initialState, action) {
                     requesting: false,
                     success: false,
                     error: null,
+                },
+            };
+
+        case types.FETCH_PROJECT_SLUG_REQUEST:
+            return {
+                ...state,
+                projectSlug: {
+                    ...state.projectSlug,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case types.FETCH_PROJECT_SLUG_SUCCESS:
+            return {
+                ...state,
+                projectSlug: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    project: action.payload,
+                },
+            };
+
+        case types.FETCH_PROJECT_SLUG_FAILURE:
+            return {
+                ...state,
+                projectSlug: {
+                    ...state.projectSlug,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
                 },
             };
 
