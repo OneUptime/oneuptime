@@ -65,7 +65,9 @@ const selector = formValueSelector('NewMonitor');
 const dJSON = require('dirty-json');
 
 const defaultScript =
-    '// objects/modules available to "require"- request, puppeteer, axios. We can add more later. \n\n' +
+    '// modules available - request, puppeteer, axios (We can add more later).' +
+    ' e.g - const request = require("request")\n\n' +
+    '// To inspect your script or add comments, use console.log\n\n' +
     'async function (done) {\n' +
     '   // write any javascript here \n' +
     '   done();\n' +
@@ -2006,6 +2008,9 @@ class NewMonitor extends Component {
                                                                             const elem = editor.textInput.getElement();
                                                                             elem.name = `script_editor_${this.props.index}`;
                                                                         }}
+                                                                        wrapEnabled={
+                                                                            true
+                                                                        }
                                                                     />
                                                                 </span>
                                                             </span>
