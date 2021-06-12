@@ -222,7 +222,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
     const operationTimeOut = init.timeout;
 
     beforeAll(async done => {
-        jest.setTimeout(1000000);
+        jest.setTimeout(1000000); // This required custom timeout
 
         browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
         page = await browser.newPage();
