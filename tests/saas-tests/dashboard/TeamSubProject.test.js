@@ -102,7 +102,8 @@ describe('Team API With SubProjects', () => {
             await init.pageWaitForSelector(page, `#frm_${projectName}`);
             const elementHandle = await init.page$(
                 page,
-                `#${role}_${projectName}`
+                `#${role}_${projectName}`,
+                {hidden: true}
             );
             expect(elementHandle).toEqual(null);
             done();
@@ -125,7 +126,8 @@ describe('Team API With SubProjects', () => {
             await init.pageWaitForSelector(page, `#frm_${projectName}`);
             const elementHandle = await init.page$(
                 page,
-                `#${role}_${projectName}`
+                `#${role}_${projectName}`,
+                {hidden: true}
             );
             expect(elementHandle).toEqual(null);
 
