@@ -717,14 +717,16 @@ module.exports = {
                 } else {
                     if (subProject) {
                         subProject.users[index].role = nextRole;
-                        // save project
-                        subProject = await ProjectService.saveProject(
-                            subProject
+                        await ProjectService.updateOneBy(
+                            { _id: subProject._id },
+                            { users: subProject.users }
                         );
                     } else {
                         project.users[index].role = nextRole;
-                        // save project
-                        project = await ProjectService.saveProject(project);
+                        await ProjectService.updateOneBy(
+                            { _id: project._id },
+                            { users: project.users }
+                        );
                         // update user role for all subProjects.
 
                         await Promise.all(
@@ -734,8 +736,9 @@ module.exports = {
                                 );
                                 if (index !== -1) {
                                     subProject.users[index].role = nextRole;
-                                    subProject = await ProjectService.saveProject(
-                                        subProject
+                                    await ProjectService.updateOneBy(
+                                        { _id: subProject._id },
+                                        { users: subProject.users }
                                     );
                                 }
                             })

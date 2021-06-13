@@ -56,7 +56,7 @@ describe('Schedule API With SubProjects', () => {
             componentName,
             subProjectMonitorName
         );
-        await init.logout(page);
+        await init.saasLogout(page);
         done();
     });
 
@@ -80,11 +80,12 @@ describe('Schedule API With SubProjects', () => {
 
             const createButton = await init.page$(
                 page,
-                `#btnCreateSchedule_${subProjectName}`
+                `#btnCreateSchedule_${subProjectName}`,
+                {hidden: true}
             );
 
             expect(createButton).toBe(null);
-            await init.logout(page);
+            await init.saasLogout(page);
             done();
         },
         operationTimeOut

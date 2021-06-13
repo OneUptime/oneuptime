@@ -387,6 +387,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                         );
                     }
                 }
+
+                data.status = status;
+                data.reason = reason;
             }
             if (type === 'server-monitor') {
                 data = serverData;

@@ -195,10 +195,16 @@ class DashboardView extends Component {
                                                 <span>
                                                     <ShouldRender
                                                         if={
-                                                            !this.props
-                                                                .component
-                                                                .componentList
-                                                                .requesting
+                                                            !(
+                                                                this.props
+                                                                    .component
+                                                                    .componentList
+                                                                    .requesting ||
+                                                                this.props
+                                                                    .monitorListRequesting ||
+                                                                this.props
+                                                                    .monitorsRequesting
+                                                            )
                                                         }
                                                     >
                                                         {/* Here, component notifier */}
@@ -328,7 +334,11 @@ class DashboardView extends Component {
                                                         if={
                                                             this.props.component
                                                                 .componentList
-                                                                .requesting
+                                                                .requesting ||
+                                                            this.props
+                                                                .monitorListRequesting ||
+                                                            this.props
+                                                                .monitorsRequesting
                                                         }
                                                     >
                                                         <LoadingState />
@@ -412,6 +422,8 @@ const mapStateToProps = state => {
         endDate: state.monitor.monitorsList.endDate,
         monitors,
         tutorialStat,
+        monitorListRequesting: state.monitor.monitorsList.requesting,
+        monitorsRequesting: state.monitor.monitorsList.monitors.requesting,
     };
 };
 
@@ -445,6 +457,8 @@ DashboardView.propTypes = {
     tutorialStat: PropTypes.object,
     getSmtpConfig: PropTypes.func.isRequired,
     fetchComponents: PropTypes.func,
+    monitorListRequesting: PropTypes.bool,
+    monitorsRequesting: PropTypes.bool,
 };
 
 DashboardView.displayName = 'DashboardView';

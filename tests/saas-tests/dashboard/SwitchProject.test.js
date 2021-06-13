@@ -59,7 +59,7 @@ describe('Project API', () => {
                 'input[id=name]',
                 utils.generateRandomString()
             );
-            await init.pageClick(page, 'input[id=Startup_month]');
+            await init.pageClick(page, 'label[for=Startup_month]');
             await Promise.all([
                 init.pageClick(page, 'button[type=submit]'),
                 page.waitForNavigation(),

@@ -1059,7 +1059,8 @@ const _this = {
     addScheduleToProject: async function(scheduleName, projectName, page) {
         const createStatusPageSelector = await _this.page$(
             page,
-            `#btnCreateStatusPage_${projectName}`
+            `#btnCreateStatusPage_${projectName}`,
+            {hidden: true}
         );
         if (createStatusPageSelector) {
             await _this.pageWaitForSelector(
@@ -1307,7 +1308,8 @@ const _this = {
         });
         await _this.pageClick(page, `#${eventBtn}`);
         // navigate to the note tab section
-        await _this.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
+        // await _this.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
+        await _this.pageClick(page, '.timeline-tab');
         await _this.pageWaitForSelector(page, `#add-${type}-message`, {
             visible: true,
         });

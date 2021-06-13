@@ -260,26 +260,13 @@ export class MonitorLogsList extends Component {
                                             </td>
                                         </ShouldRender>
                                         <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{ height: '1px' }}
-                                        >
-                                            <div
-                                                className="db-ListViewItem-cellContent Box-root Padding-all--8"
-                                                style={{ marginLeft: '42px' }}
-                                            >
-                                                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                    <span>Actions</span>
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td
-                                            id="overflow"
-                                            type="action"
-                                            className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                            className="Table-cell Table-cell--align--center Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{ height: '1px' }}
                                         >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                    <span>Actions</span>
+                                                </span>
                                             </div>
                                         </td>
                                     </>
@@ -985,13 +972,17 @@ export class MonitorLogsList extends Component {
                                                             <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
                                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                     <div className="Box-root Flex">
-                                                                        <div className="Box-root Flex-flex">
+                                                                        <div className="Box-root Flex-flex Flex-justifyContent--center">
                                                                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                                 <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    {this
-                                                                                        .props
-                                                                                        .monitorType ===
-                                                                                        'script' && (
+                                                                                    <ShouldRender
+                                                                                        if={
+                                                                                            this
+                                                                                                .props
+                                                                                                .monitorType ===
+                                                                                            'script'
+                                                                                        }
+                                                                                    >
                                                                                         <button
                                                                                             title="View script console logs"
                                                                                             id={`monitor_log_script_${log._id}`}
@@ -1045,64 +1036,72 @@ export class MonitorLogsList extends Component {
                                                                                         >
                                                                                             <span>
                                                                                                 View
-                                                                                                Script
                                                                                                 Log
                                                                                             </span>
                                                                                         </button>
-                                                                                    )}
-                                                                                    <button
-                                                                                        title="viewJson"
-                                                                                        id={`monitor_log_json_${log._id}`}
-                                                                                        disabled={
-                                                                                            !(
-                                                                                                monitorLogs &&
-                                                                                                !monitorLogs.requesting
-                                                                                            )
-                                                                                        }
-                                                                                        className="bs-Button bs-DeprecatedButton Margin-left--8"
-                                                                                        type="button"
-                                                                                        onClick={() =>
-                                                                                            this.props.openModal(
-                                                                                                {
-                                                                                                    id: this
-                                                                                                        .state
-                                                                                                        .viewJsonModalId,
-                                                                                                    content: DataPathHoC(
-                                                                                                        ViewJsonLogs,
-                                                                                                        {
-                                                                                                            viewJsonModalId: this
-                                                                                                                .state
-                                                                                                                .viewJsonModalId,
-                                                                                                            jsonLog: log,
-                                                                                                            title: `Monitor Log for ${
-                                                                                                                this
-                                                                                                                    .props
-                                                                                                                    .monitorName
-                                                                                                                    ? this
-                                                                                                                          .props
-                                                                                                                          .monitorName
-                                                                                                                    : log.monitorId &&
-                                                                                                                      log
-                                                                                                                          .monitorId
-                                                                                                                          .name
-                                                                                                                    ? log
-                                                                                                                          .monitorId
-                                                                                                                          .name
-                                                                                                                    : 'Unknown'
-                                                                                                            } monitor`,
-                                                                                                            rootName:
-                                                                                                                'monitorLog',
-                                                                                                        }
-                                                                                                    ),
-                                                                                                }
-                                                                                            )
+                                                                                    </ShouldRender>
+                                                                                    <ShouldRender
+                                                                                        if={
+                                                                                            this
+                                                                                                .props
+                                                                                                .monitorType !==
+                                                                                            'script'
                                                                                         }
                                                                                     >
-                                                                                        <span>
-                                                                                            View
-                                                                                            JSON
-                                                                                        </span>
-                                                                                    </button>
+                                                                                        <button
+                                                                                            title="viewJson"
+                                                                                            id={`monitor_log_json_${log._id}`}
+                                                                                            disabled={
+                                                                                                !(
+                                                                                                    monitorLogs &&
+                                                                                                    !monitorLogs.requesting
+                                                                                                )
+                                                                                            }
+                                                                                            className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                                                            type="button"
+                                                                                            onClick={() =>
+                                                                                                this.props.openModal(
+                                                                                                    {
+                                                                                                        id: this
+                                                                                                            .state
+                                                                                                            .viewJsonModalId,
+                                                                                                        content: DataPathHoC(
+                                                                                                            ViewJsonLogs,
+                                                                                                            {
+                                                                                                                viewJsonModalId: this
+                                                                                                                    .state
+                                                                                                                    .viewJsonModalId,
+                                                                                                                jsonLog: log,
+                                                                                                                title: `Monitor Log for ${
+                                                                                                                    this
+                                                                                                                        .props
+                                                                                                                        .monitorName
+                                                                                                                        ? this
+                                                                                                                              .props
+                                                                                                                              .monitorName
+                                                                                                                        : log.monitorId &&
+                                                                                                                          log
+                                                                                                                              .monitorId
+                                                                                                                              .name
+                                                                                                                        ? log
+                                                                                                                              .monitorId
+                                                                                                                              .name
+                                                                                                                        : 'Unknown'
+                                                                                                                } monitor`,
+                                                                                                                rootName:
+                                                                                                                    'monitorLog',
+                                                                                                            }
+                                                                                                        ),
+                                                                                                    }
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            <span>
+                                                                                                View
+                                                                                                JSON
+                                                                                            </span>
+                                                                                        </button>
+                                                                                    </ShouldRender>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
@@ -1111,8 +1110,6 @@ export class MonitorLogsList extends Component {
                                                             </div>
                                                         </div>
                                                     </td>
-
-                                                    <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"></td>
                                                 </>
                                             )}
                                         </tr>

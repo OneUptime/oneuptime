@@ -48,7 +48,7 @@ describe('SMS Templates API', () => {
             await init.pageWaitForSelector(page, '#type');
             await init.selectDropdownValue(
                 '#type',
-                'External Subscriber Incident Created',
+                'Subscriber Incident Created',
                 page
             );
             await init.pageWaitForSelector(page, '#templateField');
@@ -86,12 +86,12 @@ describe('SMS Templates API', () => {
             await init.pageWaitForSelector(page, '#type');
             await init.selectDropdownValue(
                 '#type',
-                ' External Subscriber Incident Created',
+                ' Subscriber Incident Created',
                 page
             );
             await init.pageWaitForSelector(page, '#frmSmsTemplate');
             const newTemplate = 'New Body';
-            await init.pageClick(page, 'textarea[name=body]');
+            await init.pageClick(page, 'textarea[name=body]', {clickCount: 3});
             await init.pageType(page, 'textarea[name=body]', newTemplate);
             await init.pageClick(page, '#saveTemplate');
             await init.pageWaitForSelector(page, '.ball-beat', {
@@ -103,7 +103,7 @@ describe('SMS Templates API', () => {
             });
             await init.selectDropdownValue(
                 '#type',
-                'External Subscriber Incident Created',
+                'Subscriber Incident Created',
                 page
             );
             await init.pageWaitForSelector(page, '#frmSmsTemplate');
@@ -135,7 +135,7 @@ describe('SMS Templates API', () => {
             await init.pageWaitForSelector(page, '#type');
             await init.selectDropdownValue(
                 '#type',
-                'External Subscriber Incident Created',
+                'Subscriber Incident Created',
                 page
             );
             const resetBtn = await init.pageWaitForSelector(
@@ -168,7 +168,7 @@ describe('SMS Templates API', () => {
             await init.pageWaitForSelector(page, '#type');
             await init.selectDropdownValue(
                 '#type',
-                'External Subscriber Incident Created',
+                'Subscriber Incident Created',
                 page
             );
 
@@ -184,7 +184,7 @@ describe('SMS Templates API', () => {
             await init.pageWaitForSelector(page, '#type');
             await init.selectDropdownValue(
                 '#type',
-                'External Subscriber Incident Created',
+                'Subscriber Incident Created',
                 page
             );
             await init.pageWaitForSelector(page, '#templateField');
