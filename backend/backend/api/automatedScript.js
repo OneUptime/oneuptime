@@ -138,17 +138,25 @@ router.put(
     }
 );
 
-router.delete('/:scriptId/:projectId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const { scriptId } = req.params;
-        const msg = await AutomatedService.deleteBy(scriptId);
-        return sendItemResponse(req, res, msg);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
+router.delete(
+    '/:projectId/:automatedSlug/delete',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { automatedSlug } = req.params;
+            const userId = req.user ? req.user.id : null;
+            const response = await AutomatedService.deleteBy(
+                {
+                    slug: automatedSlug,
+                },
+                userId
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
     }
-});
+);
 
 module.exports = router;
