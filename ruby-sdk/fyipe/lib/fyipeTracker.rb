@@ -8,6 +8,8 @@ class FyipeTracker
     
     def initialize(apiUrl, errorTrackerId, errorTrackerKey, options = [])
         # instance variable intialzation
+        @configKeys = ['baseUrl']
+        @MAX_ITEMS_ALLOWED_IN_STACK = 100
         @errorTrackerId = errorTrackerId
         setApiUrl(apiUrl) 
         @errorTrackerKey = errorTrackerKey
@@ -27,8 +29,29 @@ class FyipeTracker
     end
 
     def setUpOptions(options)
-        # TODO set up options
-        # @options = nil
+        # set up options
+        if(options.class.to_s != "Hash")
+            return # ignore passed options if it is not an object
+        end
+
+        options.each do |key, value|
+            # proceed with current key if it is not in the config keys
+             if (!(@configKeys.include? key))
+                # if key is allowed in options
+                if (@options[key] != nil)
+                     # set max timeline properly after hecking conditions
+                     if key.to_s == 'maxTimeline'
+                        allowedValue = value
+                        if value > @MAX_ITEMS_ALLOWED_IN_STACK or value < 1
+                            allowedValue = @MAX_ITEMS_ALLOWED_IN_STACK
+                        end
+                        
+                        @options[key] = allowedValue
+                    end
+                end
+
+             end
+        end
     end
 
     def setEventId()
