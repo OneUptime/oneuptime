@@ -179,10 +179,27 @@ module.exports = {
         }
     },
 
-    deleteBy: async function(scriptId) {
+    deleteBy: async function(query, userId) {
         try {
-            const items = await ScriptModel.findOneAndDelete({ _id: scriptId });
-            return items;
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const response = await ScriptModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+            return response;
         } catch (error) {
             ErrorService.log('automatedScript.findOneAndUpdate', error);
             throw error;
