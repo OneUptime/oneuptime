@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import ClickOutside from 'react-click-outside';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
+import ShouldRender from '../basic/ShouldRender';
+import { connect } from 'react-redux';
 
 const DeleteAutomatedScript = props => {
     const { confirmThisDialog, closeThisDialog } = props;
@@ -19,6 +21,8 @@ const DeleteAutomatedScript = props => {
     useEffect(() => {
         window.addEventListener('keydown', handleKeyBoard);
     }, []);
+
+    const { requesting, error } = props.deleteScript;
 
     return (
         <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
@@ -44,6 +48,39 @@ const DeleteAutomatedScript = props => {
                                 </span>
                             </div>
                             <div className="bs-Modal-footer">
+                                <div
+                                    className="bs-Modal-footer-actions"
+                                    style={{ width: 280 }}
+                                >
+                                    <ShouldRender if={!requesting && error}>
+                                        <div
+                                            id="deleteError"
+                                            className="bs-Tail-copy"
+                                        >
+                                            <div
+                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                style={{
+                                                    marginTop: '10px',
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                }}
+                                            >
+                                                <div className="Box-root Margin-right--8">
+                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                </div>
+                                                <div className="Box-root">
+                                                    <span
+                                                        style={{
+                                                            color: 'red',
+                                                        }}
+                                                    >
+                                                        {error}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </ShouldRender>
+                                </div>
                                 <div className="bs-Modal-footer-actions">
                                     <button
                                         className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
@@ -63,7 +100,7 @@ const DeleteAutomatedScript = props => {
                                         disabled={false}
                                         autoFocus={true}
                                     >
-                                        {true && (
+                                        {!requesting && (
                                             <>
                                                 <span>Delete</span>
                                                 <span className="delete-btn__keycode">
@@ -71,7 +108,7 @@ const DeleteAutomatedScript = props => {
                                                 </span>
                                             </>
                                         )}
-                                        {false && <FormLoader />}
+                                        {requesting && <FormLoader />}
                                     </button>
                                 </div>
                             </div>
@@ -86,7 +123,13 @@ const DeleteAutomatedScript = props => {
 DeleteAutomatedScript.propTypes = {
     confirmThisDialog: PropTypes.func.isRequired,
     closeThisDialog: PropTypes.func.isRequired,
-    // data: PropTypes.object,
+    deleteScript: PropTypes.object.isRequired,
 };
 
-export default DeleteAutomatedScript;
+const mapStateToProps = state => {
+    return {
+        deleteScript: state.automatedScripts.deleteScript,
+    };
+};
+
+export default connect(mapStateToProps, null)(DeleteAutomatedScript);
