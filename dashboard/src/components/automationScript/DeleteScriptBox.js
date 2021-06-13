@@ -5,7 +5,7 @@ import { openModal, closeModal } from '../../actions/modal';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
-import DeleteAutomatedScript from './DeleteAutomatedScript';
+import DeleteAutomatedScript from '../modals/DeleteAutomatedScript';
 import { history } from '../../store';
 
 const DeleteScriptBox = props => {
