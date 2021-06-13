@@ -1,57 +1,26 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { FormLoader } from '../basic/Loader';
-import ShouldRender from '../basic/ShouldRender';
 import { deleteAutomatedScript } from '../../actions/automatedScript';
 import { openModal, closeModal } from '../../actions/modal';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
 import DeleteAutomatedScript from './DeleteAutomatedScript';
+import { history } from '../../store';
 
 const DeleteScriptBox = props => {
-    const {
-        // scripts,
-        name,
-        parentRoute,
-        history,
-        // closeModal,
-        openModal,
-    } = props;
-
-    const [loading, setLoading] = useState(false);
-    const [script] = useState(false);
-    // const [deleteModalId, setDeleteModalId] = useState(false);
-    // const pathName = history.location.pathname;
-    // const scripSlug = pathName.split('automation-scripts/')[1];
+    const { name, openModal } = props;
     const deleteModalId = uuidv4();
 
-    const deleteScrip = async () => {
-        setLoading(true);
-        const res = await props.deleteAutomatedScript(script._id);
-        if (res) {
-            setLoading(false);
-            history.push(parentRoute);
-        } else {
-            setLoading(false);
-        }
+    const deleteScript = async () => {
+        const automatedSlug = props.automatedSlug;
+        const projectId = props.currentProject._id;
+        await props.deleteAutomatedScript(projectId, automatedSlug).then(() => {
+            history.push(
+                `/dashboard/project/${props.currentProject.slug}/automation-scripts`
+            );
+        });
     };
-
-    // useEffect(() => {
-    //     const selectedScript = scripts.find(x => {
-    //         return x.slug == scripSlug;
-    //     });
-    //     setScript(selectedScript);
-    // }, []);
-
-    // const handleKeyBoard = e => {
-    //     switch (e.key) {
-    //         case 'Escape':
-    //             return closeModal({ id: deleteModalId });
-    //         default:
-    //             return false;
-    //     }
-    // };
 
     return (
         <div className="Box-root Margin-bottom--12">
@@ -80,22 +49,14 @@ const DeleteScriptBox = props => {
                                         openModal({
                                             id: deleteModalId,
                                             onClose: () => '',
-                                            onConfirm: () => deleteScrip(),
+                                            onConfirm: () => deleteScript(),
                                             content: DataPathHoC(
-                                                DeleteAutomatedScript,
-                                                {
-                                                    script: script,
-                                                }
+                                                DeleteAutomatedScript
                                             ),
                                         })
                                     }
                                 >
-                                    <ShouldRender if={!loading}>
-                                        <span>Delete</span>
-                                    </ShouldRender>
-                                    <ShouldRender if={loading}>
-                                        <FormLoader />
-                                    </ShouldRender>
+                                    <span>Delete</span>
                                 </button>
                             </div>
                         </div>
@@ -107,13 +68,11 @@ const DeleteScriptBox = props => {
 };
 
 DeleteScriptBox.propTypes = {
-    // scripts: PropTypes.array.isRequired,
-    history: PropTypes.object.isRequired,
     deleteAutomatedScript: PropTypes.func.isRequired,
+    currentProject: PropTypes.object,
     openModal: PropTypes.func.isRequired,
-    // closeModal: PropTypes.func.isRequired,
     name: PropTypes.string.isRequired,
-    parentRoute: PropTypes.string,
+    automatedSlug: PropTypes.string,
 };
 
 const mapStateToProps = state => {
