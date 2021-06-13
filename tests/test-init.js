@@ -1059,7 +1059,8 @@ const _this = {
     addScheduleToProject: async function(scheduleName, projectName, page) {
         const createStatusPageSelector = await _this.page$(
             page,
-            `#btnCreateStatusPage_${projectName}`
+            `#btnCreateStatusPage_${projectName}`,
+            {hidden: true}
         );
         if (createStatusPageSelector) {
             await _this.pageWaitForSelector(
