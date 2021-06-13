@@ -91,6 +91,8 @@ const AutomatedScripView = props => {
             10
         );
     };
+
+    const automatedSlug = props.match.params.automatedScriptslug;
     return (
         <Dashboard>
             <Fade>
@@ -469,6 +471,9 @@ const AutomatedScripView = props => {
                                                                     }
                                                                     parentRoute={
                                                                         parentRoute
+                                                                    }
+                                                                    automatedSlug={
+                                                                        automatedSlug
                                                                     }
                                                                 />
                                                             </Fade>
