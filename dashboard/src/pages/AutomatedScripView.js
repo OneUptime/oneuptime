@@ -357,11 +357,12 @@ const AutomatedScripView = props => {
                                                                                 </div>
                                                                                 <ShouldRender
                                                                                     if={
-                                                                                        scriptLogs &&
-                                                                                        scriptLogs
-                                                                                            .data
-                                                                                            .length ===
-                                                                                            0
+                                                                                        (scriptLogs &&
+                                                                                            scriptLogs
+                                                                                                .data
+                                                                                                .length ===
+                                                                                                0) ||
+                                                                                        !scriptLogs
                                                                                     }
                                                                                 >
                                                                                     <div
