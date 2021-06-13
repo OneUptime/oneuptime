@@ -1,6 +1,5 @@
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/automatedScript';
-import errors from '../errors';
 
 export function resetScripts(data) {
     return {
@@ -190,16 +189,36 @@ export function runScript(projectId, automatedScriptId) {
     };
 }
 
-export function deleteAutomatedScript(scriptId) {
-    return function(dispatch, getstate) {
-        const projectId = getstate().project.currentProject._id;
-        const promise = deleteApi(`automated-scripts/${scriptId}/${projectId}`);
+const deleteAutomatedScriptSuccess = data => {
+    return {
+        type: types.DELETE_AUTOMATED_SCRIPT_SUCCESS,
+        payload: data,
+    };
+};
+
+const deleteAutomatedScriptRequest = () => {
+    return {
+        type: types.DELETE_AUTOMATED_SCRIPT_REQUEST,
+    };
+};
+
+const deleteAutomatedScriptFailure = error => {
+    return {
+        type: types.DELETE_AUTOMATED_SCRIPT_FAILURE,
+        payload: error,
+    };
+};
+
+export function deleteAutomatedScript(projectId, automatedSlug) {
+    return function(dispatch) {
+        const promise = deleteApi(
+            `automated-scripts/${projectId}/${automatedSlug}/delete`
+        );
+        dispatch(deleteAutomatedScriptRequest());
 
         promise.then(
-            function(res) {
-                if (res.status === 200) {
-                    dispatch(fetchAutomatedScript(projectId));
-                }
+            function(response) {
+                dispatch(deleteAutomatedScriptSuccess(response.data));
                 return true;
             },
             function(error) {
@@ -213,7 +232,7 @@ export function deleteAutomatedScript(scriptId) {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchAutomatedScriptFailure(errors(error)));
+                dispatch(deleteAutomatedScriptFailure(error));
                 return false;
             }
         );
