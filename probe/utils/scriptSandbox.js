@@ -123,12 +123,18 @@ const runScript = async (
                 clearInterval(checker);
             });
             worker.on('error', err => {
+                // append errors to console log
+                consoleLogs.push(`[error]: ${err.message}`);
+
                 if (err.errors) {
+                    // if callback passed value append to console log
+                    consoleLogs.push(`[callback-errors]: ${err.errors}`);
+
                     resolve({
                         success: false,
                         message: err.message,
                         errors: err.errors,
-                        status: 'nonEmptyCb',
+                        status: 'nonEmptyCallback',
                         executionTime: performance.now() - start,
                         consoleLogs,
                     });

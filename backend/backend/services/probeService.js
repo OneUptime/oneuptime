@@ -227,7 +227,11 @@ module.exports = {
                 // if different, resolve last incident, create a new incident and monitor status
                 if (lastStatus) {
                     // check 3 times just to make sure
-                    if (data.retryCount >= 0 && data.retryCount < 3)
+                    if (
+                        typeof data.retry === 'boolean' &&
+                        data.retryCount >= 0 &&
+                        data.retryCount < 3
+                    )
                         return { retry: true, retryCount: data.retryCount };
 
                     // grab all the criteria in a monitor
@@ -360,7 +364,11 @@ module.exports = {
                         return incident;
                     });
                 } else {
-                    if (data.retryCount >= 0 && data.retryCount < 3)
+                    if (
+                        typeof data.retry === 'boolean' &&
+                        data.retryCount >= 0 &&
+                        data.retryCount < 3
+                    )
                         return { retry: true, retryCount: data.retryCount };
                     incidentIds = [
                         IncidentService.create({
@@ -410,7 +418,11 @@ module.exports = {
                         return incident;
                     });
                 } else {
-                    if (data.retryCount >= 0 && data.retryCount < 3)
+                    if (
+                        typeof data.retry === 'boolean' &&
+                        data.retryCount >= 0 &&
+                        data.retryCount < 3
+                    )
                         return { retry: true, retryCount: data.retryCount };
                     incidentIds = [
                         IncidentService.create({
@@ -460,8 +472,13 @@ module.exports = {
                         return incident;
                     });
                 } else {
-                    if (data.retryCount >= 0 && data.retryCount < 3)
+                    if (
+                        typeof data.retry === 'boolean' &&
+                        data.retryCount >= 0 &&
+                        data.retryCount < 3
+                    )
                         return { retry: true, retryCount: data.retryCount };
+
                     incidentIds = [
                         IncidentService.create({
                             projectId: monitor.projectId,
@@ -480,6 +497,7 @@ module.exports = {
             }
             incidentIds = await Promise.all(incidentIds);
             incidentIds = incidentIds.map(i => i._id);
+
             return incidentIds;
         } catch (error) {
             ErrorService.log('ProbeService.incidentCreateOrUpdate', error);
@@ -6384,7 +6402,7 @@ const checkScriptCondition = (condition, body) => {
                 validity.reason = `Script did not throw error`;
             }
         } else if (condition.filter === 'emptyCallback') {
-            if (body.statusText === 'nonEmptyCb' && body.error) {
+            if (body.statusText === 'nonEmptyCallback' && body.error) {
                 validity.valid = false;
                 validity.reason = `Script callback invoked with arguments ${JSON.stringify(
                     body.error
@@ -6394,7 +6412,7 @@ const checkScriptCondition = (condition, body) => {
                 validity.reason = `Script callback has no arguments`;
             }
         } else if (condition.filter === 'nonEmptyCallback') {
-            if (body.statusText === 'nonEmptyCb' && body.error) {
+            if (body.statusText === 'nonEmptyCallback' && body.error) {
                 validity.valid = true;
                 validity.reason = `Script callback invoked with arguments ${JSON.stringify(
                     body.error
