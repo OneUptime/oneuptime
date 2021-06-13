@@ -7,6 +7,9 @@ import {
     FETCH_SINGLE_SCRIPT_SUCCESS,
     FETCH_SINGLE_SCRIPT_REQUEST,
     FETCH_SINGLE_SCRIPT_FAILURE,
+    DELETE_AUTOMATED_SCRIPT_SUCCESS,
+    DELETE_AUTOMATED_SCRIPT_FAILURE,
+    DELETE_AUTOMATED_SCRIPT_REQUEST,
 } from '../constants/automatedScript';
 
 const INITIAL_STATE = {
@@ -23,6 +26,11 @@ const INITIAL_STATE = {
     },
     individualScript: {
         log: null,
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    deleteScript: {
         requesting: false,
         success: false,
         error: null,
@@ -112,6 +120,36 @@ export default function component(state = INITIAL_STATE, action) {
                     requesting: true,
                     success: false,
                     error: null,
+                },
+            });
+
+        case DELETE_AUTOMATED_SCRIPT_SUCCESS:
+            return Object.assign({}, state, {
+                deleteScript: {
+                    ...state.deleteScript,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case DELETE_AUTOMATED_SCRIPT_REQUEST:
+            return Object.assign({}, state, {
+                deleteScript: {
+                    ...state.deleteScript,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case DELETE_AUTOMATED_SCRIPT_FAILURE:
+            return Object.assign({}, state, {
+                deleteScript: {
+                    ...state.deleteScript,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
                 },
             });
 
