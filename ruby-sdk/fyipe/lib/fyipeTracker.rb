@@ -74,4 +74,46 @@ class FyipeTracker
     def getTimeline()
         return @listenerObj.getTimeline()
     end
+
+    def setTag(key, value)
+        if (!((key.class.to_s.eql? "String") || (value.class.to_s.eql? "String")))
+            raise "Invalid Tag"
+        end
+        
+        exist = false
+        @tags.each do |tag|
+            if(tag['key'].to_s.eql? key)
+                # set the found flag
+                exist true
+                # replace value if it exist
+                tag['value'] = value
+                break
+            end
+        end
+        if(!exist)
+            # push key and value if it doesnt
+            tag = {}
+            tag['key'] = key
+            tag['value'] = value
+            @tags.append(tag)
+        end
+    end
+
+    def setTags(tags)
+    
+        if (!(tags.class.to_s.eql? "Array"))
+            raise "Invalid Tags"
+        end
+        
+        tags.each do |tag|
+            if(tag[:key] != nil && tag[:value] != nil)
+                setTag(tag[:key], tag[:value])
+            end
+        end
+    end
+
+    def getTags()
+        return @tags
+    end
+        
 end
