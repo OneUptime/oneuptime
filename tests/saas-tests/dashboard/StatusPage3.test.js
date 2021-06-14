@@ -73,7 +73,10 @@ describe('Status Page', () => {
                 hidden: true,
             });
 
-            await page.reload({waitUntil: 'networkidle2', timeout: init.timeout});
+            await page.reload({
+                waitUntil: 'networkidle2',
+                timeout: init.timeout,
+            });
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
             let link = await init.page$(
@@ -114,7 +117,10 @@ describe('Status Page', () => {
                 hidden: true,
             });
 
-            await page.reload({waitUntil: 'networkidle2', timeout: init.timeout});
+            await page.reload({
+                waitUntil: 'networkidle2',
+                timeout: init.timeout,
+            });
             await init.pageWaitForSelector(page, '#publicStatusPageUrl');
 
             let link = await init.page$(
@@ -136,7 +142,6 @@ describe('Status Page', () => {
         },
         operationTimeOut
     );
-
 
     test(
         'should not add a domain when the field is empty',

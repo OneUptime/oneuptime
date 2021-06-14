@@ -83,7 +83,7 @@ describe('Status Page', () => {
                 page
             );
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-        
+
             await page.reload({ waitUntil: 'networkidle2' });
             const firstMonitorContainer = await init.pageWaitForSelector(
                 page,
@@ -159,7 +159,7 @@ describe('Status Page', () => {
                 page
             );
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-            
+
             await page.reload({ waitUntil: 'networkidle2' });
             // We check if the monitors are added
             const firstMonitorContainer = await init.pageWaitForSelector(
@@ -290,7 +290,7 @@ describe('Status Page', () => {
             await input.type(finalValue);
 
             await init.pageClick(page, '#updateCustomDomainBtn');
-            
+
             await init.pageWaitForSelector(page, '#editMoreDomainModal', {
                 hidden: true,
             });

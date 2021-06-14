@@ -63,8 +63,14 @@ class OngoingSchedule extends Component {
                                                     Ongoing Scheduled Event
                                                 </div>
                                                 <div className="ongoing__scheduleitem">
-                                                    <span id={`event-name-${event.name}`}>{event.name}</span>
-                                                    <span id={`event-description-${event.description}`}>
+                                                    <span
+                                                        id={`event-name-${event.name}`}
+                                                    >
+                                                        {event.name}
+                                                    </span>
+                                                    <span
+                                                        id={`event-description-${event.description}`}
+                                                    >
                                                         {event.description}
                                                     </span>
                                                 </div>

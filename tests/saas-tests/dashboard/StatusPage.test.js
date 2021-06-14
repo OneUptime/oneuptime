@@ -243,7 +243,7 @@ describe('Status Page', () => {
             await init.pageWaitForSelector(page, '#monitor-0');
             await init.pageClick(page, '#delete-monitor-0');
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-            
+
             await page.reload({ waitUntil: 'networkidle2' });
             const elem = await init.pageWaitForSelector(page, '#app-loading', {
                 visible: true,

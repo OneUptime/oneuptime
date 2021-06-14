@@ -1060,7 +1060,7 @@ const _this = {
         const createStatusPageSelector = await _this.page$(
             page,
             `#btnCreateStatusPage_${projectName}`,
-            {hidden: true}
+            { hidden: true }
         );
         if (createStatusPageSelector) {
             await _this.pageWaitForSelector(

@@ -281,7 +281,7 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
-            // navigate to the note tab section                        
+            // navigate to the note tab section
             await init.pageClick(page, '.timeline-tab');
             const tenthItem = await init.pageWaitForSelector(
                 page,
@@ -353,8 +353,8 @@ describe('Scheduled Maintenance Note ==> Pagination and Deletion', () => {
                 timeout: init.timeout,
             });
             await init.pageClick(page, '#viewScheduledEvent_0');
-            // navigate to the advance tab section            
-            await init.pageClick(page, ".advanced-options-tab");
+            // navigate to the advance tab section
+            await init.pageClick(page, '.advanced-options-tab');
 
             // look for the delete button and click on it
             await init.pageWaitForSelector(page, '#deleteScheduleEvent', {
