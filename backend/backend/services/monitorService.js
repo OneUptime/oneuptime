@@ -369,7 +369,7 @@ module.exports = {
             if (monitor) {
                 let subProject = null;
                 let project = await ProjectService.findOneBy({
-                    _id: monitor.projectId,
+                    _id: monitor.projectId._id || monitor.projectId,
                 });
 
                 if (project) {
@@ -542,34 +542,36 @@ module.exports = {
                     {
                         deleted: false,
                         disabled: false,
-                        $and: [
-                            {
-                                type: {
-                                    $in: ['script'],
-                                },
-                            },
-                            {
-                                $or: [
-                                    {
-                                        scriptRunStatus: {
-                                            $nin: ['inProgress'],
-                                        },
-                                    },
-                                    // script monitors that have been running for too long (10mins)**
-                                    // or weren't completed due to a crash
-                                    {
-                                        lastPingTime: {
-                                            $lte: moment()
-                                                .subtract(10, 'minutes')
-                                                .toDate(),
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
                     },
                     {
                         $or: [
+                            {
+                                $and: [
+                                    {
+                                        type: {
+                                            $in: ['script'],
+                                        },
+                                    },
+                                    {
+                                        $or: [
+                                            {
+                                                scriptRunStatus: {
+                                                    $nin: ['inProgress'],
+                                                },
+                                            },
+                                            // script monitors that have been running for too long (10mins)**
+                                            // or weren't completed due to a crash
+                                            {
+                                                lastPingTime: {
+                                                    $lte: moment()
+                                                        .subtract(10, 'minutes')
+                                                        .toDate(),
+                                                },
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
                             {
                                 $and: [
                                     {
@@ -751,47 +753,57 @@ module.exports = {
 
             let probes;
             const probeLogs = [];
-            if (monitor.type === 'server-monitor' && !monitor.agentlessConfig) {
-                probes = [undefined];
-            } else {
-                probes = await ProbeService.findBy({});
-            }
-
-            for (const probe of probes) {
-                const query = {
-                    monitorId,
-                    createdAt: { $gte: start, $lte: end },
-                };
-                if (typeof probe !== 'undefined') {
-                    query.probeId = probe._id;
+            if (monitor) {
+                if (
+                    monitor.type === 'server-monitor' &&
+                    !monitor.agentlessConfig
+                ) {
+                    probes = [undefined];
+                } else {
+                    probes = await ProbeService.findBy({});
                 }
 
-                let monitorLogs;
+                for (const probe of probes) {
+                    const query = {
+                        monitorId,
+                        createdAt: { $gte: start, $lte: end },
+                    };
+                    if (typeof probe !== 'undefined') {
+                        query.probeId = probe._id;
+                    }
 
-                if (intervalInDays > 30 && !isNewMonitor) {
-                    monitorLogs = await MonitorLogByWeekService.findBy(query);
-                } else if (intervalInDays > 2 && !isNewMonitor) {
-                    monitorLogs = await MonitorLogByDayService.findBy(query);
-                } else {
-                    if (
-                        moment(endDate).diff(
-                            moment(monitor.createdAt),
-                            'minutes'
-                        ) > 60
-                    ) {
-                        monitorLogs = await MonitorLogByHourService.findBy(
+                    let monitorLogs;
+
+                    if (intervalInDays > 30 && !isNewMonitor) {
+                        monitorLogs = await MonitorLogByWeekService.findBy(
+                            query
+                        );
+                    } else if (intervalInDays > 2 && !isNewMonitor) {
+                        monitorLogs = await MonitorLogByDayService.findBy(
                             query
                         );
                     } else {
-                        monitorLogs = await MonitorLogService.findBy(query);
+                        if (
+                            moment(endDate).diff(
+                                moment(monitor.createdAt),
+                                'minutes'
+                            ) > 60
+                        ) {
+                            monitorLogs = await MonitorLogByHourService.findBy(
+                                query
+                            );
+                        } else {
+                            monitorLogs = await MonitorLogService.findBy(query);
+                        }
                     }
-                }
 
-                if (monitorLogs && monitorLogs.length > 0) {
-                    probeLogs.push({
-                        _id: typeof probe !== 'undefined' ? probe._id : null,
-                        logs: monitorLogs,
-                    });
+                    if (monitorLogs && monitorLogs.length > 0) {
+                        probeLogs.push({
+                            _id:
+                                typeof probe !== 'undefined' ? probe._id : null,
+                            logs: monitorLogs,
+                        });
+                    }
                 }
             }
 

@@ -99,20 +99,20 @@ module.exports = {
                     schedule = await ScheduleService.findOneBy({
                         isDefault: true,
                         projectId:
-                            notAcknowledgedCallScheduleStatus.projectId._id ||
-                            notAcknowledgedCallScheduleStatus.projectId,
+                            notAcknowledgedCallScheduleStatus.project._id ||
+                            notAcknowledgedCallScheduleStatus.project,
                     });
                 }
                 //and the rest happens here.
 
                 const monitors = incident.monitors.map(
-                    monitor => monitor.monitorId
+                    monitor => monitor.monitorId._id || monitor.monitorId
                 );
                 for (const monitor of monitors) {
                     AlertService.sendAlertsToTeamMembersInSchedule({
                         schedule,
                         incident,
-                        monitorId: monitor._id,
+                        monitorId: monitor,
                     });
                 }
             }

@@ -2455,7 +2455,7 @@ module.exports = {
             const project = await ProjectService.findOneBy({
                 _id: projectId,
             });
-            // get thee monitor
+            // get the monitor
             monitor = await MonitorService.findOneBy({
                 _id: monitor._id,
             });
@@ -2487,10 +2487,12 @@ module.exports = {
 
             const monitorCustomFields = {},
                 incidentCustomFields = {};
-            monitor.customFields.forEach(
-                field =>
-                    (monitorCustomFields[field.fieldName] = field.fieldValue)
-            );
+            monitor.customFields &&
+                monitor.customFields.forEach(
+                    field =>
+                        (monitorCustomFields[field.fieldName] =
+                            field.fieldValue)
+                );
             incident.customFields.forEach(
                 field =>
                     (incidentCustomFields[field.fieldName] = field.fieldValue)
