@@ -115,5 +115,33 @@ class FyipeTracker
     def getTags()
         return @tags
     end
+
+    def setFingerPrint(key)
+        # get data type of the passed key
+        keyClassType = key.class.to_s
+
+        # routine check
+        if (keyClassType != "String" || keyClassType != "Array")
+            raise "Invalid Fingerprint"
+        end
+
+        fingerprint = key
+        if (keyClassType == "String")
+            fingerprint = [key]
+        end
+        
+        @fingerprint = fingerprint
+    end
+
+    def getFingerprint(errorMessage)
+    
+        # if no fingerprint exist currently
+        if (fingerprint.length() < 1)
+            # set up finger print based on error since none exist
+            setFingerPrint(errorMessage)
+        end
+        
+        return @fingerprint
+    end
         
 end
