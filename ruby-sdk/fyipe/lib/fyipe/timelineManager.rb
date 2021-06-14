@@ -23,7 +23,7 @@ class FyipeTimelineManager
     private
     def addItemToTimeline(item)
         # get the size of the stack
-        if (@options['maxTimeline'] != nil && (@timeLineStack.length() == @options[:maxTimeline].to_i))
+        if (@options[:maxTimeline] != nil && (@timeLineStack.length() == @options[:maxTimeline].to_i))
             return # It discards new timeline update once maximum is reached
         end
 
