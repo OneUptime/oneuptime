@@ -1638,6 +1638,30 @@ const _this = {
             page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing
         ]);
     },
+    navigateToTwilio: async function(page){
+        await page.goto(utils.DASHBOARD_URL);
+            await _this.pageWaitForSelector(page, '#projectSettings', {
+                visible: true,
+                timeout: _this.timeout,
+            });
+            await _this.pageClick(page, '#projectSettings');
+            await _this.pageWaitForSelector(page, '#more');
+            await _this.pageClick(page, '#more');
+            await _this.pageWaitForSelector(page, '#smsCalls');
+            await _this.pageClick(page, '#smsCalls');
+    },
+    navigateToSmtp: async function(page){
+        await page.goto(utils.DASHBOARD_URL);
+            await _this.pageWaitForSelector(page, '#projectSettings', {
+                visible: true,
+                timeout: _this.timeout,
+            });
+            await _this.pageClick(page, '#projectSettings');
+            await _this.pageWaitForSelector(page, '#more');
+            await _this.pageClick(page, '#more');
+            await _this.pageWaitForSelector(page, '#email');
+            await _this.pageClick(page, '#email');
+    },
 };
 
 module.exports = _this;
