@@ -86,11 +86,11 @@
         <img src="/img/FyipeSquare.png" width="50px" class="fyipe-logo">
       </div>
       <div class="main-header">
-        <h3><span class="check-mark"><img src="/img/acknowledge.svg" alt="check-mark" width="18px"></span><%= title_message %></h3>
+        <h3><span class="check-mark"><img src=<%= apiUrl + '/img/' + action + '.svg' %> alt="check-mark" width="18px"></span><%= title_message %></h3>
       </div>
       <div class="main-content">
         <p class="message">
-          Your incident is now acknowledged.
+          <%= body_message %>
         </p>
         <p> You can view the status of this incident and provide notes on the Dashboard.</p>
         <br>

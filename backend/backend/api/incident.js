@@ -1113,10 +1113,10 @@ router.get(
                 userId,
                 req.user.name
             );
-            return res.status(200).render('incidentActionMod.ejs', {
+            return res.status(200).render('incidentAction.ejs', {
                 title: 'Incident Acknowledged',
                 title_message: 'Incident Acknowledged',
-                body_message: 'Your incident is now acknowledged',
+                body_message: 'Your incident is now acknowledged.',
                 action: 'acknowledge',
                 dashboard_url: global.dashboardHost,
                 apiUrl: global.apiHost,
