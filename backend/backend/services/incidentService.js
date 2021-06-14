@@ -397,7 +397,7 @@ module.exports = {
                 },
                 { new: true }
             );
-            updatedIncident = _this.findOneBy({
+            updatedIncident = await _this.findOneBy({
                 _id: updatedIncident._id,
             });
 
@@ -1042,11 +1042,14 @@ module.exports = {
                 incidents.map(async incident => {
                     // only delete the incident, since the monitor can be restored
                     const monitors = incident.monitors
-                        .map(
+                        .map(monitor => ({
+                            monitorId:
+                                monitor.monitorId._id || monitor.monitorId,
+                        }))
+                        .filter(
                             monitor =>
-                                monitor.monitorId._id || monitor.monitorId
-                        )
-                        .filter(id => String(id) !== String(monitorId));
+                                String(monitor.monitorId) !== String(monitorId)
+                        );
 
                     let updatedIncident = null;
                     if (monitors.length === 0) {
@@ -1080,7 +1083,7 @@ module.exports = {
                         );
                     }
 
-                    updatedIncident = _this.findOneBy({
+                    updatedIncident = await _this.findOneBy({
                         _id: updatedIncident._id,
                     });
 

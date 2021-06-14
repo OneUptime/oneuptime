@@ -369,7 +369,7 @@ module.exports = {
             if (monitor) {
                 let subProject = null;
                 let project = await ProjectService.findOneBy({
-                    _id: monitor.projectId,
+                    _id: monitor.projectId._id || monitor.projectId,
                 });
 
                 if (project) {
