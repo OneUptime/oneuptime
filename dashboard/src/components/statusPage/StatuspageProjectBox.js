@@ -211,10 +211,10 @@ const StatusPageProjectBox = props => {
                                     >
                                         {props.subProjectStatusPage.count}
                                     </span>{' '}
-                                    Log
+                                    Status Page
                                     <ShouldRender
                                         if={
-                                            props.subProjectStatusPage.count > 0
+                                            props.subProjectStatusPage.count > 1 //E.g 2 Logs
                                         }
                                     >
                                         s
@@ -230,7 +230,7 @@ const StatusPageProjectBox = props => {
                                     <span
                                         id={`status_page_count_${props.subProjectName}`}
                                     >
-                                        0 Status Pages
+                                        0 Status Page
                                     </span>
                                 </ShouldRender>
                             </span>
