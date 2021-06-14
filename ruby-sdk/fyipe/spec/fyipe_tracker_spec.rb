@@ -101,4 +101,94 @@ RSpec.describe FyipeTracker do
         expect(timeline[1]["category"]).to eql customTimeline2["category"]
     end
 
+    it 'test_should_add_tags' do 
+        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+
+        tag = {
+            "key": "location",
+            "value": "Warsaw"
+        } 
+        tracker.setTag(tag[:key], tag[:value])
+        
+        availableTags = tracker.getTags()
+        expect(availableTags.class.to_s).to eql "Array"
+        expect(availableTags.length()).to eql 1
+        expect(tag[:key]).to eql availableTags[0]["key"]
+    end
+
+    it 'test_should_add_multiple_tags' do
+        
+        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+
+        tags = []
+        tag = {
+            "key": "location",
+            "value": "Warsaw"
+        } 
+        tags.append(tag)
+
+        tagB = {
+            "key": "city",
+            "value": "Leeds"
+        } 
+        tags.append(tagB)
+
+        tagC = {
+            "key": "device",
+            "value": "iPhone"
+        } 
+        tags.append(tagC)
+
+        tracker.setTags(tags)
+
+        availableTags = tracker.getTags()
+        expect(availableTags.class.to_s).to eql "Array"
+        expect(availableTags.length()).to eql tags.length()
+    end
+
+    it 'test_should_overwrite_existing_keys_to_avoid_duplicate_tags' do
+        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+
+        tags = []
+        tag = {
+            "key": "location",
+            "value": "Warsaw"
+        } 
+        tags.append(tag)
+
+        tagB = {
+            "key": "city",
+            "value": "Leeds"
+        } 
+        tags.append(tagB)
+
+        tagC = {
+            "key": "location",
+            "value": "Paris"
+        } 
+        tags.append(tagC)
+
+        tagD = {
+            "key": "device",
+            "value": "iPhone"
+        } 
+        tags.append(tagD)
+
+        tagE = {
+            "key": "location",
+            "value": "London"
+        } 
+        tags.append(tagE)
+
+        tracker.setTags(tags)
+
+        availableTags = tracker.getTags()
+        expect(availableTags.class.to_s).to eql "Array"
+        expect(availableTags.length()).to eql 3 # only 3 unique tags
+        expect(tagC[:key]).to eql availableTags[0]["key"]
+        expect(tagC[:value]).not_to eql availableTags[0]["value"]# old value for that tag location
+        expect(tagE[:key]).to eql availableTags[0]["key"]
+        expect(tagE[:value]).to eql availableTags[0]["value"]# latest value for that tag location
+    end
+
 end
