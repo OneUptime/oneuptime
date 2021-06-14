@@ -542,34 +542,36 @@ module.exports = {
                     {
                         deleted: false,
                         disabled: false,
-                        $and: [
-                            {
-                                type: {
-                                    $in: ['script'],
-                                },
-                            },
-                            {
-                                $or: [
-                                    {
-                                        scriptRunStatus: {
-                                            $nin: ['inProgress'],
-                                        },
-                                    },
-                                    // script monitors that have been running for too long (10mins)**
-                                    // or weren't completed due to a crash
-                                    {
-                                        lastPingTime: {
-                                            $lte: moment()
-                                                .subtract(10, 'minutes')
-                                                .toDate(),
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
                     },
                     {
                         $or: [
+                            {
+                                $and: [
+                                    {
+                                        type: {
+                                            $in: ['script'],
+                                        },
+                                    },
+                                    {
+                                        $or: [
+                                            {
+                                                scriptRunStatus: {
+                                                    $nin: ['inProgress'],
+                                                },
+                                            },
+                                            // script monitors that have been running for too long (10mins)**
+                                            // or weren't completed due to a crash
+                                            {
+                                                lastPingTime: {
+                                                    $lte: moment()
+                                                        .subtract(10, 'minutes')
+                                                        .toDate(),
+                                                },
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
                             {
                                 $and: [
                                     {
