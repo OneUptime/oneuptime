@@ -340,17 +340,28 @@ module.exports = {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
                         if (monitor.type !== 'incomingHttpRequest') {
+                            const initialProbes = incident.probes.map(
+                                probe => ({
+                                    probeId: probe.probeId._id || probe.probeId,
+                                    updatedAt: probe.updatedAt,
+                                    status: probe.status,
+                                    reportedStatus: probe.reportedStatus,
+                                })
+                            );
                             incident = await IncidentService.updateOneBy(
                                 {
                                     _id: incident._id,
                                 },
                                 {
-                                    probes: incident.probes.concat({
-                                        probeId: data.probeId,
-                                        updatedAt: Date.now(),
-                                        status: true,
-                                        reportedStatus: data.status,
-                                    }),
+                                    probes: [
+                                        ...initialProbes,
+                                        {
+                                            probeId: data.probeId,
+                                            updatedAt: Date.now(),
+                                            status: true,
+                                            reportedStatus: data.status,
+                                        },
+                                    ],
                                 }
                             );
                         }
@@ -394,17 +405,28 @@ module.exports = {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
                         if (monitor.type !== 'incomingHttpRequest') {
+                            const initialProbes = incident.probes.map(
+                                probe => ({
+                                    probeId: probe.probeId._id || probe.probeId,
+                                    updatedAt: probe.updatedAt,
+                                    status: probe.status,
+                                    reportedStatus: probe.reportedStatus,
+                                })
+                            );
                             incident = await IncidentService.updateOneBy(
                                 {
                                     _id: incident._id,
                                 },
                                 {
-                                    probes: incident.probes.concat({
-                                        probeId: data.probeId,
-                                        updatedAt: Date.now(),
-                                        status: true,
-                                        reportedStatus: data.status,
-                                    }),
+                                    probes: [
+                                        ...initialProbes,
+                                        {
+                                            probeId: data.probeId,
+                                            updatedAt: Date.now(),
+                                            status: true,
+                                            reportedStatus: data.status,
+                                        },
+                                    ],
                                 }
                             );
                         }
@@ -448,17 +470,28 @@ module.exports = {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
                         if (monitor.type !== 'incomingHttpRequest') {
+                            const initialProbes = incident.probes.map(
+                                probe => ({
+                                    probeId: probe.probeId._id || probe.probeId,
+                                    updatedAt: probe.updatedAt,
+                                    status: probe.status,
+                                    reportedStatus: probe.reportedStatus,
+                                })
+                            );
                             incident = await IncidentService.updateOneBy(
                                 {
                                     _id: incident._id,
                                 },
                                 {
-                                    probes: incident.probes.concat({
-                                        probeId: data.probeId,
-                                        updatedAt: Date.now(),
-                                        status: true,
-                                        reportedStatus: data.status,
-                                    }),
+                                    probes: [
+                                        ...initialProbes,
+                                        {
+                                            probeId: data.probeId,
+                                            updatedAt: Date.now(),
+                                            status: true,
+                                            reportedStatus: data.status,
+                                        },
+                                    ],
                                 }
                             );
                         }
