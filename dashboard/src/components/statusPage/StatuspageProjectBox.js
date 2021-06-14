@@ -214,7 +214,7 @@ const StatusPageProjectBox = props => {
                                     Log
                                     <ShouldRender
                                         if={
-                                            props.subProjectStatusPage.count > 0
+                                            props.subProjectStatusPage.count > 1 //E.g 2 Logs
                                         }
                                     >
                                         s
