@@ -84,7 +84,7 @@ class FyipeTracker
         @tags.each do |tag|
             if(tag['key'].to_s.eql? key)
                 # set the found flag
-                exist true
+                exist = true
                 # replace value if it exist
                 tag['value'] = value
                 break
