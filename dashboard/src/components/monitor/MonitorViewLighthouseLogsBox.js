@@ -136,7 +136,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                         Currently scanning your website URL(s).
                                     </span>
                                 ) : (
-                                    <span>
+                                    <span id="website_postscan">
                                         Here&apos;s a summary of{' '}
                                         <a
                                             href="https://developers.google.com/web/tools/lighthouse"
