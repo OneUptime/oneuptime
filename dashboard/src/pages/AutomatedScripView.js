@@ -9,14 +9,13 @@ import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import DeleteScriptBox from '../components/automationScript/DeleteScriptBox';
 import DataPathHoC from '../components/DataPathHoC';
-import ViewJsonLogs from '../components/modals/ViewJsonLogs';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { openModal } from '../actions/modal';
 import { v4 as uuidv4 } from 'uuid';
 import { fetchSingleAutomatedScript } from '../actions/automatedScript';
 import Badge from '../components/common/Badge';
-import moment from 'moment';
+import ViewScriptLogs from '../components/modals/ViewScriptLogs';
 
 const AutomatedScripView = props => {
     const { history } = props;
@@ -189,10 +188,8 @@ const AutomatedScripView = props => {
                                                                                             by
                                                                                         </div>
                                                                                         <div className="bs-ObjectList-cell">
-                                                                                            Time
-                                                                                            the
-                                                                                            script
-                                                                                            ran
+                                                                                            Execution
+                                                                                            time
                                                                                         </div>
                                                                                         <div
                                                                                             className="bs-ObjectList-cell"
@@ -267,11 +264,10 @@ const AutomatedScripView = props => {
                                                                                                                 className="bs-ObjectList-cell-row"
                                                                                                                 id={`monitor`}
                                                                                                             >
-                                                                                                                {moment(
-                                                                                                                    log.createdAt
-                                                                                                                ).format(
-                                                                                                                    'MMMM Do YYYY, h:mm a'
+                                                                                                                {parseInt(
+                                                                                                                    log.executionTime
                                                                                                                 )}
+                                                                                                                ms
                                                                                                             </div>
                                                                                                         </div>
                                                                                                         <div className="bs-ObjectList-cell bs-u-v-middle">
@@ -291,7 +287,7 @@ const AutomatedScripView = props => {
                                                                                                                         }
                                                                                                                     </Badge>
                                                                                                                 ) : log.status ===
-                                                                                                                  'failure' ? (
+                                                                                                                  'failed' ? (
                                                                                                                     <Badge color="red">
                                                                                                                         {
                                                                                                                             log.status
@@ -327,13 +323,11 @@ const AutomatedScripView = props => {
                                                                                                                             {
                                                                                                                                 id: viewJsonModalId,
                                                                                                                                 content: DataPathHoC(
-                                                                                                                                    ViewJsonLogs,
+                                                                                                                                    ViewScriptLogs,
                                                                                                                                     {
                                                                                                                                         viewJsonModalId,
-                                                                                                                                        jsonLog: {
-                                                                                                                                            script:
-                                                                                                                                                'jdjjd',
-                                                                                                                                        },
+                                                                                                                                        consoleLogs:
+                                                                                                                                            log.consoleLogs,
                                                                                                                                         title: `Automated Script Log`,
                                                                                                                                         rootName:
                                                                                                                                             'automatedScript',
