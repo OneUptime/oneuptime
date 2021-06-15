@@ -82,6 +82,10 @@ module.exports = {
             scriptLog.automationScriptId = id || null;
             scriptLog.triggerByUser = data.triggerByUser || null;
             scriptLog.triggerByScript = data.triggerByScript || null;
+            scriptLog.status = data.status || null;
+            scriptLog.executionTime = data.executionTime || null;
+            scriptLog.consoleLogs = data.consoleLogs || null;
+            scriptLog.error = data.error || null;
             const newScriptLog = await scriptLog.save();
 
             return newScriptLog;
