@@ -1191,31 +1191,33 @@ module.exports = {
                         startDate,
                         currentDate
                     );
-                    const { uptimePercent } = await _this.calculateTime(
-                        monitorStatus[0].statuses,
-                        startDate,
-                        Number(monitorSla.frequency)
-                    );
-
-                    const monitorUptime =
-                        uptimePercent !== 100 && !isNaN(uptimePercent)
-                            ? uptimePercent.toFixed(3)
-                            : '100';
-                    const slaUptime = Number(monitorSla.monitorUptime).toFixed(
-                        3
-                    );
-
-                    if (Number(monitorUptime) < Number(slaUptime)) {
-                        // monitor sla is breached for this monitor
-                        await MonitorModel.findOneAndUpdate(
-                            { _id: monitor._id },
-                            { $set: { breachedMonitorSla: true } }
+                    if (monitorStatus && monitorStatus.length > 0) {
+                        const { uptimePercent } = await _this.calculateTime(
+                            monitorStatus[0].statuses,
+                            startDate,
+                            Number(monitorSla.frequency)
                         );
-                    } else {
-                        await MonitorModel.findOneAndUpdate(
-                            { _id: monitor._id },
-                            { $set: { breachedMonitorSla: false } }
-                        );
+
+                        const monitorUptime =
+                            uptimePercent !== 100 && !isNaN(uptimePercent)
+                                ? uptimePercent.toFixed(3)
+                                : '100';
+                        const slaUptime = Number(
+                            monitorSla.monitorUptime
+                        ).toFixed(3);
+
+                        if (Number(monitorUptime) < Number(slaUptime)) {
+                            // monitor sla is breached for this monitor
+                            await MonitorModel.findOneAndUpdate(
+                                { _id: monitor._id },
+                                { $set: { breachedMonitorSla: true } }
+                            );
+                        } else {
+                            await MonitorModel.findOneAndUpdate(
+                                { _id: monitor._id },
+                                { $set: { breachedMonitorSla: false } }
+                            );
+                        }
                     }
 
                     const monitorData = await this.findOneBy({

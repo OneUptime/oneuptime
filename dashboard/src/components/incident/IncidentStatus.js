@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
@@ -66,7 +65,8 @@ export class IncidentStatus extends Component {
     };
     firstFormSubmit = values => {
         const incidentId = this.props.incident._id;
-        const projectId = this.props.incident.projectId._id ?? this.props.incident.projectId;
+        const projectId =
+            this.props.incident.projectId._id ?? this.props.incident.projectId;
         const incidentType = this.props.incident.incidentType;
         const description = this.props.incident.description;
         const incidentPriority = this.props.incident.incidentPriority._id;
@@ -96,7 +96,8 @@ export class IncidentStatus extends Component {
     };
     secondFormSubmit = () => {
         const incidentId = this.props.incident._id;
-        const projectId = this.props.incident.projectId._id ?? this.props.incident.projectId;
+        const projectId =
+            this.props.incident.projectId._id ?? this.props.incident.projectId;
         const incidentType = this.props.incident.incidentType;
         const title = this.props.incident.title;
         const description = this.props.description;
@@ -126,7 +127,8 @@ export class IncidentStatus extends Component {
     };
     thirdFormSubmit = (e, value) => {
         const incidentId = this.props.incident._id;
-        const projectId = this.props.incident.projectId._id ?? this.props.incident.projectId;
+        const projectId =
+            this.props.incident.projectId._id ?? this.props.incident.projectId;
         const incidentType = this.props.incident.incidentType;
         const title = this.props.incident.title;
         const description = this.props.incident.description;
@@ -304,7 +306,7 @@ export class IncidentStatus extends Component {
         }
     };
 
-    render() {        
+    render() {
         const isUserSubProjectId =
             this.props.incident.projectId._id ?? this.props.incident.projectId;
         const subProject =
@@ -541,58 +543,63 @@ export class IncidentStatus extends Component {
                                                             </span>
                                                         </div>
                                                     )}
-                                                {this.props.incident
-                                                    .incidentType &&
-                                                    this.props.incident
-                                                        .reason &&
-                                                    incidentReason &&
-                                                    incidentReason.length ===
-                                                        1 &&
-                                                    this.props.incident
-                                                        .monitorId.type !==
-                                                        'api' &&
-                                                    incidentReason &&
-                                                    incidentReason.join()
-                                                        .length <= 30 && (
-                                                        <div className="bs-font-normal bs-flex-display">
-                                                            <label className="bs-h">
-                                                                Cause:
-                                                            </label>
-                                                            <div
-                                                                className="bs-content-inside bs-status"
-                                                                id={`${monitorName}_IncidentReport_${this.props.count}`}
-                                                            >
-                                                                <ReactMarkdown
-                                                                    source={`${' ' +
-                                                                        incidentReason.map(
-                                                                            a => {
-                                                                                if (
-                                                                                    a.includes(
-                                                                                        'Response Time'
-                                                                                    )
-                                                                                ) {
-                                                                                    const milliSeconds = a.match(
-                                                                                        /\d+/
-                                                                                    )[0];
-                                                                                    const time = formatMonitorResponseTime(
-                                                                                        Number(
-                                                                                            milliSeconds
-                                                                                        )
-                                                                                    );
-                                                                                    return a.replace(
-                                                                                        milliSeconds +
-                                                                                            ' ms',
-                                                                                        time
-                                                                                    );
-                                                                                } else {
-                                                                                    return a;
-                                                                                }
-                                                                            }
-                                                                        ) +
-                                                                        '.'}`}
-                                                                />
-                                                            </div>
-                                                        </div>
+                                                {this.props.incident &&
+                                                    this.props.incident.monitors.map(
+                                                        monitorObj =>
+                                                            this.props.incident
+                                                                .incidentType &&
+                                                            this.props.incident
+                                                                .reason &&
+                                                            incidentReason &&
+                                                            incidentReason.length ===
+                                                                1 &&
+                                                            monitorObj.monitorId
+                                                                .type !==
+                                                                'api' &&
+                                                            incidentReason &&
+                                                            incidentReason.join()
+                                                                .length <=
+                                                                30 && (
+                                                                <div className="bs-font-normal bs-flex-display">
+                                                                    <label className="bs-h">
+                                                                        Cause:
+                                                                    </label>
+                                                                    <div
+                                                                        className="bs-content-inside bs-status"
+                                                                        id={`${monitorObj.name}_IncidentReport_${this.props.count}`}
+                                                                    >
+                                                                        <ReactMarkdown
+                                                                            source={`${' ' +
+                                                                                incidentReason.map(
+                                                                                    a => {
+                                                                                        if (
+                                                                                            a.includes(
+                                                                                                'Response Time'
+                                                                                            )
+                                                                                        ) {
+                                                                                            const milliSeconds = a.match(
+                                                                                                /\d+/
+                                                                                            )[0];
+                                                                                            const time = formatMonitorResponseTime(
+                                                                                                Number(
+                                                                                                    milliSeconds
+                                                                                                )
+                                                                                            );
+                                                                                            return a.replace(
+                                                                                                milliSeconds +
+                                                                                                    ' ms',
+                                                                                                time
+                                                                                            );
+                                                                                        } else {
+                                                                                            return a;
+                                                                                        }
+                                                                                    }
+                                                                                ) +
+                                                                                '.'}`}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )
                                                     )}
                                             </div>
                                         </div>
@@ -1686,7 +1693,8 @@ export class IncidentStatus extends Component {
                                                                             style={{
                                                                                 width: 212,
                                                                             }}
-                                                                            handleBlur={this.props.handleSubmit( // The RenderField Component has been refactored
+                                                                            handleBlur={this.props.handleSubmit(
+                                                                                // The RenderField Component has been refactored
                                                                                 this
                                                                                     .firstFormSubmit
                                                                             )}

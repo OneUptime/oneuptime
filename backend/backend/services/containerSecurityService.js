@@ -65,10 +65,10 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
+            // won't be using lean() here because of iv cypher for password
             const containerSecurity = await ContainerSecurityModel.findOne(
                 query
             )
-                .lean()
                 .populate('componentId')
                 .populate('resourceCategory', 'name')
                 .populate('dockerCredential');
@@ -93,8 +93,8 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
+            // won't be using lean() here because of iv cypher for password
             const containerSecurities = await ContainerSecurityModel.find(query)
-                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
