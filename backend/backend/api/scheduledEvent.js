@@ -319,20 +319,22 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
 
         const scheduledEvent = event[0];
 
-        if (scheduledEvent.alertSubscriber) {
-            // handle this asynchronous operation in the background
-            AlertService.sendCancelledScheduledEventToSubscribers(
-                scheduledEvent
-            );
-        }
+        if (scheduledEvent) {
+            if (scheduledEvent.alertSubscriber) {
+                // handle this asynchronous operation in the background
+                AlertService.sendCancelledScheduledEventToSubscribers(
+                    scheduledEvent
+                );
+            }
 
-        await ScheduledEventNoteService.create({
-            content: 'THIS SCHEDULED EVENT HAS BEEN CANCELLED',
-            scheduledEventId: scheduledEvent._id,
-            createdById: scheduledEvent.createdById._id,
-            type: 'investigation',
-            event_state: 'Cancelled',
-        });
+            await ScheduledEventNoteService.create({
+                content: 'THIS SCHEDULED EVENT HAS BEEN CANCELLED',
+                scheduledEventId: scheduledEvent._id,
+                createdById: scheduledEvent.createdById._id,
+                type: 'investigation',
+                event_state: 'Cancelled',
+            });
+        }
 
         return sendItemResponse(req, res, scheduledEvent);
     } catch (error) {
