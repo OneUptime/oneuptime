@@ -121,14 +121,15 @@ router.post(
                 customFields,
                 monitors,
             });
-
-            for (const monitor of monitors) {
-                await MonitorStatusService.create({
-                    monitorId: monitor,
-                    incidentId: incident._id,
-                    manuallyCreated: true,
-                    status: incidentType,
-                });
+            if (incident) {
+                for (const monitor of monitors) {
+                    await MonitorStatusService.create({
+                        monitorId: monitor,
+                        incidentId: incident._id,
+                        manuallyCreated: true,
+                        status: incidentType,
+                    });
+                }
             }
             return sendItemResponse(req, res, incident);
         } catch (error) {

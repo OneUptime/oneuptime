@@ -1051,17 +1051,20 @@ export default function incident(state = initialState, action) {
                     incidents: state.unresolvedincidents.incidents.map(
                         incident => {
                             let monitors = incident.monitors;
-                            monitors = monitors.map(monitor => {
-                                if (
-                                    action.payload &&
-                                    monitor.monitorId &&
-                                    monitor.monitorId._id === action.payload._id
-                                ) {
-                                    monitor.monitorId = action.payload;
-                                }
-                                return monitor;
-                            });
-                            incident.monitors = monitors;
+                            if (monitors && monitors.length > 0) {
+                                monitors = monitors.map(monitor => {
+                                    if (
+                                        action.payload &&
+                                        monitor.monitorId &&
+                                        monitor.monitorId._id ===
+                                            action.payload._id
+                                    ) {
+                                        monitor.monitorId = action.payload;
+                                    }
+                                    return monitor;
+                                });
+                                incident.monitors = monitors;
+                            }
                             return incident;
                         }
                     ),
