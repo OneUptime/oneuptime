@@ -52,41 +52,4 @@ describe('Users Component (IS_SAAS_SERVICE=false)', () => {
         },
         operationTimeOut
     );
-
-    test(
-        'should logout and get redirected to the login page if the user deletes his account',
-        async done => {
-            // navigating to dashboard url
-            // automatically redirects to users route
-            await page.goto(utils.ADMIN_DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
-            });
-
-            const userSelector = '#masteradmin';
-            await init.pageWaitForSelector(page, userSelector);
-            await init.pageClick(page, userSelector);
-
-            await init.pageWaitForSelector(page, '#delete');
-            await init.pageClick(page, '#delete');
-            await init.pageWaitForSelector(page, '#confirmDelete');
-            await init.pageClick(page, '#confirmDelete');
-            await init.pageWaitForSelector(page, '#confirmDelete', {
-                hidden: true,
-            });
-            await init.pageWaitForSelector(page, '#users');
-            await init.pageClick(page, '#users');
-            const loginBtn = await init.pageWaitForSelector(
-                page,
-                '#login-button',
-                {
-                    visible: true,
-                    timeout: init.timeout,
-                }
-            );
-            expect(loginBtn).toBeDefined();
-
-            done();
-        },
-        operationTimeOut
-    );
 });
