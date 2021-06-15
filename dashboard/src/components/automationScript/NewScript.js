@@ -14,14 +14,22 @@ import {
 } from '../../actions/automatedScript';
 import { RenderSelect } from '../basic/RenderSelect';
 import AceEditor from 'react-ace';
+import 'ace-builds/src-noconflict/mode-javascript';
+import 'ace-builds/src-noconflict/theme-github';
 import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
+
+const defaultScript =
+    '// To inspect your script or add comments, use console.log\n\n' +
+    'async function (done) {\n' +
+    '   // write any javascript here \n' +
+    '   done();\n' +
+    '}\n';
 
 class NewScript extends Component {
     constructor(props) {
         super(props);
         this.state = {
             name: '',
-            script: '',
             type: 'javascript',
         };
     }
@@ -471,13 +479,12 @@ class NewScript extends Component {
                                                                 this.state
                                                                     .script
                                                             }
+                                                            defaultValue={
+                                                                defaultScript
+                                                            }
                                                             style={{
                                                                 backgroundColor:
                                                                     '#fff',
-                                                                marginTop:
-                                                                    '10px',
-                                                                marginLeft:
-                                                                    '-4px',
                                                                 borderRadius:
                                                                     '4px',
                                                                 boxShadow:
@@ -498,12 +505,18 @@ class NewScript extends Component {
                                                             highlightActiveLine={
                                                                 true
                                                             }
-                                                            onChange={value => {
-                                                                this.setAutomatedScript(
-                                                                    value
-                                                                );
-                                                            }}
+                                                            onChange={
+                                                                this
+                                                                    .setAutomatedScript
+                                                            }
                                                             fontSize="14px"
+                                                            onLoad={editor => {
+                                                                // give the inner text area a name
+                                                                // so that we can reference it later
+                                                                const elem = editor.textInput.getElement();
+                                                                elem.name = `script_editor`;
+                                                            }}
+                                                            wrapEnabled={true}
                                                         />
                                                     </div>
                                                 </div>
