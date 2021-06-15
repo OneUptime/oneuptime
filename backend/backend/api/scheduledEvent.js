@@ -578,8 +578,12 @@ router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
         const data = req.body;
         data.scheduledEventId = eventId;
         data.createdById = userId;
-
-        if (!data.scheduledEventId) {
+        if (
+            !data.scheduledEventId ||
+            !data.scheduledEventId.trim() ||
+            data.scheduledEventId === undefined ||
+            data.scheduledEventId === 'undefined'
+        ) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Scheduled Event ID is required.',
