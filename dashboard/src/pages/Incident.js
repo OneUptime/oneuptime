@@ -399,21 +399,21 @@ class Incident extends React.Component {
                             >
                                 <Tab
                                     className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab basic-tab'
                                     }
                                 >
                                     Basic
                                 </Tab>
                                 <Tab
                                     className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab monitor-tab'
                                     }
                                 >
                                     Monitor Logs
                                 </Tab>
                                 <Tab
                                     className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab alert-tab'
                                     }
                                 >
                                     Alert Logs
@@ -421,7 +421,7 @@ class Incident extends React.Component {
                                 <Tab
                                     id="tab-advance"
                                     className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab advanced-tab'
                                     }
                                 >
                                     Advanced Options
