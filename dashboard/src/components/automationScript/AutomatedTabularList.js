@@ -227,6 +227,8 @@ const AutomatedTabularList = props => {
                                                                     automatedScriptId:
                                                                         script._id,
                                                                     projectId,
+                                                                    automatedSlug:
+                                                                        script.slug,
                                                                 }
                                                             ),
                                                         })
@@ -241,10 +243,6 @@ const AutomatedTabularList = props => {
                                                     onClick={() => {
                                                         props.history.push({
                                                             pathname: `${pathName}/${script.slug}`,
-                                                            state: {
-                                                                script:
-                                                                    script.script,
-                                                            },
                                                         });
                                                     }}
                                                 >
