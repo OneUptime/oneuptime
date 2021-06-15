@@ -15,11 +15,8 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY package*.json /usr/src/app/
-# using --legacy-peer-deps because of issues with dependency
-# https://stackoverflow.com/a/66620869
-# this issue is because of the node update
-# will remove the flag, once the dependency tree for all package is updated
-RUN npm ci --only=production --legacy-peer-deps
+
+RUN npm ci --only=production
 RUN npm install -g serve
 RUN npm install -g eslint
 
