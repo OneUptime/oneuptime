@@ -102,14 +102,20 @@ class Main extends Component {
                 limit
             );
         };
-        if (prevProps.probes !== this.props.probes) {
+        if (
+            JSON.stringify(prevProps.probes) !==
+            JSON.stringify(this.props.probes)
+        ) {
             if (this.state.nowHandler) {
                 clearTimeout(this.state.nowHandler);
             }
 
             this.setLastAlive();
         }
-        if (prevProps.statusData !== this.props.statusData) {
+        if (
+            JSON.stringify(prevProps.statusData) !==
+            JSON.stringify(this.props.statusData)
+        ) {
             this.props.getProbes(this.props.statusData._id, 0, 10).then(() => {
                 this.selectbutton(this.props.activeProbe);
             });
