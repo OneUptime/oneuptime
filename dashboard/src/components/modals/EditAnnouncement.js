@@ -7,13 +7,13 @@ import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { Field, FieldArray, reduxForm } from 'redux-form';
-import { RenderTextArea } from '../basic/RenderTextArea';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
 import {
     updateAnnouncement,
     fetchAnnouncements,
 } from '../../actions/statusPage';
+import CodeEditor from '../basic/CodeEditor';
 
 function validate(values) {
     const errors = {};
@@ -91,6 +91,10 @@ class EditAnnouncement extends Component {
                     this.handleCloseModal();
                 }
             });
+    };
+
+    onContentChange = val => {
+        this.props.change('description', val);
     };
 
     renderMonitors = ({ fields }) => {
@@ -304,6 +308,7 @@ class EditAnnouncement extends Component {
             closeModal,
             requesting,
             updateError,
+            description,
         } = this.props;
         return (
             <div
@@ -420,31 +425,18 @@ class EditAnnouncement extends Component {
                                                     >
                                                         Description
                                                     </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <div
-                                                            className="bs-Fieldset-field"
-                                                            style={{
-                                                                width: '100%',
-                                                            }}
-                                                        >
-                                                            <Field
-                                                                className="bs-TextArea"
-                                                                component={
-                                                                    RenderTextArea
-                                                                }
-                                                                type="text"
-                                                                name="description"
-                                                                rows="5"
-                                                                id="description"
-                                                                placeholder="Description"
-                                                                style={{
-                                                                    width:
-                                                                        '100%',
-                                                                    resize:
-                                                                        'none',
-                                                                }}
-                                                            />
-                                                        </div>
+                                                    <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                        <CodeEditor
+                                                            code={description}
+                                                            onCodeChange={
+                                                                this
+                                                                    .onContentChange
+                                                            }
+                                                            textareaId={
+                                                                'description'
+                                                            }
+                                                            placeholder="This can be markdown"
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
@@ -540,6 +532,8 @@ EditAnnouncement.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     data: PropTypes.object,
+    change: PropTypes.func,
+    description: PropTypes.string,
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -575,6 +569,15 @@ const mapStateToProps = (state, ownProps) => {
             }
         });
     });
+
+    const description = state.form.EditAnnouncementForm
+        ? state.form.EditAnnouncementForm.values
+            ? state.form.EditAnnouncementForm.values.description
+                ? state.form.EditAnnouncementForm.values.description
+                : ''
+            : ''
+        : '';
+
     return {
         requesting: state.statusPage.createAnnouncement.requesting,
         updateError: state.statusPage.createAnnouncement.error,
@@ -583,6 +586,7 @@ const mapStateToProps = (state, ownProps) => {
         formValues:
             state.form.EditAnnouncementForm &&
             state.form.EditAnnouncementForm.values,
+        description,
     };
 };
 
