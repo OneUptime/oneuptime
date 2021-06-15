@@ -143,5 +143,43 @@ class FyipeTracker
         
         return @fingerprint
     end
+
+    def captureMessage( message)
+        # set the a handled tag
+        setTag('handled', 'true')
+        messageObj = {}
+        messageObj["message"] = message 
+
+        prepareErrorObject('message', messageObj);
+
+        # TODO send to the server
+        # return sendErrorEventToServer()
+    end
+
+    def prepareErrorObject(eventType, errorStackTrace) 
+        # set a last timeline as the error message
+        @listenerObj.logErrorEvent(errorStackTrace["message"], eventType)
+        
+        # get current timeline
+        timeline = getTimeline()
+        
+        tags = getTags()
+        fingerprint = getFingerprint(errorStackTrace["message"]) # default fingerprint will be the message from the error stacktrace
+        # get event ID
+        # Temporary display the state of the error stack, timeline and device details when an error occur
+        # prepare the event so it can be sent to the server
+        @event = {}
+        @event["type"] = eventType
+        @event["timeline"]= timeline
+        @event["exception"]= errorStackTrace
+        @event["eventId"]= getEventId()
+        @event["tags"]= tags
+        @event["fingerprint"]= fingerprint
+        @event["errorTrackerKey"]= @errorTrackerKey
+    end
+
+    def getCurrentEvent()
+        return @event
+    end
         
 end
