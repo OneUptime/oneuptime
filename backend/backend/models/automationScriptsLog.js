@@ -33,6 +33,9 @@ const automationSriptLogSchema = new Schema(
             ref: 'User',
             index: true,
         },
+        executionTime: Number,
+        consoleLogs: [String],
+        error: String,
     },
     { timestamps: true }
 );
