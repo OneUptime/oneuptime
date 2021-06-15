@@ -180,17 +180,15 @@ describe('Custom SMTP Settings', () => {
             await port.click({ clickCount: 3 });
             await port.press('Backspace'); // clear out the input field
             await init.pageClick(page, '#saveSmtp');
-            await init.pageWaitForSelector(page, '#field-error', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            const errorMessage = await init.page$Eval(
+            await init.pageWaitForSelector(page, '#port');
+            const emptyMessage = await init.page$Eval(
                 page,
-                '#field-error',
+                '#port',
                 element => element.textContent
             );
-            expect(errorMessage).toEqual(
-                'Please input port this cannot be left blank.'
+            // This confirms that the port is empty, hence could not be saved
+            expect(emptyMessage).toEqual(
+                ''
             );
 
             done();

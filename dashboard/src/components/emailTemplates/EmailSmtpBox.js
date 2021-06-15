@@ -330,7 +330,7 @@ export class EmailSmtpBox extends Component {
                                                                         name="port"
                                                                         id="port"
                                                                         placeholder="465"
-                                                                        //Removal of 'required' allow the validate function to throw it error. Else, html 'required' will be called. In either case, the empty field cannot be submitted.
+                                                                        required="required"
                                                                         disabled={
                                                                             this
                                                                                 .props
