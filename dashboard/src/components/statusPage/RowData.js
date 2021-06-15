@@ -43,7 +43,10 @@ export class RowData extends Component {
                     style={{ height: '1px', minWidth: '270px' }}
                 >
                     <div className="bs-ObjectList-cell bs-u-v-middle">
-                        <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
+                        <div
+                            className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted"
+                            id={`viewStatusPage_${statusPage.name}`}
+                        >
                             {statusPage.name || 'Unknown'}
                         </div>
                         {statusPage.domains.length > 0 ? (

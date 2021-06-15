@@ -103,7 +103,7 @@ describe('Team API With SubProjects', () => {
             const elementHandle = await init.page$(
                 page,
                 `#${role}_${projectName}`,
-                {hidden: true}
+                { hidden: true }
             );
             expect(elementHandle).toEqual(null);
             done();
@@ -127,7 +127,7 @@ describe('Team API With SubProjects', () => {
             const elementHandle = await init.page$(
                 page,
                 `#${role}_${projectName}`,
-                {hidden: true}
+                { hidden: true }
             );
             expect(elementHandle).toEqual(null);
 

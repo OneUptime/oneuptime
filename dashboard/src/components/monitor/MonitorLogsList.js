@@ -945,11 +945,12 @@ export class MonitorLogsList extends Component {
                                                                                     <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                         <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
                                                                                             <span>
-                                                                                                {formatMonitorResponseTime(
-                                                                                                    log
-                                                                                                        .scriptMetadata
-                                                                                                        .executionTime
-                                                                                                )}
+                                                                                                {log.scriptMetadata &&
+                                                                                                    formatMonitorResponseTime(
+                                                                                                        log
+                                                                                                            .scriptMetadata
+                                                                                                            .executionTime
+                                                                                                    )}
                                                                                             </span>
                                                                                         </span>
                                                                                     </div>

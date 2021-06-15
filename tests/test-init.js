@@ -531,7 +531,7 @@ const _this = {
             timeout: _this.timeout,
         });
         await _this.pageClick(page, '#changePlanBtn');
-        await _this.gotoTab(0, page);
+        await _this.pageClick(page, '.basic-tab');
     },
     registerAndLoggingTeamMember: async function(user, page) {
         const { email, password } = user;
@@ -1060,7 +1060,7 @@ const _this = {
         const createStatusPageSelector = await _this.page$(
             page,
             `#btnCreateStatusPage_${projectName}`,
-            {hidden: true}
+            { hidden: true }
         );
         if (createStatusPageSelector) {
             await _this.pageWaitForSelector(

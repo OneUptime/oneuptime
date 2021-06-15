@@ -81,7 +81,7 @@ describe('Schedule API With SubProjects', () => {
             const createButton = await init.page$(
                 page,
                 `#btnCreateSchedule_${subProjectName}`,
-                {hidden: true}
+                { hidden: true }
             );
 
             expect(createButton).toBe(null);

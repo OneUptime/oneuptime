@@ -281,7 +281,7 @@ module.exports = {
                 }
             } else {
                 const incidents = await IncidentService.findBy({
-                    monitorId: data.monitorId,
+                    'monitors.monitorId': data.monitorId,
                     incidentType: data.status,
                     resolved: false,
                 });
@@ -323,7 +323,7 @@ module.exports = {
                 _id: data.monitorId,
             });
             const incidents = await IncidentService.findBy({
-                monitorId: data.monitorId,
+                'monitors.monitorId': data.monitorId,
                 incidentType: data.status,
                 resolved: false,
                 manuallyCreated: false,
@@ -340,17 +340,28 @@ module.exports = {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
                         if (monitor.type !== 'incomingHttpRequest') {
+                            const initialProbes = incident.probes.map(
+                                probe => ({
+                                    probeId: probe.probeId._id || probe.probeId,
+                                    updatedAt: probe.updatedAt,
+                                    status: probe.status,
+                                    reportedStatus: probe.reportedStatus,
+                                })
+                            );
                             incident = await IncidentService.updateOneBy(
                                 {
                                     _id: incident._id,
                                 },
                                 {
-                                    probes: incident.probes.concat({
-                                        probeId: data.probeId,
-                                        updatedAt: Date.now(),
-                                        status: true,
-                                        reportedStatus: data.status,
-                                    }),
+                                    probes: [
+                                        ...initialProbes,
+                                        {
+                                            probeId: data.probeId,
+                                            updatedAt: Date.now(),
+                                            status: true,
+                                            reportedStatus: data.status,
+                                        },
+                                    ],
                                 }
                             );
                         }
@@ -394,17 +405,28 @@ module.exports = {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
                         if (monitor.type !== 'incomingHttpRequest') {
+                            const initialProbes = incident.probes.map(
+                                probe => ({
+                                    probeId: probe.probeId._id || probe.probeId,
+                                    updatedAt: probe.updatedAt,
+                                    status: probe.status,
+                                    reportedStatus: probe.reportedStatus,
+                                })
+                            );
                             incident = await IncidentService.updateOneBy(
                                 {
                                     _id: incident._id,
                                 },
                                 {
-                                    probes: incident.probes.concat({
-                                        probeId: data.probeId,
-                                        updatedAt: Date.now(),
-                                        status: true,
-                                        reportedStatus: data.status,
-                                    }),
+                                    probes: [
+                                        ...initialProbes,
+                                        {
+                                            probeId: data.probeId,
+                                            updatedAt: Date.now(),
+                                            status: true,
+                                            reportedStatus: data.status,
+                                        },
+                                    ],
                                 }
                             );
                         }
@@ -448,17 +470,28 @@ module.exports = {
                 if (incidents && incidents.length) {
                     incidentIds = incidents.map(async incident => {
                         if (monitor.type !== 'incomingHttpRequest') {
+                            const initialProbes = incident.probes.map(
+                                probe => ({
+                                    probeId: probe.probeId._id || probe.probeId,
+                                    updatedAt: probe.updatedAt,
+                                    status: probe.status,
+                                    reportedStatus: probe.reportedStatus,
+                                })
+                            );
                             incident = await IncidentService.updateOneBy(
                                 {
                                     _id: incident._id,
                                 },
                                 {
-                                    probes: incident.probes.concat({
-                                        probeId: data.probeId,
-                                        updatedAt: Date.now(),
-                                        status: true,
-                                        reportedStatus: data.status,
-                                    }),
+                                    probes: [
+                                        ...initialProbes,
+                                        {
+                                            probeId: data.probeId,
+                                            updatedAt: Date.now(),
+                                            status: true,
+                                            reportedStatus: data.status,
+                                        },
+                                    ],
                                 }
                             );
                         }
@@ -512,7 +545,7 @@ module.exports = {
     ) {
         try {
             const incidents = await IncidentService.findBy({
-                monitorId: data.monitorId,
+                'monitors.monitorId': data.monitorId,
                 incidentType: lastStatus,
                 resolved: false,
                 manuallyCreated: false,
@@ -573,19 +606,26 @@ module.exports = {
                         incident.probes.length > 0 &&
                         monitor.type !== 'incomingHttpRequest'
                     ) {
+                        const initialProbes = incident.probes.map(probe => ({
+                            probeId: probe.probeId._id || probe.probeId,
+                            updatedAt: probe.updatedAt,
+                            status: probe.status,
+                            reportedStatus: probe.reportedStatus,
+                        }));
                         const newIncident = await IncidentService.updateOneBy(
                             {
                                 _id: incident._id,
                             },
                             {
-                                probes: incident.probes.concat([
+                                probes: [
+                                    ...initialProbes,
                                     {
                                         probeId: data.probeId,
                                         updatedAt: Date.now(),
                                         status: false,
                                         reportedStatus: data.status,
                                     },
-                                ]),
+                                ],
                             }
                         );
                         incidentsV2.push(newIncident);
