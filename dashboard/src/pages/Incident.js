@@ -413,7 +413,7 @@ class Incident extends React.Component {
                                 </Tab>
                                 <Tab
                                     className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab alert-tab'
                                     }
                                 >
                                     Alert Logs
