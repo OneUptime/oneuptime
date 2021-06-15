@@ -16,7 +16,9 @@ class AutomationScript extends Component {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
             : null;
-        this.props.fetchAutomatedScript(projectId, 0, 10);
+        if (projectId) {
+            this.props.fetchAutomatedScript(projectId, 0, 10);
+        }
     }
 
     componentDidUpdate(prevProps) {
