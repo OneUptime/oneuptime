@@ -5,7 +5,7 @@ import { getSingleAnnouncement, getStatusPage } from '../actions/status';
 import { bindActionCreators } from 'redux';
 import { handleResources } from '../config';
 import ShouldRender from './ShouldRender';
-
+import Markdown from 'markdown-to-jsx';
 class SingleAnnouncement extends Component {
     async componentDidMount() {
         const {
@@ -84,7 +84,9 @@ class SingleAnnouncement extends Component {
                                                     color: 'rgba(0, 0, 0, 0.5)',
                                                 }}
                                             >
-                                                {announcement?.description}
+                                                <Markdown>
+                                                    {announcement?.description}
+                                                </Markdown>
                                             </span>
                                         </div>
                                         <ShouldRender

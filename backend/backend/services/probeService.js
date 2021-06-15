@@ -338,7 +338,8 @@ module.exports = {
                 matchedCriterion.createAlert
             ) {
                 if (incidents && incidents.length) {
-                    incidentIds = incidents.map(async incident => {
+                    const internalIncidents = [];
+                    for (let incident of incidents) {
                         if (monitor.type !== 'incomingHttpRequest') {
                             const initialProbes = incident.probes.map(
                                 probe => ({
@@ -372,8 +373,10 @@ module.exports = {
                             status: data.status,
                         });
 
-                        return incident;
-                    });
+                        incident && internalIncidents.push(incident);
+                    }
+
+                    incidentIds = internalIncidents;
                 } else {
                     if (
                         typeof data.retry === 'boolean' &&
@@ -381,20 +384,19 @@ module.exports = {
                         data.retryCount < 3
                     )
                         return { retry: true, retryCount: data.retryCount };
-                    incidentIds = [
-                        IncidentService.create({
-                            projectId: monitor.projectId,
-                            monitors: [data.monitorId],
-                            createdById: null,
-                            incidentType: 'online',
-                            probeId: data.probeId,
-                            reason: data.reason,
-                            response: data.response,
-                            ...(matchedCriterion && {
-                                matchedCriterion,
-                            }),
+                    const incident = await IncidentService.create({
+                        projectId: monitor.projectId,
+                        monitors: [data.monitorId],
+                        createdById: null,
+                        incidentType: 'online',
+                        probeId: data.probeId,
+                        reason: data.reason,
+                        response: data.response,
+                        ...(matchedCriterion && {
+                            matchedCriterion,
                         }),
-                    ];
+                    });
+                    incidentIds = [incident];
                 }
             } else if (
                 data.status === 'degraded' &&
@@ -403,7 +405,8 @@ module.exports = {
                 matchedCriterion.createAlert
             ) {
                 if (incidents && incidents.length) {
-                    incidentIds = incidents.map(async incident => {
+                    const internalIncidents = [];
+                    for (let incident of incidents) {
                         if (monitor.type !== 'incomingHttpRequest') {
                             const initialProbes = incident.probes.map(
                                 probe => ({
@@ -437,8 +440,9 @@ module.exports = {
                             status: data.status,
                         });
 
-                        return incident;
-                    });
+                        incident && internalIncidents.push(incident);
+                    }
+                    incidentIds = internalIncidents;
                 } else {
                     if (
                         typeof data.retry === 'boolean' &&
@@ -446,20 +450,19 @@ module.exports = {
                         data.retryCount < 3
                     )
                         return { retry: true, retryCount: data.retryCount };
-                    incidentIds = [
-                        IncidentService.create({
-                            projectId: monitor.projectId,
-                            monitors: [data.monitorId],
-                            createdById: null,
-                            incidentType: 'degraded',
-                            probeId: data.probeId,
-                            reason: data.reason,
-                            response: data.response,
-                            ...(matchedCriterion && {
-                                matchedCriterion,
-                            }),
+                    const incident = await IncidentService.create({
+                        projectId: monitor.projectId,
+                        monitors: [data.monitorId],
+                        createdById: null,
+                        incidentType: 'degraded',
+                        probeId: data.probeId,
+                        reason: data.reason,
+                        response: data.response,
+                        ...(matchedCriterion && {
+                            matchedCriterion,
                         }),
-                    ];
+                    });
+                    incidentIds = [incident];
                 }
             } else if (
                 data.status === 'offline' &&
@@ -468,7 +471,8 @@ module.exports = {
                 matchedCriterion.createAlert
             ) {
                 if (incidents && incidents.length) {
-                    incidentIds = incidents.map(async incident => {
+                    const internalIncidents = [];
+                    for (let incident of incidents) {
                         if (monitor.type !== 'incomingHttpRequest') {
                             const initialProbes = incident.probes.map(
                                 probe => ({
@@ -502,8 +506,9 @@ module.exports = {
                             status: data.status,
                         });
 
-                        return incident;
-                    });
+                        incident && internalIncidents.push(incident);
+                    }
+                    incidentIds = internalIncidents;
                 } else {
                     if (
                         typeof data.retry === 'boolean' &&
@@ -512,23 +517,22 @@ module.exports = {
                     )
                         return { retry: true, retryCount: data.retryCount };
 
-                    incidentIds = [
-                        IncidentService.create({
-                            projectId: monitor.projectId,
-                            monitors: [data.monitorId],
-                            createdById: null,
-                            incidentType: 'offline',
-                            probeId: data.probeId,
-                            reason: data.reason,
-                            response: data.response,
-                            ...(matchedCriterion && {
-                                matchedCriterion,
-                            }),
+                    const incident = await IncidentService.create({
+                        projectId: monitor.projectId,
+                        monitors: [data.monitorId],
+                        createdById: null,
+                        incidentType: 'offline',
+                        probeId: data.probeId,
+                        reason: data.reason,
+                        response: data.response,
+                        ...(matchedCriterion && {
+                            matchedCriterion,
                         }),
-                    ];
+                    });
+                    incidentIds = [incident];
                 }
             }
-            incidentIds = await Promise.all(incidentIds);
+            // incidentIds = await Promise.all(incidentIds);
             incidentIds = incidentIds.map(i => i._id);
 
             return incidentIds;

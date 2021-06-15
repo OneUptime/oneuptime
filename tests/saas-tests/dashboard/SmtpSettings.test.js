@@ -87,7 +87,7 @@ describe('Custom SMTP Settings', () => {
             await init.pageWaitForSelector(page, '.ball-beat', {
                 hidden: true,
             });
-            await page.reload();
+            await init.navigateToSmtp(page);
             await init.pageWaitForSelector(page, '#host', {
                 visible: true,
                 timeout: init.timeout,
@@ -130,17 +130,11 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#from');
+            await init.pageClick(page, '#from', {clickCount: 3});
             await init.pageType(page, '#from', from);
             await init.pageClick(page, '#saveSmtp');
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
-            await page.reload();
+            
+            await init.navigateToSmtp(page);
             await init.pageWaitForSelector(page, '#from', {
                 visible: true,
                 timeout: init.timeout,
@@ -186,17 +180,15 @@ describe('Custom SMTP Settings', () => {
             await port.click({ clickCount: 3 });
             await port.press('Backspace'); // clear out the input field
             await init.pageClick(page, '#saveSmtp');
-            await init.pageWaitForSelector(page, '#field-error', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            const errorMessage = await init.page$Eval(
+            await init.pageWaitForSelector(page, '#port');
+            const emptyMessage = await init.page$Eval(
                 page,
-                '#field-error',
+                '#port',
                 element => element.textContent
             );
-            expect(errorMessage).toEqual(
-                'Please input port this cannot be left blank.'
+            // This confirms that the port is empty, hence could not be saved
+            expect(emptyMessage).toEqual(
+                ''
             );
 
             done();
@@ -244,8 +236,8 @@ describe('Custom SMTP Settings', () => {
             await init.pageClick(page, 'label[id=enableSecureTransport]');
             await init.pageClick(page, 'label[id=showsmtpForm]');
             await init.pageClick(page, '#saveSmtp');
-            await page.reload();
-            const username = await init.page$(page, '#user');
+            await init.navigateToSmtp(page);
+            const username = await init.page$(page, '#user', {hidden: true});
             expect(username).toBe(null);
 
             done();

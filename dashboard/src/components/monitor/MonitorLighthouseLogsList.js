@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
@@ -193,7 +194,13 @@ export class MonitorLighthouseLogsList extends Component {
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root Margin-right--16">
+                                                        <div className="Box-root Margin-right--16"
+                                                            id={`lighthouseUrl_${
+                                                                monitor.name
+                                                                    ? monitor.name
+                                                                    : 'Unknown Monitor'
+                                                            }_${i}`}
+                                                        >
                                                             <span>
                                                                 {log && log.url
                                                                     ? log.url
@@ -291,6 +298,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                                     style={{
                                                                                         width: 10,
                                                                                     }}
+                                                                                    id="website_prescan"
                                                                                 />
                                                                                 Your
                                                                                 website
@@ -361,6 +369,7 @@ export class MonitorLighthouseLogsList extends Component {
                                                                                     style={{
                                                                                         width: 10,
                                                                                     }}
+                                                                                    id="website_scanning"
                                                                                 />
                                                                                 {lighthouseScanStatus ===
                                                                                 'scan'

@@ -2136,3 +2136,8 @@ margin-left:10px;
     max-width: 550px !important;
   }
 }
+
+.ann_desc a {
+  color: #fff;
+  text-decoration: underline;
+}
