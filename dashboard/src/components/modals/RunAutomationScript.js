@@ -6,6 +6,7 @@ import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { runScript, fetchAutomatedScript } from '../../actions/automatedScript';
+import { history } from '../../store';
 
 class RunAutomationScript extends Component {
     componentDidMount() {
@@ -36,6 +37,10 @@ class RunAutomationScript extends Component {
         } = this.props;
         runScript(projectId, automatedScriptId).then(() => {
             fetchAutomatedScript(projectId, 0, 10);
+            const pathName = history.location.pathname;
+            history.push({
+                pathname: `${pathName}/${this.props.data.automatedSlug}`,
+            });
             closeThisDialog();
         });
     };
