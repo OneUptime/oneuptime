@@ -112,7 +112,7 @@ describe('Monitor API', () => {
             );
             await criterionAdvancedOptions.click();
             await init.pageWaitForSelector(page, 'input[id^=name_up]');
-            await init.pageClick(page, 'input[id^=name_up]', {clickCount: 3});
+            await init.pageClick(page, 'input[id^=name_up]', { clickCount: 3 });
             const upCriterionName = 'Monitor Online';
             await page.keyboard.type(upCriterionName);
 

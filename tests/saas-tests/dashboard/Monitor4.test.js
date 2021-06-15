@@ -39,7 +39,7 @@ describe('Monitor API', () => {
         async done => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            
+
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
@@ -73,5 +73,4 @@ describe('Monitor API', () => {
         },
         operationTimeOut
     );
-
 });

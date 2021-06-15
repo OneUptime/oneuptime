@@ -44,10 +44,10 @@ describe('Monitor API', () => {
                 monitorName,
                 page
             );
-            
+
             await init.pageWaitForSelector(page, '#website_scanning');
             await init.pageWaitForSelector(page, '#website_postscan');
-            
+
             await init.pageWaitForSelector(
                 page,
                 `#lighthouseLogs_${monitorName}_0`,
@@ -148,5 +148,4 @@ describe('Monitor API', () => {
         },
         operationTimeOut
     );
-
 });

@@ -8,9 +8,7 @@ require('should');
 // user credentials
 const email = utils.generateRandomBusinessEmail();
 const password = '1234567890';
-const callSchedule = utils.generateRandomString();
 const componentName = utils.generateRandomString();
-const monitorName = utils.generateRandomString();
 const testServerMonitorName = utils.generateRandomString();
 
 describe('Monitor API', () => {
@@ -28,15 +26,17 @@ describe('Monitor API', () => {
             password,
         };
         await init.registerUser(user, page);
-        await init.addMonitorToComponent(componentName, testServerMonitorName, page);
+        await init.addMonitorToComponent(
+            componentName,
+            testServerMonitorName,
+            page
+        );
     });
 
     afterAll(async done => {
         await browser.close();
         done();
     });
-
-    
 
     test(
         'should degrade (not timeout and return status code 408) monitor with response time longer than init.timeoutms and status code 200',

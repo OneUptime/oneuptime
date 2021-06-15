@@ -26,7 +26,6 @@ describe('Monitor API', () => {
             password,
         };
         await init.registerUser(user, page);
-        
     });
 
     afterAll(async done => {
@@ -96,7 +95,11 @@ describe('Monitor API', () => {
             });
 
             // Component and Monitor are already created. This is code refactoring
-            await init.addMonitorToComponent(componentName, testServerMonitorName, page);
+            await init.addMonitorToComponent(
+                componentName,
+                testServerMonitorName,
+                page
+            );
 
             let monitorStatusElement = await init.pageWaitForSelector(
                 page,
@@ -113,5 +116,4 @@ describe('Monitor API', () => {
         },
         operationTimeOut
     );
-
 });

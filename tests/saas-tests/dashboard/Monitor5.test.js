@@ -40,13 +40,13 @@ describe('Monitor API', () => {
 
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            
+
             await init.pageWaitForSelector(page, '#form-new-monitor');
             await init.pageWaitForSelector(page, 'input[id=name]', {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.pageClick(page, 'input[id=name]');
             await page.focus('input[id=name]');
             await init.pageType(page, 'input[id=name]', selfSignedMonitorName);
@@ -72,5 +72,4 @@ describe('Monitor API', () => {
         },
         operationTimeOut
     );
-
 });

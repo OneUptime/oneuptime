@@ -129,7 +129,11 @@ describe('Monitor API', () => {
         'should display SSL enabled status',
         async done => {
             // Navigate to Component details
-            await init.navigateToMonitorDetails(componentName, monitorName, page);
+            await init.navigateToMonitorDetails(
+                componentName,
+                monitorName,
+                page
+            );
             await init.pageWaitForSelector(page, '#website_postscan');
             let sslStatusElement = await init.pageWaitForSelector(
                 page,
@@ -143,5 +147,4 @@ describe('Monitor API', () => {
         },
         operationTimeOut
     );
-
 });
