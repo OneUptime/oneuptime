@@ -94,21 +94,30 @@ app.use('/', async function(req, res, next) {
         return next();
     }
 
-    const url = `${apiHost}/statusPage/tlsCredential`;
-    const response = await axios.post(url, { domain: host });
+    try {
+        const url = `${apiHost}/statusPage/tlsCredential`;
+        const response = await fetch(url, {
+            method: 'POST',
+            body: JSON.stringify({ domain: host }),
+            headers: { 'Content-Type': 'application/json' },
+        }).then(res => res.json());
 
-    const { enableHttps } = response.data;
-    if (enableHttps) {
-        if (!req.secure) {
-            res.writeHead(301, { Location: `https://${host}${req.url}` });
-            return res.end();
+        const { enableHttps } = response;
+        if (enableHttps) {
+            if (!req.secure) {
+                res.writeHead(301, { Location: `https://${host}${req.url}` });
+                return res.end();
+            }
+            next();
+        } else {
+            if (req.secure) {
+                res.writeHead(301, { Location: `http://${host}${req.url}` });
+                return res.end();
+            }
+            next();
         }
-        next();
-    } else {
-        if (req.secure) {
-            res.writeHead(301, { Location: `http://${host}${req.url}` });
-            return res.end();
-        }
+    } catch (error) {
+        console.log('Error with fetch', error);
         next();
     }
 });
@@ -222,17 +231,21 @@ function createDir(dirPath) {
             ),
             SNICallback: async function(domain, cb) {
                 const url = `${apiHost}/statusPage/tlsCredential`;
-                const res = await axios.post(url, { domain });
+                const res = await fetch(url, {
+                    method: 'POST',
+                    body: JSON.stringify({ domain }),
+                    headers: { 'Content-Type': 'application/json' },
+                }).then(res => res.json());
 
                 let certPath, privateKeyPath;
-                if (res && res.data) {
+                if (res) {
                     const {
                         cert,
                         privateKey,
                         autoProvisioning,
                         enableHttps,
                         domain,
-                    } = res.data;
+                    } = res;
                     // have a condition to check for autoProvisioning
                     // if auto provisioning is set
                     // fetch the stored cert/privateKey
