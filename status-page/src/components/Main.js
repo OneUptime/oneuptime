@@ -112,10 +112,7 @@ class Main extends Component {
 
             this.setLastAlive();
         }
-        if (
-            JSON.stringify(prevProps.statusData) !==
-            JSON.stringify(this.props.statusData)
-        ) {
+        if (prevProps.statusData._id !== this.props.statusData._id) {
             this.props.getProbes(this.props.statusData._id, 0, 10).then(() => {
                 this.selectbutton(this.props.activeProbe);
             });
@@ -130,7 +127,8 @@ class Main extends Component {
             document.body.appendChild(javascript);
         }
         if (
-            prevProps.statusData.projectId !== this.props.statusData.projectId
+            JSON.stringify(prevProps.statusData.projectId) !==
+            JSON.stringify(this.props.statusData.projectId)
         ) {
             if (this.props.statusData.theme === 'Clean Theme') {
                 fetchData(0, true, this.props.scheduleHistoryDays || 14);
