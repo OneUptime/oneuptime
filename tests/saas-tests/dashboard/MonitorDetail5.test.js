@@ -105,7 +105,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, 'input[id=siteUrl]');
             await init.pageType(page, 'input[id=siteUrl]', 'https://fyipe.com');
             await init.page$Eval(page, '#addSiteUrlButton', e => e.click());
-            
+
             await init.pageWaitForSelector(page, '#addSiteUrlButton', {
                 hidden: true,
             });
@@ -184,7 +184,7 @@ describe('Monitor Detail API', () => {
             await init.page$Eval(page, editButtonSelector, e => e.click());
 
             await init.pageWaitForSelector(page, '#form-new-monitor');
-            await init.pageClick(page, 'input[id=name]', {clickCount: 3});
+            await init.pageClick(page, 'input[id=name]', { clickCount: 3 });
             await init.pageType(page, 'input[id=name]', newMonitorName);
             await init.page$Eval(page, 'button[type=submit]', e => e.click());
             await init.pageWaitForSelector(page, '#form-new-monitor', {
@@ -229,7 +229,9 @@ describe('Monitor Detail API', () => {
 
             const selector = `span#monitor-title-${newMonitorName}`;
 
-            const spanElement = await init.page$(page, selector, {hidden: true});
+            const spanElement = await init.page$(page, selector, {
+                hidden: true,
+            });
             expect(spanElement).toEqual(null);
             done();
         },

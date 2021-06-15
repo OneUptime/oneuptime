@@ -125,9 +125,9 @@ describe('Monitor Detail API', () => {
                 urlMonitorName,
                 page
             );
-            
+
             await init.pageWaitForSelector(page, '#website_postscan');
-            
+
             let lighthousePerformanceElement = await init.pageWaitForSelector(
                 page,
                 `#lighthouse-performance-${urlMonitorName}`,
@@ -200,5 +200,4 @@ describe('Monitor Detail API', () => {
         },
         operationTimeOut
     );
-
 });
