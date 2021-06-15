@@ -29,6 +29,7 @@
         "delete-all-local-branches": "git branch | grep -v 'master' | xargs git branch -D",
         "lint": "eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore",
         "fix-lint": "eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore --fix",
+        "fix": "npm run fix-lint",
         "staging-test": "cd tests && npm run-script staging-test",
         "remove-all-containers": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) || echo 'No running containers'",
         "debug-staging-test": "cd tests && npm run-script debug-staging-test",

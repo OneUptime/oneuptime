@@ -177,7 +177,7 @@ describe('Custom Twilio Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            
+
             await init.navigateToMonitorDetails(
                 componentName,
                 monitorName,

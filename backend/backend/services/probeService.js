@@ -396,7 +396,9 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
-                    incidentIds = [incident];
+                    if (incident) {
+                        incidentIds = [incident];
+                    }
                 }
             } else if (
                 data.status === 'degraded' &&
@@ -462,7 +464,9 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
-                    incidentIds = [incident];
+                    if (incident) {
+                        incidentIds = [incident];
+                    }
                 }
             } else if (
                 data.status === 'offline' &&
@@ -529,7 +533,9 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
-                    incidentIds = [incident];
+                    if (incident) {
+                        incidentIds = [incident];
+                    }
                 }
             }
             // incidentIds = await Promise.all(incidentIds);

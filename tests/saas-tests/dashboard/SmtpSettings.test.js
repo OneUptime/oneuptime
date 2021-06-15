@@ -130,10 +130,10 @@ describe('Custom SMTP Settings', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageClick(page, '#from', {clickCount: 3});
+            await init.pageClick(page, '#from', { clickCount: 3 });
             await init.pageType(page, '#from', from);
             await init.pageClick(page, '#saveSmtp');
-            
+
             await init.navigateToSmtp(page);
             await init.pageWaitForSelector(page, '#from', {
                 visible: true,
@@ -187,9 +187,7 @@ describe('Custom SMTP Settings', () => {
                 element => element.textContent
             );
             // This confirms that the port is empty, hence could not be saved
-            expect(emptyMessage).toEqual(
-                ''
-            );
+            expect(emptyMessage).toEqual('');
 
             done();
         },
@@ -237,7 +235,7 @@ describe('Custom SMTP Settings', () => {
             await init.pageClick(page, 'label[id=showsmtpForm]');
             await init.pageClick(page, '#saveSmtp');
             await init.navigateToSmtp(page);
-            const username = await init.page$(page, '#user', {hidden: true});
+            const username = await init.page$(page, '#user', { hidden: true });
             expect(username).toBe(null);
 
             done();
