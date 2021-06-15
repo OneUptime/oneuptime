@@ -94,8 +94,8 @@ app.use('/', async function(req, res, next) {
         return next();
     }
 
-    const url = `${apiHost}/statusPage/tlsCredential?domain=${host}`;
-    const response = await axios.get(url);
+    const url = `${apiHost}/statusPage/tlsCredential`;
+    const response = await axios.post(url, { domain: host });
 
     const { enableHttps } = response.data;
     if (enableHttps) {
@@ -221,19 +221,18 @@ function createDir(dirPath) {
                 path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
             ),
             SNICallback: async function(domain, cb) {
-                const res = await fetch(
-                    `${apiHost}/statusPage/tlsCredential?domain=${domain}`
-                ).then(res => res.json());
+                const url = `${apiHost}/statusPage/tlsCredential`;
+                const res = await axios.post(url, { domain });
 
                 let certPath, privateKeyPath;
-                if (res) {
+                if (res && res.data) {
                     const {
                         cert,
                         privateKey,
                         autoProvisioning,
                         enableHttps,
                         domain,
-                    } = res;
+                    } = res.data;
                     // have a condition to check for autoProvisioning
                     // if auto provisioning is set
                     // fetch the stored cert/privateKey
