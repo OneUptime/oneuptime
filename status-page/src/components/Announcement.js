@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { handleResources } from '../config';
 import ShouldRender from './ShouldRender';
+import Markdown from 'markdown-to-jsx';
 class Announcement extends Component {
     constructor(props) {
         super(props);
@@ -115,7 +116,9 @@ function AnnouncementBox({ announcement, monitorState, type }) {
                     {announcement.name}
                 </div>
             </div>
-            <div className="ann_desc">{announcement.description}</div>
+            <div className="ann_desc">
+                <Markdown>{announcement.description}</Markdown>
+            </div>
             <ShouldRender if={announcement.monitors.length > 0}>
                 <div className={'resources_aff'}>
                     <span className={type && 'classic_font'}>
