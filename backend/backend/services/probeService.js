@@ -1,5 +1,5 @@
 module.exports = {
-    create: async function (data) {
+    create: async function(data) {
         try {
             const _this = this;
             let probeKey;
@@ -30,7 +30,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function (query, data) {
+    updateOneBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -51,7 +51,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function (query, data) {
+    updateBy: async function(query, data) {
         try {
             if (!query) {
                 query = {};
@@ -69,7 +69,7 @@ module.exports = {
         }
     },
 
-    findBy: async function (query, limit, skip) {
+    findBy: async function(query, limit, skip) {
         try {
             if (!skip) skip = 0;
 
@@ -100,7 +100,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function (query) {
+    findOneBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -117,7 +117,7 @@ module.exports = {
         }
     },
 
-    countBy: async function (query) {
+    countBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -132,7 +132,7 @@ module.exports = {
         }
     },
 
-    deleteBy: async function (query) {
+    deleteBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -150,7 +150,7 @@ module.exports = {
         }
     },
 
-    hardDeleteBy: async function (query) {
+    hardDeleteBy: async function(query) {
         try {
             await ProbeModel.deleteMany(query);
             return 'Probe(s) removed successfully!';
@@ -160,7 +160,7 @@ module.exports = {
         }
     },
 
-    sendProbe: async function (probeId, monitorId) {
+    sendProbe: async function(probeId, monitorId) {
         try {
             const probe = await this.findOneBy({ _id: probeId });
             if (probe) {
@@ -173,7 +173,7 @@ module.exports = {
         }
     },
 
-    saveLighthouseLog: async function (data) {
+    saveLighthouseLog: async function(data) {
         try {
             const log = await LighthouseLogService.create(data);
             return log;
@@ -183,7 +183,7 @@ module.exports = {
         }
     },
 
-    createMonitorDisabledStatus: async function (data) {
+    createMonitorDisabledStatus: async function(data) {
         try {
             let monitorStatus = await MonitorStatusService.findOneBy({
                 monitorId: data.monitorId,
@@ -204,7 +204,7 @@ module.exports = {
         }
     },
 
-    saveMonitorLog: async function (data) {
+    saveMonitorLog: async function(data) {
         try {
             const _this = this;
             const monitorStatus = await MonitorStatusService.findOneBy({
@@ -302,7 +302,7 @@ module.exports = {
         }
     },
 
-    getMonitorLog: async function (data) {
+    getMonitorLog: async function(data) {
         try {
             const date = new Date();
             const log = await MonitorLogService.findOneBy({
@@ -317,7 +317,7 @@ module.exports = {
         }
     },
 
-    incidentCreateOrUpdate: async function (data) {
+    incidentCreateOrUpdate: async function(data) {
         try {
             const monitor = await MonitorService.findOneBy({
                 _id: data.monitorId,
@@ -548,7 +548,7 @@ module.exports = {
         }
     },
 
-    incidentResolveOrAcknowledge: async function (
+    incidentResolveOrAcknowledge: async function(
         data,
         lastStatus,
         allCriteria
@@ -570,7 +570,11 @@ module.exports = {
             if (incidents && incidents.length > 0) {
                 incidents.forEach(incident => {
                     let criteriaId = null;
-                    if (incident && incident.criterionCause && incident.criterionCause._id)
+                    if (
+                        incident &&
+                        incident.criterionCause &&
+                        incident.criterionCause._id
+                    )
                         criteriaId = String(incident.criterionCause._id);
                     allCriteria.forEach(criteria => {
                         if (
@@ -597,8 +601,9 @@ module.exports = {
                             incident.probes.some(probe => {
                                 if (
                                     probe.probeId &&
-                                    String(probe.probeId._id || probe.probeId) ===
-                                    String(data.probeId)
+                                    String(
+                                        probe.probeId._id || probe.probeId
+                                    ) === String(data.probeId)
                                 ) {
                                     incidentsV1.push(incident);
                                     return true;
@@ -700,7 +705,7 @@ module.exports = {
         }
     },
 
-    updateProbeStatus: async function (probeId) {
+    updateProbeStatus: async function(probeId) {
         try {
             const probe = await ProbeModel.findOneAndUpdate(
                 { _id: probeId },
@@ -771,8 +776,8 @@ module.exports = {
             ? resp.status
                 ? resp.status
                 : resp.statusCode
-                    ? resp.statusCode
-                    : null
+                ? resp.statusCode
+                : null
             : null;
         const body = resp && resp.body ? resp.body : null;
         const queryParams = resp && resp.queryParams ? resp.queryParams : null;
@@ -1269,7 +1274,7 @@ module.exports = {
         return { eventOccurred, matchedCriterion };
     },
 
-    toArray: function (params) {
+    toArray: function(params) {
         const array = [];
         if (Object.keys(params).length > 0) {
             for (const [key, value] of Object.entries(params)) {
@@ -1280,7 +1285,7 @@ module.exports = {
         return null;
     },
 
-    processHttpRequest: async function (data) {
+    processHttpRequest: async function(data) {
         try {
             const _this = this;
             const { monitor, body } = data;
@@ -1298,10 +1303,10 @@ module.exports = {
                 matchedCriterion: matchedUpCriterion,
             } = await (monitor && monitor.criteria && monitor.criteria.up
                 ? _this.conditions(monitor.type, monitor.criteria.up, payload, {
-                    body,
-                    queryParams,
-                    headers,
-                })
+                      body,
+                      queryParams,
+                      headers,
+                  })
                 : { stat: false, successReasons: [], failedReasons: [] });
             const {
                 stat: validDegraded,
@@ -1310,15 +1315,15 @@ module.exports = {
                 matchedCriterion: matchedDegradedCriterion,
             } = await (monitor && monitor.criteria && monitor.criteria.degraded
                 ? _this.conditions(
-                    monitor.type,
-                    monitor.criteria.degraded,
-                    payload,
-                    {
-                        body,
-                        queryParams,
-                        headers,
-                    }
-                )
+                      monitor.type,
+                      monitor.criteria.degraded,
+                      payload,
+                      {
+                          body,
+                          queryParams,
+                          headers,
+                      }
+                  )
                 : { stat: false, successReasons: [], failedReasons: [] });
             const {
                 stat: validDown,
@@ -1327,15 +1332,15 @@ module.exports = {
                 matchedCriterion: matchedDownCriterion,
             } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? _this.conditions(
-                    monitor.type,
-                    monitor.criteria.down,
-                    payload,
-                    {
-                        body,
-                        queryParams,
-                        headers,
-                    }
-                )
+                      monitor.type,
+                      monitor.criteria.down,
+                      payload,
+                      {
+                          body,
+                          queryParams,
+                          headers,
+                      }
+                  )
                 : { stat: false, successReasons: [], failedReasons: [] });
 
             if (validUp) {
@@ -1418,7 +1423,7 @@ module.exports = {
         }
     },
 
-    probeHttpRequest: async function (monitor, probeId) {
+    probeHttpRequest: async function(monitor, probeId) {
         try {
             const _this = this;
             let status, reason;
@@ -1445,10 +1450,10 @@ module.exports = {
                 matchedCriterion: matchedDownCriterion,
             } = await (monitor && monitor.criteria && monitor.criteria.down
                 ? _this.incomingCondition(payload, [
-                    ...monitor.criteria.down.filter(
-                        criterion => criterion.default !== true
-                    ),
-                ])
+                      ...monitor.criteria.down.filter(
+                          criterion => criterion.default !== true
+                      ),
+                  ])
                 : false);
             let timeHours = 0;
             let timeMinutes = payload;
@@ -2246,12 +2251,12 @@ const checkAnd = async (
                             validity = false;
                             failedReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Offline`
+                                    'Monitor was'} Offline`
                             );
                         } else {
                             successReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Online`
+                                    'Monitor was'} Online`
                             );
                         }
                     } else if (
@@ -2272,12 +2277,12 @@ const checkAnd = async (
                             validity = false;
                             failedReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Online`
+                                    'Monitor was'} Online`
                             );
                         } else {
                             successReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Offline`
+                                    'Monitor was'} Offline`
                             );
                         }
                     }
@@ -2846,14 +2851,16 @@ const checkAnd = async (
                             validity = false;
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2875,14 +2882,16 @@ const checkAnd = async (
                             validity = false;
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2906,14 +2915,16 @@ const checkAnd = async (
                             validity = false;
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2935,14 +2946,16 @@ const checkAnd = async (
                             validity = false;
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2964,14 +2977,16 @@ const checkAnd = async (
                             validity = false;
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -2993,14 +3008,16 @@ const checkAnd = async (
                             validity = false;
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -3022,14 +3039,16 @@ const checkAnd = async (
                             validity = false;
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -3067,7 +3086,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3078,7 +3098,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3103,7 +3124,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3114,7 +3136,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3141,7 +3164,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3152,7 +3176,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3177,7 +3202,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3188,7 +3214,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3213,7 +3240,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3224,7 +3252,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3249,7 +3278,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3260,7 +3290,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3285,7 +3316,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3296,7 +3328,8 @@ const checkAnd = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -3665,24 +3698,24 @@ const checkAnd = async (
                     ) {
                         const responseDisplay = con.criteria[i].field1
                             ? con.criteria[i].field1.includes(
-                                'response.body'
-                            ) &&
-                                con.criteria[i].field1.includes(
-                                    'response.headers'
-                                )
+                                  'response.body'
+                              ) &&
+                              con.criteria[i].field1.includes(
+                                  'response.headers'
+                              )
                                 ? {
-                                    headers: response.headers,
-                                    body: response.body,
-                                }
+                                      headers: response.headers,
+                                      body: response.body,
+                                  }
                                 : con.criteria[i].field1.includes(
-                                    'response.headers'
-                                )
-                                    ? response.headers
-                                    : con.criteria[i].field1.includes(
-                                        'response.body'
-                                    )
-                                        ? response.body
-                                        : response
+                                      'response.headers'
+                                  )
+                                ? response.headers
+                                : con.criteria[i].field1.includes(
+                                      'response.body'
+                                  )
+                                ? response.body
+                                : response
                             : response;
                         try {
                             if (
@@ -3692,27 +3725,31 @@ const checkAnd = async (
                                     response &&
                                     Function(
                                         '"use strict";const response = ' +
-                                        JSON.stringify(response) +
-                                        ';return (' +
-                                        con.criteria[i].field1 +
-                                        ');'
+                                            JSON.stringify(response) +
+                                            ';return (' +
+                                            con.criteria[i].field1 +
+                                            ');'
                                     )()
                                 )
                             ) {
                                 validity = false;
                                 failedReasons.push(
-                                    `${criteriaStrings.response
+                                    `${
+                                        criteriaStrings.response
                                     } \`${JSON.stringify(
                                         responseDisplay
-                                    )}\` did evaluate \`${con.criteria[i].field1
+                                    )}\` did evaluate \`${
+                                        con.criteria[i].field1
                                     }\``
                                 );
                             } else {
                                 successReasons.push(
-                                    `${criteriaStrings.response
+                                    `${
+                                        criteriaStrings.response
                                     } \`${JSON.stringify(
                                         responseDisplay
-                                    )}\` did evaluate \`${con.criteria[i].field1
+                                    )}\` did evaluate \`${
+                                        con.criteria[i].field1
                                     }\``
                                 );
                             }
@@ -3807,7 +3844,7 @@ const checkAnd = async (
                                     con.criteria[i].field1 &&
                                     pod.podStatus &&
                                     pod.podStatus.toLowerCase() ===
-                                    con.criteria[i].field1.toLowerCase()
+                                        con.criteria[i].field1.toLowerCase()
                                 ) {
                                     successReasons.push(
                                         `${pod.podName} pod status is ${pod.podStatus}`
@@ -3845,7 +3882,7 @@ const checkAnd = async (
                                     con.criteria[i].field1 &&
                                     pod.podStatus &&
                                     pod.podStatus.toLowerCase() !==
-                                    con.criteria[i].field1.toLowerCase()
+                                        con.criteria[i].field1.toLowerCase()
                                 ) {
                                     successReasons.push(
                                         `${pod.podName} pod status is ${pod.podStatus}`
@@ -3889,7 +3926,7 @@ const checkAnd = async (
                                     con.criteria[i].field1 &&
                                     job.jobStatus &&
                                     job.jobStatus.toLowerCase() ===
-                                    con.criteria[i].field1.toLowerCase()
+                                        con.criteria[i].field1.toLowerCase()
                                 ) {
                                     successReasons.push(
                                         `${job.jobName} job status is ${job.jobStatus}`
@@ -3927,7 +3964,7 @@ const checkAnd = async (
                                     con.criteria[i].field1 &&
                                     job.jobStatus &&
                                     job.jobStatus.toLowerCase() !==
-                                    con.criteria[i].field1.toLowerCase()
+                                        con.criteria[i].field1.toLowerCase()
                                 ) {
                                     successReasons.push(
                                         `${job.jobName} job status is ${job.jobStatus}`
@@ -4100,12 +4137,12 @@ const checkAnd = async (
                             validity = false;
                             failedReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Offline`
+                                    'Monitor was'} Offline`
                             );
                         } else {
                             successReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Online`
+                                    'Monitor was'} Online`
                             );
                         }
                     } else if (
@@ -4123,12 +4160,12 @@ const checkAnd = async (
                             validity = false;
                             failedReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Online`
+                                    'Monitor was'} Online`
                             );
                         } else {
                             successReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Offline`
+                                    'Monitor was'} Offline`
                             );
                         }
                     }
@@ -4533,12 +4570,12 @@ const checkOr = async (
                             validity = true;
                             successReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Online`
+                                    'Monitor was'} Online`
                             );
                         } else {
                             failedReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Offline`
+                                    'Monitor was'} Offline`
                             );
                         }
                     } else if (
@@ -4557,12 +4594,12 @@ const checkOr = async (
                             validity = true;
                             successReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Offline`
+                                    'Monitor was'} Offline`
                             );
                         } else {
                             failedReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Online`
+                                    'Monitor was'} Online`
                             );
                         }
                     }
@@ -5108,14 +5145,16 @@ const checkOr = async (
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5134,14 +5173,16 @@ const checkOr = async (
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5162,14 +5203,16 @@ const checkOr = async (
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5188,14 +5231,16 @@ const checkOr = async (
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5214,14 +5259,16 @@ const checkOr = async (
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5240,14 +5287,16 @@ const checkOr = async (
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5266,14 +5315,16 @@ const checkOr = async (
                             validity = true;
                             if (payload && payload.memoryUsed !== null) {
                                 successReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
                         } else {
                             if (payload && payload.memoryUsed !== null) {
                                 failedReasons.push(
-                                    `${criteriaStrings.memoryUsed
+                                    `${
+                                        criteriaStrings.memoryUsed
                                     } ${formatBytes(memoryUsedBytes)}`
                                 );
                             }
@@ -5308,7 +5359,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5319,7 +5371,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5341,7 +5394,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5352,7 +5406,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5376,7 +5431,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5387,7 +5443,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5409,7 +5466,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5420,7 +5478,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5442,7 +5501,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5453,7 +5513,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5475,7 +5536,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5486,7 +5548,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5508,7 +5571,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 successReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5519,7 +5583,8 @@ const checkOr = async (
                                 payload.storageUsed !== null
                             ) {
                                 failedReasons.push(
-                                    `${criteriaStrings.freeStorage
+                                    `${
+                                        criteriaStrings.freeStorage
                                     } ${formatBytes(freeBytes)}`
                                 );
                             }
@@ -5880,24 +5945,24 @@ const checkOr = async (
                     ) {
                         const responseDisplay = con.criteria[i].field1
                             ? con.criteria[i].field1.includes(
-                                'response.body'
-                            ) &&
-                                con.criteria[i].field1.includes(
-                                    'response.headers'
-                                )
+                                  'response.body'
+                              ) &&
+                              con.criteria[i].field1.includes(
+                                  'response.headers'
+                              )
                                 ? {
-                                    headers: response.headers,
-                                    body: response.body,
-                                }
+                                      headers: response.headers,
+                                      body: response.body,
+                                  }
                                 : con.criteria[i].field1.includes(
-                                    'response.headers'
-                                )
-                                    ? response.headers
-                                    : con.criteria[i].field1.includes(
-                                        'response.body'
-                                    )
-                                        ? response.body
-                                        : response
+                                      'response.headers'
+                                  )
+                                ? response.headers
+                                : con.criteria[i].field1.includes(
+                                      'response.body'
+                                  )
+                                ? response.body
+                                : response
                             : response;
                         try {
                             if (
@@ -5906,29 +5971,33 @@ const checkOr = async (
                                 response &&
                                 Function(
                                     '"use strict";const response = ' +
-                                    JSON.stringify(response) +
-                                    ';return (' +
-                                    con.criteria[i].field1 +
-                                    ');'
+                                        JSON.stringify(response) +
+                                        ';return (' +
+                                        con.criteria[i].field1 +
+                                        ');'
                                 )()
                             ) {
                                 validity = true;
                                 if (con.criteria[i].field1) {
                                     successReasons.push(
-                                        `${criteriaStrings.response
+                                        `${
+                                            criteriaStrings.response
                                         } \`${JSON.stringify(
                                             responseDisplay
-                                        )}\` evaluate \`${con.criteria[i].field1
+                                        )}\` evaluate \`${
+                                            con.criteria[i].field1
                                         }\``
                                     );
                                 }
                             } else {
                                 if (con.criteria[i].field1) {
                                     failedReasons.push(
-                                        `${criteriaStrings.response
+                                        `${
+                                            criteriaStrings.response
                                         } \`${JSON.stringify(
                                             responseDisplay
-                                        )}\` did not evaluate \`${con.criteria[i].field1
+                                        )}\` did not evaluate \`${
+                                            con.criteria[i].field1
                                         }\``
                                     );
                                 }
@@ -5937,7 +6006,8 @@ const checkOr = async (
                             failedReasons.push(
                                 `${criteriaStrings.response} \`${JSON.stringify(
                                     responseDisplay
-                                )}\` did not evaluate \`${con.criteria[i].field1
+                                )}\` did not evaluate \`${
+                                    con.criteria[i].field1
                                 }\``
                             );
                         }
@@ -6023,7 +6093,7 @@ const checkOr = async (
                                     con.criteria[i].field1 &&
                                     pod.podStatus &&
                                     pod.podStatus.toLowerCase() ===
-                                    con.criteria[i].field1.toLowerCase()
+                                        con.criteria[i].field1.toLowerCase()
                                 ) {
                                     validity = true;
                                     successReasons.push(
@@ -6060,7 +6130,7 @@ const checkOr = async (
                                     con.criteria[i].field1 &&
                                     pod.podStatus &&
                                     pod.podStatus.toLowerCase() !==
-                                    con.criteria[i].field1.toLowerCase()
+                                        con.criteria[i].field1.toLowerCase()
                                 ) {
                                     validity = true;
                                     successReasons.push(
@@ -6103,7 +6173,7 @@ const checkOr = async (
                                     con.criteria[i].field1 &&
                                     job.jobStatus &&
                                     job.jobStatus.toLowerCase() ===
-                                    con.criteria[i].field1.toLowerCase()
+                                        con.criteria[i].field1.toLowerCase()
                                 ) {
                                     validity = true;
                                     successReasons.push(
@@ -6140,7 +6210,7 @@ const checkOr = async (
                                     con.criteria[i].field1 &&
                                     job.jobStatus &&
                                     job.jobStatus.toLowerCase() !==
-                                    con.criteria[i].field1.toLowerCase()
+                                        con.criteria[i].field1.toLowerCase()
                                 ) {
                                     validity = true;
                                     successReasons.push(
@@ -6307,12 +6377,12 @@ const checkOr = async (
                             validity = true;
                             successReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Online`
+                                    'Monitor was'} Online`
                             );
                         } else {
                             failedReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Offline`
+                                    'Monitor was'} Offline`
                             );
                         }
                     } else if (
@@ -6328,12 +6398,12 @@ const checkOr = async (
                             validity = true;
                             successReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Offline`
+                                    'Monitor was'} Offline`
                             );
                         } else {
                             failedReasons.push(
                                 `${criteriaStrings[type] ||
-                                'Monitor was'} Online`
+                                    'Monitor was'} Online`
                             );
                         }
                     }
@@ -6596,10 +6666,10 @@ const formatBytes = (a, b, c, d, e) => {
     return (
         formatDecimal(
             ((b = Math),
-                (c = b.log),
-                (d = 1e3),
-                (e = (c(value) / c(d)) | 0),
-                value / b.pow(d, e)),
+            (c = b.log),
+            (d = 1e3),
+            (e = (c(value) / c(d)) | 0),
+            value / b.pow(d, e)),
             decimalPlaces >= 0 ? decimalPlaces : 2,
             roundType
         ) +
@@ -6646,7 +6716,7 @@ async function deleteFile(file) {
 function readFileContent(filePath) {
     return new Promise((resolve, reject) => {
         if (fs.existsSync(filePath)) {
-            fs.readFile(filePath, { encoding: 'utf8' }, function (error, data) {
+            fs.readFile(filePath, { encoding: 'utf8' }, function(error, data) {
                 if (error) {
                     reject(error);
                 }
