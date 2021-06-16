@@ -14,6 +14,7 @@ const { sendItemResponse } = require('../middlewares/response');
 const { isAuthorized } = require('../middlewares/authorization');
 const { getUser } = require('../middlewares/user');
 const scriptSandbox = require('../utils/scriptSandbox');
+const bashScript = require('../utils/bashScript');
 
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
@@ -121,25 +122,43 @@ router.put(
         try {
             const { automatedScriptId } = req.params;
             const userId = req.user ? req.user.id : null;
-            const { script } = await AutomatedService.findOneBy({
+            const { script, scriptType } = await AutomatedService.findOneBy({
                 _id: automatedScriptId,
             });
-            const {
-                success,
-                message,
-                errors,
-                status,
-                executionTime,
-                consoleLogs,
-            } = await scriptSandbox.runScript(script, true);
-            // normalize response
-            const data = {
-                success,
-                status,
-                error: success ? undefined : message + ': ' + errors,
-                executionTime,
-                consoleLogs,
-            };
+            let data = null;
+            if (scriptType === 'javascript') {
+                const {
+                    success,
+                    message,
+                    errors,
+                    status,
+                    executionTime,
+                    consoleLogs,
+                } = await scriptSandbox.runScript(script, true);
+                // normalize response
+                data = {
+                    success,
+                    status,
+                    error: success ? undefined : message + ': ' + errors,
+                    executionTime,
+                    consoleLogs,
+                };
+            } else {
+                const {
+                    success,
+                    errors,
+                    status,
+                    executionTime,
+                    consoleLogs,
+                } = await bashScript.run(script);
+                data = {
+                    success,
+                    errors,
+                    status,
+                    executionTime,
+                    consoleLogs,
+                };
+            }
             data.triggerByUser = userId;
             const response = await AutomatedService.createLog(
                 automatedScriptId,
