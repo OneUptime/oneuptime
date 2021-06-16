@@ -330,7 +330,7 @@ export function switchProject(dispatch, project, subProjects = []) {
     fetchMonitors(project._id)(dispatch);
     fetchResourceCategories(project._id)(dispatch);
     fetchResourceCategoriesForNewResource(project._id)(dispatch);
-    fetchUnresolvedIncidents(project._id)(dispatch);
+    fetchUnresolvedIncidents(project._id, true)(dispatch);
     fetchSchedules(project._id)(dispatch);
     fetchSubProjectSchedules(project._id)(dispatch);
     fetchNotifications(project._id)(dispatch);

@@ -347,9 +347,11 @@ router.get(
                 : null;
             // Call the IncidentService.
             const userId = req.user ? req.user.id : null;
+            const { isHome } = req.query;
             const incident = await IncidentService.getUnresolvedIncidents(
                 subProjectIds,
-                userId
+                userId,
+                isHome
             );
             return sendItemResponse(req, res, incident);
         } catch (error) {
