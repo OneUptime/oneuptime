@@ -31,6 +31,7 @@ describe('Subscribers Alert logs API', () => {
         await init.registerUser(user, page);
 
         await init.addSmtpSettings(
+            true,
             utils.smtpCredential.user,
             utils.smtpCredential.pass,
             utils.smtpCredential.host,
@@ -65,7 +66,7 @@ describe('Subscribers Alert logs API', () => {
                 monitorName,
                 page
             );
-            await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
+            await init.pageClick(page, '.subscribers-tab');
             await init.pageWaitForSelector(page, '#addSubscriberButton');
             await init.pageClick(page, '#addSubscriberButton');
             await init.pageWaitForSelector(page, '#alertViaId');
@@ -104,7 +105,7 @@ describe('Subscribers Alert logs API', () => {
                 monitorName,
                 page
             );
-            await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
+            await init.pageClick(page, '.subscribers-tab');
             await init.pageWaitForSelector(page, '#addSubscriberButton');
             await init.pageClick(page, '#addSubscriberButton');
             await init.pageWaitForSelector(page, '#alertViaId');
@@ -116,7 +117,7 @@ describe('Subscribers Alert logs API', () => {
                 hidden: true,
             });
             await page.reload({ waitUntil: 'networkidle0' });
-            await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
+            await init.pageClick(page, '.subscribers-tab');
             const subscriberEmailSelector =
                 '#subscribersList tbody tr:first-of-type td:nth-of-type(4)';
             await init.pageWaitForSelector(page, subscriberEmailSelector);
@@ -154,7 +155,7 @@ describe('Subscribers Alert logs API', () => {
             await init.pageWaitForSelector(page, '#incident_0');
 
             await page.reload({ waitUntil: 'networkidle0' });
-            await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
+            await init.pageClick(page, '.alert-tab');
             await init.pageWaitForSelector(
                 page,
                 '#subscriberAlertTable tbody tr'

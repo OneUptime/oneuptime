@@ -10,6 +10,9 @@ e2e_docker_compose_enterprise_test:
         # Install the cluster.
         - chmod +x ./install.sh
         - ./install.sh
+        # run saml server
+        - chmod +x ./saml/run-server.sh
+        - ./saml/run-server.sh
         # Set env var
         - export ACCOUNTS_URL=http://localhost:3003
         - export ADMIN_DASHBOARD_URL=http://localhost:3100

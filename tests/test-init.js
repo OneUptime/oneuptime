@@ -1589,8 +1589,8 @@ const _this = {
         });
         return await page.click(selector, opts);
     },
-    page$Eval: async function(page, selector, evalFunction) {
-        await _this.pageWaitForSelector(page, selector);
+    page$Eval: async function(page, selector, evalFunction, opts=null) {
+        await _this.pageWaitForSelector(page, selector, opts);
         return await page.$eval(selector, evalFunction);
     },
     page$$Eval: async function(page, selector, evalFunction) {
@@ -1637,6 +1637,30 @@ const _this = {
             page.click(selector, opts),
             page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing
         ]);
+    },
+    navigateToTwilio: async function(page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await _this.pageWaitForSelector(page, '#projectSettings', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClick(page, '#projectSettings');
+        await _this.pageWaitForSelector(page, '#more');
+        await _this.pageClick(page, '#more');
+        await _this.pageWaitForSelector(page, '#smsCalls');
+        await _this.pageClick(page, '#smsCalls');
+    },
+    navigateToSmtp: async function(page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await _this.pageWaitForSelector(page, '#projectSettings', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClick(page, '#projectSettings');
+        await _this.pageWaitForSelector(page, '#more');
+        await _this.pageClick(page, '#more');
+        await _this.pageWaitForSelector(page, '#email');
+        await _this.pageClick(page, '#email');
     },
 };
 

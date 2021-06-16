@@ -94,11 +94,10 @@ app.use('/', async function(req, res, next) {
         return next();
     }
 
-    const response = await fetch(
-        `${apiHost}/statusPage/tlsCredential?domain=${host}`
-    ).then(res => res.json());
+    const url = `${apiHost}/statusPage/tlsCredential?domain=${host}`;
+    const response = await axios.get(url);
 
-    const { enableHttps } = response;
+    const { enableHttps } = response.data;
     if (enableHttps) {
         if (!req.secure) {
             res.writeHead(301, { Location: `https://${host}${req.url}` });
