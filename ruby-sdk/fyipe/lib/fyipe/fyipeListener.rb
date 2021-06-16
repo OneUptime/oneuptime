@@ -10,12 +10,11 @@ class FyipeListener
     end
 
     def logErrorEvent(content, category = 'exception')
-        timelineObj = {
-            "category": category,
-            "data": content,
-            "type": @utilObj.getErrorType('ERROR'),
-            "eventId": @currentEventId
-        }
+        timelineObj = {}
+        timelineObj["category"]= category,
+        timelineObj["data"]= content,
+        timelineObj["type"]= @utilObj.getErrorType('ERROR'),
+        timelineObj["eventId"]= @currentEventId
 
         # add timeline to the stack
         @timelineObj.addToTimeline(timelineObj)
