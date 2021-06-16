@@ -790,7 +790,11 @@ module.exports = {
         }
     },
 
-    getUnresolvedIncidents: async function(subProjectIds, userId) {
+    getUnresolvedIncidents: async function(
+        subProjectIds,
+        userId,
+        isHome = false
+    ) {
         const _this = this;
         let incidentsUnresolved = await _this.findBy({
             projectId: { $in: subProjectIds },
@@ -817,7 +821,9 @@ module.exports = {
             notClosedBy: userId,
         });
 
-        return incidentsUnresolved.concat(incidentsResolved);
+        return isHome
+            ? incidentsUnresolved
+            : incidentsUnresolved.concat(incidentsResolved);
     },
 
     getSubProjectIncidents: async function(subProjectIds) {

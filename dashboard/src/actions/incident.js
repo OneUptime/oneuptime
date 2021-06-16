@@ -727,12 +727,14 @@ export function resetUnresolvedIncidents() {
 }
 
 // Calls the API to register a user.
-export function fetchUnresolvedIncidents(projectId) {
+export function fetchUnresolvedIncidents(projectId, isHome = false) {
     //This fucntion will switch to incidentId of the params beig passed.
     return function(dispatch) {
         let promise = null;
 
-        promise = getApi(`incident/${projectId}/unresolvedincidents`);
+        promise = getApi(
+            `incident/${projectId}/unresolvedincidents?isHome=${isHome}`
+        );
 
         dispatch(UnresolvedIncidentsRequest(promise));
 
