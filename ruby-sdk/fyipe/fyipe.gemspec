@@ -19,7 +19,8 @@ Gem::Specification.new do |spec|
     spec.files = all_files - test_files
     spec.extra_rdoc_files = ['README.md']
     spec.add_dependency 'httparty', '~> 0.17'
-    spec.add_dependency 'gem-release'
+    spec.add_dependency 'gem-release', '~> 2.2'
+    spec.add_dependency 'ruby-enum', '~> 0.9'
     spec.add_development_dependency 'dotenv', '~> 2.5'
     spec.add_development_dependency 'rspec', '~> 3.6'
     spec.add_development_dependency 'rubocop', '~> 0.60'
