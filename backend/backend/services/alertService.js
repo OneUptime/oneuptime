@@ -10,7 +10,7 @@ module.exports = {
      * @param {Object} incident the current incident
      * @returns {Object[]} list of schedules
      */
-    getSchedulesForAlerts: async function(incident, monitor) {
+    getSchedulesForAlerts: async function (incident, monitor) {
         try {
             const monitorId = monitor._id;
             const projectId = incident.projectId._id || incident.projectId;
@@ -51,7 +51,7 @@ module.exports = {
         }
     },
 
-    doesPhoneNumberComplyWithHighRiskConfig: async function(
+    doesPhoneNumberComplyWithHighRiskConfig: async function (
         projectId,
         alertPhoneNumber
     ) {
@@ -70,7 +70,7 @@ module.exports = {
         }
         return false;
     },
-    findBy: async function({ query, skip, limit, sort }) {
+    findBy: async function ({ query, skip, limit, sort }) {
         try {
             if (!skip) skip = 0;
 
@@ -106,7 +106,7 @@ module.exports = {
         }
     },
 
-    create: async function({
+    create: async function ({
         projectId,
         monitorId,
         alertVia,
@@ -157,7 +157,7 @@ module.exports = {
         }
     },
 
-    sendRealTimeUpdate: async function({ incidentId, projectId }) {
+    sendRealTimeUpdate: async function ({ incidentId, projectId }) {
         const _this = this;
         let incidentMessages = await IncidentMessageService.findBy({
             incidentId,
@@ -210,7 +210,7 @@ module.exports = {
         await RealTimeService.sendIncidentTimeline(result);
     },
 
-    countBy: async function(query) {
+    countBy: async function (query) {
         try {
             if (!query) {
                 query = {};
@@ -225,7 +225,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -248,7 +248,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -266,7 +266,7 @@ module.exports = {
         }
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function (query, userId) {
         try {
             if (!query) {
                 query = {};
@@ -293,7 +293,7 @@ module.exports = {
         }
     },
 
-    sendCreatedIncident: async function(incident, monitor) {
+    sendCreatedIncident: async function (incident, monitor) {
         try {
             if (incident) {
                 const _this = this;
@@ -332,7 +332,7 @@ module.exports = {
         }
     },
 
-    sendAlertsToTeamMembersInSchedule: async function({
+    sendAlertsToTeamMembersInSchedule: async function ({
         schedule,
         incident,
         monitorId,
@@ -388,7 +388,7 @@ module.exports = {
             onCallScheduleStatus = callScheduleStatuses[0];
             currentEscalationStatus =
                 onCallScheduleStatus.escalations[
-                    onCallScheduleStatus.escalations.length - 1
+                onCallScheduleStatus.escalations.length - 1
                 ];
             escalationId = currentEscalationStatus.escalation._id;
         }
@@ -477,7 +477,7 @@ module.exports = {
         }
     },
 
-    escalate: async function({ schedule, incident, alertProgress, monitor }) {
+    escalate: async function ({ schedule, incident, alertProgress, monitor }) {
         const _this = this;
         const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
             query: { incident: incident._id, schedule: schedule._id },
@@ -517,7 +517,7 @@ module.exports = {
         if (
             !nextEscalationPolicy ||
             nextEscalationPolicy._id.toString() !==
-                activeEscalation._id.toString()
+            activeEscalation._id.toString()
         ) {
             const query = { _id: callScheduleStatus._id };
             const data = { alertedEveryone: true };
@@ -550,7 +550,7 @@ module.exports = {
         });
     },
 
-    sendAlertsToTeamMembersInEscalationPolicy: async function({
+    sendAlertsToTeamMembersInEscalationPolicy: async function ({
         escalation,
         incident,
         monitor,
@@ -569,11 +569,14 @@ module.exports = {
         escalation = await EscalationService.findOneBy({ _id: escalation._id });
         const activeTeam = escalation.activeTeam;
         const teamGroup = [];
-        activeTeam.teamMembers.forEach(team => {
-            if (team.groups) {
-                teamGroup.push(team.groups);
-            }
-        });
+        
+        if(activeTeam && activeTeam.teamMembers){
+            activeTeam.teamMembers.forEach(team => {
+                if (team.groups) {
+                    teamGroup.push(team.groups);
+                }
+            });
+        }
 
         const groupUsers = teamGroup.map(group => group.teams);
         const groupUserIds = [].concat
@@ -585,7 +588,7 @@ module.exports = {
 
         const currentEscalationStatus =
             onCallScheduleStatus.escalations[
-                onCallScheduleStatus.escalations.length - 1
+            onCallScheduleStatus.escalations.length - 1
             ];
 
         const shouldSendSMSReminder =
@@ -641,7 +644,7 @@ module.exports = {
                 (JSON.stringify(escalation.scheduleId._id) ==
                     JSON.stringify(onCallScheduleStatus.schedule._id) ||
                     JSON.stringify(escalation.scheduleId._id) ==
-                        JSON.stringify(onCallScheduleStatus.schedule)) &&
+                    JSON.stringify(onCallScheduleStatus.schedule)) &&
                 isOnDuty
             ) {
                 await OnCallScheduleStatusService.updateOneBy({
@@ -787,7 +790,7 @@ module.exports = {
         }
     },
 
-    sendPushAlert: async function({
+    sendPushAlert: async function ({
         incident,
         user,
         monitor,
@@ -904,7 +907,7 @@ module.exports = {
         }
     },
 
-    sendEmailAlert: async function({
+    sendEmailAlert: async function ({
         incident,
         user,
         project,
@@ -944,8 +947,8 @@ module.exports = {
             });
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
-                hasGlobalSmtpSettings.value &&
-                hasGlobalSmtpSettings.value['email-enabled']
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -1052,7 +1055,7 @@ module.exports = {
         }
     },
 
-    sendSlaEmailToTeamMembers: async function(
+    sendSlaEmailToTeamMembers: async function (
         { projectId, incidentCommunicationSla, incident, alertTime },
         breached = false
     ) {
@@ -1069,8 +1072,8 @@ module.exports = {
                 );
                 const areEmailAlertsEnabledInGlobalSettings =
                     hasGlobalSmtpSettings &&
-                    hasGlobalSmtpSettings.value &&
-                    hasGlobalSmtpSettings.value['email-enabled']
+                        hasGlobalSmtpSettings.value &&
+                        hasGlobalSmtpSettings.value['email-enabled']
                         ? true
                         : false;
                 const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -1140,7 +1143,7 @@ module.exports = {
         }
     },
 
-    sendCallAlert: async function({
+    sendCallAlert: async function ({
         incident,
         user,
         project,
@@ -1183,8 +1186,8 @@ module.exports = {
         });
         const areAlertsEnabledGlobally =
             hasGlobalTwilioSettings &&
-            hasGlobalTwilioSettings.value &&
-            hasGlobalTwilioSettings.value['call-enabled']
+                hasGlobalTwilioSettings.value &&
+                hasGlobalTwilioSettings.value['call-enabled']
                 ? true
                 : false;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
@@ -1346,7 +1349,7 @@ module.exports = {
         }
     },
 
-    sendSMSAlert: async function({
+    sendSMSAlert: async function ({
         incident,
         user,
         project,
@@ -1385,8 +1388,8 @@ module.exports = {
         });
         const areAlertsEnabledGlobally =
             hasGlobalTwilioSettings &&
-            hasGlobalTwilioSettings.value &&
-            hasGlobalTwilioSettings.value['sms-enabled']
+                hasGlobalTwilioSettings.value &&
+                hasGlobalTwilioSettings.value['sms-enabled']
                 ? true
                 : false;
         const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
@@ -1557,7 +1560,7 @@ module.exports = {
         }
     },
 
-    sendStausPageNoteNotificationToProjectWebhooks: async function(
+    sendStausPageNoteNotificationToProjectWebhooks: async function (
         projectId,
         incident,
         statusPageNoteData
@@ -1611,7 +1614,7 @@ module.exports = {
         }
     },
 
-    sendInvestigationNoteToSubscribers: async function(
+    sendInvestigationNoteToSubscribers: async function (
         incident,
         data,
         statusNoteStatus
@@ -1657,7 +1660,7 @@ module.exports = {
         }
     },
 
-    sendCreatedIncidentToSubscribers: async function(incident, monitor) {
+    sendCreatedIncidentToSubscribers: async function (incident, monitor) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -1713,7 +1716,7 @@ module.exports = {
         }
     },
 
-    sendAcknowledgedIncidentMail: async function(incident, monitor) {
+    sendAcknowledgedIncidentMail: async function (incident, monitor) {
         try {
             const _this = this;
             if (incident) {
@@ -1856,7 +1859,7 @@ module.exports = {
         }
     },
 
-    sendAcknowledgeEmailAlert: async function({
+    sendAcknowledgeEmailAlert: async function ({
         incident,
         user,
         project,
@@ -1892,8 +1895,8 @@ module.exports = {
             });
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
-                hasGlobalSmtpSettings.value &&
-                hasGlobalSmtpSettings.value['email-enabled']
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -1988,10 +1991,10 @@ module.exports = {
                 acknowledgedBy: incident.acknowledgedByZapier
                     ? 'Zapier'
                     : incident.acknowledgedByIncomingHttpRequest
-                    ? 'Incoming HTTP Request'
-                    : incident.acknowledgedBy && incident.acknowledgedBy.name
-                    ? incident.acknowledgedBy.name
-                    : 'Unknown User',
+                        ? 'Incoming HTTP Request'
+                        : incident.acknowledgedBy && incident.acknowledgedBy.name
+                            ? incident.acknowledgedBy.name
+                            : 'Unknown User',
             });
             return await _this.create({
                 projectId,
@@ -2023,7 +2026,7 @@ module.exports = {
         }
     },
 
-    sendResolveIncidentMail: async function(incident, monitor) {
+    sendResolveIncidentMail: async function (incident, monitor) {
         try {
             const _this = this;
             if (incident) {
@@ -2163,7 +2166,7 @@ module.exports = {
         }
     },
 
-    sendResolveEmailAlert: async function({
+    sendResolveEmailAlert: async function ({
         incident,
         user,
         project,
@@ -2198,8 +2201,8 @@ module.exports = {
             });
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
-                hasGlobalSmtpSettings.value &&
-                hasGlobalSmtpSettings.value['email-enabled']
+                    hasGlobalSmtpSettings.value &&
+                    hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -2291,10 +2294,10 @@ module.exports = {
                 resolvedBy: incident.resolvedByZapier
                     ? 'Zapier'
                     : incident.resolvedByIncomingHttpRequest
-                    ? 'Incoming HTTP Request'
-                    : incident.resolvedBy
-                    ? incident.resolvedBy.name
-                    : 'Unknown User',
+                        ? 'Incoming HTTP Request'
+                        : incident.resolvedBy
+                            ? incident.resolvedBy.name
+                            : 'Unknown User',
             });
             return await _this.create({
                 projectId,
@@ -2326,7 +2329,7 @@ module.exports = {
         }
     },
 
-    sendAcknowledgedIncidentToSubscribers: async function(incident, monitor) {
+    sendAcknowledgedIncidentToSubscribers: async function (incident, monitor) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -2380,7 +2383,7 @@ module.exports = {
         }
     },
 
-    sendResolvedIncidentToSubscribers: async function(incident, monitor) {
+    sendResolvedIncidentToSubscribers: async function (incident, monitor) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -2434,7 +2437,7 @@ module.exports = {
         }
     },
 
-    sendSubscriberAlert: async function(
+    sendSubscriberAlert: async function (
         subscriber,
         incident,
         templateType = 'Subscriber Incident Created',
@@ -2487,16 +2490,19 @@ module.exports = {
 
             const monitorCustomFields = {},
                 incidentCustomFields = {};
-            monitor.customFields &&
+            if (monitor && monitor.customFields) {
                 monitor.customFields.forEach(
                     field =>
-                        (monitorCustomFields[field.fieldName] =
-                            field.fieldValue)
+                    (monitorCustomFields[field.fieldName] =
+                        field.fieldValue)
                 );
-            incident.customFields.forEach(
-                field =>
-                    (incidentCustomFields[field.fieldName] = field.fieldValue)
-            );
+            }
+            if (incident && incident.customFields) {
+                incident.customFields.forEach(
+                    field =>
+                        (incidentCustomFields[field.fieldName] = field.fieldValue)
+                );
+            }
             const customFields = {
                 monitor: { customFields: monitorCustomFields },
                 incident: { customFields: incidentCustomFields },
@@ -2605,8 +2611,8 @@ module.exports = {
                 );
                 const areEmailAlertsEnabledInGlobalSettings =
                     hasGlobalSmtpSettings &&
-                    hasGlobalSmtpSettings.value &&
-                    hasGlobalSmtpSettings.value['email-enabled']
+                        hasGlobalSmtpSettings.value &&
+                        hasGlobalSmtpSettings.value['email-enabled']
                         ? true
                         : false;
                 const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -2873,8 +2879,8 @@ module.exports = {
                     );
                     const areAlertsEnabledGlobally =
                         hasGlobalTwilioSettings &&
-                        hasGlobalTwilioSettings.value &&
-                        hasGlobalTwilioSettings.value['sms-enabled']
+                            hasGlobalTwilioSettings.value &&
+                            hasGlobalTwilioSettings.value['sms-enabled']
                             ? true
                             : false;
 
@@ -3309,7 +3315,7 @@ module.exports = {
         return false;
     },
 
-    getSubProjectAlerts: async function(subProjectIds) {
+    getSubProjectAlerts: async function (subProjectIds) {
         const _this = this;
         const subProjectAlerts = await Promise.all(
             subProjectIds.map(async id => {
@@ -3325,7 +3331,7 @@ module.exports = {
         return subProjectAlerts;
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function (query) {
         try {
             await AlertModel.deleteMany(query);
             return 'Alert(s) removed successfully';
@@ -3335,7 +3341,7 @@ module.exports = {
         }
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
         let alert = await _this.findBy({ query });
@@ -3377,7 +3383,7 @@ module.exports = {
     },
 
     //Return true, if the limit is not reached yet.
-    checkPhoneAlertsLimit: async function(projectId) {
+    checkPhoneAlertsLimit: async function (projectId) {
         const _this = this;
         const hasCustomSettings = await TwilioService.hasCustomSettings(
             projectId
@@ -3416,7 +3422,7 @@ module.exports = {
         }
     },
 
-    sendUnpaidSubscriptionEmail: async function(project, user) {
+    sendUnpaidSubscriptionEmail: async function (project, user) {
         try {
             const { name: userName, email: userEmail } = user;
             const {
@@ -3440,7 +3446,7 @@ module.exports = {
         }
     },
 
-    sendProjectDeleteEmailForUnpaidSubscription: async function(project, user) {
+    sendProjectDeleteEmailForUnpaidSubscription: async function (project, user) {
         try {
             const { name: userName, email: userEmail } = user;
             const { stripePlanId, name: projectName } = project;
@@ -3458,7 +3464,7 @@ module.exports = {
             throw error;
         }
     },
-    sendCreatedScheduledEventToSubscribers: async function(schedule) {
+    sendCreatedScheduledEventToSubscribers: async function (schedule) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -3492,7 +3498,7 @@ module.exports = {
             throw error;
         }
     },
-    sendResolvedScheduledEventToSubscribers: async function(schedule) {
+    sendResolvedScheduledEventToSubscribers: async function (schedule) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -3527,7 +3533,7 @@ module.exports = {
         }
     },
 
-    sendCancelledScheduledEventToSubscribers: async function(schedule) {
+    sendCancelledScheduledEventToSubscribers: async function (schedule) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -3561,7 +3567,7 @@ module.exports = {
         }
     },
 
-    sendScheduledEventInvestigationNoteToSubscribers: async function(message) {
+    sendScheduledEventInvestigationNoteToSubscribers: async function (message) {
         try {
             const _this = this;
             const uuid = new Date().getTime();
@@ -3608,8 +3614,8 @@ module.exports = {
 
                             const areEmailAlertsEnabledInGlobalSettings =
                                 hasGlobalSmtpSettings &&
-                                hasGlobalSmtpSettings.value &&
-                                hasGlobalSmtpSettings.value['email-enabled']
+                                    hasGlobalSmtpSettings.value &&
+                                    hasGlobalSmtpSettings.value['email-enabled']
                                     ? true
                                     : false;
                             const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -3683,7 +3689,7 @@ module.exports = {
                                 const replyAddress = message.scheduledEventId
                                     .projectId.replyAddress
                                     ? message.scheduledEventId.projectId
-                                          .replyAddress
+                                        .replyAddress
                                     : null;
 
                                 await MailService.sendScheduledEventNoteMailToSubscriber(
@@ -3723,8 +3729,8 @@ module.exports = {
                                 );
                                 const areAlertsEnabledGlobally =
                                     hasGlobalTwilioSettings &&
-                                    hasGlobalTwilioSettings.value &&
-                                    hasGlobalTwilioSettings.value['sms-enabled']
+                                        hasGlobalTwilioSettings.value &&
+                                        hasGlobalTwilioSettings.value['sms-enabled']
                                         ? true
                                         : false;
 
@@ -3975,7 +3981,7 @@ module.exports = {
         }
     },
 
-    sendSubscriberScheduledEventAlert: async function(
+    sendSubscriberScheduledEventAlert: async function (
         subscriber,
         schedule,
         templateType = 'Subscriber Scheduled Maintenance Created',
@@ -3996,9 +4002,9 @@ module.exports = {
                 templateType === 'Subscriber Scheduled Maintenance Created'
                     ? 'Scheduled maintenance created'
                     : templateType ===
-                      'Subscriber Scheduled Maintenance Resolved'
-                    ? 'Scheduled maintenance resolved'
-                    : 'Scheduled maintenance cancelled';
+                        'Subscriber Scheduled Maintenance Resolved'
+                        ? 'Scheduled maintenance resolved'
+                        : 'Scheduled maintenance cancelled';
 
             if (subscriber.alertVia === AlertType.Email) {
                 const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
@@ -4008,8 +4014,8 @@ module.exports = {
                 );
                 const areEmailAlertsEnabledInGlobalSettings =
                     hasGlobalSmtpSettings &&
-                    hasGlobalSmtpSettings.value &&
-                    hasGlobalSmtpSettings.value['email-enabled']
+                        hasGlobalSmtpSettings.value &&
+                        hasGlobalSmtpSettings.value['email-enabled']
                         ? true
                         : false;
                 const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
@@ -4020,9 +4026,9 @@ module.exports = {
                     templateType === 'Subscriber Scheduled Maintenance Created'
                         ? !project.sendCreatedScheduledEventNotificationEmail
                         : templateType ===
-                          'Subscriber Scheduled Maintenance Resolved'
-                        ? !project.sendScheduledEventResolvedNotificationEmail
-                        : !project.sendScheduledEventCancelledNotificationEmail;
+                            'Subscriber Scheduled Maintenance Resolved'
+                            ? !project.sendScheduledEventResolvedNotificationEmail
+                            : !project.sendScheduledEventCancelledNotificationEmail;
 
                 const emailTemplate = await EmailTemplateService.findOneBy({
                     projectId,
@@ -4153,8 +4159,8 @@ module.exports = {
                     );
                     const areAlertsEnabledGlobally =
                         hasGlobalTwilioSettings &&
-                        hasGlobalTwilioSettings.value &&
-                        hasGlobalTwilioSettings.value['sms-enabled']
+                            hasGlobalTwilioSettings.value &&
+                            hasGlobalTwilioSettings.value['sms-enabled']
                             ? true
                             : false;
 
@@ -4164,12 +4170,12 @@ module.exports = {
 
                     const notificationSmsDisabled =
                         templateType ===
-                        'Subscriber Scheduled Maintenance Created'
+                            'Subscriber Scheduled Maintenance Created'
                             ? !project.sendCreatedScheduledEventNotificationSms
                             : templateType ===
-                              'Subscriber Scheduled Maintenance Resolved'
-                            ? !project.sendScheduledEventResolvedNotificationSms
-                            : !project.sendScheduledEventCancelledNotificationSms;
+                                'Subscriber Scheduled Maintenance Resolved'
+                                ? !project.sendScheduledEventResolvedNotificationSms
+                                : !project.sendScheduledEventCancelledNotificationSms;
 
                     if (
                         (!hasCustomTwilioSettings &&
