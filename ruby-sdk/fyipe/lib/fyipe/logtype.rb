@@ -1,7 +1,9 @@
+require 'ruby-enum'
+
 class LogType
-    TYPE  = [
-        INFO = "info",
-        WARNING = "warning",
-        ERROR = "error",
-    ]
+    include Ruby::Enum
+
+    define :INFO, "info"
+    define :WARNING, "warning"
+    define :ERROR, "error"
 end
