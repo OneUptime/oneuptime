@@ -12,6 +12,13 @@ class Util
     end
 
     def getErrorType(val)
-        return LogType::val
+        enumValue = ""
+        LogType.each do |key, enum|
+            if (key.to_s.eql? "#{val}")
+                enumValue = enum.value
+            end
+        end
+        
+        return enumValue
     end
 end
