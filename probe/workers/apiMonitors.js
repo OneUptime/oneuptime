@@ -157,9 +157,6 @@ const pingfetch = async (url, method, body, headers) => {
         resp = { status: 408, body: error };
     }
 
-    // this hard coded value will be removed soon
-    res = res/20;
-
     return {
         res,
         resp,
