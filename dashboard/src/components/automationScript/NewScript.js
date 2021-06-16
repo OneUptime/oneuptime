@@ -30,6 +30,8 @@ class NewScript extends Component {
         this.state = {
             name: '',
             type: 'javascript',
+            successEventError: null,
+            failureEventError: null,
         };
     }
 
@@ -42,10 +44,42 @@ class NewScript extends Component {
     };
 
     submit = (values, dispatch) => {
+        this.setState({
+            successEventError: null,
+            failureEventError: null,
+        });
         const successEvent = values.successEvent.filter(data => data);
         const failureEvent = values.failureEvent.filter(data => data);
         values.successEvent = successEvent;
         values.failureEvent = failureEvent;
+        const successEventIds = successEvent.map(data => data.resource);
+        const isSuccessDuplicate = values.successEvent
+            ? values.successEvent.length === new Set(successEventIds).size
+                ? false
+                : true
+            : false;
+
+        if (isSuccessDuplicate) {
+            this.setState({
+                successEventError: 'Duplicate resources selection found',
+            });
+            return;
+        }
+
+        const failureEventIds = failureEvent.map(data => data.resource);
+        const isFailureDuplicate = values.failureEvent
+            ? values.failureEvent.length === new Set(failureEventIds).size
+                ? false
+                : true
+            : false;
+
+        if (isFailureDuplicate) {
+            this.setState({
+                failureEventError: 'Duplicate resources selection found',
+            });
+            return;
+        }
+
         const { type, script } = this.state;
         const { currentProject } = this.props;
         const payload = { ...values, scriptType: type, script };
@@ -597,6 +631,35 @@ class NewScript extends Component {
                                             name="successEvent"
                                             component={this.renderSuccessEvent}
                                         />
+                                        <ShouldRender
+                                            if={this.state.successEventError}
+                                        >
+                                            <div
+                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                style={{
+                                                    marginTop: '5px',
+                                                    alignItems: 'center',
+                                                }}
+                                            >
+                                                <div
+                                                    className="Box-root Margin-right--8"
+                                                    style={{ marginTop: '2px' }}
+                                                >
+                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                </div>
+                                                <div className="Box-root">
+                                                    <span
+                                                        id="monitorError"
+                                                        style={{ color: 'red' }}
+                                                    >
+                                                        {
+                                                            this.state
+                                                                .successEventError
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </ShouldRender>
                                     </div>
                                 </div>
                             </div>
@@ -627,6 +690,35 @@ class NewScript extends Component {
                                             name="failureEvent"
                                             component={this.renderFailureEvent}
                                         />
+                                        <ShouldRender
+                                            if={this.state.failureEventError}
+                                        >
+                                            <div
+                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                style={{
+                                                    marginTop: '5px',
+                                                    alignItems: 'center',
+                                                }}
+                                            >
+                                                <div
+                                                    className="Box-root Margin-right--8"
+                                                    style={{ marginTop: '2px' }}
+                                                >
+                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                </div>
+                                                <div className="Box-root">
+                                                    <span
+                                                        id="monitorError"
+                                                        style={{ color: 'red' }}
+                                                    >
+                                                        {
+                                                            this.state
+                                                                .failureEventError
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </ShouldRender>
                                     </div>
                                 </div>
                             </div>
