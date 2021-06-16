@@ -37,7 +37,9 @@ then
   # Delete all locally built images. (Comment this out to reduce build times)
   # echo "RUNNING COMMAND: sudo docker rmi -f \$(sudo docker images -q) || echo 'No docker containers'"
   # sudo docker rmi -f $(sudo docker images -q) || echo 'No docker containers'
-  sudo docker system prune -a --volumes --force
+  
+  # Comment line below to reduce build times. 
+  # sudo docker system prune -a --volumes --force
 fi
 
 # remove any service holding port 80
