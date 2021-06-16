@@ -131,6 +131,7 @@ module.exports = {
             }
             query.deleted = false;
             const response = await ScriptModelLog.find(query)
+                .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
                 .populate('automationScriptId', 'name')
