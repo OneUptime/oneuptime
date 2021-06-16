@@ -28,8 +28,9 @@ module.exports = {
                         return UrlMonitors.ping(monitor);
                     } else if (monitor.type === 'ip') {
                         return IPMonitors.ping(monitor);
-                    } else if (monitor.type === 'script') {
-                        return ScriptMonitors.run(monitor);
+                    // } else if (monitor.type === 'script') {
+                    //     return ScriptMonitors.run(monitor);
+                    // } 
                     } else if (
                         monitor.type === 'server-monitor' &&
                         monitor.agentlessConfig

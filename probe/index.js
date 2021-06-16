@@ -74,16 +74,16 @@ cron.schedule('* * * * *', () => {
     }, cronMinuteStartTime * 1000);
 });
 
-cron.schedule('* * * * *', () => {
-    setTimeout(() => {
-        Main.runApplicationScan();
-    }, cronApplicationSecurityStartTime * 1000);
-});
+// cron.schedule('* * * * *', () => {
+//     setTimeout(() => {
+//         Main.runApplicationScan();
+//     }, cronApplicationSecurityStartTime * 1000);
+// });
 
-cron.schedule('* * * * *', () => {
-    setTimeout(() => {
-        Main.runContainerScan();
-    }, cronContainerSecurityStartTime * 1000);
-});
+// cron.schedule('* * * * *', () => {
+//     setTimeout(() => {
+//         Main.runContainerScan();
+//     }, cronContainerSecurityStartTime * 1000);
+// });
 
 module.exports = app;
