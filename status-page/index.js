@@ -95,12 +95,9 @@ app.use('/', async function(req, res, next) {
     }
 
     try {
-        const url = `${apiHost}/statusPage/tlsCredential`;
-        const response = await fetch(url, {
-            method: 'POST',
-            body: JSON.stringify({ domain: host }),
-            headers: { 'Content-Type': 'application/json' },
-        }).then(res => res.json());
+        const response = await fetch(
+            `${apiHost}/statusPage/tlsCredential?domain=${host}`
+        ).then(res => res.json());
 
         const { enableHttps } = response;
         if (enableHttps) {
@@ -230,12 +227,9 @@ function createDir(dirPath) {
                 path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
             ),
             SNICallback: async function(domain, cb) {
-                const url = `${apiHost}/statusPage/tlsCredential`;
-                const res = await fetch(url, {
-                    method: 'POST',
-                    body: JSON.stringify({ domain }),
-                    headers: { 'Content-Type': 'application/json' },
-                }).then(res => res.json());
+                const res = await fetch(
+                    `${apiHost}/statusPage/tlsCredential?domain=${domain}`
+                ).then(res => res.json());
 
                 let certPath, privateKeyPath;
                 if (res) {
