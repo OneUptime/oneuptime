@@ -177,6 +177,9 @@ const pingfetch = async url => {
         res = new Date().getTime() - now;
         resp = { status: 408, body: error };
     }
+    
+    // this hard coded value will be removed soon
+    res = res/10;
 
     return {
         res,
