@@ -122,7 +122,12 @@ router.put(
         try {
             const { automatedScriptId } = req.params;
             const userId = req.user ? req.user.id : null;
-            const { script, scriptType } = await AutomatedService.findOneBy({
+            const {
+                script,
+                scriptType,
+                successEvent,
+                failureEvent,
+            } = await AutomatedService.findOneBy({
                 _id: automatedScriptId,
             });
             let data = null;
@@ -160,6 +165,18 @@ router.put(
                 };
             }
             data.triggerByUser = userId;
+            const successAutomatedScript = successEvent
+                .filter(data => data.automatedScript)
+                .map(data => data.automatedScript);
+            const failedAutomatedScript = failureEvent
+                .filter(data => data.automatedScript)
+                .map(data => data.automatedScript);
+            if (data.success && successAutomatedScript.length > 0) {
+                await runEvent(automatedScriptId, successAutomatedScript);
+            }
+            if (!data.success && failedAutomatedScript.length > 0) {
+                await runEvent(automatedScriptId, failedAutomatedScript);
+            }
             const response = await AutomatedService.createLog(
                 automatedScriptId,
                 data
@@ -195,5 +212,27 @@ router.delete(
         }
     }
 );
+
+const runEvent = async (triggeredId, ids) => {
+    const scripts = await AutomatedService.findBy({ _id: ids });
+    let result;
+    await Promise.all(
+        scripts.map(async ({ script, scriptType, _id }) => {
+            let obj = null;
+            if (scriptType === 'javascript') {
+                obj = await scriptSandbox.runScript(script, true);
+            } else {
+                obj = await bashScript.run(script);
+            }
+            obj.triggerByScript = triggeredId;
+            result = await AutomatedService.createLog(_id, obj);
+            await AutomatedService.updateOne(
+                { _id },
+                { updatedAt: new Date() }
+            );
+        })
+    );
+    return result;
+};
 
 module.exports = router;
