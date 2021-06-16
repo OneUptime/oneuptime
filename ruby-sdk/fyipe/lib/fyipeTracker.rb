@@ -121,7 +121,7 @@ class FyipeTracker
         keyClassType = key.class.to_s
 
         # routine check
-        if (keyClassType != "String" || keyClassType != "Array")
+        if (keyClassType != "String" && keyClassType != "Array")
             raise "Invalid Fingerprint"
         end
 
@@ -136,7 +136,7 @@ class FyipeTracker
     def getFingerprint(errorMessage)
     
         # if no fingerprint exist currently
-        if (fingerprint.length() < 1)
+        if (@fingerprint.length() < 1)
             # set up finger print based on error since none exist
             setFingerPrint(errorMessage)
         end
@@ -179,6 +179,7 @@ class FyipeTracker
     end
 
     def getCurrentEvent()
+        puts @event
         return @event
     end
         
