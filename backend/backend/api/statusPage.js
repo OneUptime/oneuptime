@@ -310,9 +310,9 @@ router.post('/:projectId/privateKeyFile', async function(req, res) {
 
 // fetch details about a custom domain
 // to be consumed by the status page
-router.post('/tlsCredential', async function(req, res) {
+router.get('/tlsCredential', async function(req, res) {
     try {
-        const { domain } = req.body;
+        const { domain } = req.query;
         const user = req.user;
 
         if (!domain) {
