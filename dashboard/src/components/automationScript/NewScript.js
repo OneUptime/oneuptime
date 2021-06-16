@@ -24,7 +24,6 @@ const defaultScript =
     '   // write any javascript here \n' +
     '   done();\n' +
     '}\n';
-
 class NewScript extends Component {
     constructor(props) {
         super(props);
@@ -57,7 +56,7 @@ class NewScript extends Component {
                 dispatch(reset('newScript'));
                 this.setState({
                     type: 'javascript',
-                    script: '',
+                    script: defaultScript,
                 });
             });
     };
@@ -471,53 +470,98 @@ class NewScript extends Component {
                                                         Script
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
-                                                        <AceEditor
-                                                            placeholder="Enter script here"
-                                                            mode="javascript"
-                                                            theme="github"
-                                                            value={
-                                                                this.state
-                                                                    .script
-                                                            }
-                                                            defaultValue={
-                                                                defaultScript
-                                                            }
-                                                            style={{
-                                                                backgroundColor:
-                                                                    '#fff',
-                                                                borderRadius:
-                                                                    '4px',
-                                                                boxShadow:
-                                                                    '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
-                                                            }}
-                                                            name={`automated-script`}
-                                                            id="automatedScript"
-                                                            editorProps={{
-                                                                $blockScrolling: true,
-                                                            }}
-                                                            setOptions={{
-                                                                enableBasicAutocompletion: true,
-                                                                enableLiveAutocompletion: true,
-                                                                enableSnippets: true,
-                                                                showGutter: false,
-                                                            }}
-                                                            height="150px"
-                                                            highlightActiveLine={
-                                                                true
-                                                            }
-                                                            onChange={
-                                                                this
-                                                                    .setAutomatedScript
-                                                            }
-                                                            fontSize="14px"
-                                                            onLoad={editor => {
-                                                                // give the inner text area a name
-                                                                // so that we can reference it later
-                                                                const elem = editor.textInput.getElement();
-                                                                elem.name = `script_editor`;
-                                                            }}
-                                                            wrapEnabled={true}
-                                                        />
+                                                        {this.state.type ===
+                                                            'javascript' && (
+                                                            <AceEditor
+                                                                placeholder="Enter script here"
+                                                                mode="javascript"
+                                                                theme="github"
+                                                                value={
+                                                                    this.state
+                                                                        .script
+                                                                }
+                                                                defaultValue={
+                                                                    defaultScript
+                                                                }
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        '#fff',
+                                                                    borderRadius:
+                                                                        '4px',
+                                                                    boxShadow:
+                                                                        '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
+                                                                }}
+                                                                name={`automated-script`}
+                                                                id="automatedScript"
+                                                                editorProps={{
+                                                                    $blockScrolling: true,
+                                                                }}
+                                                                setOptions={{
+                                                                    enableBasicAutocompletion: true,
+                                                                    enableLiveAutocompletion: true,
+                                                                    enableSnippets: true,
+                                                                    showGutter: false,
+                                                                }}
+                                                                height="150px"
+                                                                highlightActiveLine={
+                                                                    true
+                                                                }
+                                                                onChange={
+                                                                    this
+                                                                        .setAutomatedScript
+                                                                }
+                                                                fontSize="14px"
+                                                                wrapEnabled={
+                                                                    true
+                                                                }
+                                                            />
+                                                        )}
+                                                        {this.state.type ===
+                                                            'bash' && (
+                                                            <AceEditor
+                                                                placeholder="echo Hello World"
+                                                                mode="javascript"
+                                                                theme="github"
+                                                                value={
+                                                                    this.state
+                                                                        .script
+                                                                }
+                                                                defaultValue={
+                                                                    ''
+                                                                }
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        '#fff',
+                                                                    borderRadius:
+                                                                        '4px',
+                                                                    boxShadow:
+                                                                        '0 0 0 1px rgba(50, 50, 93, 0.16), 0 0 0 1px rgba(50, 151, 211, 0), 0 0 0 2px rgba(50, 151, 211, 0), 0 1px 1px rgba(0, 0, 0, 0.08)',
+                                                                }}
+                                                                name={`automated-script`}
+                                                                id="automatedScript"
+                                                                editorProps={{
+                                                                    $blockScrolling: true,
+                                                                }}
+                                                                setOptions={{
+                                                                    enableBasicAutocompletion: true,
+                                                                    enableLiveAutocompletion: true,
+                                                                    enableSnippets: true,
+                                                                    showGutter: false,
+                                                                }}
+                                                                height="150px"
+                                                                highlightActiveLine={
+                                                                    true
+                                                                }
+                                                                onChange={
+                                                                    this
+                                                                        .setAutomatedScript
+                                                                }
+                                                                fontSize="14px"
+                                                                wrapEnabled={
+                                                                    true
+                                                                }
+                                                            />
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
