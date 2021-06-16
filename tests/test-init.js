@@ -1589,8 +1589,8 @@ const _this = {
         });
         return await page.click(selector, opts);
     },
-    page$Eval: async function(page, selector, evalFunction) {
-        await _this.pageWaitForSelector(page, selector);
+    page$Eval: async function(page, selector, evalFunction, opts=null) {
+        await _this.pageWaitForSelector(page, selector, opts);
         return await page.$eval(selector, evalFunction);
     },
     page$$Eval: async function(page, selector, evalFunction) {
