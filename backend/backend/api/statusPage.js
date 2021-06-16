@@ -769,7 +769,7 @@ router.get(
         let result;
         const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query.skip || 0;
-        const limit = req.query.limit || 5;
+        const limit = req.query.limit || 10;
         const days = req.query.days || 14;
         try {
             // Call the StatusPageService.

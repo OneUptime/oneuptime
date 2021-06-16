@@ -94,21 +94,27 @@ app.use('/', async function(req, res, next) {
         return next();
     }
 
-    const url = `${apiHost}/statusPage/tlsCredential?domain=${host}`;
-    const response = await axios.get(url);
+    try {
+        const response = await fetch(
+            `${apiHost}/statusPage/tlsCredential?domain=${host}`
+        ).then(res => res.json());
 
-    const { enableHttps } = response.data;
-    if (enableHttps) {
-        if (!req.secure) {
-            res.writeHead(301, { Location: `https://${host}${req.url}` });
-            return res.end();
+        const { enableHttps } = response;
+        if (enableHttps) {
+            if (!req.secure) {
+                res.writeHead(301, { Location: `https://${host}${req.url}` });
+                return res.end();
+            }
+            next();
+        } else {
+            if (req.secure) {
+                res.writeHead(301, { Location: `http://${host}${req.url}` });
+                return res.end();
+            }
+            next();
         }
-        next();
-    } else {
-        if (req.secure) {
-            res.writeHead(301, { Location: `http://${host}${req.url}` });
-            return res.end();
-        }
+    } catch (error) {
+        console.log('Error with fetch', error);
         next();
     }
 });
