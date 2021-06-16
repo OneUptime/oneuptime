@@ -14,7 +14,7 @@ import {
     showIncidentCard,
 } from '../actions/status';
 import { openSubscribeMenu } from '../actions/subscribe';
-const countNum = 15;
+const countNum = 10;
 
 class NotesMain extends Component {
     constructor(props) {
