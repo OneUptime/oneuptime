@@ -31,11 +31,11 @@ module.exports = {
                     // } else if (monitor.type === 'script') {
                     //     return ScriptMonitors.run(monitor);
                     // } 
-                    } else if (
-                        monitor.type === 'server-monitor' &&
-                        monitor.agentlessConfig
-                    ) {
-                        return ServerMonitors.run(monitor);
+                    // } else if (
+                    //     monitor.type === 'server-monitor' &&
+                    //     monitor.agentlessConfig
+                    // ) {
+                        // return ServerMonitors.run(monitor);
                     } else if (monitor.type === 'incomingHttpRequest') {
                         return IncomingHttpRequestMonitors.run(monitor);
                     } else if (monitor.type === 'kubernetes') {
