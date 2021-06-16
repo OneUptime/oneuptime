@@ -82,63 +82,63 @@ const AutomatedTabularList = props => {
                     className="Box-root"
                     style={{ overflow: 'hidden', overflowX: 'auto' }}
                 >
-                    {scripts.length > 0 && (
-                        <table className="Table">
-                            <thead className="Table-body">
-                                <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                                    <td
-                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{
-                                            height: '1px',
-                                            minWidth: '210px',
-                                        }}
-                                    >
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                <span>Name</span>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td
-                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{
-                                            height: '1px',
-                                            minWidth: '210px',
-                                        }}
-                                    >
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                <span>Script Type</span>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td
-                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{
-                                            height: '1px',
-                                            minWidth: '210px',
-                                        }}
-                                    >
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                <span>Last ran at</span>
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td
-                                        className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                        style={{ height: '1px' }}
-                                    >
-                                        <div className="db-ListViewItem-cellContent Box-root Padding-all--8 bs-table-display-end">
-                                            <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                <span>Action</span>
-                                            </span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </thead>
-                            <tbody className="Table-body">
-                                {scripts.map((script, index) => (
+                    <table className="Table">
+                        <thead className="Table-body">
+                            <tr className="Table-row db-ListViewItem db-ListViewItem-header">
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{
+                                        height: '1px',
+                                        minWidth: '210px',
+                                    }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Name</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{
+                                        height: '1px',
+                                        minWidth: '210px',
+                                    }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Script Type</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{
+                                        height: '1px',
+                                        minWidth: '210px',
+                                    }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Last ran at</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td
+                                    className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                    style={{ height: '1px' }}
+                                >
+                                    <div className="db-ListViewItem-cellContent Box-root Padding-all--8 bs-table-display-end">
+                                        <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                            <span>Action</span>
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </thead>
+                        <tbody className="Table-body">
+                            {scripts.length > 0 &&
+                                scripts.map((script, index) => (
                                     <tr
                                         key={index}
                                         className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
@@ -252,9 +252,15 @@ const AutomatedTabularList = props => {
                                         </td>
                                     </tr>
                                 ))}
-                            </tbody>
-                        </table>
-                    )}
+                        </tbody>
+                    </table>
+                    <ShouldRender if={scripts.length < 1}>
+                        <div
+                            style={{ textAlign: 'center', paddingTop: '15px' }}
+                        >
+                            You have no script yet!
+                        </div>
+                    </ShouldRender>
                 </div>
                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                     <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
