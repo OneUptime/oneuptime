@@ -179,7 +179,6 @@ class FyipeTracker
     end
 
     def getCurrentEvent()
-        puts @event
         return @event
     end
         

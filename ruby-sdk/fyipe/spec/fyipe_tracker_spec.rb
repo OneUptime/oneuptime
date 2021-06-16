@@ -191,4 +191,34 @@ RSpec.describe FyipeTracker do
         expect(tagE[:value]).to eql availableTags[0]["value"]# latest value for that tag location
     end
 
+    it 'test_should_create_fingerprint_as_message_for_error_capture_without_any_fingerprint' do
+        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+
+        errorMessage = "Uncaught Exception"
+        tracker.captureMessage(errorMessage)
+        event = tracker.getCurrentEvent()
+        expect(event["fingerprint"][0]).to eql errorMessage
+    end
+    it 'test_should_use_defined_fingerprint_array_for_error_capture_with_fingerprint' do
+        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+
+
+        fingerprints = ['custom', 'errors']
+        tracker.setFingerPrint(fingerprints)
+        errorMessage = 'Uncaught Exception'
+        tracker.captureMessage(errorMessage)
+        event = tracker.getCurrentEvent()
+        expect(event["fingerprint"][0]).to eql fingerprints[0]
+        expect(event["fingerprint"][1]).to eql fingerprints[1]
+    end
+    it 'test_should_use_defined_fingerprint_string_for_error_capture_with_fingerprint' do
+        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+
+        fingerprint = 'custom-fingerprint'
+        tracker.setFingerPrint(fingerprint)
+        errorMessage = 'Uncaught Exception'
+        tracker.captureMessage(errorMessage)
+        event = tracker.getCurrentEvent()
+        expect(event["fingerprint"][0]).to eql fingerprint
+    end
 end
