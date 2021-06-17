@@ -16,40 +16,40 @@ const IncomingHttpRequestMonitors = require('./incomingHttpRequestMonitors');
 const KubernetesMonitors = require('./kubernetesMonitors');
 
 module.exports = {
-    runJob: async function() {
+    runJob: async function () {
         try {
             let monitors = await getApi('probe/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data
-
-            for (const monitor of monitors) {
-                try {
+            await Promise.all(
+                monitors.map(monitor => {
                     if (monitor.type === 'api') {
-                        return await ApiMonitors.ping(monitor);
+                        return ApiMonitors.ping(monitor);
                     } else if (monitor.type === 'url') {
-                        return await UrlMonitors.ping(monitor);
+                        return UrlMonitors.ping(monitor);
                     } else if (monitor.type === 'ip') {
-                        return await IPMonitors.ping(monitor);
+                        return IPMonitors.ping(monitor);
                     } else if (monitor.type === 'script') {
-                        return await ScriptMonitors.run(monitor);
+                        return ScriptMonitors.run(monitor);
+
                     } else if (
                         monitor.type === 'server-monitor' &&
                         monitor.agentlessConfig
                     ) {
-                        return await ServerMonitors.run(monitor);
+                        return ServerMonitors.run(monitor);
                     } else if (monitor.type === 'incomingHttpRequest') {
-                        return await IncomingHttpRequestMonitors.run(monitor);
+                        return IncomingHttpRequestMonitors.run(monitor);
                     } else if (monitor.type === 'kubernetes') {
-                        return await KubernetesMonitors.run(monitor);
+                        return KubernetesMonitors.run(monitor);
                     }
-                } catch (error) {
-                    ErrorService.log('runJob', error);
-                }
-            }
+
+                    return null;
+                })
+            );
         } catch (error) {
             ErrorService.log('getApi', error);
         }
     },
-    runApplicationScan: async function() {
+    runApplicationScan: async function () {
         try {
             const securities = await getApi('probe/applicationSecurities');
             if (securities && securities.length > 0) {
@@ -65,7 +65,7 @@ module.exports = {
             ErrorService.log('runApplicationScan.getApi', error);
         }
     },
-    runContainerScan: async function() {
+    runContainerScan: async function () {
         try {
             const securities = await getApi('probe/containerSecurities');
             if (securities && securities.length > 0) {
