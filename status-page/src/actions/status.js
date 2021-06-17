@@ -1280,3 +1280,54 @@ export function fetchAnnouncementLogs(
         return promise;
     };
 }
+
+export function calculateTimeRequest(monitorId) {
+    return {
+        type: types.CALCULATE_TIME_REQUEST,
+        payload: monitorId,
+    };
+}
+
+export function calculateTimeSuccess(payload) {
+    return {
+        type: types.CALCULATE_TIME_SUCCESS,
+        payload,
+    };
+}
+
+export function calculateTimeFailure(error) {
+    return {
+        type: types.CALCULATE_TIME_FAILURE,
+        payload: error,
+    };
+}
+
+export function calculateTime(statuses, start, range, monitorId) {
+    return function(dispatch) {
+        const promise = postApi(`monitor/${monitorId}/calculate-time`, {
+            statuses,
+            start,
+            range,
+        });
+        dispatch(calculateTimeRequest(monitorId));
+        promise.then(
+            function(response) {
+                dispatch(calculateTimeSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(calculateTimeFailure(error));
+            }
+        );
+        return promise;
+    };
+}
