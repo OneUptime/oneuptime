@@ -758,7 +758,7 @@ export class IncidentStatus extends Component {
                                                             Monitor(s)
                                                         </label>
                                                         <div>
-                                                            {this.props.incident.monitors.map(
+                                                            {this.props.incident && this.props.incident.monitors && this.props.incident.monitors.map(
                                                                 monitorObj => (
                                                                     <div
                                                                         key={
