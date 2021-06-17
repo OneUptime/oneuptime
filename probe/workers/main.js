@@ -16,7 +16,7 @@ const IncomingHttpRequestMonitors = require('./incomingHttpRequestMonitors');
 const KubernetesMonitors = require('./kubernetesMonitors');
 
 module.exports = {
-    runJob: async function () {
+    runJob: async function() {
         try {
             let monitors = await getApi('probe/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data
@@ -30,7 +30,6 @@ module.exports = {
                         return IPMonitors.ping(monitor);
                     } else if (monitor.type === 'script') {
                         return ScriptMonitors.run(monitor);
-
                     } else if (
                         monitor.type === 'server-monitor' &&
                         monitor.agentlessConfig
@@ -49,7 +48,7 @@ module.exports = {
             ErrorService.log('getApi', error);
         }
     },
-    runApplicationScan: async function () {
+    runApplicationScan: async function() {
         try {
             const securities = await getApi('probe/applicationSecurities');
             if (securities && securities.length > 0) {
@@ -65,7 +64,7 @@ module.exports = {
             ErrorService.log('runApplicationScan.getApi', error);
         }
     },
-    runContainerScan: async function () {
+    runContainerScan: async function() {
         try {
             const securities = await getApi('probe/containerSecurities');
             if (securities && securities.length > 0) {

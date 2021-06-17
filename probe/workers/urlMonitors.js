@@ -44,60 +44,60 @@ module.exports = {
                         }
                     }
 
-                    // const now = new Date().getTime();
-                    // const scanIntervalInDays = monitor.lighthouseScannedAt
-                    //     ? moment(now).diff(
-                    //           moment(monitor.lighthouseScannedAt),
-                    //           'days'
-                    //       )
-                    //     : -1;
-                    // if (
-                    //     (monitor.lighthouseScanStatus &&
-                    //         monitor.lighthouseScanStatus === 'scan') ||
-                    //     (monitor.lighthouseScanStatus &&
-                    //         monitor.lighthouseScanStatus === 'failed') ||
-                    //     ((!monitor.lighthouseScannedAt ||
-                    //         scanIntervalInDays > 0) &&
-                    //         (!monitor.lighthouseScanStatus ||
-                    //             monitor.lighthouseScanStatus !== 'scanning'))
-                    // ) {
-                    //     await ApiService.ping(monitor._id, {
-                    //         monitor,
-                    //         resp: { lighthouseScanStatus: 'scanning' },
-                    //     });
+                    const now = new Date().getTime();
+                    const scanIntervalInDays = monitor.lighthouseScannedAt
+                        ? moment(now).diff(
+                              moment(monitor.lighthouseScannedAt),
+                              'days'
+                          )
+                        : -1;
+                    if (
+                        (monitor.lighthouseScanStatus &&
+                            monitor.lighthouseScanStatus === 'scan') ||
+                        (monitor.lighthouseScanStatus &&
+                            monitor.lighthouseScanStatus === 'failed') ||
+                        ((!monitor.lighthouseScannedAt ||
+                            scanIntervalInDays > 0) &&
+                            (!monitor.lighthouseScanStatus ||
+                                monitor.lighthouseScanStatus !== 'scanning'))
+                    ) {
+                        await ApiService.ping(monitor._id, {
+                            monitor,
+                            resp: { lighthouseScanStatus: 'scanning' },
+                        });
 
-                    //     const sites = monitor.siteUrls;
-                    //     let failedCount = 0;
-                    //     for (const url of sites) {
-                    //         try {
-                    //             const resp = await lighthouseFetch(
-                    //                 monitor,
-                    //                 url
-                    //             );
+                        const sites = monitor.siteUrls;
+                        let failedCount = 0;
+                        for (const url of sites) {
+                            try {
+                                const resp = await lighthouseFetch(
+                                    monitor,
+                                    url
+                                );
 
-                    //             await ApiService.ping(monitor._id, {
-                    //                 monitor,
-                    //                 resp,
-                    //             });
-                    //         } catch (error) {
-                    //             failedCount++;
-                    //             ErrorService.log(
-                    //                 'lighthouseFetch',
-                    //                 error.error
-                    //             );
-                    //         }
-                    //     }
+                                await ApiService.ping(monitor._id, {
+                                    monitor,
+                                    resp,
+                                });
+                            } catch (error) {
+                                failedCount++;
+                                ErrorService.log(
+                                    'lighthouseFetch',
+                                    error.error
+                                );
+                            }
+                        }
 
-                    //     await ApiService.ping(monitor._id, {
-                    //         monitor,
-                    //         resp: {
-                    //             lighthouseScanStatus:
-                    //                 failedCount === sites.length
-                    //                     ? 'failed'
-                    //                     : 'scanned',
-                    //         },
-                    //     });
-                    // }
+                        await ApiService.ping(monitor._id, {
+                            monitor,
+                            resp: {
+                                lighthouseScanStatus:
+                                    failedCount === sites.length
+                                        ? 'failed'
+                                        : 'scanned',
+                            },
+                        });
+                    }
                 }
             }
         } catch (error) {
