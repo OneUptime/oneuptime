@@ -115,15 +115,15 @@ class IncidentCreated extends Component {
                                                           <span className="Notify-fyipe-container-row-secondary Text-color--white">
                                                               <span>
                                                                   #
-                                                                  {
-                                                                      notification && 
-                                                                      notification.meta && 
-                                                                      notification.meta.incidentId &&
+                                                                  {notification &&
+                                                                      notification.meta &&
+                                                                      notification
+                                                                          .meta
+                                                                          .incidentId &&
                                                                       notification
                                                                           .meta
                                                                           .incidentId
-                                                                          .idNumber
-                                                                  }
+                                                                          .idNumber}
                                                               </span>{' '}
                                                               {
                                                                   notification.message
