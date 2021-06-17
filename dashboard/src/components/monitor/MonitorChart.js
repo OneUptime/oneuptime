@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -1562,7 +1563,7 @@ export function MonitorChart({
                                                         id={`monitor-status-${monitor.name}`}
                                                         className={`chart-font Text-color--${statusColor}`}
                                                     >
-                                                        {monitorStatus}
+                                                       <span id={`monitor-color-${statusColor}`}>{monitorStatus}</span>
                                                     </span>
                                                 </span>
                                             </div>
