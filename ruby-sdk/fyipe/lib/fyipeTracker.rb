@@ -1,5 +1,7 @@
 require_relative 'fyipe/util'
 require_relative 'fyipe/fyipeListener'
+require_relative 'fyipe/fyipeTransport'
+
 class FyipeTracker
     # FyipeLogger constructor.
     # @param string apiUrl
@@ -22,10 +24,11 @@ class FyipeTracker
         @util = Util.new(@options)
         setEventId()
         @listenerObj = FyipeListener.new(getEventId(), @options)
+        @apiTransport = FyipeTransport.new(@apiUrl)
     end
 
     def setApiUrl(apiUrl)
-        @apiUrl = apiUrl + '/error-tracking/' + @errorTrackerId + '/track';
+        @apiUrl = apiUrl + '/error-tracker/' + @errorTrackerId + '/track';
     end
 
     def setUpOptions(options)
@@ -193,7 +196,26 @@ class FyipeTracker
         prepareErrorObject('exception', exceptionObj)
 
         # send to the server
-        # return sendErrorEventToServer()
+        return sendErrorEventToServer()
+    end
+    def sendErrorEventToServer()
+        response = nil
+        # send to API properly
+        response = @apiTransport.sendErrorEventToServer(@event)
+        # generate a new event Id
+        setEventId()
+        # clear the timeline after a successful call to the server
+        clear(getEventId())
+        return response
+    end
+
+    def clear(newEventId)
+        # clear tags
+        @tags = []
+        # clear fingerprint
+        @fingerprint = []
+        # clear timeline
+        @listenerObj.clearTimeline(newEventId)
     end
         
 end
