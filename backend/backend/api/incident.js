@@ -1122,12 +1122,21 @@ router.get(
                 userId,
                 req.user.name
             );
+
+            // get incident properties to build url
+            const { incidentId, projectId } = req.params;
+            const incident = await IncidentService.findOneBy({
+                projectId,
+                _id: incidentId,
+            });
+            const { projectId: project } = incident;
+
             return res.status(200).render('incidentAction.ejs', {
                 title: 'Incident Acknowledged',
                 title_message: 'Incident Acknowledged',
                 body_message: 'Your incident is now acknowledged.',
                 action: 'acknowledge',
-                dashboard_url: global.dashboardHost,
+                dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}`,
                 apiUrl: global.apiHost,
             });
         } catch (error) {
