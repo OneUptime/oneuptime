@@ -925,4 +925,25 @@ router.post(
     }
 );
 
+// api to calculate time for monitorInfo (status page)
+router.post('/:monitorId/calculate-time', async function(req, res) {
+    try {
+        const { monitorId } = req.params;
+        const { statuses, start, range } = req.body;
+
+        const monitor = await MonitorService.findOneBy({ _id: monitorId });
+        if (!monitor) {
+            const error = new Error('Monitor not found or does not exist');
+            error.code = 400;
+            throw error;
+        }
+        const result = await MonitorService.calcTime(statuses, start, range);
+        result.monitorId = monitor._id;
+
+        return sendItemResponse(req, res, result);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;
