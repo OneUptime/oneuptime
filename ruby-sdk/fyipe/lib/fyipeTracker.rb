@@ -181,5 +181,19 @@ class FyipeTracker
     def getCurrentEvent()
         return @event
     end
+
+    def captureException(exception)
+    
+        # construct the error object
+        exceptionObj = @util.getExceptionStackTrace(exception)
+
+        # set the a handled tag
+        setTag('handled', 'true')
+
+        prepareErrorObject('exception', exceptionObj)
+
+        # send to the server
+        # return sendErrorEventToServer()
+    end
         
 end
