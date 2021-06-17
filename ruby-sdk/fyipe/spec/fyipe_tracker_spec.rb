@@ -287,4 +287,36 @@ RSpec.describe FyipeTracker do
         expect(frame.key?("lineNumber")).to eql true
         expect(frame.key?("fileName")).to eql true
     end 
+    it 'test_should_create_an_event_and_new_event_should_have_different_id' do
+        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+
+        errorMessage = 'random error occured'
+        tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
+
+        event = tracker.captureMessage(errorMessage)
+
+        tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
+
+        newEvent = nil
+        errorMessageException = ''
+        begin
+            divByZero= 1/0
+        rescue => ex
+            errorMessageException = ex.message
+            newEvent = tracker.captureException(ex)
+        end
+
+        # ensure that the first event have a type message, same error message
+        expect(event["type"]).to eql "message"
+        expect(event["content"]["message"]).to eql errorMessage
+
+
+        # ensure that the second event have a type exception, same error message
+        expect(newEvent["type"]).to eql "exception"
+        expect(newEvent["content"]["message"]).to eql errorMessageException
+
+        
+        # confim their eventId is different
+        expect(event["_id"]).not_to eql newEvent["_id"]
+    end
 end
