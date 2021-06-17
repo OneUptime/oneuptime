@@ -120,7 +120,10 @@ export const resetProjects = () => {
 
 export function getProjects(switchToProjectId) {
     return function(dispatch) {
-        const promise = getApi(`project/projects?skip${0}&limit=${9999}`, null);
+        const promise = getApi(
+            `project/projects?skip=${0}&limit=${9999}`,
+            null
+        );
         dispatch(projectsRequest(promise));
 
         promise.then(
@@ -295,7 +298,34 @@ export function switchToProjectViewerNav(userId, subProjects, currentProject) {
 export function switchProject(dispatch, project, subProjects = []) {
     const currentProjectId = User.getCurrentProjectId();
     const historyProjectId = history.location.pathname.split('project')[1];
-    if (!currentProjectId || project._id !== currentProjectId) {
+
+    //get project slug from pathname
+    const pathname = history.location.pathname;
+    const regex = new RegExp('/dashboard/project/([A-z-0-9]+)/?.+', 'i');
+    const match = pathname.match(regex);
+
+    let projectSlug;
+    if (match) {
+        projectSlug = match[1];
+    }
+
+    // if the path is already pointing to project slug we do not need to switch projects
+    // esp. if this is from a redirectTo
+    if (project.slug === projectSlug) {
+        // ensure we update current project in localStorage
+        User.setCurrentProjectId(project._id);
+
+        // remove accessToken from url from redirects
+        const search = history.location.search;
+        if (search) {
+            const searchParams = new URLSearchParams(search);
+            searchParams.delete('accessToken');
+            history.push({
+                pathname: history.location.pathname,
+                search: searchParams.toString(),
+            });
+        }
+    } else if (!currentProjectId || project._id !== currentProjectId) {
         const isViewer = isMainProjectViewer(
             User.getUserId(),
             subProjects,
