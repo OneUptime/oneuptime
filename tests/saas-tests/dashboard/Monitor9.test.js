@@ -188,23 +188,23 @@ describe('API Monitor API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await init.pageWaitForSelector(page, "#notificationscroll");
+            await init.pageWaitForSelector(page, '#notificationscroll');
             await init.pageClick(page, '#closeIncident_0');
 
-            await init.pageClick(page, "#components");
-            await init.pageWaitForSelector(page,'.Text-color--yellow');
+            await init.pageClick(page, '#components');
+            await init.pageWaitForSelector(page, '.Text-color--yellow');
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
                 testMonitorName,
                 page
             );
-           
+
             const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
-                await init.pageWaitForSelector(page,'#monitor-color-yellow');
+                await init.pageWaitForSelector(page, '#monitor-color-yellow');
                 let monitorStatusElement = await init.page$(
                     page,
                     `#monitor-status-${testMonitorName}`
@@ -254,23 +254,23 @@ describe('API Monitor API', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            await init.pageWaitForSelector(page, "#notificationscroll");
+            await init.pageWaitForSelector(page, '#notificationscroll');
             await init.pageClick(page, '#closeIncident_0');
 
-            await init.pageClick(page, "#components");
-            await init.pageWaitForSelector(page,'.Text-color--red');
+            await init.pageClick(page, '#components');
+            await init.pageWaitForSelector(page, '.Text-color--red');
             // Navigate to Monitor details
             await init.navigateToMonitorDetails(
                 componentName,
                 testMonitorName,
                 page
             );
-            
+
             const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
             for (const probeTab of probeTabs) {
                 await probeTab.click();
 
-                await init.pageWaitForSelector(page,'#monitor-color-red');
+                await init.pageWaitForSelector(page, '#monitor-color-red');
                 let monitorStatusElement = await init.page$(
                     page,
                     `#monitor-status-${testMonitorName}`
@@ -317,18 +317,18 @@ describe('API Monitor API', () => {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: ['networkidle2'],
         });
-       
+
         // Navigate to Monitor details
         await init.navigateToMonitorDetails(
             componentName,
             testMonitorName,
             page
         );
-        
+
         const probeTabs = await init.page$$(page, 'button[id^=probes-btn]');
         for (const probeTab of probeTabs) {
             await probeTab.click();
-            await init.pageWaitForSelector(page,'#monitor-color-red');
+            await init.pageWaitForSelector(page, '#monitor-color-red');
             let monitorStatusElement = await init.page$(
                 page,
                 `#monitor-status-${testMonitorName}`
@@ -369,7 +369,9 @@ describe('API Monitor API', () => {
                 'innerText'
             );
             monitorIncidentReportElement = await monitorIncidentReportElement.jsonValue();
-            expect(monitorIncidentReportElement).toContain("did evaluate response.body.status === 'ok'.");
+            expect(monitorIncidentReportElement).toContain(
+                "did evaluate response.body.status === 'ok'."
+            );
 
             await init.pageWaitForSelector(
                 page,
@@ -412,7 +414,9 @@ describe('API Monitor API', () => {
             });
 
             const selector = `span#monitor-title-${testMonitorName}`;
-            const spanElement = await init.page$(page, selector, {hidden: true});
+            const spanElement = await init.page$(page, selector, {
+                hidden: true,
+            });
             expect(spanElement).toBeNull();
             done();
         },
