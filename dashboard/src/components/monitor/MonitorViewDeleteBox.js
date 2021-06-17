@@ -22,23 +22,21 @@ export class MonitorViewDeleteBox extends Component {
     deleteMonitor = () => {
         const projectId =
             this.props.monitor.projectId._id || this.props.monitor.projectId;
-        const promise = this.props.deleteMonitor(
-            this.props.monitor._id,
-            projectId
-        );
-        history.push(
-            `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
-        );
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR DELETED',
-                {
-                    ProjectId: this.props.currentProject._id,
-                    monitorId: this.props.monitor._id,
-                }
+
+        this.props.deleteMonitor(this.props.monitor._id, projectId).then(() => {
+            history.push(
+                `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
             );
-        }
-        return promise;
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent(
+                    'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR DELETED',
+                    {
+                        ProjectId: this.props.currentProject._id,
+                        monitorId: this.props.monitor._id,
+                    }
+                );
+            }
+        });
     };
 
     handleKeyBoard = e => {
