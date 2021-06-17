@@ -1089,6 +1089,7 @@ module.exports = {
 
                     updatedIncident = await _this.findOneBy({
                         _id: updatedIncident._id,
+                        deleted: true,
                     });
 
                     await RealTimeService.deleteIncident(updatedIncident);
