@@ -20,31 +20,31 @@ module.exports = {
         try {
             let monitors = await getApi('probe/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data
-            await Promise.all(
-                monitors.map(monitor => {
-                    if (monitor.type === 'api') {
-                        return ApiMonitors.ping(monitor);
-                    } else if (monitor.type === 'url') {
-                        return UrlMonitors.ping(monitor);
-                    } else if (monitor.type === 'ip') {
-                        return IPMonitors.ping(monitor);
-                        // } else if (monitor.type === 'script') {
-                        //     return ScriptMonitors.run(monitor);
-                        // }
-                        // } else if (
-                        //     monitor.type === 'server-monitor' &&
-                        //     monitor.agentlessConfig
-                        // ) {
-                        // return ServerMonitors.run(monitor);
-                    } else if (monitor.type === 'incomingHttpRequest') {
-                        return IncomingHttpRequestMonitors.run(monitor);
-                    } else if (monitor.type === 'kubernetes') {
-                        return KubernetesMonitors.run(monitor);
-                    }
 
-                    return null;
-                })
-            );
+            for (const monitor of monitors) {
+                try {
+                    if (monitor.type === 'api') {
+                        return await ApiMonitors.ping(monitor);
+                    } else if (monitor.type === 'url') {
+                        return await UrlMonitors.ping(monitor);
+                    } else if (monitor.type === 'ip') {
+                        return await IPMonitors.ping(monitor);
+                    } else if (monitor.type === 'script') {
+                        return await ScriptMonitors.run(monitor);
+                    } else if (
+                        monitor.type === 'server-monitor' &&
+                        monitor.agentlessConfig
+                    ) {
+                        return await ServerMonitors.run(monitor);
+                    } else if (monitor.type === 'incomingHttpRequest') {
+                        return await IncomingHttpRequestMonitors.run(monitor);
+                    } else if (monitor.type === 'kubernetes') {
+                        return await KubernetesMonitors.run(monitor);
+                    }
+                } catch (error) {
+                    ErrorService.log('runJob', error);
+                }
+            }
         } catch (error) {
             ErrorService.log('getApi', error);
         }
