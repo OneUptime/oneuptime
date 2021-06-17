@@ -338,6 +338,7 @@ export class IncidentStatus extends Component {
         const monitorName =
             (this.props.multiple &&
                 this.props.incident &&
+                this.props.incident.monitors &&
                 this.handleMonitorList(this.props.incident.monitors)) ||
                 (this.props.incident && this.props.incident.monitors)
                 ? this.handleMonitorList(this.props.incident.monitors)
@@ -480,7 +481,7 @@ export class IncidentStatus extends Component {
                                             <div className="bs--header">
                                                 <div className="bs-font-header">
                                                     {monitorName}{' '}
-                                                    {this.props.incident
+                                                    {this.props.incident && this.props.incident.monitors && this.props.incident
                                                         .monitors.length > 1
                                                         ? 'are'
                                                         : 'is'}{' '}
@@ -548,7 +549,7 @@ export class IncidentStatus extends Component {
                                                             </span>
                                                         </div>
                                                     )}
-                                                {this.props.incident &&
+                                                {this.props.incident && this.props.incident.monitors &&
                                                     this.props.incident.monitors.map(
                                                         monitorObj =>
                                                             this.props.incident
