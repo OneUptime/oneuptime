@@ -771,6 +771,8 @@ router.get(
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
         const days = req.query.days || 14;
+        const newTheme = req.query.newTheme;
+
         try {
             // Call the StatusPageService.
             const response = await StatusPageService.getNotes(
@@ -781,7 +783,7 @@ router.get(
             const notes = response.notes;
             const count = response.count;
             const updatedNotes = [];
-            if (parseInt(limit) === 15) {
+            if (newTheme) {
                 if (notes.length > 0) {
                     for (const note of notes) {
                         const statusPageNote = await StatusPageService.getIncidentNotes(

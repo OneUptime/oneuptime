@@ -118,12 +118,13 @@ export const getStatusPageNote = (
     projectId,
     statusPageSlug,
     skip,
-    limit,
-    days
+    limit = 10,
+    days = 14,
+    newTheme = false
 ) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}`
+            `statusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}&newTheme=${newTheme}`
         );
 
         dispatch(statusPageNoteRequest());
