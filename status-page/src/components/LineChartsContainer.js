@@ -24,7 +24,7 @@ ChartContainer.propTypes = {
 };
 
 class LineChartsContainer extends React.Component {
-    async componentDidMount() {
+    componentDidMount() {
         const {
             _id: monitorId,
             projectId: { _id: projectId },
