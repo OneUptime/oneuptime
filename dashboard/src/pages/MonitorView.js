@@ -164,39 +164,51 @@ class MonitorView extends React.Component {
                 ? monitor.projectId._id || monitor.projectId
                 : '';
             subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
-            if (monitor.type === 'url') {
-                this.props.fetchLighthouseLogs(
-                    monitor.projectId._id || monitor.projectId,
+            if (subProjectId && monitor) {
+                if (monitor.type === 'url') {
+                    this.props.fetchLighthouseLogs(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        0,
+                        1,
+                        monitor.data.url
+                    );
+                    this.props.fetchLighthouseLogs(
+                        subProjectId,
+                        monitor._id,
+                        0,
+                        5
+                    ); //0 -> skip, 10-> limit.
+                }
+                this.props.fetchMonitorsIncidents(
+                    subProjectId,
                     monitor._id,
                     0,
-                    1,
-                    monitor.data.url
-                );
-                this.props.fetchLighthouseLogs(subProjectId, monitor._id, 0, 5); //0 -> skip, 10-> limit.
-            }
-            this.props.fetchMonitorsIncidents(subProjectId, monitor._id, 0, 5); //0 -> skip, 5-> limit.
-            this.props.fetchMonitorsSubscribers(
-                subProjectId,
-                monitor._id,
-                0,
-                5
-            ); //0 -> skip, 5-> limit.
-            this.props.getMonitorLogs(
-                subProjectId,
-                monitor._id,
-                0,
-                10,
-                moment()
-                    .subtract(1, 'd')
-                    .utc(),
-                moment().utc(),
-                null,
-                null,
-                monitor.type
-            ); //0 -> skip, 5-> limit.
+                    5
+                ); //0 -> skip, 5-> limit.
+                this.props.fetchMonitorsSubscribers(
+                    subProjectId,
+                    monitor._id,
+                    0,
+                    5
+                ); //0 -> skip, 5-> limit.
+                this.props.getMonitorLogs(
+                    subProjectId,
+                    monitor._id,
+                    0,
+                    10,
+                    moment()
+                        .subtract(1, 'd')
+                        .utc(),
+                    moment().utc(),
+                    null,
+                    null,
+                    monitor.type
+                ); //0 -> skip, 5-> limit.
 
-            this.props.fetchMonitorSlas(subProjectId);
-            this.props.fetchCommunicationSlas(subProjectId);
+                this.props.fetchMonitorSlas(subProjectId);
+                this.props.fetchCommunicationSlas(subProjectId);
+            }
         }
     };
 

@@ -393,9 +393,7 @@ export function deleteSiteUrl(monitorId, projectId, siteUrl) {
 //props -> {name: '', type, data -> { data.url}}
 export function deleteMonitor(monitorId, projectId) {
     return function(dispatch) {
-        const promise = deleteApi(`monitor/${projectId}/${monitorId}`, {
-            monitorId,
-        });
+        const promise = deleteApi(`monitor/${projectId}/${monitorId}`);
         dispatch(deleteMonitorRequest(monitorId));
 
         promise.then(
