@@ -290,20 +290,22 @@ export class IncidentStatus extends Component {
     };
 
     handleMonitorList = monitors => {
-        if (monitors.length === 1) {
+        if (monitors && monitors.length === 1) {
             return monitors[0].monitorId.name;
         }
-        if (monitors.length === 2) {
+        if (monitors && monitors.length === 2) {
             return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name}`;
         }
-        if (monitors.length === 3) {
+        if (monitors && monitors.length === 3) {
             return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
         }
-        if (monitors.length > 3) {
+        if (monitors && monitors.length > 3) {
             return `${monitors[0].monitorId.name}, ${
                 monitors[1].monitorId.name
             } and ${monitors.length - 2} others`;
         }
+
+        return ''
     };
 
     render() {
