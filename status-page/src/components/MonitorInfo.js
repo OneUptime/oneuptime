@@ -31,7 +31,6 @@ class MonitorInfo extends Component {
         this.resizeHandler = this.resizeHandler.bind(this);
         this.state = {
             windowSize: window.innerWidth,
-            initLoading: true,
         };
     }
 
@@ -93,9 +92,7 @@ class MonitorInfo extends Component {
                     ? probes[probes.length < 2 ? 0 : activeProbe]
                     : null;
             const statuses = filterProbeData(monitorData, probe) || [];
-            calculateTime(statuses, now, range, monitor._id).finally(() =>
-                this.setState({ initLoading: false })
-            );
+            calculateTime(statuses, now, range, monitor._id);
         }
 
         if (JSON.stringify(prevProps.monitor) !== JSON.stringify(monitor)) {
@@ -206,7 +203,7 @@ class MonitorInfo extends Component {
 
         const block = [];
         if (
-            !(calculatingTime || this.state.initLoading) &&
+            !(calculatingTime || timeBlock.length !== range) &&
             selectedCharts &&
             selectedCharts.uptime
         ) {
@@ -362,7 +359,7 @@ class MonitorInfo extends Component {
                                         }}
                                     >
                                         {calculatingTime ||
-                                        this.state.initLoading ? (
+                                        timeBlock.length !== range ? (
                                             <div ref={this.scrollContent}>
                                                 loading...
                                             </div>
@@ -519,7 +516,8 @@ class MonitorInfo extends Component {
                                         : 'scroll',
                                 }}
                             >
-                                {calculatingTime || this.state.initLoading ? (
+                                {calculatingTime ||
+                                timeBlock.length !== range ? (
                                     <div ref={this.scrollContent}>
                                         Loading...
                                     </div>
