@@ -32,7 +32,12 @@ export function postApi(url, data) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
-                window.location = ACCOUNTS_URL + '/login';
+
+                // store original destination url
+                const redirectTo = window.location.href;
+
+                window.location =
+                    ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
             }
             if (error && error.response && error.response.data)
                 error = error.response.data;
@@ -62,7 +67,12 @@ export function getApi(url) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
-                window.location = ACCOUNTS_URL + '/login';
+
+                // store original destination url
+                const redirectTo = window.location.href;
+
+                window.location =
+                    ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
             }
             if (error && error.response && error.response.data)
                 error = error.response.data;
@@ -94,7 +104,12 @@ export function putApi(url, data) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
-                window.location = ACCOUNTS_URL + '/login';
+
+                // store original destination url
+                const redirectTo = window.location.href;
+
+                window.location =
+                    ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
             }
             if (error && error.response && error.response.data)
                 error = error.response.data;
@@ -126,7 +141,12 @@ export function deleteApi(url, data) {
                 cookies.remove('admin-data', { path: '/' });
                 cookies.remove('data', { path: '/' });
                 User.clear();
-                window.location = ACCOUNTS_URL + '/login';
+
+                // store original destination url
+                const redirectTo = window.location.href;
+
+                window.location =
+                    ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
             }
             if (error && error.response && error.response.data)
                 error = error.response.data;
