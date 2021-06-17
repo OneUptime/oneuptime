@@ -155,8 +155,8 @@ class FyipeTracker
 
         prepareErrorObject('message', messageObj);
 
-        # TODO send to the server
-        # return sendErrorEventToServer()
+        # send to the server
+        return sendErrorEventToServer()
     end
 
     def prepareErrorObject(eventType, errorStackTrace) 
