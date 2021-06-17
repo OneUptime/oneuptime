@@ -116,6 +116,9 @@ class IncidentCreated extends Component {
                                                               <span>
                                                                   #
                                                                   {
+                                                                      notification && 
+                                                                      notification.meta && 
+                                                                      notification.meta.incidentId &&
                                                                       notification
                                                                           .meta
                                                                           .incidentId
