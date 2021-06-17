@@ -12,7 +12,6 @@ describe('API Monitor API', () => {
     const operationTimeOut = init.timeout;
 
     const componentName = utils.generateRandomString();
-    const monitorName = utils.generateRandomString();
     const testMonitorName = utils.generateRandomString();
 
     beforeAll(async () => {
