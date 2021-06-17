@@ -128,7 +128,7 @@ const pingfetch = async url => {
                 to check for self-signed SSL certs. 
             */
 
-            response = await fetch(url, { timeout: 120000, headers });
+            response = await fetch(url, { timeout: 500000, headers });
             res = new Date().getTime() - now;
             data = await response.text();
             if (urlObject.protocol === 'https:') {
@@ -153,7 +153,7 @@ const pingfetch = async url => {
             */
 
             response = await fetch(url, {
-                timeout: 120000,
+                timeout: 500000,
                 ...(url.startsWith('https')
                     ? { agent: httpsAgent }
                     : { agent: httpAgent }),
