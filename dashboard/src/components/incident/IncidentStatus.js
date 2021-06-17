@@ -249,61 +249,68 @@ export class IncidentStatus extends Component {
     };
 
     getOnCallTeamMembers = () => {
-        const monitors = this.props.incident.monitors.map(
-            monitor => monitor.monitorId
-        );
-        const escalationArray = [];
+        if (this.props.incident && this.props.incident.monitors) {
+            const monitors = this.props.incident.monitors.map(
+                monitor => monitor.monitorId
+            );
+            const escalationArray = [];
 
-        const escalation = this.props.escalations
-            ? this.props.escalations.find(
-                  escalation =>
-                      escalation.scheduleId && escalation.scheduleId.isDefault
-              )
-            : null;
-        escalation && escalationArray.push(escalation);
+            const escalation = this.props.escalations
+                ? this.props.escalations.find(
+                      escalation =>
+                          escalation.scheduleId &&
+                          escalation.scheduleId.isDefault
+                  )
+                : null;
+            escalation && escalationArray.push(escalation);
 
-        if (!escalation) {
-            for (const monitorObj of monitors) {
-                const foundEscalation = this.props.escalations
-                    ? this.props.escalations.find(
-                          escalation =>
-                              escalation.scheduleId &&
-                              escalation.scheduleId.monitorIds &&
-                              escalation.scheduleId.monitorIds.length > 0 &&
-                              escalation.scheduleId.monitorIds.some(
-                                  monitor => monitor._id === monitorObj._id
-                              )
-                      )
-                    : null;
-                foundEscalation && escalationArray.push(foundEscalation);
+            if (!escalation) {
+                for (const monitorObj of monitors) {
+                    const foundEscalation = this.props.escalations
+                        ? this.props.escalations.find(
+                              escalation =>
+                                  escalation.scheduleId &&
+                                  escalation.scheduleId.monitorIds &&
+                                  escalation.scheduleId.monitorIds.length > 0 &&
+                                  escalation.scheduleId.monitorIds.some(
+                                      monitor => monitor._id === monitorObj._id
+                                  )
+                          )
+                        : null;
+                    foundEscalation && escalationArray.push(foundEscalation);
+                }
             }
+
+            const teamMembers = [];
+            escalationArray.forEach(escalation => {
+                if (escalation && escalation.teams && escalation.teams[0]) {
+                    teamMembers.push(...escalation.teams[0].teamMembers);
+                }
+            });
+
+            return teamMembers;
+        } else {
+            return [];
         }
-
-        const teamMembers = [];
-        escalationArray.forEach(escalation => {
-            if (escalation && escalation.teams && escalation.teams[0]) {
-                teamMembers.push(...escalation.teams[0].teamMembers);
-            }
-        });
-
-        return teamMembers;
     };
 
     handleMonitorList = monitors => {
-        if (monitors.length === 1) {
+        if (monitors && monitors.length === 1) {
             return monitors[0].monitorId.name;
         }
-        if (monitors.length === 2) {
+        if (monitors && monitors.length === 2) {
             return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name}`;
         }
-        if (monitors.length === 3) {
+        if (monitors && monitors.length === 3) {
             return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
         }
-        if (monitors.length > 3) {
+        if (monitors && monitors.length > 3) {
             return `${monitors[0].monitorId.name}, ${
                 monitors[1].monitorId.name
             } and ${monitors.length - 2} others`;
         }
+
+        return '';
     };
 
     render() {
@@ -333,6 +340,7 @@ export class IncidentStatus extends Component {
         const monitorName =
             (this.props.multiple &&
                 this.props.incident &&
+                this.props.incident.monitors &&
                 this.handleMonitorList(this.props.incident.monitors)) ||
             (this.props.incident && this.props.incident.monitors)
                 ? this.handleMonitorList(this.props.incident.monitors)
@@ -475,8 +483,11 @@ export class IncidentStatus extends Component {
                                             <div className="bs--header">
                                                 <div className="bs-font-header">
                                                     {monitorName}{' '}
-                                                    {this.props.incident
-                                                        .monitors.length > 1
+                                                    {this.props.incident &&
+                                                    this.props.incident
+                                                        .monitors &&
+                                                    this.props.incident.monitors
+                                                        .length > 1
                                                         ? 'are'
                                                         : 'is'}{' '}
                                                     {
@@ -544,6 +555,8 @@ export class IncidentStatus extends Component {
                                                         </div>
                                                     )}
                                                 {this.props.incident &&
+                                                    this.props.incident
+                                                        .monitors &&
                                                     this.props.incident.monitors.map(
                                                         monitorObj =>
                                                             this.props.incident
@@ -752,80 +765,87 @@ export class IncidentStatus extends Component {
                                                             Monitor(s)
                                                         </label>
                                                         <div>
-                                                            {this.props.incident.monitors.map(
-                                                                monitorObj => (
-                                                                    <div
-                                                                        key={
-                                                                            monitorObj
-                                                                                .monitorId
-                                                                                ._id
-                                                                        }
-                                                                        className="bs-content-inside"
-                                                                    >
-                                                                        <span className="value">
-                                                                            <Link
-                                                                                style={{
-                                                                                    textDecoration:
-                                                                                        'underline',
-                                                                                }}
-                                                                                to={
-                                                                                    '/dashboard/project/' +
-                                                                                    this
-                                                                                        .props
-                                                                                        .currentProject
-                                                                                        .slug +
-                                                                                    '/component/' +
-                                                                                    monitorObj
-                                                                                        .monitorId
-                                                                                        .componentId
-                                                                                        .slug +
-                                                                                    '/monitoring'
-                                                                                }
-                                                                                id="backToComponentView"
-                                                                            >
-                                                                                {
-                                                                                    monitorObj
-                                                                                        .monitorId
-                                                                                        .componentId
-                                                                                        .name
-                                                                                }
-                                                                            </Link>
-                                                                        </span>
-                                                                        {' / '}
-                                                                        <span className="value">
-                                                                            <Link
-                                                                                style={{
-                                                                                    textDecoration:
-                                                                                        'underline',
-                                                                                }}
-                                                                                to={
-                                                                                    '/dashboard/project/' +
-                                                                                    this
-                                                                                        .props
-                                                                                        .currentProject
-                                                                                        .slug +
-                                                                                    '/component/' +
-                                                                                    monitorObj
-                                                                                        .monitorId
-                                                                                        .componentId
-                                                                                        .slug +
-                                                                                    '/monitoring/' +
-                                                                                    monitorObj
-                                                                                        .monitorId
-                                                                                        .slug
-                                                                                }
-                                                                                id="backToMonitorView"
-                                                                            >
-                                                                                {
-                                                                                    monitorObj
-                                                                                        .monitorId
-                                                                                        .name
-                                                                                }
-                                                                            </Link>
-                                                                        </span>
-                                                                    </div>
-                                                                )
-                                                            )}
+                                                            {this.props
+                                                                .incident &&
+                                                                this.props
+                                                                    .incident
+                                                                    .monitors &&
+                                                                this.props.incident.monitors.map(
+                                                                    monitorObj => (
+                                                                        <div
+                                                                            key={
+                                                                                monitorObj
+                                                                                    .monitorId
+                                                                                    ._id
+                                                                            }
+                                                                            className="bs-content-inside"
+                                                                        >
+                                                                            <span className="value">
+                                                                                <Link
+                                                                                    style={{
+                                                                                        textDecoration:
+                                                                                            'underline',
+                                                                                    }}
+                                                                                    to={
+                                                                                        '/dashboard/project/' +
+                                                                                        this
+                                                                                            .props
+                                                                                            .currentProject
+                                                                                            .slug +
+                                                                                        '/component/' +
+                                                                                        monitorObj
+                                                                                            .monitorId
+                                                                                            .componentId
+                                                                                            .slug +
+                                                                                        '/monitoring'
+                                                                                    }
+                                                                                    id="backToComponentView"
+                                                                                >
+                                                                                    {
+                                                                                        monitorObj
+                                                                                            .monitorId
+                                                                                            .componentId
+                                                                                            .name
+                                                                                    }
+                                                                                </Link>
+                                                                            </span>
+                                                                            {
+                                                                                ' / '
+                                                                            }
+                                                                            <span className="value">
+                                                                                <Link
+                                                                                    style={{
+                                                                                        textDecoration:
+                                                                                            'underline',
+                                                                                    }}
+                                                                                    to={
+                                                                                        '/dashboard/project/' +
+                                                                                        this
+                                                                                            .props
+                                                                                            .currentProject
+                                                                                            .slug +
+                                                                                        '/component/' +
+                                                                                        monitorObj
+                                                                                            .monitorId
+                                                                                            .componentId
+                                                                                            .slug +
+                                                                                        '/monitoring/' +
+                                                                                        monitorObj
+                                                                                            .monitorId
+                                                                                            .slug
+                                                                                    }
+                                                                                    id="backToMonitorView"
+                                                                                >
+                                                                                    {
+                                                                                        monitorObj
+                                                                                            .monitorId
+                                                                                            .name
+                                                                                    }
+                                                                                </Link>
+                                                                            </span>
+                                                                        </div>
+                                                                    )
+                                                                )}
                                                         </div>
                                                     </div>
                                                     <div className="bs-content">

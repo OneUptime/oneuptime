@@ -1488,7 +1488,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors =
-                            monitor._id === action.payload.projectId
+                            monitor._id === action.payload.projectId._id ||
+                            action.payload.projectId
                                 ? monitor.monitors.map(monitor => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(incident => {
@@ -1519,7 +1520,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors =
-                            monitor._id === action.payload.projectId
+                            monitor._id === action.payload.projectId._id ||
+                            action.payload.projectId
                                 ? monitor.monitors.map(monitor => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(incident => {
@@ -1550,7 +1552,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors =
-                            monitor._id === action.payload.projectId
+                            monitor._id === action.payload.data.projectId._id ||
+                            action.payload.data.projectId
                                 ? monitor.monitors.map(monitor => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(incident => {
@@ -1581,7 +1584,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors =
-                            monitor._id === action.payload.projectId
+                            monitor._id === action.payload.data.projectId._id ||
+                            action.payload.data.projectId
                                 ? monitor.monitors.map(monitor => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(incident => {

@@ -159,7 +159,9 @@ class BlockChart extends Component {
             }
         } else {
             bar = 'bar empty';
-            title = moment(this.props.time.date).format('LL');
+            title = this.props.time
+                ? moment(this.props.time.date).format('LL')
+                : 'N/A';
             title1 = '100% uptime';
             if (colors)
                 backgroundColor = `rgba(${colors.uptime.r}, ${colors.uptime.g}, ${colors.uptime.b}, ${colors.uptime.a})`;

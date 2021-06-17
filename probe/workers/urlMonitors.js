@@ -11,9 +11,11 @@ const httpsAgent = new https.Agent({
     rejectUnauthorized: false,
 });
 const httpAgent = new http.Agent();
+
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down
 // creates incident if a website is down and resolves it when they come back up
+
 module.exports = {
     ping: async monitor => {
         try {
@@ -126,7 +128,7 @@ const pingfetch = async url => {
                 to check for self-signed SSL certs. 
             */
 
-            response = await fetch(url, { timeout: 120000, headers });
+            response = await fetch(url, { timeout: 500000, headers });
             res = new Date().getTime() - now;
             data = await response.text();
             if (urlObject.protocol === 'https:') {
@@ -151,7 +153,7 @@ const pingfetch = async url => {
             */
 
             response = await fetch(url, {
-                timeout: 120000,
+                timeout: 500000,
                 ...(url.startsWith('https')
                     ? { agent: httpsAgent }
                     : { agent: httpAgent }),
@@ -179,7 +181,8 @@ const pingfetch = async url => {
     }
 
     // this hard coded value will be removed soon
-    res = 1000;
+    res = res / 100;
+
     return {
         res,
         resp,

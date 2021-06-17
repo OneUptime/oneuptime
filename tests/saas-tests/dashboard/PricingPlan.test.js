@@ -73,7 +73,7 @@ describe('Status Page -> Pricing Plan Component', () => {
         operationTimeOut
     );
 
-    // There are only 3 plans in Saas - StartUp, Growth, Scale. 
+    // There are only 3 plans in Saas - StartUp, Growth, Scale.
     test.skip(
         'should show upgrade modal if plan is Enterprise and Project is not on Enterprise plan',
         async () => {

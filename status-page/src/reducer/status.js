@@ -78,6 +78,9 @@ import {
     MORE_PAST_EVENTS_REQUEST,
     MORE_PAST_EVENTS_SUCCESS,
     MORE_PAST_EVENTS_FAILURE,
+    CALCULATE_TIME_REQUEST,
+    CALCULATE_TIME_SUCCESS,
+    CALCULATE_TIME_FAILURE,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -211,6 +214,12 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         error: null,
+    },
+    monitorInfo: {
+        requesting: {},
+        success: {},
+        error: null,
+        info: {},
     },
 };
 
@@ -1802,6 +1811,52 @@ export default (state = INITIAL_STATE, action) => {
             return {
                 ...state,
                 showIncidentCard: action.payload,
+            };
+
+        case CALCULATE_TIME_REQUEST:
+            return {
+                ...state,
+                monitorInfo: {
+                    ...state.monitorInfo,
+                    requesting: {
+                        ...state.monitorInfo.requesting,
+                        [action.payload]: true,
+                    },
+                    success: {
+                        ...state.monitorInfo.success,
+                        [action.payload]: false,
+                    },
+                    error: null,
+                },
+            };
+
+        case CALCULATE_TIME_SUCCESS:
+            return {
+                ...state,
+                monitorInfo: {
+                    requesting: {
+                        ...state.monitorInfo.requesting,
+                        [action.payload.monitorId]: false,
+                    },
+                    success: {
+                        ...state.monitorInfo.success,
+                        [action.payload.monitorId]: true,
+                    },
+                    error: null,
+                    info: {
+                        ...state.monitorInfo.info,
+                        [action.payload.monitorId]: action.payload,
+                    },
+                },
+            };
+
+        case CALCULATE_TIME_FAILURE:
+            return {
+                ...state,
+                monitorInfo: {
+                    ...state.monitorInfo,
+                    error: action.payload,
+                },
             };
 
         default:

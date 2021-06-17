@@ -74,6 +74,7 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
+            const monitorNames = monitors.map(monitor => monitor.name);
             monitors = monitors
                 .filter(monitor => !monitor.shouldNotMonitor)
                 .map(monitor => ({
@@ -172,9 +173,6 @@ module.exports = {
                         }
                     );
 
-                    const monitorNames = monitors.map(
-                        monitor => monitor.monitorId.name
-                    );
                     const templatesInput = {
                         incidentType: data.incidentType,
                         projectName: project.name,
@@ -1091,6 +1089,7 @@ module.exports = {
 
                     updatedIncident = await _this.findOneBy({
                         _id: updatedIncident._id,
+                        deleted: true,
                     });
 
                     await RealTimeService.deleteIncident(updatedIncident);

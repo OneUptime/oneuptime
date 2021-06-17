@@ -569,7 +569,13 @@ module.exports = {
             let autoAcknowledge, autoResolve;
             if (incidents && incidents.length > 0) {
                 incidents.forEach(incident => {
-                    const criteriaId = String(incident.criterionCause._id);
+                    let criteriaId = null;
+                    if (
+                        incident &&
+                        incident.criterionCause &&
+                        incident.criterionCause._id
+                    )
+                        criteriaId = String(incident.criterionCause._id);
                     allCriteria.forEach(criteria => {
                         if (
                             String(criteria._id) === criteriaId ||
@@ -595,8 +601,9 @@ module.exports = {
                             incident.probes.some(probe => {
                                 if (
                                     probe.probeId &&
-                                    String(probe.probeId._id) ===
-                                        String(data.probeId)
+                                    String(
+                                        probe.probeId._id || probe.probeId
+                                    ) === String(data.probeId)
                                 ) {
                                     incidentsV1.push(incident);
                                     return true;

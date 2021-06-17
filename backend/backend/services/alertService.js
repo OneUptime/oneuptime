@@ -569,11 +569,14 @@ module.exports = {
         escalation = await EscalationService.findOneBy({ _id: escalation._id });
         const activeTeam = escalation.activeTeam;
         const teamGroup = [];
-        activeTeam.teamMembers.forEach(team => {
-            if (team.groups) {
-                teamGroup.push(team.groups);
-            }
-        });
+
+        if (activeTeam && activeTeam.teamMembers) {
+            activeTeam.teamMembers.forEach(team => {
+                if (team.groups) {
+                    teamGroup.push(team.groups);
+                }
+            });
+        }
 
         const groupUsers = teamGroup.map(group => group.teams);
         const groupUserIds = [].concat
@@ -2487,16 +2490,20 @@ module.exports = {
 
             const monitorCustomFields = {},
                 incidentCustomFields = {};
-            monitor.customFields &&
+            if (monitor && monitor.customFields) {
                 monitor.customFields.forEach(
                     field =>
                         (monitorCustomFields[field.fieldName] =
                             field.fieldValue)
                 );
-            incident.customFields.forEach(
-                field =>
-                    (incidentCustomFields[field.fieldName] = field.fieldValue)
-            );
+            }
+            if (incident && incident.customFields) {
+                incident.customFields.forEach(
+                    field =>
+                        (incidentCustomFields[field.fieldName] =
+                            field.fieldValue)
+                );
+            }
             const customFields = {
                 monitor: { customFields: monitorCustomFields },
                 incident: { customFields: incidentCustomFields },

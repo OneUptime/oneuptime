@@ -130,13 +130,13 @@ describe('Status Page', () => {
             link = await link.getProperty('href');
             link = await link.jsonValue();
             await page.goto(link);
-            await init.pageWaitForSelector(page, '#js', {hidden: true});
+            await init.pageWaitForSelector(page, '#js', { hidden: true });
 
             const code = await init.page$Eval(
                 page,
                 '#js',
                 script => script.innerHTML,
-                {hidden:true}
+                { hidden: true }
             );
             expect(code).toEqual(javascript);
             done();
