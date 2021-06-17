@@ -35,7 +35,8 @@ class NotesMain extends Component {
             this.props.statusPageSlug,
             0,
             this.props.theme && countNum,
-            this.props.incidentHistoryDays || 14
+            this.props.incidentHistoryDays || 14,
+            this.props.theme === 'Clean Theme'
         );
     }
 
