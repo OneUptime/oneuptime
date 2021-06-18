@@ -617,7 +617,12 @@ module.exports = {
                             password,
                             encryptedPassword
                         );
-                        if (res && user.twoFactorAuthEnabled) {
+
+                        if (
+                            res &&
+                            user.twoFactorAuthEnabled &&
+                            !user.isAdminMode // ignore 2FA in admin mode
+                        ) {
                             return { message: 'Login with 2FA token', email };
                         }
 
@@ -630,7 +635,8 @@ module.exports = {
                             );
                             return user;
                         } else {
-                            // show a different error message in admin mode
+                            // show a different error message in admin mode as user most
+                            // likely provided a wrong password
                             let error;
                             if (user.isAdminMode && user.cachedPassword) {
                                 error = new Error(
@@ -768,6 +774,13 @@ module.exports = {
     // Description: replace password temporarily in "admin mode"
     switchToAdminMode: async function(userId, newPassword) {
         try {
+            if (!newPassword) {
+                const error = new Error(
+                    'A new password is required for admin mode'
+                );
+                error.code = 400;
+                throw error;
+            }
             const _this = this;
             const user = await _this.findOneBy({ _id: userId });
 
