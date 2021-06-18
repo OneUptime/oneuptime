@@ -221,6 +221,24 @@ module.exports = {
                 await MonitorService.updateMonitorPingTime(data.monitorId);
             }
 
+            // grab all the criteria in a monitor
+            const allCriteria = [];
+            if (data.matchedUpCriterion) {
+                data.matchedUpCriterion.forEach(criteria =>
+                    allCriteria.push(criteria)
+                );
+            }
+            if (data.matchedDownCriterion) {
+                data.matchedDownCriterion.forEach(criteria =>
+                    allCriteria.push(criteria)
+                );
+            }
+            if (data.matchedDegradedCriterion) {
+                data.matchedDegradedCriterion.forEach(criteria =>
+                    allCriteria.push(criteria)
+                );
+            }
+
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 // check if monitor has a previous status
                 // check if previous status is different from the current status
@@ -234,29 +252,7 @@ module.exports = {
                     )
                         return { retry: true, retryCount: data.retryCount };
 
-                    // grab all the criteria in a monitor
-                    const allCriteria = [];
-                    if (data.matchedUpCriterion) {
-                        data.matchedUpCriterion.forEach(criteria =>
-                            allCriteria.push(criteria)
-                        );
-                    }
-                    if (data.matchedDownCriterion) {
-                        data.matchedDownCriterion.forEach(criteria =>
-                            allCriteria.push(criteria)
-                        );
-                    }
-                    if (data.matchedDegradedCriterion) {
-                        data.matchedDegradedCriterion.forEach(criteria =>
-                            allCriteria.push(criteria)
-                        );
-                    }
-
-                    await _this.incidentResolveOrAcknowledge(
-                        data,
-                        lastStatus,
-                        allCriteria
-                    );
+                    await _this.incidentResolveOrAcknowledge(data, allCriteria);
                 }
 
                 const incidentIdsOrRetry = await _this.incidentCreateOrUpdate(
@@ -280,6 +276,11 @@ module.exports = {
                     );
                 }
             } else {
+                // should make sure all unresolved incidents for the monitor is resolved
+                if (data.status === 'online') {
+                    await _this.incidentResolveOrAcknowledge(data, allCriteria);
+                }
+
                 const incidents = await IncidentService.findBy({
                     'monitors.monitorId': data.monitorId,
                     incidentType: data.status,
@@ -548,15 +549,11 @@ module.exports = {
         }
     },
 
-    incidentResolveOrAcknowledge: async function(
-        data,
-        lastStatus,
-        allCriteria
-    ) {
+    incidentResolveOrAcknowledge: async function(data, allCriteria) {
         try {
             const incidents = await IncidentService.findBy({
                 'monitors.monitorId': data.monitorId,
-                incidentType: lastStatus,
+                // incidentType: lastStatus, // is this field needed at all??
                 resolved: false,
                 manuallyCreated: false,
             });
@@ -591,30 +588,30 @@ module.exports = {
             const incidentsV2 = [];
 
             if (incidents && incidents.length) {
-                if (lastStatus && lastStatus !== data.status) {
-                    incidents.forEach(incident => {
-                        if (
-                            incident.probes &&
-                            incident.probes.length > 0 &&
-                            monitor.type !== 'incomingHttpRequest'
-                        ) {
-                            incident.probes.some(probe => {
-                                if (
-                                    probe.probeId &&
-                                    String(
-                                        probe.probeId._id || probe.probeId
-                                    ) === String(data.probeId)
-                                ) {
-                                    incidentsV1.push(incident);
-                                    return true;
-                                } else return false;
-                            });
-                        } else {
-                            incidentsV1.push(incident);
-                            return true;
-                        }
-                    });
-                }
+                // is this check needed at all??
+                // if (lastStatus && lastStatus !== data.status) {
+                incidents.forEach(incident => {
+                    if (
+                        incident.probes &&
+                        incident.probes.length > 0 &&
+                        monitor.type !== 'incomingHttpRequest'
+                    ) {
+                        incident.probes.some(probe => {
+                            if (
+                                probe.probeId &&
+                                String(probe.probeId._id || probe.probeId) ===
+                                    String(data.probeId)
+                            ) {
+                                incidentsV1.push(incident);
+                                return true;
+                            } else return false;
+                        });
+                    } else {
+                        incidentsV1.push(incident);
+                        return true;
+                    }
+                });
+                // }
             }
             await Promise.all(
                 incidentsV1.map(async incident => {
