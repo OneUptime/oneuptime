@@ -20,7 +20,7 @@ const sites = [
     'http://localhost:1444/enterprise/overview',
     'http://localhost:1444/enterprise/resources',
     'http://localhost:1444/enterprise/demo',
-    'http://localhost:1444/product/status-page',
+    'http://localhost:1444/product/public-status-page',
     'http://localhost:1444/product/oncall-management',
     'http://localhost:1444/product/uptime-monitoring',
     'http://localhost:1444/legal/terms',
