@@ -16,7 +16,7 @@ mobile_lighthouse_home:
         - sudo docker ps
         - cd home
         - npm ci
-        - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-686378/chrome-linux/chrome"
+        - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-818858/chrome-linux/chrome"
         - npm run light-house-mobile
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
