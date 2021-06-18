@@ -72,23 +72,33 @@ class ResourceTabularList extends Component {
             case 'script monitor':
             case 'incomingHttpRequest monitor':
             case 'kubernetes monitor':
-            case 'IP monitor':
+            case 'IP monitor': {
                 // get monitor status
                 monitor = monitors.filter(
                     monitor => monitor._id === componentResource._id
                 )[0];
-                status = monitor && monitor.status ? monitor.status : 'online';
+                if (monitor) {
+                    const incidents = monitor.incidents;
+                    status =
+                        incidents && incidents[0]
+                            ? incidents[0].incidentType === 'online' ||
+                              incidents[0].resolved
+                                ? 'online'
+                                : incidents[0].incidentType
+                            : 'online';
 
-                indicator = (
-                    <StatusIndicator
-                        status={status}
-                        resourceName={componentResource.name}
-                        monitorName={monitor && monitor.name}
-                    />
-                );
-                statusDescription = status;
+                    indicator = (
+                        <StatusIndicator
+                            status={status}
+                            resourceName={componentResource.name}
+                            monitorName={monitor && monitor.name}
+                        />
+                    );
+                    statusDescription = status;
+                }
 
                 break;
+            }
             case 'application security':
                 // get application security status
                 data =

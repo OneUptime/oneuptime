@@ -274,8 +274,11 @@ export class IncidentList extends Component {
                                                     height: '1px',
                                                 }}
                                             >
-                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8"
-                                                    id={`incident_${this.handleMonitorList(incident.monitors)}_${i}`}
+                                                <div
+                                                    className="db-ListViewItem-cellContent Box-root Padding-all--8"
+                                                    id={`incident_${this.handleMonitorList(
+                                                        incident.monitors
+                                                    )}_${i}`}
                                                 >
                                                     {incident.monitors &&
                                                         this.handleMonitorList(
