@@ -23,7 +23,7 @@ mobile_lighthouse_accounts:
         - npm ci
         - cd accounts
         - npm ci
-        - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-722234/chrome-linux/chrome"
+        - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-818858/chrome-linux/chrome"
         # try building, if there are warnings then this will fail
         - npm run build
         - npm run light-house-mobile
@@ -61,9 +61,7 @@ desktop_lighthouse_accounts:
         - npm ci
         - cd accounts
         - npm ci
-        - cd $(pwd)/node_modules/puppeteer/.local-chromium
-        - ls
-        - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-722234/chrome-linux/chrome"
+        - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-818858/chrome-linux/chrome"
         # try building, if there are warnings then this will fail
         - npm run build
         - npm run light-house
