@@ -13,8 +13,7 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const { sendItemResponse } = require('../middlewares/response');
 const { isAuthorized } = require('../middlewares/authorization');
 const { getUser } = require('../middlewares/user');
-const scriptSandbox = require('../utils/scriptSandbox');
-const bashScript = require('../utils/bashScript');
+const postApi = require('../utils/api').postApi;
 
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
@@ -132,36 +131,25 @@ router.put(
             });
             let data = null;
             if (scriptType === 'javascript') {
-                const {
-                    success,
-                    message,
-                    errors,
-                    status,
-                    executionTime,
-                    consoleLogs,
-                } = await scriptSandbox.runScript(script, true);
-                // normalize response
+                const result = await postApi(`api/script/js`, { script });
                 data = {
-                    success,
-                    status,
-                    error: success ? undefined : message + ': ' + errors,
-                    executionTime,
-                    consoleLogs,
+                    success: result.success,
+                    message: result.message,
+                    errors: result.success
+                        ? undefined
+                        : result.message + ': ' + result.errors,
+                    status: result.status,
+                    executionTime: result.executionTime,
+                    consoleLogs: result.consoleLogs,
                 };
             } else {
-                const {
-                    success,
-                    errors,
-                    status,
-                    executionTime,
-                    consoleLogs,
-                } = await bashScript.run(script);
+                const result = await postApi(`api/script/bash`, { script });
                 data = {
-                    success,
-                    errors,
-                    status,
-                    executionTime,
-                    consoleLogs,
+                    success: result.success,
+                    errors: result.errors,
+                    status: result.status,
+                    executionTime: result.executionTime,
+                    consoleLogs: result.consoleLogs,
                 };
             }
             data.triggerByUser = userId;
@@ -220,9 +208,9 @@ const runEvent = async (triggeredId, ids) => {
         scripts.map(async ({ script, scriptType, _id }) => {
             let obj = null;
             if (scriptType === 'javascript') {
-                obj = await scriptSandbox.runScript(script, true);
+                obj = await postApi(`api/script/js`, { script });
             } else {
-                obj = await bashScript.run(script);
+                obj = await postApi(`api/script/bash`, { script });
             }
             obj.triggerByScript = triggeredId;
             result = await AutomatedService.createLog(_id, obj);
