@@ -35,7 +35,7 @@ class FyipeTimelineManager
         item["timestamp"] = now
         
         # add a new item to the stack
-        @timeLineStack.push(item)
+        @timeLineStack.append(item)
         return true
     end
 end 
