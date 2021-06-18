@@ -739,6 +739,91 @@ module.exports = {
         }
     },
 
+    // Description: replace password temporarily in "admin mode"
+    switchToAdminMode: async function(userId, newPassword) {
+        try {
+            const _this = this;
+            const user = await _this.findOneBy({ _id: userId });
+
+            if (!user) {
+                const error = new Error('User not found');
+                error.code = 400;
+                ErrorService.log('userService.switchToAdminMode', error);
+                throw error;
+            } else {
+                const hash = await bcrypt.hash(
+                    newPassword,
+                    constants.saltRounds
+                );
+
+                //update the user.
+                // if already in admin mode we shouldn't
+                // replace the cached/original password so we don't lose it
+                const passwordToCache = user.isAdminMode
+                    ? user.cachedPassword
+                    : user.password;
+                const updatedUser = await _this.updateOneBy(
+                    {
+                        _id: userId,
+                    },
+                    {
+                        password: hash,
+                        cachedPassword: passwordToCache,
+                        isAdminMode: true,
+                    }
+                );
+
+                return updatedUser;
+            }
+        } catch (error) {
+            ErrorService.log('userService.switchToAdminMode', error);
+            throw error;
+        }
+    },
+
+    // Descripiton: revert from admin mode and replce user password
+    exitAdminMode: async function(userId) {
+        try {
+            const _this = this;
+            const user = await _this.findOneBy({ _id: userId });
+
+            if (!user) {
+                const error = new Error('User not found');
+                error.code = 400;
+                ErrorService.log('userService.exitAdminMode', error);
+                throw error;
+            } else {
+                // ensure user is in admin mode
+                if (!user.isAdminMode) {
+                    const error = new Error(
+                        'User is not currently in admin mode'
+                    );
+                    error.code = 400;
+                    ErrorService.log('userService.exitAdminMode', error);
+                    throw error;
+                }
+
+                //update the user.
+                const passwordToRestore = user.cachedPassword;
+                const updatedUser = await _this.updateOneBy(
+                    {
+                        _id: userId,
+                    },
+                    {
+                        password: passwordToRestore,
+                        cachedPassword: null,
+                        isAdminMode: false,
+                    }
+                );
+
+                return updatedUser;
+            }
+        } catch (error) {
+            ErrorService.log('userService.exitAdminMode', error);
+            throw error;
+        }
+    },
+
     //Description: Get new access token.
     //Params:
     //Param 1:  refreshToken: Refresh token.
