@@ -152,7 +152,7 @@ services:
             - MONGO_URL=mongodb://mongo:27017/fyipedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - NODE_ENV=development
+            - NODE_ENV=${NODE_ENV}
         depends_on:
             - mongo
             - redis
