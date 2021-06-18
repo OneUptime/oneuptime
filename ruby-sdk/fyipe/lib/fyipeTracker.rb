@@ -68,7 +68,7 @@ class FyipeTracker
     def addToTimeline(category, content, type)
         timelineObj =  {}
         timelineObj["category"] = category
-        timelineObj["data"] = content,
+        timelineObj["data"] = content
         timelineObj["type"] = type
 
         @listenerObj.logCustomTimelineEvent(timelineObj)
