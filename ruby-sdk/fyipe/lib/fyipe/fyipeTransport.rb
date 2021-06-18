@@ -16,9 +16,9 @@ class FyipeTransport
     private
     def makeApiRequest(body)
         # make api request and return response
-        params = { body: body }
 
-        response = self.class.post(@apiUrl, params).parsed_response
+        response = self.class.post(@apiUrl, :headers => {'Content-Type'=>'application/json'}, :body => body.to_json).parsed_response
+
         return response
     end
 end
