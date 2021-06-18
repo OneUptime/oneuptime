@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 module.exports = {
     headers: async (val, type) => {
         const header = {};
@@ -23,5 +25,32 @@ module.exports = {
             bodyContent = val;
         }
         return bodyContent;
+    },
+
+    postApi: (url, data) => {
+        const endpoint = `${process.env['SCRIPT_URL']}/${url}`;
+        return new Promise((resolve, reject) => {
+            axios({
+                method: 'POST',
+                url: endpoint,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json;charset=UTF-8',
+                },
+                data,
+            })
+                .then(response => {
+                    resolve(response.data);
+                })
+                .catch(function(error) {
+                    if (error && error.response && error.response.data)
+                        error = error.response.data;
+                    if (error && error.data) {
+                        error = error.data;
+                    }
+                    reject(error);
+                });
+        });
     },
 };
