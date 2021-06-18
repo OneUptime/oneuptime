@@ -630,7 +630,16 @@ module.exports = {
                             );
                             return user;
                         } else {
-                            const error = new Error('Password is incorrect.');
+                            // show a different error message in admin mode
+                            let error;
+                            if (user.isAdminMode && user.cachedPassword) {
+                                error = new Error(
+                                    'Your account is currently under maintenance. Please try again later'
+                                );
+                            } else {
+                                error = new Error('Password is incorrect.');
+                            }
+
                             LoginHistoryService.create(
                                 user,
                                 clientIP,
@@ -671,6 +680,14 @@ module.exports = {
                     ErrorService.log('userService.forgotPassword', error);
                     throw error;
                 } else {
+                    // ensure user is not in admin mode
+                    if (user.isAdminMode && user.cachedPassword) {
+                        const error = new Error(
+                            'Your account is currently under maintenance. Please try again later'
+                        );
+                        error.code = 400;
+                        throw error;
+                    }
                     const buf = await crypto.randomBytes(20);
                     const token = buf.toString('hex');
 
@@ -717,6 +734,15 @@ module.exports = {
             if (!user) {
                 return null;
             } else {
+                // ensure user is not in admin mode
+                if (user.isAdminMode && user.cachedPassword) {
+                    const error = new Error(
+                        'Your account is currently under maintenance. Please try again later'
+                    );
+                    error.code = 400;
+                    throw error;
+                }
+
                 const hash = await bcrypt.hash(password, constants.saltRounds);
 
                 //update a user.
@@ -804,7 +830,7 @@ module.exports = {
                 }
 
                 //update the user.
-                const passwordToRestore = user.cachedPassword;
+                const passwordToRestore = user.cachedPassword ?? user.password; // unlikely but just in case cachedPassword is null
                 const updatedUser = await _this.updateOneBy(
                     {
                         _id: userId,
@@ -868,6 +894,16 @@ module.exports = {
             const _this = this;
             const currentPassword = data.currentPassword;
             let user = await _this.findOneBy({ _id: data._id });
+
+            // ensure user is not in admin mode
+            if (user.isAdminMode && user.cachedPassword) {
+                const error = new Error(
+                    'Your account is currently under maintenance. Please try again later'
+                );
+                error.code = 400;
+                throw error;
+            }
+
             const encryptedPassword = user.password;
 
             const check = await bcrypt.compare(
