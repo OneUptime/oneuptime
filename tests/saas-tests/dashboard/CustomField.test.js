@@ -44,7 +44,7 @@ describe('Incident Custom Field', () => {
         'should configure incident custom field in a project',
         async done => {
             await init.addCustomField(page, incidentFieldText, 'incident');
-
+            await init.navigateToCustomField(page);
             const firstCustomField = await init.pageWaitForSelector(
                 page,
                 `#customfield_${incidentFieldText.fieldName}`,
@@ -59,27 +59,7 @@ describe('Incident Custom Field', () => {
     test(
         'should update a incident custom field in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: ['networkidle2'],
-            });
-            await init.pageWaitForSelector(page, '#projectSettings', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#projectSettings');
-            await init.pageWaitForSelector(page, '#more');
-            await init.pageClick(page, '#more');
-            await init.pageWaitForSelector(page, '#incidentSettings', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#incidentSettings');
-            await page.reload({
-                waitUntil: 'networkidle2',
-            });
-
-            await init.pageClick(page, '.advanced-tab');
-
+            await init.navigateToCustomField(page);
             await init.pageWaitForSelector(page, '#editCustomField_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -108,7 +88,8 @@ describe('Incident Custom Field', () => {
             await init.pageWaitForSelector(page, '#updateCustomField', {
                 hidden: true,
             });
-
+          
+            await init.navigateToCustomField(page);
             const updatedField = await init.pageWaitForSelector(
                 page,
                 `#customfield_${incidentFieldNumber.fieldName}`,
@@ -123,26 +104,7 @@ describe('Incident Custom Field', () => {
     test(
         'should delete a incident custom field in a project',
         async done => {
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: ['networkidle2'],
-            });
-            await init.pageWaitForSelector(page, '#projectSettings', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#projectSettings');
-            await init.pageWaitForSelector(page, '#more');
-            await init.pageClick(page, '#more');
-            await init.pageWaitForSelector(page, '#incidentSettings', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#incidentSettings');
-            await page.reload({
-                waitUntil: 'networkidle2',
-            });
-            await init.gotoTab(6, page);
-
+            await init.navigateToCustomField(page);
             await init.pageWaitForSelector(page, '#deleteCustomField_0', {
                 visible: true,
                 timeout: init.timeout,
@@ -156,7 +118,8 @@ describe('Incident Custom Field', () => {
             await init.pageWaitForSelector(page, '#deleteCustomFieldModalBtn', {
                 hidden: true,
             });
-
+    
+            await init.navigateToCustomField(page);
             const noCustomFields = await init.pageWaitForSelector(
                 page,
                 '#noCustomFields',
