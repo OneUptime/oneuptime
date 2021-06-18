@@ -586,8 +586,6 @@ module.exports = {
                 projectId: data.projectId,
             });
 
-            let filterTextTemplate;
-
             const filterMatch = incomingRequest.filterMatch;
             const filters = incomingRequest.filters;
 
@@ -1354,93 +1352,32 @@ module.exports = {
                     };
                 }
 
+                let incidents = [],
+                    updatedFilters = [];
                 if (!filters || filters.length === 0) {
-                    const incidents = await IncidentService.findBy({
+                    incidents = await IncidentService.findBy({
                         projectId: incomingRequest.projectId,
                         ...incidentQuery,
                     });
-
-                    for (const incident of incidents) {
-                        if (incomingRequest.acknowledgeIncident) {
-                            if (filterMatch === 'any') {
-                                if (
-                                    !acknowledgedIncidents.includes(
-                                        String(incident._id)
-                                    )
-                                ) {
-                                    const incidentData = await IncidentService.acknowledge(
-                                        incident._id,
-                                        null,
-                                        null,
-                                        null,
-                                        null,
-                                        incomingRequest
-                                    );
-                                    acknowledgeResponse.push(incidentData);
-                                    acknowledgedIncidents.push(
-                                        String(incident._id)
-                                    );
-                                }
-                            } else {
-                                const incidentData = await IncidentService.acknowledge(
-                                    incident._id,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    incomingRequest
-                                );
-                                acknowledgeResponse.push(incidentData);
-                            }
-                        }
-                        if (incomingRequest.resolveIncident) {
-                            if (filterMatch === 'any') {
-                                if (
-                                    !resolvedIncidents.includes(
-                                        String(incident._id)
-                                    )
-                                ) {
-                                    const incidentData = await IncidentService.resolve(
-                                        incident._id,
-                                        null,
-                                        null,
-                                        null,
-                                        null,
-                                        incomingRequest
-                                    );
-                                    resolveResponse.push(incidentData);
-                                    resolvedIncidents.push(
-                                        String(incident._id)
-                                    );
-                                }
-                            } else {
-                                const incidentData = await IncidentService.resolve(
-                                    incident._id,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    incomingRequest
-                                );
-                                resolveResponse.push(incidentData);
-                            }
-                        }
-                    }
                 } else {
-                    for (const filter of filters) {
+                    updatedFilters = filters.map(filter => {
                         if (filter.filterText) {
                             const dataConfig = {
                                 request: data.request,
                             };
-                            filterTextTemplate = handleVariable(
+                            filter.filterText = handleVariable(
                                 filter.filterText,
                                 dataConfig
                             );
                         }
+                        return filter;
+                    });
 
+                    const incidentArray = [];
+                    for (const filter of updatedFilters) {
                         const filterCriteria = filter.filterCriteria,
                             filterCondition = filter.filterCondition,
-                            filterText = filterTextTemplate;
+                            filterText = filter.filterText;
 
                         if (
                             filterCriteria &&
@@ -1466,7 +1403,7 @@ module.exports = {
                                 data.fieldValue = filterText;
                             }
 
-                            let incidents;
+                            let incidents = [];
                             if (filterCondition === 'equalTo') {
                                 if (data.incidentId) {
                                     incidents = await IncidentService.findBy({
@@ -1642,79 +1579,198 @@ module.exports = {
                                 }
                             }
 
-                            if (incidents && incidents.length > 0) {
-                                for (const incident of incidents) {
-                                    if (incomingRequest.acknowledgeIncident) {
-                                        if (filterMatch === 'any') {
-                                            if (
-                                                !acknowledgedIncidents.includes(
-                                                    String(incident._id)
-                                                )
-                                            ) {
-                                                const incidentData = await IncidentService.acknowledge(
-                                                    incident._id,
-                                                    null,
-                                                    null,
-                                                    null,
-                                                    null,
-                                                    incomingRequest
-                                                );
-                                                acknowledgeResponse.push(
-                                                    incidentData
-                                                );
-                                                acknowledgedIncidents.push(
-                                                    String(incident._id)
-                                                );
-                                            }
-                                        } else {
-                                            const incidentData = await IncidentService.acknowledge(
-                                                incident._id,
-                                                null,
-                                                null,
-                                                null,
-                                                null,
-                                                incomingRequest
-                                            );
-                                            acknowledgeResponse.push(
-                                                incidentData
-                                            );
+                            incidentArray.push(...incidents);
+                        }
+                    }
+
+                    incidents = incidentArray;
+                }
+
+                // only have unique incidents
+                const filtered = [];
+                incidents = incidents.filter(incident => {
+                    if (filtered.indexOf(String(incident._id)) < 0) {
+                        filtered.push(String(incident._id));
+                        return true;
+                    }
+                    return false;
+                });
+
+                if (filters || filters.length > 0) {
+                    const newIncidentList = [];
+                    incidents.forEach(incident => {
+                        let matchedFields = 0;
+                        const incidentCustomFields =
+                            incident.customFields || [];
+                        // automatically create incident id custom field
+                        incidentCustomFields.push({
+                            fieldName: 'incidentId',
+                            fieldValue: String(incident.idNumber),
+                            fieldType: 'string',
+                        });
+
+                        updatedFilters.forEach(filter => {
+                            for (const field of incidentCustomFields) {
+                                const filterCriteria = filter.filterCriteria,
+                                    filterCondition = filter.filterCondition,
+                                    filterText = filter.filterText;
+
+                                if (
+                                    filterCriteria &&
+                                    filterCondition &&
+                                    ((!isNaN(filterText) &&
+                                        parseFloat(filterText) >= 0) ||
+                                        (filterText && filterText.trim()))
+                                ) {
+                                    if (filterCondition === 'equalTo') {
+                                        if (
+                                            field.fieldName ===
+                                                filter.filterCriteria &&
+                                            field.fieldValue ===
+                                                filter.filterText
+                                        ) {
+                                            matchedFields += 1;
+                                            break;
                                         }
                                     }
-                                    if (incomingRequest.resolveIncident) {
-                                        if (filterMatch === 'any') {
+
+                                    if (filterCondition === 'notEqualTo') {
+                                        if (
+                                            field.fieldName ===
+                                                filterCriteria &&
+                                            field.fieldValue !== filterText
+                                        ) {
+                                            matchedFields += 1;
+                                            break;
+                                        }
+                                    }
+
+                                    if (!isNaN(parseFloat(filterText))) {
+                                        // handle the case when filterText is a number
+                                        // (<, >, <= and >=) will only apply to numeric filterText value with respect to variable array
+                                        data.fieldValue = Number(filterText);
+                                        if (filterCondition === 'lessThan') {
                                             if (
-                                                !resolvedIncidents.includes(
-                                                    String(incident._id)
-                                                )
+                                                field.fieldName ===
+                                                    filterCriteria &&
+                                                field.fieldValue < filterText
                                             ) {
-                                                const incidentData = await IncidentService.resolve(
-                                                    incident._id,
-                                                    null,
-                                                    null,
-                                                    null,
-                                                    null,
-                                                    incomingRequest
-                                                );
-                                                resolveResponse.push(
-                                                    incidentData
-                                                );
-                                                resolvedIncidents.push(
-                                                    String(incident._id)
-                                                );
+                                                matchedFields += 1;
+                                                break;
                                             }
-                                        } else {
-                                            const incidentData = await IncidentService.resolve(
-                                                incident._id,
-                                                null,
-                                                null,
-                                                null,
-                                                null,
-                                                incomingRequest
-                                            );
-                                            resolveResponse.push(incidentData);
+                                        } else if (
+                                            filterCondition === 'greaterThan'
+                                        ) {
+                                            if (
+                                                field.fieldName ===
+                                                    filterCriteria &&
+                                                field.fieldValue > filterText
+                                            ) {
+                                                matchedFields += 1;
+                                                break;
+                                            }
+                                        } else if (
+                                            filterCondition ===
+                                            'lessThanOrEqualTo'
+                                        ) {
+                                            if (
+                                                field.fieldName ===
+                                                    filterCriteria &&
+                                                field.fieldValue <= filterText
+                                            ) {
+                                                matchedFields += 1;
+                                                break;
+                                            }
+                                        } else if (
+                                            filterCondition ===
+                                            'greaterThanOrEqualTo'
+                                        ) {
+                                            if (
+                                                field.fieldName ===
+                                                    filterCriteria &&
+                                                field.fieldValue >= filterText
+                                            ) {
+                                                matchedFields += 1;
+                                                break;
+                                            }
                                         }
                                     }
                                 }
+                            }
+                        });
+
+                        if (filterMatch === 'all') {
+                            if (updatedFilters.length === matchedFields) {
+                                newIncidentList.push(incident);
+                            }
+                        } else {
+                            if (matchedFields > 0) {
+                                newIncidentList.push(incident);
+                            }
+                        }
+                    });
+
+                    incidents = newIncidentList;
+                }
+
+                if (incidents && incidents.length > 0) {
+                    for (const incident of incidents) {
+                        if (incomingRequest.acknowledgeIncident) {
+                            if (
+                                !acknowledgedIncidents.includes(
+                                    String(incident._id)
+                                )
+                            ) {
+                                const incidentData = await IncidentService.acknowledge(
+                                    incident._id,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    incomingRequest
+                                );
+                                acknowledgeResponse.push(incidentData);
+                                acknowledgedIncidents.push(
+                                    String(incident._id)
+                                );
+                            } else {
+                                const incidentData = await IncidentService.acknowledge(
+                                    incident._id,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    incomingRequest
+                                );
+                                acknowledgeResponse.push(incidentData);
+                            }
+                        }
+                        if (incomingRequest.resolveIncident) {
+                            if (
+                                !resolvedIncidents.includes(
+                                    String(incident._id)
+                                )
+                            ) {
+                                const incidentData = await IncidentService.resolve(
+                                    incident._id,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    incomingRequest
+                                );
+                                resolveResponse.push(incidentData);
+                                resolvedIncidents.push(String(incident._id));
+                            } else {
+                                const incidentData = await IncidentService.resolve(
+                                    incident._id,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    incomingRequest
+                                );
+                                resolveResponse.push(incidentData);
                             }
                         }
                     }
