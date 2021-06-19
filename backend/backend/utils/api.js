@@ -28,11 +28,10 @@ module.exports = {
     },
 
     postApi: (url, data) => {
-        const endpoint = `${process.env['SCRIPT_URL']}/${url}`;
         return new Promise((resolve, reject) => {
             axios({
                 method: 'POST',
-                url: endpoint,
+                url,
                 headers: {
                     'Access-Control-Allow-Origin': '*',
                     Accept: 'application/json',
