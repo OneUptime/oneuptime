@@ -119,7 +119,7 @@ describe('Incident API With SubProjects', () => {
             expect(textContent.toLowerCase()).toEqual(
                 `${projectMonitorName} is offline.`.toLowerCase()
             );
-           
+
             done();
         },
         operationTimeOut
@@ -232,7 +232,7 @@ describe('Incident API With SubProjects', () => {
     test(
         'should acknowledge incident in sub-project for sub-project `member`',
         async done => {
-            await page.goto(utils.DASHBOARD_URL, {timeout: init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, `#incident_0`);
             await init.pageClick(page, '#incident_0');
@@ -253,7 +253,7 @@ describe('Incident API With SubProjects', () => {
                 '#AcknowledgeText_0'
             );
             expect(acknowledgeTextSelector).toBeDefined();
-           
+
             done();
         },
         operationTimeOut
@@ -262,7 +262,7 @@ describe('Incident API With SubProjects', () => {
     test(
         'should resolve incident in sub-project for sub-project `member`',
         async done => {
-            await page.goto(utils.DASHBOARD_URL, {timeout: init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
             await init.pageWaitForSelector(page, `#incident_0`);
             await init.pageClick(page, '#incident_0');
@@ -293,7 +293,7 @@ describe('Incident API With SubProjects', () => {
         'should update internal and investigation notes of incident in sub-project (Postmortem notes)',
         async done => {
             const internalNote = utils.generateRandomString();
-           
+
             // Navigate to details page of component created
             await init.navigateToMonitorDetails(
                 componentName,
@@ -301,11 +301,19 @@ describe('Incident API With SubProjects', () => {
                 page
             );
 
-            await init.pageWaitForSelector(page, `#incident_${projectMonitorName1}_0`, {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.page$Eval(page, `#incident_${projectMonitorName1}_0`, e => e.click());
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${projectMonitorName1}_0`,
+                {
+                    visible: true,
+                    timeout: init.timeout,
+                }
+            );
+            await init.page$Eval(
+                page,
+                `#incident_${projectMonitorName1}_0`,
+                e => e.click()
+            );
 
             const type = 'internal';
             // fill internal message thread form
@@ -480,7 +488,7 @@ describe('Incident API With SubProjects', () => {
                 page
             );
 
-            await page.goto(utils.DASHBOARD_URL, {timeout: init.timeout});
+            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageClick(page, '#btnAcknowledge_0');
             await init.pageClick(page, '#btnResolve_0');
 
@@ -501,10 +509,13 @@ describe('Incident API With SubProjects', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const incidentRows = await init.page$$(page, 'tr.createdIncidentListItem');
+            const incidentRows = await init.page$$(
+                page,
+                'tr.createdIncidentListItem'
+            );
             const countIncidents = incidentRows.length;
             expect(countIncidents).toBeGreaterThanOrEqual(1);
-           
+
             done();
         },
         operationTimeOut

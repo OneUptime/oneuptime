@@ -39,7 +39,6 @@ describe('Components', () => {
         done();
     });
 
-
     test(
         'Should create an incident in monitor details and change monitor status in component list',
         async done => {
@@ -161,86 +160,101 @@ describe('Components', () => {
         operationTimeOut
     );
 
-    test('should edit a component in the component settings SideNav', async done => {
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle0',
-        });
+    test(
+        'should edit a component in the component settings SideNav',
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: 'networkidle0',
+            });
 
-        await init.pageWaitForSelector(page, '#components', {
-            visible: true,
-            timeout: init.timeout,
-        });
-        await init.page$Eval(page, '#components', e => e.click());
-
-        await init.pageClick(page, `#more-details-${componentName}`);
-
-        await init.pageWaitForSelector(page, '#componentSettings');
-        await init.pageClick(page, '#componentSettings');
-
-        await init.pageWaitForSelector(page, 'input[name=name]');
-        await init.pageType(page, 'input[name=name]', '-two');
-        await init.page$Eval(page, '#editComponentButton', e => e.click());
-
-        let spanElement = await init.pageWaitForSelector(
-            page,
-            `span#component-title-${componentName}-two`
-        );
-        spanElement = await spanElement.getProperty('innerText');
-        spanElement = await spanElement.jsonValue();
-        spanElement.should.be.exactly(`${componentName}-two`);
-        done();
-    }, operationTimeOut);
-
-    test('should delete a component in the component settings sideNav', async done => {
-        await page.goto(utils.DASHBOARD_URL, {
-            waitUntil: 'networkidle0',
-        });
-
-        await init.pageWaitForSelector(page, '#components', {
-            visible: true,
-            timeout: init.timeout,
-        });
-        await init.pageClick(page, '#components');
-
-        await init.pageClick(page, `#more-details-${componentName}-two`);
-
-        await init.pageWaitForSelector(page, '#componentSettings');
-        await init.pageClick(page, '#componentSettings');
-
-        await init.pageWaitForSelector(page, '#advanced');
-        await init.pageClick(page, '#advanced');
-
-        await init.pageWaitForSelector(
-            page,
-            `#delete-component-${componentName}-two`,
-            {
+            await init.pageWaitForSelector(page, '#components', {
                 visible: true,
-            }
-        );
-        await init.pageClick(page, `#delete-component-${componentName}-two`);
+                timeout: init.timeout,
+            });
+            await init.page$Eval(page, '#components', e => e.click());
 
-        await init.pageWaitForSelector(page, '#deleteComponent', {
-            visible: true,
-            timeout: init.timeout,
-        });
-        await init.pageClick(page, '#deleteComponent'); // after deleting the component
+            await init.pageClick(page, `#more-details-${componentName}`);
 
-        const componentClicked = await init.pageWaitForSelector(
-            page,
-            '#components',
-            {
+            await init.pageWaitForSelector(page, '#componentSettings');
+            await init.pageClick(page, '#componentSettings');
+
+            await init.pageWaitForSelector(page, 'input[name=name]');
+            await init.pageType(page, 'input[name=name]', '-two');
+            await init.page$Eval(page, '#editComponentButton', e => e.click());
+
+            let spanElement = await init.pageWaitForSelector(
+                page,
+                `span#component-title-${componentName}-two`
+            );
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
+            spanElement.should.be.exactly(`${componentName}-two`);
+            done();
+        },
+        operationTimeOut
+    );
+
+    test(
+        'should delete a component in the component settings sideNav',
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: 'networkidle0',
+            });
+
+            await init.pageWaitForSelector(page, '#components', {
                 visible: true,
-            }
-        );
-        expect(componentClicked).toBeDefined();
-        done();
-    }, operationTimeOut);
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#components');
+
+            await init.pageClick(page, `#more-details-${componentName}-two`);
+
+            await init.pageWaitForSelector(page, '#componentSettings');
+            await init.pageClick(page, '#componentSettings');
+
+            await init.pageWaitForSelector(page, '#advanced');
+            await init.pageClick(page, '#advanced');
+
+            await init.pageWaitForSelector(
+                page,
+                `#delete-component-${componentName}-two`,
+                {
+                    visible: true,
+                }
+            );
+            await init.pageClick(
+                page,
+                `#delete-component-${componentName}-two`
+            );
+
+            await init.pageWaitForSelector(page, '#deleteComponent', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.pageClick(page, '#deleteComponent'); // after deleting the component
+
+            const componentClicked = await init.pageWaitForSelector(
+                page,
+                '#components',
+                {
+                    visible: true,
+                }
+            );
+            expect(componentClicked).toBeDefined();
+            done();
+        },
+        operationTimeOut
+    );
 
     test(
         'Should create new project from incident page and redirect to the home page and not component page',
         async done => {
             // Navigate to Monitor details
-            await init.addMonitorToComponent(componentName, newMonitorName, page);
+            await init.addMonitorToComponent(
+                componentName,
+                newMonitorName,
+                page
+            );
             await init.pageWaitForSelector(
                 page,
                 `#monitorCreateIncident_${newMonitorName}`
