@@ -212,7 +212,7 @@ const deleteAutomatedScriptFailure = error => {
 export function deleteAutomatedScript(projectId, automatedSlug) {
     return function(dispatch) {
         const promise = deleteApi(
-            `automated-scripts/${projectId}/${automatedSlug}/delete`
+            `automated-scripts/${projectId}/${automatedSlug}`
         );
         dispatch(deleteAutomatedScriptRequest());
 
