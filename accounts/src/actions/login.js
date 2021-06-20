@@ -56,8 +56,10 @@ export function loginSuccess(user) {
         });
     }
 
-    if (user.redirect) {
+    if (user.redirect && user?.tokens?.jwtAccessToken) {
         return (window.location = `${user.redirect}?accessToken=${user.tokens.jwtAccessToken}`);
+    } else if (user.redirect) {
+        return (window.location = user.redirect);
     } else if (user.role === 'master-admin') {
         window.location = ADMIN_DASHBOARD_URL;
     } else {
