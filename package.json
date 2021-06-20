@@ -35,10 +35,10 @@
         "debug-staging-test": "cd tests && npm run-script debug-staging-test",
         "docker-enterprise-test": "npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up && cd tests && npm run-script enterprise-test",
         "docker-saas-test": "npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-saas-ci.env up && cd tests && npm run-script saas-test",
-        "docker-enterprise": "npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up",
-        "docker-saas": "npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-saas-ci.env up",
-        "docker-saas-init-script": "npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-saas-ci.env up init-script",
-        "docker-enterprise-init-script": "npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-enterprise-ci.env up init-script"
+        "docker-enterprise": "export NODE_ENV=development && npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-enterprise-ci.env up",
+        "docker-saas": "export NODE_ENV=development && npm run remove-all-containers && docker-compose build && docker-compose --env-file=./docker-compose-saas-ci.env up",
+        "docker-saas-init-script": "export NODE_ENV=development && npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-saas-ci.env up init-script",
+        "docker-enterprise-init-script": "export NODE_ENV=development && npm run remove-all-containers && docker-compose build init-script && docker compose --env-file=./docker-compose-enterprise-ci.env up init-script"
     },
     "repository": {
         "type": "git",

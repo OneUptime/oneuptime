@@ -1081,12 +1081,21 @@ router.get(
         try {
             const userId = req.user ? req.user.id : null;
             await IncidentService.resolve(req.params.incidentId, userId);
+
+            // get incident properties to build url
+            const { incidentId, projectId } = req.params;
+            const incident = await IncidentService.findOneBy({
+                projectId,
+                _id: incidentId,
+            });
+            const { projectId: project } = incident;
+
             return res.status(200).render('incidentAction.ejs', {
                 title: 'Incident Resolved',
                 title_message: 'Incident Resolved',
                 body_message: 'Your incident is now resolved.',
                 action: 'resolve',
-                dashboard_url: global.dashboardHost,
+                dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}`,
                 apiUrl: global.apiHost,
             });
         } catch (error) {
@@ -1113,12 +1122,21 @@ router.get(
                 userId,
                 req.user.name
             );
+
+            // get incident properties to build url
+            const { incidentId, projectId } = req.params;
+            const incident = await IncidentService.findOneBy({
+                projectId,
+                _id: incidentId,
+            });
+            const { projectId: project } = incident;
+
             return res.status(200).render('incidentAction.ejs', {
                 title: 'Incident Acknowledged',
                 title_message: 'Incident Acknowledged',
-                body_message: 'Your incident is now acknowledged',
+                body_message: 'Your incident is now acknowledged.',
                 action: 'acknowledge',
-                dashboard_url: global.dashboardHost,
+                dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}`,
                 apiUrl: global.apiHost,
             });
         } catch (error) {

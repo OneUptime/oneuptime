@@ -1553,7 +1553,7 @@ const _this = {
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            await _this.gotoTab(6, page);
+            await _this.pageClick(page, '.advanced-tab');
         }
 
         await _this.pageWaitForSelector(page, '#addCustomField', {
@@ -1571,8 +1571,22 @@ const _this = {
 
         await _this.pageClick(page, '#createCustomFieldButton');
         await _this.pageWaitForSelector(page, '#customFieldForm', {
-            visible: 'hidden',
+            hidden: true,
         });
+    },
+    navigateToCustomField: async function(page) {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
+        await _this.pageClickNavigate(page, '#projectSettings');
+        await _this.pageWaitForSelector(page, '#more');
+        await _this.pageClick(page, '#more');
+        await _this.pageWaitForSelector(page, '#incidentSettings', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClickNavigate(page, '#incidentSettings');
+        await _this.pageClick(page, '.advanced-tab');
     },
     pageType: async function(page, selector, text, opts) {
         await _this.pageWaitForSelector(page, selector, {
