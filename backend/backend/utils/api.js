@@ -27,29 +27,17 @@ module.exports = {
         return bodyContent;
     },
 
-    postApi: (url, data) => {
-        return new Promise((resolve, reject) => {
-            axios({
-                method: 'POST',
-                url,
-                headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json;charset=UTF-8',
-                },
-                data,
-            })
-                .then(response => {
-                    resolve(response.data);
-                })
-                .catch(function(error) {
-                    if (error && error.response && error.response.data)
-                        error = error.response.data;
-                    if (error && error.data) {
-                        error = error.data;
-                    }
-                    reject(error);
-                });
+    postApi: async (url, data) => {
+        const response = await axios({
+            method: 'POST',
+            url,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                Accept: 'application/json',
+                'Content-Type': 'application/json;charset=UTF-8',
+            },
+            data,
         });
+        return response.data;
     },
 };
