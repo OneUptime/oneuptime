@@ -7,24 +7,25 @@
 const express = require('express');
 const router = express.Router();
 
-const AutomatedService = require('../services/automatedScriptService');
+const AutomatedScriptService = require('../services/automatedScriptService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const { sendItemResponse } = require('../middlewares/response');
 const { isAuthorized } = require('../middlewares/authorization');
 const { getUser } = require('../middlewares/user');
 const postApi = require('../utils/api').postApi;
+const scriptBaseUrl = process.env['SCRIPT_URL'];
 
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
         const { skip, limit } = req.query;
-        const scripts = await AutomatedService.findBy(
+        const scripts = await AutomatedScriptService.findBy(
             { projectId },
             skip,
             limit
         );
-        const count = await AutomatedService.countBy({ projectId });
+        const count = await AutomatedScriptService.countBy({ projectId });
         return sendListResponse(req, res, scripts, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -39,17 +40,17 @@ router.get(
         try {
             const { automatedSlug } = req.params;
             const { skip, limit } = req.query;
-            const { _id } = await AutomatedService.findOneBy({
+            const { _id } = await AutomatedScriptService.findOneBy({
                 slug: automatedSlug,
             });
-            const response = await AutomatedService.getAutomatedLogService(
+            const response = await AutomatedScriptService.getAutomatedLogs(
                 {
                     automationScriptId: _id,
                 },
                 skip,
                 limit
             );
-            const count = await AutomatedService.countLogBy({
+            const count = await AutomatedScriptService.countLogsBy({
                 automationScriptId: _id,
             });
             return sendListResponse(req, res, response, count);
@@ -59,6 +60,9 @@ router.get(
     }
 );
 
+// Route Description: Creates a new script
+// req.body -> {name, scriptType, script, successEvent, failureEvent}
+// Returns: response new script created
 router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
     try {
         const data = req.body;
@@ -106,7 +110,7 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
         if (data.failureEvent.length > 0) {
             data.failureEvent = formatEvent(data.failureEvent);
         }
-        const response = await AutomatedService.createScript(data);
+        const response = await AutomatedScriptService.createScript(data);
         return sendItemResponse(req, res, response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -120,59 +124,12 @@ router.put(
     async (req, res) => {
         try {
             const { automatedScriptId } = req.params;
-            const userId = req.user ? req.user.id : null;
-            const {
-                script,
-                scriptType,
-                successEvent,
-                failureEvent,
-            } = await AutomatedService.findOneBy({
-                _id: automatedScriptId,
+            const triggeredId = req.user ? req.user.id : null;
+            const response = await runResource({
+                triggeredId,
+                triggerByUser: true,
+                resources: { automatedScript: automatedScriptId },
             });
-            let data = null;
-            if (scriptType === 'javascript') {
-                const result = await postApi(`api/script/js`, { script });
-                data = {
-                    success: result.success,
-                    message: result.message,
-                    errors: result.success
-                        ? undefined
-                        : result.message + ': ' + result.errors,
-                    status: result.status,
-                    executionTime: result.executionTime,
-                    consoleLogs: result.consoleLogs,
-                };
-            } else {
-                const result = await postApi(`api/script/bash`, { script });
-                data = {
-                    success: result.success,
-                    errors: result.errors,
-                    status: result.status,
-                    executionTime: result.executionTime,
-                    consoleLogs: result.consoleLogs,
-                };
-            }
-            data.triggerByUser = userId;
-            const successAutomatedScript = successEvent
-                .filter(data => data.automatedScript)
-                .map(data => data.automatedScript);
-            const failedAutomatedScript = failureEvent
-                .filter(data => data.automatedScript)
-                .map(data => data.automatedScript);
-            if (data.success && successAutomatedScript.length > 0) {
-                await runEvent(automatedScriptId, successAutomatedScript);
-            }
-            if (!data.success && failedAutomatedScript.length > 0) {
-                await runEvent(automatedScriptId, failedAutomatedScript);
-            }
-            const response = await AutomatedService.createLog(
-                automatedScriptId,
-                data
-            );
-            await AutomatedService.updateOne(
-                { _id: automatedScriptId },
-                { updatedAt: new Date() }
-            );
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -181,14 +138,14 @@ router.put(
 );
 
 router.delete(
-    '/:projectId/:automatedSlug/delete',
+    '/:projectId/:automatedSlug',
     getUser,
     isAuthorized,
     async function(req, res) {
         try {
             const { automatedSlug } = req.params;
             const userId = req.user ? req.user.id : null;
-            const response = await AutomatedService.deleteBy(
+            const response = await AutomatedScriptService.deleteBy(
                 {
                     slug: automatedSlug,
                 },
@@ -201,26 +158,107 @@ router.delete(
     }
 );
 
-const runEvent = async (triggeredId, ids) => {
-    const scripts = await AutomatedService.findBy({ _id: ids });
-    let result;
-    await Promise.all(
-        scripts.map(async ({ script, scriptType, _id }) => {
-            let obj = null;
-            if (scriptType === 'javascript') {
-                obj = await postApi(`api/script/js`, { script });
-            } else {
-                obj = await postApi(`api/script/bash`, { script });
-            }
-            obj.triggerByScript = triggeredId;
-            result = await AutomatedService.createLog(_id, obj);
-            await AutomatedService.updateOne(
-                { _id },
-                { updatedAt: new Date() }
-            );
-        })
+const runResource = async ({
+    triggeredId,
+    triggerByUser,
+    resources,
+    stackSize = 0,
+}) => {
+    if (stackSize > 2) {
+        return;
+    }
+    const events = Array.isArray(resources) ? resources : [resources]; // object property => {callSchedule?, automatedScript?}
+    const eventPromises = events.map(event => {
+        let resourceType;
+        if (event.automatedScript) {
+            resourceType = 'automatedScript';
+        } else if (event.callSchedule) {
+            resourceType = 'callSchedule';
+        }
+        const automatedScriptId = event.automatedScript;
+        switch (resourceType) {
+            case 'automatedScript':
+                return runAutomatedScript({
+                    automatedScriptId,
+                    triggeredId,
+                    triggerByUser,
+                    stackSize: stackSize + 1,
+                });
+            default:
+                return null;
+        }
+    });
+
+    return Promise.all(eventPromises);
+};
+
+const runAutomatedScript = async ({
+    automatedScriptId,
+    triggeredId,
+    triggerByUser = false,
+    stackSize,
+}) => {
+    const {
+        script,
+        scriptType,
+        successEvent,
+        failureEvent,
+    } = await AutomatedScriptService.findOneBy({
+        _id: automatedScriptId,
+    });
+    let data = null;
+    if (scriptType === 'javascript') {
+        const result = await postApi(`${scriptBaseUrl}/api/script/js`, {
+            script,
+        });
+        data = {
+            success: result.success,
+            message: result.message,
+            errors: result.success
+                ? undefined
+                : result.message + ': ' + result.errors,
+            status: result.status,
+            executionTime: result.executionTime,
+            consoleLogs: result.consoleLogs,
+        };
+    } else if (scriptType === 'bash') {
+        const result = await postApi(`${scriptBaseUrl}/api/script/bash`, {
+            script,
+        });
+        data = {
+            success: result.success,
+            errors: result.errors,
+            status: result.status,
+            executionTime: result.executionTime,
+            consoleLogs: result.consoleLogs,
+        };
+    }
+    triggerByUser
+        ? (data.triggerByUser = triggeredId)
+        : (data.triggerByScript = triggeredId);
+    if (data.success && successEvent.length > 0) {
+        await runResource({
+            triggeredId: automatedScriptId,
+            resources: successEvent,
+            stackSize,
+        });
+    }
+    if (!data.success && failureEvent.length > 0) {
+        await runResource({
+            triggeredId: automatedScriptId,
+            resources: failureEvent,
+            stackSize,
+        });
+    }
+    const automatedScriptLog = await AutomatedScriptService.createLog(
+        automatedScriptId,
+        data
     );
-    return result;
+    await AutomatedScriptService.updateOne(
+        { _id: automatedScriptId },
+        { updatedAt: new Date() }
+    );
+    return automatedScriptLog;
 };
 
 module.exports = router;
