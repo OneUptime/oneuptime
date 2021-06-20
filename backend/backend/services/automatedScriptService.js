@@ -43,7 +43,7 @@ module.exports = {
         }
     },
 
-    countLogBy: async function(query) {
+    countLogsBy: async function(query) {
         try {
             if (!query) {
                 query = {};
@@ -52,7 +52,7 @@ module.exports = {
             const count = await ScriptModelLog.countDocuments(query);
             return count;
         } catch (error) {
-            ErrorService.log('automatedScript.countLogBy', error);
+            ErrorService.log('automatedScript.countLogsBy', error);
             throw error;
         }
     },
@@ -162,13 +162,13 @@ module.exports = {
         }
     },
 
-    getAutomatedLogService: async function(query, skip, limit) {
+    getAutomatedLogs: async function(query, skip, limit) {
         try {
             const _this = this;
             const response = await _this.findAllLogs(query, skip, limit);
             return response;
         } catch (error) {
-            ErrorService.log('automatedScript.getAutomatedLogService', error);
+            ErrorService.log('automatedScript.getAutomatedLogs', error);
             throw error;
         }
     },
