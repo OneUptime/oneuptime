@@ -25,10 +25,10 @@ Manager.create = function(opts) {
     // REQUIRED (basic issuance)
     //
     manager.set = async function(opts) {
-        const url = `${BASE_URL}/api/manager/site`;
+        const url = `${BASE_URL}/api/manager/site?subject=${opts.subject}`;
         const response = await axios({
             url,
-            method: 'post',
+            method: 'put',
             data: opts,
         });
 

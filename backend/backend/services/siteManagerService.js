@@ -17,7 +17,9 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const siteManager = await SiteManagerModel.findOne(query).lean();
+            const siteManager = await SiteManagerModel.findOne(query)
+                .select('-_id -__v -createdAt -updatedAt')
+                .lean();
             return siteManager;
         } catch (error) {
             ErrorService.log('siteManagerService.findOneBy', error);
@@ -56,7 +58,7 @@ module.exports = {
         try {
             if (!query) query = {};
 
-            // if (!query.deleted) query.deleted = false;
+            if (!query.deleted) query.deleted = false;
 
             let siteManager = await SiteManagerModel.findOneAndUpdate(
                 query,
