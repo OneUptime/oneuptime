@@ -33,7 +33,7 @@ RUN cd /usr/src/app
 
 # Copy package.json files
 COPY ./package.json /usr/src/app/package.json
-COPY ./package-lock.json /usr/src/app/package-lock.json
+
 
 RUN npm install
 
