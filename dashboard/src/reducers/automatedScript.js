@@ -10,6 +10,8 @@ import {
     DELETE_AUTOMATED_SCRIPT_SUCCESS,
     DELETE_AUTOMATED_SCRIPT_FAILURE,
     DELETE_AUTOMATED_SCRIPT_REQUEST,
+    RUN_AUTOMATED_SCRIPT_REQUEST,
+    RUN_AUTOMATED_SCRIPT_FAILURE,
 } from '../constants/automatedScript';
 
 const INITIAL_STATE = {
@@ -29,8 +31,14 @@ const INITIAL_STATE = {
         requesting: false,
         success: false,
         error: null,
+        details: null,
     },
     deleteScript: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    runScript: {
         requesting: false,
         success: false,
         error: null,
@@ -94,12 +102,13 @@ export default function component(state = INITIAL_STATE, action) {
         case FETCH_SINGLE_SCRIPT_SUCCESS:
             return Object.assign({}, state, {
                 individualScript: {
-                    log: action.payload,
+                    log: action.payload.data.logs,
                     skip: action.payload.skip,
                     limit: action.payload.limit,
                     requesting: false,
                     success: true,
                     error: null,
+                    details: action.payload.data.details,
                 },
             });
 
@@ -110,6 +119,7 @@ export default function component(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
+                    details: null,
                 },
             });
 
@@ -120,6 +130,7 @@ export default function component(state = INITIAL_STATE, action) {
                     requesting: true,
                     success: false,
                     error: null,
+                    details: null,
                 },
             });
 
@@ -150,6 +161,26 @@ export default function component(state = INITIAL_STATE, action) {
                     requesting: false,
                     success: false,
                     error: action.payload,
+                },
+            });
+
+        case RUN_AUTOMATED_SCRIPT_FAILURE:
+            return Object.assign({}, state, {
+                runScript: {
+                    ...state.runScript,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case RUN_AUTOMATED_SCRIPT_REQUEST:
+            return Object.assign({}, state, {
+                runScript: {
+                    ...state.runScript,
+                    requesting: true,
+                    success: false,
+                    error: null,
                 },
             });
 
