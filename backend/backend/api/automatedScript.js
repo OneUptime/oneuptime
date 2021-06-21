@@ -40,19 +40,33 @@ router.get(
         try {
             const { automatedSlug } = req.params;
             const { skip, limit } = req.query;
-            const { _id } = await AutomatedScriptService.findOneBy({
+            const details = await AutomatedScriptService.findOneBy({
                 slug: automatedSlug,
             });
-            const response = await AutomatedScriptService.getAutomatedLogs(
+            const logs = await AutomatedScriptService.getAutomatedLogs(
                 {
-                    automationScriptId: _id,
+                    automationScriptId: details._id,
                 },
                 skip,
                 limit
             );
+
+            if (details.successEvent.length > 0) {
+                details.successEvent = formatEvent(details.successEvent);
+            }
+
+            if (details.failureEvent.length > 0) {
+                details.failureEvent = formatEvent(details.failureEvent);
+            }
+
             const count = await AutomatedScriptService.countLogsBy({
-                automationScriptId: _id,
+                automationScriptId: details._id,
             });
+            const response = {
+                details,
+                logs,
+            };
+
             return sendListResponse(req, res, response, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -93,22 +107,12 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
                 message: 'Script is required',
             });
         }
-        const formatEvent = arr => {
-            const result = [];
-            for (const a of arr) {
-                if (a.type === 'callSchedule') {
-                    result.push({ callSchedule: a.resource });
-                } else {
-                    result.push({ automatedScript: a.resource });
-                }
-            }
-            return result;
-        };
+
         if (data.successEvent.length > 0) {
-            data.successEvent = formatEvent(data.successEvent);
+            data.successEvent = formatEvent(data.successEvent, true);
         }
         if (data.failureEvent.length > 0) {
-            data.failureEvent = formatEvent(data.failureEvent);
+            data.failureEvent = formatEvent(data.failureEvent, true);
         }
         const response = await AutomatedScriptService.createScript(data);
         return sendItemResponse(req, res, response);
@@ -116,6 +120,61 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
         return sendErrorResponse(req, res, error);
     }
 });
+
+// Route Description: Update a script
+// req.body -> {name, scriptType, script, successEvent, failureEvent}
+// Returns: response script updated
+router.put(
+    '/:projectId/:automatedScriptId',
+    getUser,
+    isAuthorized,
+    async (req, res) => {
+        try {
+            const automatedScriptId = req.params.automatedScriptId;
+            const data = req.body;
+            data.projectId = req.params.projectId;
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Values should not be null',
+                });
+            }
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Script name is required',
+                });
+            }
+
+            if (!data.scriptType || data.scriptType.trim().length === 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Script Type is required',
+                });
+            }
+
+            if (!data.script || data.script.trim().length === 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Script is required',
+                });
+            }
+            if (data.successEvent.length > 0) {
+                data.successEvent = formatEvent(data.successEvent, true);
+            }
+            if (data.failureEvent.length > 0) {
+                data.failureEvent = formatEvent(data.failureEvent, true);
+            }
+            const response = await AutomatedScriptService.updateOne(
+                { _id: automatedScriptId },
+                data
+            );
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 router.put(
     '/:projectId/:automatedScriptId/run',
@@ -259,6 +318,25 @@ const runAutomatedScript = async ({
         { updatedAt: new Date() }
     );
     return automatedScriptLog;
+};
+
+const formatEvent = (arr, type) => {
+    const result = [];
+    for (const item of arr) {
+        if (type) {
+            result.push({ [item.type]: item.resource });
+        } else {
+            for (const [key, value] of Object.entries(item)) {
+                if (key !== '_id') {
+                    result.push({
+                        type: String(key),
+                        resource: String(value),
+                    });
+                }
+            }
+        }
+    }
+    return result;
 };
 
 module.exports = router;
