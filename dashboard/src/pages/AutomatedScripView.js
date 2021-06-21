@@ -16,13 +16,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { fetchSingleAutomatedScript } from '../actions/automatedScript';
 import Badge from '../components/common/Badge';
 import ViewScriptLogs from '../components/modals/ViewScriptLogs';
+import UpdateScript from '../components/automationScript/UpdateScript';
 
 const AutomatedScripView = props => {
     const { history } = props;
-    const pathName = history.location.pathname;
     const parentRoute = getParentRoute(history.location.pathname);
-    const scriptName =
-        pathName.split('automation-scripts/')[1].split('-')[0] || null;
 
     const [tabIndex, setTabIndex] = useState(0);
     const [viewJsonModalId] = useState(uuidv4());
@@ -92,6 +90,9 @@ const AutomatedScripView = props => {
     };
 
     const automatedSlug = props.match.params.automatedScriptslug;
+    const details = props.details;
+    const scriptName = details?.name;
+
     return (
         <Dashboard>
             <Fade>
@@ -211,11 +212,9 @@ const AutomatedScripView = props => {
                                                                                         </div>
                                                                                     </header>
                                                                                     {scriptLogs &&
-                                                                                        scriptLogs
-                                                                                            .data
-                                                                                            .length >
+                                                                                        scriptLogs.length >
                                                                                             0 &&
-                                                                                        scriptLogs.data.map(
+                                                                                        scriptLogs.map(
                                                                                             (
                                                                                                 log,
                                                                                                 index
@@ -352,9 +351,7 @@ const AutomatedScripView = props => {
                                                                                 <ShouldRender
                                                                                     if={
                                                                                         (scriptLogs &&
-                                                                                            scriptLogs
-                                                                                                .data
-                                                                                                .length ===
+                                                                                            scriptLogs.length ===
                                                                                                 0) ||
                                                                                         !scriptLogs
                                                                                     }
@@ -455,6 +452,17 @@ const AutomatedScripView = props => {
                                                                         </div>
                                                                     </div>
                                                                 </div>
+                                                                <ShouldRender
+                                                                    if={details}
+                                                                >
+                                                                    <div>
+                                                                        <UpdateScript
+                                                                            details={
+                                                                                details
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </ShouldRender>
                                                             </Fade>
                                                         </TabPanel>
                                                         <TabPanel>
@@ -500,11 +508,13 @@ AutomatedScripView.propTypes = {
     script: PropTypes.object,
     location: PropTypes.object,
     requesting: PropTypes.bool,
+    details: PropTypes.object,
 };
 
 const mapStateToProps = state => ({
     currentProject: state.project.currentProject,
     script: state.automatedScripts.individualScript.log,
+    details: state.automatedScripts.individualScript.details,
     requesting: state.automatedScripts.individualScript.requesting,
 });
 
