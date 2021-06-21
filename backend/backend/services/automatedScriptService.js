@@ -151,10 +151,9 @@ module.exports = {
             }
 
             query.deleted = false;
-            const response = await ScriptModel.findOne(query).populate(
-                'createdById',
-                'name'
-            );
+            const response = await ScriptModel.findOne(query)
+                .lean()
+                .populate('createdById', 'name');
             return response;
         } catch (error) {
             ErrorService.log('automatedScript.findOneBy', error);
