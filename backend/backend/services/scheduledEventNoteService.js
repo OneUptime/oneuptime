@@ -92,6 +92,7 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
+            
             const eventMessage = await ScheduledEventNoteModel.findOne(query)
                 .lean()
                 .populate('scheduledEventId', 'name')
@@ -104,7 +105,7 @@ module.exports = {
                     },
                 })
                 .populate('createdById', 'name');
-                
+
             return eventMessage;
         } catch (error) {
             ErrorService.log('scheduledEventNoteService.findOneBy', error);
