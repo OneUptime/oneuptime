@@ -5,7 +5,6 @@ from .fyipeTransport import FyipeTransport
 import sys
 import logging
 import traceback
-
 class FyipeTracker:
     def __init__(self, apiUrl, errorTrackerId, errorTrackerKey, options = {}):
         self.configKeys = ['baseUrl'];
