@@ -249,7 +249,7 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageType(page, '#customDomain', 'fyipe.fyipeapp.com');
+            await init.pageType(page, '#customDomain', 'fyipe.com');
             await init.pageClick(page, '#createCustomDomainBtn');
             await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 hidden: true,
@@ -284,7 +284,7 @@ describe('Status Page', () => {
                 timeout: init.timeout,
             });
             await init.pageWaitForSelector(page, '#customDomain');
-            await init.pageType(page, '#customDomain', 'fyipe.fyipeapp.com');
+            await init.pageType(page, '#customDomain', 'fyipe.com');
             await init.pageClick(page, '#createCustomDomainBtn');
             const addDomainError = await init.pageWaitForSelector(
                 page,
