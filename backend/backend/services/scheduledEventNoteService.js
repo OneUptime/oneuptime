@@ -57,10 +57,10 @@ module.exports = {
                 { new: true }
             );
             /** Since the scheduled notes has been deleted
-             * The query value has changed from FALSE to TRUE
+             * The query.deleted value has changed from FALSE to TRUE
             */
             if(eventMessage){
-                query.deleted = eventMessage.deleted // The query value is updated as TRUE.
+                query.deleted = eventMessage.deleted // The query.deleted value is updated as TRUE.
             }
             console.log("Find And Update Event Message: ", eventMessage)
             if (!eventMessage) {
