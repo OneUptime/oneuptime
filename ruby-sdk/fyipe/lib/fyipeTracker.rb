@@ -1,6 +1,7 @@
 require_relative 'fyipe/util'
 require_relative 'fyipe/fyipeListener'
 require_relative 'fyipe/fyipeTransport'
+require File.expand_path('./fyipe/version', __dir__)
 
 class FyipeTracker
     # FyipeLogger constructor.
@@ -179,6 +180,7 @@ class FyipeTracker
         @event["tags"]= tags
         @event["fingerprint"]= fingerprint
         @event["errorTrackerKey"]= @errorTrackerKey
+        @event["sdk"]= getSDKDetails()
     end
 
     def getCurrentEvent()
@@ -216,6 +218,16 @@ class FyipeTracker
         @fingerprint = []
         # clear timeline
         @listenerObj.clearTimeline(newEventId)
+    end
+
+    def getSDKDetails()    
+        # default sdk details
+        sdkDetail = {}
+        sdkDetail["name"] = Fyipe::NAME
+        sdkDetail["version"] = Fyipe::VERSION
+
+        
+        return sdkDetail
     end
         
 end
