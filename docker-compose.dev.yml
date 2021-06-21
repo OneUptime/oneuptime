@@ -61,7 +61,7 @@ services:
             - /usr/src/app/package-lock.json
 
     # There can only be one probe in developer docker compose.
-    probe1:
+    probe:
         ports:
             - '3024:3024'
             - '9238:9229' # Debugging port.
