@@ -35420,3 +35420,37 @@ padding-left:20px
     margin: auto;
   }
 }
+
+.bs-a-script {
+  display: flex;
+  flex-flow: row wrap;
+  margin-bottom: 15px;
+}
+
+.bs-script-select {
+  width: 180px !important;
+}
+
+.bs-script-btn {
+  margin-left: auto;
+}
+.bs-as-pad-10 {
+  padding: 0 10px;
+}
+
+.bs-as-tag {
+  margin-bottom: 10px;
+}
+
+.bs-table-display-end {
+  display: flex !important;
+  justify-content: flex-end !important;
+}
+
+.bs-automate-tab {
+  width: 100% !important;
+}
+
+.bs-automate-slider {
+  width: 50% !important;
+}

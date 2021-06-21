@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 module.exports = {
     headers: async (val, type) => {
         const header = {};
@@ -23,5 +25,19 @@ module.exports = {
             bodyContent = val;
         }
         return bodyContent;
+    },
+
+    postApi: async (url, data) => {
+        const response = await axios({
+            method: 'POST',
+            url,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                Accept: 'application/json',
+                'Content-Type': 'application/json;charset=UTF-8',
+            },
+            data,
+        });
+        return response.data;
     },
 };

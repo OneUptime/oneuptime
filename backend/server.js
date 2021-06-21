@@ -207,6 +207,10 @@ app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));
 app.use(['/audit-logs', '/api/audit-logs'], require('./backend/api/auditLogs'));
 app.use(['/email-logs', '/api/email-logs'], require('./backend/api/emailLogs'));
 app.use(['/call-logs', '/api/call-logs'], require('./backend/api/callLogs'));
+app.use(
+    ['/automated-scripts', '/api/automated-scripts'],
+    require('./backend/api/automatedScript')
+);
 app.use(['/sms-logs', '/api/sms-logs'], require('./backend/api/smsLogs'));
 app.use(['/component', '/api/component'], require('./backend/api/component'));
 app.use(
