@@ -10,6 +10,7 @@ const password = '1234567890';
 const componentName = 'hackerbay';
 const monitorName = 'fyipe';
 const monitorName1 = 'testFyipe';
+const customDomain = `${utils.generateRandomString()}.com`;
 
 let browser, page;
 const gotoTheFirstStatusPage = async page => {
@@ -249,7 +250,7 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageType(page, '#customDomain', 'fyipe.com'); // fyipe.fyipeapp.com is already used in StatusPage2.
+            await init.pageType(page, '#customDomain', customDomain);
             await init.pageClick(page, '#createCustomDomainBtn');
             await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 hidden: true,
@@ -284,7 +285,7 @@ describe('Status Page', () => {
                 timeout: init.timeout,
             });
             await init.pageWaitForSelector(page, '#customDomain');
-            await init.pageType(page, '#customDomain', 'fyipe.com');
+            await init.pageType(page, '#customDomain', customDomain);
             await init.pageClick(page, '#createCustomDomainBtn');
             const addDomainError = await init.pageWaitForSelector(
                 page,
