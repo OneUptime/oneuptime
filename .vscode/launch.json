@@ -16,7 +16,77 @@
             ],
             "type": "pwa-node"
         },
-
-    
+        {
+            "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/licensing",
+            "name": "Licensing: Debug with Docker",
+            "port": 9233,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/http-test-server",
+            "name": "HTTP Test Server: Debug with Docker",
+            "port": 9234,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/home",
+            "name": "Home: Debug with Docker",
+            "port": 9235,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/script-runnner",
+            "name": "Script Runner: Debug with Docker",
+            "port": 9236,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/init-script",
+            "name": "Init Script: Debug with Docker",
+            "port": 9237,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/probe",
+            "name": "Probe: Debug with Docker",
+            "port": 9238,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        }
     ]
 }
