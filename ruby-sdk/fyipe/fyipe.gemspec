@@ -2,7 +2,7 @@ require File.expand_path('lib/fyipe/version', __dir__)
 
 Gem::Specification.new do |spec|
 
-    spec.name                  = 'fyipe'
+    spec.name                  = Fyipe::NAME
     spec.version               = Fyipe::VERSION
     spec.authors               = ['HackerBay, Inc.']
     spec.email                 = ['hello@hackerbay.io']
