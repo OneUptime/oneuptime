@@ -62,7 +62,7 @@ module.exports = {
             if(eventMessage){
                 query.deleted = eventMessage.deleted // The query.deleted value is updated as TRUE.
             }
-            console.log("Find And Update Event Message: ", eventMessage)
+            
             if (!eventMessage) {
                 const error = new Error(
                     'Scheduled Event Note not found or does not exist'
