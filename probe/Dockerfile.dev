@@ -8,6 +8,8 @@ FROM node:16
 #SET ENV Variables
 ENV CHROME_PATH=/usr/bin/google-chrome
 
+WORKDIR /usr/src/app
+
 # Install Chrome.
 RUN \
   wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
