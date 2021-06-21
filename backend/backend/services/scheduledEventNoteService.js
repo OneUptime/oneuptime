@@ -62,7 +62,7 @@ module.exports = {
             if(eventMessage){
                 query.deleted = eventMessage.deleted // The query.deleted value is updated as TRUE.
             }
-            
+
             if (!eventMessage) {
                 const error = new Error(
                     'Scheduled Event Note not found or does not exist'
@@ -104,6 +104,7 @@ module.exports = {
                     },
                 })
                 .populate('createdById', 'name');
+                
             return eventMessage;
         } catch (error) {
             ErrorService.log('scheduledEventNoteService.findOneBy', error);
@@ -168,8 +169,8 @@ module.exports = {
                 deletedAt: Date.now(),
                 deletedById: userId,
             };
-            console.log("Query: ", query);
             const deletedEventMessage = await this.updateOneBy(query, data);
+
             if (!deletedEventMessage) {
                 const error = new Error(
                     'Scheduled Event Note not found or does not exist'
