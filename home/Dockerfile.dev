@@ -1,5 +1,5 @@
 #
-# Accounts Dockerfile
+# Home Dev Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -19,8 +19,11 @@ COPY ./package-lock.json /usr/src/app/package-lock.json
 RUN npm install
 
 # Expose ports.
-#   - 3003:  accounts
-EXPOSE 3003
+#   - 1444: Fyipe Home
+EXPOSE 1444
+
+# Expose Debugger port
+EXPOSE 9229 
 
 #Run the app
 CMD [ "npm", "run", "dev" ]

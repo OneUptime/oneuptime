@@ -1,5 +1,5 @@
 #
-# Accounts Dockerfile
+# Admin Dashboard Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -19,8 +19,9 @@ COPY ./package-lock.json /usr/src/app/package-lock.json
 RUN npm install
 
 # Expose ports.
-#   - 3003:  accounts
-EXPOSE 3003
+#   - 3100:  Fyipe-admin-dashboard
+EXPOSE 3100
+
 
 #Run the app
 CMD [ "npm", "run", "dev" ]

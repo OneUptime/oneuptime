@@ -6,7 +6,7 @@
 FROM node:16
 
 #SET ENV Variables
-ENV PRODUCTION=true
+
 
 WORKDIR /usr/src/app
 
@@ -21,7 +21,7 @@ RUN mkdir -p greenlock.d
 COPY ./package.json /usr/src/app/package.json
 COPY ./package-lock.json /usr/src/app/package-lock.json
 
-RUN npm ci
+RUN npm install
 
 # Expose ports.
 #   - 3002: Fyipe-backend

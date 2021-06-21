@@ -1,5 +1,5 @@
 #
-# Accounts Dockerfile
+# Init Scirpt Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -18,9 +18,8 @@ COPY ./package-lock.json /usr/src/app/package-lock.json
 # Install app dependencies
 RUN npm install
 
-# Expose ports.
-#   - 3003:  accounts
-EXPOSE 3003
+# Expose Debugger port
+EXPOSE 9229 
 
 #Run the app
 CMD [ "npm", "run", "dev" ]

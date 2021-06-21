@@ -25,6 +25,17 @@ services:
             - '6390:6379'
         command: redis-server
 
+    accounts:
+        ports:
+            - '3003:3003'
+        build:
+            context: ./accounts
+            dockerfile: ./Dockerfile.dev
+        env_file:
+            - ./accounts/.env
+        environment:
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+
     backend:
         ports:
             - '3002:3002' # Service Port.

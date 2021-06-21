@@ -6,7 +6,6 @@
 FROM node:16
 
 #SET ENV Variables
-ENV PRODUCTION=true
 ENV CHROME_PATH=/usr/bin/google-chrome
 
 # Install Chrome.
@@ -27,13 +26,22 @@ RUN chmod +x ./kubectl
 RUN mv ./kubectl /usr/local/bin/kubectl && \
   chown root: /usr/local/bin/kubectl
 
-WORKDIR /app
+# Install app dependencies
+RUN cd /usr/src/app
+
+# Copy package.json files
+COPY ./package.json /usr/src/app/package.json
+COPY ./package-lock.json /usr/src/app/package-lock.json
+
 RUN npm install
 
 # Expose ports.
 #   - 3008: probe
 EXPOSE 3008
 
+# Expose Debugging port.
+EXPOSE 9229
+
 #Run the app
-CMD [ "npm", "start"]
+CMD [ "npm", "run", "dev"]
 

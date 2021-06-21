@@ -1,5 +1,5 @@
 #
-# Accounts Dockerfile
+# HTTP Test Server Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -19,8 +19,11 @@ COPY ./package-lock.json /usr/src/app/package-lock.json
 RUN npm install
 
 # Expose ports.
-#   - 3003:  accounts
-EXPOSE 3003
+#   - 3010: Fyipe-http-test-server
+EXPOSE 3010
+
+# Expose Debugger port
+EXPOSE 9229 
 
 #Run the app
 CMD [ "npm", "run", "dev" ]

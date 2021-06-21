@@ -15,7 +15,7 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 1445: Fyipe Dcos
+#   - 1445: Fyipe Docs
 EXPOSE 1445
 
 #Run the app
