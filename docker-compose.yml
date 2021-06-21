@@ -172,6 +172,12 @@ services:
             - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
             - TLS_CERT="${TLS_CERT}"
             - TLS_KEY="${TLS_KEY}"
+    script-runner:
+        ports:
+            - '3009:3009'
+        build: ./script-runner
+        environment:
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
 
 volumes:
     mongodata:

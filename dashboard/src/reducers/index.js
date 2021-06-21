@@ -49,6 +49,7 @@ import groups from './groups';
 import search from './search';
 import performanceTracker from './performanceTracker';
 import performanceTrackerMetric from './performanceTrackerMetric';
+import automatedScripts from './automatedScript';
 const appReducer = combineReducers({
     routing: routerReducer,
     form: formReducer,
@@ -100,6 +101,7 @@ const appReducer = combineReducers({
     callRouting,
     performanceTracker,
     performanceTrackerMetric,
+    automatedScripts,
 });
 
 export default (state, action) => {
