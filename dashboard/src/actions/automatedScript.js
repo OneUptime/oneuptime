@@ -60,6 +60,61 @@ export function createAutomatedScript(projectId, data) {
     };
 }
 
+export function updateAutomatedScriptRequest(data) {
+    return {
+        type: types.CREATE_AUTOMATED_SCRIPT_REQUEST,
+        payload: data,
+    };
+}
+
+export function updateAutomatedScriptSuccess(data) {
+    return {
+        type: types.CREATE_AUTOMATED_SCRIPT_SUCCESS,
+        payload: data,
+    };
+}
+
+export function updateAutomatedScriptFailure(error) {
+    return {
+        type: types.CREATE_AUTOMATED_SCRIPT_FAILURE,
+        payload: error,
+    };
+}
+
+export function updateAutomatedScript(projectId, automatedScriptId, data) {
+    return function(dispatch) {
+        const promise = putApi(
+            `automated-scripts/${projectId}/${automatedScriptId}`,
+            data
+        );
+        dispatch(updateAutomatedScriptRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(updateAutomatedScriptSuccess(response.data));
+                return response.data;
+            },
+            function(error) {
+                if (error && error.response && error.response.data) {
+                    error = error.response.data;
+                }
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateAutomatedScriptFailure(error));
+                return error;
+            }
+        );
+
+        return promise;
+    };
+}
+
 export function fetchSingleAutomatedScriptSuccess(data) {
     return {
         type: types.FETCH_SINGLE_SCRIPT_SUCCESS,
@@ -160,11 +215,24 @@ export function fetchAutomatedScript(projectId, skip, limit) {
     };
 }
 
+export function runAutomatedScriptRequest() {
+    return {
+        type: types.RUN_AUTOMATED_SCRIPT_REQUEST,
+    };
+}
+export function runAutomatedScriptFailure(error) {
+    return {
+        type: types.RUN_AUTOMATED_SCRIPT_FAILURE,
+        payload: error,
+    };
+}
+
 export function runScript(projectId, automatedScriptId) {
     return function(dispatch) {
         const promise = putApi(
             `automated-scripts/${projectId}/${automatedScriptId}/run`
         );
+        dispatch(runAutomatedScriptRequest());
 
         promise.then(
             function(response) {
@@ -181,7 +249,7 @@ export function runScript(projectId, automatedScriptId) {
                 } else {
                     error = 'Network Error';
                 }
-                dispatch(fetchAutomatedScriptFailure(error));
+                dispatch(runAutomatedScriptFailure(error));
             }
         );
 
