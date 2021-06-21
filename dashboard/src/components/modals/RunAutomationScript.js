@@ -45,9 +45,11 @@ class RunAutomationScript extends Component {
         });
     };
     render() {
-        const { closeThisDialog } = this.props;
-        const isRequesting = false,
-            deleteError = null;
+        const {
+            closeThisDialog,
+            scriptRun: { error, requesting },
+        } = this.props;
+
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -75,11 +77,9 @@ class RunAutomationScript extends Component {
                                         className="bs-Modal-footer-actions"
                                         style={{ width: 280 }}
                                     >
-                                        <ShouldRender
-                                            if={!isRequesting && deleteError}
-                                        >
+                                        <ShouldRender if={!requesting && error}>
                                             <div
-                                                id="deleteError"
+                                                id="error"
                                                 className="bs-Tail-copy"
                                             >
                                                 <div
@@ -100,7 +100,7 @@ class RunAutomationScript extends Component {
                                                                 color: 'red',
                                                             }}
                                                         >
-                                                            {deleteError}
+                                                            {error}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -124,10 +124,10 @@ class RunAutomationScript extends Component {
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             type="button"
                                             onClick={this.runScript}
-                                            disabled={isRequesting}
+                                            disabled={requesting}
                                             autoFocus={true}
                                         >
-                                            {!isRequesting && (
+                                            {!requesting && (
                                                 <>
                                                     <span>Run</span>
                                                     <span className="create-btn__keycode">
@@ -135,7 +135,7 @@ class RunAutomationScript extends Component {
                                                     </span>
                                                 </>
                                             )}
-                                            {isRequesting && <FormLoader />}
+                                            {requesting && <FormLoader />}
                                         </button>
                                     </div>
                                 </div>
@@ -156,9 +156,19 @@ RunAutomationScript.propTypes = {
     projectId: PropTypes.string,
     runScript: PropTypes.func,
     fetchAutomatedScript: PropTypes.func,
+    scriptRun: PropTypes.object,
+};
+
+const mapStateToProps = state => {
+    return {
+        scriptRun: state.automatedScripts.runScript,
+    };
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators({ runScript, fetchAutomatedScript }, dispatch);
 
-export default connect(null, mapDispatchToProps)(RunAutomationScript);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(RunAutomationScript);
