@@ -249,7 +249,7 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageType(page, '#customDomain', 'fyipe.com');
+            await init.pageType(page, '#customDomain', 'fyipe.com'); // fyipe.fyipeapp.com is already used in StatusPage2.
             await init.pageClick(page, '#createCustomDomainBtn');
             await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 hidden: true,
