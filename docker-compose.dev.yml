@@ -1,0 +1,73 @@
+version: '3.7'
+services:
+    mongo:
+        image: mongo:4.2.3
+        ports:
+            - '27017:27017'
+        volumes:
+            - mongodata:/data/db
+
+    saml:
+        image: kenchan0130/simplesamlphp
+        ports:
+            - 9876:8080
+            - 8443:8443
+        environment:
+            - SIMPLESAMLPHP_SP_ENTITY_ID=hackerbay.io
+            - SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3002/api/user/sso/callback
+            - SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost/simplesaml/module.php/saml/sp/saml2-logout.php/test-sp
+        volumes:
+            - $PWD/saml/users.php:/var/www/simplesamlphp/config/authsources.php
+
+    redis:
+        image: redis:5.0.7
+        ports:
+            - '6390:6379'
+        command: redis-server
+
+    backend:
+        ports:
+            - '3002:3002' # Service Port.
+            - '9232:9229' # Debugging port.
+        build:
+            context: ./backend
+            dockerfile: ./Dockerfile.dev
+        env_file:
+            - ./backend/.env
+        environment:
+            - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        depends_on:
+            - mongo
+            - redis
+        volumes:
+            - ./backend:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            # Exclude greenlock as well.
+            - /usr/src/app/greenlock.d/
+
+    # probe1:
+    #     ports:
+    #         - '3024:3024'
+    #     build:
+    #         context: ./probe
+    #         dockerfile: ./Dockerfile.dev
+    #     env_file:
+    #         - ./probe/.env
+    #     environment:
+    #         - PORT=3024
+    #         - SERVER_URL=http://backend:3002
+    #         - PROBE_NAME=Probe 1
+    #         - PROBE_KEY=test-key
+    #         - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+    #     depends_on:
+    #         - backend
+    #     volumes:
+    #         - $PWD/probe:/app
+
+volumes:
+    mongodata:
