@@ -478,11 +478,11 @@ export const groups = [
                         exact: true,
                         subRoutes: [],
                         index: 3,
-                        shortcut: 'f+e',
+                        shortcut: 'z+f',
                     },
                 ],
                 index: 2,
-                shortcut: 'f+e',
+                shortcut: 'f+z',
             },
 
             {
