@@ -142,12 +142,12 @@ describe('Monitor Detail API', () => {
             });
             await init.page$Eval(page, '#btnNextWebhook', elem => elem.click());
             
-            // This Clicks the Previous Button
             await init.pageWaitForSelector(page, createdWebhookSelector);
             webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
             expect(countWebhooks).toEqual(1);
 
+            // This Clicks the Previous Button
             await init.pageWaitForSelector(page, '#btnPrevWebhook', {
                 visible: true,
                 timeout: init.timeout,
