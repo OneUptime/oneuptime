@@ -141,18 +141,23 @@ describe('Monitor Detail API', () => {
                 timeout: init.timeout,
             });
             await init.page$Eval(page, '#btnNextWebhook', elem => elem.click());
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
-
+            
+            // This Clicks the Previous Button
             await init.pageWaitForSelector(page, createdWebhookSelector);
             webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
             expect(countWebhooks).toEqual(1);
+
+            await init.pageWaitForSelector(page, '#btnPrevWebhook', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await init.page$Eval(page, '#btnPrevWebhook', elem => elem.click());
+            
+            await init.pageWaitForSelector(page, createdWebhookSelector);
+            webhookRows = await init.page$$(page, createdWebhookSelector);
+            countWebhooks = webhookRows.length;
+            expect(countWebhooks).toEqual(10);
 
             done();
         },
