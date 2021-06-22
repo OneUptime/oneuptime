@@ -105,4 +105,14 @@ module.exports = [
         body:
             'Scheduled maintenance event for {{projectName}} - {{eventName}}, has been cancelled.',
     },
+    {
+        allowedVariables: [
+            '{{announcementTitle}} : Name of the maintenance event.',
+            '{{announcementDescription}} : Description of the scheduled event.',
+            '{{projectName}} : Name of the project on which the event is created.',
+        ],
+        smsType: 'Subscriber Announcement Notification Created',
+        body:
+            'An announcement has been made on {{projectName}}. Title: {{announcementTitle}}, Content: "{{announcementDescription}}."',
+    },
 ];

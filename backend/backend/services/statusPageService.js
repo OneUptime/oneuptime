@@ -1285,6 +1285,10 @@ module.exports = {
             announcement.slug = data.slug || null;
             const newAnnouncement = await announcement.save();
 
+            AlertService.sendAnnouncementNotificationToSubscribers(
+                newAnnouncement
+            );
+
             return newAnnouncement;
         } catch (error) {
             ErrorService.log('statusPageService.createAnnouncement', error);
@@ -1627,6 +1631,7 @@ const MonitorService = require('./monitorService');
 const ErrorService = require('./errorService');
 const SubscriberService = require('./subscriberService');
 const ProjectService = require('./projectService');
+const AlertService = require('./alertService');
 const _ = require('lodash');
 const defaultStatusPageColors = require('../config/statusPageColors');
 const DomainVerificationService = require('./domainVerificationService');
