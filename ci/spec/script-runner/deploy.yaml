@@ -16,7 +16,7 @@ staging_script-runner:
         - sudo docker tag fyipeproject/script-runner:master fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/script-runner:master
-        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-script-runner fi-script-runner=fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-runner fi-runner=fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -44,7 +44,7 @@ production_script-runner:
         - sudo docker tag fyipeproject/script-runner:latest fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/script-runner:latest
-        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-script-runner fi-script-runner=fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-runner fi-runner=fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
