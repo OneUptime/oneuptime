@@ -40,7 +40,9 @@ class AutomationScript extends Component {
                         route={pathname}
                         name="Automation Scripts"
                     />
-                    <AutomatedTabularList {...this.props} />
+                    <div id="automationScriptsPage">
+                        <AutomatedTabularList {...this.props} />
+                    </div>
                     <div className="Box-root">
                         <div>
                             <div>
