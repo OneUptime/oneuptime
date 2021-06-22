@@ -4,7 +4,7 @@ import ErrorTracking from './pages/ErrorTracking';
 import ErrorTrackingView from './pages/ErrorTrackingView';
 import ErrorEventView from './pages/ErrorEventView';
 import WebhookSettings from './pages/WebhookSettings';
-import AutomatedScripView from './pages/AutomatedScripView';
+// import AutomatedScripView from './pages/AutomatedScripView';
 
 const {
     Home,
@@ -55,7 +55,7 @@ const {
     Groups,
     PerformanceTrackerView,
     PerformanceTracker,
-    AutomationScript,
+    // AutomationScript,
 } = pages;
 
 export const groups = [
@@ -460,30 +460,30 @@ export const groups = [
                 index: 5,
                 shortcut: 'f+e',
             },
-            {
-                title: 'Automation Scripts',
-                path: '/dashboard/project/:slug/automation-scripts',
-                icon: 'performanceTracker',
-                visible: true,
-                component: AutomationScript,
-                exact: true,
-                subRoutes: [
-                    {
-                        title: 'Automation Script',
-                        path:
-                            '/dashboard/project/:slug/automation-scripts/:automatedScriptslug',
-                        icon: 'performanceTracker',
-                        visible: true,
-                        component: AutomatedScripView,
-                        exact: true,
-                        subRoutes: [],
-                        index: 3,
-                        shortcut: 'z+f',
-                    },
-                ],
-                index: 2,
-                shortcut: 'f+z',
-            },
+            // {
+            //     title: 'Automation Scripts',
+            //     path: '/dashboard/project/:slug/automation-scripts',
+            //     icon: 'performanceTracker',
+            //     visible: true,
+            //     component: AutomationScript,
+            //     exact: true,
+            //     subRoutes: [
+            //         {
+            //             title: 'Automation Script',
+            //             path:
+            //                 '/dashboard/project/:slug/automation-scripts/:automatedScriptslug',
+            //             icon: 'performanceTracker',
+            //             visible: true,
+            //             component: AutomatedScripView,
+            //             exact: true,
+            //             subRoutes: [],
+            //             index: 3,
+            //             shortcut: 'z+f',
+            //         },
+            //     ],
+            //     index: 2,
+            //     shortcut: 'f+z',
+            // },
 
             {
                 title: 'Reports',
