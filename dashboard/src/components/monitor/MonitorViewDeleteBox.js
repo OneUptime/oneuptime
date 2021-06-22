@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import { v4 as uuidv4 } from 'uuid';
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
@@ -23,7 +24,7 @@ export class MonitorViewDeleteBox extends Component {
         const projectId =
             this.props.monitor.projectId._id || this.props.monitor.projectId;
 
-        this.props.deleteMonitor(this.props.monitor._id, projectId).then(() => {
+        const promise = this.props.deleteMonitor(this.props.monitor._id, projectId).then(() => {
             history.push(
                 `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
             );
@@ -37,6 +38,7 @@ export class MonitorViewDeleteBox extends Component {
                 );
             }
         });
+        return promise;
     };
 
     handleKeyBoard = e => {
