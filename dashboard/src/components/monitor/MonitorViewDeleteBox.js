@@ -23,7 +23,7 @@ export class MonitorViewDeleteBox extends Component {
         const projectId =
             this.props.monitor.projectId._id || this.props.monitor.projectId;
 
-        this.props.deleteMonitor(this.props.monitor._id, projectId).then(() => {
+        const promise = this.props.deleteMonitor(this.props.monitor._id, projectId).then(() => {
             history.push(
                 `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
             );
@@ -37,6 +37,7 @@ export class MonitorViewDeleteBox extends Component {
                 );
             }
         });
+        return promise; // onConfirm function is expecting a promise(async call).
     };
 
     handleKeyBoard = e => {
@@ -89,7 +90,7 @@ export class MonitorViewDeleteBox extends Component {
                                             this.props.openModal({
                                                 id: deleteModalId,
                                                 onClose: () => '',
-                                                onConfirm: () =>
+                                                onConfirm: () => // This awaits a promise after the delete request
                                                     this.deleteMonitor(),
                                                 content: DataPathHoC(
                                                     DeleteMonitor,
