@@ -285,6 +285,8 @@ app.use(
     ['/certificate', '/api/certificate'],
     require('./backend/api/certificateStore')
 );
+app.use(['/manager', '/api/manager'], require('./backend/api/siteManager'));
+app.use(['/manager', '/api/manager'], require('./backend/api/defaultManager'));
 app.use(
     ['/performanceTracker', '/api/performanceTracker'],
     require('./backend/api/performanceTracker')
