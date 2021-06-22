@@ -42,7 +42,9 @@ if (userData !== undefined) {
         logEvent('PAGE VIEW: DASHBOARD');
     }
 } else {
-    window.location = ACCOUNTS_URL + '/login';
+    // store original destination url
+    const redirectTo = window.location.href;
+    window.location = ACCOUNTS_URL + `/login?redirectTo=${redirectTo}`;
     store.dispatch(loadPage('Home'));
 }
 

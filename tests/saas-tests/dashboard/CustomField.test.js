@@ -88,7 +88,7 @@ describe('Incident Custom Field', () => {
             await init.pageWaitForSelector(page, '#updateCustomField', {
                 hidden: true,
             });
-          
+
             await init.navigateToCustomField(page);
             const updatedField = await init.pageWaitForSelector(
                 page,
@@ -118,7 +118,7 @@ describe('Incident Custom Field', () => {
             await init.pageWaitForSelector(page, '#deleteCustomFieldModalBtn', {
                 hidden: true,
             });
-    
+
             await init.navigateToCustomField(page);
             const noCustomFields = await init.pageWaitForSelector(
                 page,

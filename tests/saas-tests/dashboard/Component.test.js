@@ -386,5 +386,4 @@ describe('Components', () => {
         },
         operationTimeOut
     );
-
 });

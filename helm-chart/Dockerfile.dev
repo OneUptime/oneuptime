@@ -1,0 +1,29 @@
+#
+# Fyipe Docs Dockerfile
+#
+
+# Pull base image nodejs image.
+FROM node:16
+
+#SET ENV Variables
+
+
+WORKDIR /usr/src/app
+
+# Copy package.json files
+COPY ./package.json /usr/src/app/package.json
+COPY ./package-lock.json /usr/src/app/package-lock.json
+
+
+# Install app dependencies
+RUN npm ci
+
+# Expose ports.
+#   - 3423: Fyipe Helm Chart Server
+EXPOSE 3423
+
+# Expose Debugger port
+EXPOSE 9229 
+
+#Run the app
+CMD [ "npm", "run", "dev" ]

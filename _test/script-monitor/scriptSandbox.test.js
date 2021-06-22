@@ -76,7 +76,7 @@ describe('ScriptMonitor V2', function() {
       expect(result.success).to.be.false;
       expect(result.message).to.be.string("Script monitor resource error");
       expect(result.errors).to.be.ok;
-      expect(result.status).eq("cbError");
+      expect(result.status).eq("nonEmptyCallback");
       expect(result.executionTime).to.be.a('number');
       console.log(result.executionTime);
     });

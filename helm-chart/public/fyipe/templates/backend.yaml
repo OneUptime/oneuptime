@@ -61,6 +61,8 @@ spec:
                         value: {{ .Values.pushNotification.publicKey }}
                       - name: PUSHNOTIFICATION_URL
                         value: {{ .Values.pushNotification.url }}
+                      - name: SCRIPT_URL
+                        value: {{ .Values.scriptUrl }}
                       - name: NODE_ENV
                         value: 'production'
                       - name: IS_TESTING

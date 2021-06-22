@@ -91,9 +91,15 @@ export const User = {
     setEmail(email) {
         localStorage.setItem('email', email);
     },
+
     initialUrl() {
         return sessionStorage.getItem('initialUrl');
     },
+
+    setInitialUrl(url) {
+        sessionStorage.setItem('initialUrl', url);
+    },
+
     setProject(project) {
         localStorage.setItem('project', project);
     },
@@ -112,6 +118,10 @@ export const User = {
 
     removeAccessToken() {
         localStorage.removeItem('token');
+    },
+
+    removeInitialUrl() {
+        return sessionStorage.removeItem('initialUrl');
     },
 
     isLoggedIn() {

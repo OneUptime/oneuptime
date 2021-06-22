@@ -6,7 +6,7 @@
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "node server.js",
-        "dev": "cross-env NODE_ENV=development nodemon server.js",
+        "dev": "cross-env NODE_ENV=development nodemon --inspect=0.0.0.0 server.js",
         "audit": "npm audit --audit-level=low",
         "test": "jest --forceExit --runInBand test",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
