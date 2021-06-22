@@ -47,12 +47,24 @@ async function run() {
         { sendScheduledEventCancelledNotificationSms: { $exists: false } },
         { sendScheduledEventCancelledNotificationSms: true }
     );
+
     await updateMany(
         projectCollection,
         { sendScheduledEventCancelledNotificationEmail: { $exists: false } },
         { sendScheduledEventCancelledNotificationEmail: true }
     );
 
+    await updateMany(
+        projectCollection,
+        { sendAnnouncementNotificationSms: { $exists: false } },
+        { sendAnnouncementNotificationSms: true }
+    );
+
+    await updateMany(
+        projectCollection,
+        { sendAnnouncementNotificationEmail: { $exists: false } },
+        { sendAnnouncementNotificationEmail: true }
+    );
     return `Script completed`;
 }
 
