@@ -70,7 +70,7 @@ services:
         env_file:
             - ./probe/.env
         environment:
-            - PORT=3024
+            - PORT=3008
             - SERVER_URL=http://backend:3002
             - PROBE_NAME=Probe 1
             - PROBE_KEY=test-key
