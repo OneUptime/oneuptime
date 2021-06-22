@@ -16,11 +16,5 @@ COPY . /usr/src/app
 # Install app dependencies
 RUN npm install
 
-# Bundle app source
-# RUN npm run build
-
-# Expose app port
-# EXPOSE 3010
-
 # Run app
 CMD ["npm", "start"]

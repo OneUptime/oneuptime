@@ -237,6 +237,8 @@ host:
   httpTestServerServicePort: 80
   initScriptServicePort: 80
   harakaServicePort: 2525
+  scriptRunnerPort: 3009
+  scripRunnerServicePort: 80
 
 isThirdPartyBilling: false
 isRunningOnGCPMarketplace: false
@@ -267,5 +269,5 @@ pushNotification:
     privateKey: "WdFZTeXkuoxpsO_KNOtXvhDUc_Ae1rb-WjPv6AVexA4"
     url: "https://fyipe-test.com"
 
-
+scriptUrl: http://localhost:3009
  

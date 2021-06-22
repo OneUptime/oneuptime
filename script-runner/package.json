@@ -1,0 +1,26 @@
+{
+    "name": "script-runner",
+    "version": "1.0.0",
+    "description": "automation script runner",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon --inspect=0.0.0.0 index.js",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "audit": "npm audit --audit-level=low"
+    },
+    "author": "Augustine",
+    "license": "ISC",
+    "dependencies": {
+        "axios": "^0.21.1",
+        "body-parser": "^1.19.0",
+        "cors": "^2.8.5",
+        "custom-env": "^2.0.1",
+        "express": "^4.17.1",
+        "request": "^2.88.2",
+        "vm2": "^3.9.3"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.7"
+    }
+}

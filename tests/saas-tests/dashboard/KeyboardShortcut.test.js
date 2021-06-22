@@ -184,6 +184,29 @@ describe('Keyboard Shortcut: Dashboard', () => {
         },
         operationTimeOut
     );
+    test(
+        'should navigate to automation script page with keyboard shortcut (f + z)',
+        async done => {
+            await page.goto(utils.DASHBOARD_URL, {
+                waitUntil: ['networkidle2'],
+            });
+            await init.pageWaitForSelector(page, '#automationScripts', {
+                visible: true,
+                timeout: init.timeout,
+            });
+            await page.keyboard.press('f');
+            await page.keyboard.press('z');
+            const automationScriptsPage = await init.pageWaitForSelector(
+                page,
+                '#automationScriptsPage',
+                { visible: true, timeout: init.timeout }
+            );
+            expect(automationScriptsPage).toBeDefined();
+
+            done();
+        },
+        operationTimeOut
+    );
 
     test(
         'should navigate to reports page with keyboard shortcut (f + v)',

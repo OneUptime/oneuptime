@@ -59,6 +59,7 @@ import DomainSettings from './DomainSettings';
 import Groups from './Group';
 import PerformanceTrackerView from './PerformanceTrackerView';
 import PerformanceTracker from './PerformanceTracker';
+import AutomationScript from './AutomationScript';
 
 export default {
     ChangePassword,
@@ -111,4 +112,5 @@ export default {
     Groups,
     PerformanceTrackerView,
     PerformanceTracker,
+    AutomationScript,
 };
