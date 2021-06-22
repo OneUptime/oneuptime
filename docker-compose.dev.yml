@@ -62,7 +62,7 @@ services:
     # There can only be one probe in developer docker compose.
     probe:
         ports:
-            - '3024:3024'
+            - '3008:3008'
             - '9238:9229' # Debugging port.
         build:
             context: ./probe
@@ -111,6 +111,7 @@ services:
             - REDIS_HOST=redis
             - REDIS_PORT=6379
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - NODE_ENV=development
         depends_on:
             - mongo
             - redis
