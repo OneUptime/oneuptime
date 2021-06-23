@@ -47,7 +47,10 @@ describe('Fyipe Monitor Reload', () => {
             });
             await init.pageClick(page, '#incidentLog');
             await init.pageWaitForSelector(page, '#cbIncidents');
-            await init.pageWaitForSelector(page, `#incident_${monitorName}_title`);
+            await init.pageWaitForSelector(
+                page,
+                `#incident_${monitorName}_title`
+            );
             //To confirm no error on page reload
             await page.reload({ waitUntil: 'networkidle2' });
             await init.pageWaitForSelector(page, `#cb${componentName}`, {
@@ -87,7 +90,7 @@ describe('Fyipe Monitor Reload', () => {
                 timeout: init.timeout,
             });
             await init.pageClickNavigate(page, `#incident_${monitorName}_0`);
-           
+
             await init.pageWaitForSelector(page, '#incident_0', {
                 visible: true,
                 timeout: init.timeout,

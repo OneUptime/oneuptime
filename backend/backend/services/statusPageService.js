@@ -1364,8 +1364,6 @@ module.exports = {
                 await _this.updateManyAnnouncement({
                     statusPageId: query.statusPageId,
                 });
-
-                
             }
             const response = await AnnouncementModel.findOneAndUpdate(
                 query,
