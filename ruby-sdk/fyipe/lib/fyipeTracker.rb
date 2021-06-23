@@ -26,6 +26,7 @@ class FyipeTracker
         setEventId()
         @listenerObj = FyipeListener.new(getEventId(), @options)
         @apiTransport = FyipeTransport.new(@apiUrl)
+        setUpExceptionHandlerListener()
     end
 
     def setApiUrl(apiUrl)
@@ -160,6 +161,26 @@ class FyipeTracker
         return sendErrorEventToServer()
     end
 
+    def setUpExceptionHandlerListener()
+        # start listener
+        at_exit do
+            manageErrorObject($!) if $!         
+        end
+        
+    end
+    def manageErrorObject(exception)
+    
+        # construct the error object
+        errorObj = @utilObj.getExceptionStackTrace(exception);
+        
+        # set the a handled tag
+        setTag('handled', 'false');
+        # prepare to send to server
+        prepareErrorObject('error', errorObj);
+
+        # send to the server
+        return sendErrorEventToServer();
+    end
     def prepareErrorObject(eventType, errorStackTrace) 
         # set a last timeline as the error message
         @listenerObj.logErrorEvent(errorStackTrace["message"], eventType)
