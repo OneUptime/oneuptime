@@ -14,6 +14,7 @@ import UserUnblockBox from '../components/user/UserUnblockBox';
 import AdminNotes from '../components/adminNote/AdminNotes';
 import { fetchUserProjects } from '../actions/project';
 import { addUserNote, fetchUser, fetchUserloginHistory } from '../actions/user';
+import UserAdminModeEnableBox from '../components/user/UserAdminModeEnableBox';
 
 class User extends Component {
     componentDidMount() {
@@ -60,6 +61,9 @@ class User extends Component {
                                                                 .initialValues
                                                         }
                                                     />
+                                                </div>
+                                                <div className="Box-root Margin-bottom--12">
+                                                    <UserAdminModeEnableBox />
                                                 </div>
                                                 <div className="Box-root Margin-bottom--12">
                                                     <UserHistory
