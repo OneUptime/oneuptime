@@ -141,7 +141,7 @@ describe('Monitor Detail API', () => {
                 timeout: init.timeout,
             });
             await init.page$Eval(page, '#btnNextWebhook', elem => elem.click());
-            
+
             await init.pageWaitForSelector(page, createdWebhookSelector);
             webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
@@ -153,7 +153,7 @@ describe('Monitor Detail API', () => {
                 timeout: init.timeout,
             });
             await init.page$Eval(page, '#btnPrevWebhook', elem => elem.click());
-            
+
             await init.pageWaitForSelector(page, createdWebhookSelector);
             webhookRows = await init.page$$(page, createdWebhookSelector);
             countWebhooks = webhookRows.length;
