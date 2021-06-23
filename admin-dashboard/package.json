@@ -32,7 +32,7 @@
         "react-select-fyipe": "^2.1.8",
         "react-widgets": "^4.4.9",
         "redux": "^3.7.2",
-        "redux-form": "^7.3.0",
+        "redux-form": "^7.4.3",
         "redux-logger": "^3.0.6",
         "redux-thunk": "^2.2.0",
         "sane-email-validation": "^1.1.0",
