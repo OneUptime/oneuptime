@@ -58,9 +58,9 @@ module.exports = {
             );
             /** Since the scheduled notes has been deleted
              * The query.deleted value has changed from FALSE to TRUE
-            */
-            if(eventMessage){
-                query.deleted = eventMessage.deleted // The query.deleted value is updated as TRUE.
+             */
+            if (eventMessage) {
+                query.deleted = eventMessage.deleted; // The query.deleted value is updated as TRUE.
             }
 
             if (!eventMessage) {
@@ -92,7 +92,7 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-            
+
             const eventMessage = await ScheduledEventNoteModel.findOne(query)
                 .lean()
                 .populate('scheduledEventId', 'name')

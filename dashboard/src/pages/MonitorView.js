@@ -857,7 +857,7 @@ class MonitorView extends React.Component {
                                                                                                 }
                                                                                             />
                                                                                         </div>
-                                                                                    </ShouldRender>                                                 
+                                                                                    </ShouldRender>
                                                                                     <div className="Box-root Margin-bottom--12">
                                                                                         <MonitorViewChangeComponentBox
                                                                                             componentId={

@@ -241,7 +241,7 @@ describe('Monitor Detail API', () => {
             const nextSelector = await init.page$(page, '#btnNextSlack');
 
             await nextSelector.click();
-            
+
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
             webhookRows = await init.page$$(page, createdWebhookSelector);
@@ -252,7 +252,7 @@ describe('Monitor Detail API', () => {
             const prevSelector = await init.page$(page, '#btnPrevSlack');
 
             await prevSelector.click();
-            
+
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
             webhookRows = await init.page$$(page, createdWebhookSelector);
