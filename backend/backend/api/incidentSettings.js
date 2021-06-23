@@ -148,6 +148,34 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
     }
 });
 
+router.delete('/:projectId/:templateId', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const { projectId, templateId } = req.params;
+
+        if (!projectId) {
+            const error = new Error('Project Id must be present');
+            error.code = 400;
+            throw error;
+        }
+        if (!templateId) {
+            const error = new Error('Incident settings Id must be present.');
+            error.code = 400;
+            throw error;
+        }
+
+        const incidentSetting = await IncidentSettingsService.deleteBy({
+            _id: templateId,
+            projectId,
+        });
+        return sendItemResponse(req, res, incidentSetting);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
