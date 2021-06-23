@@ -43,7 +43,7 @@ RSpec.describe FyipeTracker do
         tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
         tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
         timeline = tracker.getTimeline()
-        expect(timeline.class.to_s).to eql "Array"
+        expect(timeline).to be_an_instance_of(Array)
         expect(timeline.length()).to eql 1
         expect($customTimeline["category"]).to eql timeline[0]["category"]
     end
@@ -53,8 +53,8 @@ RSpec.describe FyipeTracker do
 
         timeline = tracker.getTimeline()
 
-        expect(timeline[0]["eventId"].class.to_s).to eql "String"
-        expect(timeline[0]["timestamp"].class.to_s).to eql "String"
+        expect(timeline[0]["eventId"]).to be_an_instance_of(String)
+        expect(timeline[0]["timestamp"]).to be_an_instance_of(String)
     end
     it 'test_should_ensure_different_timeline_event_have_the_same_eventId' do
         tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
@@ -111,7 +111,7 @@ RSpec.describe FyipeTracker do
         tracker.setTag(tag[:key], tag[:value])
         
         availableTags = tracker.getTags()
-        expect(availableTags.class.to_s).to eql "Array"
+        expect(availableTags).to be_an_instance_of(Array)
         expect(availableTags.length()).to eql 1
         expect(tag[:key]).to eql availableTags[0]["key"]
     end
@@ -142,7 +142,7 @@ RSpec.describe FyipeTracker do
         tracker.setTags(tags)
 
         availableTags = tracker.getTags()
-        expect(availableTags.class.to_s).to eql "Array"
+        expect(availableTags).to be_an_instance_of(Array)
         expect(availableTags.length()).to eql tags.length()
     end
 
@@ -183,7 +183,7 @@ RSpec.describe FyipeTracker do
         tracker.setTags(tags)
 
         availableTags = tracker.getTags()
-        expect(availableTags.class.to_s).to eql "Array"
+        expect(availableTags).to be_an_instance_of(Array)
         expect(availableTags.length()).to eql 3 # only 3 unique tags
         expect(tagC[:key]).to eql availableTags[0]["key"]
         expect(tagC[:value]).not_to eql availableTags[0]["value"]# old value for that tag location
@@ -266,8 +266,8 @@ RSpec.describe FyipeTracker do
 
         expect(event["type"]).to eql "exception"
         expect(event["exception"]["type"]).to eql errorType
-        expect(event["exception"]["stacktrace"].class.to_s).to eql "Hash"
-        expect(event["exception"]["stacktrace"]["frames"].class.to_s).to eql "Array"
+        expect(event["exception"]["stacktrace"]).to be_an_instance_of(Hash)
+        expect(event["exception"]["stacktrace"]["frames"]).to be_an_instance_of(Array)
     end   
     it 'test_should_create_an_event_with_the_object_of_the_stacktrace_in_place' do
         tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
@@ -356,5 +356,16 @@ RSpec.describe FyipeTracker do
         expect(newEvent["content"]["message"]).to eql errorMessageObj
         expect(newEvent["timeline"].length()).to eql 2
         expect(newEvent["tags"].length()).to eql 2 # the default and custom tag
+    end
+    it 'test_should_contain_version_number_and_sdk_name_in_captured_message' do
+        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
+
+        errorMessage = 'Error Found'
+        tracker.captureMessage(errorMessage)
+        event = tracker.getCurrentEvent()
+
+        expect(event["sdk"]["name"]).to be_an_instance_of(String)
+
+        expect(event['sdk']['version']).to match(/(([0-9])+\.([0-9])+\.([0-9])+)/)# confirm that the version follows the pattern XX.XX.XX where X is a non negative integer
     end
 end
