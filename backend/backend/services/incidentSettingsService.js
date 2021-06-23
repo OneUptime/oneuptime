@@ -137,6 +137,25 @@ module.exports = {
             throw error;
         }
     },
+    deleteBy: async function(query) {
+        try {
+            const deletedIncidentSetting = await incidentSettingsModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                    },
+                },
+                { new: true }
+            );
+
+            return deletedIncidentSetting;
+        } catch (error) {
+            ErrorService.log('incidentCommunicationSlaService.deleteBy', error);
+            throw error;
+        }
+    },
     hardDeleteBy: async function(query) {
         try {
             await incidentSettingsModel.deleteMany(query);
