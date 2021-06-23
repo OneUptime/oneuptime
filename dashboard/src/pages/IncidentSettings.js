@@ -188,7 +188,7 @@ class IncidentSettings extends React.Component {
                             </div>
                             <TabPanel>
                                 <Fade>
-                                    <IncidentBasicSettings />
+                                    <IncidentTemplates />
                                 </Fade>
                             </TabPanel>
                             <TabPanel>
