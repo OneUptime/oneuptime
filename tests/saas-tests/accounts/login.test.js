@@ -85,7 +85,7 @@ describe('Login API', () => {
         'Should login valid User',
         async () => {
             await init.registerUser(user, page);
-            await init.logout(page);
+            await init.saasLogout(page);
             await init.loginUser(user, page);
 
             await init.pageWaitForSelector(page, '#components', {
