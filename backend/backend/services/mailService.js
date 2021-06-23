@@ -4712,7 +4712,7 @@ const _this = {
      */
     sendAnnouncementToSubscriber: async function(
         announcementTitle,
-        announcementTitle,
+        announcementDescription,
         email,
         emailTemplate,
         replyAddress,

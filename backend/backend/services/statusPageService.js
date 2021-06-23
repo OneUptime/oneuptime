@@ -1285,10 +1285,6 @@ module.exports = {
             announcement.slug = data.slug || null;
             const newAnnouncement = await announcement.save();
 
-            AlertService.sendAnnouncementNotificationToSubscribers(
-                newAnnouncement
-            );
-
             return newAnnouncement;
         } catch (error) {
             ErrorService.log('statusPageService.createAnnouncement', error);
@@ -1368,6 +1364,8 @@ module.exports = {
                 await _this.updateManyAnnouncement({
                     statusPageId: query.statusPageId,
                 });
+
+                
             }
             const response = await AnnouncementModel.findOneAndUpdate(
                 query,
@@ -1378,12 +1376,20 @@ module.exports = {
                     new: true,
                 }
             );
+
+            if (!data.hideAnnouncement && data.announcementToggle) {
+                AlertService.sendAnnouncementNotificationToSubscribers(
+                    response
+                );
+            }
+
             const log = {
                 active: false,
                 endDate: new Date(),
                 updatedById: data.createdById,
             };
             await _this.updateAnnouncementLog({ active: true }, log);
+
             return response;
         } catch (error) {
             ErrorService.log('statusPageService.getSingleAnnouncement', error);
