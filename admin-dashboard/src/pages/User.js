@@ -16,6 +16,7 @@ import { fetchUserProjects } from '../actions/project';
 import { addUserNote, fetchUser, fetchUserloginHistory } from '../actions/user';
 import UserAdminModeEnableBox from '../components/user/UserAdminModeEnableBox';
 import UserAdminModeDisableBox from '../components/user/UserAdminModeDisableBox';
+import { User as LsUser } from '../config';
 
 class User extends Component {
     componentDidMount() {
@@ -63,24 +64,39 @@ class User extends Component {
                                                         }
                                                     />
                                                 </div>
-                                                <div className="Box-root Margin-bottom--12">
-                                                    <ShouldRender
-                                                        if={
-                                                            !this.props?.user
-                                                                ?.isAdminMode
-                                                        }
-                                                    >
-                                                        <UserAdminModeEnableBox />
-                                                    </ShouldRender>
-                                                    <ShouldRender
-                                                        if={
-                                                            this.props?.user
-                                                                ?.isAdminMode
-                                                        }
-                                                    >
-                                                        <UserAdminModeDisableBox />
-                                                    </ShouldRender>
-                                                </div>
+                                                <ShouldRender
+                                                    if={
+                                                        LsUser.getUserId() !==
+                                                        this.props.match.params
+                                                            .userId
+                                                    }
+                                                >
+                                                    <div className="Box-root Margin-bottom--12">
+                                                        <ShouldRender
+                                                            if={
+                                                                !this.props
+                                                                    ?.user
+                                                                    ?.isAdminMode &&
+                                                                !this.props
+                                                                    ?.user
+                                                                    .deleted
+                                                            }
+                                                        >
+                                                            <UserAdminModeEnableBox />
+                                                        </ShouldRender>
+                                                        <ShouldRender
+                                                            if={
+                                                                this.props?.user
+                                                                    ?.isAdminMode &&
+                                                                !this.props
+                                                                    ?.user
+                                                                    .deleted
+                                                            }
+                                                        >
+                                                            <UserAdminModeDisableBox />
+                                                        </ShouldRender>
+                                                    </div>
+                                                </ShouldRender>
                                                 <div className="Box-root Margin-bottom--12">
                                                     <UserHistory
                                                         history={
@@ -94,49 +110,59 @@ class User extends Component {
                                                 </div>
                                                 <ShouldRender
                                                     if={
-                                                        this.props.user &&
-                                                        !this.props.user
-                                                            .deleted &&
-                                                        !this.props.user
-                                                            .isBlocked
+                                                        LsUser.getUserId() !==
+                                                        this.props.match.params
+                                                            .userId
                                                     }
                                                 >
-                                                    <div className="Box-root Margin-bottom--12">
-                                                        <UserBlockBox />
-                                                    </div>
-                                                </ShouldRender>
-                                                <ShouldRender
-                                                    if={
-                                                        this.props.user &&
-                                                        !this.props.user
-                                                            .deleted &&
-                                                        this.props.user
-                                                            .isBlocked
-                                                    }
-                                                >
-                                                    <div className="Box-root Margin-bottom--12">
-                                                        <UserUnblockBox />
-                                                    </div>
-                                                </ShouldRender>
-                                                <ShouldRender
-                                                    if={
-                                                        this.props.user &&
-                                                        !this.props.user.deleted
-                                                    }
-                                                >
-                                                    <div className="Box-root Margin-bottom--12">
-                                                        <UserDeleteBox />
-                                                    </div>
-                                                </ShouldRender>
-                                                <ShouldRender
-                                                    if={
-                                                        this.props.user &&
-                                                        this.props.user.deleted
-                                                    }
-                                                >
-                                                    <div className="Box-root Margin-bottom--12">
-                                                        <UserRestoreBox />
-                                                    </div>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props.user &&
+                                                            !this.props.user
+                                                                .deleted &&
+                                                            !this.props.user
+                                                                .isBlocked
+                                                        }
+                                                    >
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            <UserBlockBox />
+                                                        </div>
+                                                    </ShouldRender>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props.user &&
+                                                            !this.props.user
+                                                                .deleted &&
+                                                            this.props.user
+                                                                .isBlocked
+                                                        }
+                                                    >
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            <UserUnblockBox />
+                                                        </div>
+                                                    </ShouldRender>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props.user &&
+                                                            !this.props.user
+                                                                .deleted
+                                                        }
+                                                    >
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            <UserDeleteBox />
+                                                        </div>
+                                                    </ShouldRender>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props.user &&
+                                                            this.props.user
+                                                                .deleted
+                                                        }
+                                                    >
+                                                        <div className="Box-root Margin-bottom--12">
+                                                            <UserRestoreBox />
+                                                        </div>
+                                                    </ShouldRender>
                                                 </ShouldRender>
                                             </div>
                                         </div>
