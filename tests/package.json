@@ -4,7 +4,7 @@
     "description": "Smoke tests for fyipe",
     "main": "index.test.js",
     "scripts": {
-        "test": "jest ./saas-tests/**/*.test.js",
+        "test": "jest --runInBand ./saas-tests/dashboard/*Reload.test.js",
         "saas-test": "npm run test",
         "enterprise-test": "jest ./enterprise-tests/**/*.test.js",
         "staging-test": "export INIT_SCRIPT_URL=https://staging.fyipe.com/init-script && export HTTP_TEST_SERVER_URL=https://staging-test-server.fyipe.com && export HOME_URL=https://staging.fyipe.com && export ACCOUNTS_URL=https://staging.fyipe.com/accounts && export ADMIN_DASHBOARD_URL=https://staging.fyipe.com/admin && export DASHBOARD_URL=https://staging.fyipe.com/dashboard && export BACKEND_URL=https://staging.fyipe.com/api && export STATUSPAGE_URL=https://staging.fyipe.com/status-page && export APIDOCS_URL=https://staging.fyipe.com/docs && jest ./saas-tests/**/*.test.js",
