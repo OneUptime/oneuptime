@@ -46,6 +46,10 @@ import {
     FETCH_USER_LOGIN_HISTORY_FAILURE,
     FETCH_USER_LOGIN_HISTORY_SUCCESS,
     FETCH_USER_LOGIN_HISTORY_REQUEST,
+    ENABLE_ADMIN_MODE_SUCCESS,
+    ENABLE_ADMIN_MODE_REQUEST,
+    ENABLE_ADMIN_MODE_FAILED,
+    ENABLE_ADMIN_MODE_RESET,
 } from '../constants/user';
 
 const INITIAL_STATE = {
@@ -86,6 +90,11 @@ const INITIAL_STATE = {
         success: false,
     },
     blockUser: {
+        error: null,
+        requesting: false,
+        success: false,
+    },
+    enableAdminMode: {
         error: null,
         requesting: false,
         success: false,
@@ -408,6 +417,48 @@ export default function user(state = INITIAL_STATE, action) {
         case BLOCK_USER_RESET:
             return Object.assign({}, state, {
                 blockUser: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case ENABLE_ADMIN_MODE_SUCCESS:
+            return Object.assign({}, state, {
+                enableAdminMode: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                user: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    user: action.payload,
+                },
+            });
+
+        case ENABLE_ADMIN_MODE_REQUEST:
+            return Object.assign({}, state, {
+                enableAdminMode: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case ENABLE_ADMIN_MODE_FAILED:
+            return Object.assign({}, state, {
+                enableAdminMode: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case ENABLE_ADMIN_MODE_RESET:
+            return Object.assign({}, state, {
+                enableAdminMode: {
                     requesting: false,
                     success: false,
                     error: null,
