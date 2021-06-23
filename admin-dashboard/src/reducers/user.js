@@ -50,6 +50,10 @@ import {
     ENABLE_ADMIN_MODE_REQUEST,
     ENABLE_ADMIN_MODE_FAILED,
     ENABLE_ADMIN_MODE_RESET,
+    DISABLE_ADMIN_MODE_SUCCESS,
+    DISABLE_ADMIN_MODE_REQUEST,
+    DISABLE_ADMIN_MODE_FAILED,
+    DISABLE_ADMIN_MODE_RESET,
 } from '../constants/user';
 
 const INITIAL_STATE = {
@@ -459,6 +463,48 @@ export default function user(state = INITIAL_STATE, action) {
         case ENABLE_ADMIN_MODE_RESET:
             return Object.assign({}, state, {
                 enableAdminMode: {
+                    requesting: false,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case DISABLE_ADMIN_MODE_SUCCESS:
+            return Object.assign({}, state, {
+                disableAdminMode: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                user: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                    user: action.payload,
+                },
+            });
+
+        case DISABLE_ADMIN_MODE_REQUEST:
+            return Object.assign({}, state, {
+                disableAdminMode: {
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+
+        case DISABLE_ADMIN_MODE_FAILED:
+            return Object.assign({}, state, {
+                disableAdminMode: {
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+
+        case DISABLE_ADMIN_MODE_RESET:
+            return Object.assign({}, state, {
+                disableAdminMode: {
                     requesting: false,
                     success: false,
                     error: null,
