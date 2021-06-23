@@ -8,6 +8,7 @@ module.exports = {
                 description,
                 incidentPriority,
                 isDefault,
+                name,
             } = data;
 
             if (isDefault) {
@@ -27,6 +28,7 @@ module.exports = {
             incidentSettings.description = description;
             incidentSettings.incidentPriority = incidentPriority;
             incidentSettings.isDefault = isDefault || false;
+            incidentSettings.name = name;
             return await incidentSettings.save();
         } catch (error) {
             ErrorService.log('IncidentSettingsService.create', error);

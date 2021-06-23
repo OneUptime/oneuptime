@@ -17,23 +17,6 @@ router.get('/variables', async function(req, res) {
     }
 });
 
-router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
-    const { projectId } = req.params;
-    if (!projectId)
-        return sendErrorResponse(req, res, {
-            code: 400,
-            message: 'Project Id must be present',
-        });
-    try {
-        const incidentSettings = await IncidentSettingsService.findOne({
-            projectId,
-        });
-        return sendItemResponse(req, res, incidentSettings);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
 // fetch all incident template in a project
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
@@ -93,7 +76,7 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
     res
 ) {
     const { projectId, templateId } = req.params;
-    const { title, description, incidentPriority, isDefault } = req.body;
+    const { title, description, incidentPriority, isDefault, name } = req.body;
     if (!projectId)
         return sendErrorResponse(req, res, {
             code: 400,
@@ -105,6 +88,13 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
             code: 400,
             message: 'Incident settings Id must be present.',
         });
+
+    if (!name) {
+        return sendErrorResponse(req, res, {
+            code: 400,
+            message: 'Name must be present',
+        });
+    }
 
     if (!title)
         return sendErrorResponse(req, res, {
@@ -140,6 +130,7 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
                 description,
                 incidentPriority,
                 isDefault,
+                name,
             }
         );
         return sendItemResponse(req, res, incidentSettings);
@@ -185,10 +176,16 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             description,
             incidentPriority,
             isDefault = false,
+            name,
         } = req.body;
 
         if (!projectId) {
             const error = new Error('Project Id must be present');
+            error.code = 400;
+            throw error;
+        }
+        if (!name) {
+            const error = new Error('Name must be present');
             error.code = 400;
             throw error;
         }
@@ -218,6 +215,7 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             description,
             incidentPriority,
             isDefault,
+            name,
         };
         const incidentSetting = await IncidentSettingsService.create(data);
 
