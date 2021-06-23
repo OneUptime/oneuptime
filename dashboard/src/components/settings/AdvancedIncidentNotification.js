@@ -238,6 +238,21 @@ class AdvancedIncidentNotification extends Component {
                                                         for Subscribers`}
                                                 />
 
+                                                <Checkbox
+                                                    name={
+                                                        type === 'email'
+                                                            ? 'sendAnnouncementNotificationEmail'
+                                                            : 'sendAnnouncementNotificationSms'
+                                                    }
+                                                    text={`Enable Announcement Notification
+                                                        ${
+                                                            type === 'sms'
+                                                                ? 'SMS'
+                                                                : 'Email'
+                                                        }
+                                                        for Subscribers`}
+                                                />
+
                                                 {showMoreOptions &&
                                                     type === 'email' && (
                                                         <>
@@ -436,6 +451,10 @@ const mapStateToProps = (state, ownProps) => {
                 state.project.currentProject &&
                 state.project.currentProject
                     .sendScheduledEventCancelledNotificationSms,
+
+            sendAnnouncementNotificationSms:
+                state.project.currentProject &&
+                state.project.currentProject.sendAnnouncementNotificationSms,
         };
     } else if (type === 'email') {
         initialValues = {
@@ -472,6 +491,11 @@ const mapStateToProps = (state, ownProps) => {
                 state.project.currentProject &&
                 state.project.currentProject
                     .sendScheduledEventCancelledNotificationEmail,
+
+            sendAnnouncementNotificationEmail:
+                state.project.currentProject &&
+                state.project.currentProject.sendAnnouncementNotificationEmail,
+
             replyAddress:
                 state.project.currentProject &&
                 state.project.currentProject.replyAddress,
