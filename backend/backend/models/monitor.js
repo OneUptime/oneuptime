@@ -15,6 +15,13 @@ const criterionEventSchema = {
         condition: String,
         criteria: [Schema.Types.Mixed],
     },
+    scripts: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: 'AutomationSript',
+            index: true,
+        },
+    ],
 };
 
 /**
