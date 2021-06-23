@@ -15,6 +15,7 @@ import AdminNotes from '../components/adminNote/AdminNotes';
 import { fetchUserProjects } from '../actions/project';
 import { addUserNote, fetchUser, fetchUserloginHistory } from '../actions/user';
 import UserAdminModeEnableBox from '../components/user/UserAdminModeEnableBox';
+import UserAdminModeDisableBox from '../components/user/UserAdminModeDisableBox';
 
 class User extends Component {
     componentDidMount() {
@@ -63,7 +64,22 @@ class User extends Component {
                                                     />
                                                 </div>
                                                 <div className="Box-root Margin-bottom--12">
-                                                    <UserAdminModeEnableBox />
+                                                    <ShouldRender
+                                                        if={
+                                                            !this.props?.user
+                                                                ?.isAdminMode
+                                                        }
+                                                    >
+                                                        <UserAdminModeEnableBox />
+                                                    </ShouldRender>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props?.user
+                                                                ?.isAdminMode
+                                                        }
+                                                    >
+                                                        <UserAdminModeDisableBox />
+                                                    </ShouldRender>
                                                 </div>
                                                 <div className="Box-root Margin-bottom--12">
                                                     <UserHistory
