@@ -1374,7 +1374,7 @@ router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function(
 // Route
 // Description: Switch user account to admin mode.
 // Params:
-// Param 1: req.body-> {newPassword}; req.headers-> {authorization}; req.user-> {id};
+// Param 1: req.body-> {temporaryPassword}; req.headers-> {authorization}; req.user-> {id};
 // Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
 router.post(
     '/:userId/switchToAdminMode',
@@ -1383,10 +1383,10 @@ router.post(
     async function(req, res) {
         try {
             const userId = req.params.userId;
-            const { newPassword } = req.body;
+            const { temporaryPassword } = req.body;
             const user = await UserService.switchToAdminMode(
                 userId,
-                newPassword
+                temporaryPassword
             );
             return sendItemResponse(req, res, user);
         } catch (error) {

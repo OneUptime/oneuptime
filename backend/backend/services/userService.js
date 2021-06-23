@@ -772,11 +772,11 @@ module.exports = {
     },
 
     // Description: replace password temporarily in "admin mode"
-    switchToAdminMode: async function(userId, newPassword) {
+    switchToAdminMode: async function(userId, temporaryPassword) {
         try {
-            if (!newPassword) {
+            if (!temporaryPassword) {
                 const error = new Error(
-                    'A new password is required for admin mode'
+                    'A temporary password is required for admin mode'
                 );
                 error.code = 400;
                 throw error;
@@ -791,7 +791,7 @@ module.exports = {
                 throw error;
             } else {
                 const hash = await bcrypt.hash(
-                    newPassword,
+                    temporaryPassword,
                     constants.saltRounds
                 );
 
