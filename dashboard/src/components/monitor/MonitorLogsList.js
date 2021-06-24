@@ -1137,7 +1137,7 @@ export class MonitorLogsList extends Component {
                         (!monitorLogs.logs || !monitorLogs.logs.length) &&
                         !monitorLogs.requesting &&
                         !monitorLogs.error)
-                        ? "We don't have any Logs yet"
+                        ? "We don't have any monitor logs so far."
                         : null}
                     {monitorLogs && monitorLogs.error
                         ? monitorLogs.error

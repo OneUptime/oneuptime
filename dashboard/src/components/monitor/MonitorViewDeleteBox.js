@@ -23,20 +23,23 @@ export class MonitorViewDeleteBox extends Component {
         const projectId =
             this.props.monitor.projectId._id || this.props.monitor.projectId;
 
-        this.props.deleteMonitor(this.props.monitor._id, projectId).then(() => {
-            history.push(
-                `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
-            );
-            if (SHOULD_LOG_ANALYTICS) {
-                logEvent(
-                    'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR DELETED',
-                    {
-                        ProjectId: this.props.currentProject._id,
-                        monitorId: this.props.monitor._id,
-                    }
+        const promise = this.props
+            .deleteMonitor(this.props.monitor._id, projectId)
+            .then(() => {
+                history.push(
+                    `/dashboard/project/${this.props.currentProject.slug}/component/${this.props.componentSlug}/monitoring`
                 );
-            }
-        });
+                if (SHOULD_LOG_ANALYTICS) {
+                    logEvent(
+                        'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > MONITOR DELETED',
+                        {
+                            ProjectId: this.props.currentProject._id,
+                            monitorId: this.props.monitor._id,
+                        }
+                    );
+                }
+            });
+        return promise; // onConfirm function is expecting a promise(async call).
     };
 
     handleKeyBoard = e => {
@@ -90,6 +93,7 @@ export class MonitorViewDeleteBox extends Component {
                                                 id: deleteModalId,
                                                 onClose: () => '',
                                                 onConfirm: () =>
+                                                    // This awaits a promise after the delete request
                                                     this.deleteMonitor(),
                                                 content: DataPathHoC(
                                                     DeleteMonitor,

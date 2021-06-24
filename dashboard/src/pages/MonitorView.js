@@ -859,6 +859,20 @@ class MonitorView extends React.Component {
                                                                                         </div>
                                                                                     </ShouldRender>
                                                                                     <div className="Box-root Margin-bottom--12">
+                                                                                        <MonitorViewChangeComponentBox
+                                                                                            componentId={
+                                                                                                this
+                                                                                                    .props
+                                                                                                    .componentId
+                                                                                            }
+                                                                                            monitor={
+                                                                                                this
+                                                                                                    .props
+                                                                                                    .monitor
+                                                                                            }
+                                                                                        />
+                                                                                    </div>
+                                                                                    <div className="Box-root Margin-bottom--12">
                                                                                         <MonitorViewDeleteBox
                                                                                             componentId={
                                                                                                 this
@@ -878,20 +892,6 @@ class MonitorView extends React.Component {
                                                                                                     .props
                                                                                                     .component
                                                                                                     .slug
-                                                                                            }
-                                                                                        />
-                                                                                    </div>
-                                                                                    <div className="Box-root Margin-bottom--12">
-                                                                                        <MonitorViewChangeComponentBox
-                                                                                            componentId={
-                                                                                                this
-                                                                                                    .props
-                                                                                                    .componentId
-                                                                                            }
-                                                                                            monitor={
-                                                                                                this
-                                                                                                    .props
-                                                                                                    .monitor
                                                                                             }
                                                                                         />
                                                                                     </div>

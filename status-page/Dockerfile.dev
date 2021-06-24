@@ -1,0 +1,34 @@
+#
+# Fyipe Docs Dockerfile
+#
+
+# Pull base image nodejs image.
+FROM node:16
+
+#SET ENV Variables
+
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+# Install nodemon 
+RUN npm install nodemon -g
+
+WORKDIR /usr/src/app
+
+# Copy package.json files
+COPY ./package.json /usr/src/app/package.json
+COPY ./package-lock.json /usr/src/app/package-lock.json
+
+
+# Install app dependencies
+RUN npm ci
+
+# Expose ports.
+#   - 3006: HTTP Fyipe Status Page
+EXPOSE 3006
+
+# Expose ports.
+#   - 3007: HTTPS Fyipe Status Page
+EXPOSE 3007
+
+#Run the app
+CMD [ "npm", "run", "dev" ]

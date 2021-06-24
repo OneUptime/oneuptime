@@ -16,7 +16,7 @@ services:
             - SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3002/api/user/sso/callback
             - SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost/simplesaml/module.php/saml/sp/saml2-logout.php/test-sp
         volumes:
-            - $PWD/saml/users.php:/var/www/simplesamlphp/config/authsources.php
+            - ./saml/users.php:/var/www/simplesamlphp/config/authsources.php
 
     redis:
         image: redis:5.0.7
@@ -33,10 +33,12 @@ services:
             - MONGO_URL=mongodb://mongo:27017/fyipedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - SCRIPT_RUNNER_URL=http://script-runner:3009
         depends_on:
             - mongo
             - redis
             - haraka
+            - script-runner
     accounts:
         ports:
             - '3003:3003'
@@ -172,6 +174,12 @@ services:
             - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
             - TLS_CERT="${TLS_CERT}"
             - TLS_KEY="${TLS_KEY}"
+    script-runner:
+        ports:
+            - '3009:3009'
+        build: ./script-runner
+        environment:
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
 
 volumes:
     mongodata:

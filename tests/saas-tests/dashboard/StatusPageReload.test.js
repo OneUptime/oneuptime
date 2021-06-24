@@ -73,13 +73,6 @@ describe('Fyipe Page Reload', () => {
                 page
             );
             await init.pageClick(page, '#btnAddStatusPageMonitors');
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
 
             // To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });

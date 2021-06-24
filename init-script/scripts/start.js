@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 async function run() {
     await updateVersion();
 
-    if (process.env['NODE_ENV'] === 'development') {
+    if (process.env['NODE_ENV'] === 'ci') {
         await deleteDatabase();
         await setupTestProbes();
 
