@@ -256,6 +256,18 @@ const AutomatedScripView = props => {
                                                                                                                             ?.name
                                                                                                                     }
                                                                                                                 </ShouldRender>
+                                                                                                                <ShouldRender
+                                                                                                                    if={
+                                                                                                                        log.triggerByIncident
+                                                                                                                    }
+                                                                                                                >
+                                                                                                                    #
+                                                                                                                    {
+                                                                                                                        log
+                                                                                                                            .triggerByIncident
+                                                                                                                            ?.idNumber
+                                                                                                                    }
+                                                                                                                </ShouldRender>
                                                                                                             </div>
                                                                                                         </div>
                                                                                                         <div className="bs-ObjectList-cell bs-u-v-middle">
