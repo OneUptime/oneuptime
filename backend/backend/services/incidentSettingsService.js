@@ -141,6 +141,13 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
+            const incidentSetting = await this.findOne(query);
+            if (incidentSetting.isDefault) {
+                const error = new Error('Default template cannot be deleted');
+                error.code = 400;
+                throw error;
+            }
+
             const deletedIncidentSetting = await incidentSettingsModel.findOneAndUpdate(
                 query,
                 {
