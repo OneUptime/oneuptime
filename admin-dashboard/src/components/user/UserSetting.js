@@ -78,6 +78,15 @@ export class UserSetting extends Component {
                                                 <span>Blocked</span>
                                             </span>
                                         </div>
+                                    ) : this.props.user.isAdminMode ? (
+                                        <div
+                                            className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                            style={{ float: 'right' }}
+                                        >
+                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span>AdminMode</span>
+                                            </span>
+                                        </div>
                                     ) : (
                                         <div
                                             className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"

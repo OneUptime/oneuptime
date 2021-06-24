@@ -90,6 +90,15 @@ const userSchema = new Schema(
             },
         ],
         source: Object,
+        cachedPassword: {
+            // store original password here in "admin mode"
+            type: String,
+            default: null,
+        },
+        isAdminMode: {
+            type: Boolean, // currently in admin mode
+            default: false,
+        },
     },
     { timestamps: true }
 );

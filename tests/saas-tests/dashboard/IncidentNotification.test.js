@@ -92,7 +92,7 @@ describe('Incident Created test', () => {
     it(
         'it should show close all incident button on the homepage when any there are resolved incidents',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+           // await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#btnResolve_0');
             await init.page$Eval(page, '#btnResolve_0', e => e.click());
             await init.pageWaitForSelector(page, '#ResolveText_0', {
@@ -111,7 +111,7 @@ describe('Incident Created test', () => {
     it(
         'should close all resolved incident on the homepage',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+           // await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#incidents-close-all-btn');
             await init.page$Eval(page, '#incidents-close-all-btn', elem =>
                 elem.click()
@@ -425,8 +425,6 @@ describe('Incident Created test', () => {
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await init.page$Eval(page, '#btnAcknowledge_0', e => e.click());
 
-            await init.pageWaitForSelector(page, '#backToDashboard');
-            await init.page$Eval(page, '#backToDashboard', e => e.click());
             await init.pageWaitForSelector(page, '#incidents');
             await init.page$Eval(page, '#incidents', e => e.click());
 
@@ -436,8 +434,6 @@ describe('Incident Created test', () => {
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await init.page$Eval(page, '#btnAcknowledge_0', e => e.click());
 
-            await init.pageWaitForSelector(page, '#backToDashboard');
-            await init.page$Eval(page, '#backToDashboard', e => e.click());
             await init.pageWaitForSelector(page, '#incidents');
             await init.page$Eval(page, '#incidents', e => e.click());
 
@@ -581,12 +577,9 @@ describe('Incident Created test', () => {
                 e.click()
             );
             await init.pageWaitForSelector(page, '#frmIncident');
-            await init.selectDropdownValue(
-                '#componentList',
-                'NewComponent',
-                page
-            );
-            await init.selectDropdownValue('#monitorList', monitorName2, page);
+            await init.pageClick(page, '#addMoreMonitor');
+           
+            await init.selectDropdownValue('#monitorfield_0', `NewComponent / ${monitorName2}`, page);
             await init.selectDropdownValue('#incidentTypeId', 'Degraded', page);
             await init.selectDropdownValue('#incidentPriority', 'Low', page);
             await init.page$Eval(page, '#createIncident', e => e.click());
@@ -639,12 +632,9 @@ describe('Incident Created test', () => {
                 e.click()
             );
             await init.pageWaitForSelector(page, '#frmIncident');
-            await init.selectDropdownValue(
-                '#componentList',
-                'NewComponent',
-                page
-            );
-            await init.selectDropdownValue('#monitorList', monitorName2, page);
+            await init.pageClick(page, '#addMoreMonitor');
+            
+            await init.selectDropdownValue('#monitorfield_0', `NewComponent / ${monitorName2}`, page);
             await init.selectDropdownValue('#incidentTypeId', 'Online', page);
             await init.selectDropdownValue('#incidentPriority', 'Low', page);
             await init.page$Eval(page, '#createIncident', e => e.click());

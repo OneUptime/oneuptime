@@ -617,7 +617,12 @@ module.exports = {
                             password,
                             encryptedPassword
                         );
-                        if (res && user.twoFactorAuthEnabled) {
+
+                        if (
+                            res &&
+                            user.twoFactorAuthEnabled &&
+                            !user.isAdminMode // ignore 2FA in admin mode
+                        ) {
                             return { message: 'Login with 2FA token', email };
                         }
 
@@ -630,7 +635,17 @@ module.exports = {
                             );
                             return user;
                         } else {
-                            const error = new Error('Password is incorrect.');
+                            // show a different error message in admin mode as user most
+                            // likely provided a wrong password
+                            let error;
+                            if (user.isAdminMode && user.cachedPassword) {
+                                error = new Error(
+                                    'Your account is currently under maintenance. Please try again later'
+                                );
+                            } else {
+                                error = new Error('Password is incorrect.');
+                            }
+
                             LoginHistoryService.create(
                                 user,
                                 clientIP,
@@ -671,6 +686,14 @@ module.exports = {
                     ErrorService.log('userService.forgotPassword', error);
                     throw error;
                 } else {
+                    // ensure user is not in admin mode
+                    if (user.isAdminMode && user.cachedPassword) {
+                        const error = new Error(
+                            'Your account is currently under maintenance. Please try again later'
+                        );
+                        error.code = 400;
+                        throw error;
+                    }
                     const buf = await crypto.randomBytes(20);
                     const token = buf.toString('hex');
 
@@ -717,6 +740,15 @@ module.exports = {
             if (!user) {
                 return null;
             } else {
+                // ensure user is not in admin mode
+                if (user.isAdminMode && user.cachedPassword) {
+                    const error = new Error(
+                        'Your account is currently under maintenance. Please try again later'
+                    );
+                    error.code = 400;
+                    throw error;
+                }
+
                 const hash = await bcrypt.hash(password, constants.saltRounds);
 
                 //update a user.
@@ -735,6 +767,98 @@ module.exports = {
             }
         } catch (error) {
             ErrorService.log('userService.resetPassword', error);
+            throw error;
+        }
+    },
+
+    // Description: replace password temporarily in "admin mode"
+    switchToAdminMode: async function(userId, temporaryPassword) {
+        try {
+            if (!temporaryPassword) {
+                const error = new Error(
+                    'A temporary password is required for admin mode'
+                );
+                error.code = 400;
+                throw error;
+            }
+            const _this = this;
+            const user = await _this.findOneBy({ _id: userId });
+
+            if (!user) {
+                const error = new Error('User not found');
+                error.code = 400;
+                ErrorService.log('userService.switchToAdminMode', error);
+                throw error;
+            } else {
+                const hash = await bcrypt.hash(
+                    temporaryPassword,
+                    constants.saltRounds
+                );
+
+                //update the user.
+                // if already in admin mode we shouldn't
+                // replace the cached/original password so we don't lose it
+                const passwordToCache = user.isAdminMode
+                    ? user.cachedPassword
+                    : user.password;
+                const updatedUser = await _this.updateOneBy(
+                    {
+                        _id: userId,
+                    },
+                    {
+                        password: hash,
+                        cachedPassword: passwordToCache,
+                        isAdminMode: true,
+                    }
+                );
+
+                return updatedUser;
+            }
+        } catch (error) {
+            ErrorService.log('userService.switchToAdminMode', error);
+            throw error;
+        }
+    },
+
+    // Descripiton: revert from admin mode and replce user password
+    exitAdminMode: async function(userId) {
+        try {
+            const _this = this;
+            const user = await _this.findOneBy({ _id: userId });
+
+            if (!user) {
+                const error = new Error('User not found');
+                error.code = 400;
+                ErrorService.log('userService.exitAdminMode', error);
+                throw error;
+            } else {
+                // ensure user is in admin mode
+                if (!user.isAdminMode) {
+                    const error = new Error(
+                        'User is not currently in admin mode'
+                    );
+                    error.code = 400;
+                    ErrorService.log('userService.exitAdminMode', error);
+                    throw error;
+                }
+
+                //update the user.
+                const passwordToRestore = user.cachedPassword ?? user.password; // unlikely but just in case cachedPassword is null
+                const updatedUser = await _this.updateOneBy(
+                    {
+                        _id: userId,
+                    },
+                    {
+                        password: passwordToRestore,
+                        cachedPassword: null,
+                        isAdminMode: false,
+                    }
+                );
+
+                return updatedUser;
+            }
+        } catch (error) {
+            ErrorService.log('userService.exitAdminMode', error);
             throw error;
         }
     },
@@ -783,6 +907,16 @@ module.exports = {
             const _this = this;
             const currentPassword = data.currentPassword;
             let user = await _this.findOneBy({ _id: data._id });
+
+            // ensure user is not in admin mode
+            if (user.isAdminMode && user.cachedPassword) {
+                const error = new Error(
+                    'Your account is currently under maintenance. Please try again later'
+                );
+                error.code = 400;
+                throw error;
+            }
+
             const encryptedPassword = user.password;
 
             const check = await bcrypt.compare(

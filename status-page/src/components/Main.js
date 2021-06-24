@@ -1392,7 +1392,7 @@ class Main extends Component {
                         </ShouldRender>
                         <ShouldRender if={error}>
                             <div id="app-loading">
-                                <div>{error}</div>
+                                <div id="error">{error}</div>
                             </div>
                         </ShouldRender>
                     </div>
