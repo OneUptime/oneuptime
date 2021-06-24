@@ -84,7 +84,10 @@ class DeleteIncidentTemplate extends Component {
                                     </span>
                                 </div>
                                 <div className="bs-Modal-footer">
-                                    <div className="bs-Modal-footer-actions">
+                                    <div
+                                        className="bs-Modal-footer-actions"
+                                        style={{ flex: 'unset' }}
+                                    >
                                         <ShouldRender if={deleteError}>
                                             <div
                                                 id="deleteCardError"
