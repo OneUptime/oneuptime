@@ -127,19 +127,26 @@ export class TeamMember extends Component {
                         history.push('/dashboard/profile/' + this.props.userId);
                     }}
                 >
-                    <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
+                    <div className="bs-ObjectList-cell-row bs-ObjectList-copy">
                         {this.props.name ? (
-                            <span>
+                            <div className="Flex-flex">
                                 <img
                                     src="/dashboard/assets/img/profile-user.svg"
-                                    className="userIcon"
+                                    className="userIcon--large"
                                     style={{ marginRight: '5px' }}
                                     alt=""
                                 />
-                                <span>
-                                    {this.props.name ? this.props.name : ''}
-                                </span>
-                            </span>
+                                <div>
+                                    <div className="bs-ObjectList-copy bs-is-highlighted">
+                                        {this.props.name ? this.props.name : ''}
+                                    </div>
+                                    <div>
+                                        {this.props.email
+                                            ? this.props.email
+                                            : ''}
+                                    </div>
+                                </div>
+                            </div>
                         ) : (
                             ''
                         )}
