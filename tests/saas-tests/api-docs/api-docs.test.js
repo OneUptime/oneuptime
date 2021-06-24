@@ -26,7 +26,7 @@ describe('Check api-docs up', () => {
             });
             const response = await init.page$Eval(page, 'head > title', e => {
                 return e.innerHTML;
-            });
+            }, {hidden:true});
             expect(response).toBe('Fyipe API Documentation');
             done();
         },
