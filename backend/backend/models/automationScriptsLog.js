@@ -16,6 +16,10 @@ const automationSriptLogSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: 'AutomationSript',
         },
+        triggerByIncident: {
+            type: Schema.Types.ObjectId,
+            ref: 'Incident',
+        },
         status: {
             type: String,
             enum: ['success', 'running', 'failed'],
