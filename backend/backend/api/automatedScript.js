@@ -13,8 +13,6 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const { sendItemResponse } = require('../middlewares/response');
 const { isAuthorized } = require('../middlewares/authorization');
 const { getUser } = require('../middlewares/user');
-const postApi = require('../utils/api').postApi;
-const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
 
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
@@ -108,6 +106,19 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
             });
         }
 
+        // check if name already exists
+        const uniqueName = await AutomatedScriptService.findOneBy({
+            projectId: data.projectId,
+            name: data.name,
+        });
+
+        if (uniqueName) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'Script name already exists',
+            });
+        }
+
         if (data.successEvent.length > 0) {
             data.successEvent = formatEvent(data.successEvent, true);
         }
@@ -159,6 +170,26 @@ router.put(
                     message: 'Script is required',
                 });
             }
+
+            // check former name
+            const formerName = await AutomatedScriptService.findOneBy({
+                projectId: data.projectId,
+                _id: automatedScriptId,
+            });
+
+            // check if name already exists
+            const uniqueName = await AutomatedScriptService.findOneBy({
+                projectId: data.projectId,
+                name: data.name,
+            });
+
+            if (data.name !== formerName.name && uniqueName) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Script name already exists',
+                });
+            }
+
             if (data.successEvent.length > 0) {
                 data.successEvent = formatEvent(data.successEvent, true);
             }
@@ -184,9 +215,9 @@ router.put(
         try {
             const { automatedScriptId } = req.params;
             const triggeredId = req.user ? req.user.id : null;
-            const response = await runResource({
+            const response = await AutomatedScriptService.runResource({
                 triggeredId,
-                triggerByUser: true,
+                triggeredBy: 'user',
                 resources: { automatedScript: automatedScriptId },
             });
             return sendItemResponse(req, res, response);
@@ -216,109 +247,6 @@ router.delete(
         }
     }
 );
-
-const runResource = async ({
-    triggeredId,
-    triggerByUser,
-    resources,
-    stackSize = 0,
-}) => {
-    if (stackSize > 2) {
-        return;
-    }
-    const events = Array.isArray(resources) ? resources : [resources]; // object property => {callSchedule?, automatedScript?}
-    const eventPromises = events.map(event => {
-        let resourceType;
-        if (event.automatedScript) {
-            resourceType = 'automatedScript';
-        } else if (event.callSchedule) {
-            resourceType = 'callSchedule';
-        }
-        const automatedScriptId = event.automatedScript;
-        switch (resourceType) {
-            case 'automatedScript':
-                return runAutomatedScript({
-                    automatedScriptId,
-                    triggeredId,
-                    triggerByUser,
-                    stackSize: stackSize + 1,
-                });
-            default:
-                return null;
-        }
-    });
-
-    return Promise.all(eventPromises);
-};
-
-const runAutomatedScript = async ({
-    automatedScriptId,
-    triggeredId,
-    triggerByUser = false,
-    stackSize,
-}) => {
-    const {
-        script,
-        scriptType,
-        successEvent,
-        failureEvent,
-    } = await AutomatedScriptService.findOneBy({
-        _id: automatedScriptId,
-    });
-    let data = null;
-    if (scriptType === 'javascript') {
-        const result = await postApi(`${scriptBaseUrl}/api/script/js`, {
-            script,
-        });
-        data = {
-            success: result.success,
-            message: result.message,
-            errors: result.success
-                ? undefined
-                : result.message + ': ' + result.errors,
-            status: result.status,
-            executionTime: result.executionTime,
-            consoleLogs: result.consoleLogs,
-        };
-    } else if (scriptType === 'bash') {
-        const result = await postApi(`${scriptBaseUrl}/api/script/bash`, {
-            script,
-        });
-        data = {
-            success: result.success,
-            errors: result.errors,
-            status: result.status,
-            executionTime: result.executionTime,
-            consoleLogs: result.consoleLogs,
-        };
-    }
-    triggerByUser
-        ? (data.triggerByUser = triggeredId)
-        : (data.triggerByScript = triggeredId);
-    if (data.success && successEvent.length > 0) {
-        await runResource({
-            triggeredId: automatedScriptId,
-            resources: successEvent,
-            stackSize,
-        });
-    }
-    if (!data.success && failureEvent.length > 0) {
-        await runResource({
-            triggeredId: automatedScriptId,
-            resources: failureEvent,
-            stackSize,
-        });
-    }
-    const automatedScriptLog = await AutomatedScriptService.createLog(
-        automatedScriptId,
-        data
-    );
-    await AutomatedScriptService.updateOne(
-        { _id: automatedScriptId },
-        { updatedAt: new Date() }
-    );
-    return automatedScriptLog;
-};
 
 const formatEvent = (arr, type) => {
     const result = [];
