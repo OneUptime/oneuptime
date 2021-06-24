@@ -92,7 +92,7 @@ describe('Incident Created test', () => {
     it(
         'it should show close all incident button on the homepage when any there are resolved incidents',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+           // await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#btnResolve_0');
             await init.page$Eval(page, '#btnResolve_0', e => e.click());
             await init.pageWaitForSelector(page, '#ResolveText_0', {
@@ -111,7 +111,7 @@ describe('Incident Created test', () => {
     it(
         'should close all resolved incident on the homepage',
         async () => {
-            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+           // await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageWaitForSelector(page, '#incidents-close-all-btn');
             await init.page$Eval(page, '#incidents-close-all-btn', elem =>
                 elem.click()
@@ -464,208 +464,208 @@ describe('Incident Created test', () => {
         operationTimeOut
     );
 
-    test(
-        'Should filter unresolved incidents',
-        async () => {
-            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', e => e.click());
-
-            await init.pageWaitForSelector(
-                page,
-                `button[id=view-resource-${monitorName}]`
-            );
-            await init.page$Eval(
-                page,
-                `button[id=view-resource-${monitorName}]`,
-                e => e.click()
-            );
-
-            await init.pageWaitForSelector(page, 'button[id=filterToggle]');
-            await init.page$Eval(page, 'button[id=filterToggle]', e =>
-                e.click()
-            );
-            await init.pageWaitForSelector(page, 'div[title=unresolved]');
-            await init.page$Eval(page, 'div[title=unresolved]', e => e.click());
-
-            await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
-            const filteredIncidents = await init.page$$(
-                page,
-                'tr.createdIncidentListItem'
-            );
-            const filteredIncidentsCount = filteredIncidents.length;
-
-            expect(filteredIncidentsCount).toEqual(3);
-        },
-        operationTimeOut
-    );
-
-    test(
-        'Should clear filters',
-        async () => {
-            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            await init.pageWaitForSelector(page, '#components');
-            await init.page$Eval(page, '#components', e => e.click());
-
-            await init.pageWaitForSelector(
-                page,
-                `button[id=view-resource-${monitorName}]`
-            );
-            await init.page$Eval(
-                page,
-                `button[id=view-resource-${monitorName}]`,
-                e => e.click()
-            );
-
-            await init.pageWaitForSelector(page, 'button[id=filterToggle]');
-            await init.page$Eval(page, 'button[id=filterToggle]', e =>
-                e.click()
-            );
-            await init.pageWaitForSelector(page, 'div[title=clear]');
-            await init.page$Eval(page, 'div[title=clear]', e => e.click());
-
-            await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
-            const filteredIncidents = await init.page$$(
-                page,
-                'tr.createdIncidentListItem'
-            );
-            const filteredIncidentsCount = filteredIncidents.length;
-
-            expect(filteredIncidentsCount).toEqual(5);
-        },
-        operationTimeOut
-    );
-
-    test(
-        'Should show incidents of different components on the incident logs menu',
-        async () => {
-            const componentName = 'NewComponent';
-
-            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            await init.addComponent(componentName, page);
-            await init.addMonitorToComponent(
-                null,
-                monitorName2,
-                page,
-                componentName
-            );
-            await init.addIncident(monitorName2, 'Offline', page, 'High');
-            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-
-            await init.pageWaitForSelector(page, '#incidents');
-            await init.page$Eval(page, '#incidents', e => e.click());
-            await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
-            const filteredIncidents = await init.page$$(
-                page,
-                'tr.createdIncidentListItem'
-            );
-            const filteredIncidentsCount = filteredIncidents.length;
-            expect(filteredIncidentsCount).toEqual(7);
-        },
-        operationTimeOut
-    );
-
-    test(
-        'Should create an incident from the incident logs page and add it to the incident list',
-        async () => {
-            const projectName = 'Project1';
-
-            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            await init.pageWaitForSelector(page, '#incidents');
-            await init.page$Eval(page, '#incidents', e => e.click());
-            await init.pageWaitForSelector(
-                page,
-                `#btnCreateIncident_${projectName}`
-            );
-            await init.page$Eval(page, `#btnCreateIncident_${projectName}`, e =>
-                e.click()
-            );
-            await init.pageWaitForSelector(page, '#frmIncident');
-            await init.selectDropdownValue(
-                '#componentList',
-                'NewComponent',
-                page
-            );
-            await init.selectDropdownValue('#monitorList', monitorName2, page);
-            await init.selectDropdownValue('#incidentTypeId', 'Degraded', page);
-            await init.selectDropdownValue('#incidentPriority', 'Low', page);
-            await init.page$Eval(page, '#createIncident', e => e.click());
-            await init.pageWaitForSelector(page, '#createIncident', {
-                hidden: true,
-            });
-            await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
-            const filteredIncidents = await init.page$$(
-                page,
-                'tr.createdIncidentListItem'
-            );
-            const filteredIncidentsCount = filteredIncidents.length;
-            expect(filteredIncidentsCount).toEqual(8);
-        },
-        operationTimeOut
-    );
-
     // test(
-    //     'Should open modal for unresolved incident when close button is clicked',
+    //     'Should filter unresolved incidents',
     //     async () => {
-    //
-    //             await page.goto(utils.DASHBOARD_URL);
-    //             await init.pageWaitForSelector(page, '#closeIncident_0', {
-    //                 visible: true,
-    //             });
-    //             await init.page$Eval(page, '#closeIncident_0', elem => elem.click());
-    //             await init.pageWaitForSelector(page, '#closeIncidentButton_0');
-    //             await init.page$Eval(page, '#closeIncidentButton_0',e=>e.click());
-    //             const elementHandle = await init.page$(page, '#modal-ok');
-    //             expect(elementHandle).not.toBe(null);
-    //         });
+    //         await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+    //         await init.pageWaitForSelector(page, '#components');
+    //         await init.page$Eval(page, '#components', e => e.click());
+
+    //         await init.pageWaitForSelector(
+    //             page,
+    //             `button[id=view-resource-${monitorName}]`
+    //         );
+    //         await init.page$Eval(
+    //             page,
+    //             `button[id=view-resource-${monitorName}]`,
+    //             e => e.click()
+    //         );
+
+    //         await init.pageWaitForSelector(page, 'button[id=filterToggle]');
+    //         await init.page$Eval(page, 'button[id=filterToggle]', e =>
+    //             e.click()
+    //         );
+    //         await init.pageWaitForSelector(page, 'div[title=unresolved]');
+    //         await init.page$Eval(page, 'div[title=unresolved]', e => e.click());
+
+    //         await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
+    //         const filteredIncidents = await init.page$$(
+    //             page,
+    //             'tr.createdIncidentListItem'
+    //         );
+    //         const filteredIncidentsCount = filteredIncidents.length;
+
+    //         expect(filteredIncidentsCount).toEqual(3);
     //     },
     //     operationTimeOut
     // );
 
-    test(
-        'Should close incident notification when an incident is viewed',
-        async () => {
-            const projectName = 'Project1';
+    // test(
+    //     'Should clear filters',
+    //     async () => {
+    //         await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+    //         await init.pageWaitForSelector(page, '#components');
+    //         await init.page$Eval(page, '#components', e => e.click());
 
-            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            // remove existing notification
-            await init.pageWaitForSelector(page, '#incidents');
-            await init.page$Eval(page, '#incidents', e => e.click());
-            await init.pageWaitForSelector(
-                page,
-                `#btnCreateIncident_${projectName}`
-            );
-            await init.page$Eval(page, `#btnCreateIncident_${projectName}`, e =>
-                e.click()
-            );
-            await init.pageWaitForSelector(page, '#frmIncident');
-            await init.selectDropdownValue(
-                '#componentList',
-                'NewComponent',
-                page
-            );
-            await init.selectDropdownValue('#monitorList', monitorName2, page);
-            await init.selectDropdownValue('#incidentTypeId', 'Online', page);
-            await init.selectDropdownValue('#incidentPriority', 'Low', page);
-            await init.page$Eval(page, '#createIncident', e => e.click());
-            await init.pageWaitForSelector(page, '#createIncident', {
-                hidden: true,
-            });
-            await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
-            await init.page$Eval(
-                page,
-                `#${monitorName2}_ViewIncidentDetails`,
-                elem => elem.click()
-            );
-            await init.pageWaitForSelector(page, '#closeIncident_2', {
-                hidden: true,
-            });
-            const rowsCount = (
-                await init.page$$(page, '#notificationscroll button')
-            ).length;
+    //         await init.pageWaitForSelector(
+    //             page,
+    //             `button[id=view-resource-${monitorName}]`
+    //         );
+    //         await init.page$Eval(
+    //             page,
+    //             `button[id=view-resource-${monitorName}]`,
+    //             e => e.click()
+    //         );
 
-            expect(rowsCount).toEqual(2);
-        },
-        operationTimeOut
-    );
+    //         await init.pageWaitForSelector(page, 'button[id=filterToggle]');
+    //         await init.page$Eval(page, 'button[id=filterToggle]', e =>
+    //             e.click()
+    //         );
+    //         await init.pageWaitForSelector(page, 'div[title=clear]');
+    //         await init.page$Eval(page, 'div[title=clear]', e => e.click());
+
+    //         await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
+    //         const filteredIncidents = await init.page$$(
+    //             page,
+    //             'tr.createdIncidentListItem'
+    //         );
+    //         const filteredIncidentsCount = filteredIncidents.length;
+
+    //         expect(filteredIncidentsCount).toEqual(5);
+    //     },
+    //     operationTimeOut
+    // );
+
+    // test(
+    //     'Should show incidents of different components on the incident logs menu',
+    //     async () => {
+    //         const componentName = 'NewComponent';
+
+    //         await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+    //         await init.addComponent(componentName, page);
+    //         await init.addMonitorToComponent(
+    //             null,
+    //             monitorName2,
+    //             page,
+    //             componentName
+    //         );
+    //         await init.addIncident(monitorName2, 'Offline', page, 'High');
+    //         await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+
+    //         await init.pageWaitForSelector(page, '#incidents');
+    //         await init.page$Eval(page, '#incidents', e => e.click());
+    //         await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
+    //         const filteredIncidents = await init.page$$(
+    //             page,
+    //             'tr.createdIncidentListItem'
+    //         );
+    //         const filteredIncidentsCount = filteredIncidents.length;
+    //         expect(filteredIncidentsCount).toEqual(7);
+    //     },
+    //     operationTimeOut
+    // );
+
+    // test(
+    //     'Should create an incident from the incident logs page and add it to the incident list',
+    //     async () => {
+    //         const projectName = 'Project1';
+
+    //         await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+    //         await init.pageWaitForSelector(page, '#incidents');
+    //         await init.page$Eval(page, '#incidents', e => e.click());
+    //         await init.pageWaitForSelector(
+    //             page,
+    //             `#btnCreateIncident_${projectName}`
+    //         );
+    //         await init.page$Eval(page, `#btnCreateIncident_${projectName}`, e =>
+    //             e.click()
+    //         );
+    //         await init.pageWaitForSelector(page, '#frmIncident');
+    //         await init.selectDropdownValue(
+    //             '#componentList',
+    //             'NewComponent',
+    //             page
+    //         );
+    //         await init.selectDropdownValue('#monitorList', monitorName2, page);
+    //         await init.selectDropdownValue('#incidentTypeId', 'Degraded', page);
+    //         await init.selectDropdownValue('#incidentPriority', 'Low', page);
+    //         await init.page$Eval(page, '#createIncident', e => e.click());
+    //         await init.pageWaitForSelector(page, '#createIncident', {
+    //             hidden: true,
+    //         });
+    //         await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
+    //         const filteredIncidents = await init.page$$(
+    //             page,
+    //             'tr.createdIncidentListItem'
+    //         );
+    //         const filteredIncidentsCount = filteredIncidents.length;
+    //         expect(filteredIncidentsCount).toEqual(8);
+    //     },
+    //     operationTimeOut
+    // );
+
+    // // test(
+    // //     'Should open modal for unresolved incident when close button is clicked',
+    // //     async () => {
+    // //
+    // //             await page.goto(utils.DASHBOARD_URL);
+    // //             await init.pageWaitForSelector(page, '#closeIncident_0', {
+    // //                 visible: true,
+    // //             });
+    // //             await init.page$Eval(page, '#closeIncident_0', elem => elem.click());
+    // //             await init.pageWaitForSelector(page, '#closeIncidentButton_0');
+    // //             await init.page$Eval(page, '#closeIncidentButton_0',e=>e.click());
+    // //             const elementHandle = await init.page$(page, '#modal-ok');
+    // //             expect(elementHandle).not.toBe(null);
+    // //         });
+    // //     },
+    // //     operationTimeOut
+    // // );
+
+    // test(
+    //     'Should close incident notification when an incident is viewed',
+    //     async () => {
+    //         const projectName = 'Project1';
+
+    //         await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+    //         // remove existing notification
+    //         await init.pageWaitForSelector(page, '#incidents');
+    //         await init.page$Eval(page, '#incidents', e => e.click());
+    //         await init.pageWaitForSelector(
+    //             page,
+    //             `#btnCreateIncident_${projectName}`
+    //         );
+    //         await init.page$Eval(page, `#btnCreateIncident_${projectName}`, e =>
+    //             e.click()
+    //         );
+    //         await init.pageWaitForSelector(page, '#frmIncident');
+    //         await init.selectDropdownValue(
+    //             '#componentList',
+    //             'NewComponent',
+    //             page
+    //         );
+    //         await init.selectDropdownValue('#monitorList', monitorName2, page);
+    //         await init.selectDropdownValue('#incidentTypeId', 'Online', page);
+    //         await init.selectDropdownValue('#incidentPriority', 'Low', page);
+    //         await init.page$Eval(page, '#createIncident', e => e.click());
+    //         await init.pageWaitForSelector(page, '#createIncident', {
+    //             hidden: true,
+    //         });
+    //         await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
+    //         await init.page$Eval(
+    //             page,
+    //             `#${monitorName2}_ViewIncidentDetails`,
+    //             elem => elem.click()
+    //         );
+    //         await init.pageWaitForSelector(page, '#closeIncident_2', {
+    //             hidden: true,
+    //         });
+    //         const rowsCount = (
+    //             await init.page$$(page, '#notificationscroll button')
+    //         ).length;
+
+    //         expect(rowsCount).toEqual(2);
+    //     },
+    //     operationTimeOut
+    // );
 });
