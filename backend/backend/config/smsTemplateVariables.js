@@ -9,7 +9,7 @@ module.exports = {
         '{{incident.customFields.*}} : The value of any incident custom field',
         '{{monitor.customFields.*}} : The value of any monitor custom field',
     ],
-    'Subscriber Incident Acknowldeged': [
+    'Subscriber Incident Acknowledged': [
         '{{incidentTime}} : Time at which this incident occured.',
         '{{monitorName}} : Name of the monitor on which incident has occured.',
         '{{projectName}} : Name of the project on which the incident has occured.',

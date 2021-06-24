@@ -51,7 +51,7 @@ describe('Fyipe Page Reload', () => {
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await page.waitForSelector('#cbProjectSettings', { visible: true });
-            await page.waitForSelector('#cbGroups', { visible: true });
+            await page.waitForSelector('#cbTeamGroups', { visible: true });
             const spanElement2 = await page.waitForSelector(
                 `#sub_project_name_${groupName}`
             );

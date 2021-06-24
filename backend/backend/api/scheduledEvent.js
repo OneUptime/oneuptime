@@ -781,7 +781,7 @@ router.delete(
         try {
             const { eventId, noteId, projectId } = req.params;
             const userId = req.user ? req.user.id : null;
-            
+
             const deletedEventMessage = await ScheduledEventNoteService.deleteBy(
                 {
                     _id: noteId,

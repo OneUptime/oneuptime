@@ -1,6 +1,7 @@
 ##HTTP_TEST_SERVER
 audit_http_test_server:
     stage: BuildAndTest
+    allow_failure: true
     script:
         - chmod +x ./ci/scripts/checkhash.sh
         - export next_stage=`./ci/scripts/checkhash.sh audit_http_test_server http-test-server`

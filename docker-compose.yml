@@ -33,10 +33,12 @@ services:
             - MONGO_URL=mongodb://mongo:27017/fyipedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - SCRIPT_RUNNER_URL=http://script-runner:3009
         depends_on:
             - mongo
             - redis
             - haraka
+            - script-runner
     accounts:
         ports:
             - '3003:3003'

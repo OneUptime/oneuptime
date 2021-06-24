@@ -743,10 +743,13 @@ module.exports = {
                 } else {
                     users = await Promise.all(
                         project.users.map(async user => {
-                            return await UserService.findOneBy({
+                            const foundUser = await UserService.findOneBy({
                                 _id: user.userId,
                                 deleted: { $ne: null },
                             });
+
+                            // append user's project role different from system role
+                            return { ...foundUser, projectRole: user.role };
                         })
                     );
                     project.users = users;

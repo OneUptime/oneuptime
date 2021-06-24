@@ -1,38 +1,11 @@
 # Running Fyipe
 
-## Running this project in local environment (without docker compose, recommended if you're doing active development).
+## Running this project in local environment
 
--   Run MongoDB and Redis manually on port 27017 and 6379 respectively. You can do this with docker below:
-
-```
-mkdir ~/mongodata # This is where all of your Fyipe MongoDB data will be stored.
-docker run -d -p 27017:27017 -v ~/mongodata:/data/db mongo:latest
-docker run -d -p 6379:6379 redis:latest
-```
-
--   You can run `npm install` and `npm run dev` on projects you want to work on. Ideally you would need to run those commands in `accounts`, `backend`, `probe`, `dashboard`, and `status-page` in seperate terminal instances to run the basic app.
--   Sign up using Stripe test card (if Fyipe asks you to enter a credit card): https://stripe.com/docs/testing
--   You're done setting up the project, when you can log in to admin dashboard (localhost:3100) and dashboard (localhost:3000).
--   Attach a probe server:
-    -   The probes server ping reports to the backend after fetching lists of resources from the backend that should be monitored.
-    -   cd probe && `npm install`
-    -   `npm run dev`
-    -   (optional) To add additional location:
-        -   `PROBE_NAME="UK" PROBE_KEY="test-key" PORT=3021 npm run dev`
-        -   Note: check the `.env` file for the default configuration and always change the PROBE_NAME and PORT on addition of new location.
-
-## Running with docker compose (with docker-compose, recommended if you're actively testing the app)
-
--   Before you run this project locally, please make sure you're on Ubuntu or on a Mac machine.
--   Install Docker and Docker Compose.
--   Install Robomongo / Mongo Compass / or any other MongoDB UI Tool.
--   Make sure MongoDB and Redis are NOT running (NO services should run on port 27017 and 6379)
--   Run `sudo bash install.sh` - This will take some time (30 mins maybe or more) when you run this for the first time.
--   The above command runs the entire project in Docker Compose.
--   If you're working on particular sub-project (for ex: accounts, admin-dashboard or literally anything else), your changes will not be reflected in Docker Compose automatically. In this case
-    -   Delete the docker container of the project you're working on. (`sudo docker stop containerId` and `sudo docker rm containerId`)
-    -   Once the container is deleted, cd into that project run `npm install` and `npm run dev`.
-    -   Let other projects / containers run on docker. They will work perfectly fine with a project you're working on.
+-   Watch https://youtu.be/erAxgSMkW58
+-   You can run Enterprise mode by `npm run dev`. Enterprise runs Fyipe service without Stripe card payments.
+-   You can run SaaS Mode by `npm run saas-dev`. SaaS mode will enable card payments by stripe.
+-   You can run a parcular service by passing --service flag. For example `npm run dev --service="backend"` or multiple services by `npm run dev --service="backend accounts"`.
 
 ## Running on: on-prem, staging, or production.
 
