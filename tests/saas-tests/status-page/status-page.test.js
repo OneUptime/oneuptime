@@ -43,7 +43,7 @@ describe('Check status-page up', () => {
             });
             const response = await init.page$Eval(
                 page,
-                '#app-loading > div',
+                '#error',
                 e => {
                     return e.innerHTML;
                 }
