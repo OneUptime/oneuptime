@@ -150,6 +150,7 @@ services:
             - REDIS_HOST=redis
             - REDIS_PORT=6379
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - SCRIPT_RUNNER_URL=http://script-runner:3009
         depends_on:
             - mongo
             - redis
