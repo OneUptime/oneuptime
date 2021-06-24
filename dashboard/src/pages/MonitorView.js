@@ -1040,6 +1040,9 @@ const mapStateToProps = (state, props) => {
                         const id = criterion._id;
                         const criterionBodyField = mapCriteria(criterion);
                         const criterionFieldName = `${type}_${id}`;
+                        const scriptName = criterion.scripts.map(
+                            ({ scriptId }) => scriptId.name
+                        );
 
                         // set initial values for the criterion
                         initialValues[criterionFieldName] = criterionBodyField;
@@ -1057,6 +1060,9 @@ const mapStateToProps = (state, props) => {
                             criterion.autoAcknowledge;
                         initialValues[`autoResolve_${criterionFieldName}`] =
                             criterion.autoResolve;
+                        initialValues[
+                            `script_${criterionFieldName}`
+                        ] = scriptName;
 
                         // initialize schedules checkboxes for the criterions
                         /**
