@@ -120,7 +120,10 @@ class CreateIncidentTemplate extends React.Component {
                                     </span>
                                 </div>
                             </div>
-                            <form onSubmit={handleSubmit(this.submit)}>
+                            <form
+                                onSubmit={handleSubmit(this.submit)}
+                                id="templateForm"
+                            >
                                 <div className="bs-Modal-content bs-u-paddingless">
                                     <div className="bs-Modal-block bs-u-paddingless">
                                         <div className="bs-Modal-content">
@@ -133,6 +136,7 @@ class CreateIncidentTemplate extends React.Component {
                                                             </label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
+                                                                    id="name"
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                     component={
                                                                         RenderField
@@ -196,6 +200,7 @@ class CreateIncidentTemplate extends React.Component {
                                                             </label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
+                                                                    id="title"
                                                                     className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                     component={
                                                                         RenderField

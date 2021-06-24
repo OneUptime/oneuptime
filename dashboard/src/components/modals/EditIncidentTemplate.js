@@ -133,6 +133,7 @@ class EditIncidentTemplate extends React.Component {
                                                                     component={
                                                                         RenderField
                                                                     }
+                                                                    id="name"
                                                                     name="name"
                                                                     validate={
                                                                         ValidateField.text

@@ -452,7 +452,7 @@ export class IncidentList extends Component {
                                             >
                                                 <div
                                                     className="db-ListViewItem-cellContent Box-root Padding-all--8"
-                                                    id={`incident_${this.props.incidents.name}_title`}
+                                                    id={`incident_title_${i}`}
                                                 >
                                                     <ReactMarkdown
                                                         source={incident.title}
