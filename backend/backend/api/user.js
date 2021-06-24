@@ -1315,6 +1315,14 @@ router.get('/users/:userId', getUser, isUserMasterAdmin, async function(
 router.delete('/:userId', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const userId = req.params.userId;
+        const authUserId = req.user.id;
+        if (userId === authUserId) {
+            const err = new Error(
+                "Invalid operation! You can't perform this operation on your own account"
+            );
+            err.code = 400;
+            throw err;
+        }
         const masterUserId = req.user.id || null;
         const user = await UserService.deleteBy({ _id: userId }, masterUserId);
         return sendItemResponse(req, res, user);
@@ -1329,6 +1337,14 @@ router.put('/:userId/restoreUser', getUser, isUserMasterAdmin, async function(
 ) {
     try {
         const userId = req.params.userId;
+        const authUserId = req.user.id;
+        if (userId === authUserId) {
+            const err = new Error(
+                "Invalid operation! You can't perform this operation on your own account"
+            );
+            err.code = 400;
+            throw err;
+        }
         const user = await UserService.restoreBy({
             _id: userId,
             deleted: true,
@@ -1345,6 +1361,14 @@ router.put('/:userId/blockUser', getUser, isUserMasterAdmin, async function(
 ) {
     try {
         const userId = req.params.userId;
+        const authUserId = req.user.id;
+        if (userId === authUserId) {
+            const err = new Error(
+                "Invalid operation! You can't perform this operation on your own account"
+            );
+            err.code = 400;
+            throw err;
+        }
         const user = await UserService.updateOneBy(
             { _id: userId },
             { isBlocked: true }
@@ -1361,6 +1385,14 @@ router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function(
 ) {
     try {
         const userId = req.params.userId;
+        const authUserId = req.user.id;
+        if (userId === authUserId) {
+            const err = new Error(
+                "Invalid operation! You can't perform this operation on your own account"
+            );
+            err.code = 400;
+            throw err;
+        }
         const user = await UserService.updateOneBy(
             { _id: userId },
             { isBlocked: false }
@@ -1370,6 +1402,66 @@ router.put('/:userId/unblockUser', getUser, isUserMasterAdmin, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+// Route
+// Description: Switch user account to admin mode.
+// Params:
+// Param 1: req.body-> {temporaryPassword}; req.headers-> {authorization}; req.user-> {id};
+// Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
+router.post(
+    '/:userId/switchToAdminMode',
+    getUser,
+    isUserMasterAdmin,
+    async function(req, res) {
+        try {
+            const userId = req.params.userId;
+            const authUserId = req.user.id;
+            if (userId === authUserId) {
+                const err = new Error(
+                    "Invalid operation! You can't perform this operation on your own account"
+                );
+                err.code = 400;
+                throw err;
+            }
+            const { temporaryPassword } = req.body;
+            const user = await UserService.switchToAdminMode(
+                userId,
+                temporaryPassword
+            );
+            return sendItemResponse(req, res, user);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// Route
+// Description: Switch off admin mode for user account
+// Params:
+// Param 1: req.headers-> {authorization}; req.user-> {id};
+// Returns: 200: Success, 400: Error; 401: Unauthorized; 500: Server Error.
+router.post(
+    '/:userId/exitAdminMode',
+    getUser,
+    isUserMasterAdmin,
+    async function(req, res) {
+        try {
+            const userId = req.params.userId;
+            const authUserId = req.user.id;
+            if (userId === authUserId) {
+                const err = new Error(
+                    "Invalid operation! You can't perform this operation on your own account"
+                );
+                err.code = 400;
+                throw err;
+            }
+            const user = await UserService.exitAdminMode(userId);
+            return sendItemResponse(req, res, user);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 router.post('/:userId/addNote', getUser, isUserMasterAdmin, async function(
     req,

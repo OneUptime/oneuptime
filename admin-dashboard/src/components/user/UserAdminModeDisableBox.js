@@ -4,18 +4,16 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { unblockUser } from '../../actions/user';
-import { openModal, closeModal } from '../../actions/modal';
+import { disableAdminMode } from '../../actions/user';
 
-export class UserUnblockBox extends Component {
+export class UserAdminModeDisableBox extends Component {
     constructor(props) {
         super(props);
-        this.props = props;
     }
 
     handleClick = () => {
-        const { unblockUser, userId } = this.props;
-        return unblockUser(userId);
+        const { disableAdminMode, userId } = this.props;
+        disableAdminMode(userId);
     };
 
     render() {
@@ -28,11 +26,12 @@ export class UserUnblockBox extends Component {
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Unblock This User</span>
+                                    <span>Disable Admin Mode</span>
                                 </span>
                                 <p>
                                     <span>
-                                        Click the button to unblock this user.
+                                        Click the button to disable admin mode
+                                        and revert to original user password
                                     </span>
                                 </p>
                             </div>
@@ -40,13 +39,13 @@ export class UserUnblockBox extends Component {
                                 <span className="db-SettingsForm-footerMessage"></span>
                                 <div>
                                     <button
-                                        id="unblock"
-                                        className="bs-Button bs-Button--blue Box-background--blue"
+                                        id="block"
+                                        className="bs-Button bs-Button--green Box-background--green"
                                         disabled={isRequesting}
                                         onClick={this.handleClick}
                                     >
                                         <ShouldRender if={!isRequesting}>
-                                            <span>Unblock</span>
+                                            <span>Dsiable Admin Mode</span>
                                         </ShouldRender>
                                         <ShouldRender if={isRequesting}>
                                             <FormLoader />
@@ -62,35 +61,34 @@ export class UserUnblockBox extends Component {
     }
 }
 
-UserUnblockBox.displayName = 'UserUnblockBox';
+UserAdminModeDisableBox.displayName = 'UserAdminModeDisableBox';
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ unblockUser, openModal, closeModal }, dispatch);
+    bindActionCreators({ disableAdminMode }, dispatch);
 
 const mapStateToProps = state => {
-    const user = state.user.user.user || {};
-    const userId = user._id;
+    const userId = state.user.user.user ? state.user.user.user._id : null;
+
     return {
         userId,
-        user,
         isRequesting:
             state.user &&
-            state.user.unblockUser &&
-            state.user.unblockUser.requesting,
+            state.user.disableAdminMode &&
+            state.user.disableAdminMode.requesting,
     };
 };
 
-UserUnblockBox.propTypes = {
+UserAdminModeDisableBox.propTypes = {
     isRequesting: PropTypes.oneOf([null, undefined, true, false]),
-    userId: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
-    unblockUser: PropTypes.func.isRequired,
+    disableAdminMode: PropTypes.func.isRequired,
+    userId: PropTypes.string,
 };
 
-UserUnblockBox.contextTypes = {
+UserAdminModeDisableBox.contextTypes = {
     mixpanel: PropTypes.object.isRequired,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(UserUnblockBox);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(UserAdminModeDisableBox);
