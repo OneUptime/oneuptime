@@ -3,7 +3,7 @@ import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
 import FileSaver from 'file-saver';
-// import { emaildomains } from './constants/emaildomains';
+import { emaildomains } from './constants/emaildomains';
 import booleanParser from './utils/booleanParser';
 
 export function env(value) {
@@ -195,9 +195,9 @@ export const Validate = {
         return emaildomains.test(email);
     },
     isValidBusinessEmails(emails) {
-        // for (const email of emails) {
-        //     if (!emaildomains.test(email)) return false;
-        // }
+        for (const email of emails) {
+            if (!emaildomains.test(email)) return false;
+        }
         return true;
     },
 

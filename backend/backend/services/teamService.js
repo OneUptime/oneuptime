@@ -228,14 +228,14 @@ module.exports = {
 
     isValidBusinessEmails: function(emails) {
         let valid = true;
-        // if (emails && emails.length > 0) {
-        //     for (let i = 0; i < emails.length; i++) {
-        //         if (!emaildomains.test(emails[i])) {
-        //             valid = false;
-        //             break;
-        //         }
-        //     }
-        // }
+        if (emails && emails.length > 0) {
+            for (let i = 0; i < emails.length; i++) {
+                if (!emaildomains.test(emails[i])) {
+                    valid = false;
+                    break;
+                }
+            }
+        }
         return valid;
     },
 
