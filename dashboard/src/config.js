@@ -180,7 +180,8 @@ export const Validate = {
     },
 
     isValidBusinessEmail(email) {
-        return emaildomains.test(email);
+        return true; 
+        // return emaildomains.test(email);
     },
 
     isValidBusinessEmails(emails) {

@@ -70,12 +70,12 @@ router.post('/signup', async function(req, res) {
             });
         }
 
-        if (!emaildomains.test(data.email)) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Business email address is required.',
-            });
-        }
+        // if (!emaildomains.test(data.email)) {
+        //     return sendErrorResponse(req, res, {
+        //         code: 400,
+        //         message: 'Business email address is required.',
+        //     });
+        // }
 
         if (!data.password) {
             return sendErrorResponse(req, res, {
