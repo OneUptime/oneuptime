@@ -17,9 +17,11 @@ const criterionEventSchema = {
     },
     scripts: [
         {
-            type: Schema.Types.ObjectId,
-            ref: 'AutomationSript',
-            index: true,
+            scriptId: {
+                type: Schema.Types.ObjectId,
+                ref: 'AutomationSript',
+                index: true,
+            },
         },
     ],
 };
