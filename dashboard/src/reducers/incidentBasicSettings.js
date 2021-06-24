@@ -19,6 +19,9 @@ import {
     SET_DEFAULT_INCIDENT_TEMPLATE_SUCCESS,
     SET_DEFAULT_INCIDENT_TEMPLATE_FAILURE,
     SET_ACTIVE_TEMPLATE,
+    FETCH_DEFAULT_TEMPLATE_REQUEST,
+    FETCH_DEFAULT_TEMPLATE_SUCCESS,
+    FETCH_DEFAULT_TEMPLATE_FAILURE,
 } from '../constants/incidentBasicSettings';
 
 const INITIAL_STATE = {
@@ -59,6 +62,12 @@ const INITIAL_STATE = {
         error: null,
     },
     activeTemplate: null,
+    defaultTemplate: {
+        requesting: false,
+        success: false,
+        error: null,
+        template: {},
+    },
 };
 
 export default (state = INITIAL_STATE, action) => {
@@ -194,6 +203,12 @@ export default (state = INITIAL_STATE, action) => {
                         }
                     ),
                 },
+                defaultTemplate: {
+                    ...state.defaultTemplate,
+                    template: action.payload.isDefault
+                        ? action.payload
+                        : state.defaultTemplate.template,
+                },
             };
         case UPDATE_INCIDENT_TEMPLATE_FAILURE:
             return {
@@ -269,6 +284,10 @@ export default (state = INITIAL_STATE, action) => {
                         }
                     ),
                 },
+                defaultTemplate: {
+                    ...state.defaultTemplate,
+                    template: action.payload,
+                },
             };
         case SET_DEFAULT_INCIDENT_TEMPLATE_FAILURE:
             return {
@@ -283,6 +302,36 @@ export default (state = INITIAL_STATE, action) => {
             return {
                 ...state,
                 activeTemplate: action.payload,
+            };
+        case FETCH_DEFAULT_TEMPLATE_REQUEST:
+            return {
+                ...state,
+                defaultTemplate: {
+                    ...state.defaultTemplate,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+        case FETCH_DEFAULT_TEMPLATE_SUCCESS:
+            return {
+                ...state,
+                defaultTemplate: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    template: action.payload,
+                },
+            };
+        case FETCH_DEFAULT_TEMPLATE_FAILURE:
+            return {
+                ...state,
+                defaultTemplate: {
+                    ...state.defaultTemplate,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
             };
         default:
             return state;

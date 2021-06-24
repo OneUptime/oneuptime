@@ -407,3 +407,45 @@ export const setActiveTemplate = id => ({
     type: types.SET_ACTIVE_TEMPLATE,
     payload: id,
 });
+
+// FETCH DEFAULT INCIDENT TEMPLATE
+export const fetchDefaultTemplateRequest = () => ({
+    type: types.FETCH_DEFAULT_TEMPLATE_REQUEST,
+});
+
+export const fetchDefaultTemplateSuccess = payload => ({
+    type: types.FETCH_DEFAULT_TEMPLATE_SUCCESS,
+    payload,
+});
+
+export const fetchDefaultTemplateFailure = error => ({
+    type: types.FETCH_DEFAULT_TEMPLATE_FAILURE,
+    payload: error,
+});
+
+export const fetchDefaultTemplate = ({ projectId }) => dispatch => {
+    const url = `incidentSettings/${projectId}/default`;
+
+    const promise = getApi(url);
+    dispatch(fetchDefaultTemplateRequest());
+    promise.then(
+        function(incidentBasicSettings) {
+            dispatch(fetchDefaultTemplateSuccess(incidentBasicSettings.data));
+        },
+        function(error) {
+            if (error && error.response && error.response.data)
+                error = error.response.data;
+            if (error && error.data) {
+                error = error.data;
+            }
+            if (error && error.message) {
+                error = error.message;
+            } else {
+                error = 'Network Error';
+            }
+            dispatch(fetchDefaultTemplateFailure(errors(error)));
+        }
+    );
+
+    return promise;
+};
