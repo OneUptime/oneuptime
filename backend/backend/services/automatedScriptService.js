@@ -1,7 +1,9 @@
 const ScriptModel = require('../models/automatedScripts');
 const ScriptModelLog = require('../models/automationScriptsLog');
+const { postApi } = require('../utils/api');
 const getSlug = require('../utils/getSlug');
 const ErrorService = require('./errorService');
+const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
 
 module.exports = {
     findBy: async function(query, skip, limit) {
@@ -82,6 +84,7 @@ module.exports = {
             scriptLog.automationScriptId = id || null;
             scriptLog.triggerByUser = data.triggerByUser || null;
             scriptLog.triggerByScript = data.triggerByScript || null;
+            scriptLog.triggerByIncident = data.triggerByIncident || null;
             scriptLog.status = data.status || null;
             scriptLog.executionTime = data.executionTime || null;
             scriptLog.consoleLogs = data.consoleLogs || null;
@@ -136,6 +139,7 @@ module.exports = {
                 .skip(skip)
                 .populate('automationScriptId', 'name')
                 .populate('triggerByUser', 'name')
+                .populate('triggerByIncident', 'idNumber')
                 .populate('triggerByScript', 'name');
             return response;
         } catch (error) {
@@ -179,6 +183,128 @@ module.exports = {
             return response;
         } catch (error) {
             ErrorService.log('automatedScript.createScript', error);
+            throw error;
+        }
+    },
+
+    runResource: async function({
+        triggeredId,
+        triggeredBy,
+        resources,
+        stackSize = 0,
+    }) {
+        try {
+            const _this = this;
+            if (stackSize > 2) {
+                return;
+            }
+            const events = Array.isArray(resources) ? resources : [resources]; // object property => {callSchedule?, automatedScript?}
+            const eventPromises = events.map(event => {
+                let resourceType;
+                if (event.automatedScript) {
+                    resourceType = 'automatedScript';
+                } else if (event.callSchedule) {
+                    resourceType = 'callSchedule';
+                }
+                const automatedScriptId = event.automatedScript;
+                switch (resourceType) {
+                    case 'automatedScript':
+                        return _this.runAutomatedScript({
+                            automatedScriptId,
+                            triggeredId,
+                            triggeredBy,
+                            stackSize: stackSize + 1,
+                        });
+                    default:
+                        return null;
+                }
+            });
+
+            return Promise.all(eventPromises);
+        } catch (error) {
+            ErrorService.log('automatedScript.runResource', error);
+            throw error;
+        }
+    },
+
+    runAutomatedScript: async function({
+        automatedScriptId,
+        triggeredId,
+        triggeredBy = 'script',
+        stackSize,
+    }) {
+        try {
+            const _this = this;
+            const {
+                script,
+                scriptType,
+                successEvent,
+                failureEvent,
+            } = await _this.findOneBy({
+                _id: automatedScriptId,
+            });
+            let data = null;
+            if (scriptType === 'javascript') {
+                const result = await postApi(`${scriptBaseUrl}/api/script/js`, {
+                    script,
+                });
+                data = {
+                    success: result.success,
+                    message: result.message,
+                    errors: result.success
+                        ? undefined
+                        : result.message + ': ' + result.errors,
+                    status: result.status,
+                    executionTime: result.executionTime,
+                    consoleLogs: result.consoleLogs,
+                };
+            } else if (scriptType === 'bash') {
+                const result = await postApi(
+                    `${scriptBaseUrl}/api/script/bash`,
+                    {
+                        script,
+                    }
+                );
+                data = {
+                    success: result.success,
+                    errors: result.errors,
+                    status: result.status,
+                    executionTime: result.executionTime,
+                    consoleLogs: result.consoleLogs,
+                };
+            }
+            triggeredBy === 'user'
+                ? (data.triggerByUser = triggeredId)
+                : triggeredBy === 'script'
+                ? (data.triggerByScript = triggeredId)
+                : triggeredBy === 'incident'
+                ? (data.triggerByIncident = triggeredId)
+                : null;
+            if (data.success && successEvent.length > 0) {
+                await _this.runResource({
+                    triggeredId: automatedScriptId,
+                    resources: successEvent,
+                    stackSize,
+                });
+            }
+            if (!data.success && failureEvent.length > 0) {
+                await _this.runResource({
+                    triggeredId: automatedScriptId,
+                    resources: failureEvent,
+                    stackSize,
+                });
+            }
+            const automatedScriptLog = await _this.createLog(
+                automatedScriptId,
+                data
+            );
+            await _this.updateOne(
+                { _id: automatedScriptId },
+                { updatedAt: new Date() }
+            );
+            return automatedScriptLog;
+        } catch (error) {
+            ErrorService.log('automatedScript.runAutomatedScript', error);
             throw error;
         }
     },
