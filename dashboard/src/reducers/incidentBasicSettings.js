@@ -182,6 +182,14 @@ export default (state = INITIAL_STATE, action) => {
                             ) {
                                 return action.payload;
                             }
+                            if (
+                                String(template._id) !==
+                                    String(action.payload._id) &&
+                                action.payload.isDefault &&
+                                template.isDefault
+                            ) {
+                                template.isDefault = false;
+                            }
                             return template;
                         }
                     ),
