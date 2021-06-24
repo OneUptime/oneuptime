@@ -4,25 +4,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "script-runner"  }}
+    name: {{ printf "%s-%s" .Release.Name "runner"  }}
     namespace: {{ .Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "script-runner"  }}
+        app: {{ printf "%s-%s" .Release.Name "runner"  }}
         app.kubernetes.io/part-of: fyipe
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "script-runner"  }}
+            app: {{ printf "%s-%s" .Release.Name "runner"  }}
     replicas: 1
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "script-runner"  }}
+                app: {{ printf "%s-%s" .Release.Name "runner"  }}
         spec:
             containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "script-runner" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "script-runner"  }}
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "runner" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "runner"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: NODE_ENV
@@ -30,7 +30,7 @@ spec:
                   ports:
                       - containerPort: {{ .Values.host.scriptRunnerPort }}
                         hostPort: {{ .Values.host.scriptRunnerPort }}
-                        name: {{ printf "%s-%s" .Release.Name "script-runner"  }}
+                        name: {{ printf "%s-%s" .Release.Name "runner"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 ---
 # Fyipe Script Runner Deployment
@@ -38,17 +38,17 @@ apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "script-runner"  }}
+        app: {{ printf "%s-%s" .Release.Name "runner"  }}
         app.kubernetes.io/part-of: fyipe
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "script-runner"  }}
+    name: {{ printf "%s-%s" .Release.Name "runner"  }}
     namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.scripRunnerServicePort }}
           targetPort: {{ .Values.host.scriptRunnerPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "script-runner"  }}
+        app: {{ printf "%s-%s" .Release.Name "runner"  }}
     type: ClusterIP
 ---
 ###################################

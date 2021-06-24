@@ -1374,12 +1374,20 @@ module.exports = {
                     new: true,
                 }
             );
+
+            if (!data.hideAnnouncement && data.announcementToggle) {
+                AlertService.sendAnnouncementNotificationToSubscribers(
+                    response
+                );
+            }
+
             const log = {
                 active: false,
                 endDate: new Date(),
                 updatedById: data.createdById,
             };
             await _this.updateAnnouncementLog({ active: true }, log);
+
             return response;
         } catch (error) {
             ErrorService.log('statusPageService.getSingleAnnouncement', error);
@@ -1627,6 +1635,7 @@ const MonitorService = require('./monitorService');
 const ErrorService = require('./errorService');
 const SubscriberService = require('./subscriberService');
 const ProjectService = require('./projectService');
+const AlertService = require('./alertService');
 const _ = require('lodash');
 const defaultStatusPageColors = require('../config/statusPageColors');
 const DomainVerificationService = require('./domainVerificationService');

@@ -14,7 +14,7 @@ const { sendItemResponse } = require('../middlewares/response');
 const { isAuthorized } = require('../middlewares/authorization');
 const { getUser } = require('../middlewares/user');
 const postApi = require('../utils/api').postApi;
-const scriptBaseUrl = process.env['SCRIPT_URL'];
+const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
 
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
