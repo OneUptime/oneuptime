@@ -1,6 +1,6 @@
 const INCIDENT_MAIL_TEMPLATE_TYPES = {
     CREATED_MAIL_TEMPLATE: 'Subscriber Incident Created',
-    ACKNOWLEDGED_MAIL_TEMPLATE: 'Subscriber Incident Acknowldeged',
+    ACKNOWLEDGED_MAIL_TEMPLATE: 'Subscriber Incident Acknowledged',
     RESOLVED_MAIL_TEMPLATE: 'Subscriber Incident Resolved',
 };
 

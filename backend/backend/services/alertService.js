@@ -2352,7 +2352,7 @@ module.exports = {
                             await _this.sendSubscriberAlert(
                                 subscriber,
                                 incident,
-                                'Subscriber Incident Acknowldeged',
+                                'Subscriber Incident Acknowledged',
                                 enabledStatusPage,
                                 {},
                                 subscribers.length,
@@ -2364,7 +2364,7 @@ module.exports = {
                         await _this.sendSubscriberAlert(
                             subscriber,
                             incident,
-                            'Subscriber Incident Acknowldeged',
+                            'Subscriber Incident Acknowledged',
                             null,
                             {},
                             subscribers.length,
@@ -2521,7 +2521,7 @@ module.exports = {
                     if (isStatusPageNoteAlert) {
                         eventType = statusPageNoteAlertEventType;
                     } else if (
-                        templateType === 'Subscriber Incident Acknowldeged'
+                        templateType === 'Subscriber Incident Acknowledged'
                     ) {
                         eventType = 'acknowledged';
                     } else if (
@@ -2569,7 +2569,7 @@ module.exports = {
                     if (isStatusPageNoteAlert) {
                         eventType = statusPageNoteAlertEventType;
                     } else if (
-                        templateType === 'Subscriber Incident Acknowldeged'
+                        templateType === 'Subscriber Incident Acknowledged'
                     ) {
                         eventType = 'acknowledged';
                     } else if (
@@ -2645,7 +2645,7 @@ module.exports = {
                     if (isStatusPageNoteAlert) {
                         eventType = statusPageNoteAlertEventType;
                     } else if (
-                        templateType === 'Subscriber Incident Acknowldeged'
+                        templateType === 'Subscriber Incident Acknowledged'
                     ) {
                         eventType = 'acknowledged';
                     } else if (
@@ -2676,7 +2676,7 @@ module.exports = {
                 if (isStatusPageNoteAlert) {
                     eventType = statusPageNoteAlertEventType;
                 } else if (
-                    templateType === 'Subscriber Incident Acknowldeged'
+                    templateType === 'Subscriber Incident Acknowledged'
                 ) {
                     eventType = 'acknowledged';
                 } else if (templateType === 'Subscriber Incident Resolved') {
@@ -2699,7 +2699,7 @@ module.exports = {
                 const unsubscribeUrl = `${global.homeHost}/unsubscribe/${monitor._id}/${subscriber._id}`;
                 let alertStatus = null;
                 try {
-                    if (templateType === 'Subscriber Incident Acknowldeged') {
+                    if (templateType === 'Subscriber Incident Acknowledged') {
                         if (project.sendAcknowledgedIncidentNotificationEmail) {
                             if (statusPage) {
                                 await MailService.sendIncidentAcknowledgedMailToSubscriber(
@@ -2920,7 +2920,7 @@ module.exports = {
                         if (isStatusPageNoteAlert) {
                             eventType = statusPageNoteAlertEventType;
                         } else if (
-                            templateType === 'Subscriber Incident Acknowldeged'
+                            templateType === 'Subscriber Incident Acknowledged'
                         ) {
                             eventType = 'acknowledged';
                         } else if (
@@ -2976,7 +2976,7 @@ module.exports = {
                                 eventType = statusPageNoteAlertEventType;
                             } else if (
                                 templateType ===
-                                'Subscriber Incident Acknowldeged'
+                                'Subscriber Incident Acknowledged'
                             ) {
                                 eventType = 'acknowledged';
                             } else if (
@@ -3010,7 +3010,7 @@ module.exports = {
                         if (isStatusPageNoteAlert) {
                             eventType = statusPageNoteAlertEventType;
                         } else if (
-                            templateType === 'Subscriber Incident Acknowldeged'
+                            templateType === 'Subscriber Incident Acknowledged'
                         ) {
                             eventType = 'acknowledged';
                         } else if (
@@ -3046,7 +3046,7 @@ module.exports = {
                     if (isStatusPageNoteAlert) {
                         eventType = statusPageNoteAlertEventType;
                     } else if (
-                        templateType === 'Subscriber Incident Acknowldeged'
+                        templateType === 'Subscriber Incident Acknowledged'
                     ) {
                         eventType = 'acknowledged';
                     } else if (
@@ -3073,13 +3073,13 @@ module.exports = {
                     let alertStatus = null;
                     try {
                         if (
-                            templateType === 'Subscriber Incident Acknowldeged'
+                            templateType === 'Subscriber Incident Acknowledged'
                         ) {
                             if (
                                 project.sendAcknowledgedIncidentNotificationSms
                             ) {
                                 if (statusPage) {
-                                    sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
+                                    sendResult = await TwilioService.sendIncidentAcknowledgedMessageToSubscriber(
                                         date,
                                         subscriber.monitorName,
                                         contactPhone,
@@ -3094,7 +3094,7 @@ module.exports = {
                                     );
                                     alertStatus = 'Success';
                                 } else {
-                                    sendResult = await TwilioService.sendIncidentAcknowldegedMessageToSubscriber(
+                                    sendResult = await TwilioService.sendIncidentAcknowledgedMessageToSubscriber(
                                         date,
                                         subscriber.monitorName,
                                         contactPhone,
