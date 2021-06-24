@@ -237,24 +237,26 @@ class IncidentTemplates extends Component {
                                 >
                                     <span>Edit</span>
                                 </button>
-                                <button
-                                    id={`deleteIncidentTemplateBtn_${template.name}`}
-                                    title="delete"
-                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                    style={{
-                                        marginLeft: 20,
-                                    }}
-                                    type="button"
-                                    onClick={() => {
-                                        openModal({
-                                            content: DeleteIncidentTemplate,
-                                            templateId: template._id,
-                                            projectId: currentProject._id,
-                                        });
-                                    }}
-                                >
-                                    <span>Delete</span>
-                                </button>
+                                {!template.isDefault && (
+                                    <button
+                                        id={`deleteIncidentTemplateBtn_${template.name}`}
+                                        title="delete"
+                                        className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
+                                        style={{
+                                            marginLeft: 20,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            openModal({
+                                                content: DeleteIncidentTemplate,
+                                                templateId: template._id,
+                                                projectId: currentProject._id,
+                                            });
+                                        }}
+                                    >
+                                        <span>Delete</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
