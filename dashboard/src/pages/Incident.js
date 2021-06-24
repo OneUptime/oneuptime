@@ -30,7 +30,10 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
-import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import {
+    fetchIncidentTemplates,
+    fetchDefaultTemplate,
+} from '../actions/incidentBasicsSettings';
 import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSla';
 import secondsToHms from '../utils/secondsToHms';
 import { fetchComponent } from '../actions/component';
@@ -80,6 +83,22 @@ class Incident extends React.Component {
                 this.props.incidentId
             );
             this.fetchAllIncidentData();
+        }
+
+        if (
+            JSON.stringify(prevProps.currentProject) !==
+            JSON.stringify(this.props.currentProject)
+        ) {
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+            });
+            this.props.fetchIncidentTemplates({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+                skip: 0,
+                limit: 0,
+            });
         }
     }
 
@@ -218,14 +237,23 @@ class Incident extends React.Component {
     };
 
     fetchAllIncidentData() {
-        this.props.fetchIncidentPriorities(
-            this.props.currentProject && this.props.currentProject._id,
-            0,
-            0
-        );
-        this.props.fetchBasicIncidentSettings(
-            this.props.currentProject && this.props.currentProject._id
-        );
+        if (this.props.currentProject) {
+            this.props.fetchIncidentPriorities(
+                this.props.currentProject && this.props.currentProject._id,
+                0,
+                0
+            );
+            this.props.fetchIncidentTemplates({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+                skip: 0,
+                limit: 0,
+            });
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+            });
+        }
 
         this.props
             .getIncident(this.props.projectId, this.props.incidentId)
@@ -794,11 +822,12 @@ const mapDispatchToProps = dispatch => {
             getIncidentTimeline,
             fetchIncidentMessages,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchIncidentTemplates,
             fetchIncidentStatusPages,
             fetchDefaultCommunicationSla,
             fetchComponent,
             fetchProjectSlug,
+            fetchDefaultTemplate,
         },
         dispatch
     );
@@ -831,7 +860,7 @@ Incident.propTypes = {
     componentSlug: PropTypes.string,
     fetchIncidentMessages: PropTypes.func,
     fetchIncidentPriorities: PropTypes.func.isRequired,
-    fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentTemplates: PropTypes.func.isRequired,
     fetchIncidentStatusPages: PropTypes.func.isRequired,
     fetchDefaultCommunicationSla: PropTypes.func,
     // defaultIncidentSla: PropTypes.oneOfType([
@@ -849,6 +878,7 @@ Incident.propTypes = {
     allMonitors: PropTypes.array,
     projectSlug: PropTypes.string,
     fetchProjectSlug: PropTypes.func,
+    fetchDefaultTemplate: PropTypes.func,
 };
 
 Incident.displayName = 'Incident';

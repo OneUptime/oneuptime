@@ -3,8 +3,6 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { reduxForm, Field, change, formValueSelector } from 'redux-form';
-import moment from 'moment';
-import handlebars from 'handlebars';
 import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -21,8 +19,6 @@ class CreateManualIncident extends Component {
         super(props);
         this.state = {
             incidentType: '',
-            titleEdited: false,
-            descriptionEdited: false,
         };
     }
 
@@ -101,35 +97,24 @@ class CreateManualIncident extends Component {
         });
     };
 
-    substituteVariables = (value, name) => {
-        const { titleEdited, descriptionEdited } = this.state;
-        const {
-            incidentBasicSettings,
-            change,
-            data: { monitor },
-            currentProject,
-            selectedIncidentType,
-        } = this.props;
+    setTemplateValues = value => {
+        const { change, incidentTemplateObj } = this.props;
 
-        const titleTemplate = handlebars.compile(incidentBasicSettings.title);
-        const descriptionTemplate = handlebars.compile(
-            incidentBasicSettings.description
-        );
-
-        const values = {
-            incidentType: selectedIncidentType,
-            monitorName: monitor.name,
-            projectName: currentProject.name,
-            time: moment().format('h:mm:ss a'),
-            date: moment().format('MMM Do YYYY'),
-        };
-
-        values[name] = value;
-
-        if (!titleEdited) change('title', titleTemplate(values));
-
-        if (!descriptionEdited)
-            change('description', descriptionTemplate(values));
+        if (value) {
+            !incidentTemplateObj.requesting &&
+                incidentTemplateObj.templates.forEach(template => {
+                    if (String(template._id) === String(value)) {
+                        change('title', template.title);
+                        change('description', template.description);
+                        template.incidentPriority &&
+                            change(
+                                'incidentPriority',
+                                template.incidentPriority._id ||
+                                    template.incidentPriority
+                            );
+                    }
+                });
+        }
     };
 
     render() {
@@ -138,6 +123,7 @@ class CreateManualIncident extends Component {
             newIncident,
             incidentPriorities,
             customFields,
+            incidentTemplateObj,
         } = this.props;
         const sameError =
             newIncident &&
@@ -155,7 +141,7 @@ class CreateManualIncident extends Component {
                 <div className="bs-BIM">
                     <div
                         className="bs-Modal bs-Modal--medium"
-                        style={{ width: 500 }}
+                        style={{ width: 570 }}
                     >
                         <ClickOutside onClickOutside={this.handleCloseModal}>
                             <div className="bs-Modal-header">
@@ -223,17 +209,6 @@ class CreateManualIncident extends Component {
                                                                         'Degraded',
                                                                 },
                                                             ]}
-                                                            onChange={(
-                                                                event,
-                                                                newValue,
-                                                                previousValue,
-                                                                name
-                                                            ) =>
-                                                                this.substituteVariables(
-                                                                    newValue,
-                                                                    name
-                                                                )
-                                                            }
                                                             autoFocus={true}
                                                             style={{
                                                                 width: '100%',
@@ -241,6 +216,56 @@ class CreateManualIncident extends Component {
                                                         />
                                                     </div>
                                                 </div>
+                                                {!incidentTemplateObj.requesting &&
+                                                    incidentTemplateObj
+                                                        .templates.length >
+                                                        1 && (
+                                                        <div className="bs-Fieldset-row Margin-bottom--12">
+                                                            <label className="bs-Fieldset-label">
+                                                                Incident
+                                                                Templates
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-select-nw db-select-fw"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="incidentTemplate"
+                                                                    id="incidentTemplate"
+                                                                    placeholder="Incident template"
+                                                                    disabled={
+                                                                        this
+                                                                            .props
+                                                                            .newIncident
+                                                                            .requesting
+                                                                    }
+                                                                    options={[
+                                                                        ...incidentTemplateObj.templates.map(
+                                                                            template => ({
+                                                                                value:
+                                                                                    template._id,
+                                                                                label:
+                                                                                    template.name,
+                                                                            })
+                                                                        ),
+                                                                    ]}
+                                                                    onChange={(
+                                                                        event,
+                                                                        newValue
+                                                                    ) =>
+                                                                        this.setTemplateValues(
+                                                                            newValue
+                                                                        )
+                                                                    }
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 <ShouldRender
                                                     if={
                                                         incidentPriorities.length >
@@ -275,17 +300,6 @@ class CreateManualIncident extends Component {
                                                                         })
                                                                     ),
                                                                 ]}
-                                                                onChange={(
-                                                                    event,
-                                                                    newValue,
-                                                                    previousValue,
-                                                                    name
-                                                                ) =>
-                                                                    this.substituteVariables(
-                                                                        newValue,
-                                                                        name
-                                                                    )
-                                                                }
                                                                 style={{
                                                                     width:
                                                                         '100%',
@@ -315,11 +329,6 @@ class CreateManualIncident extends Component {
                                                             validate={[
                                                                 ValidateField.required,
                                                             ]}
-                                                            onChange={() =>
-                                                                this.setState({
-                                                                    titleEdited: true,
-                                                                })
-                                                            }
                                                             style={{
                                                                 width: '100%',
                                                             }}
@@ -342,11 +351,6 @@ class CreateManualIncident extends Component {
                                                             width="100%"
                                                             placeholder="This can be markdown"
                                                             wrapEnabled={true}
-                                                            onChange={() =>
-                                                                this.setState({
-                                                                    descriptionEdited: true,
-                                                                })
-                                                            }
                                                         />
                                                     </div>
                                                 </div>
@@ -529,41 +533,34 @@ CreateManualIncident.propTypes = {
     monitorId: PropTypes.string,
     newIncident: PropTypes.object,
     change: PropTypes.func.isRequired,
-    incidentBasicSettings: PropTypes.object.isRequired,
-    selectedIncidentType: PropTypes.string.isRequired,
-    currentProject: PropTypes.object.isRequired,
     fetchCustomFields: PropTypes.func,
     customFields: PropTypes.array,
+    incidentTemplateObj: PropTypes.object,
 };
 
 const formName = 'CreateManualIncident';
 const selector = formValueSelector(formName);
 
-function mapStateToProps(state, props) {
-    const { data } = props;
-    const { monitor } = data;
+function mapStateToProps(state) {
     const { currentProject } = state.project;
+    const incidentTemplateObj = state.incidentBasicSettings.incidentTemplates;
+    const defaultTemplateObj = state.incidentBasicSettings.defaultTemplate;
+
     const incidentType = 'offline';
-    const values = {
-        incidentType,
-        monitorName: monitor.name,
-        projectName: currentProject.name,
-        time: moment().format('h:mm:ss a'),
-        date: moment().format('MMM Do YYYY'),
-    };
-    const titleTemplate = handlebars.compile(
-        state.incidentBasicSettings.incidentBasicSettings.title
-    );
-    const descriptionTemplate = handlebars.compile(
-        state.incidentBasicSettings.incidentBasicSettings.description
-    );
     const initialValues = {
         incidentType,
-        title: titleTemplate(values),
-        description: descriptionTemplate(values),
-        incidentPriority:
-            state.incidentBasicSettings.incidentBasicSettings.incidentPriority,
     };
+
+    const defaultTemplate = defaultTemplateObj.template;
+    if (defaultTemplate) {
+        initialValues.incidentTemplate = defaultTemplate._id;
+        initialValues.title = defaultTemplate.title;
+        initialValues.description = defaultTemplate.description;
+        initialValues.incidentPriority =
+            defaultTemplate.incidentPriority._id ||
+            defaultTemplate.incidentPriority;
+    }
+
     const selectedIncidentType = selector(state, 'incidentType');
     return {
         newIncident: state.incident.newIncident,
@@ -576,6 +573,7 @@ function mapStateToProps(state, props) {
         currentProject,
         selectedIncidentType,
         customFields: state.customField.customFields.fields,
+        incidentTemplateObj,
     };
 }
 
@@ -594,6 +592,8 @@ const mapDispatchToProps = dispatch => {
 
 const CreateManualIncidentForm = reduxForm({
     form: formName,
+    enableReinitialize: true,
+    destroyOnUnmount: true,
 })(CreateManualIncident);
 
 export default connect(

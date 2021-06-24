@@ -6,7 +6,6 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const IncidentPrioritiesService = require('../services/incidentPrioritiesService');
-const IncidentSettingsService = require('../services/incidentSettingsService');
 
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     const { projectId } = req.params;
@@ -126,17 +125,6 @@ router.delete('/:projectId', getUser, isAuthorized, async function(req, res) {
     }
 
     try {
-        const incidentSettings = await IncidentSettingsService.findOne({
-            projectId,
-        });
-
-        if (`${incidentSettings.incidentPriority}` === `${_id}`)
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message:
-                    'This incident priority is marked as default and cannot be deleted.',
-            });
-
         const IncidentPriority = await IncidentPrioritiesService.deleteBy({
             projectId,
             _id,

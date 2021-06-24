@@ -14,14 +14,15 @@ import EditIncidentPriorityForm from '../components/modals/EditIncidentPriority'
 import RemoveIncidentPriorityForm from '../components/modals/RemoveIncidentPriority';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import {
-    fetchBasicIncidentSettings,
+    fetchIncidentTemplates,
     fetchBasicIncidentSettingsVariables,
+    fetchDefaultTemplate,
 } from '../actions/incidentBasicsSettings';
 import DataPathHoC from '../components/DataPathHoC';
-import IncidentBasicSettings from '../components/incident/IncidentBasicSettings';
 import IncidentCommunicationSla from '../components/incidentCommunicationSla/IncidentCommunicationSla';
 import IncidentCustomFields from '../components/incident/IncidentCustomFields';
 import { fetchCustomFields } from '../actions/customField';
+import IncidentTemplates from '../components/incident/IncidentTemplates';
 
 class IncidentSettings extends React.Component {
     state = {
@@ -81,12 +82,23 @@ class IncidentSettings extends React.Component {
         });
     }
     async ready() {
-        await this.props.fetchIncidentPriorities(this.props.currentProject._id);
-        await this.props.fetchBasicIncidentSettings(
-            this.props.currentProject._id
-        );
-        await this.props.fetchBasicIncidentSettingsVariables();
-        this.props.fetchCustomFields(this.props.currentProject._id, 0, 10);
+        if (this.props.currentProject) {
+            await this.props.fetchIncidentPriorities(
+                this.props.currentProject._id
+            );
+            await this.props.fetchIncidentTemplates({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+                skip: 0,
+                limit: 0,
+            });
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+            });
+            await this.props.fetchBasicIncidentSettingsVariables();
+            this.props.fetchCustomFields(this.props.currentProject._id, 0, 10);
+        }
     }
 
     prevClicked() {
@@ -188,7 +200,7 @@ class IncidentSettings extends React.Component {
                             </div>
                             <TabPanel>
                                 <Fade>
-                                    <IncidentBasicSettings />
+                                    <IncidentTemplates />
                                 </Fade>
                             </TabPanel>
                             <TabPanel>
@@ -261,10 +273,6 @@ class IncidentSettings extends React.Component {
                                                             incidentPrioritiesList={
                                                                 this.props
                                                                     .incidentPriorities
-                                                            }
-                                                            selectedIncidentPriority={
-                                                                this.props
-                                                                    .selectedIncidentPriority
                                                             }
                                                             handleEditIncidentPriority={id =>
                                                                 this.handleEditIncidentPriority(
@@ -407,14 +415,14 @@ IncidentSettings.propTypes = {
     incidentPrioritiesList: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
     incidentPriorities: PropTypes.array.isRequired,
-    fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentTemplates: PropTypes.func.isRequired,
     fetchBasicIncidentSettingsVariables: PropTypes.func.isRequired,
-    selectedIncidentPriority: PropTypes.string.isRequired,
     modalId: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
     fetchCustomFields: PropTypes.func,
+    fetchDefaultTemplate: PropTypes.func,
 };
 const mapStateToProps = state => {
     return {
@@ -422,8 +430,6 @@ const mapStateToProps = state => {
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         incidentPrioritiesList: state.incidentPriorities.incidentPrioritiesList,
-        selectedIncidentPriority:
-            state.incidentBasicSettings.incidentBasicSettings.incidentPriority,
         modalId: state.modal.modals[0],
     };
 };
@@ -433,9 +439,10 @@ const mapDispatchToProps = dispatch =>
             openModal,
             closeModal,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchIncidentTemplates,
             fetchBasicIncidentSettingsVariables,
             fetchCustomFields,
+            fetchDefaultTemplate,
         },
         dispatch
     );

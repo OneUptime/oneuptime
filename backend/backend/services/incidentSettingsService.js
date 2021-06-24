@@ -2,14 +2,75 @@ module.exports = {
     create: async data => {
         try {
             const incidentSettings = new incidentSettingsModel();
-            const { projectId, title, description, IncidentPriority } = data;
+            const {
+                projectId,
+                title,
+                description,
+                incidentPriority,
+                isDefault,
+                name,
+            } = data;
+
+            if (isDefault) {
+                // there can only be one default incident settings per project
+                await incidentSettingsModel.findOneAndUpdate(
+                    {
+                        projectId,
+                        isDefault: true,
+                    },
+                    {
+                        $set: { isDefault: false },
+                    }
+                );
+            }
             incidentSettings.projectId = projectId;
             incidentSettings.title = title;
             incidentSettings.description = description;
-            incidentSettings.IncidentPriority = IncidentPriority;
+            incidentSettings.incidentPriority = incidentPriority;
+            incidentSettings.isDefault = isDefault || false;
+            incidentSettings.name = name;
             return await incidentSettings.save();
         } catch (error) {
             ErrorService.log('IncidentSettingsService.create', error);
+            throw error;
+        }
+    },
+    findBy: async function({ query, limit, skip }) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') skip = Number(skip);
+
+            if (typeof limit === 'string') limit = Number(limit);
+
+            if (!query) query = {};
+
+            if (!query.deleted) query.deleted = false;
+
+            return await incidentSettingsModel
+                .find(query)
+                .lean()
+                .sort([['createdAt', -1]])
+                .limit(limit)
+                .skip(skip)
+                .populate('incidentPriority', 'name color');
+        } catch (error) {
+            ErrorService.log('IncidentSettingsService.findBy', error);
+            throw error;
+        }
+    },
+    async countBy(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            return await incidentSettingsModel.countDocuments(query);
+        } catch (error) {
+            ErrorService.log('IncidentSettingsService.countBy', error);
             throw error;
         }
     },
@@ -17,25 +78,10 @@ module.exports = {
         try {
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;
+
             const incidentSettings = await incidentSettingsModel
                 .findOne(query)
                 .lean();
-            if (!incidentSettings) {
-                const { projectId } = query;
-                if (!projectId) return incidentDefaultSettings;
-                const incidentPriority = await IncidentPrioritiesService.findOne(
-                    {
-                        deleted: false,
-                        projectId,
-                        name: 'High',
-                    }
-                );
-                if (!incidentPriority) return incidentDefaultSettings;
-                return {
-                    ...incidentDefaultSettings,
-                    incidentPriority: incidentPriority._id,
-                };
-            }
             return incidentSettings;
         } catch (error) {
             ErrorService.log('IncidentSettingsService.findOne', error);
@@ -46,6 +92,20 @@ module.exports = {
         try {
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;
+
+            if (data.isDefault && query.projectId && query._id) {
+                // there can only be one default incident settings per project
+                // set any previous isDefault to false
+                await incidentSettingsModel.findOneAndUpdate(
+                    {
+                        projectId: query.projectId,
+                        _id: { $ne: query._id },
+                        isDefault: true,
+                    },
+                    { $set: { isDefault: false } }
+                );
+            }
+
             await incidentSettingsModel.findOneAndUpdate(
                 query,
                 {
@@ -79,6 +139,32 @@ module.exports = {
             throw error;
         }
     },
+    deleteBy: async function(query) {
+        try {
+            const incidentSetting = await this.findOne(query);
+            if (incidentSetting.isDefault) {
+                const error = new Error('Default template cannot be deleted');
+                error.code = 400;
+                throw error;
+            }
+
+            const deletedIncidentSetting = await incidentSettingsModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedAt: Date.now(),
+                    },
+                },
+                { new: true }
+            );
+
+            return deletedIncidentSetting;
+        } catch (error) {
+            ErrorService.log('incidentCommunicationSlaService.deleteBy', error);
+            throw error;
+        }
+    },
     hardDeleteBy: async function(query) {
         try {
             await incidentSettingsModel.deleteMany(query);
@@ -91,8 +177,4 @@ module.exports = {
 };
 
 const ErrorService = require('./errorService');
-const IncidentPrioritiesService = require('./incidentPrioritiesService');
 const incidentSettingsModel = require('../models/incidentSettings');
-const {
-    incidentDefaultSettings,
-} = require('../config/incidentDefaultSettings');
