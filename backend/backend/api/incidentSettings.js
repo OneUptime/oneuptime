@@ -17,6 +17,28 @@ router.get('/variables', async function(req, res) {
     }
 });
 
+// fetch default incident template in a project
+router.get('/:projectId/default', getUser, isAuthorized, async function(
+    req,
+    res
+) {
+    try {
+        const { projectId } = req.params;
+        if (!projectId) {
+            const error = new Error('Project Id must be present');
+            error.code = 400;
+            throw error;
+        }
+
+        const query = { projectId, isDefault: true };
+        const template = await IncidentSettingsService.findOne(query);
+
+        return sendItemResponse(req, res, template);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 // fetch all incident template in a project
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
