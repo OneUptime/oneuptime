@@ -579,6 +579,7 @@ module.exports = {
             });
             const incidentSettings = await IncidentSettingsService.findOne({
                 projectId: data.projectId,
+                isDefault: true,
             });
 
             const incomingRequest = await _this.findOneBy({

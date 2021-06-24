@@ -504,8 +504,9 @@ const mapStateToProps = (state, ownProps) => {
     const { template } = data;
     const initialValues = {
         ...template,
-        incidentPriority:
-            template.incidentPriority._id || template.incidentPriority,
+        incidentPriority: template.incidentPriority
+            ? template.incidentPriority._id || template.incidentPriority
+            : '',
     };
     return {
         currentProject: state.project.currentProject,
