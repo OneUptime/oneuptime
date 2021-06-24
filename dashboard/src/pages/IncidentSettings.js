@@ -18,10 +18,10 @@ import {
     fetchBasicIncidentSettingsVariables,
 } from '../actions/incidentBasicsSettings';
 import DataPathHoC from '../components/DataPathHoC';
-import IncidentBasicSettings from '../components/incident/IncidentBasicSettings';
 import IncidentCommunicationSla from '../components/incidentCommunicationSla/IncidentCommunicationSla';
 import IncidentCustomFields from '../components/incident/IncidentCustomFields';
 import { fetchCustomFields } from '../actions/customField';
+import IncidentTemplates from '../components/incident/IncidentTemplates';
 
 class IncidentSettings extends React.Component {
     state = {
@@ -262,10 +262,6 @@ class IncidentSettings extends React.Component {
                                                                 this.props
                                                                     .incidentPriorities
                                                             }
-                                                            selectedIncidentPriority={
-                                                                this.props
-                                                                    .selectedIncidentPriority
-                                                            }
                                                             handleEditIncidentPriority={id =>
                                                                 this.handleEditIncidentPriority(
                                                                     id
@@ -409,7 +405,6 @@ IncidentSettings.propTypes = {
     incidentPriorities: PropTypes.array.isRequired,
     fetchBasicIncidentSettings: PropTypes.func.isRequired,
     fetchBasicIncidentSettingsVariables: PropTypes.func.isRequired,
-    selectedIncidentPriority: PropTypes.string.isRequired,
     modalId: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
@@ -422,8 +417,6 @@ const mapStateToProps = state => {
         incidentPriorities:
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         incidentPrioritiesList: state.incidentPriorities.incidentPrioritiesList,
-        selectedIncidentPriority:
-            state.incidentBasicSettings.incidentBasicSettings.incidentPriority,
         modalId: state.modal.modals[0],
     };
 };
