@@ -43,6 +43,8 @@ describe('Twilio Settings API', () => {
             await init.pageClick(page, '#twilio a');
             await init.pageWaitForSelector(page, '#twilio-form');
 
+            //clear the form if another test has already filled it
+            await init.clearTwillioSettings(page);
             await init.pageClick(page, 'button[type=submit]');
             const error = await init.pageWaitForSelector(page, '.field-error', {
                 visible: true,
@@ -65,6 +67,9 @@ describe('Twilio Settings API', () => {
             await init.pageWaitForSelector(page, '#twilio');
             await init.pageClick(page, '#twilio a');
             await init.pageWaitForSelector(page, '#twilio-form');
+
+            //clear the form if another test has already filled it
+            await init.clearTwillioSettings(page);
 
             await init.pageClick(page, 'input[name=account-sid]');
             await init.pageType(
@@ -127,7 +132,8 @@ describe('Twilio Settings API', () => {
             await init.pageWaitForSelector(page, '#twilio');
             await init.pageClick(page, '#twilio a');
             await init.pageWaitForSelector(page, '#twilio-form');
-
+            //clear the form if another test has already filled it
+            await init.clearTwillioSettings(page);
             await init.pageClick(page, 'input[name=account-sid]');
             await init.pageType(
                 page,
@@ -188,7 +194,8 @@ describe('Twilio Settings API', () => {
             await init.pageWaitForSelector(page, '#twilio');
             await init.pageClick(page, '#twilio a');
             await init.pageWaitForSelector(page, '#twilio-form');
-
+            //clear the form if another test has already filled it
+            await init.clearTwillioSettings(page);
             await init.page$Eval(page, '#sms-enabled', e => e.click());
 
             await init.pageClick(page, 'input[name=account-sid]');
