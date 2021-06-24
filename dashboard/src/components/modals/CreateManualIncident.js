@@ -240,12 +240,6 @@ class CreateManualIncident extends Component {
                                                                             .requesting
                                                                     }
                                                                     options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select Template',
-                                                                        },
                                                                         ...incidentTemplateObj.templates.map(
                                                                             template => ({
                                                                                 value:
@@ -549,22 +543,21 @@ const selector = formValueSelector(formName);
 function mapStateToProps(state) {
     const { currentProject } = state.project;
     const incidentTemplateObj = state.incidentBasicSettings.incidentTemplates;
+    const defaultTemplateObj = state.incidentBasicSettings.defaultTemplate;
 
     const incidentType = 'offline';
     const initialValues = {
         incidentType,
     };
 
-    const incidentTemplates = incidentTemplateObj.templates;
-    if (incidentTemplates.length === 1) {
-        const incidentTemplate = incidentTemplates[0];
-        if (incidentTemplate) {
-            initialValues.title = incidentTemplate.title;
-            initialValues.description = incidentTemplate.description;
-            initialValues.incidentPriority =
-                incidentTemplate.incidentPriority._id ||
-                incidentTemplate.incidentPriority;
-        }
+    const defaultTemplate = defaultTemplateObj.template;
+    if (defaultTemplate) {
+        initialValues.incidentTemplate = defaultTemplate._id;
+        initialValues.title = defaultTemplate.title;
+        initialValues.description = defaultTemplate.description;
+        initialValues.incidentPriority =
+            defaultTemplate.incidentPriority._id ||
+            defaultTemplate.incidentPriority;
     }
 
     const selectedIncidentType = selector(state, 'incidentType');

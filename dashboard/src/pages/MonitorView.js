@@ -35,7 +35,10 @@ import { getProbes } from '../actions/probe';
 import MSTeamsBox from '../components/webHooks/MSTeamsBox';
 import SlackBox from '../components/webHooks/SlackBox';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
-import { fetchIncidentTemplates } from '../actions/incidentBasicsSettings';
+import {
+    fetchIncidentTemplates,
+    fetchDefaultTemplate,
+} from '../actions/incidentBasicsSettings';
 import { fetchCommunicationSlas } from '../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../actions/monitorSla';
 import ThirdPartyVariables from '../components/monitor/ThirdPartyVariables';
@@ -132,6 +135,22 @@ class MonitorView extends React.Component {
             this.props.fetchMonitorSlas(subProjectId);
             this.props.fetchCommunicationSlas(subProjectId);
         }
+
+        if (
+            JSON.stringify(prevProps.currentProject) !==
+            JSON.stringify(this.props.currentProject)
+        ) {
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+            });
+            this.props.fetchIncidentTemplates({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+                skip: 0,
+                limit: 0,
+            });
+        }
     }
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
@@ -158,9 +177,14 @@ class MonitorView extends React.Component {
                 0
             );
             this.props.fetchIncidentTemplates({
-                projectId: this.props.currentProject._id,
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
                 skip: 0,
                 limit: 0,
+            });
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
             });
             const subProjectId = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId
@@ -1156,6 +1180,7 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorSlas,
             fetchSchedules,
             fetchComponent,
+            fetchDefaultTemplate,
         },
         dispatch
     );
@@ -1194,6 +1219,7 @@ MonitorView.propTypes = {
     componentSlug: PropTypes.string,
     fetchComponent: PropTypes.func,
     requestingComponent: PropTypes.bool,
+    fetchDefaultTemplate: PropTypes.func,
 };
 
 MonitorView.displayName = 'MonitorView';

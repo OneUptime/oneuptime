@@ -539,12 +539,6 @@ class CreateIncident extends Component {
                                                                                     .requesting
                                                                             }
                                                                             options={[
-                                                                                {
-                                                                                    value:
-                                                                                        '',
-                                                                                    label:
-                                                                                        'Select Template',
-                                                                                },
                                                                                 ...incidentTemplateObj.templates.map(
                                                                                     template => ({
                                                                                         value:
@@ -893,6 +887,7 @@ function mapStateToProps(state, props) {
     const { projects } = state.project.projects;
     const { subProjects } = state.subProject.subProjects;
     const incidentTemplateObj = state.incidentBasicSettings.incidentTemplates;
+    const defaultTemplateObj = state.incidentBasicSettings.defaultTemplate;
 
     let monitorsList = [];
     state.monitor.monitorsList.monitors.forEach(item => {
@@ -916,23 +911,19 @@ function mapStateToProps(state, props) {
         }
     }
 
-    const incidentTemplates = incidentTemplateObj.templates;
-
     const incidentType = 'offline';
     const initialValues = {
         incidentType,
         selectAllMonitors: false,
     };
-
-    if (incidentTemplates.length === 1) {
-        const incidentTemplate = incidentTemplates[0];
-        if (incidentTemplate) {
-            initialValues.title = incidentTemplate.title;
-            initialValues.description = incidentTemplate.description;
-            initialValues.incidentPriority =
-                incidentTemplate.incidentPriority._id ||
-                incidentTemplate.incidentPriority;
-        }
+    const defaultTemplate = defaultTemplateObj.template;
+    if (defaultTemplate) {
+        initialValues.incidentTemplate = defaultTemplate._id;
+        initialValues.title = defaultTemplate.title;
+        initialValues.description = defaultTemplate.description;
+        initialValues.incidentPriority =
+            defaultTemplate.incidentPriority._id ||
+            defaultTemplate.incidentPriority;
     }
 
     const selectedIncidentType = selector(state, 'incidentType');

@@ -16,6 +16,7 @@ import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import {
     fetchIncidentTemplates,
     fetchBasicIncidentSettingsVariables,
+    fetchDefaultTemplate,
 } from '../actions/incidentBasicsSettings';
 import DataPathHoC from '../components/DataPathHoC';
 import IncidentCommunicationSla from '../components/incidentCommunicationSla/IncidentCommunicationSla';
@@ -81,14 +82,23 @@ class IncidentSettings extends React.Component {
         });
     }
     async ready() {
-        await this.props.fetchIncidentPriorities(this.props.currentProject._id);
-        await this.props.fetchIncidentTemplates({
-            projectId: this.props.currentProject._id,
-            skip: 0,
-            limit: 0,
-        });
-        await this.props.fetchBasicIncidentSettingsVariables();
-        this.props.fetchCustomFields(this.props.currentProject._id, 0, 10);
+        if (this.props.currentProject) {
+            await this.props.fetchIncidentPriorities(
+                this.props.currentProject._id
+            );
+            await this.props.fetchIncidentTemplates({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+                skip: 0,
+                limit: 0,
+            });
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+            });
+            await this.props.fetchBasicIncidentSettingsVariables();
+            this.props.fetchCustomFields(this.props.currentProject._id, 0, 10);
+        }
     }
 
     prevClicked() {
@@ -412,6 +422,7 @@ IncidentSettings.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     fetchCustomFields: PropTypes.func,
+    fetchDefaultTemplate: PropTypes.func,
 };
 const mapStateToProps = state => {
     return {
@@ -431,6 +442,7 @@ const mapDispatchToProps = dispatch =>
             fetchIncidentTemplates,
             fetchBasicIncidentSettingsVariables,
             fetchCustomFields,
+            fetchDefaultTemplate,
         },
         dispatch
     );
