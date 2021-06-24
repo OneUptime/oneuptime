@@ -10,8 +10,9 @@ e2e_docker_compose_test:
         - sudo docker-compose down -v
         - export IS_SAAS_SERVICE=true
         # Install the cluster.
-        - chmod +x ./install.sh
-        - ./install.sh
+        - chmod +x ./env-setup.sh
+        - ./env-setup.sh
+        - npm run ci-docker-saas
         # Set env var
         - export HOME_URL=http://localhost:1444
         - export ACCOUNTS_URL=http://localhost:3003
