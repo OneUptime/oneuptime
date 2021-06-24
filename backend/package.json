@@ -61,7 +61,7 @@
         "vm2": "^3.9.3",
         "web-push": "^3.4.4",
         "winston": "^3.3.3",
-        "winston-slack-transport": "^2.0.0"
+        "winston-slack-webhook-transport": "^2.0.1"
     },
     "scripts": {
         "start": "node server.js",
