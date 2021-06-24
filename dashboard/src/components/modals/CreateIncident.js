@@ -375,11 +375,12 @@ class CreateIncident extends Component {
                     if (String(template._id) === String(value)) {
                         change('title', template.title);
                         change('description', template.description);
-                        change(
-                            'incidentPriority',
-                            template.incidentPriority._id ||
-                                template.incidentPriority
-                        );
+                        template.incidentPriority &&
+                            change(
+                                'incidentPriority',
+                                template.incidentPriority._id ||
+                                    template.incidentPriority
+                            );
                     }
                 });
         }
