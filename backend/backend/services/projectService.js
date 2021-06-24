@@ -85,7 +85,7 @@ module.exports = {
             await IncidentPrioritiesService.create(prioritiesData.low);
             // create initial default incident template
             await IncidentSettingsService.create({
-                name: 'Initial Template',
+                name: 'Default',
                 projectId: project._id,
                 isDefault: true,
                 incidentPriority: priority._id,
