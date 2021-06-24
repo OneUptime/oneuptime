@@ -29,7 +29,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
-import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import { fetchIncidentTemplates } from '../actions/incidentBasicsSettings';
 import { API_URL } from '../config';
 import io from 'socket.io-client';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
@@ -133,7 +133,11 @@ class DashboardView extends Component {
         }
         this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
-        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
+        this.props.fetchIncidentTemplates({
+            projectId: this.props.currentProject._id,
+            skip: 0,
+            limit: 0,
+        });
         this.props.monitor.monitorsList.monitors.forEach(subProject => {
             if (subProject.monitors.length > 0) {
                 subProject.monitors.forEach(monitor => {
@@ -508,7 +512,7 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorStatuses,
             fetchLighthouseLogs,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchIncidentTemplates,
             loadPage,
             fetchTutorial,
             getProbes,
@@ -605,7 +609,7 @@ DashboardView.propTypes = {
         })
     ),
     fetchIncidentPriorities: PropTypes.func.isRequired,
-    fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentTemplates: PropTypes.func.isRequired,
     tutorialStat: PropTypes.object,
     fetchComponentSummary: PropTypes.func,
     componentSummaryObj: PropTypes.object,

@@ -35,7 +35,7 @@ import { getProbes } from '../actions/probe';
 import MSTeamsBox from '../components/webHooks/MSTeamsBox';
 import SlackBox from '../components/webHooks/SlackBox';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
-import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import { fetchIncidentTemplates } from '../actions/incidentBasicsSettings';
 import { fetchCommunicationSlas } from '../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../actions/monitorSla';
 import ThirdPartyVariables from '../components/monitor/ThirdPartyVariables';
@@ -157,9 +157,11 @@ class MonitorView extends React.Component {
                 0,
                 0
             );
-            this.props.fetchBasicIncidentSettings(
-                this.props.currentProject._id
-            );
+            this.props.fetchIncidentTemplates({
+                projectId: this.props.currentProject._id,
+                skip: 0,
+                limit: 0,
+            });
             const subProjectId = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId
                 : '';
@@ -1149,7 +1151,7 @@ const mapDispatchToProps = dispatch => {
             fetchLighthouseLogs,
             getProbes,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchIncidentTemplates,
             fetchCommunicationSlas,
             fetchMonitorSlas,
             fetchSchedules,
@@ -1179,7 +1181,7 @@ MonitorView.propTypes = {
     probeList: PropTypes.object,
     currentProject: PropTypes.object.isRequired,
     fetchIncidentPriorities: PropTypes.func.isRequired,
-    fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentTemplates: PropTypes.func.isRequired,
     fetchCommunicationSlas: PropTypes.func,
     fetchMonitorSlas: PropTypes.func,
     requestingIncidentSla: PropTypes.bool,

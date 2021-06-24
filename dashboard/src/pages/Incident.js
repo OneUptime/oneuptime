@@ -30,7 +30,7 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
-import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import { fetchIncidentTemplates } from '../actions/incidentBasicsSettings';
 import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSla';
 import secondsToHms from '../utils/secondsToHms';
 import { fetchComponent } from '../actions/component';
@@ -223,9 +223,12 @@ class Incident extends React.Component {
             0,
             0
         );
-        this.props.fetchBasicIncidentSettings(
-            this.props.currentProject && this.props.currentProject._id
-        );
+        this.props.fetchIncidentTemplates({
+            projectId:
+                this.props.currentProject && this.props.currentProject._id,
+            skip: 0,
+            limit: 0,
+        });
 
         this.props
             .getIncident(this.props.projectId, this.props.incidentId)
@@ -794,7 +797,7 @@ const mapDispatchToProps = dispatch => {
             getIncidentTimeline,
             fetchIncidentMessages,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchIncidentTemplates,
             fetchIncidentStatusPages,
             fetchDefaultCommunicationSla,
             fetchComponent,
@@ -831,7 +834,7 @@ Incident.propTypes = {
     componentSlug: PropTypes.string,
     fetchIncidentMessages: PropTypes.func,
     fetchIncidentPriorities: PropTypes.func.isRequired,
-    fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentTemplates: PropTypes.func.isRequired,
     fetchIncidentStatusPages: PropTypes.func.isRequired,
     fetchDefaultCommunicationSla: PropTypes.func,
     // defaultIncidentSla: PropTypes.oneOfType([

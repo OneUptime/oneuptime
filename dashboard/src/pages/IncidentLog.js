@@ -27,7 +27,7 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
-import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import { fetchIncidentTemplates } from '../actions/incidentBasicsSettings';
 import { fetchComponent } from '../actions/component';
 
 class IncidentLog extends React.Component {
@@ -64,7 +64,11 @@ class IncidentLog extends React.Component {
         }
 
         this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
-        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
+        this.props.fetchIncidentTemplates({
+            projectId: this.props.currentProject._id,
+            skip: 0,
+            limit: 0,
+        });
     };
 
     componentDidUpdate(prevProps) {
@@ -402,7 +406,7 @@ const mapDispatchToProps = dispatch => {
             openModal,
             closeModal,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchIncidentTemplates,
             getComponentIncidents,
             getProjectComponentIncidents,
             fetchComponent,
@@ -435,7 +439,7 @@ IncidentLog.propTypes = {
         })
     ),
     fetchIncidentPriorities: PropTypes.func.isRequired,
-    fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentTemplates: PropTypes.func.isRequired,
     modalList: PropTypes.array,
     getComponentIncidents: PropTypes.func,
     getProjectComponentIncidents: PropTypes.func,

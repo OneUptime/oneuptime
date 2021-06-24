@@ -14,7 +14,7 @@ import EditIncidentPriorityForm from '../components/modals/EditIncidentPriority'
 import RemoveIncidentPriorityForm from '../components/modals/RemoveIncidentPriority';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import {
-    fetchBasicIncidentSettings,
+    fetchIncidentTemplates,
     fetchBasicIncidentSettingsVariables,
 } from '../actions/incidentBasicsSettings';
 import DataPathHoC from '../components/DataPathHoC';
@@ -82,9 +82,11 @@ class IncidentSettings extends React.Component {
     }
     async ready() {
         await this.props.fetchIncidentPriorities(this.props.currentProject._id);
-        await this.props.fetchBasicIncidentSettings(
-            this.props.currentProject._id
-        );
+        await this.props.fetchIncidentTemplates({
+            projectId: this.props.currentProject._id,
+            skip: 0,
+            limit: 0,
+        });
         await this.props.fetchBasicIncidentSettingsVariables();
         this.props.fetchCustomFields(this.props.currentProject._id, 0, 10);
     }
@@ -403,7 +405,7 @@ IncidentSettings.propTypes = {
     incidentPrioritiesList: PropTypes.object.isRequired,
     location: PropTypes.object.isRequired,
     incidentPriorities: PropTypes.array.isRequired,
-    fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentTemplates: PropTypes.func.isRequired,
     fetchBasicIncidentSettingsVariables: PropTypes.func.isRequired,
     modalId: PropTypes.oneOfType([
         PropTypes.object,
@@ -426,7 +428,7 @@ const mapDispatchToProps = dispatch =>
             openModal,
             closeModal,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchIncidentTemplates,
             fetchBasicIncidentSettingsVariables,
             fetchCustomFields,
         },
