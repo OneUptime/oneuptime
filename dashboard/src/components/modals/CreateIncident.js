@@ -20,7 +20,6 @@ import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { fetchCustomFields } from '../../actions/customField';
 import { getIncidents, getComponentIncidents } from '../../actions/incident';
-import { fetchIncidentTemplates } from '../../actions/incidentBasicsSettings';
 
 class CreateIncident extends Component {
     constructor(props) {
@@ -36,14 +35,7 @@ class CreateIncident extends Component {
             currentProject,
             fetchCustomFields,
             resetCreateIncident,
-            fetchIncidentTemplates,
-            currentProjectId,
         } = this.props;
-        fetchIncidentTemplates({
-            projectId: currentProjectId,
-            skip: 0,
-            limit: 0,
-        });
         fetchCustomFields(currentProject._id);
         resetCreateIncident();
 
@@ -882,7 +874,6 @@ CreateIncident.propTypes = {
     getComponentIncidents: PropTypes.func,
     subProjectId: PropTypes.string,
     currentProjectId: PropTypes.string,
-    fetchIncidentTemplates: PropTypes.func,
     incidentTemplateObj: PropTypes.object,
 };
 
@@ -978,7 +969,6 @@ const mapDispatchToProps = dispatch => {
             resetCreateIncident,
             getIncidents,
             getComponentIncidents,
-            fetchIncidentTemplates,
         },
         dispatch
     );

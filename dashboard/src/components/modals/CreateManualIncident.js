@@ -13,7 +13,6 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { RenderField } from '../basic/RenderField';
 import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { fetchCustomFields } from '../../actions/customField';
-import { fetchIncidentTemplates } from '../../actions/incidentBasicsSettings';
 
 class CreateManualIncident extends Component {
     constructor(props) {
@@ -24,17 +23,8 @@ class CreateManualIncident extends Component {
     }
 
     componentDidMount() {
-        const {
-            fetchCustomFields,
-            fetchIncidentTemplates,
-            currentProject,
-        } = this.props;
+        const { fetchCustomFields } = this.props;
         const { projectId } = this.props.data;
-        fetchIncidentTemplates({
-            projectId: currentProject._id,
-            skip: 0,
-            limit: 0,
-        });
         fetchCustomFields(projectId);
 
         window.addEventListener('keydown', this.handleKeyBoard);
@@ -548,10 +538,8 @@ CreateManualIncident.propTypes = {
     monitorId: PropTypes.string,
     newIncident: PropTypes.object,
     change: PropTypes.func.isRequired,
-    currentProject: PropTypes.object.isRequired,
     fetchCustomFields: PropTypes.func,
     customFields: PropTypes.array,
-    fetchIncidentTemplates: PropTypes.func,
     incidentTemplateObj: PropTypes.object,
 };
 
@@ -603,7 +591,6 @@ const mapDispatchToProps = dispatch => {
             createIncidentReset,
             change,
             fetchCustomFields,
-            fetchIncidentTemplates,
         },
         dispatch
     );
