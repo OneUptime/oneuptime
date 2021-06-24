@@ -173,31 +173,6 @@ const _this = {
             timeout: _this.timeout,
         });
     },
-    clearTwillioSettings: async function(page) {
-        const _this = this;
-        //clear account sid
-        const accountSid = await _this.page$(page, 'input[name=account-sid]');
-        await accountSid.click({ clickCount: 3 });
-        await page.keyboard.press('Backspace');
-
-        //clear account token
-        const token = await _this.page$(
-            page,
-            'input[name=authentication-token]'
-        );
-        await token.click({ clickCount: 3 });
-        await page.keyboard.press('Backspace');
-
-        //clear phone
-        const phone = await _this.page$(page, 'input[name=phone]');
-        await phone.click({ clickCount: 3 });
-        await page.keyboard.press('Backspace');
-        //clear alert limit
-        const limit = await _this.page$(page, 'input[name=alert-limit]');
-        await limit.click({ clickCount: 3 });
-        await page.keyboard.press('Backspace');
-        return;
-    },
     loginAdminUser: async function(user, page) {
         const { email, password } = user;
         await page.goto(utils.ACCOUNTS_URL + '/login', {
@@ -331,20 +306,13 @@ const _this = {
                 'input[name=confirmPassword]',
                 '1234567890'
             );
-            await _this.pageClick(page, 'button[type=submit]');
-            //check if it throws a user exist error
-            await _this.delay(2000);
-            const exist = await _this.isElementOnPage(page, '#error-msg');
-            if (exist) {
-                const val = await _this.page$Eval(
-                    page,
-                    '#error-msg',
-                    e => e.innerHTML
-                );
-                if (val === 'Email Address is already taken.') {
-                    await _this.loginAdminUser(masterAdmin, page);
-                }
-            }
+            await Promise.all([
+                _this.pageClick(page, 'button[type=submit]'),
+                page.waitForSelector('#users', {
+                    visible: true,
+                    timeout: _this.timeout,
+                }),
+            ]);
         } else {
             await _this.loginAdminUser(masterAdmin, page);
         }
@@ -426,11 +394,6 @@ const _this = {
         const input = await _this.page$(page, selector);
         await input.click({ clickCount: 3 });
         await input.type('');
-    },
-    delay: function(time) {
-        return new Promise(function(resolve) {
-            setTimeout(resolve, time);
-        });
     },
     renameProject: async function(newProjectName, page) {
         await _this.pageWaitForSelector(page, '#projectSettings');
