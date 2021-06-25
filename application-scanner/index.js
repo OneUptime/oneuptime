@@ -35,7 +35,7 @@ const config = require('./utils/config');
 const cronApplicationSecurityStartTime = Math.floor(Math.random() * 50);
 
 app.use(cors());
-app.set('port', process.env.PORT || 3004);
+app.set('port', process.env.PORT || 3005);
 
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
@@ -66,7 +66,7 @@ app.get(['/application/version', '/version'], function(req, res) {
 });
 
 // Run this cron at 3 AM once a day.
-cron.schedule('*/2 * * * *', () => {
+cron.schedule('0 3 * * *', () => {
     setTimeout(() => {
         Main.runApplicationScan();
     }, cronApplicationSecurityStartTime * 1000);
