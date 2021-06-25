@@ -435,7 +435,7 @@ const _this = {
         }
     },
 
-    sendIncidentAcknowldegedMessageToSubscriber: async function(
+    sendIncidentAcknowledgedMessageToSubscriber: async function(
         incidentTime,
         monitorName,
         number,
@@ -453,7 +453,7 @@ const _this = {
             const _this = this;
             let { template } = await _this.getTemplate(
                 smsTemplate,
-                'Subscriber Incident Acknowldeged'
+                'Subscriber Incident Acknowledged'
             );
             const data = {
                 projectName,
@@ -549,7 +549,7 @@ const _this = {
             }
         } catch (error) {
             ErrorService.log(
-                'twillioService.sendIncidentAcknowldegedMessageToSubscriber',
+                'twillioService.sendIncidentAcknowledgedMessageToSubscriber',
                 error
             );
             await SmsCountService.create(

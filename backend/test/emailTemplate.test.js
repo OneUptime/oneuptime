@@ -135,7 +135,7 @@ describe('Email Template API', function() {
                 {
                     subject: 'Updated Mail Subject',
                     body: 'Updated Mail Body',
-                    emailType: 'Subscriber Incident Acknowldeged',
+                    emailType: 'Subscriber Incident Acknowledged',
                 },
             ]);
         expect(res).to.have.status(200);

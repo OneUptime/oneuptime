@@ -579,6 +579,7 @@ module.exports = {
             });
             const incidentSettings = await IncidentSettingsService.findOne({
                 projectId: data.projectId,
+                isDefault: true,
             });
 
             const incomingRequest = await _this.findOneBy({
@@ -625,7 +626,7 @@ module.exports = {
                         .filter(monitor => !monitor.deleted);
                 }
 
-                if (filters || filters.length > 0) {
+                if (filters && filters.length > 0) {
                     // if template variables are used
                     // update the values for filterText
                     const updatedFilters = filters.map(filter => {

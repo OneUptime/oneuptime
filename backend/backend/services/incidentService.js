@@ -166,20 +166,21 @@ module.exports = {
                 incident.createdByIncomingHttpRequest =
                     data.createdByIncomingHttpRequest;
 
+                const templatesInput = {
+                    incidentType: data.incidentType,
+                    projectName: project.name,
+                    time: Moment().format('h:mm:ss a'),
+                    date: Moment().format('MMM Do YYYY'),
+                    monitorName: joinNames(monitorNames),
+                };
+
                 if (!incident.manuallyCreated) {
                     const incidentSettings = await IncidentSettingsService.findOne(
                         {
                             projectId: data.projectId,
+                            isDefault: true,
                         }
                     );
-
-                    const templatesInput = {
-                        incidentType: data.incidentType,
-                        projectName: project.name,
-                        time: Moment().format('h:mm:ss a'),
-                        date: Moment().format('MMM Do YYYY'),
-                        monitorName: joinNames(monitorNames),
-                    };
 
                     const titleTemplate = Handlebars.compile(
                         incidentSettings.title
@@ -214,8 +215,13 @@ module.exports = {
                         ];
                     }
                 } else {
-                    incident.title = data.title;
-                    incident.description = data.description;
+                    const titleTemplate = Handlebars.compile(data.title);
+                    const descriptionTemplate = Handlebars.compile(
+                        data.description
+                    );
+
+                    incident.title = titleTemplate(templatesInput);
+                    incident.description = descriptionTemplate(templatesInput);
                     incident.incidentPriority = data.incidentPriority;
                 }
 

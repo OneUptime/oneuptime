@@ -3515,7 +3515,7 @@ const _this = {
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
-                'Subscriber Incident Acknowldeged'
+                'Subscriber Incident Acknowledged'
             );
             const projectId = incident.projectId._id || incident.projectId;
             const data = {

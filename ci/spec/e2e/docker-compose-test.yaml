@@ -13,6 +13,8 @@ e2e_docker_compose_test:
         - chmod +x ./env-setup.sh
         - ./env-setup.sh
         - npm run ci-docker-saas
+        # Sleep for 5 mins to make sure docker started
+        - sleep 5m
         # Set env var
         - export HOME_URL=http://localhost:1444
         - export ACCOUNTS_URL=http://localhost:3003

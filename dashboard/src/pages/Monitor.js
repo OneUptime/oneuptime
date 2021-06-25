@@ -29,7 +29,10 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
-import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import {
+    fetchIncidentTemplates,
+    fetchDefaultTemplate,
+} from '../actions/incidentBasicsSettings';
 import { API_URL } from '../config';
 import io from 'socket.io-client';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
@@ -104,7 +107,8 @@ class DashboardView extends Component {
         if (
             String(prevProps.componentSlug) !==
                 String(this.props.componentSlug) ||
-            prevProps.currentProject !== this.props.currentProject
+            JSON.stringify(prevProps.currentProject) !==
+                JSON.stringify(this.props.currentProject)
         ) {
             if (
                 this.props.currentProject &&
@@ -116,6 +120,22 @@ class DashboardView extends Component {
                     this.props.componentSlug
                 );
             }
+        }
+
+        if (
+            JSON.stringify(prevProps.currentProject) !==
+            JSON.stringify(this.props.currentProject)
+        ) {
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+            });
+            this.props.fetchIncidentTemplates({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+                skip: 0,
+                limit: 0,
+            });
         }
     }
 
@@ -132,8 +152,23 @@ class DashboardView extends Component {
             this.props.fetchComponent(projectId, this.props.componentSlug);
         }
         this.props.getProbes(projectId, 0, 10); //0 -> skip, 10-> limit.
-        this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
-        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
+        if (this.props.currentProject) {
+            this.props.fetchIncidentPriorities(
+                this.props.currentProject._id || this.props.currentProject,
+                0,
+                0
+            );
+            this.props.fetchIncidentTemplates({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+                skip: 0,
+                limit: 0,
+            });
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+            });
+        }
         this.props.monitor.monitorsList.monitors.forEach(subProject => {
             if (subProject.monitors.length > 0) {
                 subProject.monitors.forEach(monitor => {
@@ -508,13 +543,14 @@ const mapDispatchToProps = dispatch => {
             fetchMonitorStatuses,
             fetchLighthouseLogs,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchIncidentTemplates,
             loadPage,
             fetchTutorial,
             getProbes,
             fetchComponentSummary,
             fetchComponent,
             fetchMonitors,
+            fetchDefaultTemplate,
         },
         dispatch
     );
@@ -605,12 +641,13 @@ DashboardView.propTypes = {
         })
     ),
     fetchIncidentPriorities: PropTypes.func.isRequired,
-    fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentTemplates: PropTypes.func.isRequired,
     tutorialStat: PropTypes.object,
     fetchComponentSummary: PropTypes.func,
     componentSummaryObj: PropTypes.object,
     fetchComponent: PropTypes.func,
     componentSlug: PropTypes.string,
+    fetchDefaultTemplate: PropTypes.func,
 };
 
 DashboardView.displayName = 'DashboardView';
