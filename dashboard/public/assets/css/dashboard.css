@@ -35462,3 +35462,7 @@ padding-left:20px
 .bs-automate-slider {
   width: 50% !important;
 }
+
+.basic-multi-select {
+  min-width: 300px;
+}
