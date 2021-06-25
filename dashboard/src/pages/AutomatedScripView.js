@@ -261,7 +261,6 @@ const AutomatedScripView = props => {
                                                                                                                         log.triggerByIncident
                                                                                                                     }
                                                                                                                 >
-                                                                                                                    #
                                                                                                                     {
                                                                                                                         log
                                                                                                                             .triggerByIncident
@@ -299,11 +298,20 @@ const AutomatedScripView = props => {
                                                                                                                     </Badge>
                                                                                                                 ) : log.status ===
                                                                                                                   'failed' ? (
-                                                                                                                    <Badge color="red">
-                                                                                                                        {
-                                                                                                                            log.status
-                                                                                                                        }
-                                                                                                                    </Badge>
+                                                                                                                    log.error ===
+                                                                                                                    'stackoverflow' ? (
+                                                                                                                        <Badge color="red">
+                                                                                                                            {
+                                                                                                                                log.error
+                                                                                                                            }
+                                                                                                                        </Badge>
+                                                                                                                    ) : (
+                                                                                                                        <Badge color="red">
+                                                                                                                            {
+                                                                                                                                log.status
+                                                                                                                            }
+                                                                                                                        </Badge>
+                                                                                                                    )
                                                                                                                 ) : null}
                                                                                                             </div>
                                                                                                         </div>
