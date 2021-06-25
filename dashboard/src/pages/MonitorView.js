@@ -1067,7 +1067,12 @@ const mapStateToProps = (state, props) => {
                         const criterionBodyField = mapCriteria(criterion);
                         const criterionFieldName = `${type}_${id}`;
                         const scriptName = criterion.scripts.map(
-                            ({ scriptId }) => scriptId.name
+                            ({ scriptId }) => {
+                                return {
+                                    value: scriptId._id,
+                                    label: scriptId.name,
+                                };
+                            }
                         );
 
                         // set initial values for the criterion
