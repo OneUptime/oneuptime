@@ -533,17 +533,12 @@ class NewMonitor extends Component {
                     values[`incidentDescription_${criterionFieldName}`];
                 const scriptValues =
                     values[`script_${criterionFieldName}`] || [];
-                const scriptId = [];
-                this.props.scripts &&
-                    this.props.scripts.length > 0 &&
-                    this.props.scripts.forEach(script => {
-                        scriptValues.forEach(value => {
-                            if (script.name === value) {
-                                scriptId.push({ scriptId: script._id });
-                            }
-                        });
-                    });
-                criterionData.scripts = scriptId || [];
+                const scriptArr = scriptValues.map(script => {
+                    return {
+                        scriptId: script.value,
+                    };
+                });
+                criterionData.scripts = scriptArr || [];
 
                 if (Array.isArray(criteria[criterion.type])) {
                     criteria[criterion.type].push(criterionData);
@@ -947,10 +942,15 @@ class NewMonitor extends Component {
             },
         ];
 
-        const scripts =
+        const scriptsObj =
             this.props.scripts &&
             this.props.scripts.length > 0 &&
-            this.props.scripts.map(script => script.name);
+            this.props.scripts.map(script => {
+                return {
+                    value: script._id,
+                    label: script.name,
+                };
+            });
 
         return (
             <div className="Box-root Margin-bottom--12">
@@ -2650,8 +2650,8 @@ class NewMonitor extends Component {
                                                                                             .props
                                                                                             .edit
                                                                                     }
-                                                                                    scripts={
-                                                                                        scripts
+                                                                                    scriptsObj={
+                                                                                        scriptsObj
                                                                                     }
                                                                                 />
                                                                             );
