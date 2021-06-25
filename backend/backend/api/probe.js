@@ -9,7 +9,6 @@ const ProbeService = require('../services/probeService');
 const MonitorService = require('../services/monitorService');
 const ProjectService = require('../services/projectService');
 const LighthouseLogService = require('../services/lighthouseLogService');
-const ApplicationSecurityService = require('../services/applicationSecurityService');
 const ContainerSecurityService = require('../services/containerSecurityService');
 const router = express.Router();
 const isAuthorizedAdmin = require('../middlewares/clusterAuthorization')
@@ -75,39 +74,6 @@ router.delete('/:id', getUser, isAuthorizedAdmin, async function(req, res) {
 // Params:
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
 // Returns: 200: Success, 400: Error; 500: Server Error.
-router.put('/update/image', getUser, async function(req, res) {
-    try {
-        const upload = multer({
-            storage,
-        }).fields([
-            {
-                name: 'probeImage',
-                maxCount: 1,
-            },
-        ]);
-        upload(req, res, async function(error) {
-            const probeId = req.body.id;
-            const data = req.body;
-
-            if (error) {
-                return sendErrorResponse(req, res, error);
-            }
-            if (
-                req.files &&
-                req.files.probeImage &&
-                req.files.probeImage[0].filename
-            ) {
-                data.probeImage = req.files.probeImage[0].filename;
-            }
-
-            // Call the ProbeService
-            const save = await ProbeService.updateOneBy({ _id: probeId }, data);
-            return sendItemResponse(req, res, save);
-        });
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
 
 router.get('/monitors', isAuthorizedProbe, async function(req, res) {
     try {
@@ -710,35 +676,7 @@ router.get('/:projectId/probes', getUser, isAuthorized, async function(
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
-});
-
-router.get('/applicationSecurities', isAuthorizedProbe, async function(
-    req,
-    res
-) {
-    try {
-        const response = await ApplicationSecurityService.getSecuritiesToScan();
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.post('/scan/git', isAuthorizedProbe, async function(req, res) {
-    try {
-        let { security } = req.body;
-
-        security = await ApplicationSecurityService.decryptPassword(security);
-
-        const securityLog = await ProbeService.scanApplicationSecurity(
-            security
-        );
-        global.io.emit(`securityLog_${security._id}`, securityLog);
-        return sendItemResponse(req, res, securityLog);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
+})
 
 router.get('/containerSecurities', isAuthorizedProbe, async function(req, res) {
     try {
