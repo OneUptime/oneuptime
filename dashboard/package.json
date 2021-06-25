@@ -76,7 +76,7 @@
         "sane-email-validation": "^3.0.1",
         "should": "^13.2.3",
         "slick-carousel": "^1.8.1",
-        "socket.io-client": "^2.4.0",
+        "socket.io-client": "^4.1.2",
         "to-pascal-case": "^1.0.0",
         "universal-cookie": "^4.0.4",
         "uuid": "^8.3.2",
