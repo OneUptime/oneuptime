@@ -19,14 +19,15 @@ class FyipeTracker
         @tags = []
         @fingerprint = []
         @options = {
-            'maxTimeline': 5
+            'maxTimeline': 5,
+            'captureCodeSnippet': true
         }
         setUpOptions(options)
         @util = Util.new(@options)
         setEventId()
         @listenerObj = FyipeListener.new(getEventId(), @options)
         @apiTransport = FyipeTransport.new(@apiUrl)
-        setUpExceptionHandlerListener()
+        # setUpExceptionHandlerListener()
     end
 
     def setApiUrl(apiUrl)
@@ -44,14 +45,21 @@ class FyipeTracker
              if (!(@configKeys.include? key))
                 # if key is allowed in options
                 if (@options[key] != nil)
-                     # set max timeline properly after hecking conditions
-                     if key.to_s == 'maxTimeline'
+                    # set max timeline properly after hecking conditions
+                    if key.to_s == 'maxTimeline'
                         allowedValue = value
                         if value > @MAX_ITEMS_ALLOWED_IN_STACK or value < 1
                             allowedValue = @MAX_ITEMS_ALLOWED_IN_STACK
                         end
                         
                         @options[key] = allowedValue
+                    elsif key.to_s == 'captureCodeSnippet'
+                            defaultVal = true
+                            # set boolean value if boolean or set default `true` if anything other than boolean is passed
+                            if [true, false].include? value # since there is no Boolean class in Ruby
+                                defaultVal = value
+                            end
+                            @options[key] = defaultVal
                     end
                 end
 
