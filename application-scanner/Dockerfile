@@ -20,7 +20,7 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 3004: Application Scanner
+#   - 3005: Application Scanner
 EXPOSE 3005
 
 #Run the app

@@ -13,13 +13,9 @@ const isAuthorizedApplicationScanner = require('../middlewares/applicationScanne
     .isAuthorizedApplicationScanner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
 const multer = require('multer');
 const storage = require('../middlewares/upload');
-// const MUTEX_RESOURCES = require('../constants/MUTEX_RESOURCES');
-// const getMutex = require('../constants/mutexProvider');
 
 
 // Route
