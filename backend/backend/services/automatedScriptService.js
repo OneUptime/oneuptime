@@ -208,6 +208,7 @@ module.exports = {
                         status: 'failed',
                         success: false,
                         executionTime: 1,
+                        error: 'stackoverflow',
                         consoleLogs: ['Out of stack'],
                     };
                     switch (type) {
