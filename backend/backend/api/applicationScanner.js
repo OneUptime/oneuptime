@@ -8,7 +8,6 @@ const express = require('express');
 const ApplicationScannerService = require('../services/applicationScannerService');
 const ApplicationSecurityService = require('../services/applicationSecurityService');
 const router = express.Router();
-
 const isAuthorizedApplicationScanner = require('../middlewares/applicationScannerAuthorization')
     .isAuthorizedApplicationScanner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -16,7 +15,6 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const getUser = require('../middlewares/user').getUser;
 const multer = require('multer');
 const storage = require('../middlewares/upload');
-
 
 // Route
 // Description: Updating profile setting.
