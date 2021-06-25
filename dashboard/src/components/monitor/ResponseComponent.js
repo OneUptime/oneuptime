@@ -17,7 +17,7 @@ import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { v4 as uuidv4 } from 'uuid';
 import ScheduleInput from '../schedule/ScheduleInput';
 import { ValidateField } from '../../config';
-import MultiSelectMonitor from '../multiSelect/MultiSelectMonitor';
+import MultiSelectField from '../multiSelect/MultiSelectField';
 
 const newSelector = formValueSelector('NewMonitor');
 
@@ -398,17 +398,22 @@ export class ResponseComponent extends Component {
                                                                 </label>
                                                                 <div className="bs-Fieldset-fields">
                                                                     <Field
-                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                        component={
-                                                                            MultiSelectMonitor
-                                                                        }
                                                                         name={`script_${criterionFieldName}`}
                                                                         id={`script_${criterionFieldName}`}
-                                                                        placeholder="Select Automated Script"
-                                                                        data={
+                                                                        className="basic-multi-select"
+                                                                        classNamePrefix="select"
+                                                                        component={
+                                                                            MultiSelectField
+                                                                        }
+                                                                        options={
                                                                             this
                                                                                 .props
-                                                                                .scripts
+                                                                                .scriptsObj
+                                                                        }
+                                                                        {...this
+                                                                            .props}
+                                                                        placeholder={
+                                                                            'Select Automated Scripts'
                                                                         }
                                                                     />
                                                                 </div>
@@ -687,6 +692,7 @@ ResponseComponent.propTypes = {
     criterionName: PropTypes.string.isRequired,
     edit: PropTypes.bool.isRequired,
     scripts: PropTypes.array,
+    scriptsObj: PropTypes.array,
 };
 
 function mapStateToProps(state, ownProps) {
