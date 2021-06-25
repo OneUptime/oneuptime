@@ -1,7 +1,5 @@
 import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
-import valid from 'card-validator';
-
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
@@ -105,46 +103,6 @@ export const Validate = {
 
     compare(text1, text2) {
         return text1 === text2;
-    },
-
-    card(cardNumber) {
-        const numberValidation = valid.number(cardNumber);
-
-        if (!numberValidation.isPotentiallyValid) {
-            return false;
-        }
-
-        return true;
-    },
-
-    cardExpiration(expiry) {
-        const numberValidation = valid.expirationDate(expiry);
-
-        if (!numberValidation.isPotentiallyValid) {
-            return false;
-        }
-
-        return true;
-    },
-
-    cvv(cvv) {
-        const numberValidation = valid.cvv(cvv);
-
-        if (!numberValidation.isPotentiallyValid) {
-            return false;
-        }
-
-        return true;
-    },
-
-    postalCode(postalCode) {
-        const numberValidation = valid.postalCode(postalCode);
-
-        if (!numberValidation.isPotentiallyValid) {
-            return false;
-        }
-
-        return true;
     },
 };
 
