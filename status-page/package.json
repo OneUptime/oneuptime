@@ -4,7 +4,6 @@
     "private": true,
     "dependencies": {
         "axios": "^0.21.1",
-        "card-validator": "^8.1.1",
         "chai": "^4.3.4",
         "chai-http": "^4.3.0",
         "custom-env": "^2.0.1",
