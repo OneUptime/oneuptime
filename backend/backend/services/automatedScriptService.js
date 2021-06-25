@@ -195,6 +195,32 @@ module.exports = {
     }) {
         try {
             const _this = this;
+            if (stackSize === 3) {
+                const resource = resources[0];
+                if (resource) {
+                    let type;
+                    if (resource.automatedScript) {
+                        type = 'automatedScript';
+                    } else if (resource.callSchedule) {
+                        type = 'callSchedule';
+                    }
+                    const data = {
+                        status: 'failed',
+                        success: false,
+                        executionTime: 1,
+                        consoleLogs: ['Out of stack'],
+                    };
+                    switch (type) {
+                        case 'automatedScript':
+                            data.triggerByScript = triggeredId;
+                            break;
+                        default:
+                            return null;
+                    }
+                    await _this.createLog(resource.automatedScript, data);
+                }
+            }
+
             if (stackSize > 2) {
                 return;
             }
