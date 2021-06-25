@@ -96,7 +96,7 @@ RSpec.describe FyipeTracker do
 
         timeline = tracker.getTimeline()
         
-        expect(options[:maxTimeline]).to eql timeline.length() # three timeline events
+        expect(options[:maxTimeline]).to eql timeline.length() # two timeline events
         expect(timeline[0]["type"]).to eql $customTimeline["type"]
         expect(timeline[1]["category"]).to eql customTimeline2["category"]
     end
@@ -283,9 +283,10 @@ RSpec.describe FyipeTracker do
         event = tracker.getCurrentEvent()
         frame = event["exception"]["stacktrace"]["frames"][0]
         
-        expect(frame.key?("methodName")).to eql true
-        expect(frame.key?("lineNumber")).to eql true
-        expect(frame.key?("fileName")).to eql true
+        expect(frame).to have_key('methodName')
+        expect(frame).to have_key('lineNumber')
+        expect(frame).to have_key('fileName')
+
     end 
     it 'test_should_create_an_event_and_new_event_should_have_different_id' do
         tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"])
@@ -367,5 +368,86 @@ RSpec.describe FyipeTracker do
         expect(event["sdk"]["name"]).to be_an_instance_of(String)
 
         expect(event['sdk']['version']).to match(/(([0-9])+\.([0-9])+\.([0-9])+)/)# confirm that the version follows the pattern XX.XX.XX where X is a non negative integer
+    end
+    it 'test_should_add_code_capture_to_stack_trace_when_flag_is_passed_in_options' do
+        options = {
+            "captureCodeSnippet": true
+        }
+        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
+        tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
+
+        event = nil
+        errorMsg = ''
+        begin
+            divByZero = 1/0
+        rescue => ex
+            errorMsg = ex.message
+            event = tracker.captureException(ex)
+        end
+
+        expect(event["type"]).to eql "exception"
+        expect(event["content"]["message"]).to eql errorMsg
+        expect(event["content"]["stacktrace"]).to be_an_instance_of(Hash)
+        expect(event["content"]["stacktrace"]["frames"]).to be_an_instance_of(Array)
+        
+        
+        incidentFrame = event["content"]["stacktrace"]["frames"][0]
+        expect(incidentFrame).to have_key('linesBeforeError')
+        expect(incidentFrame).to have_key('linesAfterError')
+        expect(incidentFrame).to have_key('errorLine')
+    end
+    it 'test_should_not_add_code_capture_to_stack_trace_when_flag_is_passed_in_options' do
+        options = {
+            "captureCodeSnippet": false
+        }
+        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
+        tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
+
+        event = nil
+        errorType = ''
+        begin
+            divByZero = 1/0
+        rescue => ex
+            errorType = ex.class.to_s
+            event = tracker.captureException(ex)
+        end
+
+        expect(event["type"]).to eql "exception"
+        expect(event["content"]["type"]).to eql errorType
+        expect(event["content"]["stacktrace"]).to be_an_instance_of(Hash)
+        expect(event["content"]["stacktrace"]["frames"]).to be_an_instance_of(Array)
+        
+        
+        incidentFrame = event["content"]["stacktrace"]["frames"][0]
+        expect(incidentFrame).to_not have_key('linesBeforeError')
+        expect(incidentFrame).to_not have_key('linesAfterError')
+        expect(incidentFrame).to_not have_key('errorLine')
+    end
+    it 'test_should_add_code_capture_to_stack_trace_by_default_when_unwanted_flag_is_passed_in_options' do
+        options = {
+            "captureCodeSnippet": "heyy" # sdk expects a true or false but it defaults to true if wrong value is sent
+        }
+        tracker = FyipeTracker.new($apiUrl, $errorTracker["_id"], $errorTracker["key"], options)
+        tracker.addToTimeline($customTimeline["category"], $customTimeline["content"], $customTimeline["type"])
+
+        event = nil
+        errorMsg = ''
+        begin
+            divByZero = 1/0
+        rescue => ex
+            errorMsg = ex.message
+            event = tracker.captureException(ex)
+        end
+
+        expect(event["type"]).to eql "exception"
+        expect(event["content"]["message"]).to eql errorMsg
+        expect(event["content"]["stacktrace"]).to be_an_instance_of(Hash)
+        expect(event["content"]["stacktrace"]["frames"]).to be_an_instance_of(Array)
+        
+        
+        incidentFrame = event["content"]["stacktrace"]["frames"][0]
+        expect(incidentFrame).to have_key('linesBeforeError')
+        expect(incidentFrame).to have_key('linesAfterError')
+        expect(incidentFrame).to have_key('errorLine')
     end
 end
