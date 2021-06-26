@@ -695,6 +695,73 @@ module.exports = {
         }
     },
 
+    async getScriptMonitors() {
+        const moment = require('moment');
+        try {
+            const monitors = await MonitorModel.find({
+                $and: [
+                    {
+                        deleted: false,
+                        disabled: false,
+                    },
+                    {
+                        $or: [
+                            {
+                                $and: [
+                                    {
+                                        type: {
+                                            $in: ['script'],
+                                        },
+                                    },
+                                    {
+                                        $or: [
+                                            {
+                                                // ignore scripts that are running / inProgress
+                                                scriptRunStatus: {
+                                                    $nin: ['inProgress'],
+                                                },
+                                            },
+                                            // runaway script monitors that have been running for too long (10mins)**
+                                            // or weren't completed due to a crash
+                                            {
+                                                lastPingTime: {
+                                                    $lte: moment()
+                                                        .subtract(10, 'minutes')
+                                                        .toDate(),
+                                                },
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            });
+
+            // update state of selected script monitors to inProgress
+            if (monitors && monitors.length) {
+                await monitors.map(async m => {
+                    if (m.type === 'script') {
+                        await MonitorModel.updateOne(
+                            { _id: m._id, deleted: false },
+                            { $set: { scriptRunStatus: 'inProgress' } },
+                            { multi: true }
+                        );
+                    }
+                    return m;
+                });
+
+                return monitors;
+            } else {
+                return [];
+            }
+        } catch (error) {
+            ErrorService.log('monitorService.getProbeMonitors', error);
+            throw error;
+        }
+    },
+
     async updateMonitorPingTime(id) {
         try {
             const newdate = new Date();
