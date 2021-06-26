@@ -19,7 +19,9 @@
         "express": "^4.17.1",
         "node-cron": "^3.0.0",
         "request": "^2.88.2",
-        "vm2": "^3.9.3"
+        "vm2": "^3.9.3",
+        "winston": "^2.4.0",
+        "winston-slack-transport": "^2.0.0"
     },
     "devDependencies": {
         "nodemon": "^2.0.7"

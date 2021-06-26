@@ -131,6 +131,7 @@ services:
             dockerfile: ./Dockerfile.dev
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - SERVER_URL=http://backend:3002
         volumes:
             - ./script-runner:/usr/src/app
             # Use node modules of the container and not host system.
