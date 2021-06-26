@@ -143,10 +143,9 @@ router.post('/ping/:monitorId', async function(req, res) {
 
         // update script run status
         await MonitorService.updateBy(
-            { _id: req.params.monitorId },
+            { _id: monitor._id },
             {
                 scriptRunStatus: 'completed',
-                scriptRunBy: req.probe.id,
             }
         );
 
@@ -155,3 +154,5 @@ router.post('/ping/:monitorId', async function(req, res) {
         return sendErrorResponse(req, res, error);
     }
 });
+
+module.exports = router;

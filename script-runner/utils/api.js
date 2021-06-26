@@ -7,7 +7,7 @@ const _this = {
             'Access-Control-Allow-Origin': '*',
             Accept: 'application/json',
             'Content-Type': 'application/json;charset=UTF-8',
-            apiKey: config.apiKey,
+            // apiKey: config.apiKey,
         };
     },
     postApi: (url, data) => {

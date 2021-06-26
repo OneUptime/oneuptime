@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
-const scriptSandbox = require('../utils/scriptSandbox');
+const { run: runScript } = require('../utils/scriptSandbox');
 
 // it collects all monitors then ping them one by one to store their response
 module.exports = {
@@ -17,7 +17,7 @@ module.exports = {
                         status,
                         executionTime,
                         consoleLogs,
-                    } = await scriptSandbox.runScript(code, true);
+                    } = await runScript(code, true);
 
                     // normalize response
                     const resp = {

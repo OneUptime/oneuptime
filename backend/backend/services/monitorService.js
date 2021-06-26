@@ -541,7 +541,6 @@ module.exports = {
     },
 
     async getProbeMonitors(probeId, date) {
-        const moment = require('moment');
         try {
             const newdate = new Date();
             const monitors = await MonitorModel.find({
@@ -556,34 +555,7 @@ module.exports = {
                                 $and: [
                                     {
                                         type: {
-                                            $in: ['script'],
-                                        },
-                                    },
-                                    {
-                                        $or: [
-                                            {
-                                                scriptRunStatus: {
-                                                    $nin: ['inProgress'],
-                                                },
-                                            },
-                                            // script monitors that have been running for too long (10mins)**
-                                            // or weren't completed due to a crash
-                                            {
-                                                lastPingTime: {
-                                                    $lte: moment()
-                                                        .subtract(10, 'minutes')
-                                                        .toDate(),
-                                                },
-                                            },
-                                        ],
-                                    },
-                                ],
-                            },
-                            {
-                                $and: [
-                                    {
-                                        type: {
-                                            $in: ['server-monitor', 'script'],
+                                            $in: ['server-monitor'],
                                         },
                                     },
                                     {
@@ -650,16 +622,6 @@ module.exports = {
             });
 
             if (monitors && monitors.length) {
-                await monitors.map(async m => {
-                    if (m.type === 'script') {
-                        await MonitorModel.updateOne(
-                            { _id: m._id, deleted: false },
-                            { $set: { scriptRunStatus: 'inProgress' } },
-                            { multi: true }
-                        );
-                    }
-                    return m;
-                });
                 for (const monitor of monitors) {
                     if (
                         monitor.pollTime.length === 0 ||
