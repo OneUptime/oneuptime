@@ -267,6 +267,10 @@ app.use(
     require('./backend/api/incomingRequest')
 );
 app.use(
+    ['/script-runner', '/api/script-runner'],
+    require('./backend/api/scriptRunner')
+);
+app.use(
     ['/customField', '/api/customField'],
     require('./backend/api/customField')
 );

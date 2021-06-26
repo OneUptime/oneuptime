@@ -7,7 +7,7 @@ const scriptSandbox = require('../utils/scriptSandbox');
 module.exports = {
     run: async monitor => {
         try {
-            if (monitor && monitor.type) {
+            if (monitor && monitor.type === 'script') {
                 if (monitor.data.script) {
                     const code = monitor.data.script; // redundant now but may be expanded in future
                     const {
@@ -31,7 +31,6 @@ module.exports = {
                     await ApiService.ping(monitor._id, {
                         monitor,
                         resp,
-                        type: monitor.type,
                     });
                 }
             }
