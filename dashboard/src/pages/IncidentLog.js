@@ -27,7 +27,10 @@ import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
-import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import {
+    fetchIncidentTemplates,
+    fetchDefaultTemplate,
+} from '../actions/incidentBasicsSettings';
 import { fetchComponent } from '../actions/component';
 
 class IncidentLog extends React.Component {
@@ -63,15 +66,31 @@ class IncidentLog extends React.Component {
             this.props.getIncidents(this.props.currentProject._id, 0, 10); //0 -> skip, 10-> limit.
         }
 
-        this.props.fetchIncidentPriorities(this.props.currentProject._id, 0, 0);
-        this.props.fetchBasicIncidentSettings(this.props.currentProject._id);
+        if (this.props.currentProject) {
+            this.props.fetchIncidentPriorities(
+                this.props.currentProject._id,
+                0,
+                0
+            );
+            this.props.fetchIncidentTemplates({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+                skip: 0,
+                limit: 0,
+            });
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+            });
+        }
     };
 
     componentDidUpdate(prevProps) {
         if (
             String(prevProps.componentSlug) !==
                 String(this.props.componentSlug) ||
-            prevProps.currentProject !== this.props.currentProject
+            JSON.stringify(prevProps.currentProject) !==
+                JSON.stringify(this.props.currentProject)
         ) {
             if (
                 this.props.currentProject &&
@@ -94,6 +113,26 @@ class IncidentLog extends React.Component {
                     projectId,
                     this.props.componentId
                 );
+            }
+        }
+
+        if (
+            JSON.stringify(prevProps.currentProject) !==
+            JSON.stringify(this.props.currentProject)
+        ) {
+            if (this.props.currentProject) {
+                this.props.fetchDefaultTemplate({
+                    projectId:
+                        this.props.currentProject._id ||
+                        this.props.currentProject,
+                });
+                this.props.fetchIncidentTemplates({
+                    projectId:
+                        this.props.currentProject._id ||
+                        this.props.currentProject,
+                    skip: 0,
+                    limit: 0,
+                });
             }
         }
     }
@@ -402,10 +441,11 @@ const mapDispatchToProps = dispatch => {
             openModal,
             closeModal,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchIncidentTemplates,
             getComponentIncidents,
             getProjectComponentIncidents,
             fetchComponent,
+            fetchDefaultTemplate,
         },
         dispatch
     );
@@ -435,7 +475,7 @@ IncidentLog.propTypes = {
         })
     ),
     fetchIncidentPriorities: PropTypes.func.isRequired,
-    fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentTemplates: PropTypes.func.isRequired,
     modalList: PropTypes.array,
     getComponentIncidents: PropTypes.func,
     getProjectComponentIncidents: PropTypes.func,
@@ -444,6 +484,7 @@ IncidentLog.propTypes = {
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
+    fetchDefaultTemplate: PropTypes.func,
 };
 
 IncidentLog.displayName = 'IncidentLog';

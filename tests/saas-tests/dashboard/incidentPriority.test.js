@@ -32,7 +32,8 @@ describe('Incident Priority API', () => {
         done();
     });
 
-    test(
+    // TEST CASE NO LONGER NEEDED
+    test.skip(
         'Should not remove the incident priority used by default.',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {

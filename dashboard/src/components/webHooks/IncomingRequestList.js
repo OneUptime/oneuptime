@@ -15,7 +15,7 @@ import EditIncomingRequest from '../modals/EditIncomingRequest';
 import DeleteIncomingRequest from '../modals/DeleteIncomingRequest';
 import copyToClipboard from '../../utils/copyToClipboard';
 import { fetchIncidentPriorities } from '../../actions/incidentPriorities';
-import { fetchBasicIncidentSettings } from '../../actions/incidentBasicsSettings';
+import { fetchDefaultTemplate } from '../../actions/incidentBasicsSettings';
 
 class IncomingRequestList extends React.Component {
     state = {
@@ -38,13 +38,13 @@ class IncomingRequestList extends React.Component {
         const {
             fetchAllIncomingRequest,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchDefaultTemplate,
         } = this.props;
         const { projectId } = this.props;
 
         fetchAllIncomingRequest(projectId, 0, 10);
         fetchIncidentPriorities(projectId);
-        fetchBasicIncidentSettings(projectId);
+        fetchDefaultTemplate({ projectId });
 
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCOMING REQUEST');
@@ -59,7 +59,9 @@ class IncomingRequestList extends React.Component {
         if (String(prevProps.projectId) !== String(this.props.projectId)) {
             this.props.fetchAllIncomingRequest(this.props.projectId, 0, 10);
             this.props.fetchIncidentPriorities(this.props.projectId);
-            this.props.fetchBasicIncidentSettings(this.props.projectId);
+            this.props.fetchDefaultTemplate({
+                projectId: this.props.projectId,
+            });
         }
     }
 
@@ -453,7 +455,7 @@ const mapDispatchToProps = dispatch =>
             openModal,
             setActiveIncomingRequest,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchDefaultTemplate,
         },
         dispatch
     );
@@ -474,7 +476,7 @@ IncomingRequestList.propTypes = {
     ]),
     activeIncomingRequest: PropTypes.string,
     fetchIncidentPriorities: PropTypes.func,
-    fetchBasicIncidentSettings: PropTypes.func,
+    fetchDefaultTemplate: PropTypes.func,
 };
 
 export default connect(

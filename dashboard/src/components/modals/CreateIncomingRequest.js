@@ -2834,9 +2834,13 @@ const mapStateToProps = state => {
             state.form.incomingRequestForm.values,
         initialValues: {
             isDefault: false,
-            incidentPriority:
-                state.incidentBasicSettings.incidentBasicSettings
-                    .incidentPriority,
+            incidentPriority: state.incidentBasicSettings.defaultTemplate
+                .template.incidentPriority
+                ? state.incidentBasicSettings.defaultTemplate.template
+                      .incidentPriority._id ||
+                  state.incidentBasicSettings.defaultTemplate.template
+                      .incidentPriority
+                : '',
             showAdvancedOptions: false,
             showAvailableVariables: false,
             incidentType: 'offline',
