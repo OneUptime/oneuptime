@@ -12,6 +12,7 @@ import {
     DELETE_AUTOMATED_SCRIPT_REQUEST,
     RUN_AUTOMATED_SCRIPT_REQUEST,
     RUN_AUTOMATED_SCRIPT_FAILURE,
+    RUN_AUTOMATED_SCRIPT_SUCCESS,
 } from '../constants/automatedScript';
 
 const INITIAL_STATE = {
@@ -180,6 +181,16 @@ export default function component(state = INITIAL_STATE, action) {
                     ...state.runScript,
                     requesting: true,
                     success: false,
+                    error: null,
+                },
+            });
+
+        case RUN_AUTOMATED_SCRIPT_SUCCESS:
+            return Object.assign({}, state, {
+                runScript: {
+                    ...state.runScript,
+                    requesting: false,
+                    success: true,
                     error: null,
                 },
             });

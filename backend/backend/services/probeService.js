@@ -331,6 +331,11 @@ module.exports = {
             });
             const { matchedCriterion } = data;
             let incidentIds = [];
+            const scripts = matchedCriterion.scripts.map(script => {
+                return {
+                    automatedScript: script.scriptId,
+                };
+            });
 
             if (
                 data.status === 'online' &&
@@ -397,6 +402,12 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
+                    await AutomatedScriptService.runResource({
+                        triggeredId: incident._id,
+                        triggeredBy: 'incident',
+                        resources: scripts,
+                    });
+
                     if (incident) {
                         incidentIds = [incident];
                     }
@@ -465,6 +476,12 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
+                    await AutomatedScriptService.runResource({
+                        triggeredId: incident._id,
+                        triggeredBy: 'incident',
+                        resources: scripts,
+                    });
+
                     if (incident) {
                         incidentIds = [incident];
                     }
@@ -534,6 +551,12 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
+                    await AutomatedScriptService.runResource({
+                        triggeredId: incident._id,
+                        triggeredBy: 'incident',
+                        resources: scripts,
+                    });
+
                     if (incident) {
                         incidentIds = [incident];
                     }
@@ -6774,3 +6797,4 @@ const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
 const { some, forEach } = require('p-iteration');
 const vm = require('vm');
+const AutomatedScriptService = require('./automatedScriptService');

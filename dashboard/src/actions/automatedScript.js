@@ -226,6 +226,12 @@ export function runAutomatedScriptFailure(error) {
         payload: error,
     };
 }
+export function runAutomatedScriptSuccess(data) {
+    return {
+        type: types.RUN_AUTOMATED_SCRIPT_SUCCESS,
+        payload: data,
+    };
+}
 
 export function runScript(projectId, automatedScriptId) {
     return function(dispatch) {
@@ -236,6 +242,7 @@ export function runScript(projectId, automatedScriptId) {
 
         promise.then(
             function(response) {
+                dispatch(runAutomatedScriptSuccess(response.data));
                 return response.data;
             },
             function(error) {
