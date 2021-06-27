@@ -175,10 +175,6 @@ class UpdateScript extends Component {
                                             label: 'None',
                                         },
                                         {
-                                            value: 'callSchedule',
-                                            label: 'Call Schedule',
-                                        },
-                                        {
                                             value: 'automatedScript',
                                             label: 'Automated Script',
                                         },
@@ -327,10 +323,6 @@ class UpdateScript extends Component {
                                         {
                                             value: '',
                                             label: 'None',
-                                        },
-                                        {
-                                            value: 'callSchedule',
-                                            label: 'Call Schedule',
                                         },
                                         {
                                             value: 'automatedScript',

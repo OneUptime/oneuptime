@@ -4,7 +4,7 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ApplicationSecurityService = require('../services/applicationSecurityService');
-const ProbeService = require('../services/probeService');
+const ApplicationScannerService = require('../services/applicationScannerService');
 const RealTimeService = require('../services/realTimeService');
 const ResourceCategoryService = require('../services/resourceCategoryService');
 
@@ -311,10 +311,9 @@ router.post(
                 applicationSecurity
             );
 
-            const securityLog = await ProbeService.scanApplicationSecurity(
+            const securityLog = await ApplicationScannerService.scanApplicationSecurity(
                 applicationSecurity
             );
-
             global.io.emit(
                 `securityLog_${applicationSecurity._id}`,
                 securityLog
