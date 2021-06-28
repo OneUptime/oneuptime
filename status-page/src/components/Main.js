@@ -34,6 +34,7 @@ import PastEvent from './PastEvent';
 import { fetchFutureEvents, fetchPastEvents } from '../actions/status';
 import OngoingSchedule from './OngoingSchedule';
 import Collapsible from './Collapsible/Collapsible';
+import Twitter from './Twitter';
 
 const greenBackground = {
     display: 'inline-block',
@@ -565,6 +566,7 @@ class Main extends Component {
                 { name: 'Incidents List', key: 'incidents' },
                 { name: 'Past Announcements List', key: 'AnnouncementLogs' },
                 { name: 'Future Scheduled Events', key: 'maintenance' },
+                { name: 'Twitter Updates', key: 'twitter' },
                 { name: 'Footer', key: 'footer' },
             ],
             invisible: [
@@ -912,6 +914,15 @@ class Main extends Component {
                     />
                 </div>
             ),
+            twitter: (
+                <Twitter
+                    monitorState={this.props.monitorState}
+                    theme={theme}
+                    heading={heading}
+                    tweets={this.state.tweets}
+                    {...this.props}
+                />
+            ),
             footer: (
                 <div className="powered">
                     <FooterCard
@@ -1250,6 +1261,11 @@ class Main extends Component {
                 ) : (
                     ''
                 ),
+            twitter: (
+                <div>
+                    <Twitter />
+                </div>
+            ),
             footer: (
                 <FooterCard
                     footerHTML={footerHTML}

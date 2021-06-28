@@ -57,6 +57,7 @@ export class PrivateStatusPage extends Component {
                 scheduleHistoryDays: values.scheduleHistoryDays,
                 incidentHistoryDays: values.incidentHistoryDays,
                 announcementLogsHistory: values.announcementLogsHistory,
+                twitterUpdate: values.twitterUpdate,
             })
             .then(() => {
                 this.props.fetchProjectStatusPage(
@@ -1116,6 +1117,83 @@ export class PrivateStatusPage extends Component {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            paddingTop: '0',
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Twitter
+                                                                            updates
+                                                                            <Field
+                                                                                component="input"
+                                                                                type="text"
+                                                                                min="1"
+                                                                                placeholder="@"
+                                                                                className="db-BusinessSettings-input-60 TextInput bs-TextInput"
+                                                                                name={
+                                                                                    'twitterUpdate'
+                                                                                }
+                                                                                id="statuspage.twitterUpdate"
+                                                                            />
+                                                                        </span>
+                                                                        <label className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                The
+                                                                                amount
+                                                                                of
+                                                                                days
+                                                                                entered
+                                                                                in
+                                                                                the
+                                                                                text
+                                                                                box
+                                                                                will
+                                                                                be
+                                                                                the
+                                                                                amount
+                                                                                of
+                                                                                announcement
+                                                                                log
+                                                                                history
+                                                                                displayed
+                                                                                on
+                                                                                the
+                                                                                status
+                                                                                page
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </>
                                             )}
                                         </div>
@@ -1228,6 +1306,7 @@ const mapStateToProps = state => {
         initialValues.incidentHistoryDays = status.incidentHistoryDays;
         initialValues.scheduleHistoryDays = status.scheduleHistoryDays;
         initialValues.announcementLogsHistory = status.announcementLogsHistory;
+        initialValues.twitterUpdate = status.twitterUpdate;
     }
     initialValues.showIpWhitelistInput = true;
 
