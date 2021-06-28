@@ -179,9 +179,8 @@ export const bindRaf = fn => {
     };
 };
 
-export const filterProbeData = (monitor, probe) => {
-    const monitorStatuses =
-        monitor && monitor.statuses ? monitor.statuses : null;
+export const filterProbeData = (monitor, probe, backupStatus) => {
+    const monitorStatuses = monitor.statuses || backupStatus;
 
     const probesStatus =
         monitorStatuses && monitorStatuses.length > 0
@@ -189,7 +188,7 @@ export const filterProbeData = (monitor, probe) => {
                 ? monitorStatuses.filter(probeStatuses => {
                       return (
                           probeStatuses._id === null ||
-                          probeStatuses._id === probe._id
+                          String(probeStatuses._id) === String(probe._id)
                       );
                   })
                 : monitorStatuses

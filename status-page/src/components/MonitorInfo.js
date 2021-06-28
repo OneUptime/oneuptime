@@ -40,6 +40,7 @@ class MonitorInfo extends Component {
         if (monitor && !monitor.statuses) {
             const endDate = moment(Date.now());
             const startDate = moment(Date.now()).subtract(90, 'days');
+
             this.props.fetchMonitorStatuses(
                 monitor.projectId._id || monitor.projectId,
                 monitor._id,
@@ -64,9 +65,14 @@ class MonitorInfo extends Component {
             monitorState,
             probes,
             activeProbe,
+            monitorStatus,
         } = this.props;
 
-        if (JSON.stringify(prevProps.probes) !== JSON.stringify(probes)) {
+        if (
+            JSON.stringify(prevProps.probes) !== JSON.stringify(probes) ||
+            JSON.stringify(prevProps.monitorStatus) !==
+                JSON.stringify(this.props.monitorStatus)
+        ) {
             let range = !this.props.theme && 90;
             const now = Date.now();
 
@@ -83,15 +89,15 @@ class MonitorInfo extends Component {
                 }
             }
 
-            let monitorData = monitorState.filter(a => a._id === monitor._id);
-            monitorData =
-                monitorData && monitorData.length > 0 ? monitorData[0] : null;
+            const monitorData = monitorState.find(
+                a => String(a._id) === String(monitor._id)
+            );
 
             const probe =
                 probes && probes.length > 0
                     ? probes[probes.length < 2 ? 0 : activeProbe]
                     : null;
-            const statuses = filterProbeData(monitorData, probe) || [];
+            const statuses = filterProbeData(monitorData, probe, monitorStatus);
             calculateTime(statuses, now, range, monitor._id);
         }
 
@@ -174,9 +180,9 @@ class MonitorInfo extends Component {
             }
         }
 
-        let monitorData = monitorState.filter(a => a._id === monitor._id);
-        monitorData =
-            monitorData && monitorData.length > 0 ? monitorData[0] : null;
+        const monitorData = monitorState.find(
+            a => String(a._id) === String(monitor._id)
+        );
 
         const probe =
             probes && probes.length > 0
@@ -190,23 +196,27 @@ class MonitorInfo extends Component {
 
         const info = monitor ? monitorInfo.info[monitor._id] || {} : {};
         const timeBlock = info.timeBlock || [];
-        const uptimePercent = info.uptimePercent || 0;
+        const uptimePercent = info.uptimePercent || 'N/A';
 
         const monitorStatus = monitor.status
             ? monitor.status
             : getMonitorStatus(statuses);
 
         const uptime =
-            uptimePercent !== 100 && !isNaN(uptimePercent)
-                ? uptimePercent.toFixed(3)
+            uptimePercent !== 100
+                ? !isNaN(uptimePercent)
+                    ? uptimePercent.toFixed(3)
+                    : 'N/A'
                 : '100';
 
         const block = [];
-        if (
-            !(calculatingTime || timeBlock.length !== range) &&
-            selectedCharts &&
-            selectedCharts.uptime
-        ) {
+
+        const loadingData =
+            calculatingTime ||
+            timeBlock.length !== range ||
+            uptimePercent === 'N/A';
+
+        if (!loadingData && selectedCharts && selectedCharts.uptime) {
             for (let i = 0; i < range; i++) {
                 block.unshift(
                     <BlockChart
@@ -358,8 +368,7 @@ class MonitorInfo extends Component {
                                                 : 'scroll',
                                         }}
                                     >
-                                        {calculatingTime ||
-                                        timeBlock.length !== range ? (
+                                        {loadingData ? (
                                             <div ref={this.scrollContent}>
                                                 loading...
                                             </div>
@@ -399,16 +408,29 @@ class MonitorInfo extends Component {
                                         }
                                     ></div>
                                     <ShouldRender if={!this.props.checkUptime}>
-                                        <div
-                                            style={
-                                                subheading.color ===
-                                                'rgba(76, 76, 76, 1)'
-                                                    ? { color: '#aaaaaa' }
-                                                    : subheading
-                                            }
-                                        >
-                                            {uptime}% uptime
-                                        </div>
+                                        {uptime === 'N/A' ? (
+                                            <div
+                                                style={
+                                                    subheading.color ===
+                                                    'rgba(76, 76, 76, 1)'
+                                                        ? { color: '#aaaaaa' }
+                                                        : subheading
+                                                }
+                                            >
+                                                {uptime}
+                                            </div>
+                                        ) : (
+                                            <div
+                                                style={
+                                                    subheading.color ===
+                                                    'rgba(76, 76, 76, 1)'
+                                                        ? { color: '#aaaaaa' }
+                                                        : subheading
+                                                }
+                                            >
+                                                {uptime}% uptime
+                                            </div>
+                                        )}
                                     </ShouldRender>
                                     <div
                                         style={
@@ -500,8 +522,16 @@ class MonitorInfo extends Component {
                                     style={primaryText}
                                 >
                                     <ShouldRender if={!this.props.checkUptime}>
-                                        <em>{uptime}%</em>
-                                        {' Uptime'}
+                                        {uptime === 'N/A' ? (
+                                            <>
+                                                <em>{uptime}</em>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <em>{uptime}%</em>
+                                                {' Uptime'}
+                                            </>
+                                        )}
                                     </ShouldRender>
                                 </span>
                             </div>
@@ -516,8 +546,7 @@ class MonitorInfo extends Component {
                                         : 'scroll',
                                 }}
                             >
-                                {calculatingTime ||
-                                timeBlock.length !== range ? (
+                                {loadingData ? (
                                     <div ref={this.scrollContent}>
                                         Loading...
                                     </div>
@@ -540,7 +569,7 @@ class MonitorInfo extends Component {
 
 MonitorInfo.displayName = 'UptimeGraphs';
 
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
     const ongoing =
         state.status &&
         state.status.ongoing &&
@@ -548,6 +577,9 @@ function mapStateToProps(state) {
         state.status.ongoing.ongoing.filter(
             ongoingSchedule => !ongoingSchedule.cancelled
         );
+
+    const monitorStatus = state.status.monitorStatuses[ownProps.monitor._id];
+
     return {
         monitorState: state.status.statusPage.monitorsData,
         checkUptime: state.status.statusPage.hideUptime,
@@ -556,6 +588,7 @@ function mapStateToProps(state) {
         colors: state.status.statusPage.colors,
         ongoing,
         monitorInfo: state.status.monitorInfo,
+        monitorStatus,
     };
 }
 
@@ -587,6 +620,10 @@ MonitorInfo.propTypes = {
     ongoing: PropTypes.array,
     calculateTime: PropTypes.func,
     monitorInfo: PropTypes.object,
+    monitorStatus: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);

@@ -664,7 +664,7 @@ export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
             `statusPage/${projectId}/${monitorId}/monitorStatuses`,
             { startDate, endDate }
         );
-        dispatch(fetchMonitorStatusesRequest());
+        dispatch(fetchMonitorStatusesRequest(monitorId));
 
         promise.then(
             function(monitorStatuses) {
@@ -696,9 +696,10 @@ export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
     };
 }
 
-export function fetchMonitorStatusesRequest() {
+export function fetchMonitorStatusesRequest(id) {
     return {
         type: types.FETCH_MONITOR_STATUSES_REQUEST,
+        payload: id,
     };
 }
 
