@@ -87,6 +87,7 @@ import moment from 'moment';
 const INITIAL_STATE = {
     error: null,
     statusPage: {},
+    monitorStatuses: {},
     requesting: false,
     notes: {
         error: null,
@@ -1070,6 +1071,10 @@ export default (state = INITIAL_STATE, action) => {
         case FETCH_MONITOR_STATUSES_REQUEST:
             return Object.assign({}, state, {
                 requestingstatuses: true,
+                monitorStatuses: {
+                    ...state.monitorStatuses,
+                    [action.payload]: null,
+                },
             });
 
         case FETCH_MONITOR_STATUSES_SUCCESS:
@@ -1078,13 +1083,20 @@ export default (state = INITIAL_STATE, action) => {
                     ...state.statusPage,
 
                     monitorsData: state.statusPage.monitorsData.map(monitor => {
-                        if (monitor._id === action.payload.monitorId) {
+                        if (
+                            String(monitor._id) ===
+                            String(action.payload.monitorId)
+                        ) {
                             monitor.statuses = action.payload.statuses.data;
                         }
                         return monitor;
                     }),
                 },
                 requestingstatuses: false,
+                monitorStatuses: {
+                    ...state.monitorStatuses,
+                    [action.payload.monitorId]: action.payload.statuses.data,
+                },
             });
 
         case FETCH_MONITOR_STATUSES_FAILURE:
