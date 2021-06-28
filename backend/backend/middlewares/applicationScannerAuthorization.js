@@ -3,7 +3,7 @@
  * Copyright HackerBay, Inc.
  *
  */
-const ApplicationScannerService = require('../services/ApplicationScannerService');
+const ApplicationScannerService = require('../services/applicationScannerService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ErrorService = require('../services/errorService');
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
