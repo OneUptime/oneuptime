@@ -1,0 +1,52 @@
+#######-------- APPLICATION SCANNER --------#########
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ print "%s-%s" .Release.Name "application-scanner" }}
+    namespace: {{ .Release.Namespace }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "application-scanner" }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+      matchLabels:
+          app: {{ printf "%s-%s" .Release.Name "application-scanner" }}
+  replicas: 1
+  template:
+      metadata:
+          labels:
+              app: {{ printf "%s-%s" .Release.Name "application-scanner" }}
+      spec:
+          containers:
+              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "application-scanner" .Values.image.tag }}
+                name: {{ printf "%s-%s" .Release.Name "application-scanner" }}
+                imagePullPolicy: {{ .Values.image.pullPolicy }}
+                env:
+                      - name: NODE_ENV
+                        value: 'production'
+                ports:
+                    - containerPort: {{ .Values.host.applicationScannerPort }}
+                      hostPort: {{ .Values.host.applicationScannerPort }}
+                      name: {{ printf "%s-%s" .Release.Name "application-scanner" }}
+          restartPolicy: {{ .Values.image.restartPolicy }}
+---
+# Fyipe Application Scanner Deployment
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "application-scanner"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" .Release.Name "application-scanner"  }}
+    namespace: {{ .Release.Namespace }}
+spec:
+    ports:
+        - port: {{ .Values.host.applicationScannerServicePort }}
+          targetPort: {{ .Values.host.applicationScannerPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "application-scanner"  }}
+    type: ClusterIP
+---
+###################################

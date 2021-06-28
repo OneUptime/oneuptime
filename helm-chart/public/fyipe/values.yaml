@@ -239,6 +239,8 @@ host:
   harakaServicePort: 2525
   scriptRunnerPort: 3009
   scripRunnerServicePort: 80
+  applicationScannerPort: 3005
+  applicationScannerServicePort: 80
 
 isThirdPartyBilling: false
 isRunningOnGCPMarketplace: false
