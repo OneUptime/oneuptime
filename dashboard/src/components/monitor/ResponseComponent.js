@@ -408,7 +408,8 @@ export class ResponseComponent extends Component {
                                                                         options={
                                                                             this
                                                                                 .props
-                                                                                .scriptsObj
+                                                                                .scriptsObj ||
+                                                                            []
                                                                         }
                                                                         {...this
                                                                             .props}
