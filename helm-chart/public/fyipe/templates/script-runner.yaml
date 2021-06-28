@@ -27,6 +27,10 @@ spec:
                   env:
                       - name: NODE_ENV
                         value: 'production'
+                      - name: SERVER_URL
+                        value: {{ template "fyipe.serverUrl" $ }}
+                      - name: IS_SAAS_SERVICE
+                        value: 'true'
                   ports:
                       - containerPort: {{ .Values.host.scriptRunnerPort }}
                         hostPort: {{ .Values.host.scriptRunnerPort }}

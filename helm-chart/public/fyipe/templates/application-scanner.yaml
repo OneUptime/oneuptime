@@ -25,6 +25,12 @@ spec:
                 env:
                     - name: NODE_ENV
                       value: 'production'
+                    - name: PORT
+                      value: {{ .Values.host.applicationScannerPort | quote }}
+                    - name: SERVER_URL
+                      value: {{ template "fyipe.serverUrl" $ }}
+                    - name: IS_SAAS_SERVICE
+                      value: 'true'
                 ports:
                     - containerPort: {{ .Values.host.applicationScannerPort }}
                       hostPort: {{ .Values.host.applicationScannerPort }}
