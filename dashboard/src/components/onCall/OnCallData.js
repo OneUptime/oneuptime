@@ -47,11 +47,7 @@ function OnCallTableBody({ text, type }) {
             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                 <span className="db-ListViewItem-text Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                     <div className="Box-root Margin-right--16">
-                        <button
-                            className="Button"
-                            style={{ height: '48px' }}
-                            id="viewOnCallSchedule"
-                        >
+                        <button className="Button" id="viewOnCallSchedule">
                             <span className="bs-Button">{text}</span>
                         </button>
                     </div>

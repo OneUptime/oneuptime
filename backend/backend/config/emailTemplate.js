@@ -566,7 +566,7 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
             '{{length}} : Length of the incident',
             '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
-        emailType: 'Subscriber Incident Acknowldeged',
+        emailType: 'Subscriber Incident Acknowledged',
         subject: '{{projectName}} - {{monitorName}}: Incident Acknowledged',
         body: `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">

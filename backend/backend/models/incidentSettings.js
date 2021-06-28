@@ -23,6 +23,8 @@ const IncidentSettings = new Schema({
         type: Date,
         default: Date.now,
     },
+    isDefault: { type: Boolean, default: false },
+    name: String,
     deleted: { type: Boolean, default: false },
     deletedAt: {
         type: Date,

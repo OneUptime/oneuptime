@@ -1,17 +1,12 @@
 const winston = require('winston');
-const Slack = require('winston-slack-transport');
+const Slack = require('winston-slack-webhook-transport');
 
 if (
     process.env.PORT &&
     process.env.SLACK_ERROR_LOG_WEBHOOK &&
     process.env.SLACK_ERROR_LOG_CHANNEL
 ) {
-    winston.add(Slack, {
-        webhook_url: process.env.SLACK_ERROR_LOG_WEBHOOK,
-        channel: '#' + process.env.SLACK_ERROR_LOG_CHANNEL,
-        username: 'Error Bot',
-        handleExceptions: true,
-    });
+    winston.add(new Slack({ webhookUrl: process.env.SLACK_ERROR_LOG_WEBHOOK }));
 }
 
 module.exports = {

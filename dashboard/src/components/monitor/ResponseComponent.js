@@ -17,6 +17,7 @@ import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { v4 as uuidv4 } from 'uuid';
 import ScheduleInput from '../schedule/ScheduleInput';
 import { ValidateField } from '../../config';
+import MultiSelectField from '../multiSelect/MultiSelectField';
 
 const newSelector = formValueSelector('NewMonitor');
 
@@ -380,6 +381,43 @@ export class ResponseComponent extends Component {
                                                                     />
                                                                 </div>
                                                             </div>
+                                                            <div className="bs-Fieldset-row">
+                                                                <label
+                                                                    className="bs-Fieldset-label"
+                                                                    style={{
+                                                                        flex:
+                                                                            '0 0 8rem',
+                                                                        textAlign:
+                                                                            'left',
+                                                                    }}
+                                                                    htmlFor={`incidentTitle_${criterionFieldName}`}
+                                                                >
+                                                                    Run
+                                                                    automated
+                                                                    script
+                                                                </label>
+                                                                <div className="bs-Fieldset-fields">
+                                                                    <Field
+                                                                        name={`script_${criterionFieldName}`}
+                                                                        id={`script_${criterionFieldName}`}
+                                                                        className="basic-multi-select"
+                                                                        classNamePrefix="select"
+                                                                        component={
+                                                                            MultiSelectField
+                                                                        }
+                                                                        options={
+                                                                            this
+                                                                                .props
+                                                                                .scriptsObj
+                                                                        }
+                                                                        {...this
+                                                                            .props}
+                                                                        placeholder={
+                                                                            'Select Automated Scripts'
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </ShouldRender>
 
@@ -653,6 +691,8 @@ ResponseComponent.propTypes = {
     arrayPush: PropTypes.func.isRequired,
     criterionName: PropTypes.string.isRequired,
     edit: PropTypes.bool.isRequired,
+    scripts: PropTypes.array,
+    scriptsObj: PropTypes.array,
 };
 
 function mapStateToProps(state, ownProps) {

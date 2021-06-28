@@ -1,9 +1,6 @@
 const puppeteer = require('puppeteer');
 const utils = require('../../test-utils');
 const init = require('../../test-init');
-const {
-    incidentDefaultSettings,
-} = require('../../../backend/backend/config/incidentDefaultSettings');
 require('should');
 let browser, page;
 // user credentials
@@ -12,11 +9,13 @@ const password = '1234567890';
 
 const componentName = utils.generateRandomString();
 const monitorName = utils.generateRandomString();
+const newName = 'Another';
 const newDefaultIncidentTitle = 'TEST: {{monitorName}}';
 const newDefaultIncidentDescription = 'TEST: {{incidentType}}';
 const incidentType = 'offline';
 const inctidentTitleAfterSubstitution = `TEST: ${monitorName}`;
 const inctidentDescriptionAfterSubstitution = `TEST: ${incidentType}`;
+const changedTitle = `${monitorName} is ${incidentType}.`;
 
 describe('Incident Settings API', () => {
     const operationTimeOut = init.timeout;
@@ -41,7 +40,7 @@ describe('Incident Settings API', () => {
     });
 
     test(
-        'Should fill title,description and priority fields with default values.',
+        'Should show priority fields with default values.',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -52,35 +51,21 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
-            await init.pageWaitForSelector(page, 'input[name=title]');
-            const priorityFieldValue = await init.page$Eval(
-                page,
-                '#incidentPriority',
-                e => e.textContent
-            );
 
-            expect(priorityFieldValue).toMatch('High');
-            const titleFieldValue = await init.page$Eval(
+            // when a project is created a default incident template is created automatically for it
+            // the incident template name is set as Default
+            const defaultTemplate = await init.pageWaitForSelector(
                 page,
-                'input[name=title]',
-                e => e.value
+                '#incident_template_Default'
             );
-            expect(titleFieldValue).toMatch(incidentDefaultSettings.title);
-            const descriptionFieldValue = await init.page$Eval(
-                page,
-                '.ace_layer.ace_text-layer',
-                e => e.textContent
-            );
-            expect(descriptionFieldValue).toMatch(
-                incidentDefaultSettings.description
-            );
+            expect(defaultTemplate).toBeDefined();
             done();
         },
         operationTimeOut
     );
 
     test(
-        'Should not delete default priority',
+        'Should not be able to delete default priority',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -91,28 +76,20 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
-            await init.pageWaitForSelector(page, '.incident-priority-tab', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.page$$Eval(page, '.incident-priority-tab', elems =>
-                elems[0].click()
-            );
-            await init.pageWaitForSelector(page, '#priorityDelete_High_0');
-            await init.pageClick(page, '#priorityDelete_High_0');
-            const unableToDeleteDefault = await init.pageWaitForSelector(
+
+            const deleteBtn = await init.pageWaitForSelector(
                 page,
-                '#message-modal-message',
-                { visible: true, timeout: init.timeout }
+                '#deleteIncidentTemplateBtn_Default',
+                { hidden: true }
             );
-            expect(unableToDeleteDefault).toBeDefined();
+            expect(deleteBtn).toBeNull();
             done();
         },
         operationTimeOut
     );
 
     test(
-        'Should update default title, description and priority fields',
+        'Should update title, description and priority fields for a template',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle0',
@@ -123,16 +100,25 @@ describe('Incident Settings API', () => {
             await init.pageClick(page, '#more');
             await init.pageWaitForSelector(page, '#incidentSettings');
             await init.pageClick(page, '#incidentSettings');
-            await init.pageWaitForSelector(page, 'input[name=title]');
-            await init.selectDropdownValue('#incidentPriority', 'low', page);
-            await init.pageClick(page, 'input[name=title]', { clickCount: 3 });
+
+            await init.pageWaitForSelector(
+                page,
+                '#editIncidentTemplateBtn_Default'
+            );
+            await init.pageClick(page, '#editIncidentTemplateBtn_Default');
+            await init.pageWaitForSelector(page, '#templateForm');
+            await init.pageWaitForSelector(page, '#name');
+            await init.pageClick(page, '#name', { clickCount: 3 });
             await page.keyboard.press('Backspace');
-            await init.pageType(
-                page,
-                'input[name=title]',
-                newDefaultIncidentTitle
+            await init.pageType(page, '#name', newName);
+            await init.selectDropdownValue(
+                '#incidentTemplatePriority',
+                'low',
+                page
             );
-
+            await init.pageClick(page, '#title', { clickCount: 3 });
+            await page.keyboard.press('Backspace');
+            await init.pageType(page, '#title', newDefaultIncidentTitle);
             await init.pageClick(page, '#description');
             await page.keyboard.down('Control');
             await page.keyboard.press('A');
@@ -142,38 +128,39 @@ describe('Incident Settings API', () => {
                 '#description',
                 newDefaultIncidentDescription
             );
-            await init.pageClick(page, '#saveButton');
+            await init.pageClick(page, '#updateIncidentTemplate');
+            await init.pageWaitForSelector(page, '#templateForm', {
+                hidden: true,
+            });
             await page.reload({
                 waitUntil: 'networkidle0',
             });
 
-            await init.pageWaitForSelector(page, 'input[name=title]');
+            await init.pageWaitForSelector(
+                page,
+                '#editIncidentTemplateBtn_Default'
+            );
+            await init.pageClick(page, '#editIncidentTemplateBtn_Default');
+            await init.pageWaitForSelector(page, '#templateForm');
             const priorityFieldValue = await init.page$Eval(
                 page,
-                '#incidentPriority',
+                '#incidentTemplatePriority',
                 e => e.textContent
             );
             expect(priorityFieldValue).toEqual('Low');
             const titleFieldValue = await init.page$Eval(
                 page,
-                'input[name=title]',
+                '#title',
                 e => e.value
             );
             expect(titleFieldValue).toEqual(newDefaultIncidentTitle);
-            const descriptionFieldValue = await init.page$Eval(
-                page,
-                '.ace_layer.ace_text-layer',
-                e => e.textContent
-            );
-            expect(descriptionFieldValue).toEqual(
-                newDefaultIncidentDescription
-            );
             done();
         },
         operationTimeOut
     );
 
-    test(
+    // THIS TEST CASE IS NO LONGER NEEDED BECAUSE TEMPLATE VALUES ARE NO LONGER PREFILLED
+    test.skip(
         'Should fill title, description and priority fields on the incident creation form with the default values',
         async done => {
             await init.navigateToMonitorDetails(
@@ -221,11 +208,28 @@ describe('Incident Settings API', () => {
     test(
         'Should substitute variables in title, description when an incident is created',
         async done => {
+            await init.navigateToMonitorDetails(
+                componentName,
+                monitorName,
+                page
+            );
+
+            await init.pageWaitForSelector(
+                page,
+                `#monitorCreateIncident_${monitorName}`
+            );
+            await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
+            await init.pageWaitForSelector(page, '#createIncident');
+            await init.pageClick(page, '#createIncident');
+            await init.pageWaitForSelector(page, '#createIncident', {
+                hidden: true,
+            });
+
             // Since the incident was created in the previous test and it is only one, navigating to component details still gives access to the created incident.
             //And this will avoid using fragile selector to navigate to the incident page since the incident name is out of this test scope
-            await init.navigateToComponentDetails(componentName, page);
+            // await init.navigateToComponentDetails(componentName, page);
             // selectors refactoring
-            const incidentTitleSelector = '#incident_title > p';
+            const incidentTitleSelector = '#incident_title_0 > p';
             //Incident Description is no longer on UI
             const incidentPrioritySelector = '#name_Low';
 
@@ -241,14 +245,15 @@ describe('Incident Settings API', () => {
                 incidentPrioritySelector,
                 e => e.textContent
             );
-            expect(title).toMatch(inctidentTitleAfterSubstitution);
+            expect(title).toMatch(changedTitle);
             expect(incidentPriority).toMatch('Low');
             done();
         },
         operationTimeOut
     );
 
-    test(
+    // TEST CASE NO LONGER NEEDED
+    test.skip(
         'Should delete non-default priority',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -285,7 +290,8 @@ describe('Incident Settings API', () => {
         operationTimeOut
     );
 
-    test(
+    // TEST CASE NO LONGER NEEDED
+    test.skip(
         'Should create a priority and set it as default',
         async done => {
             const customPriority = utils.generateRandomString();

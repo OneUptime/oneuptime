@@ -79,8 +79,20 @@ module.exports = {
                     },
                 },
             };
-            await IncidentPrioritiesService.create(prioritiesData.high);
+            const priority = await IncidentPrioritiesService.create(
+                prioritiesData.high
+            );
             await IncidentPrioritiesService.create(prioritiesData.low);
+            // create initial default incident template
+            await IncidentSettingsService.create({
+                name: 'Default',
+                projectId: project._id,
+                isDefault: true,
+                incidentPriority: priority._id,
+                title: '{{monitorName}} is {{incidentType}}.',
+                description:
+                    '{{monitorName}} is {{incidentType}}. This incident is currently being investigated by our team and more information will be added soon.',
+            });
             return project;
         } catch (error) {
             ErrorService.log('projectService.create', error);
@@ -731,10 +743,13 @@ module.exports = {
                 } else {
                     users = await Promise.all(
                         project.users.map(async user => {
-                            return await UserService.findOneBy({
+                            const foundUser = await UserService.findOneBy({
                                 _id: user.userId,
                                 deleted: { $ne: null },
                             });
+
+                            // append user's project role different from system role
+                            return { ...foundUser, projectRole: user.role };
                         })
                     );
                     project.users = users;
@@ -874,3 +889,4 @@ const DomainVerificationService = require('./domainVerificationService');
 const SsoDefaultRolesService = require('./ssoDefaultRolesService');
 const getSlug = require('../utils/getSlug');
 const flattenArray = require('../utils/flattenArray');
+const IncidentSettingsService = require('./incidentSettingsService');

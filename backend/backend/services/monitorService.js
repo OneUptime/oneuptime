@@ -89,6 +89,7 @@ module.exports = {
                         data.incidentCommunicationSla;
                     monitor.customFields = data.customFields;
                     monitor.createdById = data.createdById;
+                    monitor.scripts = data.scripts || [];
                     if (data.type === 'url' || data.type === 'api') {
                         monitor.data = {};
                         monitor.data.url = data.data.url;
@@ -303,6 +304,9 @@ module.exports = {
                 .populate('componentId', 'name slug')
                 .populate('resourceCategory', 'name')
                 .populate('incidentCommunicationSla')
+                .populate('criteria.up.scripts.scriptId', 'name')
+                .populate('criteria.down.scripts.scriptId', 'name')
+                .populate('criteria.degraded.scripts.scriptId', 'name')
                 .populate('monitorSla');
             return monitors;
         } catch (error) {
@@ -324,6 +328,9 @@ module.exports = {
                 .populate('componentId', ['_id', 'name', 'slug'])
                 .populate('resourceCategory', 'name')
                 .populate('incidentCommunicationSla')
+                .populate('criteria.up.scripts.scriptId', 'name')
+                .populate('criteria.down.scripts.scriptId', 'name')
+                .populate('criteria.degraded.scripts.scriptId', 'name')
                 .populate('monitorSla');
             return monitor;
         } catch (error) {

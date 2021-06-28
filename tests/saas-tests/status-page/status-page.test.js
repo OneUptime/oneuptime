@@ -41,13 +41,9 @@ describe('Check status-page up', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            const response = await init.page$Eval(
-                page,
-                '#app-loading > div',
-                e => {
-                    return e.innerHTML;
-                }
-            );
+            const response = await init.page$Eval(page, '#error', e => {
+                return e.innerHTML;
+            });
             expect(response).toBe('Page Not Found');
             done();
         },

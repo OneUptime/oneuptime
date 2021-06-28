@@ -290,6 +290,13 @@ export const ValidateField = {
 
     compare: (text1, text2) =>
         text1 === text2 ? undefined : 'These texts donot match',
+
+    password6: password =>
+        !password || !password.length
+            ? 'Password cannot be blank'
+            : password.length < 6
+            ? 'Password must be a minimum of 6 characters'
+            : undefined,
 };
 
 export const PricingPlan = {

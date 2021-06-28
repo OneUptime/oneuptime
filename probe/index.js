@@ -33,7 +33,6 @@ const cron = require('node-cron');
 const config = require('./utils/config');
 
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
-const cronApplicationSecurityStartTime = Math.floor(Math.random() * 50);
 const cronContainerSecurityStartTime = Math.floor(Math.random() * 50);
 
 app.use(cors());
@@ -72,13 +71,6 @@ cron.schedule('*/2 * * * *', () => {
     setTimeout(() => {
         Main.runJob();
     }, cronMinuteStartTime * 1000);
-});
-
-// Run this cron at 3 AM once a day.
-cron.schedule('0 3 * * *', () => {
-    setTimeout(() => {
-        Main.runApplicationScan();
-    }, cronApplicationSecurityStartTime * 1000);
 });
 
 // Run this cron at 6 AM once a day.

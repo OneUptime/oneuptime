@@ -256,6 +256,17 @@ const AutomatedScripView = props => {
                                                                                                                             ?.name
                                                                                                                     }
                                                                                                                 </ShouldRender>
+                                                                                                                <ShouldRender
+                                                                                                                    if={
+                                                                                                                        log.triggerByIncident
+                                                                                                                    }
+                                                                                                                >
+                                                                                                                    {
+                                                                                                                        log
+                                                                                                                            .triggerByIncident
+                                                                                                                            ?.idNumber
+                                                                                                                    }
+                                                                                                                </ShouldRender>
                                                                                                             </div>
                                                                                                         </div>
                                                                                                         <div className="bs-ObjectList-cell bs-u-v-middle">
@@ -287,11 +298,20 @@ const AutomatedScripView = props => {
                                                                                                                     </Badge>
                                                                                                                 ) : log.status ===
                                                                                                                   'failed' ? (
-                                                                                                                    <Badge color="red">
-                                                                                                                        {
-                                                                                                                            log.status
-                                                                                                                        }
-                                                                                                                    </Badge>
+                                                                                                                    log.error ===
+                                                                                                                    'stackoverflow' ? (
+                                                                                                                        <Badge color="red">
+                                                                                                                            {
+                                                                                                                                log.error
+                                                                                                                            }
+                                                                                                                        </Badge>
+                                                                                                                    ) : (
+                                                                                                                        <Badge color="red">
+                                                                                                                            {
+                                                                                                                                log.status
+                                                                                                                            }
+                                                                                                                        </Badge>
+                                                                                                                    )
                                                                                                                 ) : null}
                                                                                                             </div>
                                                                                                         </div>

@@ -15,7 +15,7 @@ const emailTemplateSchema = new Schema({
         type: String,
         enum: [
             'Subscriber Incident Created',
-            'Subscriber Incident Acknowldeged',
+            'Subscriber Incident Acknowledged',
             'Subscriber Incident Resolved',
             'Investigation note is created',
             'Subscriber Scheduled Maintenance Created',

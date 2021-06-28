@@ -26,7 +26,7 @@ module.exports = [
             '{{monitor.customFields.*}} : The value of any monitor custom field',
             '{{length}} : Length of the incident',
         ],
-        smsType: 'Subscriber Incident Acknowldeged',
+        smsType: 'Subscriber Incident Acknowledged',
         body:
             '{{projectName}} - {{incidentType}} incident on {{monitorName}} is acknowledged at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },

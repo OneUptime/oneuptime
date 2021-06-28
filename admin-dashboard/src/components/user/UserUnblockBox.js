@@ -32,8 +32,7 @@ export class UserUnblockBox extends Component {
                                 </span>
                                 <p>
                                     <span>
-                                        Click the button to unblock this
-                                        project.
+                                        Click the button to unblock this user.
                                     </span>
                                 </p>
                             </div>
