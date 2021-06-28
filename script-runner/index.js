@@ -63,6 +63,6 @@ http.listen(app.get('port'), function() {
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
 
 // script monitor cron job
-cron.schedule('*/2 * * * *', () => {
+cron.schedule('* * * * *', () => {
     setTimeout(() => main.runScriptMonitorsJob(), cronMinuteStartTime * 1000);
 });
