@@ -126,3 +126,9 @@ include:
 
   # FYIPE-GL-MANAGER
   - '/ci/spec/fyipe-gl-manager/deploy.yaml'
+
+  # Application Scanner
+  - '/ci/spec/application-scanner/deploy.yaml'
+
+  #  Script Runner
+  - '/ci/spec/script-runner/deploy.yaml'
