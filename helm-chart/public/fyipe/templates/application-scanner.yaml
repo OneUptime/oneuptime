@@ -30,7 +30,7 @@ spec:
                       hostPort: {{ .Values.host.applicationScannerPort }}
                       name: {{ printf "%s-%s" .Release.Name "application-scanner" }}
           restartPolicy: {{ .Values.image.restartPolicy }}
-          ---
+---
 # Fyipe Application Scanner Deployment
 apiVersion: v1
 kind: Service
