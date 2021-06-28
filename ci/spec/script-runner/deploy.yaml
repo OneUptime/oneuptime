@@ -28,6 +28,7 @@ staging_script-runner:
             - hotfix-master
     environment:
         name: staging
+
 production_script-runner:
     stage: Deploy
     allow_failure: true
@@ -50,3 +51,9 @@ production_script-runner:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - release
+            - hotfix-release
+    environment:
+        name: production
