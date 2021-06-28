@@ -30,10 +30,17 @@ class WebHookInput extends React.Component {
     }
 
     render() {
-        const { data, monitorId, webhooks } = this.props;
+        const { data, webhooks, monitors, monitorId } = this.props;
+
         const { endpoint, endpointType } = data.data;
         let deleting = false;
-
+        const monitorName = monitors && monitors[0].monitorId.name;
+        const monitorTitle =
+            monitors && monitors.length > 1
+                ? `${monitorName} and ${monitors?.length - 1} other${
+                      monitors?.length - 1 === 1 ? '' : 's'
+                  }`
+                : monitorName;
         if (
             webhooks &&
             webhooks.deleteWebHook &&
@@ -46,7 +53,7 @@ class WebHookInput extends React.Component {
             <tr className="webhook-list-item Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink webhook-list">
                 <WebHookTableBody text={endpoint} />
 
-                {!monitorId && <WebHookTableBody text={data.monitorId.name} />}
+                {!monitorId && <WebHookTableBody text={monitorTitle} />}
 
                 <WebHookBadgeTableBody
                     text={endpointType}
@@ -72,7 +79,7 @@ class WebHookInput extends React.Component {
                                                     EditWebhook,
                                                     {
                                                         ...data,
-                                                        currentMonitorId: monitorId,
+                                                        currentMonitorId: '',
                                                     }
                                                 ),
                                             })
@@ -133,6 +140,7 @@ WebHookInput.propTypes = {
     data: PropTypes.object.isRequired,
     monitorId: PropTypes.string,
     webhooks: PropTypes.object,
+    monitors: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(WebHookInput);

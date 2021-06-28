@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { Validate } from '../../config';
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm, Field, FieldArray } from 'redux-form';
 import { createSlack } from '../../actions/slackWebhook';
 import { ValidateField } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
@@ -23,6 +23,9 @@ function validate(values) {
 }
 
 class CreateSlack extends React.Component {
+    state = {
+        monitorError: null,
+    };
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -40,7 +43,7 @@ class CreateSlack extends React.Component {
         const postObj = {};
         postObj.webHookName = values.webHookName;
         postObj.endpoint = values.endpoint;
-        postObj.monitorId = monitorId ? monitorId : values.monitorId;
+        postObj.monitors = monitorId ? [monitorId] : values.monitors;
         postObj.type = 'slack';
         postObj.incidentCreated = values.incidentCreated
             ? values.incidentCreated
@@ -55,6 +58,19 @@ class CreateSlack extends React.Component {
             ? values.incidentNoteAdded
             : false;
 
+        const isDuplicate = postObj.monitors
+            ? postObj.monitors.length === new Set(postObj.monitors).size
+                ? false
+                : true
+            : false;
+
+        if (isDuplicate) {
+            this.setState({
+                monitorError: 'Duplicate monitor selection found',
+            });
+            postObj.monitorId = [];
+            return;
+        }
         createSlack(this.props.currentProject._id, postObj).then(() => {
             if (this.props.newSlack && !this.props.newSlack.error) {
                 closeThisDialog();
@@ -72,12 +88,138 @@ class CreateSlack extends React.Component {
                 return false;
         }
     };
+    renderMonitors = ({ fields }) => {
+        const { monitorError } = this.state;
+        const { allComponents } = this.props;
+        //const monitors = formValues.monitorId;
+        const allMonitors = this.props.monitor.monitorsList.monitors
+            .map(monitor => monitor.monitors)
+            .flat();
+        // .filter(monitor => !monitors.includes(monitor._id));
+        const getParentComponent = monitor =>
+            allComponents.filter(
+                component => component._id === monitor.componentId._id
+            )[0];
+
+        return (
+            <>
+                <div
+                    style={{
+                        width: '100%',
+                        position: 'relative',
+                    }}
+                >
+                    <button
+                        id="addMoreMonitor"
+                        className="Button bs-ButtonLegacy ActionIconParent"
+                        style={{
+                            position: 'absolute',
+                            zIndex: 1,
+                            right: 0,
+                        }}
+                        type="button"
+                        onClick={() => {
+                            fields.push();
+                        }}
+                    >
+                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                            <span>Add Monitor</span>
+                        </span>
+                    </button>
+                    {fields.map((field, index) => {
+                        return (
+                            <div
+                                style={{
+                                    width: '65%',
+                                    marginBottom: 10,
+                                }}
+                                key={index}
+                            >
+                                <Field
+                                    component={RenderSelect}
+                                    name={field}
+                                    id={`monitorfield_${index}`}
+                                    placeholder="Select monitor"
+                                    style={{
+                                        height: '28px',
+                                        width: '100%',
+                                    }}
+                                    disabled={this.props.newSlack.requesting}
+                                    validate={ValidateField.select}
+                                    options={[
+                                        {
+                                            value: '',
+                                            label: 'Select monitor',
+                                        },
+                                        ...(allMonitors &&
+                                        allMonitors.length > 0
+                                            ? allMonitors.map(monitor => ({
+                                                  value: monitor._id,
+                                                  label: `${
+                                                      getParentComponent(
+                                                          monitor
+                                                      ).name
+                                                  } / ${monitor.name}`,
+                                              }))
+                                            : []),
+                                    ]}
+                                    className="db-select-nw db-MultiSelect-input"
+                                />
+                                {fields.length > 1 ? (
+                                    <button
+                                        id="removeMonitor"
+                                        className="Button bs-ButtonLegacy ActionIconParent"
+                                        style={{
+                                            marginTop: 10,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            fields.remove(index);
+                                        }}
+                                    >
+                                        <span className="bs-Button bs-Button--icon bs-Button--delete">
+                                            <span>Remove Monitor</span>
+                                        </span>
+                                    </button>
+                                ) : null}
+                            </div>
+                        );
+                    })}
+                    {monitorError && (
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                            style={{
+                                marginTop: '5px',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <div
+                                className="Box-root Margin-right--8"
+                                style={{ marginTop: '2px' }}
+                            >
+                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                            </div>
+                            <div className="Box-root">
+                                <span
+                                    id="monitorError"
+                                    style={{ color: 'red' }}
+                                >
+                                    {monitorError}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </>
+        );
+    };
 
     render() {
         const {
             handleSubmit,
             closeThisDialog,
             data: { monitorId },
+            formValues,
         } = this.props;
         const monitorList = [];
         const allMonitors = this.props.monitor.monitorsList.monitors
@@ -99,7 +241,7 @@ class CreateSlack extends React.Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal">
+                    <div className="bs-Modal" style={{ width: 600 }}>
                         <ClickOutside onClickOutside={closeThisDialog}>
                             <div className="bs-Modal-header">
                                 <div
@@ -150,7 +292,7 @@ class CreateSlack extends React.Component {
                                                         <div
                                                             className="bs-Fieldset-field"
                                                             style={{
-                                                                width: '70%',
+                                                                width: '100%',
                                                             }}
                                                         >
                                                             <Field
@@ -163,9 +305,10 @@ class CreateSlack extends React.Component {
                                                                 id="webHookName"
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 style={{
-                                                                    width: 250,
+                                                                    width:
+                                                                        '100%',
                                                                     padding:
-                                                                        '3px 5px',
+                                                                        '5px 10px',
                                                                 }}
                                                                 autoFocus={true}
                                                             />
@@ -192,7 +335,7 @@ class CreateSlack extends React.Component {
                                                         <div
                                                             className="bs-Fieldset-field"
                                                             style={{
-                                                                width: '70%',
+                                                                width: '100%',
                                                             }}
                                                         >
                                                             <Field
@@ -205,7 +348,8 @@ class CreateSlack extends React.Component {
                                                                 id="endpoint"
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 style={{
-                                                                    width: 250,
+                                                                    width:
+                                                                        '100%',
                                                                     padding:
                                                                         '3px 5px',
                                                                 }}
@@ -227,53 +371,96 @@ class CreateSlack extends React.Component {
                                                             className="bs-Fieldset-label Text-align--left"
                                                             htmlFor="monitorId"
                                                         >
-                                                            <span>Monitor</span>
+                                                            <span>
+                                                                Monitors
+                                                            </span>
                                                         </label>
-                                                        <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                paddingTop:
+                                                                    '6px',
+                                                            }}
+                                                        >
+                                                            <div className="bs-Fieldset-field">
+                                                                <label
+                                                                    className="Checkbox"
+                                                                    style={{
+                                                                        marginRight:
+                                                                            '12px',
+                                                                    }}
+                                                                >
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name="selectMonitors"
+                                                                        className="Checkbox-source"
+                                                                        id="selectMonitors"
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <label>
+                                                                            <span>
+                                                                                Select
+                                                                                Monitors
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                formValues &&
+                                                formValues.selectMonitors
+                                            }
+                                        >
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{ padding: 0 }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="monitorId"
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                paddingTop:
+                                                                    '6px',
+                                                            }}
+                                                        >
                                                             <div
                                                                 className="bs-Fieldset-field"
                                                                 style={{
                                                                     width:
-                                                                        '250px',
+                                                                        '100%',
                                                                 }}
                                                             >
-                                                                <Field
+                                                                <FieldArray
+                                                                    name="monitors"
                                                                     component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="monitorId"
-                                                                    id="monitorId"
-                                                                    placeholder="Select monitor"
-                                                                    disabled={
                                                                         this
-                                                                            .props
-                                                                            .newSlack
-                                                                            .requesting
+                                                                            .renderMonitors
                                                                     }
-                                                                    validate={
-                                                                        ValidateField.select
-                                                                    }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select monitor',
-                                                                        },
-                                                                        ...(monitorList &&
-                                                                        monitorList.length >
-                                                                            0
-                                                                            ? monitorList.map(
-                                                                                  monitor => ({
-                                                                                      value:
-                                                                                          monitor.value,
-                                                                                      label:
-                                                                                          monitor.label,
-                                                                                  })
-                                                                              )
-                                                                            : []),
-                                                                    ]}
-                                                                    className="db-select-nw db-MultiSelect-input"
                                                                 />
                                                             </div>
                                                         </div>
@@ -621,6 +808,8 @@ CreateSlack.propTypes = {
     monitor: PropTypes.object,
     newSlack: PropTypes.object,
     data: PropTypes.object,
+    allComponents: PropTypes.array,
+    formValues: PropTypes.object,
 };
 
 const NewCreateSlack = reduxForm({
@@ -637,12 +826,26 @@ const mapDispatchToProps = dispatch =>
         },
         dispatch
     );
-
-const mapStateToProps = state => ({
-    monitor: state.monitor,
-    currentProject: state.project.currentProject,
-    newSlack: state.slackWebhooks.createSlack,
-    initialValues: { endpoint: '', endpointType: '', monitorId: '' },
-});
+//
+const mapStateToProps = state => {
+    const allComponents = state.component.componentList.components
+        .map(component => component.components)
+        .flat();
+    return {
+        allComponents,
+        monitor: state.monitor,
+        currentProject: state.project.currentProject,
+        formValues:
+            state.form.newCreateSlack && state.form.newCreateSlack.values,
+        newSlack: state.slackWebhooks.createSlack,
+        initialValues: {
+            endpoint: '',
+            endpointType: '',
+            //monitorId: '',
+            monitors: [null],
+            selectMonitors: false,
+        },
+    };
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewCreateSlack);

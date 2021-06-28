@@ -56,7 +56,7 @@ module.exports = {
             let query = {
                 projectId: projectId,
                 integrationType: 'webhook',
-                monitorId: monitor._id,
+                monitors: { $elemMatch: { monitorId: monitor._id } },
             };
             if (incidentStatus === INCIDENT_RESOLVED) {
                 query = {
@@ -77,6 +77,7 @@ module.exports = {
                 return;
             }
             const integrations = await IntegrationService.findBy(query);
+            // eslint-disable-next-line no-console
             const monitorStatus = await MonitorStatusService.findOneBy({
                 monitorId: monitor._id,
             });

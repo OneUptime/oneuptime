@@ -20,7 +20,7 @@ module.exports = {
                 .populate('createdById', 'name')
                 .populate('projectId', 'name')
                 .populate({
-                    path: 'monitorId',
+                    path: 'monitors.monitorId',
                     select: 'name',
                     populate: {
                         path: 'componentId',
@@ -50,7 +50,13 @@ module.exports = {
             integrationModel.createdById = userId;
             integrationModel.data = data;
             integrationModel.integrationType = integrationType;
-            integrationModel.monitorId = data.monitorId;
+            data.monitors =
+                data.monitors &&
+                data.monitors.map(monitor => ({
+                    monitorId: monitor,
+                }));
+            integrationModel.monitorId = data.monitorId || null;
+            integrationModel.monitors = data.monitors || [];
             if (notificationOptions) {
                 integrationModel.notificationOptions = notificationOptions;
             }

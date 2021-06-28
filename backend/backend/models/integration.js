@@ -23,6 +23,15 @@ const integrationSchema = new Schema({
         alias: 'monitor',
         index: true,
     },
+    monitors: [
+        {
+            monitorId: {
+                type: Schema.Types.ObjectId,
+                ref: 'Monitor',
+                index: true,
+            },
+        },
+    ],
     createdAt: {
         type: Date,
         default: Date.now,

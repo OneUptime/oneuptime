@@ -17,7 +17,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
         const body = req.body;
         const userId = req.user ? req.user.id : null;
 
-        const monitorId = body.monitorId;
+        const monitors = body.monitors;
         const endpoint = body.endpoint;
         const webHookName = body.webHookName;
         const endpointType = body.endpointType;
@@ -41,10 +41,10 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
             });
         }
 
-        if (!monitorId) {
+        if (!monitors || monitors.length < 1) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'monitorId is missing in body, must be present',
+                message: 'no monitor is added, add a monitor',
             });
         }
 
@@ -64,7 +64,6 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
             }
 
             const existingName = await IntegrationService.findOneBy({
-                monitorId,
                 webHookName,
                 integrationType,
                 deleted: { $ne: null },
@@ -79,7 +78,6 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
         }
 
         const existingWebhook = await IntegrationService.findOneBy({
-            monitorId,
             'data.endpoint': endpoint,
             'data.endpointType': endpointType,
             deleted: { $ne: null },
@@ -92,7 +90,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
             });
         }
 
-        const data = { userId, endpoint, endpointType, monitorId, webHookName };
+        const data = { userId, endpoint, endpointType, monitors, webHookName };
         const notificationOptions = {
             incidentCreated,
             incidentAcknowledged,
