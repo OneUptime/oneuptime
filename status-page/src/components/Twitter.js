@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-
 class Twitter extends React.Component {
     state = {
         tweets: [
@@ -30,15 +29,26 @@ class Twitter extends React.Component {
     tweetList = (tweet, index) => {
         return (
             <li
-                className="incidentlist feed-item clearfix"
                 style={{
                     margin: '0 0 10px',
                     cursor: 'text',
+                    display: 'flex',
                 }}
                 key={index}
             >
-                <div className="ct_desc">{tweet.text}</div>
-                {/* <span>{tweet.created_at}</span> */}
+                <span className="feed-icon"></span>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div
+                        className="incidentlist feed-item clearfix"
+                        style={{
+                            marginBottom: 0,
+                            borderTopLeftRadius: 0,
+                        }}
+                    >
+                        <p className="ct_desc">{tweet.text}</p>
+                    </div>
+                    <span className="twitterTime">{tweet.created_at}</span>
+                </div>
             </li>
         );
     };
@@ -67,6 +77,9 @@ class Twitter extends React.Component {
                                 <span className="feed-title">
                                     Twitter Updates
                                 </span>
+                                <span className="feed-title">
+                                    <span className="feed-icon"></span>
+                                </span>
                                 <ul className="feed-contents plain">
                                     {this.state.tweets.map((tweet, i) =>
                                         this.tweetList(tweet, i)
@@ -76,8 +89,6 @@ class Twitter extends React.Component {
                         </div>
                     </div>
                 </div>
-
-                {/*  */}
             </div>
         );
     }
