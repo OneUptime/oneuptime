@@ -271,3 +271,9 @@ pushNotification:
     privateKey: "WdFZTeXkuoxpsO_KNOtXvhDUc_Ae1rb-WjPv6AVexA4"
     url: "https://fyipe-test.com"
  
+
+autoScaler: 
+  enabled: false
+  averageCpuUtilization: 50
+  minReplicas: 1
+  maxReplicas: 1
