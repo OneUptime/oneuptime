@@ -1,4 +1,5 @@
 module.exports = {
     serverUrl: process.env['SERVER_URL'],
-    apiKey: process.env['API_KEY'],
+    serviceKey: process.env['SERVICE_KEY'],
+    serviceName: process.env['SERVICE_NAME'],
 };

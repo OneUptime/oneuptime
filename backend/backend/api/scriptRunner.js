@@ -4,11 +4,12 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const MonitorService = require('../services/monitorService');
 const ProbeService = require('../services/probeService');
+const { isAuthorizedService } = require('../middlewares/serviceAuthorization');
 
 const router = express.Router();
 
 // get all script monitors for script-runner
-router.get('/monitors', async (req, res) => {
+router.get('/monitors', isAuthorizedService, async (req, res) => {
     try {
         const allScriptMonitors = await MonitorService.getScriptMonitors();
 
@@ -24,7 +25,7 @@ router.get('/monitors', async (req, res) => {
 });
 
 // ping script monitor
-router.post('/ping/:monitorId', async function(req, res) {
+router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
     try {
         const { monitor, resp } = req.body;
 
