@@ -261,6 +261,8 @@ const AutomatedScripView = props => {
                                                                                                                         log.triggerByIncident
                                                                                                                     }
                                                                                                                 >
+                                                                                                                    Incident
+                                                                                                                    #
                                                                                                                     {
                                                                                                                         log
                                                                                                                             .triggerByIncident
