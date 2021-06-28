@@ -189,8 +189,6 @@ services:
         environment:
             - PORT=3005
             - SERVER_URL=http://backend:3002
-            - APPLICATION_SCANNER_NAME=US
-            - APPLICATION_SCANNER_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
             - backend
