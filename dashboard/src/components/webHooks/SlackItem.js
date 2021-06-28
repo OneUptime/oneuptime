@@ -29,10 +29,17 @@ class SlackItem extends React.Component {
     }
 
     render() {
-        const { data, monitorId, webhooks, currentMonitorName } = this.props;
+        const { data, monitorId, webhooks, monitors } = this.props;
         const { webHookName } = data.data;
-        let deleting = false;
 
+        let deleting = false;
+        const monitorName = monitors && monitors[0].monitorId.name;
+        const monitorTitle =
+            monitors && monitors.length > 1
+                ? `${monitorName} and ${monitors?.length - 1} other${
+                      monitors?.length - 1 === 1 ? '' : 's'
+                  }`
+                : monitorName;
         if (
             webhooks &&
             webhooks.deleteWebHook &&
@@ -61,7 +68,7 @@ class SlackItem extends React.Component {
                         </span>
                     </div>
                 </td>
-                {currentMonitorName && (
+                {!monitorId && monitorTitle && (
                     <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
                         <div className="db-ListViewItem-cellContent Box-root Padding-vertical--16 Padding-horizontal--8">
                             <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -73,7 +80,7 @@ class SlackItem extends React.Component {
                                         overflow: 'hidden',
                                     }}
                                 >
-                                    <span>{currentMonitorName}</span>
+                                    <span>{monitorTitle}</span>
                                 </div>
                             </span>
                         </div>
@@ -162,7 +169,7 @@ SlackItem.propTypes = {
     data: PropTypes.object.isRequired,
     monitorId: PropTypes.string,
     webhooks: PropTypes.object,
-    currentMonitorName: PropTypes.string,
+    monitors: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(SlackItem);

@@ -94,11 +94,11 @@ class CreateWebHook extends React.Component {
     renderMonitors = ({ fields }) => {
         const { monitorError } = this.state;
         const { allComponents } = this.props;
-        //const monitors = formValues.monitorId;
+
         const allMonitors = this.props.monitor.monitorsList.monitors
             .map(monitor => monitor.monitors)
             .flat();
-        // .filter(monitor => !monitors.includes(monitor._id));
+
         const getParentComponent = monitor =>
             allComponents.filter(
                 component => component._id === monitor.componentId._id
@@ -223,15 +223,7 @@ class CreateWebHook extends React.Component {
             closeThisDialog,
             data: { monitorId },
             formValues,
-            //allComponents,
         } = this.props;
-        // const allMonitors = this.props.monitor.monitorsList.monitors
-        //     .map(monitor => monitor.monitors)
-        //     .flat();
-        // const getParentComponent = monitor =>
-        //     allComponents.filter(
-        //         component => component._id === monitor.componentId._id
-        //     )[0];
 
         return (
             <div
