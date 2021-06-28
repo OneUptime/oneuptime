@@ -26,8 +26,8 @@ spec:
                       - name: NODE_ENV
                         value: 'production'
                 ports:
-                    - containerPort: {{ .Values.host.applicationScanner }}
-                      hostPort: {{ .Values.host.applicationScanner }}
+                    - containerPort: {{ .Values.host.applicationScannerPort }}
+                      hostPort: {{ .Values.host.applicationScannerPort }}
                       name: {{ printf "%s-%s" .Release.Name "application-scanner" }}
           restartPolicy: {{ .Values.image.restartPolicy }}
           ---
