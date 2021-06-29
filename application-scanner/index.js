@@ -40,9 +40,7 @@ app.set('port', process.env.PORT || 3005);
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log(
-        `Application Scanner ${config.applicationScannerName} and Application Key ${
-            config.applicationScannerKey
-        } Started on port ${app.get('port')}. Fyipe API URL: ${
+        `Application Scanner Started on port ${app.get('port')}. Fyipe API URL: ${
             config.serverUrl
         }`
     );
@@ -54,7 +52,7 @@ app.get('/', function(req, res) {
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
-            serviceType: 'fyipe-applicationScanner',
+            serviceType: 'fyipe-application-scanner',
         })
     );
 });
