@@ -44,7 +44,7 @@ module.exports = {
         const _this = this;
         try {
             if (
-                !data.isDefault &&
+                !data.selectAllMonitors &&
                 data.createIncident &&
                 (!data.monitors || data.monitors.length === 0)
             ) {
@@ -56,7 +56,7 @@ module.exports = {
             }
 
             if (
-                !data.isDefault &&
+                !data.selectAllMonitors &&
                 data.createIncident &&
                 !isArrayUnique(data.monitors)
             ) {
@@ -65,22 +65,6 @@ module.exports = {
                 );
                 error.code = 400;
                 throw error;
-            }
-
-            if (data.isDefault) {
-                const incomingRequest = await _this.findOneBy({
-                    isDefault: true,
-                    projectId: data.projectId,
-                });
-
-                if (incomingRequest) {
-                    // reset any other default incoming request to false
-                    await _this.updateOneBy(
-                        { requestId: incomingRequest._id },
-                        { isDefault: false },
-                        true
-                    );
-                }
             }
 
             if (data.createIncident) {
@@ -175,7 +159,7 @@ module.exports = {
         try {
             if (!excludeMonitors && data.createIncident) {
                 if (
-                    !data.isDefault &&
+                    !data.selectAllMonitors &&
                     (!data.monitors || data.monitors.length === 0)
                 ) {
                     const error = new Error(
@@ -185,7 +169,7 @@ module.exports = {
                     throw error;
                 }
 
-                if (!data.isDefault && !isArrayUnique(data.monitors)) {
+                if (!data.selectAllMonitors && !isArrayUnique(data.monitors)) {
                     const error = new Error(
                         'You cannot have multiple selection of a monitor'
                     );
@@ -236,7 +220,7 @@ module.exports = {
                     incidentType: '',
                     incidentDescription: '',
                     customFields: '',
-                    isDefault: '',
+                    selectAllMonitors: '',
                 };
             }
 
@@ -265,7 +249,7 @@ module.exports = {
                     customFields: '',
                     acknowledgeIncident: '',
                     resolveIncident: '',
-                    isDefault: '',
+                    selectAllMonitors: '',
                 };
             }
 
@@ -312,25 +296,6 @@ module.exports = {
                 }));
             }
 
-            if (data.isDefault && data.createIncident) {
-                const incomingRequest = await _this.findOneBy({
-                    isDefault: true,
-                    projectId: query.projectId,
-                });
-
-                if (
-                    incomingRequest &&
-                    String(incomingRequest._id) !== String(query.requestId)
-                ) {
-                    // reset any other default incoming request to false
-                    await _this.updateOneBy(
-                        { requestId: incomingRequest._id },
-                        { isDefault: false },
-                        true
-                    );
-                }
-            }
-
             let updatedIncomingRequest = await IncomingRequestModel.findOneAndUpdate(
                 { _id: query.requestId },
                 {
@@ -347,10 +312,6 @@ module.exports = {
                 );
             }
 
-            updatedIncomingRequest = await _this.findOneBy({
-                _id: query.requestId,
-            });
-
             if (!updatedIncomingRequest) {
                 const error = new Error(
                     'Incoming request not found or does not exist'
@@ -358,6 +319,10 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
+
+            updatedIncomingRequest = await _this.findOneBy({
+                _id: query.requestId,
+            });
 
             // await RealTimeService.updateScheduledEvent(updatedIncomingRequest);
 
@@ -539,8 +504,8 @@ module.exports = {
                     } else {
                         // delete the incomingRequest when:
                         // 1. No monitor is remaining in the monitors array
-                        // 2. It is not the default incoming request
-                        if (!incomingRequest.isDefault) {
+                        // 2. It does not select all monitors
+                        if (!incomingRequest.selectAllMonitors) {
                             let deletedIncomingRequest = await IncomingRequestModel.findOneAndUpdate(
                                 { _id: incomingRequest._id },
                                 {
@@ -616,7 +581,7 @@ module.exports = {
                 }
 
                 let monitors = [];
-                if (incomingRequest.isDefault) {
+                if (incomingRequest.selectAllMonitors) {
                     monitors = await MonitorService.findBy({
                         projectId: data.projectId,
                     });
