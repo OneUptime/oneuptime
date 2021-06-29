@@ -5,7 +5,7 @@ const componentCollection = 'components';
 const monitorCollection = 'monitors';
 
 async function run() {
-    const projects = await find(projectCollection, { deleted: false });
+    const projects = await find(projectCollection, { });
 
     for (let i = 0; i < projects.length; i++) {
         const project = projects[i];
