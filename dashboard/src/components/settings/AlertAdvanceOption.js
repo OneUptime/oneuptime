@@ -689,7 +689,10 @@ export class AlertAdvanceOption extends Component {
                                                                             SMS
                                                                             alerts
                                                                             to
-                                                                            US
+                                                                            US,
+                                                                            Canadian
+                                                                            and
+                                                                            UK
                                                                             Numbers
                                                                         </span>
                                                                     </div>
