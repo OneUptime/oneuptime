@@ -29,7 +29,10 @@ class IncidentHeaderModal extends Component {
 
     navigatToIncident = incident => {
         const { data } = this.props;
-        const componentSlug = incident.monitorId.componentId.slug;
+        const componentSlug =
+            incident &&
+            incident.monitors[0] &&
+            incident.monitors[0].monitorId.componentId.slug;
         setTimeout(() => {
             history.push(
                 '/dashboard/project/' +
@@ -45,6 +48,23 @@ class IncidentHeaderModal extends Component {
         this.props.markAsRead(data.currentProjectId, incident.notificationId);
         this.props.animateSidebar(true);
         this.props.closeThisDialog();
+    };
+
+    handleMonitorList = monitors => {
+        if (monitors.length === 1) {
+            return `${monitors[0].monitorId.name} is`;
+        }
+        if (monitors.length === 2) {
+            return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name} are`;
+        }
+        if (monitors.length === 3) {
+            return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name} are`;
+        }
+        if (monitors.length > 3) {
+            return `${monitors[0].monitorId.name}, ${
+                monitors[1].monitorId.name
+            } and ${monitors.length - 2} others are`;
+        }
     };
 
     render() {
@@ -63,7 +83,7 @@ class IncidentHeaderModal extends Component {
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--default Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>
+                                            <span id="incident_header_modal">
                                                 {data.incidents.length === 0
                                                     ? 'No incidents currently active'
                                                     : 'These incidents are currently active.'}
@@ -78,7 +98,10 @@ class IncidentHeaderModal extends Component {
                                             <ul>
                                                 {data.incidents.map(
                                                     incident => (
-                                                        <li key={incident._id}>
+                                                        <li
+                                                            key={incident._id}
+                                                            className="activeIncidentList"
+                                                        >
                                                             <span
                                                                 style={{
                                                                     fontWeight:
@@ -100,12 +123,9 @@ class IncidentHeaderModal extends Component {
                                                                 }
                                                             </span>
                                                             :{' '}
-                                                            {
-                                                                incident
-                                                                    .monitorId
-                                                                    .name
-                                                            }{' '}
-                                                            is{' '}
+                                                            {this.handleMonitorList(
+                                                                incident.monitors
+                                                            )}{' '}
                                                             {
                                                                 incident.incidentType
                                                             }

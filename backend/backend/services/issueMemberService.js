@@ -29,6 +29,7 @@ module.exports = {
             }
 
             const issues = await IssueMemberModel.find(query)
+                .lean()
                 .populate('issueId', 'name')
                 .populate('userId', ['name', 'email']);
             return issues;
@@ -44,6 +45,7 @@ module.exports = {
             }
 
             const issueMember = await IssueMemberModel.findOne(query)
+                .lean()
                 .populate('issueId', 'name')
                 .populate('userId', ['name', 'email']);
             return issueMember;

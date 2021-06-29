@@ -30,11 +30,17 @@ import { SHOULD_LOG_ANALYTICS } from '../config';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
-import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import {
+    fetchIncidentTemplates,
+    fetchDefaultTemplate,
+} from '../actions/incidentBasicsSettings';
 import { fetchDefaultCommunicationSla } from '../actions/incidentCommunicationSla';
 import secondsToHms from '../utils/secondsToHms';
 import { fetchComponent } from '../actions/component';
 import HideIncidentBox from '../components/incident/HideIncidentBox';
+import flat from '../utils/flattenArray';
+import joinNames from '../utils/joinNames';
+import { fetchProjectSlug } from '../actions/project';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -72,21 +78,27 @@ class Incident extends React.Component {
                 (this.props.incident && this.props.incident._id) ||
             prevProps.componentSlug !== this.props.componentSlug
         ) {
-            if (
-                this.props.currentProject &&
-                this.props.currentProject._id &&
-                this.props.componentSlug
-            ) {
-                this.props.fetchComponent(
-                    this.props.currentProject._id,
-                    this.props.componentSlug
-                );
-            }
             this.props.getIncidentByIdNumber(
                 this.props.projectId,
                 this.props.incidentId
             );
             this.fetchAllIncidentData();
+        }
+
+        if (
+            JSON.stringify(prevProps.currentProject) !==
+            JSON.stringify(this.props.currentProject)
+        ) {
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+            });
+            this.props.fetchIncidentTemplates({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+                skip: 0,
+                limit: 0,
+            });
         }
     }
 
@@ -225,20 +237,23 @@ class Incident extends React.Component {
     };
 
     fetchAllIncidentData() {
-        this.props.fetchIncidentPriorities(
-            this.props.currentProject && this.props.currentProject._id,
-            0,
-            0
-        );
-        this.props.fetchBasicIncidentSettings(
-            this.props.currentProject && this.props.currentProject._id
-        );
-        const monitorId =
-            this.props.incident &&
-            this.props.incident.monitorId &&
-            this.props.incident.monitorId._id
-                ? this.props.incident.monitorId._id
-                : null;
+        if (this.props.currentProject) {
+            this.props.fetchIncidentPriorities(
+                this.props.currentProject && this.props.currentProject._id,
+                0,
+                0
+            );
+            this.props.fetchIncidentTemplates({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+                skip: 0,
+                limit: 0,
+            });
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+            });
+        }
 
         this.props
             .getIncident(this.props.projectId, this.props.incidentId)
@@ -262,17 +277,23 @@ class Incident extends React.Component {
             0,
             10
         );
-        this.props.getMonitorLogs(
-            this.props.projectId,
-            monitorId,
-            0,
-            10,
-            null,
-            null,
-            null,
-            this.props.incidentId,
-            this.props.type
-        );
+
+        const monitors = this.props.incident
+            ? this.props.incident.monitors.map(monitor => monitor.monitorId)
+            : [];
+        for (const monitor of monitors) {
+            this.props.getMonitorLogs(
+                this.props.projectId,
+                monitor._id,
+                0,
+                10,
+                null,
+                null,
+                null,
+                this.props.incidentId,
+                monitor.type
+            );
+        }
         this.props.fetchIncidentMessages(
             this.props.projectId,
             this.props.incidentId,
@@ -295,7 +316,12 @@ class Incident extends React.Component {
             currentProject,
             componentSlug,
             fetchComponent,
+            projectSlug,
+            fetchProjectSlug,
         } = this.props;
+
+        fetchProjectSlug(projectSlug);
+
         if (currentProject && currentProject._id && componentSlug) {
             fetchComponent(currentProject._id, componentSlug);
         }
@@ -313,6 +339,9 @@ class Incident extends React.Component {
             history,
             scheduleWarning,
             defaultSchedule,
+            monitors,
+            allMonitors,
+            componentSlug,
         } = this.props;
         const slug = currentProject ? currentProject.slug : null;
         const redirectTo = `/dashboard/project/${slug}/on-call`;
@@ -321,35 +350,31 @@ class Incident extends React.Component {
             location: { pathname },
             requestingComponent,
         } = this.props;
-        const monitorId =
-            this.props.incident &&
-            this.props.incident.monitorId &&
-            this.props.incident.monitorId._id
-                ? this.props.incident.monitorId._id
-                : null;
-        const monitorName =
-            this.props.incident &&
-            this.props.incident.monitorId &&
-            this.props.incident.monitorId.name
-                ? this.props.incident.monitorId.name
-                : null;
-        const monitorType =
-            this.props.monitor && this.props.monitor.type
-                ? this.props.monitor.type
-                : '';
-        const agentless =
-            this.props.monitor && this.props.monitor.agentlessConfig;
-
-        const incidentCommunicationSla =
-            this.props.monitor &&
-            (this.props.monitor.incidentCommunicationSla ||
-                this.props.defaultIncidentSla);
 
         let scheduleAlert;
-        if (
-            scheduleWarning.includes(monitorId) === false &&
-            defaultSchedule !== true
-        ) {
+
+        const monitorList = monitors
+            ? monitors.map(monitor => monitor.monitorId)
+            : [];
+
+        const incidentMonitors = [];
+        const monitorIds = monitorList.map(monitor => String(monitor._id));
+        allMonitors.forEach(monitor => {
+            if (monitorIds.includes(String(monitor._id))) {
+                incidentMonitors.push(monitor);
+            }
+        });
+
+        const monitorWithoutSchedule = [];
+        monitorList.forEach(monitor => {
+            if (!scheduleWarning.includes(monitor._id)) {
+                monitorWithoutSchedule.push(monitor.name);
+            }
+        });
+
+        const monitorNames = joinNames(monitorWithoutSchedule);
+
+        if (defaultSchedule !== true) {
             scheduleAlert = (
                 <div id="alertWarning" className="Box-root Margin-vertical--12">
                     <div className="db-Trends bs-ContentSection Card-root">
@@ -367,9 +392,9 @@ class Incident extends React.Component {
                                         src={`${'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6c3ZnanM9Imh0dHA6Ly9zdmdqcy5jb20vc3ZnanMiIHZlcnNpb249IjEuMSIgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHg9IjAiIHk9IjAiIHZpZXdCb3g9IjAgMCAxOTEuODEyIDE5MS44MTIiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDUxMiA1MTIiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxnPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgoJPHBhdGggc3R5bGU9IiIgZD0iTTk1LjkwNiwxMjEuMDAzYzYuOTAzLDAsMTIuNS01LjU5NywxMi41LTEyLjVWNTEuNTExYzAtNi45MDQtNS41OTctMTIuNS0xMi41LTEyLjUgICBzLTEyLjUsNS41OTYtMTIuNSwxMi41djU2Ljk5M0M4My40MDYsMTE1LjQwNyw4OS4wMDMsMTIxLjAwMyw5NS45MDYsMTIxLjAwM3oiIGZpbGw9IiNmZmZmZmYiIGRhdGEtb3JpZ2luYWw9IiMxZDFkMWIiLz4KCTxwYXRoIHN0eWxlPSIiIGQ9Ik05NS45MDksMTI3LjgwN2MtMy4yOSwwLTYuNTIxLDEuMzMtOC44NDEsMy42NmMtMi4zMjksMi4zMi0zLjY1OSw1LjU0LTMuNjU5LDguODMgICBzMS4zMyw2LjUyLDMuNjU5LDguODRjMi4zMiwyLjMzLDUuNTUxLDMuNjYsOC44NDEsMy42NnM2LjUxLTEuMzMsOC44NC0zLjY2YzIuMzE5LTIuMzIsMy42Ni01LjU1LDMuNjYtOC44NHMtMS4zNDEtNi41MS0zLjY2LTguODMgICBDMTAyLjQxOSwxMjkuMTM3LDk5LjE5OSwxMjcuODA3LDk1LjkwOSwxMjcuODA3eiIgZmlsbD0iI2ZmZmZmZiIgZGF0YS1vcmlnaW5hbD0iIzFkMWQxYiIvPgoJPHBhdGggc3R5bGU9IiIgZD0iTTk1LjkwNiwwQzQzLjAyNCwwLDAsNDMuMDIzLDAsOTUuOTA2czQzLjAyMyw5NS45MDYsOTUuOTA2LDk1LjkwNnM5NS45MDUtNDMuMDIzLDk1LjkwNS05NS45MDYgICBTMTQ4Ljc4OSwwLDk1LjkwNiwweiBNOTUuOTA2LDE3Ni44MTJDNTEuMjk0LDE3Ni44MTIsMTUsMTQwLjUxOCwxNSw5NS45MDZTNTEuMjk0LDE1LDk1LjkwNiwxNSAgIGM0NC42MTEsMCw4MC45MDUsMzYuMjk0LDgwLjkwNSw4MC45MDZTMTQwLjUxOCwxNzYuODEyLDk1LjkwNiwxNzYuODEyeiIgZmlsbD0iI2ZmZmZmZiIgZGF0YS1vcmlnaW5hbD0iIzFkMWQxYiIvPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjxnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjwvZz4KPGcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPC9nPgo8ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8L2c+CjwvZz48L3N2Zz4K'}`}
                                     />
                                     <span>
-                                        This Monitor does not have an on-call
-                                        schedule. No Team Member will be alerted
-                                        when incident is created.
+                                        The monitor {monitorNames} does not have
+                                        an on-call schedule. No Team Member will
+                                        be alerted when incident is created.
                                     </span>
                                 </span>
                                 <span>
@@ -402,21 +427,21 @@ class Incident extends React.Component {
                             >
                                 <Tab
                                     className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab basic-tab'
                                     }
                                 >
                                     Basic
                                 </Tab>
                                 <Tab
                                     className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab monitor-tab'
                                     }
                                 >
                                     Monitor Logs
                                 </Tab>
                                 <Tab
                                     className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab alert-tab'
                                     }
                                 >
                                     Alert Logs
@@ -424,7 +449,7 @@ class Incident extends React.Component {
                                 <Tab
                                     id="tab-advance"
                                     className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab'
+                                        'custom-tab custom-tab-6 bs-custom-incident-tab advanced-tab'
                                     }
                                 >
                                     Advanced Options
@@ -436,10 +461,9 @@ class Incident extends React.Component {
                             </TabList>
                         </div>
                         <div>{scheduleAlert}</div>
-                        {incidentCommunicationSla &&
-                            this.props.incident &&
+                        {this.props.incident &&
                             this.props.incident.countDown &&
-                            this.props.incident.countDown !== '0:0' && (
+                            this.props.incident.countDown !== '0' && (
                                 <div
                                     className="Box-root Margin-vertical--12"
                                     style={{ marginTop: 0, cursor: 'pointer' }}
@@ -459,32 +483,15 @@ class Incident extends React.Component {
                                                 ></span>
                                                 <span className="ContentHeader-title Text-color--white Text-fontSize--15 Text-fontWeight--regular Text-lineHeight--16">
                                                     <span>
-                                                        According to{' '}
-                                                        {incidentCommunicationSla &&
-                                                            incidentCommunicationSla.name}{' '}
-                                                        SLA, you need to update
-                                                        the incident note for
-                                                        this incident in{' '}
+                                                        According to the SLA
+                                                        attached to this
+                                                        incident, you need to
+                                                        update the incident note
+                                                        for this incident in{' '}
                                                         {secondsToHms(
                                                             this.props.incident
                                                                 .countDown
                                                         )}
-                                                        {'. '} Click{' '}
-                                                        <span
-                                                            onClick={() =>
-                                                                this.tabSelected(
-                                                                    4
-                                                                )
-                                                            }
-                                                            style={{
-                                                                textDecoration:
-                                                                    'underline',
-                                                            }}
-                                                        >
-                                                            here
-                                                        </span>{' '}
-                                                        to update the incident
-                                                        note
                                                     </span>
                                                 </span>
                                             </div>
@@ -492,8 +499,7 @@ class Incident extends React.Component {
                                     </div>
                                 </div>
                             )}
-                        {incidentCommunicationSla &&
-                            this.props.incident &&
+                        {this.props.incident &&
                             this.props.incident.breachedCommunicationSla && (
                                 <div
                                     className="Box-root Margin-vertical--12"
@@ -538,15 +544,50 @@ class Incident extends React.Component {
                         </TabPanel>
                         <TabPanel>
                             <Fade>
-                                <div className="Box-root Margin-bottom--12">
-                                    <MonitorViewLogsBox
-                                        incidentId={this.props.incident._id}
-                                        monitorId={monitorId}
-                                        monitorName={monitorName}
-                                        monitorType={monitorType}
-                                        agentless={agentless}
-                                    />
-                                </div>
+                                {monitorList && monitorList.length > 1
+                                    ? monitorList.map(monitor => (
+                                          <div
+                                              key={monitor._id}
+                                              className="Box-root Margin-bottom--12"
+                                          >
+                                              <MonitorViewLogsBox
+                                                  incidentId={
+                                                      this.props.incident._id
+                                                  }
+                                                  monitorId={monitor._id}
+                                                  monitorName={monitor.name}
+                                                  monitorType={monitor.type}
+                                                  agentless={
+                                                      monitor &&
+                                                      monitor.agentlessConfig
+                                                  }
+                                              />
+                                          </div>
+                                      ))
+                                    : monitorList[0] && (
+                                          <div
+                                              key={monitorList[0]._id}
+                                              className="Box-root Margin-bottom--12"
+                                          >
+                                              <MonitorViewLogsBox
+                                                  incidentId={
+                                                      this.props.incident._id
+                                                  }
+                                                  monitorId={monitorList[0]._id}
+                                                  monitorName={
+                                                      monitorList[0].name
+                                                  }
+                                                  monitorType={
+                                                      monitorList[0].type
+                                                  }
+                                                  agentless={
+                                                      monitorList[0] &&
+                                                      monitorList[0]
+                                                          .agentlessConfig
+                                                  }
+                                              />
+                                          </div>
+                                      )}
                             </Fade>
                         </TabPanel>
                         <TabPanel>
@@ -581,10 +622,6 @@ class Incident extends React.Component {
                                                 deleting={this.props.deleting}
                                                 currentProject={
                                                     this.props.currentProject
-                                                }
-                                                monitorSlug={
-                                                    this.props.monitor &&
-                                                    this.props.monitor.slug
                                                 }
                                                 componentSlug={
                                                     this.props.componentSlug
@@ -641,19 +678,47 @@ class Incident extends React.Component {
         return (
             <Dashboard ready={this.ready}>
                 <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'incidents')}
-                        name={componentName}
-                    />
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'incident-log')}
-                        name="Incident Log"
-                    />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name="Incident"
-                        containerType="Incident"
-                    />
+                    {componentSlug && componentName ? (
+                        <>
+                            <BreadCrumbItem
+                                route={getParentRoute(
+                                    pathname,
+                                    null,
+                                    'incidents'
+                                )}
+                                name={componentName}
+                            />
+                            <BreadCrumbItem
+                                route={getParentRoute(
+                                    pathname,
+                                    null,
+                                    'incident-log'
+                                )}
+                                name="Incident Log"
+                            />
+                            <BreadCrumbItem
+                                route={pathname}
+                                name="Incident"
+                                containerType="Incident"
+                            />
+                        </>
+                    ) : (
+                        <>
+                            <BreadCrumbItem
+                                route={getParentRoute(
+                                    pathname,
+                                    null,
+                                    'project-incidents'
+                                )}
+                                name="Incidents"
+                            />
+                            <BreadCrumbItem
+                                route={pathname}
+                                name="Incident"
+                                containerType="Incident"
+                            />
+                        </>
+                    )}
                     <div>
                         <div>
                             <div className="db-BackboneViewContainer">
@@ -674,6 +739,14 @@ class Incident extends React.Component {
 }
 
 const mapStateToProps = (state, props) => {
+    const { componentSlug, incidentId, slug: projectSlug } = props.match.params;
+
+    const projectId = componentSlug
+        ? state.component.currentComponent.component &&
+          state.component.currentComponent.component.projectId._id
+        : state.project.projectSlug.project &&
+          state.project.projectSlug.project._id;
+
     const scheduleWarning = [];
     state.schedule.subProjectSchedules.forEach(item => {
         item.schedules.forEach(item => {
@@ -688,31 +761,27 @@ const mapStateToProps = (state, props) => {
             defaultSchedule = item.isDefault;
         });
     });
-    const { componentSlug, incidentId } = props.match.params;
-    const monitorId =
+
+    let allMonitors =
+        state.monitor &&
+        state.monitor.monitorsList &&
+        state.monitor.monitorsList.monitors
+            .filter(monitorObj => String(monitorObj._id) === String(projectId))
+            .map(monitorObj => monitorObj.monitors);
+    allMonitors = flat(allMonitors);
+    const monitors =
         state.incident &&
         state.incident.incident &&
         state.incident.incident.incident &&
-        state.incident.incident.incident.monitorId &&
-        state.incident.incident.incident.monitorId._id
-            ? state.incident.incident.incident.monitorId._id
-            : null;
-    const monitor = state.monitor.monitorsList.monitors
-        .map(monitor =>
-            monitor.monitors.find(monitor => monitor._id === monitorId)
-        )
-        .filter(monitor => monitor)[0];
+        state.incident.incident.incident.monitors;
+
     return {
         defaultSchedule,
         scheduleWarning,
-        monitor,
-        type: monitor && monitor.type ? monitor.type : null,
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
         incidentId: incidentId,
-        projectId:
-            state.component.currentComponent.component &&
-            state.component.currentComponent.component.projectId._id,
+        projectId,
         incidentTimeline: state.incident.incident,
         count: state.alert.incidentalerts.count,
         skip: state.alert.incidentalerts.skip,
@@ -732,6 +801,9 @@ const mapStateToProps = (state, props) => {
             state.incidentSla.defaultIncidentCommunicationSla.requesting,
         defaultIncidentSla:
             state.incidentSla.defaultIncidentCommunicationSla.sla,
+        monitors,
+        allMonitors,
+        projectSlug,
     };
 };
 
@@ -750,17 +822,18 @@ const mapDispatchToProps = dispatch => {
             getIncidentTimeline,
             fetchIncidentMessages,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchIncidentTemplates,
             fetchIncidentStatusPages,
             fetchDefaultCommunicationSla,
             fetchComponent,
+            fetchProjectSlug,
+            fetchDefaultTemplate,
         },
         dispatch
     );
 };
 
 Incident.propTypes = {
-    monitor: PropTypes.object,
     currentProject: PropTypes.object,
     deleting: PropTypes.bool.isRequired,
     fetchIncidentAlert: PropTypes.func,
@@ -787,21 +860,25 @@ Incident.propTypes = {
     componentSlug: PropTypes.string,
     fetchIncidentMessages: PropTypes.func,
     fetchIncidentPriorities: PropTypes.func.isRequired,
-    fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentTemplates: PropTypes.func.isRequired,
     fetchIncidentStatusPages: PropTypes.func.isRequired,
     fetchDefaultCommunicationSla: PropTypes.func,
-    defaultIncidentSla: PropTypes.oneOfType([
-        PropTypes.object,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    // defaultIncidentSla: PropTypes.oneOfType([
+    //     PropTypes.object,
+    //     PropTypes.oneOf([null, undefined]),
+    // ]),
     history: PropTypes.func,
     scheduleWarning: PropTypes.array,
     defaultSchedule: PropTypes.bool,
-    type: PropTypes.string,
     incidentId: PropTypes.string,
     projectId: PropTypes.string,
     fetchComponent: PropTypes.func,
     requestingComponent: PropTypes.bool,
+    monitors: PropTypes.array,
+    allMonitors: PropTypes.array,
+    projectSlug: PropTypes.string,
+    fetchProjectSlug: PropTypes.func,
+    fetchDefaultTemplate: PropTypes.func,
 };
 
 Incident.displayName = 'Incident';

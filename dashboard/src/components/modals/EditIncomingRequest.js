@@ -93,6 +93,7 @@ class EditIncomingRequest extends Component {
             postObj.createIncident = true;
             postObj.incidentTitle = values.incidentTitle;
             postObj.incidentType = values.incidentType;
+            postObj.createSeparateIncident = values.createSeparateIncident;
             if (values.dynamicIncidentType) {
                 postObj.customIncidentType = values.customIncidentType;
                 postObj.dynamicIncidentType = values.dynamicIncidentType;
@@ -1356,6 +1357,80 @@ class EditIncomingRequest extends Component {
                                                                                 .renderMonitors
                                                                         }
                                                                     />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </fieldset>
+                                            )}
+
+                                        {formValues &&
+                                            formValues.nextAction ===
+                                                'createIncident' && (
+                                                <fieldset>
+                                                    <div className="bs-Fieldset-rows">
+                                                        <div
+                                                            className="bs-Fieldset-row"
+                                                            style={{
+                                                                padding: 0,
+                                                            }}
+                                                        >
+                                                            <label
+                                                                className="bs-Fieldset-label Text-align--left"
+                                                                htmlFor="createSeparateIncident"
+                                                                style={{
+                                                                    flexBasis:
+                                                                        '20%',
+                                                                }}
+                                                            >
+                                                                <span></span>
+                                                            </label>
+                                                            <div
+                                                                className="bs-Fieldset-fields"
+                                                                style={{
+                                                                    paddingTop:
+                                                                        '6px',
+                                                                    flexBasis:
+                                                                        '80%',
+                                                                    maxWidth:
+                                                                        '80%',
+                                                                }}
+                                                            >
+                                                                <div className="bs-Fieldset-field">
+                                                                    <label
+                                                                        className="Checkbox"
+                                                                        style={{
+                                                                            marginRight:
+                                                                                '12px',
+                                                                        }}
+                                                                        htmlFor="createSeparateIncident"
+                                                                    >
+                                                                        <Field
+                                                                            component="input"
+                                                                            type="checkbox"
+                                                                            name="createSeparateIncident"
+                                                                            className="Checkbox-source"
+                                                                            id="createSeparateIncident"
+                                                                        />
+                                                                        <div className="Checkbox-box Box-root Margin-right--2">
+                                                                            <div className="Checkbox-target Box-root">
+                                                                                <div className="Checkbox-color Box-root"></div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div
+                                                                            className="Box-root"
+                                                                            style={{
+                                                                                paddingLeft:
+                                                                                    '5px',
+                                                                            }}
+                                                                        >
+                                                                            <span>
+                                                                                Create
+                                                                                separate
+                                                                                incidents
+                                                                            </span>
+                                                                        </div>
+                                                                    </label>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2840,6 +2915,8 @@ const mapStateToProps = state => {
     if (incomingRequestToBeUpdated) {
         initialValues.name = incomingRequestToBeUpdated.name;
         initialValues.isDefault = incomingRequestToBeUpdated.isDefault;
+        initialValues.createSeparateIncident =
+            incomingRequestToBeUpdated.createSeparateIncident;
         initialValues.createIncident =
             incomingRequestToBeUpdated.createIncident;
         if (incomingRequestToBeUpdated.createIncident) {

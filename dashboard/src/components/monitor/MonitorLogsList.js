@@ -11,11 +11,16 @@ import ViewJsonLogs from '../modals/ViewJsonLogs';
 import { formatMonitorResponseTime } from '../../utils/formatMonitorResponseTime';
 import { formatDecimal, formatBytes } from '../../config';
 import ShouldRender from '../../components/basic/ShouldRender';
+import toPascalCase from 'to-pascal-case';
+import ViewScriptLogs from '../modals/ViewScriptLogs';
 
 export class MonitorLogsList extends Component {
     constructor(props) {
         super(props);
-        this.state = { viewJsonModalId: uuidv4() };
+        this.state = {
+            viewJsonModalId: uuidv4(),
+            viewScriptLogModalId: uuidv4(),
+        };
     }
     render() {
         const { monitorLogs } = this.props;
@@ -196,7 +201,9 @@ export class MonitorLogsList extends Component {
                                                 this.props.monitorType !==
                                                     'incomingHttpRequest' &&
                                                 this.props.monitorType !==
-                                                    'kubernetes'
+                                                    'kubernetes' &&
+                                                this.props.monitorType !==
+                                                    'script'
                                             }
                                         >
                                             <td
@@ -222,27 +229,44 @@ export class MonitorLogsList extends Component {
                                                 </div>
                                             </td>
                                         </ShouldRender>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                            style={{ height: '1px' }}
+                                        <ShouldRender
+                                            if={
+                                                this.props.monitorType &&
+                                                this.props.monitorType ===
+                                                    'script'
+                                            }
                                         >
-                                            <div
-                                                className="db-ListViewItem-cellContent Box-root Padding-all--8"
-                                                style={{ marginLeft: '42px' }}
+                                            <td
+                                                className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
                                             >
-                                                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                                    <span>Actions</span>
-                                                </span>
-                                            </div>
-                                        </td>
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-align--left Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                        <span>Status Text</span>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td
+                                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                style={{ height: '1px' }}
+                                            >
+                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
+                                                    <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                        <span>
+                                                            Execution Time
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </ShouldRender>
                                         <td
-                                            id="overflow"
-                                            type="action"
-                                            className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                            className="Table-cell Table-cell--align--center Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                             style={{ height: '1px' }}
                                         >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                                <span className="db-ListViewItem-text Text-align--right Text-color--dark Text-display--block Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap"></span>
+                                                <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
+                                                    <span>Actions</span>
+                                                </span>
                                             </div>
                                         </td>
                                     </>
@@ -737,7 +761,10 @@ export class MonitorLogsList extends Component {
                                                                 'incomingHttpRequest' &&
                                                             this.props
                                                                 .monitorType !==
-                                                                'kubernetes'
+                                                                'kubernetes' &&
+                                                            this.props
+                                                                .monitorType !==
+                                                                'script'
                                                         }
                                                     >
                                                         <td
@@ -828,6 +855,114 @@ export class MonitorLogsList extends Component {
                                                             </div>
                                                         </td>
                                                     </ShouldRender>
+                                                    {/* Script monitor specific columns */}
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props
+                                                                .monitorType &&
+                                                            this.props
+                                                                .monitorType ===
+                                                                'script'
+                                                        }
+                                                    >
+                                                        <td
+                                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                            style={{
+                                                                height: '1px',
+                                                            }}
+                                                        >
+                                                            <div className="db-ListViewItem-link">
+                                                                <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                        <div className="Box-root Flex-flex">
+                                                                            <div className="Box-root Flex-flex">
+                                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                    {log
+                                                                                        ?.scriptMetadata
+                                                                                        ?.statusText &&
+                                                                                    log
+                                                                                        .scriptMetadata
+                                                                                        .statusText !==
+                                                                                        'completed' ? (
+                                                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    {toPascalCase(
+                                                                                                        log
+                                                                                                            .scriptMetadata
+                                                                                                            .statusText
+                                                                                                    )}
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ) : log
+                                                                                          ?.scriptMetadata
+                                                                                          ?.statusText &&
+                                                                                      log
+                                                                                          .scriptMetadata
+                                                                                          .statusText ===
+                                                                                          'completed' ? (
+                                                                                        <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    {toPascalCase(
+                                                                                                        log
+                                                                                                            .scriptMetadata
+                                                                                                            .statusText
+                                                                                                    )}
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                                                                <span>
+                                                                                                    Unknown
+                                                                                                    Status
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                            style={{
+                                                                height: '1px',
+                                                            }}
+                                                        >
+                                                            <div className="db-ListViewItem-link">
+                                                                <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
+                                                                    <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                        <div className="Box-root Flex">
+                                                                            <div className="Box-root Flex-flex">
+                                                                                <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                    <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
+                                                                                        <span className="Text-display--inline Text-fontSize--14 Text-lineHeight--16 Text-wrap--noWrap">
+                                                                                            <span>
+                                                                                                {log.scriptMetadata &&
+                                                                                                    formatMonitorResponseTime(
+                                                                                                        log
+                                                                                                            .scriptMetadata
+                                                                                                            .executionTime
+                                                                                                    )}
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </ShouldRender>
+
                                                     <td
                                                         className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
                                                         style={{
@@ -838,62 +973,136 @@ export class MonitorLogsList extends Component {
                                                             <div className="db-ListViewItem-cellContent Box-root Padding-horizontal--2 Padding-vertical--8">
                                                                 <span className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                                     <div className="Box-root Flex">
-                                                                        <div className="Box-root Flex-flex">
+                                                                        <div className="Box-root Flex-flex Flex-justifyContent--center">
                                                                             <div className="db-RadarRulesListUserName Box-root Flex-flex Flex-alignItems--center Flex-direction--row Flex-justifyContent--flexStart">
                                                                                 <div className="Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
-                                                                                    <button
-                                                                                        title="viewJson"
-                                                                                        id={`monitor_log_json_${log._id}`}
-                                                                                        disabled={
-                                                                                            !(
-                                                                                                monitorLogs &&
-                                                                                                !monitorLogs.requesting
-                                                                                            )
-                                                                                        }
-                                                                                        className="bs-Button bs-DeprecatedButton Margin-left--8"
-                                                                                        type="button"
-                                                                                        onClick={() =>
-                                                                                            this.props.openModal(
-                                                                                                {
-                                                                                                    id: this
-                                                                                                        .state
-                                                                                                        .viewJsonModalId,
-                                                                                                    content: DataPathHoC(
-                                                                                                        ViewJsonLogs,
-                                                                                                        {
-                                                                                                            viewJsonModalId: this
-                                                                                                                .state
-                                                                                                                .viewJsonModalId,
-                                                                                                            jsonLog: log,
-                                                                                                            title: `Monitor Log for ${
-                                                                                                                this
-                                                                                                                    .props
-                                                                                                                    .monitorName
-                                                                                                                    ? this
-                                                                                                                          .props
-                                                                                                                          .monitorName
-                                                                                                                    : log.monitorId &&
-                                                                                                                      log
-                                                                                                                          .monitorId
-                                                                                                                          .name
-                                                                                                                    ? log
-                                                                                                                          .monitorId
-                                                                                                                          .name
-                                                                                                                    : 'Unknown'
-                                                                                                            } monitor`,
-                                                                                                            rootName:
-                                                                                                                'monitorLog',
-                                                                                                        }
-                                                                                                    ),
-                                                                                                }
-                                                                                            )
+                                                                                    <ShouldRender
+                                                                                        if={
+                                                                                            this
+                                                                                                .props
+                                                                                                .monitorType ===
+                                                                                            'script'
                                                                                         }
                                                                                     >
-                                                                                        <span>
-                                                                                            View
-                                                                                            JSON
-                                                                                        </span>
-                                                                                    </button>
+                                                                                        <button
+                                                                                            title="View script console logs"
+                                                                                            id={`monitor_log_script_${log._id}`}
+                                                                                            disabled={
+                                                                                                !(
+                                                                                                    monitorLogs &&
+                                                                                                    !monitorLogs.requesting
+                                                                                                )
+                                                                                            }
+                                                                                            className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                                                            type="button"
+                                                                                            onClick={() =>
+                                                                                                this.props.openModal(
+                                                                                                    {
+                                                                                                        id: this
+                                                                                                            .state
+                                                                                                            .viewScriptLogModalId,
+                                                                                                        content: DataPathHoC(
+                                                                                                            ViewScriptLogs,
+                                                                                                            {
+                                                                                                                viewScriptLogModalId: this
+                                                                                                                    .state
+                                                                                                                    .viewScriptLogModalId,
+                                                                                                                consoleLogs:
+                                                                                                                    log
+                                                                                                                        .scriptMetadata
+                                                                                                                        .consoleLogs,
+                                                                                                                title: `Console logs for "${
+                                                                                                                    this
+                                                                                                                        .props
+                                                                                                                        .monitorName
+                                                                                                                        ? this
+                                                                                                                              .props
+                                                                                                                              .monitorName
+                                                                                                                        : log.monitorId &&
+                                                                                                                          log
+                                                                                                                              .monitorId
+                                                                                                                              .name
+                                                                                                                        ? log
+                                                                                                                              .monitorId
+                                                                                                                              .name
+                                                                                                                        : 'Unknown'
+                                                                                                                }" monitor`,
+                                                                                                                rootName:
+                                                                                                                    'monitorLog',
+                                                                                                            }
+                                                                                                        ),
+                                                                                                    }
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            <span>
+                                                                                                View
+                                                                                                Log
+                                                                                            </span>
+                                                                                        </button>
+                                                                                    </ShouldRender>
+                                                                                    <ShouldRender
+                                                                                        if={
+                                                                                            this
+                                                                                                .props
+                                                                                                .monitorType !==
+                                                                                            'script'
+                                                                                        }
+                                                                                    >
+                                                                                        <button
+                                                                                            title="viewJson"
+                                                                                            id={`monitor_log_json_${log._id}`}
+                                                                                            disabled={
+                                                                                                !(
+                                                                                                    monitorLogs &&
+                                                                                                    !monitorLogs.requesting
+                                                                                                )
+                                                                                            }
+                                                                                            className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                                                            type="button"
+                                                                                            onClick={() =>
+                                                                                                this.props.openModal(
+                                                                                                    {
+                                                                                                        id: this
+                                                                                                            .state
+                                                                                                            .viewJsonModalId,
+                                                                                                        content: DataPathHoC(
+                                                                                                            ViewJsonLogs,
+                                                                                                            {
+                                                                                                                viewJsonModalId: this
+                                                                                                                    .state
+                                                                                                                    .viewJsonModalId,
+                                                                                                                jsonLog: log,
+                                                                                                                title: `Monitor Log for ${
+                                                                                                                    this
+                                                                                                                        .props
+                                                                                                                        .monitorName
+                                                                                                                        ? this
+                                                                                                                              .props
+                                                                                                                              .monitorName
+                                                                                                                        : log.monitorId &&
+                                                                                                                          log
+                                                                                                                              .monitorId
+                                                                                                                              .name
+                                                                                                                        ? log
+                                                                                                                              .monitorId
+                                                                                                                              .name
+                                                                                                                        : 'Unknown'
+                                                                                                                } monitor`,
+                                                                                                                rootName:
+                                                                                                                    'monitorLog',
+                                                                                                            }
+                                                                                                        ),
+                                                                                                    }
+                                                                                                )
+                                                                                            }
+                                                                                        >
+                                                                                            <span>
+                                                                                                View
+                                                                                                JSON
+                                                                                            </span>
+                                                                                        </button>
+                                                                                    </ShouldRender>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
@@ -902,7 +1111,6 @@ export class MonitorLogsList extends Component {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="Table-cell Table-cell--align--right Table-cell--verticalAlign--top Table-cell--wrap--noWrap db-ListViewItem-cell"></td>
                                                 </>
                                             )}
                                         </tr>
@@ -929,7 +1137,7 @@ export class MonitorLogsList extends Component {
                         (!monitorLogs.logs || !monitorLogs.logs.length) &&
                         !monitorLogs.requesting &&
                         !monitorLogs.error)
-                        ? "We don't have any Logs yet"
+                        ? "We don't have any monitor logs so far."
                         : null}
                     {monitorLogs && monitorLogs.error
                         ? monitorLogs.error
@@ -1030,7 +1238,7 @@ function mapStateToProps(state, props) {
     const monitorId = props.monitorId ? props.monitorId : null;
     const monitorLogs = monitorId ? state.monitor.monitorLogs[monitorId] : {};
 
-    if (monitorLogs) {
+    if (monitorLogs && monitorLogs.logs) {
         monitorLogs.logs = monitorLogs.logs.map(log => {
             if (log.kubernetesLog) {
                 const initialData = { ...log.kubernetesLog };

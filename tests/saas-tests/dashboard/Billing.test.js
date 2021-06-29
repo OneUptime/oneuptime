@@ -273,6 +273,7 @@ describe('Member Restriction', () => {
         });
         // adding a subProject is only allowed on growth plan and above
         await init.addSubProject(subProjectName, page);
+        await init.saasLogout(page);
 
         done();
     });
@@ -285,10 +286,6 @@ describe('Member Restriction', () => {
     test(
         'should show unauthorised modal when a team member who is not an admin or owner of the project tries to update alert option',
         async done => {
-            browser = await puppeteer.launch(utils.puppeteerLaunchConfig);
-            page = await browser.newPage();
-            await page.setUserAgent(utils.agent);
-
             await init.registerAndLoggingTeamMember(
                 { email: teamEmail, password },
                 page

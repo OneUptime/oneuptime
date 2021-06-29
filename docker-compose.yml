@@ -6,13 +6,23 @@ services:
             - '27017:27017'
         volumes:
             - mongodata:/data/db
+    saml:
+        image: kenchan0130/simplesamlphp
+        ports:
+            - 9876:8080
+            - 8443:8443
+        environment:
+            - SIMPLESAMLPHP_SP_ENTITY_ID=hackerbay.io
+            - SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3002/api/user/sso/callback
+            - SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost/simplesaml/module.php/saml/sp/saml2-logout.php/test-sp
+        volumes:
+            - ./saml/users.php:/var/www/simplesamlphp/config/authsources.php
 
     redis:
         image: redis:5.0.7
         ports:
             - '6379:6379'
         command: redis-server
-
     backend:
         ports:
             - '3002:3002'
@@ -23,11 +33,12 @@ services:
             - MONGO_URL=mongodb://mongo:27017/fyipedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - SCRIPT_RUNNER_URL=http://script-runner:3009
         depends_on:
             - mongo
             - redis
             - haraka
-
+            - script-runner
     accounts:
         ports:
             - '3003:3003'
@@ -38,7 +49,6 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
             - backend
-
     dashboard:
         ports:
             - '3000:3000'
@@ -50,7 +60,6 @@ services:
         depends_on:
             - backend
             - accounts
-
     home:
         ports:
             - '1444:1444'
@@ -59,7 +68,6 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build: ./home
-
     status-page:
         ports:
             - '3006:3006'
@@ -72,7 +80,6 @@ services:
             - backend
             - accounts
             - dashboard
-
     admin-dashboard:
         ports:
             - '3100:3100'
@@ -84,7 +91,6 @@ services:
         depends_on:
             - backend
             - accounts
-
     http-test-server:
         ports:
             - '3010:3010'
@@ -93,7 +99,6 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build: ./http-test-server
-
     licensing:
         ports:
             - '3004:3004'
@@ -102,7 +107,6 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build: ./licensing
-
     probe1:
         ports:
             - '3024:3024'
@@ -117,7 +121,6 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
             - backend
-
     probe2:
         ports:
             - '3025:3025'
@@ -132,7 +135,6 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
             - backend
-
     api-docs:
         ports:
             - '1445:1445'
@@ -141,7 +143,6 @@ services:
             - ./api-docs/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-
     init-script:
         build: ./init-script
         ports:
@@ -152,11 +153,10 @@ services:
             - MONGO_URL=mongodb://mongo:27017/fyipedb
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
-            - NODE_ENV=development
+            - NODE_ENV=${NODE_ENV}
         depends_on:
             - mongo
             - redis
-
     ##IMPORTANT:
     ## This container is an SMTP server used to send emails.
     ## Setup private, tls_cert and tls_key keys before running this part
@@ -174,6 +174,24 @@ services:
             - DKIM_PRIVATE_KEY="${DKIM_PRIVATE_KEY}"
             - TLS_CERT="${TLS_CERT}"
             - TLS_KEY="${TLS_KEY}"
+    script-runner:
+        ports:
+            - '3009:3009'
+        build: ./script-runner
+        environment:
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+    application-scanner:
+        ports:
+            - '3005:3005'
+        build: ./application-scanner
+        env_file:
+            - ./application-scanner/.env
+        environment:
+            - PORT=3005
+            - SERVER_URL=http://backend:3002
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        depends_on:
+            - backend
 
 volumes:
     mongodata:

@@ -146,14 +146,7 @@ const MonitorCriteriaService = {
                 up_1000: [
                     {
                         match: 'all',
-                        responseType: 'executes',
-                        filter: 'executesIn',
-                        field1: '5000',
-                        field2: '',
-                        field3: false,
-                    },
-                    {
-                        responseType: 'error',
+                        responseType: 'scriptExecution',
                         filter: 'doesNotThrowError',
                         field1: '',
                         field2: '',
@@ -166,16 +159,9 @@ const MonitorCriteriaService = {
                 down_1000: [
                     {
                         match: 'any',
-                        responseType: 'error',
+                        responseType: 'scriptExecution',
                         filter: 'throwsError',
                         field1: '',
-                        field2: '',
-                        field3: false,
-                    },
-                    {
-                        responseType: 'executes',
-                        filter: 'doesNotExecuteIn',
-                        field1: '15000',
                         field2: '',
                         field3: false,
                     },
@@ -185,24 +171,10 @@ const MonitorCriteriaService = {
                 down_1000_autoResolve: true,
                 degraded_1000: [
                     {
-                        match: 'all',
-                        responseType: 'executes',
+                        match: 'any',
+                        responseType: 'scriptExecution',
                         filter: 'doesNotExecuteIn',
                         field1: '5000',
-                        field2: '',
-                        field3: false,
-                    },
-                    {
-                        responseType: 'error',
-                        filter: 'doesNotThrowError',
-                        field1: '',
-                        field2: '',
-                        field3: false,
-                    },
-                    {
-                        responseType: 'executes',
-                        filter: 'executesIn',
-                        field1: '15000',
                         field2: '',
                         field3: false,
                     },

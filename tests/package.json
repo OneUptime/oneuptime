@@ -27,6 +27,7 @@
         ]
     },
     "dependencies": {
-        "axios": "^0.21.1"
+        "axios": "^0.21.1",
+        "speakeasy": "^2.0.0"
     }
 }

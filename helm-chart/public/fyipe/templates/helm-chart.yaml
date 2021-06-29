@@ -61,3 +61,20 @@ spec:
 ---
 ###########################################
 {{- end }}
+
+
+{{- if .Values.autoScaler.enabled }}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+spec:
+  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
+  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ printf "%s-%s" .Release.Name "helm-chart"  }}
+  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+---
+{{- end }}

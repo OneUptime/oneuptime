@@ -6,7 +6,7 @@ async function run() {
     const statusPages = await find(statusPageCollection, {
         $or: [
             { slug: { $exists: false } },
-            { slug: { $regex: /[*+~.()'"!:@]+/g } },
+            { slug: { $regex: /[&*+~.,\\/()|'"!:@]+/g } },
         ],
     });
     for (let i = 0; i < statusPages.length; i++) {

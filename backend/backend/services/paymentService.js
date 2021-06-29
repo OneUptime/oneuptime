@@ -304,7 +304,10 @@ module.exports = {
                 throw error;
             } else {
                 let trial_end_date;
-                if (subscription.trial_end !== null) {
+                if (
+                    subscription.trial_end !== null &&
+                    subscription.trial_end * 1000 > Date.now() //ensure the trial end date is in the future
+                ) {
                     trial_end_date = subscription.trial_end;
                 }
 
@@ -324,10 +327,17 @@ module.exports = {
                     }
                 }
 
-                subscription = await stripe.subscriptions.update(
-                    subscriptionId,
-                    { items: items, trial_end: trial_end_date }
-                );
+                if (trial_end_date) {
+                    subscription = await stripe.subscriptions.update(
+                        subscriptionId,
+                        { items: items, trial_end: trial_end_date }
+                    );
+                } else {
+                    subscription = await stripe.subscriptions.update(
+                        subscriptionId,
+                        { items: items }
+                    );
+                }
 
                 return subscription.id;
             }
@@ -391,7 +401,8 @@ module.exports = {
                 quantity: seats,
             });
 
-            if (trial_end !== null) {
+            // ensure trial end date is in the future
+            if (trial_end !== null && trial_end * 1000 > Date.now()) {
                 subscriptionObj = {
                     customer: subscription.customer,
                     items: items,

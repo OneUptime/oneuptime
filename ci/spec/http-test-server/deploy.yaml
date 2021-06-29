@@ -1,5 +1,5 @@
 # DEPLOYMENT STAGE - HTTP-TEST-SERVER
-deploy_staging_http_test_server:
+staging_http_test_server:
     stage: Deploy
     allow_failure: true
     script:
@@ -28,7 +28,7 @@ deploy_staging_http_test_server:
         name: staging
 
 # DEPLOYMENT STAGE - HTTP-TEST-SERVER
-deploy_production_http_test_server:
+production_http_test_server:
     stage: Deploy
     allow_failure: true
     script:

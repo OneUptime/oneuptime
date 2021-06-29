@@ -290,6 +290,13 @@ export const ValidateField = {
 
     compare: (text1, text2) =>
         text1 === text2 ? undefined : 'These texts donot match',
+
+    password6: password =>
+        !password || !password.length
+            ? 'Password cannot be blank'
+            : password.length < 6
+            ? 'Password must be a minimum of 6 characters'
+            : undefined,
 };
 
 export const PricingPlan = {
@@ -311,7 +318,7 @@ export const PricingPlan = {
                     planId: 'plan_GoWIqpBpStiqQp',
                     type: 'annual',
                     amount: 264,
-                    details: '$264 / Year / User',
+                    details: '$22/mo per user paid annually. ',
                 },
                 {
                     category: 'Growth',
@@ -325,21 +332,21 @@ export const PricingPlan = {
                     planId: 'plan_GoWKiTdQ6NiQFw',
                     type: 'annual',
                     amount: 588,
-                    details: '$588 / Year / User',
+                    details: '$49/mo per user paid annually. ',
                 },
                 {
                     category: 'Scale',
                     planId: 'plan_H9Iox3l2YqLTDR',
                     type: 'month',
                     amount: 99,
-                    details: '$99 / Month / User',
+                    details: '$120 / Month / User',
                 },
                 {
                     category: 'Scale',
                     planId: 'plan_H9IlBKhsFz4hV2',
                     type: 'annual',
                     amount: 1188,
-                    details: '$1188/ Year / User',
+                    details: '$99/mo per user paid annually. ',
                 },
             ];
         } else {
@@ -356,7 +363,7 @@ export const PricingPlan = {
                     planId: 'plan_GoVgJu5PKMLRJU',
                     type: 'annual',
                     amount: 264,
-                    details: '$264 / Year / User',
+                    details: '$22/mo per user paid annually. ',
                 },
                 {
                     category: 'Growth',
@@ -370,21 +377,21 @@ export const PricingPlan = {
                     planId: 'plan_GoViZshjqzZ0vv',
                     type: 'annual',
                     amount: 588,
-                    details: '$588 / Year / User',
+                    details: '$49/mo per user paid annually. ',
                 },
                 {
                     category: 'Scale',
                     planId: 'plan_H9Ii6Qj3HLdtty',
                     type: 'month',
                     amount: 99,
-                    details: '$99 / Month / User',
+                    details: '$120 / Month / User',
                 },
                 {
                     category: 'Scale',
                     planId: 'plan_H9IjvX2Flsvlcg',
                     type: 'annual',
                     amount: 1188,
-                    details: '$1188/ Year / User',
+                    details: '$99/mo per user paid annually. ',
                 },
             ];
         }

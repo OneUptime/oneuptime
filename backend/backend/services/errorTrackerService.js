@@ -72,6 +72,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const errorTrackers = await ErrorTrackerModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -99,6 +100,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const errorTracker = await ErrorTrackerModel.findOne(query)
+                .lean()
                 .populate('componentId', 'name')
                 .populate('resourceCategory', 'name');
             return errorTracker;

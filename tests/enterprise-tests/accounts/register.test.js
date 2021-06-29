@@ -61,7 +61,9 @@ describe('Enterprise Registration API', () => {
                 //
             }
             await otherPage.waitForTimeout(5000);
-            otherPage.url().should.containEql(utils.ACCOUNTS_URL + '/login');
+            otherPage
+                .url()
+                .should.containEql(utils.ACCOUNTS_URL + '/accounts/login');
 
             const signUp = await otherPage.$('#signUpLink');
             should.not.exist(signUp);
@@ -72,7 +74,7 @@ describe('Enterprise Registration API', () => {
     it(
         'Should login Initial User to Admin Dashboard',
         async () => {
-            await init.loginUser(user, otherPage);
+            await init.loginAdminUser(user, otherPage);
 
             const localStorageData = await otherPage.evaluate(() => {
                 const json = {};

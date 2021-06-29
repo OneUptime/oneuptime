@@ -216,10 +216,8 @@ class Search extends Component {
             this.props.addIncident(searchObj.incident);
             this.props.animateSidebar(false);
         }, 200);
-        this.props.markAsRead(
-            this.props.currentProject._id,
-            searchObj.notificationId
-        );
+        const notifications = [{ notificationId: searchObj.notificationId }];
+        this.props.markAsRead(this.props.currentProject._id, notifications);
         this.props.animateSidebar(true);
     };
     loadErrorTracker = (currentProject, searchObj) => {
@@ -392,6 +390,38 @@ class Search extends Component {
                 return 'db-SideNav-icon--appLog';
             case 'Performance Tracker':
                 return 'db-SideNav-icon--performanceTracker';
+            case 'Home':
+                return 'db-SideNav-icon--home';
+            case 'Report':
+                return 'db-SideNav-icon--report';
+            case 'Back':
+                return 'db-SideNav-icon--back';
+            case 'Security':
+                return 'db-SideNav-icon--security';
+            case 'businessSettings':
+                return 'db-SideNav-icon--businessSettings';
+            case 'consulting':
+                return 'db-SideNav-icon--consulting';
+            case 'email':
+                return 'db-SideNav-icon--email';
+            case 'sms':
+                return 'db-SideNav-icon--sms';
+            case 'callrouting':
+                return 'db-SideNav-icon--callrouting';
+            case 'integration':
+                return 'db-SideNav-icon--integration';
+            case 'probes':
+                return 'db-SideNav-icon--probes';
+            case 'git':
+                return 'db-SideNav-icon--git';
+            case 'docker':
+                return 'db-SideNav-icon--docker';
+            case 'apis':
+                return 'db-SideNav-icon--apis';
+            case 'user':
+                return 'db-SideNav-icon--user';
+            case 'password':
+                return 'db-SideNav-icon--password';
             default:
                 return '';
         }

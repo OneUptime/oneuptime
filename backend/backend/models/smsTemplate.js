@@ -14,7 +14,7 @@ const smsTemplateSchema = new Schema({
         type: String,
         enum: [
             'Subscriber Incident Created',
-            'Subscriber Incident Acknowldeged',
+            'Subscriber Incident Acknowledged',
             'Subscriber Incident Resolved',
             'Team Member Incident',
             'Investigation note is created',

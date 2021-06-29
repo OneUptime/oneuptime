@@ -7,23 +7,16 @@ import {
     fetchComponentResources,
     addCurrentComponent,
 } from '../../actions/component';
-import { getMonitorStatus, filterProbeData } from '../../config';
 import { bindActionCreators } from 'redux';
 import threatLevel from '../../utils/threatLevel';
 import StatusIndicator from '../monitor/StatusIndicator';
-import moment from 'moment';
 import IssueIndicator from '../security/IssueIndicator';
 import sortByName from '../../utils/sortByName';
 import { animateSidebar } from '../../actions/animateSidebar';
-
 class ResourceTabularList extends Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = {
-            startDate: moment().subtract(30, 'd'),
-            endDate: moment(),
-        };
     }
     generateUrlLink(componentResource) {
         const { currentProject, componentSlug } = this.props;
@@ -64,12 +57,11 @@ class ResourceTabularList extends Component {
     generateResourceStatus(componentResource) {
         let statusColor = 'slate';
         let statusDescription = 'TBD';
-        let indicator, monitor, logs, probe;
+        let indicator, monitor, status;
         let appSecurityStatus = 'currently scanning',
-            containerSecurityStatus = 'currently scanning',
-            monitorStatus = '';
-        const { monitors, probes, activeProbe } = this.props;
-        const { startDate, endDate } = this.state;
+            containerSecurityStatus = 'currently scanning';
+        const { monitors } = this.props;
+
         let data = null;
         switch (componentResource.type) {
             case 'website monitor':
@@ -80,57 +72,33 @@ class ResourceTabularList extends Component {
             case 'script monitor':
             case 'incomingHttpRequest monitor':
             case 'kubernetes monitor':
-            case 'IP monitor':
+            case 'IP monitor': {
                 // get monitor status
                 monitor = monitors.filter(
                     monitor => monitor._id === componentResource._id
                 )[0];
-                // Monitor already exists in the list of monitors
                 if (monitor) {
-                    if (monitor.disabled) {
-                        // Get the latest status here if the monitor is changing status elsewheree
-                        monitorStatus = 'disabled';
-                    } else if (monitor.statuses && monitor.statuses[0]) {
-                        // Get the latest status here if the monitor is changing status elsewheree
-                        monitorStatus = monitor.statuses[0].statuses[0].status;
-                    } else {
-                        // Get the latest status here if the page is just loading
-                        probe =
-                            monitor && probes && probes.length > 0
-                                ? probes[probes.length < 2 ? 0 : activeProbe]
-                                : null;
-                        logs = filterProbeData(
-                            monitor,
-                            probe,
-                            startDate,
-                            endDate
-                        ).logs;
-                        monitorStatus = getMonitorStatus(
-                            monitor.incidents,
-                            logs,
-                            componentResource.type
-                        );
-                    }
-                }
-                if (
-                    typeof this.props.monitorLogsRequest[
-                        componentResource._id
-                    ] === 'undefined' ||
-                    this.props.monitorLogsRequest[componentResource._id]
-                ) {
-                    indicator = <ListLoader />;
-                } else {
+                    const incidents = monitor.incidents;
+                    status =
+                        incidents && incidents[0]
+                            ? incidents[0].incidentType === 'online' ||
+                              incidents[0].resolved
+                                ? 'online'
+                                : incidents[0].incidentType
+                            : 'online';
+
                     indicator = (
                         <StatusIndicator
-                            status={monitorStatus}
+                            status={status}
                             resourceName={componentResource.name}
                             monitorName={monitor && monitor.name}
                         />
                     );
-                    statusDescription = monitorStatus;
+                    statusDescription = status;
                 }
 
                 break;
+            }
             case 'application security':
                 // get application security status
                 data =
@@ -270,7 +238,7 @@ class ResourceTabularList extends Component {
                             <tr className="Table-row db-ListViewItem db-ListViewItem-header">
                                 <td
                                     className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                    style={{ height: '1px', minWidth: '210px' }}
+                                    style={{ height: '1px', width: '40%' }}
                                 >
                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                         <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
@@ -343,15 +311,15 @@ class ResourceTabularList extends Component {
                                                 }}
                                             >
                                                 <td
-                                                    className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
+                                                    className="Table-cell Table-cell--align--left  Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell"
                                                     style={{
                                                         height: '1px',
-                                                        minWidth: '210px',
+                                                        width: '40%',
                                                     }}
                                                 >
                                                     <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                         <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                            <div className="Box-root Margin-right--16 Flex-flex Flex-direction--row resourceName-width">
+                                                            <div className="Box-root Margin-right--16 Flex-flex Flex-direction--row">
                                                                 <span
                                                                     className={`db-SideNav-icon db-SideNav-icon--${componentResource.icon} db-SideNav-icon--selected Margin-right--4`}
                                                                     style={{
@@ -546,6 +514,7 @@ function mapStateToProps(state, props) {
         probes: state.probe.probes.data,
         activeProbe: state.monitor.activeProbe,
         monitorLogsRequest: state.monitor.monitorLogsRequest,
+        monitorListRequesting: state.monitor.monitorsList.requesting,
     };
 }
 
@@ -554,15 +523,12 @@ ResourceTabularList.propTypes = {
     currentProject: PropTypes.object,
     componentSlug: PropTypes.string,
     monitors: PropTypes.array,
-    probes: PropTypes.array,
     animateSidebar: PropTypes.func,
     addCurrentComponent: PropTypes.func,
-    activeProbe: PropTypes.number,
     componentName: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.oneOf([null, undefined]),
     ]),
-    monitorLogsRequest: PropTypes.object,
 };
 
 ResourceTabularList.defaultProps = {

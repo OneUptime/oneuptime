@@ -29,9 +29,17 @@ router.put(
                 verificationToken
             );
 
-            if (!doesTxtRecordExist) {
+            const { result, txtRecords } = doesTxtRecordExist;
+
+            if (!result) {
+                const records =
+                    txtRecords.length > 1
+                        ? txtRecords.join(', ')
+                        : txtRecords[0];
                 return sendErrorResponse(req, res, {
-                    message: 'TXT record not found',
+                    message: `Please specify ${verificationToken} in your DNS. Looks like your current ${
+                        txtRecords.length > 1 ? 'records are' : 'record is'
+                    } ${records}`,
                     code: 400,
                 });
             }

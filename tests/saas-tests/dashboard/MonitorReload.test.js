@@ -41,7 +41,6 @@ describe('Fyipe Monitor Reload', () => {
         async done => {
             await init.navigateToComponentDetails(componentName, page);
             // To confirm no error on page reload
-            await page.reload({ waitUntil: 'networkidle2' });
             await init.pageWaitForSelector(page, `#cb${componentName}`, {
                 visible: true,
                 timeout: init.timeout,
@@ -50,14 +49,14 @@ describe('Fyipe Monitor Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-
+            await page.reload({ waitUntil: 'networkidle2' });
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );
-            spanElement = spanElement.getProperty('innerText');
-            spanElement = spanElement.jsonValue();
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch(monitorName);
 
             done();
@@ -74,7 +73,6 @@ describe('Fyipe Monitor Reload', () => {
                 page
             );
             // To confirm no error on page reload
-            await page.reload({ waitUntil: 'networkidle2' });
             await init.pageWaitForSelector(page, `#cb${componentName}`, {
                 visible: true,
                 timeout: init.timeout,
@@ -87,14 +85,14 @@ describe('Fyipe Monitor Reload', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-
+            await page.reload({ waitUntil: 'networkidle2' });
             let spanElement = await init.pageWaitForSelector(
                 page,
                 `#monitor-title-${monitorName}`,
                 { visible: true, timeout: init.timeout }
             );
-            spanElement = spanElement.getProperty('innerText');
-            spanElement = spanElement.jsonValue();
+            spanElement = await spanElement.getProperty('innerText');
+            spanElement = await spanElement.jsonValue();
             expect(spanElement).toMatch(monitorName);
 
             done();

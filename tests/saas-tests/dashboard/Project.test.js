@@ -49,7 +49,7 @@ describe('Project Settings', () => {
             page
         );
         await init.pageWaitForSelector(page, '#added_team_members');
-        await init.logout(page);
+        await init.saasLogout(page);
 
         done();
     });
@@ -81,7 +81,7 @@ describe('Project Settings', () => {
             );
 
             expect(unauthorisedModal).toBeDefined();
-            await init.logout(page);
+            await init.saasLogout(page);
             done();
         },
         operationTimeOut
@@ -142,7 +142,7 @@ describe('Project Settings', () => {
                 }
             );
             expect(createProjectBtn).toBeDefined();
-            await init.logout(page);
+            await init.saasLogout(page);
             done();
         },
         operationTimeOut

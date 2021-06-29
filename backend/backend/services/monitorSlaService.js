@@ -81,6 +81,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const monitorSla = await MonitorSlaModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -195,9 +196,7 @@ module.exports = {
                 throw error;
             }
 
-            updatedMonitorSla = await updatedMonitorSla
-                .populate('projectId')
-                .execPopulate();
+            updatedMonitorSla = await this.findOneBy(query);
 
             return updatedMonitorSla;
         } catch (error) {

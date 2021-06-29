@@ -53,6 +53,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const securityLog = await ContainerSecurityLogModel.findOne(query)
+                .lean()
                 .populate('securityId')
                 .populate('componentId');
 
@@ -77,6 +78,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const securityLogs = await ContainerSecurityLogModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -95,7 +97,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const containerSecurityLog = ContainerSecurityLogModel.findOneAndUpdate(
+            const containerSecurityLog = await ContainerSecurityLogModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
@@ -119,7 +121,7 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let securityLog = this.findOneBy(query);
+            let securityLog = await this.findOneBy(query);
 
             if (!securityLog) {
                 const error = new Error(
@@ -129,7 +131,7 @@ module.exports = {
                 throw error;
             }
 
-            securityLog = this.updateOneBy(query, {
+            securityLog = await this.updateOneBy(query, {
                 deleted: true,
                 deleteAt: Date.now(),
             });

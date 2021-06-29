@@ -5954,7 +5954,7 @@ pre.bs-PropertyList-definition, pre.bs-PropertyList-property {
   display: flex;
   flex: 0 0 55%;
   flex-direction: column;
-  max-width: 350px;
+  /* max-width: 350px; */
   padding-left: 5px;
 }
 
@@ -34596,6 +34596,14 @@ span.CodeMirror-selectedtext {
   margin: 5px 10px -4px 0px;
 }
 
+.userIcon--large {
+  display: inline-block;
+  height: 32px;
+  width: 32px;
+  border-radius: 50%;
+  margin: 5px 15px -4px 0px;
+}
+
 .labelfield {
   margin-top: 6px;
 }
@@ -35342,6 +35350,19 @@ padding-left:20px
   width: 14.28% !important;
 }
 
+.console-log-view-container {
+  background-color: #000000;
+  width: 100%;
+  height: 100%;
+  font-family: monospace;
+  color: #FFFFFF;
+  padding: 10px;
+}
+
+.console-log-view-container .line-items {
+  white-space: pre-wrap;
+}
+
 @media (max-width: 930px) {
   .bs-incident-notes-content {
     display: block;
@@ -35406,4 +35427,42 @@ padding-left:20px
     width: 233px;
     margin: auto;
   }
+}
+
+.bs-a-script {
+  display: flex;
+  flex-flow: row wrap;
+  margin-bottom: 15px;
+}
+
+.bs-script-select {
+  width: 180px !important;
+}
+
+.bs-script-btn {
+  margin-left: auto;
+}
+.bs-as-pad-10 {
+  padding: 0 10px;
+}
+
+.bs-as-tag {
+  margin-bottom: 10px;
+}
+
+.bs-table-display-end {
+  display: flex !important;
+  justify-content: flex-end !important;
+}
+
+.bs-automate-tab {
+  width: 100% !important;
+}
+
+.bs-automate-slider {
+  width: 50% !important;
+}
+
+.basic-multi-select {
+  min-width: 300px;
 }

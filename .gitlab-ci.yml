@@ -120,8 +120,6 @@ include:
   - '/ci/spec/ruby-sdk/build-n-test.yaml'
   - '/ci/spec/ruby-sdk/deploy.yaml'
 
-
-
   # # HARAKA
   # - '/ci/spec/haraka/deploy.yaml'
 
@@ -133,3 +131,9 @@ include:
 
   # # FYIPE-GL-MANAGER
   # - '/ci/spec/fyipe-gl-manager/deploy.yaml'
+
+  # # Application Scanner
+  # - '/ci/spec/application-scanner/deploy.yaml'
+
+  # #  Script Runner
+  # - '/ci/spec/script-runner/deploy.yaml'

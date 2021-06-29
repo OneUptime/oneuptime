@@ -1562,7 +1562,11 @@ export function MonitorChart({
                                                         id={`monitor-status-${monitor.name}`}
                                                         className={`chart-font Text-color--${statusColor}`}
                                                     >
-                                                        {monitorStatus}
+                                                        <span
+                                                            id={`monitor-color-${statusColor}`}
+                                                        >
+                                                            {monitorStatus}
+                                                        </span>
                                                     </span>
                                                 </span>
                                             </div>
@@ -2001,7 +2005,11 @@ export function MonitorChart({
                 </ShouldRender>
             </>
         );
-    } else if (type === 'manual' || type === 'incomingHttpRequest') {
+    } else if (
+        type === 'manual' ||
+        type === 'incomingHttpRequest' ||
+        type === 'script'
+    ) {
         monitorInfo = (
             <div className="db-Trend">
                 <div className="block-chart-side line-chart">

@@ -10,6 +10,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const { getSubProjects } = require('../middlewares/subProject');
 const ScheduledEventNoteService = require('../services/scheduledEventNoteService');
 const moment = require('moment');
+const MonitorService = require('../services/monitorService');
 
 router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
@@ -294,6 +295,19 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
             });
         }
 
+        if (fetchEvent && !fetchEvent.monitorDuringEvent) {
+            for (const monitor of fetchEvent.monitors) {
+                await MonitorService.updateOneBy(
+                    {
+                        _id: monitor.monitorId._id || monitor.monitorId,
+                    },
+                    {
+                        shouldNotMonitor: false,
+                    }
+                );
+            }
+        }
+
         const event = await ScheduledEventService.updateBy(
             { _id: eventId },
             {
@@ -305,20 +319,22 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
 
         const scheduledEvent = event[0];
 
-        if (scheduledEvent.alertSubscriber) {
-            // handle this asynchronous operation in the background
-            AlertService.sendCancelledScheduledEventToSubscribers(
-                scheduledEvent
-            );
-        }
+        if (scheduledEvent) {
+            if (scheduledEvent.alertSubscriber) {
+                // handle this asynchronous operation in the background
+                AlertService.sendCancelledScheduledEventToSubscribers(
+                    scheduledEvent
+                );
+            }
 
-        await ScheduledEventNoteService.create({
-            content: 'THIS SCHEDULED EVENT HAS BEEN CANCELLED',
-            scheduledEventId: scheduledEvent._id,
-            createdById: scheduledEvent.createdById._id,
-            type: 'investigation',
-            event_state: 'Cancelled',
-        });
+            await ScheduledEventNoteService.create({
+                content: 'THIS SCHEDULED EVENT HAS BEEN CANCELLED',
+                scheduledEventId: scheduledEvent._id,
+                createdById: scheduledEvent.createdById._id,
+                type: 'investigation',
+                event_state: 'Cancelled',
+            });
+        }
 
         return sendItemResponse(req, res, scheduledEvent);
     } catch (error) {
@@ -564,8 +580,12 @@ router.post('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
         const data = req.body;
         data.scheduledEventId = eventId;
         data.createdById = userId;
-
-        if (!data.scheduledEventId) {
+        if (
+            !data.scheduledEventId ||
+            !data.scheduledEventId.trim() ||
+            data.scheduledEventId === undefined ||
+            data.scheduledEventId === 'undefined'
+        ) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Scheduled Event ID is required.',

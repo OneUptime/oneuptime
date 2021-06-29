@@ -7,13 +7,13 @@ import PropTypes from 'prop-types';
 import { Field, FieldArray, reduxForm } from 'redux-form';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
-import { RenderTextArea } from '../basic/RenderTextArea';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import {
     createAnnouncement,
     fetchAnnouncements,
 } from '../../actions/statusPage';
+import CodeEditor from '../basic/CodeEditor';
 
 function validate(values) {
     const errors = {};
@@ -74,7 +74,7 @@ class CreateAnnouncement extends Component {
             postObj.monitors = [];
         }
         postObj.name = values.name;
-        postObj.description = values.description;
+        postObj.description = values[`description`];
         postObj.hideAnnouncement = values.hideAnnouncement ? true : false;
 
         const isDuplicate = postObj.monitors
@@ -106,6 +106,10 @@ class CreateAnnouncement extends Component {
                     this.handleCloseModal();
                 }
             });
+    };
+
+    onContentChange = val => {
+        this.props.change('description', val);
     };
 
     renderMonitors = ({ fields }) => {
@@ -319,6 +323,7 @@ class CreateAnnouncement extends Component {
             closeModal,
             requesting,
             createError,
+            description,
         } = this.props;
         return (
             <div
@@ -342,7 +347,9 @@ class CreateAnnouncement extends Component {
                                     }}
                                 >
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Create Announcement Template</span>
+                                        <span>
+                                            Create Announcement Template
+                                        </span>
                                     </span>
                                 </div>
                             </div>
@@ -435,31 +442,18 @@ class CreateAnnouncement extends Component {
                                                     >
                                                         Description
                                                     </label>
-                                                    <div className="bs-Fieldset-fields">
-                                                        <div
-                                                            className="bs-Fieldset-field"
-                                                            style={{
-                                                                width: '100%',
-                                                            }}
-                                                        >
-                                                            <Field
-                                                                className="bs-TextArea"
-                                                                component={
-                                                                    RenderTextArea
-                                                                }
-                                                                type="text"
-                                                                name="description"
-                                                                rows="5"
-                                                                id="description"
-                                                                placeholder="Description"
-                                                                style={{
-                                                                    width:
-                                                                        '100%',
-                                                                    resize:
-                                                                        'none',
-                                                                }}
-                                                            />
-                                                        </div>
+                                                    <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                        <CodeEditor
+                                                            code={description}
+                                                            onCodeChange={
+                                                                this
+                                                                    .onContentChange
+                                                            }
+                                                            textareaId={
+                                                                'description'
+                                                            }
+                                                            placeholder="This can be markdown"
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
@@ -556,6 +550,8 @@ CreateAnnouncement.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     data: PropTypes.object,
+    change: PropTypes.func,
+    description: PropTypes.string,
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -575,6 +571,14 @@ const mapStateToProps = (state, ownProps) => {
             }
         });
     });
+    const description = state.form.CreateAnnouncementForm
+        ? state.form.CreateAnnouncementForm.values
+            ? state.form.CreateAnnouncementForm.values.description
+                ? state.form.CreateAnnouncementForm.values.description
+                : ''
+            : ''
+        : '';
+
     return {
         createScheduledEventModalId: state.modal.modals[0].id,
         requesting: state.statusPage.createAnnouncement.requesting,
@@ -586,6 +590,7 @@ const mapStateToProps = (state, ownProps) => {
         formValues:
             state.form.CreateAnnouncementForm &&
             state.form.CreateAnnouncementForm.values,
+        description,
     };
 };
 

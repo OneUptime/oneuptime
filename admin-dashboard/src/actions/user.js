@@ -381,6 +381,115 @@ export const blockUser = userId => async dispatch => {
     }
 };
 
+//Enable Admin Mode
+export const enableAdminModeRequest = () => {
+    return {
+        type: types.ENABLE_ADMIN_MODE_REQUEST,
+    };
+};
+
+export const enableAdminModeSuccess = user => {
+    return {
+        type: types.ENABLE_ADMIN_MODE_SUCCESS,
+        payload: user,
+    };
+};
+
+export const enableAdminModeError = error => {
+    return {
+        type: types.ENABLE_ADMIN_MODE_FAILED,
+        payload: error,
+    };
+};
+
+export const enableAdminModeReset = () => {
+    return {
+        type: types.ENABLE_ADMIN_MODE_RESET,
+    };
+};
+
+// Enable admin mode
+export const enableAdminMode = (userId, values) => async dispatch => {
+    dispatch(enableAdminModeRequest());
+
+    try {
+        const response = await postApi(
+            `user/${userId}/switchToAdminMode`,
+            values
+        );
+        const data = response.data;
+
+        dispatch(enableAdminModeSuccess(data));
+        return response;
+    } catch (error) {
+        let errorMsg;
+        if (error && error.response && error.response.data)
+            errorMsg = error.response.data;
+        if (error && error.data) {
+            errorMsg = error.data;
+        }
+        if (error && error.message) {
+            errorMsg = error.message;
+        } else {
+            errorMsg = 'Network Error';
+        }
+        dispatch(enableAdminModeError(errors(errorMsg)));
+    }
+};
+
+//Disable Admin Mode
+export const disableAdminModeRequest = () => {
+    return {
+        type: types.DISABLE_ADMIN_MODE_REQUEST,
+    };
+};
+
+export const disableAdminModeSuccess = user => {
+    return {
+        type: types.DISABLE_ADMIN_MODE_SUCCESS,
+        payload: user,
+    };
+};
+
+export const disableAdminModeError = error => {
+    return {
+        type: types.DISABLE_ADMIN_MODE_FAILED,
+        payload: error,
+    };
+};
+
+export const disableAdminModeReset = () => {
+    return {
+        type: types.DISABLE_ADMIN_MODE_RESET,
+    };
+};
+
+// Disable admin mode
+export const disableAdminMode = userId => async dispatch => {
+    dispatch(disableAdminModeRequest());
+
+    try {
+        const response = await postApi(`user/${userId}/exitAdminMode`);
+        const data = response.data;
+
+        dispatch(disableAdminModeSuccess(data));
+        return response;
+    } catch (error) {
+        let errorMsg;
+        if (error && error.response && error.response.data)
+            errorMsg = error.response.data;
+        if (error && error.data) {
+            errorMsg = error.data;
+        }
+        if (error && error.message) {
+            errorMsg = error.message;
+        } else {
+            errorMsg = 'Network Error';
+        }
+        dispatch(disableAdminModeError(errors(errorMsg)));
+    }
+};
+
 //Unblock user
 export const unblockUserRequest = () => {
     return {

@@ -23,7 +23,7 @@ class TwoFactorAuthModal extends Component {
             profileSettings: { data },
             generateTwoFactorQRCode,
         } = this.props;
-        generateTwoFactorQRCode(data.id);
+        generateTwoFactorQRCode(data.id || data._id);
 
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -72,7 +72,7 @@ class TwoFactorAuthModal extends Component {
                 verifyTwoFactorAuthToken,
                 profileSettings,
             } = this.props;
-            values.userId = profileSettings.data.id;
+            values.userId = profileSettings.data.id || profileSettings.data._id;
             verifyTwoFactorAuthToken(values).then(response => {
                 setTwoFactorAuth(response.data.twoFactorAuthEnabled);
                 this.props.closeThisDialog();
@@ -221,19 +221,73 @@ class TwoFactorAuthModal extends Component {
                                                                 </div>
                                                                 {qrCode.data
                                                                     .otpauth_url ? (
-                                                                    <QRCode
-                                                                        size={
-                                                                            230
-                                                                        }
-                                                                        value={`${qrCode.data.otpauth_url}`}
-                                                                        style={{
-                                                                            display:
-                                                                                'block',
-                                                                            margin:
-                                                                                '0 auto',
-                                                                        }}
-                                                                        id="qr-code"
-                                                                    />
+                                                                    <>
+                                                                        <QRCode
+                                                                            size={
+                                                                                230
+                                                                            }
+                                                                            value={`${qrCode.data.otpauth_url}`}
+                                                                            style={{
+                                                                                display:
+                                                                                    'block',
+                                                                                margin:
+                                                                                    '0 auto',
+                                                                            }}
+                                                                            id="qr-code"
+                                                                        />
+                                                                        <div
+                                                                            style={{
+                                                                                marginTop:
+                                                                                    '20px',
+                                                                            }}
+                                                                        >
+                                                                            <span>
+                                                                                You
+                                                                                can
+                                                                                also
+                                                                                add
+                                                                                the
+                                                                                QR
+                                                                                code
+                                                                                below
+                                                                                directly
+                                                                                on
+                                                                                Google
+                                                                                Auhenticator
+                                                                                app
+                                                                                or
+                                                                                Authy
+                                                                            </span>
+                                                                        </div>
+
+                                                                        <div
+                                                                            style={{
+                                                                                marginTop:
+                                                                                    '14px',
+                                                                                textAlign:
+                                                                                    'center',
+                                                                            }}
+                                                                        >
+                                                                            <span>
+                                                                                QR
+                                                                                Code:
+                                                                            </span>
+                                                                            <span
+                                                                                style={{
+                                                                                    textDecoration:
+                                                                                        'underline',
+                                                                                }}
+                                                                                id="otpath-url"
+                                                                            >
+                                                                                {' '}
+                                                                                {
+                                                                                    qrCode.data.otpauth_url.split(
+                                                                                        'secret='
+                                                                                    )[1]
+                                                                                }
+                                                                            </span>
+                                                                        </div>
+                                                                    </>
                                                                 ) : (
                                                                     <ListLoader />
                                                                 )}

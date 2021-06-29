@@ -40,8 +40,12 @@ module.exports = {
 
                 // #2
                 if (!notAcknowledgedCallScheduleStatus.incident) {
-                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true;
-                    notAcknowledgedCallScheduleStatus.save();
+                    await OnCallScheduleStatusService.updateOneBy({
+                        query: { _id: notAcknowledgedCallScheduleStatus._id },
+                        data: {
+                            incidentAcknowledged: true,
+                        },
+                    });
                     continue;
                 }
 
@@ -50,14 +54,22 @@ module.exports = {
                 });
 
                 if (!incident) {
-                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true;
-                    notAcknowledgedCallScheduleStatus.save();
+                    await OnCallScheduleStatusService.updateOneBy({
+                        query: { _id: notAcknowledgedCallScheduleStatus._id },
+                        data: {
+                            incidentAcknowledged: true,
+                        },
+                    });
                     continue;
                 }
 
                 if (incident && incident.acknowledged) {
-                    notAcknowledgedCallScheduleStatus.incidentAcknowledged = true;
-                    notAcknowledgedCallScheduleStatus.save();
+                    await OnCallScheduleStatusService.updateOneBy({
+                        query: { _id: notAcknowledgedCallScheduleStatus._id },
+                        data: {
+                            incidentAcknowledged: true,
+                        },
+                    });
                     continue;
                 }
 
@@ -87,16 +99,22 @@ module.exports = {
                     schedule = await ScheduleService.findOneBy({
                         isDefault: true,
                         projectId:
-                            notAcknowledgedCallScheduleStatus.projectId._id ||
-                            notAcknowledgedCallScheduleStatus.projectId,
+                            notAcknowledgedCallScheduleStatus.project._id ||
+                            notAcknowledgedCallScheduleStatus.project,
                     });
                 }
                 //and the rest happens here.
 
-                AlertService.sendAlertsToTeamMembersInSchedule({
-                    schedule,
-                    incident,
-                });
+                const monitors = incident.monitors.map(
+                    monitor => monitor.monitorId._id || monitor.monitorId
+                );
+                for (const monitor of monitors) {
+                    AlertService.sendAlertsToTeamMembersInSchedule({
+                        schedule,
+                        incident,
+                        monitorId: monitor,
+                    });
+                }
             }
         } catch (error) {
             ErrorService.log(

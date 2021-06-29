@@ -77,6 +77,7 @@ module.exports = {
             }
 
             const monitorLogsByWeek = await MonitorLogByWeekModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
@@ -94,7 +95,9 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLog = await MonitorLogByWeekModel.findOne(query);
+            const monitorLog = await MonitorLogByWeekModel.findOne(
+                query
+            ).lean();
 
             return monitorLog;
         } catch (error) {

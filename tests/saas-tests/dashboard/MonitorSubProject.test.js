@@ -67,7 +67,7 @@ describe('Monitor API With SubProjects', () => {
         async done => {
             const user = { email: newEmail, password: newPassword };
             // await init.loginUser(user, page);
-            await init.logout(page);
+            await init.saasLogout(page);
             await init.registerAndLoggingTeamMember(user, page); // SubProject User registration and login
 
             await init.pageWaitForSelector(page, '#components', {
@@ -77,13 +77,16 @@ describe('Monitor API With SubProjects', () => {
             await init.pageClick(page, '#components');
             const newComponentForm = await init.page$(
                 page,
-                '#form-new-component'
+                '#form-new-component',
+                { hidden: true }
             );
             expect(newComponentForm).toEqual(null);
 
-            const newMonitorForm = await init.page$(page, '#form-new-monitor');
+            const newMonitorForm = await init.page$(page, '#form-new-monitor', {
+                hidden: true,
+            });
             expect(newMonitorForm).toEqual(null);
-            await init.logout(page);
+            await init.saasLogout(page);
             // });
 
             done();
@@ -184,7 +187,8 @@ describe('Monitor API With SubProjects', () => {
 
             const projectBadgeSelector = await init.page$(
                 page,
-                `#badge_${projectName}`
+                `#badge_${projectName}`,
+                { hidden: true }
             );
 
             expect(projectBadgeSelector).toEqual(null);

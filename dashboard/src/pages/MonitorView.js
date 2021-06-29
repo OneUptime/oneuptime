@@ -35,7 +35,10 @@ import { getProbes } from '../actions/probe';
 import MSTeamsBox from '../components/webHooks/MSTeamsBox';
 import SlackBox from '../components/webHooks/SlackBox';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
-import { fetchBasicIncidentSettings } from '../actions/incidentBasicsSettings';
+import {
+    fetchIncidentTemplates,
+    fetchDefaultTemplate,
+} from '../actions/incidentBasicsSettings';
 import { fetchCommunicationSlas } from '../actions/incidentCommunicationSla';
 import { fetchMonitorSlas } from '../actions/monitorSla';
 import ThirdPartyVariables from '../components/monitor/ThirdPartyVariables';
@@ -62,6 +65,7 @@ class MonitorView extends React.Component {
         }
 
         const { currentProject, componentSlug, fetchComponent } = this.props;
+
         if (currentProject) {
             componentSlug && fetchComponent(currentProject._id, componentSlug);
             const userId = User.getUserId();
@@ -131,6 +135,22 @@ class MonitorView extends React.Component {
             this.props.fetchMonitorSlas(subProjectId);
             this.props.fetchCommunicationSlas(subProjectId);
         }
+
+        if (
+            JSON.stringify(prevProps.currentProject) !==
+            JSON.stringify(this.props.currentProject)
+        ) {
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+            });
+            this.props.fetchIncidentTemplates({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+                skip: 0,
+                limit: 0,
+            });
+        }
     }
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
@@ -146,6 +166,7 @@ class MonitorView extends React.Component {
             fetchComponent,
             currentProject,
         } = this.props;
+
         if (currentProject && currentProject._id && componentSlug) {
             fetchComponent(currentProject._id, componentSlug);
         }
@@ -155,46 +176,65 @@ class MonitorView extends React.Component {
                 0,
                 0
             );
-            this.props.fetchBasicIncidentSettings(
-                this.props.currentProject._id
-            );
+            this.props.fetchIncidentTemplates({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+                skip: 0,
+                limit: 0,
+            });
+            this.props.fetchDefaultTemplate({
+                projectId:
+                    this.props.currentProject._id || this.props.currentProject,
+            });
             const subProjectId = monitor.projectId
                 ? monitor.projectId._id || monitor.projectId
                 : '';
             subProjectId && this.props.getProbes(subProjectId, 0, 10); //0 -> skip, 10-> limit.
-            if (monitor.type === 'url') {
-                this.props.fetchLighthouseLogs(
-                    monitor.projectId._id || monitor.projectId,
+            if (subProjectId && monitor) {
+                if (monitor.type === 'url') {
+                    this.props.fetchLighthouseLogs(
+                        monitor.projectId._id || monitor.projectId,
+                        monitor._id,
+                        0,
+                        1,
+                        monitor.data.url
+                    );
+                    this.props.fetchLighthouseLogs(
+                        subProjectId,
+                        monitor._id,
+                        0,
+                        5
+                    ); //0 -> skip, 10-> limit.
+                }
+                this.props.fetchMonitorsIncidents(
+                    subProjectId,
                     monitor._id,
                     0,
-                    1,
-                    monitor.data.url
-                );
-                this.props.fetchLighthouseLogs(subProjectId, monitor._id, 0, 5); //0 -> skip, 10-> limit.
-            }
-            this.props.fetchMonitorsIncidents(subProjectId, monitor._id, 0, 5); //0 -> skip, 5-> limit.
-            this.props.fetchMonitorsSubscribers(
-                subProjectId,
-                monitor._id,
-                0,
-                5
-            ); //0 -> skip, 5-> limit.
-            this.props.getMonitorLogs(
-                subProjectId,
-                monitor._id,
-                0,
-                10,
-                moment()
-                    .subtract(1, 'd')
-                    .utc(),
-                moment().utc(),
-                null,
-                null,
-                monitor.type
-            ); //0 -> skip, 5-> limit.
+                    5
+                ); //0 -> skip, 5-> limit.
+                this.props.fetchMonitorsSubscribers(
+                    subProjectId,
+                    monitor._id,
+                    0,
+                    5
+                ); //0 -> skip, 5-> limit.
+                this.props.getMonitorLogs(
+                    subProjectId,
+                    monitor._id,
+                    0,
+                    10,
+                    moment()
+                        .subtract(1, 'd')
+                        .utc(),
+                    moment().utc(),
+                    null,
+                    null,
+                    monitor.type
+                ); //0 -> skip, 5-> limit.
 
-            this.props.fetchMonitorSlas(subProjectId);
-            this.props.fetchCommunicationSlas(subProjectId);
+                this.props.fetchMonitorSlas(subProjectId);
+                this.props.fetchCommunicationSlas(subProjectId);
+            }
         }
     };
 
@@ -707,7 +747,12 @@ class MonitorView extends React.Component {
                                                                                         .props
                                                                                         .monitor
                                                                                         .type ===
-                                                                                        'ip')
+                                                                                        'ip' ||
+                                                                                    this
+                                                                                        .props
+                                                                                        .monitor
+                                                                                        .type ===
+                                                                                        'script')
                                                                             }
                                                                         >
                                                                             <div className="Box-root Margin-bottom--12">
@@ -840,6 +885,20 @@ class MonitorView extends React.Component {
                                                                                         </div>
                                                                                     </ShouldRender>
                                                                                     <div className="Box-root Margin-bottom--12">
+                                                                                        <MonitorViewChangeComponentBox
+                                                                                            componentId={
+                                                                                                this
+                                                                                                    .props
+                                                                                                    .componentId
+                                                                                            }
+                                                                                            monitor={
+                                                                                                this
+                                                                                                    .props
+                                                                                                    .monitor
+                                                                                            }
+                                                                                        />
+                                                                                    </div>
+                                                                                    <div className="Box-root Margin-bottom--12">
                                                                                         <MonitorViewDeleteBox
                                                                                             componentId={
                                                                                                 this
@@ -859,20 +918,6 @@ class MonitorView extends React.Component {
                                                                                                     .props
                                                                                                     .component
                                                                                                     .slug
-                                                                                            }
-                                                                                        />
-                                                                                    </div>
-                                                                                    <div className="Box-root Margin-bottom--12">
-                                                                                        <MonitorViewChangeComponentBox
-                                                                                            componentId={
-                                                                                                this
-                                                                                                    .props
-                                                                                                    .componentId
-                                                                                            }
-                                                                                            monitor={
-                                                                                                this
-                                                                                                    .props
-                                                                                                    .monitor
                                                                                             }
                                                                                         />
                                                                                     </div>
@@ -1021,6 +1066,14 @@ const mapStateToProps = (state, props) => {
                         const id = criterion._id;
                         const criterionBodyField = mapCriteria(criterion);
                         const criterionFieldName = `${type}_${id}`;
+                        const scriptName = criterion.scripts.map(
+                            ({ scriptId }) => {
+                                return {
+                                    value: scriptId._id,
+                                    label: scriptId.name,
+                                };
+                            }
+                        );
 
                         // set initial values for the criterion
                         initialValues[criterionFieldName] = criterionBodyField;
@@ -1038,6 +1091,9 @@ const mapStateToProps = (state, props) => {
                             criterion.autoAcknowledge;
                         initialValues[`autoResolve_${criterionFieldName}`] =
                             criterion.autoResolve;
+                        initialValues[
+                            `script_${criterionFieldName}`
+                        ] = scriptName;
 
                         // initialize schedules checkboxes for the criterions
                         /**
@@ -1130,11 +1186,12 @@ const mapDispatchToProps = dispatch => {
             fetchLighthouseLogs,
             getProbes,
             fetchIncidentPriorities,
-            fetchBasicIncidentSettings,
+            fetchIncidentTemplates,
             fetchCommunicationSlas,
             fetchMonitorSlas,
             fetchSchedules,
             fetchComponent,
+            fetchDefaultTemplate,
         },
         dispatch
     );
@@ -1160,7 +1217,7 @@ MonitorView.propTypes = {
     probeList: PropTypes.object,
     currentProject: PropTypes.object.isRequired,
     fetchIncidentPriorities: PropTypes.func.isRequired,
-    fetchBasicIncidentSettings: PropTypes.func.isRequired,
+    fetchIncidentTemplates: PropTypes.func.isRequired,
     fetchCommunicationSlas: PropTypes.func,
     fetchMonitorSlas: PropTypes.func,
     requestingIncidentSla: PropTypes.bool,
@@ -1173,6 +1230,7 @@ MonitorView.propTypes = {
     componentSlug: PropTypes.string,
     fetchComponent: PropTypes.func,
     requestingComponent: PropTypes.bool,
+    fetchDefaultTemplate: PropTypes.func,
 };
 
 MonitorView.displayName = 'MonitorView';

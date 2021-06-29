@@ -130,6 +130,25 @@ const _this = {
             }
         }
     },
+    loginProjectViewer: async function(user, page) {
+        const { email, password } =
+            utils.BACKEND_URL.includes('localhost') ||
+            utils.BACKEND_URL.includes('staging')
+                ? user
+                : {
+                      email: 'user@fyipe.com',
+                      password: 'mVzkm{LAP)mNC8t23ehqifb2p',
+                  };
+        await page.goto(utils.ACCOUNTS_URL + '/login', {
+            waitUntil: 'networkidle2',
+        });
+        await _this.pageWaitForSelector(page, '#login-button');
+        await _this.pageClick(page, 'input[name=email]');
+        await _this.pageType(page, 'input[name=email]', email);
+        await _this.pageClick(page, 'input[name=password]');
+        await _this.pageType(page, 'input[name=password]', password);
+        await _this.pageClick(page, 'button[type=submit]');
+    },
     loginUser: async function(user, page) {
         const { email, password } =
             utils.BACKEND_URL.includes('localhost') ||
@@ -170,6 +189,87 @@ const _this = {
             visible: true,
             timeout: _this.timeout,
         });
+
+        return;
+    },
+    testSmptSettings: async function(page, email) {
+        await _this.pageWaitForSelector(page, '#settings');
+        await _this.pageClick(page, '#settings');
+        await _this.pageWaitForSelector(page, '#smtp');
+        await _this.pageClick(page, '#smtp');
+        await _this.pageWaitForSelector(page, '#testSmtpSettingsButton');
+        await _this.pageClick(page, '#testSmtpSettingsButton');
+        await _this.pageWaitForSelector(page, '#testEmail');
+        await _this.pageType(page, '#testEmail', email);
+        await _this.pageWaitForSelector(page, '#customSmtpBtn');
+        await _this.pageClick(page, '#customSmtpBtn');
+        await _this.pageWaitForSelector(page, '#confirmSmtpTest');
+        await _this.pageClick(page, '#confirmSmtpTest');
+        await _this.pageWaitForSelector(page, '#confirmDelete');
+        await _this.pageClick(page, '#confirmDelete');
+    },
+    addEmailCredentials: async function(page, email) {
+        await _this.pageWaitForSelector(page, '#settings');
+        await _this.pageClick(page, '#settings');
+        await _this.pageWaitForSelector(page, '#smtp');
+        await _this.pageClick(page, '#smtp');
+        await _this.pageWaitForSelector(page, '#email-enabled');
+        await _this.pageClick(page, '#email-enabled');
+        await _this.pageWaitForSelector(page, '#customSmtp');
+        await _this.pageClick(page, '#customSmtp');
+        await _this.pageWaitForSelector(page, '#email');
+        await _this.pageClick(page, 'input[name=email]');
+        await _this.pageType(
+            page,
+            'input[name=email]',
+            utils.smtpCredential.user
+        );
+        await _this.pageClick(page, 'input[name=password]');
+        await _this.pageType(
+            page,
+            'input[name=password]',
+            utils.smtpCredential.pass
+        );
+        await _this.pageClick(page, 'input[name=smtp-server]');
+        await _this.pageType(
+            page,
+            'input[name=smtp-server]',
+            utils.smtpCredential.host
+        );
+
+        await _this.pageClick(page, 'input[name=smtp-port]');
+        await _this.pageType(
+            page,
+            'input[name=smtp-port]',
+            utils.smtpCredential.port
+        );
+
+        await _this.pageClick(page, 'input[name=from]');
+        await _this.pageType(
+            page,
+            'input[name=from]',
+            utils.smtpCredential.from
+        );
+
+        await _this.pageClick(page, 'input[name=from-name]');
+        await _this.pageType(page, 'input[name=from-name]', 'Hackerbay');
+
+        await _this.pageWaitForSelector(page, '#label_smpt_secure');
+        await _this.pageClick(page, '#label_smpt_secure');
+
+        await _this.pageWaitForSelector(page, 'button[type=submit]');
+        await _this.pageClick(page, 'button[type=submit]');
+
+        await _this.pageWaitForSelector(page, '#testSmtpSettingsButton');
+        await _this.pageClick(page, '#testSmtpSettingsButton');
+        await _this.pageWaitForSelector(page, '#testEmail');
+        await _this.pageType(page, '#testEmail', email);
+        await _this.pageWaitForSelector(page, '#customSmtpBtn');
+        await _this.pageClick(page, '#customSmtpBtn');
+        await _this.pageWaitForSelector(page, '#confirmSmtpTest');
+        await _this.pageClick(page, '#confirmSmtpTest');
+        await _this.pageWaitForSelector(page, '#confirmDelete');
+        await _this.pageClick(page, '#confirmDelete');
     },
     registerEnterpriseUser: async function(user, page) {
         const masterAdmin = {
@@ -179,7 +279,8 @@ const _this = {
         await page.goto(utils.ACCOUNTS_URL + '/login', {
             waitUntil: 'networkidle2',
         });
-        const signUp = await _this.page$(page, '#signUpLink');
+        const signUp = await _this.isElementOnPage(page, '#signUpLink');
+
         if (signUp) {
             await page.goto(utils.ACCOUNTS_URL + '/register', {
                 waitUntil: 'networkidle2',
@@ -216,6 +317,7 @@ const _this = {
             await _this.loginAdminUser(masterAdmin, page);
         }
         // create the user from admin dashboard
+        //await _this.loginAdminUser(masterAdmin, page);
         const { email } = user;
         await _this.pageWaitForSelector(page, '#add_user');
         await _this.pageClick(page, '#add_user');
@@ -429,7 +531,7 @@ const _this = {
             timeout: _this.timeout,
         });
         await _this.pageClick(page, '#changePlanBtn');
-        await _this.gotoTab(0, page);
+        await _this.pageClick(page, '.basic-tab');
     },
     registerAndLoggingTeamMember: async function(user, page) {
         const { email, password } = user;
@@ -516,12 +618,18 @@ const _this = {
             page.waitForNavigation(),
         ]);
     },
+
     navigateToMonitorDetails: async function(component, monitor, page) {
         // Navigate to Components page
         await _this.navigateToComponentDetails(component, page);
 
         // Navigate to details page of monitor assumed created
-        await _this.pageClickNavigate(page, `#more-details-${monitor}`);
+        // await _this.pageClickNavigate(page, `#more-details-${monitor}`);
+        await _this.pageWaitForSelector(page, `#more-details-${monitor}`, {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClick(page, `#more-details-${monitor}`);
 
         await _this.pageWaitForSelector(page, `#monitor-title-${monitor}`, {
             visible: true,
@@ -616,9 +724,10 @@ const _this = {
         });
     },
     addSubProject: async function(subProjectName, page) {
-        const subProjectNameSelector = await _this.page$(
+        const subProjectNameSelector = await _this.isElementOnPage(
             page,
-            '#btn_Add_SubProjects'
+            '#btn_Add_SubProjects',
+            { hidden: true } //The function is usually called after dashboard loads. Hence, '#btn_Add_SubProjects' is hidden.
         );
         if (subProjectNameSelector) {
             await _this.pageWaitForSelector(page, '#btn_Add_SubProjects');
@@ -872,40 +981,25 @@ const _this = {
         });
     },
     addIncidentToProject: async function(monitorName, projectName, page) {
-        const createIncidentSelector = await _this.page$(
+        await _this.pageWaitForSelector(page, '#incidentLog');
+        await _this.page$Eval(page, '#incidentLog', e => e.click());
+
+        await _this.pageWaitForSelector(
             page,
             `#btnCreateIncident_${projectName}`,
-            { visible: true, timeout: _this.timeout }
+            {
+                visible: true,
+                timeout: _this.timeout,
+            }
         );
-        if (createIncidentSelector) {
-            await _this.pageWaitForSelector(
-                page,
-                `#btnCreateIncident_${projectName}`
-            );
-            await _this.page$Eval(
-                page,
-                `#btnCreateIncident_${projectName}`,
-                e => e.click()
-            );
-            await _this.pageWaitForSelector(page, '#frmIncident');
-            await _this.selectDropdownValue('#monitorList', monitorName, page);
-            await _this.page$Eval(page, '#createIncident', e => e.click());
-        } else {
-            await _this.pageWaitForSelector(page, '#incidentLog');
-            await _this.page$Eval(page, '#incidentLog', e => e.click());
-            await _this.pageWaitForSelector(
-                page,
-                `#btnCreateIncident_${projectName}`
-            );
-            await _this.page$Eval(
-                page,
-                `#btnCreateIncident_${projectName}`,
-                e => e.click()
-            );
-            await _this.pageWaitForSelector(page, '#frmIncident');
-            await _this.selectDropdownValue('#monitorList', monitorName, page);
-            await _this.page$Eval(page, '#createIncident', e => e.click());
-        }
+        await _this.page$Eval(page, `#btnCreateIncident_${projectName}`, e =>
+            e.click()
+        );
+        await _this.pageWaitForSelector(page, '#frmIncident');
+        await _this.page$Eval(page, '#addMoreMonitor', e => e.click());
+        await _this.selectDropdownValue('#monitorfield_0', monitorName, page);
+        await _this.page$Eval(page, '#createIncident', e => e.click());
+
         await _this.pageWaitForSelector(page, '#createIncident', {
             hidden: true,
         });
@@ -965,7 +1059,8 @@ const _this = {
     addScheduleToProject: async function(scheduleName, projectName, page) {
         const createStatusPageSelector = await _this.page$(
             page,
-            `#btnCreateStatusPage_${projectName}`
+            `#btnCreateStatusPage_${projectName}`,
+            { hidden: true }
         );
         if (createStatusPageSelector) {
             await _this.pageWaitForSelector(
@@ -1213,7 +1308,8 @@ const _this = {
         });
         await _this.pageClick(page, `#${eventBtn}`);
         // navigate to the note tab section
-        await _this.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
+        // await _this.gotoTab(utils.scheduleEventTabIndexes.NOTES, page);
+        await _this.pageClick(page, '.timeline-tab');
         await _this.pageWaitForSelector(page, `#add-${type}-message`, {
             visible: true,
         });
@@ -1445,10 +1541,7 @@ const _this = {
                 timeout: _this.timeout,
             });
             await _this.pageClickNavigate(page, '#monitor');
-            await page.reload({
-                waitUntil: 'networkidle2',
-            });
-            await _this.gotoTab(2, page);
+            await _this.pageClick(page, '.monitor-sla-advanced');
         } else {
             await _this.pageWaitForSelector(page, '#more');
             await _this.pageClick(page, '#more');
@@ -1460,7 +1553,7 @@ const _this = {
             await page.reload({
                 waitUntil: 'networkidle2',
             });
-            await _this.gotoTab(6, page);
+            await _this.pageClick(page, '.advanced-tab');
         }
 
         await _this.pageWaitForSelector(page, '#addCustomField', {
@@ -1478,8 +1571,22 @@ const _this = {
 
         await _this.pageClick(page, '#createCustomFieldButton');
         await _this.pageWaitForSelector(page, '#customFieldForm', {
-            visible: 'hidden',
+            hidden: true,
         });
+    },
+    navigateToCustomField: async function(page) {
+        await page.goto(utils.DASHBOARD_URL, {
+            waitUntil: ['networkidle2'],
+        });
+        await _this.pageClickNavigate(page, '#projectSettings');
+        await _this.pageWaitForSelector(page, '#more');
+        await _this.pageClick(page, '#more');
+        await _this.pageWaitForSelector(page, '#incidentSettings', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClickNavigate(page, '#incidentSettings');
+        await _this.pageClick(page, '.advanced-tab');
     },
     pageType: async function(page, selector, text, opts) {
         await _this.pageWaitForSelector(page, selector, {
@@ -1496,18 +1603,8 @@ const _this = {
         });
         return await page.click(selector, opts);
     },
-    pageClickNavigate: async function(page, selector, opts) {
-        await _this.pageWaitForSelector(page, selector, {
-            visible: true,
-            timeout: _this.timeout,
-        });
-        return await Promise.all([
-            page.click(selector, opts),
-            page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing
-        ]);
-    },
-    page$Eval: async function(page, selector, evalFunction) {
-        await _this.pageWaitForSelector(page, selector);
+    page$Eval: async function(page, selector, evalFunction, opts = null) {
+        await _this.pageWaitForSelector(page, selector, opts);
         return await page.$eval(selector, evalFunction);
     },
     page$$Eval: async function(page, selector, evalFunction) {
@@ -1515,7 +1612,7 @@ const _this = {
         return await page.$$eval(selector, evalFunction);
     },
     page$: async function(page, selector, opts) {
-        await _this.pageWaitForSelector(page, selector);
+        await _this.pageWaitForSelector(page, selector, opts);
         return await page.$(selector, opts);
     },
     page$$: async function(page, selector, opts) {
@@ -1544,6 +1641,40 @@ const _this = {
         } else {
             return false;
         }
+    },
+    pageClickNavigate: async function(page, selector, opts) {
+        await _this.pageWaitForSelector(page, selector, {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        return await Promise.all([
+            page.click(selector, opts),
+            page.waitForNavigation({ waitUntil: 'networkidle2' }), // This ensures every id is loaded upon page routing
+        ]);
+    },
+    navigateToTwilio: async function(page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await _this.pageWaitForSelector(page, '#projectSettings', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClick(page, '#projectSettings');
+        await _this.pageWaitForSelector(page, '#more');
+        await _this.pageClick(page, '#more');
+        await _this.pageWaitForSelector(page, '#smsCalls');
+        await _this.pageClick(page, '#smsCalls');
+    },
+    navigateToSmtp: async function(page) {
+        await page.goto(utils.DASHBOARD_URL);
+        await _this.pageWaitForSelector(page, '#projectSettings', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClick(page, '#projectSettings');
+        await _this.pageWaitForSelector(page, '#more');
+        await _this.pageClick(page, '#more');
+        await _this.pageWaitForSelector(page, '#email');
+        await _this.pageClick(page, '#email');
     },
 };
 

@@ -1,5 +1,5 @@
 # Pull base image nodejs image.
-FROM node:15
+FROM node:16
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
@@ -15,7 +15,7 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 1445: Fyipe Dcos
+#   - 1445: Fyipe Docs
 EXPOSE 1445
 
 #Run the app

@@ -48,6 +48,7 @@ module.exports = {
             let alertCharges;
             if (skip >= 0 && limit > 0) {
                 alertCharges = await AlertChargeModel.find(query)
+                    .lean()
                     .sort([['createdAt', sort]])
                     .populate('alertId', 'alertVia')
                     .populate('subscriberAlertId', 'alertVia')
@@ -57,6 +58,7 @@ module.exports = {
                     .skip(skip);
             } else {
                 alertCharges = await AlertChargeModel.find(query)
+                    .lean()
                     .sort([['createdAt', sort]])
                     .populate('alertId', 'alertVia')
                     .populate('subscriberAlertId', 'alertVia')

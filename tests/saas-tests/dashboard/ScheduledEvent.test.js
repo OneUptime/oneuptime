@@ -222,7 +222,7 @@ describe('Scheduled event', () => {
                 timeout: init.timeout,
             });
             await init.pageWaitForSelector(page, '#name');
-            await init.pageClick(page, '#name');
+            await init.pageClick(page, '#name', { clickCount: 3 });
             await init.pageType(page, '#name', newScheduledMaintenanceName);
             await init.pageClick(page, '#updateScheduledEventButton');
             await init.pageWaitForSelector(page, '#editScheduledEventForm', {

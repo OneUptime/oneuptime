@@ -8,8 +8,11 @@ e2e_docker_compose_enterprise_test:
         - sudo chmod +x /usr/local/bin/docker-compose
         - sudo docker-compose down -v
         # Install the cluster.
-        - chmod +x ./install.sh
-        - ./install.sh
+        - chmod +x ./env-setup.sh
+        - ./env-setup.sh
+        - npm run ci-docker-enterprise
+        # Sleep for 5 mins to make sure docker started
+        - sleep 5m
         # Set env var
         - export ACCOUNTS_URL=http://localhost:3003
         - export ADMIN_DASHBOARD_URL=http://localhost:3100

@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:15
+FROM node:16
 
 #SET ENV Variables
 ENV PRODUCTION=true
@@ -29,6 +29,12 @@ RUN curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -
 RUN chmod +x ./kubectl
 RUN mv ./kubectl /usr/local/bin/kubectl && \
   chown root: /usr/local/bin/kubectl
+
+# Due to this EPROTO wrong signature error on http fetch, we need to comment out CipherString
+# in the file /etc/ssl/openssl.cnf
+# https://github.com/nodejs/help/issues/2804
+# https://developers.exlibrisgroup.com/forums/topic/cant-fetch-from-alma-api-with-node/
+RUN sed -i 's/^CipherString$\?/#CipherString/g' /etc/ssl/openssl.cnf
 
 # Install app dependencies
 COPY package*.json /usr/src/app/

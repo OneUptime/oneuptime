@@ -58,12 +58,19 @@ class OngoingSchedule extends Component {
                                                         fontSize: 11,
                                                         fontWeight: 900,
                                                     }}
+                                                    id="ongoing-event"
                                                 >
                                                     Ongoing Scheduled Event
                                                 </div>
                                                 <div className="ongoing__scheduleitem">
-                                                    <span>{event.name}</span>
-                                                    <span>
+                                                    <span
+                                                        id={`event-name-${event.name}`}
+                                                    >
+                                                        {event.name}
+                                                    </span>
+                                                    <span
+                                                        id={`event-description-${event.description}`}
+                                                    >
                                                         {event.description}
                                                     </span>
                                                 </div>
@@ -83,6 +90,7 @@ class OngoingSchedule extends Component {
                                                         fontSize: 12,
                                                         marginTop: 5,
                                                     }}
+                                                    id="event-date"
                                                 >
                                                     {moment(
                                                         event.startDate

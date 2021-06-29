@@ -24,9 +24,14 @@ describe('Check api-docs up', () => {
             await page.goto(utils.APIDOCS_URL, {
                 waitUntil: 'domcontentloaded',
             });
-            const response = await init.page$Eval(page, 'head > title', e => {
-                return e.innerHTML;
-            });
+            const response = await init.page$Eval(
+                page,
+                'head > title',
+                e => {
+                    return e.innerHTML;
+                },
+                { hidden: true }
+            );
             expect(response).toBe('Fyipe API Documentation');
             done();
         },

@@ -13,6 +13,7 @@ import {
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 import Checkbox from '../../components/Checkbox';
+import CheckboxHeader from './CheckboxHeader';
 
 const validate = values => {
     const errors = {};
@@ -121,6 +122,8 @@ class AdvancedIncidentNotification extends Component {
                                     >
                                         <div>
                                             <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
+                                                <CheckboxHeader text="Incident" />
+
                                                 <Checkbox
                                                     name={
                                                         type === 'email'
@@ -177,6 +180,8 @@ class AdvancedIncidentNotification extends Component {
                                                         text="Enable Investigation Note Email for Subscribers"
                                                     />
                                                 )}
+
+                                                <CheckboxHeader text="Scheduled Event" />
 
                                                 <Checkbox
                                                     name={
@@ -238,26 +243,26 @@ class AdvancedIncidentNotification extends Component {
                                                         for Subscribers`}
                                                 />
 
+                                                <CheckboxHeader text="Announcement" />
+                                                <Checkbox
+                                                    name={
+                                                        type === 'email'
+                                                            ? 'sendAnnouncementNotificationEmail'
+                                                            : 'sendAnnouncementNotificationSms'
+                                                    }
+                                                    text={`Enable Announcement Notification
+                                                        ${
+                                                            type === 'sms'
+                                                                ? 'SMS'
+                                                                : 'Email'
+                                                        }
+                                                        for Subscribers`}
+                                                />
+
                                                 {showMoreOptions &&
                                                     type === 'email' && (
                                                         <>
-                                                            <div className="bs-Fieldset-row">
-                                                                <label className="bs-Fieldset-label"></label>
-                                                                <div className="bs-Fieldset-fields">
-                                                                    <div
-                                                                        className="Box-root"
-                                                                        style={{
-                                                                            fontWeight: 500,
-                                                                        }}
-                                                                    >
-                                                                        <span>
-                                                                            More
-                                                                            Advanced
-                                                                            Options
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
+                                                            <CheckboxHeader text="More Advanced Options" />
                                                             <div className="bs-Fieldset-row">
                                                                 <label className="bs-Fieldset-label">
                                                                     Reply
@@ -436,6 +441,10 @@ const mapStateToProps = (state, ownProps) => {
                 state.project.currentProject &&
                 state.project.currentProject
                     .sendScheduledEventCancelledNotificationSms,
+
+            sendAnnouncementNotificationSms:
+                state.project.currentProject &&
+                state.project.currentProject.sendAnnouncementNotificationSms,
         };
     } else if (type === 'email') {
         initialValues = {
@@ -472,6 +481,11 @@ const mapStateToProps = (state, ownProps) => {
                 state.project.currentProject &&
                 state.project.currentProject
                     .sendScheduledEventCancelledNotificationEmail,
+
+            sendAnnouncementNotificationEmail:
+                state.project.currentProject &&
+                state.project.currentProject.sendAnnouncementNotificationEmail,
+
             replyAddress:
                 state.project.currentProject &&
                 state.project.currentProject.replyAddress,

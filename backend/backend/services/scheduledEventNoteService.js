@@ -9,18 +9,9 @@ module.exports = {
             let scheduledEventMessage = await ScheduledEventNoteModel.create(
                 data
             );
-            scheduledEventMessage = await scheduledEventMessage
-                .populate('scheduledEventId', 'name')
-                .populate({
-                    path: 'scheduledEventId',
-                    select: 'name monitors alertSubscriber',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name replyAddress',
-                    },
-                })
-                .populate('createdById', 'name')
-                .execPopulate();
+            scheduledEventMessage = await this.findOneBy({
+                _id: scheduledEventMessage._id,
+            });
             if (
                 scheduledEventMessage.scheduledEventId.alertSubscriber &&
                 scheduledEventMessage.type === 'investigation' &&
@@ -59,12 +50,18 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-
+            /** This deletes the scheduled notes*/
             let eventMessage = await ScheduledEventNoteModel.findOneAndUpdate(
                 query,
                 { $set: data },
                 { new: true }
             );
+            /** Since the scheduled notes has been deleted
+             * The query.deleted value has changed from FALSE to TRUE
+             */
+            if (eventMessage) {
+                query.deleted = eventMessage.deleted; // The query.deleted value is updated as TRUE.
+            }
 
             if (!eventMessage) {
                 const error = new Error(
@@ -74,11 +71,7 @@ module.exports = {
                 throw error;
             }
 
-            eventMessage = await eventMessage
-                .populate('scheduledEventId')
-                .populate('createdById', 'name')
-                .execPopulate();
-
+            eventMessage = await this.findOneBy(query); // If one of the values of query is not correct, a null is returned as such document could not be found in the DB
             eventMessage.type === 'internal'
                 ? await RealTimeService.updateScheduledEventInternalNote(
                       eventMessage
@@ -101,9 +94,17 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             const eventMessage = await ScheduledEventNoteModel.findOne(query)
-                .populated('scheduledEventId')
-                .populate('createdById', 'name')
-                .lean();
+                .lean()
+                .populate('scheduledEventId', 'name')
+                .populate({
+                    path: 'scheduledEventId',
+                    select: 'name monitors alertSubscriber projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name replyAddress',
+                    },
+                })
+                .populate('createdById', 'name');
 
             return eventMessage;
         } catch (error) {
@@ -128,12 +129,20 @@ module.exports = {
             if (!query) query = {};
 
             const eventMessage = await ScheduledEventNoteModel.find(query)
+                .lean()
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
-                .populate('scheduledEventId')
-                .populate('createdById', 'name')
-                .lean();
+                .populate('scheduledEventId', 'name')
+                .populate({
+                    path: 'scheduledEventId',
+                    select: 'name monitors alertSubscriber projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name replyAddress',
+                    },
+                })
+                .populate('createdById', 'name');
 
             return eventMessage;
         } catch (error) {

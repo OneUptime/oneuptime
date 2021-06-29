@@ -118,12 +118,13 @@ export const getStatusPageNote = (
     projectId,
     statusPageSlug,
     skip,
-    limit,
-    days
+    limit = 10,
+    days = 14,
+    newTheme = false
 ) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}`
+            `statusPage/${projectId}/${statusPageSlug}/notes?skip=${skip}&limit=${limit}&days=${days}&newTheme=${newTheme}`
         );
 
         dispatch(statusPageNoteRequest());
@@ -663,7 +664,7 @@ export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
             `statusPage/${projectId}/${monitorId}/monitorStatuses`,
             { startDate, endDate }
         );
-        dispatch(fetchMonitorStatusesRequest());
+        dispatch(fetchMonitorStatusesRequest(monitorId));
 
         promise.then(
             function(monitorStatuses) {
@@ -695,9 +696,10 @@ export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
     };
 }
 
-export function fetchMonitorStatusesRequest() {
+export function fetchMonitorStatusesRequest(id) {
     return {
         type: types.FETCH_MONITOR_STATUSES_REQUEST,
+        payload: id,
     };
 }
 
@@ -1275,6 +1277,57 @@ export function fetchAnnouncementLogs(
                     error = 'Network Error';
                 }
                 dispatch(fetchAnnouncementLogsFailure(error));
+            }
+        );
+        return promise;
+    };
+}
+
+export function calculateTimeRequest(monitorId) {
+    return {
+        type: types.CALCULATE_TIME_REQUEST,
+        payload: monitorId,
+    };
+}
+
+export function calculateTimeSuccess(payload) {
+    return {
+        type: types.CALCULATE_TIME_SUCCESS,
+        payload,
+    };
+}
+
+export function calculateTimeFailure(error) {
+    return {
+        type: types.CALCULATE_TIME_FAILURE,
+        payload: error,
+    };
+}
+
+export function calculateTime(statuses, start, range, monitorId) {
+    return function(dispatch) {
+        const promise = postApi(`monitor/${monitorId}/calculate-time`, {
+            statuses,
+            start,
+            range,
+        });
+        dispatch(calculateTimeRequest(monitorId));
+        promise.then(
+            function(response) {
+                dispatch(calculateTimeSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(calculateTimeFailure(error));
             }
         );
         return promise;

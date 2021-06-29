@@ -237,6 +237,10 @@ host:
   httpTestServerServicePort: 80
   initScriptServicePort: 80
   harakaServicePort: 2525
+  scriptRunnerPort: 3009
+  scripRunnerServicePort: 80
+  applicationScannerPort: 3005
+  applicationScannerServicePort: 80
 
 isThirdPartyBilling: false
 isRunningOnGCPMarketplace: false
@@ -266,6 +270,10 @@ pushNotification:
     publicKey: "BD1kb-OchZlXr32bmwpjhoxp_cq-aqK4dWXRDkC5m6Hd9_cvMOUw_bXRFR3pJFGzpEdjQUk5SDdYaXvb7xd-1Dg"
     privateKey: "WdFZTeXkuoxpsO_KNOtXvhDUc_Ae1rb-WjPv6AVexA4"
     url: "https://fyipe-test.com"
-
-
  
+
+autoScaler: 
+  enabled: false
+  averageCpuUtilization: 50
+  minReplicas: 1
+  maxReplicas: 1

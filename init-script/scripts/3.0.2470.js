@@ -41,7 +41,7 @@ async function run() {
         await removeField(
             statusPageCollection,
             { _id: statusPage._id },
-            { domain: '' }
+            'domain'
         );
     }
 

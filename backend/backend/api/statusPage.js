@@ -327,12 +327,14 @@ router.get('/tlsCredential', async function(req, res) {
             user
         );
 
-        let domainObj;
-        statusPage.domains.forEach(eachDomain => {
-            if (eachDomain.domain === domain) {
-                domainObj = eachDomain;
-            }
-        });
+        let domainObj = {};
+        statusPage &&
+            statusPage.domains &&
+            statusPage.domains.forEach(eachDomain => {
+                if (eachDomain.domain === domain) {
+                    domainObj = eachDomain;
+                }
+            });
 
         return sendItemResponse(req, res, {
             cert: domainObj.cert,
@@ -705,10 +707,9 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
                         pubDate: new Date(incident.createdAt).toUTCString(),
                         description: `<![CDATA[Description: ${
                             incident.description
-                        }<br>Incident Id: ${incident._id.toString()} <br>Monitor's Name: ${
-                            incident.monitorId.name
-                        }
-                        <br>Monitor's Id: ${incident.monitorId._id.toString()} <br>Acknowledge Time: ${
+                        }<br>Incident Id: ${incident._id.toString()} <br>Monitor Name(s): ${handleMonitorList(
+                            incident.monitors
+                        )}<br>Acknowledge Time: ${
                             incident.acknowledgedAt
                         }<br>Resolve Time: ${incident.resolvedAt}<br>${
                             incident.investigationNote
@@ -768,8 +769,10 @@ router.get(
         let result;
         const statusPageSlug = req.params.statusPageSlug;
         const skip = req.query.skip || 0;
-        const limit = req.query.limit || 5;
+        const limit = req.query.limit || 10;
         const days = req.query.days || 14;
+        const newTheme = req.query.newTheme;
+
         try {
             // Call the StatusPageService.
             const response = await StatusPageService.getNotes(
@@ -780,7 +783,7 @@ router.get(
             const notes = response.notes;
             const count = response.count;
             const updatedNotes = [];
-            if (parseInt(limit) === 15) {
+            if (newTheme) {
                 if (notes.length > 0) {
                     for (const note of notes) {
                         const statusPageNote = await StatusPageService.getIncidentNotes(
@@ -792,7 +795,7 @@ router.get(
                         const sortMsg = statusPageNote.message.reverse();
 
                         updatedNotes.push({
-                            ...note._doc,
+                            ...note,
                             message: sortMsg,
                         });
                     }
@@ -882,7 +885,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 5;
     const query = {
-        monitorId: req.params.monitorId,
+        'monitors.monitorId': req.params.monitorId,
         deleted: false,
         createdAt: { $gte: start, $lt: end },
     };
@@ -908,7 +911,7 @@ router.get('/:projectId/:monitorId/individualnotes', checkUser, async function(
                     const sortMsg = statusPageNote.message.reverse();
 
                     updatedNotes.push({
-                        ...note._doc,
+                        ...note,
                         message: sortMsg,
                     });
                 }
@@ -1445,7 +1448,7 @@ router.get(
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
                 const updatedLogs = [];
                 for (const log of announcementLogs) {
-                    updatedLogs.push({ ...log._doc });
+                    updatedLogs.push({ ...log });
                 }
                 announcementLogs = formatNotes(updatedLogs, 20);
                 announcementLogs = checkDuplicateDates(announcementLogs);
@@ -1603,6 +1606,23 @@ function checkDuplicateDates(items) {
         result.push(item);
     }
     return result;
+}
+
+function handleMonitorList(monitors) {
+    if (monitors.length === 1) {
+        return monitors[0].monitorId.name;
+    }
+    if (monitors.length === 2) {
+        return `${monitors[0].monitorId.name} and ${monitors[1].monitorId.name}`;
+    }
+    if (monitors.length === 3) {
+        return `${monitors[0].monitorId.name}, ${monitors[1].monitorId.name} and ${monitors[2].monitorId.name}`;
+    }
+    if (monitors.length > 3) {
+        return `${monitors[0].monitorId.name}, ${
+            monitors[1].monitorId.name
+        } and ${monitors.length - 2} others`;
+    }
 }
 
 module.exports = router;

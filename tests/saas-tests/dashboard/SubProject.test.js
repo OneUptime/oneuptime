@@ -84,7 +84,7 @@ describe('Member Restriction', () => {
             page
         );
 
-        await init.logout(page);
+        await init.saasLogout(page);
 
         done();
     });
@@ -122,7 +122,7 @@ describe('Member Restriction', () => {
             );
 
             expect(unauthorisedModal).toBeDefined();
-            await init.logout(page);
+            await init.saasLogout(page);
             done();
         },
         operationTimeOut
@@ -139,7 +139,7 @@ describe('Member Restriction', () => {
             });
             // adding a subProject is only allowed on growth plan and above
             await init.addSubProject(subProjectName, page);
-            await init.logout(page);
+            await init.saasLogout(page);
 
             await init.loginUser({ email: teamEmail, password }, page);
             await init.pageWaitForSelector(page, '#projectSettings', {

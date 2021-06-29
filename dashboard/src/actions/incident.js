@@ -202,10 +202,10 @@ export function getComponentIncidents(projectId, componentId) {
 
 // Create a new incident
 
-export function createIncidentRequest(monitorId) {
+export function createIncidentRequest(projectId) {
     return {
         type: types.CREATE_INCIDENT_REQUEST,
-        payload: monitorId,
+        payload: projectId,
     };
 }
 
@@ -238,7 +238,7 @@ export const createIncidentReset = () => {
 // Calls the API to create new incident.
 export function createNewIncident(
     projectId,
-    monitorId,
+    monitors,
     incidentType,
     title,
     description,
@@ -246,8 +246,8 @@ export function createNewIncident(
     customFields
 ) {
     return async function(dispatch) {
-        const promise = postApi(`incident/${projectId}/${monitorId}`, {
-            monitorId,
+        const promise = postApi(`incident/${projectId}/create-incident`, {
+            monitors,
             projectId,
             incidentType,
             title,
@@ -256,7 +256,7 @@ export function createNewIncident(
             customFields,
         });
 
-        dispatch(createIncidentRequest(monitorId));
+        dispatch(createIncidentRequest(projectId));
 
         promise.then(
             function(createIncident) {
@@ -269,7 +269,6 @@ export function createNewIncident(
                     type: 'ADD_NEW_INCIDENT_TO_MONITORS',
                     payload: createIncident.data,
                 });
-                return { createIncident };
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -283,7 +282,6 @@ export function createNewIncident(
                     error = 'Network Error';
                 }
                 dispatch(createIncidentError(errors(error)));
-                return { error };
             }
         );
 
@@ -670,7 +668,7 @@ export function closeIncidentSuccess(incident) {
 }
 
 export function closeIncident(projectId, incidentId) {
-    //This fucntion will switch to incidentId of the params beig passed.
+    //This function will switch to incidentId of the params beig passed.
     return function(dispatch) {
         const promise = postApi(
             `incident/${projectId}/close/${incidentId}`,
@@ -729,12 +727,14 @@ export function resetUnresolvedIncidents() {
 }
 
 // Calls the API to register a user.
-export function fetchUnresolvedIncidents(projectId) {
+export function fetchUnresolvedIncidents(projectId, isHome = false) {
     //This fucntion will switch to incidentId of the params beig passed.
     return function(dispatch) {
         let promise = null;
 
-        promise = getApi(`incident/${projectId}/unresolvedincidents`);
+        promise = getApi(
+            `incident/${projectId}/unresolvedincidents?isHome=${isHome}`
+        );
 
         dispatch(UnresolvedIncidentsRequest(promise));
 

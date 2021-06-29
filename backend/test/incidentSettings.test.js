@@ -25,7 +25,7 @@ const GlobalConfig = require('./utils/globalConfig');
 const ComponentModel = require('../backend/models/component');
 const AirtableService = require('../backend/services/airtableService');
 
-let token, userId, projectId, monitorId, componentId, incidentId;
+let token, userId, projectId, monitorId, componentId, incidentId, templateId;
 
 const monitor = {
     name: 'New Monitor',
@@ -36,6 +36,7 @@ const monitor = {
 const incidentSettings = {
     title: `TEST: {{monitorName}}`,
     description: `TEST: {{incidentType}}`,
+    name: 'Another update',
 };
 
 describe('Incident Settings API', function() {
@@ -118,15 +119,17 @@ describe('Incident Settings API', function() {
     it('should return the default settings if no custom settings are defined', async () => {
         const authorization = `Basic ${token}`;
         const res = await request
-            .get(`/incidentSettings/${projectId}`)
+            .get(`/incidentSettings/${projectId}?skip=0&limit=10`)
             .set('Authorization', authorization);
+        templateId = res.body.data[0]._id;
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
-        expect(res.body).to.have.property('title');
-        expect(res.body).to.have.property('incidentPriority');
-        expect(res.body).to.have.property('description');
-        expect(res.body.title).to.eql(incidentDefaultSettings.title);
-        expect(res.body.description).to.eql(
+        expect(res.body).to.have.property('data');
+        expect(res.body).to.have.property('count');
+        expect(res.body).to.have.property('limit');
+        expect(res.body).to.have.property('skip');
+        expect(res.body.data[0].title).to.eql(incidentDefaultSettings.title);
+        expect(res.body.data[0].description).to.eql(
             incidentDefaultSettings.description
         );
     });
@@ -139,28 +142,31 @@ describe('Incident Settings API', function() {
         });
         expect(incidentPriorityObject).to.not.equal(null);
         const { _id: incidentPriority } = incidentPriorityObject;
-        let res = await request
-            .put(`/incidentSettings/${projectId}`)
+        const res = await request
+            .put(`/incidentSettings/${projectId}/${templateId}`)
             .set('Authorization', authorization)
             .send({ ...incidentSettings, incidentPriority });
         expect(res).to.have.status(200);
-        res = await request
-            .get(`/incidentSettings/${projectId}`)
-            .set('Authorization', authorization);
-        expect(res).to.have.status(200);
+
         expect(res.body).to.be.an('object');
         expect(res.body).to.have.property('title');
         expect(res.body).to.have.property('incidentPriority');
         expect(res.body).to.have.property('description');
+        expect(res.body).to.have.property('name');
         expect(res.body.title).to.eql(incidentSettings.title);
         expect(res.body.description).to.eql(incidentSettings.description);
+        expect(res.body.name).to.eql(incidentSettings.name);
     });
 
-    it('should not substitute variables with their values when an incident is created manually.', async () => {
+    it('should substitute variables with their values when an incident is created manually.', async () => {
         const authorization = `Basic ${token}`;
-        const payload = { ...incidentData, ...incidentSettings };
+        const payload = {
+            ...incidentData,
+            ...incidentSettings,
+            monitors: [monitorId],
+        };
         const res = await request
-            .post(`/incident/${projectId}/${monitorId}`)
+            .post(`/incident/${projectId}/create-incident`)
             .set('Authorization', authorization)
             .send(payload);
 
@@ -168,7 +174,6 @@ describe('Incident Settings API', function() {
         expect(res.body).to.be.an('object');
         incidentId = res.body._id;
         const incident = await IncidentService.findOneBy({ _id: incidentId });
-        expect(incident.title).to.eql(incidentSettings.title);
-        expect(incident.description).to.eql(incidentSettings.description);
+        expect(incident.description).to.eql('TEST: online');
     });
 });

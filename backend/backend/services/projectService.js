@@ -13,6 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const projects = await ProjectModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -78,8 +79,20 @@ module.exports = {
                     },
                 },
             };
-            await IncidentPrioritiesService.create(prioritiesData.high);
+            const priority = await IncidentPrioritiesService.create(
+                prioritiesData.high
+            );
             await IncidentPrioritiesService.create(prioritiesData.low);
+            // create initial default incident template
+            await IncidentSettingsService.create({
+                name: 'Default',
+                projectId: project._id,
+                isDefault: true,
+                incidentPriority: priority._id,
+                title: '{{monitorName}} is {{incidentType}}.',
+                description:
+                    '{{monitorName}} is {{incidentType}}. This incident is currently being investigated by our team and more information will be added soon.',
+            });
             return project;
         } catch (error) {
             ErrorService.log('projectService.create', error);
@@ -202,6 +215,7 @@ module.exports = {
             }
             if (!query.deleted) query.deleted = false;
             const project = await ProjectModel.findOne(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .populate('userId', 'name')
                 .populate('parentProjectId', 'name');
@@ -458,20 +472,91 @@ module.exports = {
         }
     },
 
+    getUniqueMembersIndividualProject: async function({
+        isFlatenArr,
+        members,
+    }) {
+        try {
+            let result = [];
+            if (!isFlatenArr) {
+                for (const member of members) {
+                    const track = {},
+                        data = [];
+                    for (const user of member) {
+                        if (!track[user.userId]) {
+                            track[user.userId] = user.userId;
+                            data.push(user);
+                        }
+                    }
+                    result = [...result, data];
+                }
+            } else {
+                const track = {};
+                for (const member of members) {
+                    if (!track[member.userId]) {
+                        track[member.userId] = member.userId;
+                        result.push(member);
+                    }
+                }
+            }
+            return result;
+        } catch (error) {
+            ErrorService.log(
+                'projectService.getUniqueMembersIndividualProject',
+                error
+            );
+            throw error;
+        }
+    },
+
     exitProject: async function(projectId, userId, deletedById, saveUserSeat) {
         try {
             const _this = this;
+            let teamMember = {};
+            const userProjects = await _this.findOneBy({
+                _id: projectId,
+            });
+            teamMember = userProjects.users.find(
+                user => String(user.userId) === String(userId)
+            );
             let subProject = null;
+            let subProjects = null;
             let project = await _this.findOneBy({
                 _id: projectId,
                 'users.userId': userId,
             });
-            if (project.parentProjectId) {
+            if (project?.parentProjectId) {
                 subProject = project;
                 project = await _this.findOneBy({
                     _id: subProject.parentProjectId,
                 });
             }
+            subProjects = await _this.findBy({
+                parentProjectId: project?._id,
+            });
+            const allMembers = subProjects.concat(project);
+            let subMembers = subProjects.map(user => user.users);
+            subMembers = await _this.getUniqueMembersIndividualProject({
+                members: subMembers,
+                isFlatenArr: false,
+            });
+            const projectMembers = await _this.getUniqueMembersIndividualProject(
+                {
+                    members: project?.users || [],
+                    isFlatenArr: true,
+                }
+            );
+            const flatSubMembers = flattenArray(subMembers);
+            const teams = flatSubMembers.concat(projectMembers);
+            const filteredTeam = teams.filter(
+                user =>
+                    String(user.userId) === String(userId) &&
+                    String(user._id) !== String(teamMember?._id)
+            );
+            const teamByUserId = teams.filter(
+                user => String(user.userId) === String(userId)
+            );
+            const isViewer = filteredTeam.every(data => data.role === 'Viewer');
             if (project) {
                 const users = subProject ? subProject.users : project.users;
                 projectId = subProject ? subProject._id : project._id;
@@ -481,7 +566,6 @@ module.exports = {
                         remainingUsers.push(user);
                     }
                 }
-
                 await _this.updateOneBy(
                     { _id: projectId },
                     { users: remainingUsers }
@@ -495,8 +579,11 @@ module.exports = {
                     parentProjectId: project._id,
                     'users.userId': userId,
                 });
-
                 if (!saveUserSeat) {
+                    let projectSeats = project.seats;
+                    if (typeof projectSeats === 'string') {
+                        projectSeats = parseInt(projectSeats);
+                    }
                     if (
                         countUserInSubProjects &&
                         countUserInSubProjects.length < 1
@@ -510,11 +597,7 @@ module.exports = {
                                 count++;
                             }
                         });
-
                         let subProjectIds = [];
-                        const subProjects = await _this.findBy({
-                            parentProjectId: project._id,
-                        });
                         if (subProjects && subProjects.length > 0) {
                             subProjectIds = subProjects.map(
                                 project => project._id
@@ -524,35 +607,54 @@ module.exports = {
                         const countMonitor = await MonitorService.countBy({
                             projectId: { $in: subProjectIds },
                         });
-                        let projectSeats = project.seats;
-
-                        if (typeof projectSeats === 'string') {
-                            projectSeats = parseInt(projectSeats);
-                        }
                         // check if project seat after reduction still caters for monitors.
                         if (
                             !IS_SAAS_SERVICE ||
                             (count < 1 &&
                                 countMonitor <= (projectSeats - 1) * 5)
                         ) {
-                            projectSeats = projectSeats - 1;
-                            if (IS_SAAS_SERVICE) {
-                                await PaymentService.changeSeats(
-                                    project.stripeSubscriptionId,
-                                    projectSeats
-                                );
-                            }
+                            // check if project seat after reduction still caters for monitors.
                         }
-                        await _this.updateOneBy(
-                            { _id: project._id },
-                            { seats: projectSeats.toString() }
-                        );
+                    }
+                    const confirmParentProject =
+                        allMembers[allMembers.length - 1]._id === projectId;
+                    if (confirmParentProject) {
+                        if (
+                            !teamByUserId.every(data => data.role === 'Viewer')
+                        ) {
+                            projectSeats = projectSeats - 1;
+                            _this.updateSeatDetails(project, projectSeats);
+                            return;
+                        }
+                    } else if (teamMember.role !== 'Viewer' && isViewer) {
+                        projectSeats = projectSeats - 1;
+                        _this.updateSeatDetails(project, projectSeats);
+                        return;
                     }
                 }
             }
             return 'User successfully exited the project';
         } catch (error) {
             ErrorService.log('projectService.exitProject', error);
+            throw error;
+        }
+    },
+
+    updateSeatDetails: async function(project, projectSeats) {
+        try {
+            const _this = this;
+            if (IS_SAAS_SERVICE) {
+                await PaymentService.changeSeats(
+                    project.stripeSubscriptionId,
+                    projectSeats
+                );
+            }
+            await _this.updateOneBy(
+                { _id: project._id },
+                { seats: projectSeats.toString() }
+            );
+        } catch (error) {
+            ErrorService.log('projectService.updateSeatDetails', error);
             throw error;
         }
     },
@@ -586,7 +688,9 @@ module.exports = {
                         _id: project._id,
                     });
                 }
-                const projectObj = Object.assign({}, project._doc, { users });
+                const projectObj = Object.assign({}, project._doc || project, {
+                    users,
+                });
                 return projectObj;
             })
         );
@@ -639,15 +743,18 @@ module.exports = {
                 } else {
                     users = await Promise.all(
                         project.users.map(async user => {
-                            return await UserService.findOneBy({
+                            const foundUser = await UserService.findOneBy({
                                 _id: user.userId,
                                 deleted: { $ne: null },
                             });
+
+                            // append user's project role different from system role
+                            return { ...foundUser, projectRole: user.role };
                         })
                     );
                     project.users = users;
                 }
-                return Object.assign({}, project._doc, { users });
+                return Object.assign({}, project._doc || project, { users });
             })
         );
         return { projects, count };
@@ -752,7 +859,9 @@ module.exports = {
                         _id: project._id,
                     });
                 }
-                const projectObj = Object.assign({}, project._doc, { users });
+                const projectObj = Object.assign({}, project._doc || project, {
+                    users,
+                });
                 return projectObj;
             })
         );
@@ -779,3 +888,5 @@ const componentService = require('./componentService');
 const DomainVerificationService = require('./domainVerificationService');
 const SsoDefaultRolesService = require('./ssoDefaultRolesService');
 const getSlug = require('../utils/getSlug');
+const flattenArray = require('../utils/flattenArray');
+const IncidentSettingsService = require('./incidentSettingsService');

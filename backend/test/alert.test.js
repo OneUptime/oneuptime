@@ -75,6 +75,7 @@ describe('Alert API', function() {
                                                 })
                                                 .end(function(err, res) {
                                                     monitorId = res.body._id;
+                                                    incidentData.monitors = [monitorId];
                                                     expect(res).to.have.status(
                                                         200
                                                     );
@@ -105,7 +106,7 @@ describe('Alert API', function() {
         it('should register with valid projectId, monitorId, incidentId, alertVia', function(done) {
             let authorization = `Basic ${token}`;
             request
-                .post(`/incident/${projectId}/${monitorId}`)
+                .post(`/incident/${projectId}/create-incident`)
                 .set('Authorization', authorization)
                 .send(incidentData)
                 .end(function(err, res) {

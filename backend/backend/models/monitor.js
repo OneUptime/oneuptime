@@ -15,6 +15,15 @@ const criterionEventSchema = {
         condition: String,
         criteria: [Schema.Types.Mixed],
     },
+    scripts: [
+        {
+            scriptId: {
+                type: Schema.Types.ObjectId,
+                ref: 'AutomationSript',
+                index: true,
+            },
+        },
+    ],
 };
 
 /**
@@ -154,6 +163,10 @@ const monitorSchema = new Schema({
             fieldType: String,
         },
     ],
+    shouldNotMonitor: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 monitorSchema.virtual('project', {

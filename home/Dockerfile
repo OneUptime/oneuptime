@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:15
+FROM node:16
 
 #SET ENV Variables. 
 ENV PRODUCTION=true
@@ -21,7 +21,7 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 1444: CloudBoost Fyipe Home
+#   - 1444: Fyipe Home
 EXPOSE 1444
 
 #Run the app

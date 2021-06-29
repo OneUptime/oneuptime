@@ -48,6 +48,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const issues = await IssueModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -68,6 +69,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const issue = await IssueModel.findOne(query)
+                .lean()
                 .populate('errorTrackerId', 'name')
                 .populate('resolvedById', 'name')
                 .populate('ignoredById', 'name');
@@ -86,6 +88,7 @@ module.exports = {
             query.fingerprintHash = hash;
             query.errorTrackerId = errorTrackerId;
             const issue = await IssueModel.findOne(query)
+                .lean()
                 .populate('resolvedById', 'name')
                 .populate('ignoredById', 'name');
             return issue;
@@ -146,7 +149,7 @@ module.exports = {
                 { new: true }
             ).populate('deletedById', 'name');
             if (issue) {
-                const component = ComponentService.findOneBy({
+                const component = await ComponentService.findOneBy({
                     _id: componentId,
                 });
                 await NotificationService.create(

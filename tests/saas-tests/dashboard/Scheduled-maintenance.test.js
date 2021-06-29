@@ -277,7 +277,7 @@ describe('Check scheduled maintenace', () => {
             await init.pageClick(page, 'input[name=endDate]');
             await init.pageClick(
                 page,
-                'div.MuiPickersCalendar-week:nth-child(5) > div:nth-child(6)'
+                'div.MuiPickersCalendar-week:nth-child(5) > div:nth-child(4)'
             ); // To select the last week and last day of the month.
             await init.pageClick(
                 page,

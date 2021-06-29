@@ -80,17 +80,8 @@ describe('Custom Twilio Settings', () => {
                 twilioCredentials.phoneNumber
             );
             await init.pageClick(page, '#submitTwilioSettings');
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
 
-            await page.reload({
-                waitUntil: ['networkidle0', 'domcontentloaded'],
-            });
+            await init.navigateToTwilio(page);
             await init.pageWaitForSelector(page, '#accountSid', {
                 visible: true,
                 timeout: init.timeout,
@@ -111,7 +102,7 @@ describe('Custom Twilio Settings', () => {
         'should send SMS to external subscribers if an incident is created.',
         async done => {
             await init.addMonitorToComponent(componentName, monitorName, page);
-            await init.gotoTab(utils.monitorTabIndexes.SUBSCRIBERS, page);
+            await init.pageClick(page, '.subscribers-tab');
             await init.pageWaitForSelector(page, '#addSubscriberButton');
             await init.pageClick(page, '#addSubscriberButton');
             await init.selectDropdownValue('#alertViaId', 'SMS', page);
@@ -123,7 +114,7 @@ describe('Custom Twilio Settings', () => {
                 hidden: true,
             });
 
-            await init.gotoTab(utils.monitorTabIndexes.BASIC, page);
+            await init.pageClick(page, '.basic-tab');
             await init.pageWaitForSelector(
                 page,
                 `#monitorCreateIncident_${monitorName}`
@@ -141,13 +132,11 @@ describe('Custom Twilio Settings', () => {
             await init.page$Eval(page, '#closeIncident_0', elem =>
                 elem.click()
             );
-            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
-            await init.page$Eval(page, `#incident_${monitorName}_0`, elem =>
-                elem.click()
-            );
+            await init.pageWaitForSelector(page, `#incident_0`);
+            await init.page$Eval(page, `#incident_0`, elem => elem.click());
             await init.pageWaitForSelector(page, '#incident_0');
 
-            await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
+            await init.pageClick(page, '.alert-tab');
             await init.pageWaitForSelector(
                 page,
                 '#subscriberAlertTable > tbody > tr'
@@ -180,19 +169,23 @@ describe('Custom Twilio Settings', () => {
                 page
             );
 
-            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
-            await init.page$Eval(page, `#incident_${monitorName}_0`, elem =>
-                elem.click()
-            );
+            await init.pageWaitForSelector(page, `#incident_0`);
+            await init.page$Eval(page, `#incident_0`, elem => elem.click());
             await init.pageWaitForSelector(page, '#btnAcknowledge_0');
             await init.page$Eval(page, '#btnAcknowledge_0', e => e.click());
             await init.pageWaitForSelector(page, '#AcknowledgeText_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.reload({ waitUntil: 'networkidle0' });
 
-            await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
+            await init.navigateToMonitorDetails(
+                componentName,
+                monitorName,
+                page
+            );
+            await init.page$Eval(page, `#incident_0`, elem => elem.click());
+
+            await init.pageClick(page, '.alert-tab');
             await init.pageWaitForSelector(
                 page,
                 '#subscriberAlertTable > tbody > tr'
@@ -226,19 +219,22 @@ describe('Custom Twilio Settings', () => {
                 page
             );
 
-            await init.pageWaitForSelector(page, `#incident_${monitorName}_0`);
-            await init.page$Eval(page, `#incident_${monitorName}_0`, elem =>
-                elem.click()
-            );
+            await init.pageWaitForSelector(page, `#incident_0`);
+            await init.page$Eval(page, `#incident_0`, elem => elem.click());
             await init.pageWaitForSelector(page, '#btnResolve_0');
             await init.page$Eval(page, '#btnResolve_0', e => e.click());
             await init.pageWaitForSelector(page, '#ResolveText_0', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await page.reload({ waitUntil: 'networkidle0' });
+            await init.navigateToMonitorDetails(
+                componentName,
+                monitorName,
+                page
+            );
+            await init.page$Eval(page, `#incident_0`, elem => elem.click());
 
-            await init.gotoTab(utils.incidentTabIndexes.ALERT_LOGS, page);
+            await init.pageClick(page, '.alert-tab');
             await init.pageWaitForSelector(
                 page,
                 '#subscriberAlertTable > tbody > tr'
@@ -335,7 +331,6 @@ describe('Custom Twilio Settings', () => {
             await init.pageWaitForSelector(page, '#userProfile');
             await init.pageClick(page, '#userProfile');
 
-            await page.reload({ waitUntil: 'networkidle0' });
             await init.pageWaitForSelector(page, 'input[type=tel]');
             await init.pageClick(page, 'input[type=tel]');
             await page.keyboard.press('Backspace');

@@ -36,107 +36,107 @@ const Services = require('../utils/services');
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.body-> {monitorId, projectId}
 // Returns: 200: Incident, 400: Error; 500: Server Error.
 
-router.post('/:projectId/:monitorId', getUser, isAuthorized, async function(
-    req,
-    res
-) {
-    try {
-        const monitorId = req.params.monitorId;
-        const projectId = req.params.projectId;
-        const incidentType = req.body.incidentType;
-        const incidentPriority = req.body.incidentPriority;
-        const title = req.body.title;
-        const description = req.body.description;
-        const customFields = req.body.customFields;
-        const userId = req.user ? req.user.id : null;
-        let oldIncidentsCount = null;
+router.post(
+    '/:projectId/create-incident',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const projectId = req.params.projectId;
+            const incidentType = req.body.incidentType;
+            const incidentPriority = req.body.incidentPriority;
+            const title = req.body.title;
+            const description = req.body.description;
+            const customFields = req.body.customFields;
+            const monitors = req.body.monitors;
+            const userId = req.user ? req.user.id : null;
+            let oldIncidentsCount = null;
 
-        if (!monitorId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor ID must be present.',
-            });
-        }
-
-        if (typeof monitorId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Monitor ID  is not in string type.',
-            });
-        }
-
-        if (!projectId) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID must be present.',
-            });
-        }
-
-        if (typeof projectId !== 'string') {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Project ID  is not in string type.',
-            });
-        }
-
-        if (!title) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'Title must be present.',
-            });
-        }
-
-        if (incidentType) {
-            if (!['offline', 'online', 'degraded'].includes(incidentType)) {
+            // monitors should be an array containing id of monitor(s)
+            if (monitors && !Array.isArray(monitors)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Invalid incident type.',
+                    message: 'Monitors is not of type array',
                 });
             }
-            oldIncidentsCount = await IncidentService.countBy({
-                projectId,
-                monitorId,
-                incidentType,
-                resolved: false,
-                deleted: false,
-                manuallyCreated: true,
-            });
-        } else {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'IncidentType must be present.',
-            });
-        }
 
-        if (oldIncidentsCount && oldIncidentsCount > 0) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: `An unresolved incident of type ${incidentType} already exists.`,
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID must be present.',
+                });
+            }
+
+            if (typeof projectId !== 'string') {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID  is not in string type.',
+                });
+            }
+
+            if (!title) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Title must be present.',
+                });
+            }
+
+            if (incidentType) {
+                if (!['offline', 'online', 'degraded'].includes(incidentType)) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Invalid incident type.',
+                    });
+                }
+                oldIncidentsCount = await IncidentService.countBy({
+                    projectId,
+                    incidentType,
+                    resolved: false,
+                    deleted: false,
+                    manuallyCreated: true,
+                    'monitors.monitorId': { $in: monitors },
+                });
+            } else {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'IncidentType must be present.',
+                });
+            }
+
+            if (oldIncidentsCount && oldIncidentsCount > 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: `An unresolved incident of type ${incidentType} already exists.`,
+                });
+            }
+            // Call the IncidentService
+            const incident = await IncidentService.create({
+                projectId,
+                createdById: userId,
+                manuallyCreated: true,
+                incidentType,
+                title,
+                description,
+                incidentPriority,
+                customFields,
+                monitors,
             });
+            if (incident) {
+                for (const monitor of monitors) {
+                    await MonitorStatusService.create({
+                        monitorId: monitor,
+                        incidentId: incident._id,
+                        manuallyCreated: true,
+                        status: incidentType,
+                    });
+                }
+            }
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
         }
-        // Call the IncidentService
-        const incident = await IncidentService.create({
-            projectId,
-            monitorId,
-            createdById: userId,
-            manuallyCreated: true,
-            incidentType,
-            title,
-            description,
-            incidentPriority,
-            customFields,
-        });
-        await MonitorStatusService.create({
-            monitorId,
-            incidentId: incident._id,
-            manuallyCreated: true,
-            status: incidentType,
-        });
-        return sendItemResponse(req, res, incident);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
     }
-});
+);
 
 // Route
 // Description: Getting all the incidents by monitor Id.
@@ -152,7 +152,7 @@ router.post(
         try {
             const { startDate, endDate } = req.body;
             let query = {
-                monitorId: req.params.monitorId,
+                'monitors.monitorId': { $in: [req.params.monitorId] },
                 projectId: req.params.projectId,
             };
 
@@ -160,7 +160,7 @@ router.post(
                 const start = moment(startDate).toDate();
                 const end = moment(endDate).toDate();
                 query = {
-                    monitorId: req.params.monitorId,
+                    'monitors.monitorId': { $in: [req.params.monitorId] },
                     projectId: req.params.projectId,
                     createdAt: { $gte: start, $lte: end },
                 };
@@ -316,14 +316,14 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
-            const { projectId, incidentId } = req.params;
+            const { incidentId } = req.params;
 
-            const incident = await IncidentService.findOneBy({
-                projectId,
-                idNumber: incidentId,
-            });
+            // const incident = await IncidentService.findOneBy({
+            //     projectId,
+            //     idNumber: incidentId,
+            // });
             const timeline = await IncidentTimelineService.findBy(
-                { incidentId: incident._id },
+                { incidentId },
                 req.query.skip || 0,
                 req.query.limit || 10
             );
@@ -347,9 +347,11 @@ router.get(
                 : null;
             // Call the IncidentService.
             const userId = req.user ? req.user.id : null;
+            const { isHome } = req.query;
             const incident = await IncidentService.getUnresolvedIncidents(
                 subProjectIds,
-                userId
+                userId,
+                isHome
             );
             return sendItemResponse(req, res, incident);
         } catch (error) {
@@ -655,6 +657,9 @@ router.post(
                 // handle creation or updating
                 if (!data.id) {
                     data.createdById = req.user.id;
+                    data.monitors = incident.monitors.map(
+                        monitor => monitor.monitorId
+                    );
                     incidentMessage = await IncidentMessageService.create(data);
                     if (data.post_statuspage) {
                         AlertService.sendInvestigationNoteToSubscribers(
@@ -810,15 +815,19 @@ router.get(
                 projectId,
                 idNumber: incidentId,
             });
-            const {
-                statusPages,
-                count,
-            } = await StatusPageService.getStatusPagesForIncident(
-                incident._id,
-                parseInt(req.query.skip) || 0,
-                parseInt(req.query.limit) || 10
-            );
-            return sendListResponse(req, res, statusPages, count);
+            if (incident) {
+                const {
+                    statusPages,
+                    count,
+                } = await StatusPageService.getStatusPagesForIncident(
+                    incident._id,
+                    parseInt(req.query.skip) || 0,
+                    parseInt(req.query.limit) || 10
+                );
+                return sendListResponse(req, res, statusPages, count);
+            } else {
+                return sendListResponse(req, res, [], 0);
+            }
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
@@ -934,75 +943,82 @@ router.get(
             type = 'internal';
         }
         try {
-            let incidentMessages, result;
+            let incidentMessages,
+                result = [],
+                count = 0;
             const idNumber = req.params.incidentId;
             const projectId = req.params.projectId;
             let incidentId = await IncidentService.findOneBy({
                 projectId,
                 idNumber,
             });
-            incidentId = incidentId._id;
-            if (type === 'investigation') {
-                incidentMessages = await IncidentMessageService.findBy(
-                    { incidentId, type },
-                    req.query.skip || 0,
-                    req.query.limit || 10
-                );
-            } else {
-                incidentMessages = await IncidentMessageService.findBy({
+            if (incidentId) {
+                incidentId = incidentId._id;
+                if (type === 'investigation') {
+                    incidentMessages = await IncidentMessageService.findBy(
+                        { incidentId, type },
+                        req.query.skip || 0,
+                        req.query.limit || 10
+                    );
+                } else {
+                    incidentMessages = await IncidentMessageService.findBy({
+                        incidentId,
+                        type,
+                    });
+                }
+                const timeline = await IncidentTimelineService.findBy({
+                    incidentId,
+                });
+                const alerts = await AlertService.findBy({
+                    query: { incidentId: incidentId },
+                });
+                const subscriberAlerts = await subscriberAlertService.findBy({
+                    incidentId: incidentId,
+                    projectId,
+                });
+                count = await IncidentMessageService.countBy({
                     incidentId,
                     type,
                 });
-            }
-            const timeline = await IncidentTimelineService.findBy({
-                incidentId,
-            });
-            const alerts = await AlertService.findBy({
-                query: { incidentId: incidentId },
-            });
-            const subscriberAlerts = await subscriberAlertService.findBy({
-                incidentId: incidentId,
-                projectId,
-            });
-            const count = await IncidentMessageService.countBy({
-                incidentId,
-                type,
-            });
-            if (type === 'investigation') {
-                result = incidentMessages;
-            } else {
-                const subAlerts = await Services.deduplicate(subscriberAlerts);
-                let callScheduleStatus = await onCallScheduleStatusService.findBy(
-                    {
-                        query: { incident: incidentId },
-                    }
-                );
-                callScheduleStatus = await Services.checkCallSchedule(
-                    callScheduleStatus
-                );
-                const timelineAlerts = [
-                    ...timeline,
-                    ...alerts,
-                    ...incidentMessages,
-                ].sort((a, b) => {
-                    return b.createdAt - a.createdAt;
-                });
-                incidentMessages = [
-                    ...timelineAlerts,
-                    ...subAlerts,
-                    ...callScheduleStatus,
-                ];
-                incidentMessages.sort(
-                    (a, b) =>
-                        typeof a.schedule !== 'object' &&
-                        b.createdAt - a.createdAt
-                );
-                const filteredMsg = incidentMessages.filter(
-                    a =>
-                        a.status !== 'internal notes added' &&
-                        a.status !== 'internal notes updated'
-                );
-                result = await Services.rearrangeDuty(filteredMsg);
+                if (type === 'investigation') {
+                    result = incidentMessages;
+                } else {
+                    const subAlerts = await Services.deduplicate(
+                        subscriberAlerts
+                    );
+                    let callScheduleStatus = await onCallScheduleStatusService.findBy(
+                        {
+                            query: { incident: incidentId },
+                        }
+                    );
+                    callScheduleStatus = await Services.checkCallSchedule(
+                        callScheduleStatus
+                    );
+                    const timelineAlerts = [
+                        ...timeline,
+                        ...alerts,
+                        ...incidentMessages,
+                    ].sort((a, b) => {
+                        return b.createdAt - a.createdAt;
+                    });
+                    incidentMessages = [
+                        ...timelineAlerts,
+                        ...subAlerts,
+                        ...callScheduleStatus,
+                    ];
+                    incidentMessages.sort(
+                        (a, b) =>
+                            typeof a.schedule !== 'object' &&
+                            b.createdAt - a.createdAt
+                    );
+                    const filteredMsg = incidentMessages.filter(
+                        a =>
+                            a.status !== 'internal notes added' &&
+                            a.status !== 'internal notes updated'
+                    );
+
+                    result = await Services.rearrangeDuty(filteredMsg);
+                }
             }
             return sendListResponse(req, res, result, count);
         } catch (error) {
@@ -1065,12 +1081,21 @@ router.get(
         try {
             const userId = req.user ? req.user.id : null;
             await IncidentService.resolve(req.params.incidentId, userId);
+
+            // get incident properties to build url
+            const { incidentId, projectId } = req.params;
+            const incident = await IncidentService.findOneBy({
+                projectId,
+                _id: incidentId,
+            });
+            const { projectId: project } = incident;
+
             return res.status(200).render('incidentAction.ejs', {
                 title: 'Incident Resolved',
                 title_message: 'Incident Resolved',
                 body_message: 'Your incident is now resolved.',
                 action: 'resolve',
-                dashboard_url: global.dashboardHost,
+                dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}`,
                 apiUrl: global.apiHost,
             });
         } catch (error) {
@@ -1097,12 +1122,21 @@ router.get(
                 userId,
                 req.user.name
             );
+
+            // get incident properties to build url
+            const { incidentId, projectId } = req.params;
+            const incident = await IncidentService.findOneBy({
+                projectId,
+                _id: incidentId,
+            });
+            const { projectId: project } = incident;
+
             return res.status(200).render('incidentAction.ejs', {
                 title: 'Incident Acknowledged',
                 title_message: 'Incident Acknowledged',
-                body_message: 'Your incident is now acknowledged',
+                body_message: 'Your incident is now acknowledged.',
                 action: 'acknowledge',
-                dashboard_url: global.dashboardHost,
+                dashboard_url: `${global.dashboardHost}/project/${project.slug}/incidents/${incident.idNumber}`,
                 apiUrl: global.apiHost,
             });
         } catch (error) {

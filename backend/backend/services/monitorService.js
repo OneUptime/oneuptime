@@ -89,6 +89,7 @@ module.exports = {
                         data.incidentCommunicationSla;
                     monitor.customFields = data.customFields;
                     monitor.createdById = data.createdById;
+                    monitor.scripts = data.scripts || [];
                     if (data.type === 'url' || data.type === 'api') {
                         monitor.data = {};
                         monitor.data.url = data.data.url;
@@ -190,7 +191,7 @@ module.exports = {
             await this.updateMonitorSlaStat(query);
 
             let errorMsg;
-            if (data.customFields && data.customFields.length > 0) {
+            if (data && data.customFields && data.customFields.length > 0) {
                 const monitor = await _this.findOneBy(query);
                 for (const field of data.customFields) {
                     if (field.uniqueField) {
@@ -295,6 +296,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const monitors = await MonitorModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
@@ -302,6 +304,9 @@ module.exports = {
                 .populate('componentId', 'name slug')
                 .populate('resourceCategory', 'name')
                 .populate('incidentCommunicationSla')
+                .populate('criteria.up.scripts.scriptId', 'name')
+                .populate('criteria.down.scripts.scriptId', 'name')
+                .populate('criteria.degraded.scripts.scriptId', 'name')
                 .populate('monitorSla');
             return monitors;
         } catch (error) {
@@ -318,10 +323,14 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
             const monitor = await MonitorModel.findOne(query)
+                .lean()
                 .populate('projectId', ['_id', 'name', 'slug'])
                 .populate('componentId', ['_id', 'name', 'slug'])
                 .populate('resourceCategory', 'name')
                 .populate('incidentCommunicationSla')
+                .populate('criteria.up.scripts.scriptId', 'name')
+                .populate('criteria.down.scripts.scriptId', 'name')
+                .populate('criteria.degraded.scripts.scriptId', 'name')
                 .populate('monitorSla');
             return monitor;
         } catch (error) {
@@ -337,10 +346,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const count = await MonitorModel.countDocuments(query).populate(
-                'project',
-                'name'
-            );
+            const count = await MonitorModel.countDocuments(query);
             return count;
         } catch (error) {
             ErrorService.log('monitorService.countBy', error);
@@ -370,7 +376,7 @@ module.exports = {
             if (monitor) {
                 let subProject = null;
                 let project = await ProjectService.findOneBy({
-                    _id: monitor.projectId,
+                    _id: monitor.projectId._id || monitor.projectId,
                 });
 
                 if (project) {
@@ -469,15 +475,49 @@ module.exports = {
                         skip
                     );
 
-                    const monitorsWithSchedules = await Promise.all(
+                    const monitorsWithStatus = await Promise.all(
                         monitors.map(async monitor => {
+                            let monitorStatus;
+
+                            const incidentList = [];
+
+                            const monitorIncidents = await IncidentService.findBy(
+                                {
+                                    'monitors.monitorId': monitor._id,
+                                    resolved: false,
+                                }
+                            );
+
+                            for (const incident of monitorIncidents) {
+                                incidentList.push(incident.incidentType);
+                            }
+
+                            if (monitor.disabled) {
+                                monitorStatus = 'disabled';
+                            } else if (incidentList.includes('offline')) {
+                                monitorStatus = 'offline';
+                            } else if (incidentList.includes('degraded')) {
+                                monitorStatus = 'degraded';
+                            } else {
+                                monitorStatus = 'online';
+                            }
+
+                            return {
+                                ...monitor,
+                                status: monitorStatus,
+                            };
+                        })
+                    );
+
+                    const monitorsWithSchedules = await Promise.all(
+                        monitorsWithStatus.map(async monitor => {
                             const monitorSchedules = await ScheduleService.findBy(
                                 {
                                     monitorIds: monitor._id,
                                 }
                             );
                             return {
-                                ...monitor.toObject(),
+                                ...monitor,
                                 schedules: monitorSchedules,
                             };
                         })
@@ -501,6 +541,7 @@ module.exports = {
     },
 
     async getProbeMonitors(probeId, date) {
+        const moment = require('moment');
         try {
             const newdate = new Date();
             const monitors = await MonitorModel.find({
@@ -508,10 +549,36 @@ module.exports = {
                     {
                         deleted: false,
                         disabled: false,
-                        scriptRunStatus: { $nin: ['inProgress'] },
                     },
                     {
                         $or: [
+                            {
+                                $and: [
+                                    {
+                                        type: {
+                                            $in: ['script'],
+                                        },
+                                    },
+                                    {
+                                        $or: [
+                                            {
+                                                scriptRunStatus: {
+                                                    $nin: ['inProgress'],
+                                                },
+                                            },
+                                            // script monitors that have been running for too long (10mins)**
+                                            // or weren't completed due to a crash
+                                            {
+                                                lastPingTime: {
+                                                    $lte: moment()
+                                                        .subtract(10, 'minutes')
+                                                        .toDate(),
+                                                },
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
                             {
                                 $and: [
                                     {
@@ -693,47 +760,57 @@ module.exports = {
 
             let probes;
             const probeLogs = [];
-            if (monitor.type === 'server-monitor' && !monitor.agentlessConfig) {
-                probes = [undefined];
-            } else {
-                probes = await ProbeService.findBy({});
-            }
-
-            for (const probe of probes) {
-                const query = {
-                    monitorId,
-                    createdAt: { $gte: start, $lte: end },
-                };
-                if (typeof probe !== 'undefined') {
-                    query.probeId = probe._id;
+            if (monitor) {
+                if (
+                    monitor.type === 'server-monitor' &&
+                    !monitor.agentlessConfig
+                ) {
+                    probes = [undefined];
+                } else {
+                    probes = await ProbeService.findBy({});
                 }
 
-                let monitorLogs;
+                for (const probe of probes) {
+                    const query = {
+                        monitorId,
+                        createdAt: { $gte: start, $lte: end },
+                    };
+                    if (typeof probe !== 'undefined') {
+                        query.probeId = probe._id;
+                    }
 
-                if (intervalInDays > 30 && !isNewMonitor) {
-                    monitorLogs = await MonitorLogByWeekService.findBy(query);
-                } else if (intervalInDays > 2 && !isNewMonitor) {
-                    monitorLogs = await MonitorLogByDayService.findBy(query);
-                } else {
-                    if (
-                        moment(endDate).diff(
-                            moment(monitor.createdAt),
-                            'minutes'
-                        ) > 60
-                    ) {
-                        monitorLogs = await MonitorLogByHourService.findBy(
+                    let monitorLogs;
+
+                    if (intervalInDays > 30 && !isNewMonitor) {
+                        monitorLogs = await MonitorLogByWeekService.findBy(
+                            query
+                        );
+                    } else if (intervalInDays > 2 && !isNewMonitor) {
+                        monitorLogs = await MonitorLogByDayService.findBy(
                             query
                         );
                     } else {
-                        monitorLogs = await MonitorLogService.findBy(query);
+                        if (
+                            moment(endDate).diff(
+                                moment(monitor.createdAt),
+                                'minutes'
+                            ) > 60
+                        ) {
+                            monitorLogs = await MonitorLogByHourService.findBy(
+                                query
+                            );
+                        } else {
+                            monitorLogs = await MonitorLogService.findBy(query);
+                        }
                     }
-                }
 
-                if (monitorLogs && monitorLogs.length > 0) {
-                    probeLogs.push({
-                        _id: typeof probe !== 'undefined' ? probe._id : null,
-                        logs: monitorLogs,
-                    });
+                    if (monitorLogs && monitorLogs.length > 0) {
+                        probeLogs.push({
+                            _id:
+                                typeof probe !== 'undefined' ? probe._id : null,
+                            logs: monitorLogs,
+                        });
+                    }
                 }
             }
 
@@ -793,9 +870,10 @@ module.exports = {
             let probes;
             const probeStatuses = [];
             if (
-                (monitor.type === 'server-monitor' &&
+                (monitor &&
+                    monitor.type === 'server-monitor' &&
                     !monitor.agentlessConfig) ||
-                monitor.type === 'manual'
+                (monitor && monitor.type === 'manual')
             ) {
                 probes = [undefined];
             } else {
@@ -853,8 +931,10 @@ module.exports = {
                     projectSeats
                 );
             }
-            project.seats = projectSeats.toString();
-            await ProjectService.saveProject(project);
+            await ProjectService.updateOneBy(
+                { _id: project._id },
+                { seats: String(projectSeats) }
+            );
             return 'A new seat added. Now you can add a monitor';
         } catch (error) {
             ErrorService.log('monitorService.addSeat', error);
@@ -932,7 +1012,7 @@ module.exports = {
             const _this = this;
             const monitorTime = await _this.findOneBy({ _id: monitorId });
             const monitorIncidents = await IncidentService.findBy({
-                monitorId,
+                'monitors.monitorId': monitorId,
             });
             const dateNow = moment().utc();
             let days = moment(dateNow)
@@ -1078,7 +1158,7 @@ module.exports = {
                         }
                     );
                     await IncidentService.restoreBy({
-                        monitorId,
+                        'monitors.monitorId': monitorId,
                         deleted: true,
                     });
                     await AlertService.restoreBy({ monitorId, deleted: true });
@@ -1118,31 +1198,33 @@ module.exports = {
                         startDate,
                         currentDate
                     );
-                    const { uptimePercent } = await _this.calculateTime(
-                        monitorStatus[0].statuses,
-                        startDate,
-                        Number(monitorSla.frequency)
-                    );
-
-                    const monitorUptime =
-                        uptimePercent !== 100 && !isNaN(uptimePercent)
-                            ? uptimePercent.toFixed(3)
-                            : '100';
-                    const slaUptime = Number(monitorSla.monitorUptime).toFixed(
-                        3
-                    );
-
-                    if (Number(monitorUptime) < Number(slaUptime)) {
-                        // monitor sla is breached for this monitor
-                        await MonitorModel.findOneAndUpdate(
-                            { _id: monitor._id },
-                            { $set: { breachedMonitorSla: true } }
+                    if (monitorStatus && monitorStatus.length > 0) {
+                        const { uptimePercent } = await _this.calculateTime(
+                            monitorStatus[0].statuses,
+                            startDate,
+                            Number(monitorSla.frequency)
                         );
-                    } else {
-                        await MonitorModel.findOneAndUpdate(
-                            { _id: monitor._id },
-                            { $set: { breachedMonitorSla: false } }
-                        );
+
+                        const monitorUptime =
+                            uptimePercent !== 100 && !isNaN(uptimePercent)
+                                ? uptimePercent.toFixed(3)
+                                : '100';
+                        const slaUptime = Number(
+                            monitorSla.monitorUptime
+                        ).toFixed(3);
+
+                        if (Number(monitorUptime) < Number(slaUptime)) {
+                            // monitor sla is breached for this monitor
+                            await MonitorModel.findOneAndUpdate(
+                                { _id: monitor._id },
+                                { $set: { breachedMonitorSla: true } }
+                            );
+                        } else {
+                            await MonitorModel.findOneAndUpdate(
+                                { _id: monitor._id },
+                                { $set: { breachedMonitorSla: false } }
+                            );
+                        }
                     }
 
                     const monitorData = await this.findOneBy({
@@ -1405,6 +1487,247 @@ module.exports = {
         );
 
         return updatedMonitor;
+    },
+
+    calcTime: async function(statuses, start, range) {
+        const timeBlock = [];
+        let totalUptime = 0;
+        let totalTime = 0;
+
+        let dayStart = moment(start).startOf('day');
+
+        const reversedStatuses = statuses.slice().reverse();
+
+        for (let i = 0; i < range; i++) {
+            const dayStartIn = dayStart;
+            const dayEnd =
+                i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
+
+            const timeObj = {
+                date: dayStart.toISOString(),
+                downTime: 0,
+                upTime: 0,
+                degradedTime: 0,
+                disabledTime: 0,
+                status: null,
+                emptytime: dayStart.toISOString(),
+            };
+            /**
+             * If two incidents of the same time overlap, we merge them
+             * If two incidents of different type overlap, The priority will be:
+             * offline, degraded and online.
+             *      if the less important incident starts after and finish before the other incident, we remove it.
+             *      if the less important incident overlaps with the other incident, we update its start/end time.
+             *      if the less important incident start before and finish after the other incident, we divide it into two parts
+             *          the first part ends before the important incident,
+             *          the second part start after the important incident.
+             * The time report will be generate after the following steps:
+             * 1- selecting the incident that happendend during the selected day.
+             *   In other words: The incidents that overlap with `dayStartIn` and `dayEnd`.
+             * 2- Sorting them, to reduce the complexity of the next step (https://www.geeksforgeeks.org/merging-intervals/).
+             * 3- Checking for overlaps between incidents. Merge incidents of the same type, reduce the time of the less important incidents.
+             * 4- Fill the timeObj
+             */
+            //First step
+            let incidentsHappenedDuringTheDay = [];
+            reversedStatuses.forEach(monitor => {
+                const monitorStatus = Object.assign({}, monitor);
+                if (monitorStatus.endTime === null) {
+                    monitorStatus.endTime = new Date().toISOString();
+                }
+
+                if (
+                    moment(monitorStatus.startTime).isBefore(dayEnd) &&
+                    moment(monitorStatus.endTime).isAfter(dayStartIn)
+                ) {
+                    if (
+                        monitor.endTime === null &&
+                        (monitor.status === 'offline' ||
+                            (monitorStatus.status === 'degraded' &&
+                                timeObj.status !== 'offline') ||
+                            timeObj.status === null)
+                    ) {
+                        timeObj.status = monitorStatus.status;
+                    }
+
+                    if (
+                        monitor.endTime === null &&
+                        monitor.status === 'disabled'
+                    ) {
+                        timeObj.status = monitor.status;
+                    }
+                    const start = moment(monitorStatus.startTime).isBefore(
+                        dayStartIn
+                    )
+                        ? dayStartIn
+                        : moment(monitorStatus.startTime);
+                    const end = moment(monitorStatus.endTime).isAfter(dayEnd)
+                        ? dayEnd
+                        : moment(monitorStatus.endTime);
+
+                    incidentsHappenedDuringTheDay.push({
+                        start,
+                        end,
+                        status: monitorStatus.status,
+                    });
+
+                    timeObj.date = end.toISOString();
+                    timeObj.emptytime = null;
+                }
+            });
+            //Second step
+            incidentsHappenedDuringTheDay.sort((a, b) =>
+                moment(a.start).isSame(b.start)
+                    ? 0
+                    : moment(a.start).isAfter(b.start)
+                    ? 1
+                    : -1
+            );
+            //Third step
+            for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
+                const firstIncidentIndex = i;
+                const nextIncidentIndex = i + 1;
+                const firstIncident =
+                    incidentsHappenedDuringTheDay[firstIncidentIndex];
+                const nextIncident =
+                    incidentsHappenedDuringTheDay[nextIncidentIndex];
+                if (
+                    moment(firstIncident.end).isSameOrBefore(nextIncident.start)
+                )
+                    continue;
+
+                if (firstIncident.status === nextIncident.status) {
+                    const end = moment(firstIncident.end).isAfter(
+                        nextIncident.end
+                    )
+                        ? firstIncident.end
+                        : nextIncident.end;
+                    firstIncident.end = end;
+                    incidentsHappenedDuringTheDay.splice(nextIncidentIndex, 1);
+                } else {
+                    //if the firstIncident has a higher priority
+                    if (
+                        firstIncident.status === 'disabled' ||
+                        (firstIncident.status === 'offline' &&
+                            nextIncident.status !== 'disabled') ||
+                        (firstIncident.status === 'degraded' &&
+                            nextIncident.status === 'online')
+                    ) {
+                        if (
+                            moment(firstIncident.end).isAfter(nextIncident.end)
+                        ) {
+                            incidentsHappenedDuringTheDay.splice(
+                                nextIncidentIndex,
+                                1
+                            );
+                        } else {
+                            nextIncident.start = firstIncident.end;
+                            //we will need to shift the next incident to keep the array sorted.
+                            incidentsHappenedDuringTheDay.splice(
+                                nextIncidentIndex,
+                                1
+                            );
+                            let j = nextIncidentIndex;
+                            while (j < incidentsHappenedDuringTheDay.length) {
+                                if (
+                                    moment(nextIncident.start).isBefore(
+                                        incidentsHappenedDuringTheDay[j].start
+                                    )
+                                )
+                                    break;
+                                j += 1;
+                            }
+                            incidentsHappenedDuringTheDay.splice(
+                                j,
+                                0,
+                                nextIncident
+                            );
+                        }
+                    } else {
+                        if (
+                            moment(firstIncident.end).isBefore(nextIncident.end)
+                        ) {
+                            firstIncident.end = nextIncident.start;
+                        } else {
+                            /**
+                             * The firstIncident is less important than the next incident,
+                             * it also starts before and ends after the nextIncident.
+                             * In the case The first incident needs to be devided into to two parts.
+                             * The first part comes before the nextIncident,
+                             * the second one comes after the nextIncident.
+                             */
+                            const newIncident = {
+                                start: nextIncident.end,
+                                end: firstIncident.end,
+                                status: firstIncident.status,
+                            };
+                            firstIncident.end = nextIncident.start;
+                            let j = nextIncidentIndex + 1;
+                            while (j < incidentsHappenedDuringTheDay.length) {
+                                if (
+                                    moment(newIncident.start).isBefore(
+                                        incidentsHappenedDuringTheDay[j].start
+                                    )
+                                )
+                                    break;
+                                j += 1;
+                            }
+                            incidentsHappenedDuringTheDay.splice(
+                                j,
+                                0,
+                                newIncident
+                            );
+                        }
+                    }
+                }
+                i--;
+            }
+            //Remove events having start and end time equal.
+            incidentsHappenedDuringTheDay = incidentsHappenedDuringTheDay.filter(
+                event => !moment(event.start).isSame(event.end)
+            );
+            //Last step
+            for (const incident of incidentsHappenedDuringTheDay) {
+                const { start, end, status } = incident;
+                if (status === 'disabled') {
+                    timeObj.disabledTime =
+                        timeObj.disabledTime + end.diff(start, 'seconds');
+                    timeObj.date = end.toISOString();
+                }
+                if (status === 'offline') {
+                    timeObj.downTime =
+                        timeObj.downTime + end.diff(start, 'seconds');
+                    timeObj.date = end.toISOString();
+                }
+                if (status === 'degraded') {
+                    timeObj.degradedTime =
+                        timeObj.degradedTime + end.diff(start, 'seconds');
+                }
+                if (status === 'online') {
+                    timeObj.upTime =
+                        timeObj.upTime + end.diff(start, 'seconds');
+                }
+            }
+
+            totalUptime = totalUptime + timeObj.upTime;
+            totalTime =
+                totalTime +
+                timeObj.upTime +
+                timeObj.degradedTime +
+                timeObj.downTime +
+                timeObj.disabledTime;
+            if (timeObj.status === null || timeObj.status === 'online') {
+                if (timeObj.disabledTime > 0) timeObj.status = 'disabled';
+                else if (timeObj.downTime > 0) timeObj.status = 'offline';
+                else if (timeObj.degradedTime > 0) timeObj.status = 'degraded';
+                else if (timeObj.upTime > 0) timeObj.status = 'online';
+            }
+            timeBlock.push(Object.assign({}, timeObj));
+
+            dayStart = dayStart.subtract(1, 'days');
+        }
+
+        return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
     },
 };
 

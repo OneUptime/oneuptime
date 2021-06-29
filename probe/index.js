@@ -33,7 +33,6 @@ const cron = require('node-cron');
 const config = require('./utils/config');
 
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
-const cronApplicationSecurityStartTime = Math.floor(Math.random() * 50);
 const cronContainerSecurityStartTime = Math.floor(Math.random() * 50);
 
 app.use(cors());
@@ -67,20 +66,15 @@ app.get(['/probe/version', '/version'], function(req, res) {
     res.send({ probeVersion: process.env.npm_package_version });
 });
 
-// This cron runs every minute
-cron.schedule('* * * * *', () => {
+// This cron runs every other minute.
+cron.schedule('*/2 * * * *', () => {
     setTimeout(() => {
         Main.runJob();
     }, cronMinuteStartTime * 1000);
 });
 
-cron.schedule('* * * * *', () => {
-    setTimeout(() => {
-        Main.runApplicationScan();
-    }, cronApplicationSecurityStartTime * 1000);
-});
-
-cron.schedule('* * * * *', () => {
+// Run this cron at 6 AM once a day.
+cron.schedule('0 6 * * *', () => {
     setTimeout(() => {
         Main.runContainerScan();
     }, cronContainerSecurityStartTime * 1000);

@@ -22,6 +22,11 @@ let apiHost = 'http://localhost:3002/api';
 if (process.env.BACKEND_URL) {
     apiHost = 'http://' + process.env.BACKEND_URL + '/api';
 }
+if (process.env.FYIPE_HOST) {
+    apiHost = process.env.BACKEND_PROTOCOL
+        ? `${process.env.BACKEND_PROTOCOL}://${process.env.FYIPE_HOST}/api`
+        : `http://${process.env.FYIPE_HOST}/api`;
+}
 
 app.get(['/env.js', '/status-page/env.js'], function(req, res) {
     let REACT_APP_FYIPE_HOST = null;
@@ -89,22 +94,27 @@ app.use('/', async function(req, res, next) {
         return next();
     }
 
-    const response = await fetch(
-        `${apiHost}/statusPage/tlsCredential?domain=${host}`
-    ).then(res => res.json());
+    try {
+        const response = await fetch(
+            `${apiHost}/statusPage/tlsCredential?domain=${host}`
+        ).then(res => res.json());
 
-    const { enableHttps } = response;
-    if (enableHttps) {
-        if (!req.secure) {
-            res.writeHead(301, { Location: `https://${host}${req.url}` });
-            return res.end();
+        const { enableHttps } = response;
+        if (enableHttps) {
+            if (!req.secure) {
+                res.writeHead(301, { Location: `https://${host}${req.url}` });
+                return res.end();
+            }
+            next();
+        } else {
+            if (req.secure) {
+                res.writeHead(301, { Location: `http://${host}${req.url}` });
+                return res.end();
+            }
+            next();
         }
-        next();
-    } else {
-        if (req.secure) {
-            res.writeHead(301, { Location: `http://${host}${req.url}` });
-            return res.end();
-        }
+    } catch (error) {
+        console.log('Error with fetch', error);
         next();
     }
 });

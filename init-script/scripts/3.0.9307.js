@@ -41,7 +41,7 @@ async function run() {
     await removeFieldsFromMany(
         statusPageCollection,
         { moveIncidentToTheTop: { $exists: true } },
-        'moveIncidentToTheTop'
+        { moveIncidentToTheTop: '' }
     );
 
     return `Script completed`;

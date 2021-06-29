@@ -1,5 +1,5 @@
 # DEPLOYMENT STAGE - BACKEND
-deploy_staging_backend:
+staging_backend:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -29,7 +29,7 @@ deploy_staging_backend:
     environment:
         name: staging
 
-deploy_production_backend:
+production_backend:
     stage: Deploy
     allow_failure: true
     retry: 2

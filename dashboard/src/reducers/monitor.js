@@ -1488,7 +1488,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors =
-                            monitor._id === action.payload.projectId
+                            monitor._id === action.payload.projectId._id ||
+                            action.payload.projectId
                                 ? monitor.monitors.map(monitor => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(incident => {
@@ -1519,7 +1520,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors =
-                            monitor._id === action.payload.projectId
+                            monitor._id === action.payload.projectId._id ||
+                            action.payload.projectId
                                 ? monitor.monitors.map(monitor => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(incident => {
@@ -1550,7 +1552,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors =
-                            monitor._id === action.payload.projectId
+                            monitor._id === action.payload.data.projectId._id ||
+                            action.payload.data.projectId
                                 ? monitor.monitors.map(monitor => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(incident => {
@@ -1581,7 +1584,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                     success: true,
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors =
-                            monitor._id === action.payload.projectId
+                            monitor._id === action.payload.data.projectId._id ||
+                            action.payload.data.projectId
                                 ? monitor.monitors.map(monitor => {
                                       monitor.incidents = monitor.incidents
                                           ? monitor.incidents.map(incident => {
@@ -1630,31 +1634,39 @@ export default function monitor(state = INITIAL_STATE, action) {
                     ...state.monitorsList,
                     monitors: state.monitorsList.monitors.map(monitor => {
                         monitor.monitors =
-                            monitor._id === action.payload.projectId
+                            monitor._id ===
+                            (action.payload.projectId._id ||
+                                action.payload.projectId)
                                 ? monitor.monitors.map(monitor => {
-                                      if (
-                                          monitor._id ===
-                                          action.payload.monitorId._id
-                                      ) {
-                                          let incidents =
-                                              monitor.incidents || [];
+                                      const monitors = action.payload.monitors.map(
+                                          monitor => monitor.monitorId
+                                      );
+                                      monitors.forEach(monitorObj => {
+                                          if (monitor._id === monitorObj._id) {
+                                              let incidents =
+                                                  monitor.incidents || [];
 
-                                          if (incidents && incidents.length) {
-                                              if (incidents.length > 2) {
-                                                  incidents.splice(-1, 1);
+                                              if (
+                                                  incidents &&
+                                                  incidents.length
+                                              ) {
+                                                  if (incidents.length > 2) {
+                                                      incidents.splice(-1, 1);
+                                                  }
+                                                  incidents.unshift(
+                                                      action.payload
+                                                  );
+                                              } else {
+                                                  incidents = [action.payload];
                                               }
-                                              incidents.unshift(action.payload);
-                                          } else {
-                                              incidents = [action.payload];
+                                              monitor = {
+                                                  ...monitor,
+                                                  incidents: incidents,
+                                                  count: monitor.count + 1,
+                                              };
                                           }
-                                          return {
-                                              ...monitor,
-                                              incidents: incidents,
-                                              count: monitor.count + 1,
-                                          };
-                                      } else {
-                                          return monitor;
-                                      }
+                                      });
+                                      return monitor;
                                   })
                                 : monitor.monitors;
                         return monitor;

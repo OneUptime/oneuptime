@@ -6,7 +6,7 @@ This script rollbacks every project if any of the deployment fails
 chmod +x ./ci/scripts/job-status.sh
 
 function rollback {
-  export status=`./ci/scripts/job-status.sh deploy_staging_$1`
+  export status=`./ci/scripts/job-status.sh staging_$1`
   if [[ $status == \"success\" ]]
     then
         echo "Rolling back $1"
@@ -23,7 +23,7 @@ function rollback {
 }
 
 function check {
-  export status=`./ci/scripts/job-status.sh deploy_staging_$1`
+  export status=`./ci/scripts/job-status.sh staging_$1`
   if [[ $status == \"failed\" ]]
     then
         echo "Deployment unsuccessful for $1, rolling back all new deployments"

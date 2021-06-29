@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:15
+FROM node:16
 
 #SET ENV Variables. 
 ENV PRODUCTION=true
@@ -15,6 +15,7 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY package*.json /usr/src/app/
+
 RUN npm ci --only=production
 RUN npm install -g serve
 RUN npm install -g eslint

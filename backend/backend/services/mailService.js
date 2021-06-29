@@ -2951,6 +2951,7 @@ const _this = {
                 emailTemplate,
                 'Subscriber Incident Created'
             );
+            const projectId = incident.projectId._id || incident.projectId;
             const data = {
                 incidentTime,
                 monitorName: UppercaseFirstLetter(monitorName),
@@ -2958,7 +2959,7 @@ const _this = {
                 userId,
                 projectName: UppercaseFirstLetter(projectName),
                 trackEmailAsViewedUrl,
-                projectId: incident.projectId,
+                projectId,
                 incidentType: UppercaseFirstLetter(incident.incidentType),
                 incidentDescription: incident.description,
                 componentName: UppercaseFirstLetter(componentName),
@@ -2969,9 +2970,7 @@ const _this = {
             };
             template = template(data);
             subject = subject(data);
-            let smtpSettings = await _this.getProjectSmtpSettings(
-                incident.projectId
-            );
+            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
             smtpServer = 'internal';
             if (!smtpSettings.internalSmtp) {
                 smtpServer = smtpSettings.host;
@@ -3516,8 +3515,9 @@ const _this = {
         try {
             let { template, subject } = await _this.getTemplates(
                 emailTemplate,
-                'Subscriber Incident Acknowldeged'
+                'Subscriber Incident Acknowledged'
             );
+            const projectId = incident.projectId._id || incident.projectId;
             const data = {
                 incidentTime,
                 monitorName: UppercaseFirstLetter(monitorName),
@@ -3525,7 +3525,7 @@ const _this = {
                 userId,
                 projectName: UppercaseFirstLetter(projectName),
                 trackEmailAsViewedUrl,
-                projectId: incident.projectId,
+                projectId,
                 incidentType: UppercaseFirstLetter(incident.incidentType),
                 componentName: UppercaseFirstLetter(componentName),
                 statusPageUrl,
@@ -3536,9 +3536,7 @@ const _this = {
             };
             template = template(data);
             subject = subject(data);
-            let smtpSettings = await _this.getProjectSmtpSettings(
-                incident.projectId
-            );
+            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
             smtpServer = 'internal';
             if (!smtpSettings.internalSmtp) {
                 smtpServer = smtpSettings.host;
@@ -3731,13 +3729,14 @@ const _this = {
                 'Investigation note is created'
             );
 
+            const projectId = incident.projectId._id || incident.projectId;
             const data = {
                 incidentTime,
                 monitorName: UppercaseFirstLetter(monitorName),
                 userName,
                 userId,
                 projectName: UppercaseFirstLetter(projectName),
-                projectId: incident.projectId,
+                projectId,
                 incidentType: incident.incidentType,
                 incidentId: incident.idNumber,
                 componentName: UppercaseFirstLetter(componentName),
@@ -3750,9 +3749,7 @@ const _this = {
             };
             template = template(data);
             subject = subject(data);
-            let smtpSettings = await _this.getProjectSmtpSettings(
-                incident.projectId
-            );
+            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
             smtpServer = 'internal';
             if (!smtpSettings.internalSmtp) {
                 smtpServer = smtpSettings.host;
@@ -4707,6 +4704,204 @@ const _this = {
         }
     },
     /**
+     * @param {string} announcementTitle Title of created announcement.
+     * @param {string} announcementDescription Description of created announcement.
+     * @param {string} projectId Id of the project whose monitor has announcement.
+     * @param {string} statusPageUrl status page url
+     *
+     */
+    sendAnnouncementToSubscriber: async function(
+        announcementTitle,
+        announcementDescription,
+        email,
+        emailTemplate,
+        replyAddress,
+        projectName,
+        projectId,
+        unsubscribeUrl,
+        monitorsAffected
+    ) {
+        let mailOptions = {};
+        let EmailBody;
+        let smtpServer;
+
+        const resourcesAffected = [];
+        monitorsAffected.map(monitor => {
+            return resourcesAffected.push(monitor.name);
+        });
+
+        try {
+            let { template, subject } = await _this.getTemplates(
+                emailTemplate,
+                'Subscriber Announcement Notification Created'
+            );
+
+            //project name
+            const data = {
+                announcementTitle: UppercaseFirstLetter(announcementTitle),
+                announcementDescription,
+                projectName: UppercaseFirstLetter(projectName),
+                unsubscribeUrl,
+                resourcesAffected: resourcesAffected.toString(),
+                year: DateTime.getCurrentYear,
+            };
+            template = template(data);
+            subject = subject(data);
+
+            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
+            smtpServer = 'internal';
+            if (!smtpSettings.internalSmtp) {
+                smtpServer = smtpSettings.host;
+            }
+            const privateMailer = await _this.createMailer(smtpSettings);
+            if (replyAddress) {
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    replyTo: replyAddress,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        body: template,
+                    },
+                };
+            } else {
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        body: template,
+                    },
+                };
+            }
+            EmailBody = await _this.getEmailBody(mailOptions);
+            if (!privateMailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                    ...(mailOptions.replyTo && {
+                        replyTo: mailOptions.replyTo,
+                    }),
+                    content: EmailBody,
+                    error: 'Email not enabled.',
+                    smtpServer,
+                });
+                return;
+            }
+
+            let info = {};
+            try {
+                info = await privateMailer.sendMail(mailOptions);
+
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Success',
+                    ...(mailOptions.replyTo && {
+                        replyTo: mailOptions.replyTo,
+                    }),
+                    content: EmailBody,
+                    smtpServer,
+                });
+            } catch (error) {
+                if (error.code === 'ECONNECTION') {
+                    if (
+                        smtpSettings.internalSmtp &&
+                        smtpSettings.customSmtp &&
+                        !isEmpty(smtpSettings.backupConfig)
+                    ) {
+                        smtpServer = smtpSettings.backupConfig.host;
+                        smtpSettings = { ...smtpSettings.backupConfig };
+
+                        const privateMailer = await _this.createMailer(
+                            smtpSettings
+                        );
+                        if (replyAddress) {
+                            mailOptions = {
+                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                to: email,
+                                replyTo: replyAddress,
+                                subject: subject,
+                                template: 'template',
+                                context: {
+                                    body: template,
+                                },
+                            };
+                        } else {
+                            mailOptions = {
+                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                to: email,
+                                subject: subject,
+                                template: 'template',
+                                context: {
+                                    body: template,
+                                },
+                            };
+                        }
+                        EmailBody = await _this.getEmailBody(mailOptions);
+                        if (!privateMailer) {
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Email not enabled.',
+                                ...(mailOptions.replyTo && {
+                                    replyTo: mailOptions.replyTo,
+                                }),
+                                content: EmailBody,
+                                error: 'Email not enabled.',
+                                smtpServer,
+                            });
+                            return;
+                        }
+
+                        info = await privateMailer.sendMail(mailOptions);
+
+                        await EmailStatusService.create({
+                            from: mailOptions.from,
+                            to: mailOptions.to,
+                            subject: mailOptions.subject,
+                            template: mailOptions.template,
+                            status: 'Success',
+                            ...(mailOptions.replyTo && {
+                                replyTo: mailOptions.replyTo,
+                            }),
+                            content: EmailBody,
+                            smtpServer,
+                        });
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    throw error;
+                }
+            }
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendAnnouncementToSubscriber', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+                ...(mailOptions.replyTo && { replyTo: mailOptions.replyTo }),
+                content: EmailBody,
+                error: error.message,
+                smtpServer,
+            });
+            throw error;
+        }
+    },
+    /**
      * @param {js date object} incidentTime JS date of the incident used as timestamp.
      * @param {string} monitorName Name of monitor with incident.
      * @param {string} email Email of user being alerted.
@@ -4740,6 +4935,7 @@ const _this = {
                 emailTemplate,
                 'Subscriber Incident Resolved'
             );
+            const projectId = incident.projectId._id || incident.projectId;
             const data = {
                 incidentTime,
                 monitorName: UppercaseFirstLetter(monitorName),
@@ -4747,7 +4943,7 @@ const _this = {
                 userId,
                 projectName: UppercaseFirstLetter(projectName),
                 trackEmailAsViewedUrl,
-                projectId: incident.projectId,
+                projectId,
                 incidentType: UppercaseFirstLetter(incident.incidentType),
                 componentName: UppercaseFirstLetter(componentName),
                 statusPageUrl,
@@ -4758,9 +4954,7 @@ const _this = {
             };
             template = template(data);
             subject = subject(data);
-            let smtpSettings = await _this.getProjectSmtpSettings(
-                incident.projectId
-            );
+            let smtpSettings = await _this.getProjectSmtpSettings(projectId);
             smtpServer = 'internal';
             if (!smtpSettings.internalSmtp) {
                 smtpServer = smtpSettings.host;

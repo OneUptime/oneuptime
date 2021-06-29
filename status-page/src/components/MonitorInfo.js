@@ -4,234 +4,9 @@ import BlockChart from './BlockChart';
 import moment from 'moment';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { fetchMonitorStatuses } from '../actions/status';
+import { fetchMonitorStatuses, calculateTime } from '../actions/status';
 import { filterProbeData, getMonitorStatus } from '../config';
 import ShouldRender from './ShouldRender';
-
-const calculateTime = (statuses, start, range) => {
-    const timeBlock = [];
-    let totalUptime = 0;
-    let totalTime = 0;
-
-    let dayStart = moment(start).startOf('day');
-
-    const reversedStatuses = statuses.slice().reverse();
-
-    for (let i = 0; i < range; i++) {
-        const dayStartIn = dayStart;
-        const dayEnd =
-            i && i > 0 ? dayStart.clone().endOf('day') : moment(Date.now());
-
-        const timeObj = {
-            date: dayStart.toISOString(),
-            downTime: 0,
-            upTime: 0,
-            degradedTime: 0,
-            disabledTime: 0,
-            status: null,
-            emptytime: dayStart.toISOString(),
-        };
-        /**
-         * If two incidents of the same time overlap, we merge them
-         * If two incidents of different type overlap, The priority will be:
-         * offline, degraded and online.
-         *      if the less important incident starts after and finish before the other incident, we remove it.
-         *      if the less important incident overlaps with the other incident, we update its start/end time.
-         *      if the less important incident start before and finish after the other incident, we divide it into two parts
-         *          the first part ends before the important incident,
-         *          the second part start after the important incident.
-         * The time report will be generate after the following steps:
-         * 1- selecting the incident that happendend during the selected day.
-         *   In other words: The incidents that overlap with `dayStartIn` and `dayEnd`.
-         * 2- Sorting them, to reduce the complexity of the next step (https://www.geeksforgeeks.org/merging-intervals/).
-         * 3- Checking for overlaps between incidents. Merge incidents of the same type, reduce the time of the less important incidents.
-         * 4- Fill the timeObj
-         */
-        //First step
-        let incidentsHappenedDuringTheDay = [];
-        reversedStatuses.forEach(monitor => {
-            const monitorStatus = Object.assign({}, monitor);
-            if (monitorStatus.endTime === null) {
-                monitorStatus.endTime = new Date().toISOString();
-            }
-
-            if (
-                moment(monitorStatus.startTime).isBefore(dayEnd) &&
-                moment(monitorStatus.endTime).isAfter(dayStartIn)
-            ) {
-                if (
-                    monitor.endTime === null &&
-                    (monitor.status === 'offline' ||
-                        (monitorStatus.status === 'degraded' &&
-                            timeObj.status !== 'offline') ||
-                        timeObj.status === null)
-                ) {
-                    timeObj.status = monitorStatus.status;
-                }
-
-                if (monitor.endTime === null && monitor.status === 'disabled') {
-                    timeObj.status = monitor.status;
-                }
-                const start = moment(monitorStatus.startTime).isBefore(
-                    dayStartIn
-                )
-                    ? dayStartIn
-                    : moment(monitorStatus.startTime);
-                const end = moment(monitorStatus.endTime).isAfter(dayEnd)
-                    ? dayEnd
-                    : moment(monitorStatus.endTime);
-
-                incidentsHappenedDuringTheDay.push({
-                    start,
-                    end,
-                    status: monitorStatus.status,
-                });
-
-                timeObj.date = end.toISOString();
-                timeObj.emptytime = null;
-            }
-        });
-        //Second step
-        incidentsHappenedDuringTheDay.sort((a, b) =>
-            moment(a.start).isSame(b.start)
-                ? 0
-                : moment(a.start).isAfter(b.start)
-                ? 1
-                : -1
-        );
-        //Third step
-        for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
-            const firstIncidentIndex = i;
-            const nextIncidentIndex = i + 1;
-            const firstIncident =
-                incidentsHappenedDuringTheDay[firstIncidentIndex];
-            const nextIncident =
-                incidentsHappenedDuringTheDay[nextIncidentIndex];
-            if (moment(firstIncident.end).isSameOrBefore(nextIncident.start))
-                continue;
-
-            if (firstIncident.status === nextIncident.status) {
-                const end = moment(firstIncident.end).isAfter(nextIncident.end)
-                    ? firstIncident.end
-                    : nextIncident.end;
-                firstIncident.end = end;
-                incidentsHappenedDuringTheDay.splice(nextIncidentIndex, 1);
-            } else {
-                //if the firstIncident has a higher priority
-                if (
-                    firstIncident.status === 'disabled' ||
-                    (firstIncident.status === 'offline' &&
-                        nextIncident.status !== 'disabled') ||
-                    (firstIncident.status === 'degraded' &&
-                        nextIncident.status === 'online')
-                ) {
-                    if (moment(firstIncident.end).isAfter(nextIncident.end)) {
-                        incidentsHappenedDuringTheDay.splice(
-                            nextIncidentIndex,
-                            1
-                        );
-                    } else {
-                        nextIncident.start = firstIncident.end;
-                        //we will need to shift the next incident to keep the array sorted.
-                        incidentsHappenedDuringTheDay.splice(
-                            nextIncidentIndex,
-                            1
-                        );
-                        let j = nextIncidentIndex;
-                        while (j < incidentsHappenedDuringTheDay.length) {
-                            if (
-                                moment(nextIncident.start).isBefore(
-                                    incidentsHappenedDuringTheDay[j].start
-                                )
-                            )
-                                break;
-                            j += 1;
-                        }
-                        incidentsHappenedDuringTheDay.splice(
-                            j,
-                            0,
-                            nextIncident
-                        );
-                    }
-                } else {
-                    if (moment(firstIncident.end).isBefore(nextIncident.end)) {
-                        firstIncident.end = nextIncident.start;
-                    } else {
-                        /**
-                         * The firstIncident is less important than the next incident,
-                         * it also starts before and ends after the nextIncident.
-                         * In the case The first incident needs to be devided into to two parts.
-                         * The first part comes before the nextIncident,
-                         * the second one comes after the nextIncident.
-                         */
-                        const newIncident = {
-                            start: nextIncident.end,
-                            end: firstIncident.end,
-                            status: firstIncident.status,
-                        };
-                        firstIncident.end = nextIncident.start;
-                        let j = nextIncidentIndex + 1;
-                        while (j < incidentsHappenedDuringTheDay.length) {
-                            if (
-                                moment(newIncident.start).isBefore(
-                                    incidentsHappenedDuringTheDay[j].start
-                                )
-                            )
-                                break;
-                            j += 1;
-                        }
-                        incidentsHappenedDuringTheDay.splice(j, 0, newIncident);
-                    }
-                }
-            }
-            i--;
-        }
-        //Remove events having start and end time equal.
-        incidentsHappenedDuringTheDay = incidentsHappenedDuringTheDay.filter(
-            event => !moment(event.start).isSame(event.end)
-        );
-        //Last step
-        for (const incident of incidentsHappenedDuringTheDay) {
-            const { start, end, status } = incident;
-            if (status === 'disabled') {
-                timeObj.disabledTime =
-                    timeObj.disabledTime + end.diff(start, 'seconds');
-                timeObj.date = end.toISOString();
-            }
-            if (status === 'offline') {
-                timeObj.downTime =
-                    timeObj.downTime + end.diff(start, 'seconds');
-                timeObj.date = end.toISOString();
-            }
-            if (status === 'degraded') {
-                timeObj.degradedTime =
-                    timeObj.degradedTime + end.diff(start, 'seconds');
-            }
-            if (status === 'online') {
-                timeObj.upTime = timeObj.upTime + end.diff(start, 'seconds');
-            }
-        }
-
-        totalUptime = totalUptime + timeObj.upTime;
-        totalTime =
-            totalTime +
-            timeObj.upTime +
-            timeObj.degradedTime +
-            timeObj.downTime +
-            timeObj.disabledTime;
-        if (timeObj.status === null || timeObj.status === 'online') {
-            if (timeObj.disabledTime > 0) timeObj.status = 'disabled';
-            else if (timeObj.downTime > 0) timeObj.status = 'offline';
-            else if (timeObj.degradedTime > 0) timeObj.status = 'degraded';
-            else if (timeObj.upTime > 0) timeObj.status = 'online';
-        }
-        timeBlock.push(Object.assign({}, timeObj));
-
-        dayStart = dayStart.subtract(1, 'days');
-    }
-
-    return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
-};
 
 function debounce(fn, ms) {
     let timer;
@@ -265,6 +40,7 @@ class MonitorInfo extends Component {
         if (monitor && !monitor.statuses) {
             const endDate = moment(Date.now());
             const startDate = moment(Date.now()).subtract(90, 'days');
+
             this.props.fetchMonitorStatuses(
                 monitor.projectId._id || monitor.projectId,
                 monitor._id,
@@ -283,9 +59,49 @@ class MonitorInfo extends Component {
     }
 
     componentDidUpdate(prevProps) {
-        const { monitor } = this.props;
+        const {
+            monitor,
+            calculateTime,
+            monitorState,
+            probes,
+            activeProbe,
+            monitorStatus,
+        } = this.props;
 
-        if (prevProps.monitor !== monitor) {
+        if (
+            JSON.stringify(prevProps.probes) !== JSON.stringify(probes) ||
+            JSON.stringify(prevProps.monitorStatus) !==
+                JSON.stringify(this.props.monitorStatus)
+        ) {
+            let range = !this.props.theme && 90;
+            const now = Date.now();
+
+            if (this.props.theme) {
+                const { windowSize } = this.state;
+                if (windowSize <= 600) {
+                    range = 30;
+                }
+                if (windowSize > 600 && windowSize < 1000) {
+                    range = 60;
+                }
+                if (windowSize >= 1000) {
+                    range = 90;
+                }
+            }
+
+            const monitorData = monitorState.find(
+                a => String(a._id) === String(monitor._id)
+            );
+
+            const probe =
+                probes && probes.length > 0
+                    ? probes[probes.length < 2 ? 0 : activeProbe]
+                    : null;
+            const statuses = filterProbeData(monitorData, probe, monitorStatus);
+            calculateTime(statuses, now, range, monitor._id);
+        }
+
+        if (JSON.stringify(prevProps.monitor) !== JSON.stringify(monitor)) {
             if (monitor && !monitor.statuses) {
                 const endDate = moment(Date.now());
                 const startDate = moment(Date.now()).subtract(90, 'days');
@@ -347,8 +163,8 @@ class MonitorInfo extends Component {
             selectedCharts,
             resourceCategory,
             isGroupedByMonitorCategory,
+            monitorInfo,
         } = this.props;
-        const now = Date.now();
         let range = !this.props.theme && 90;
 
         if (this.props.theme) {
@@ -364,9 +180,9 @@ class MonitorInfo extends Component {
             }
         }
 
-        let monitorData = monitorState.filter(a => a._id === monitor._id);
-        monitorData =
-            monitorData && monitorData.length > 0 ? monitorData[0] : null;
+        const monitorData = monitorState.find(
+            a => String(a._id) === String(monitor._id)
+        );
 
         const probe =
             probes && probes.length > 0
@@ -374,19 +190,33 @@ class MonitorInfo extends Component {
                 : null;
         const statuses = filterProbeData(monitorData, probe);
 
-        const { timeBlock, uptimePercent } =
-            statuses && statuses.length > 0
-                ? calculateTime(statuses, now, range)
-                : calculateTime([], now, range);
-        const monitorStatus = getMonitorStatus(statuses);
+        const calculatingTime = monitor
+            ? monitorInfo.requesting[monitor._id]
+            : true;
+
+        const info = monitor ? monitorInfo.info[monitor._id] || {} : {};
+        const timeBlock = info.timeBlock || [];
+        const uptimePercent = info.uptimePercent || 'N/A';
+
+        const monitorStatus = monitor.status
+            ? monitor.status
+            : getMonitorStatus(statuses);
 
         const uptime =
-            uptimePercent !== 100 && !isNaN(uptimePercent)
-                ? uptimePercent.toFixed(3)
+            uptimePercent !== 100
+                ? !isNaN(uptimePercent)
+                    ? uptimePercent.toFixed(3)
+                    : 'N/A'
                 : '100';
 
         const block = [];
-        if (selectedCharts && selectedCharts.uptime)
+
+        const loadingData =
+            calculatingTime ||
+            timeBlock.length !== range ||
+            uptimePercent === 'N/A';
+
+        if (!loadingData && selectedCharts && selectedCharts.uptime) {
             for (let i = 0; i < range; i++) {
                 block.unshift(
                     <BlockChart
@@ -401,6 +231,7 @@ class MonitorInfo extends Component {
                     />
                 );
             }
+        }
 
         const status = {
             display: 'inline-block',
@@ -537,12 +368,18 @@ class MonitorInfo extends Component {
                                                 : 'scroll',
                                         }}
                                     >
-                                        <div
-                                            ref={this.scrollContent}
-                                            className="scroll-content"
-                                        >
-                                            {block}
-                                        </div>
+                                        {loadingData ? (
+                                            <div ref={this.scrollContent}>
+                                                loading...
+                                            </div>
+                                        ) : (
+                                            <div
+                                                ref={this.scrollContent}
+                                                className="scroll-content"
+                                            >
+                                                {block}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -571,16 +408,29 @@ class MonitorInfo extends Component {
                                         }
                                     ></div>
                                     <ShouldRender if={!this.props.checkUptime}>
-                                        <div
-                                            style={
-                                                subheading.color ===
-                                                'rgba(76, 76, 76, 1)'
-                                                    ? { color: '#aaaaaa' }
-                                                    : subheading
-                                            }
-                                        >
-                                            {uptime}% uptime
-                                        </div>
+                                        {uptime === 'N/A' ? (
+                                            <div
+                                                style={
+                                                    subheading.color ===
+                                                    'rgba(76, 76, 76, 1)'
+                                                        ? { color: '#aaaaaa' }
+                                                        : subheading
+                                                }
+                                            >
+                                                {uptime}
+                                            </div>
+                                        ) : (
+                                            <div
+                                                style={
+                                                    subheading.color ===
+                                                    'rgba(76, 76, 76, 1)'
+                                                        ? { color: '#aaaaaa' }
+                                                        : subheading
+                                                }
+                                            >
+                                                {uptime}% uptime
+                                            </div>
+                                        )}
                                     </ShouldRender>
                                     <div
                                         style={
@@ -672,8 +522,16 @@ class MonitorInfo extends Component {
                                     style={primaryText}
                                 >
                                     <ShouldRender if={!this.props.checkUptime}>
-                                        <em>{uptime}%</em>
-                                        {' Uptime'}
+                                        {uptime === 'N/A' ? (
+                                            <>
+                                                <em>{uptime}</em>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <em>{uptime}%</em>
+                                                {' Uptime'}
+                                            </>
+                                        )}
                                     </ShouldRender>
                                 </span>
                             </div>
@@ -688,12 +546,18 @@ class MonitorInfo extends Component {
                                         : 'scroll',
                                 }}
                             >
-                                <div
-                                    ref={this.scrollContent}
-                                    className="scroll-content"
-                                >
-                                    {block}
-                                </div>
+                                {loadingData ? (
+                                    <div ref={this.scrollContent}>
+                                        Loading...
+                                    </div>
+                                ) : (
+                                    <div
+                                        ref={this.scrollContent}
+                                        className="scroll-content"
+                                    >
+                                        {block}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -705,7 +569,7 @@ class MonitorInfo extends Component {
 
 MonitorInfo.displayName = 'UptimeGraphs';
 
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
     const ongoing =
         state.status &&
         state.status.ongoing &&
@@ -713,6 +577,9 @@ function mapStateToProps(state) {
         state.status.ongoing.ongoing.filter(
             ongoingSchedule => !ongoingSchedule.cancelled
         );
+
+    const monitorStatus = state.status.monitorStatuses[ownProps.monitor._id];
+
     return {
         monitorState: state.status.statusPage.monitorsData,
         checkUptime: state.status.statusPage.hideUptime,
@@ -720,6 +587,8 @@ function mapStateToProps(state) {
         probes: state.probe.probes,
         colors: state.status.statusPage.colors,
         ongoing,
+        monitorInfo: state.status.monitorInfo,
+        monitorStatus,
     };
 }
 
@@ -727,6 +596,7 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             fetchMonitorStatuses,
+            calculateTime,
         },
         dispatch
     );
@@ -748,6 +618,12 @@ MonitorInfo.propTypes = {
     theme: PropTypes.string,
     checkUptime: PropTypes.bool,
     ongoing: PropTypes.array,
+    calculateTime: PropTypes.func,
+    monitorInfo: PropTypes.object,
+    monitorStatus: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);

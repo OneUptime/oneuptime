@@ -89,10 +89,12 @@ export class SubscriberAlert extends Component {
                                         <tbody className="Table-body">
                                             <SubscriberAlertTableRows
                                                 alerts={this.props.alerts}
-                                                monitor={
+                                                monitors={
                                                     this.props.incident &&
-                                                    this.props.incident
-                                                        .monitorId
+                                                    this.props.incident.monitors.map(
+                                                        monitor =>
+                                                            monitor.monitorId
+                                                    )
                                                 }
                                                 isRequesting={
                                                     this.props.isRequesting
@@ -270,7 +272,6 @@ SubscriberAlert.propTypes = {
     ]),
     incidents: PropTypes.array,
     incident: PropTypes.object,
-    monitorId: PropTypes.object,
     next: PropTypes.func.isRequired,
     error: PropTypes.oneOfType([
         PropTypes.string,

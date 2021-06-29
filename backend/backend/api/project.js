@@ -9,6 +9,7 @@ const AirtableService = require('../services/airtableService');
 const getUser = require('../middlewares/user').getUser;
 const isUserMasterAdmin = require('../middlewares/user').isUserMasterAdmin;
 const isUserOwner = require('../middlewares/project').isUserOwner;
+const isUserAdmin = require('../middlewares/project').isUserAdmin;
 const { IS_SAAS_SERVICE } = require('../config/server');
 const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
@@ -256,7 +257,7 @@ router.put(
     '/:projectId/renameProject',
     getUser,
     isAuthorized,
-    isUserOwner,
+    isUserAdmin,
     async function(req, res) {
         try {
             const projectId = req.params.projectId;
@@ -850,6 +851,18 @@ router.get('/projects/:slug', getUser, isUserMasterAdmin, async function(
             deleted: { $ne: null },
         });
 
+        return sendItemResponse(req, res, project);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.get('/project-slug/:slug', getUser, async function(req, res) {
+    try {
+        const { slug } = req.params;
+        const project = await ProjectService.findOneBy({
+            slug,
+        });
         return sendItemResponse(req, res, project);
     } catch (error) {
         return sendErrorResponse(req, res, error);

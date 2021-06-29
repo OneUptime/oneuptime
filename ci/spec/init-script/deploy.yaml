@@ -1,5 +1,5 @@
 # DEPLOYMENT STAGE - Init Script
-deploy_staging_init-script:
+staging_init-script:
     stage: Deploy
     retry: 2
     allow_failure: true
@@ -30,7 +30,7 @@ deploy_staging_init-script:
     environment:
         name: staging
 
-deploy_production_init-script:
+production_init-script:
     stage: Deploy
     allow_failure: true
     retry: 2

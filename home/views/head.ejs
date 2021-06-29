@@ -161,17 +161,26 @@
         for (const param of params) {
             sourceObj = { ...sourceObj, [`${param[0]}`]: param[1] }
         }
+
+        function delete_cookie(name) {
+            document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        }
+
+        // Set a Cookie
+        function setCookie(cName, cValue, expDays) {
+            //delete previously set cookie. 
+            delete_cookie(cName);
+
+            let date = new Date();
+            date.setTime(date.getTime() + (expDays * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + date.toUTCString();
+            const path = "path=/";
+            // Remember to set back the domain since you used localhost for development purposes
+            document.cookie = cName + "=" + cValue + "; " + expires + ";" + path + "; " + "domain=" + window.location.hostname;
+        }
+        // Apply setCookie
+        setCookie('source', JSON.stringify(sourceObj), 1);
     }
-    // Set a Cookie
-    function setCookie(cName, cValue, expDays) {
-        let date = new Date();
-        date.setTime(date.getTime() + (expDays * 24 * 60 * 60 * 1000));
-        const expires = "expires=" + date.toUTCString();
-        
-        document.cookie = cName + "=" + cValue + "; " + expires + "; path=/" + "; " + "domain="+window.location.host;
-    }
-    // Apply setCookie
-    setCookie('source', JSON.stringify(sourceObj), 1);
 </script>
 <img height="1" width="1" style="display:none" alt="Facebook"
     src="https://www.facebook.com/tr?id=244894116420899&ev=PageView&noscript=1" />

@@ -126,7 +126,7 @@ describe('SMS Template API', function() {
             .send([
                 {
                     body: 'Updated SMS Body',
-                    smsType: 'Subscriber Incident Acknowldeged',
+                    smsType: 'Subscriber Incident Acknowledged',
                 },
             ])
             .set('Authorization', authorization);

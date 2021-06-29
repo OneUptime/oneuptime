@@ -73,7 +73,7 @@ const pingfetch = async (url, method, body, headers) => {
         const urlObject = new URL(url);
         const payload = {
             method: method,
-            timeout: 120000,
+            timeout: 500000,
         };
         if (headers && Object.keys(headers).length) {
             payload.headers = headers;
@@ -156,6 +156,9 @@ const pingfetch = async (url, method, body, headers) => {
         res = new Date().getTime() - now;
         resp = { status: 408, body: error };
     }
+
+    // this hard coded value will be removed soon
+    res = res / 100;
 
     return {
         res,

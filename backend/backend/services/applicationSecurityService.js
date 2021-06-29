@@ -67,6 +67,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
+            // won't be using lean() here because of iv cypher for password
             const applicationSecurity = await ApplicationSecurityModel.findOne(
                 query
             )
@@ -94,6 +95,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
+            // won't be using lean() here because of iv cypher for password
             const applicationSecurities = await ApplicationSecurityModel.find(
                 query
             )

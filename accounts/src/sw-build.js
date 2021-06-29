@@ -14,6 +14,7 @@ const buildSW = () => {
         .then(({ count, size }) => {
             // Optionally, log any warnings and details.
             return `${count} files will be precached, totaling ${size} bytes.`;
-        });
+        })
+        .catch(console.error);
 };
 buildSW();

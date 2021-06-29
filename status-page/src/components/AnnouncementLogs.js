@@ -95,27 +95,35 @@ class AnnouncementLogs extends Component {
                                             >
                                                 {log.announcementId.description}
                                             </div>
-                                            <span
-                                                className="ongoing__affectedmonitor--title"
-                                                style={{
-                                                    color:
-                                                        'rgba(76, 76, 76, 0.8)',
-                                                }}
+                                            <ShouldRender
+                                                if={
+                                                    log.announcementId.monitors
+                                                        .length > 0
+                                                }
                                             >
-                                                Resources Affected:{' '}
-                                            </span>
-                                            <span
-                                                className="ongoing__affectedmonitor--content"
-                                                style={{
-                                                    color: 'rgba(0, 0, 0, 0.5)',
-                                                }}
-                                            >
-                                                {log.announcementId &&
-                                                    handleResources(
-                                                        monitorState,
-                                                        log.announcementId
-                                                    )}
-                                            </span>
+                                                <span
+                                                    className="ongoing__affectedmonitor--title"
+                                                    style={{
+                                                        color:
+                                                            'rgba(76, 76, 76, 0.8)',
+                                                    }}
+                                                >
+                                                    Resources Affected:{' '}
+                                                </span>
+                                                <span
+                                                    className="ongoing__affectedmonitor--content"
+                                                    style={{
+                                                        color:
+                                                            'rgba(0, 0, 0, 0.5)',
+                                                    }}
+                                                >
+                                                    {log.announcementId &&
+                                                        handleResources(
+                                                            monitorState,
+                                                            log.announcementId
+                                                        )}
+                                                </span>
+                                            </ShouldRender>
                                             <div
                                                 style={{
                                                     display: 'flex',
@@ -220,38 +228,48 @@ class AnnouncementLogs extends Component {
                                                                             .description
                                                                     }
                                                                 </div>
-                                                                <div
-                                                                    className="ongoing__affectedmonitor"
-                                                                    style={{
-                                                                        marginTop: 10,
-                                                                    }}
+                                                                <ShouldRender
+                                                                    if={
+                                                                        log
+                                                                            .announcementId
+                                                                            .monitors
+                                                                            .length >
+                                                                        0
+                                                                    }
                                                                 >
-                                                                    <span
-                                                                        className="ongoing__affectedmonitor--title"
+                                                                    <div
+                                                                        className="ongoing__affectedmonitor"
                                                                         style={{
-                                                                            color:
-                                                                                'rgba(76, 76, 76, 0.8)',
+                                                                            marginTop: 10,
                                                                         }}
                                                                     >
-                                                                        Resource
-                                                                        Affected:
-                                                                    </span>{' '}
-                                                                    <span
-                                                                        className="ongoing__affectedmonitor--content"
-                                                                        style={{
-                                                                            color:
-                                                                                'rgba(0, 0, 0, 0.5)',
-                                                                            fontSize:
-                                                                                '13px',
-                                                                        }}
-                                                                    >
-                                                                        {log.announcementId &&
-                                                                            handleResources(
-                                                                                monitorState,
-                                                                                log.announcementId
-                                                                            )}
-                                                                    </span>
-                                                                </div>
+                                                                        <span
+                                                                            className="ongoing__affectedmonitor--title"
+                                                                            style={{
+                                                                                color:
+                                                                                    'rgba(76, 76, 76, 0.8)',
+                                                                            }}
+                                                                        >
+                                                                            Resource
+                                                                            Affected:
+                                                                        </span>{' '}
+                                                                        <span
+                                                                            className="ongoing__affectedmonitor--content"
+                                                                            style={{
+                                                                                color:
+                                                                                    'rgba(0, 0, 0, 0.5)',
+                                                                                fontSize:
+                                                                                    '13px',
+                                                                            }}
+                                                                        >
+                                                                            {log.announcementId &&
+                                                                                handleResources(
+                                                                                    monitorState,
+                                                                                    log.announcementId
+                                                                                )}
+                                                                        </span>
+                                                                    </div>
+                                                                </ShouldRender>
                                                                 <div>
                                                                     <span className="ct_time time">
                                                                         {moment(

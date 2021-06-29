@@ -4,7 +4,7 @@
  *
  */
 
-const GridFsStorage = require('multer-gridfs-storage');
+const { GridFsStorage } = require('multer-gridfs-storage');
 const crypto = require('crypto');
 
 const mongoUri = process.env['MONGO_URL'];

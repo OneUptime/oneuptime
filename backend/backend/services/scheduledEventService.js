@@ -6,6 +6,7 @@ const ScheduledEventNoteService = require('./scheduledEventNoteService');
 const AlertService = require('./alertService');
 const moment = require('moment');
 const getSlug = require('../utils/getSlug');
+const MonitorService = require('./monitorService');
 
 module.exports = {
     create: async function({ projectId }, data, recurring) {
@@ -30,6 +31,19 @@ module.exports = {
                 monitorId: monitor,
             }));
 
+            if (!data.monitorDuringEvent) {
+                for (const monitor of data.monitors) {
+                    await MonitorService.updateOneBy(
+                        {
+                            _id: monitor.monitorId,
+                        },
+                        {
+                            shouldNotMonitor: true,
+                        }
+                    );
+                }
+            }
+
             data.projectId = projectId;
             if (data && data.name) {
                 data.slug = getSlug(data.name);
@@ -39,16 +53,7 @@ module.exports = {
                 ...data,
             });
 
-            scheduledEvent = await scheduledEvent
-                .populate('monitors.monitorId', 'name')
-                .populate({
-                    path: 'monitors.monitorId',
-                    select: 'name',
-                    populate: { path: 'componentId', select: 'name slug' },
-                })
-                .populate('projectId', 'name slug')
-                .populate('createdById', 'name')
-                .execPopulate();
+            scheduledEvent = await this.findOneBy({ _id: scheduledEvent._id });
             // add note when a scheduled event is created
             await ScheduledEventNoteService.create({
                 content: 'THIS SCHEDULED EVENT HAS BEEN CREATED',
@@ -125,6 +130,31 @@ module.exports = {
             data.monitors = data.monitors.map(monitor => ({
                 monitorId: monitor,
             }));
+
+            if (!data.monitorDuringEvent) {
+                for (const monitor of data.monitors) {
+                    await MonitorService.updateOneBy(
+                        {
+                            _id: monitor.monitorId,
+                        },
+                        {
+                            shouldNotMonitor: true,
+                        }
+                    );
+                }
+            } else {
+                for (const monitor of data.monitors) {
+                    await MonitorService.updateOneBy(
+                        {
+                            _id: monitor.monitorId,
+                        },
+                        {
+                            shouldNotMonitor: false,
+                        }
+                    );
+                }
+            }
+
             if (data && data.name) {
                 data.slug = getSlug(data.name);
             }
@@ -136,12 +166,9 @@ module.exports = {
                 { new: true }
             );
 
-            updatedScheduledEvent = await updatedScheduledEvent
-                .populate('monitors.monitorId', 'name')
-                .populate('projectId', 'name')
-                .populate('createdById', 'name')
-                .populate('resolvedBy', 'name')
-                .execPopulate();
+            updatedScheduledEvent = await this.findOneBy({
+                _id: updatedScheduledEvent._id,
+            });
 
             if (!updatedScheduledEvent) {
                 const error = new Error(
@@ -192,6 +219,19 @@ module.exports = {
                 { new: true }
             );
 
+            if (scheduledEvent && !scheduledEvent.monitorDuringEvent) {
+                for (const monitor of scheduledEvent.monitors) {
+                    await MonitorService.updateOneBy(
+                        {
+                            _id: monitor.monitorId._id || monitor.monitorId,
+                        },
+                        {
+                            shouldNotMonitor: false,
+                        }
+                    );
+                }
+            }
+
             if (!scheduledEvent) {
                 const error = new Error(
                     'Scheduled Event not found or does not exist'
@@ -232,10 +272,14 @@ module.exports = {
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
-                .populate('monitors.monitorId', 'name')
-                .populate('projectId', 'name')
-                .populate('createdById', 'name')
                 .populate('resolvedBy', 'name')
+                .populate({
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: { path: 'componentId', select: 'name slug' },
+                })
+                .populate('projectId', 'name slug')
+                .populate('createdById', 'name')
                 .lean();
 
             return scheduledEvents;
@@ -253,10 +297,14 @@ module.exports = {
 
             query.deleted = false;
             const scheduledEvent = await ScheduledEventModel.findOne(query)
-                .populate('monitors.monitorId', 'name')
-                .populate('projectId', 'name')
-                .populate('createdById', 'name')
                 .populate('resolvedBy', 'name')
+                .populate({
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: { path: 'componentId', select: 'name slug' },
+                })
+                .populate('projectId', 'name slug')
+                .populate('createdById', 'name')
                 .lean();
 
             if (scheduledEvent) {
@@ -362,6 +410,7 @@ module.exports = {
                 'monitors.monitorId': monitorId,
             });
 
+            const _this = this;
             await Promise.all(
                 scheduledEvents.map(async event => {
                     // remove the monitor from scheduled event monitors list
@@ -376,11 +425,9 @@ module.exports = {
                             { $set: { monitors: event.monitors } },
                             { new: true }
                         );
-                        updatedEvent = await updatedEvent
-                            .populate('monitors.monitorId', 'name')
-                            .populate('projectId', 'name')
-                            .populate('createdById', 'name')
-                            .execPopulate();
+                        updatedEvent = await _this.findOneBy({
+                            _id: updatedEvent._id,
+                        });
 
                         await RealTimeService.updateScheduledEvent(
                             updatedEvent
@@ -432,6 +479,21 @@ module.exports = {
                 { $set: data },
                 { new: true }
             );
+            if (
+                resolvedScheduledEvent &&
+                !resolvedScheduledEvent.monitorDuringEvent
+            ) {
+                for (const monitor of resolvedScheduledEvent.monitors) {
+                    await MonitorService.updateOneBy(
+                        {
+                            _id: monitor.monitorId._id || monitor.monitorId,
+                        },
+                        {
+                            shouldNotMonitor: false,
+                        }
+                    );
+                }
+            }
 
             if (resolvedScheduledEvent.recurring) {
                 let newStartDate;
@@ -473,16 +535,9 @@ module.exports = {
                 _this.create({ projectId }, postObj, true);
             }
             // populate the necessary data
-            resolvedScheduledEvent = await resolvedScheduledEvent
-                .populate('monitors.monitorId', 'name')
-                .populate({
-                    path: 'monitors.monitorId',
-                    select: 'name',
-                    populate: { path: 'componentId', select: 'name slug' },
-                })
-                .populate('projectId', 'name slug replyAddress')
-                .populate('createdById', 'name')
-                .execPopulate();
+            resolvedScheduledEvent = await _this.findOneBy({
+                _id: resolvedScheduledEvent._id,
+            });
 
             // add note automatically
             // when a scheduled event is resolved

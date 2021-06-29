@@ -113,6 +113,7 @@ module.exports = {
             query.deleted = false;
 
             const monitorStatus = await MonitorStatusModel.find(query)
+                .lean()
                 .sort({ createdAt: -1 })
                 .limit(limit)
                 .skip(skip);

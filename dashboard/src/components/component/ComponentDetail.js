@@ -7,7 +7,6 @@ import {
     fetchComponentResources,
     addCurrentComponent,
 } from '../../actions/component';
-import { fetchMonitors } from '../../actions/monitor';
 import { closeModal } from '../../actions/modal';
 import { deleteComponent } from '../../actions/component';
 import ShouldRender from '../basic/ShouldRender';
@@ -119,14 +118,13 @@ export class ComponentDetail extends Component {
         return promise;
     };
     componentDidMount() {
-        const { component, currentProject } = this.props;
+        const { component } = this.props;
         this.props.fetchComponentResources(
             component.projectId._id,
             component._id,
             0,
             5
         );
-        this.props.fetchMonitors(currentProject._id);
     }
 
     render() {
@@ -272,7 +270,6 @@ const mapDispatchToProps = dispatch => {
             fetchComponents,
             addCurrentComponent,
             fetchComponentResources,
-            fetchMonitors,
             animateSidebar,
         },
         dispatch
@@ -315,7 +312,6 @@ ComponentDetail.propTypes = {
         PropTypes.object,
         PropTypes.array,
     ]),
-    fetchMonitors: PropTypes.func,
     animateSidebar: PropTypes.func,
 };
 

@@ -26,7 +26,7 @@ module.exports = [
             '{{monitor.customFields.*}} : The value of any monitor custom field',
             '{{length}} : Length of the incident',
         ],
-        smsType: 'Subscriber Incident Acknowldeged',
+        smsType: 'Subscriber Incident Acknowledged',
         body:
             '{{projectName}} - {{incidentType}} incident on {{monitorName}} is acknowledged at {{incidentTime}}. You are receiving this message because you subscribed to this monitor.',
     },
@@ -104,5 +104,15 @@ module.exports = [
         smsType: 'Subscriber Scheduled Maintenance Cancelled',
         body:
             'Scheduled maintenance event for {{projectName}} - {{eventName}}, has been cancelled.',
+    },
+    {
+        allowedVariables: [
+            '{{announcementTitle}} : Name of the maintenance event.',
+            '{{announcementDescription}} : Description of the scheduled event.',
+            '{{projectName}} : Name of the project on which the event is created.',
+        ],
+        smsType: 'Subscriber Announcement Notification Created',
+        body:
+            'An announcement has been made on {{projectName}}. Title: {{announcementTitle}}, Content: "{{announcementDescription}}."',
     },
 ];

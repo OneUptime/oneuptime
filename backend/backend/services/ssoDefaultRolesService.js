@@ -21,6 +21,7 @@ module.exports = {
                     domain: 1,
                     createdAt: 1,
                 })
+                .lean()
                 .populate('domain', ['_id', 'domain'])
                 .populate('project', ['_id', 'name'])
                 .sort([['domaine', -1]])
@@ -164,6 +165,7 @@ module.exports = {
             }
             const sso = await ssoDefaultRolesModel
                 .findOne(query)
+                .lean()
                 .populate('domain', ['_id', 'domain'])
                 .populate('project', ['_id', 'name']);
             return sso;

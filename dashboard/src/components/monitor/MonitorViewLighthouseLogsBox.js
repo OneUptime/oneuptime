@@ -84,6 +84,10 @@ export class MonitorViewLighthouseLogsBox extends Component {
 
     scanWebsites = async () => {
         const { currentProject, monitor, editMonitor } = this.props;
+        if (monitor.name) {
+            delete monitor.name;
+        }
+        // The monitor name triggers a service that update the Monitor Slug which caused the infinite reload
         await editMonitor(currentProject._id, {
             ...monitor,
             lighthouseScanStatus: 'scan',
@@ -132,7 +136,7 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                         Currently scanning your website URL(s).
                                     </span>
                                 ) : (
-                                    <span>
+                                    <span id="website_postscan">
                                         Here&apos;s a summary of{' '}
                                         <a
                                             href="https://developers.google.com/web/tools/lighthouse"

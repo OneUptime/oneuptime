@@ -82,7 +82,7 @@ class Groups extends Component {
                         route={getParentRoute(pathname)}
                         name="Project Settings"
                     />
-                    <BreadCrumbItem route={pathname} name="Groups" />
+                    <BreadCrumbItem route={pathname} name="Team Groups" />
                     <div className="Margin-vertical--12">
                         <div>
                             <div id="settingsPage">

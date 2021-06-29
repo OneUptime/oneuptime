@@ -65,6 +65,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
+            // won't be using lean() here because of iv cypher for password
             const containerSecurity = await ContainerSecurityModel.findOne(
                 query
             )
@@ -92,6 +93,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
+            // won't be using lean() here because of iv cypher for password
             const containerSecurities = await ContainerSecurityModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)

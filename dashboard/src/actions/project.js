@@ -120,7 +120,10 @@ export const resetProjects = () => {
 
 export function getProjects(switchToProjectId) {
     return function(dispatch) {
-        const promise = getApi(`project/projects?skip${0}&limit=${9999}`, null);
+        const promise = getApi(
+            `project/projects?skip=${0}&limit=${9999}`,
+            null
+        );
         dispatch(projectsRequest(promise));
 
         promise.then(
@@ -133,7 +136,11 @@ export function getProjects(switchToProjectId) {
                             project =>
                                 project._id === User.getCurrentProjectId()
                         );
-                        dispatch(switchProject(dispatch, project[0]));
+                        if (project && project.length > 0) {
+                            dispatch(switchProject(dispatch, project[0]));
+                        } else {
+                            dispatch(switchProject(dispatch, projects[0]));
+                        }
                     } else {
                         dispatch(switchProject(dispatch, projects[0]));
                     }
@@ -291,7 +298,34 @@ export function switchToProjectViewerNav(userId, subProjects, currentProject) {
 export function switchProject(dispatch, project, subProjects = []) {
     const currentProjectId = User.getCurrentProjectId();
     const historyProjectId = history.location.pathname.split('project')[1];
-    if (!currentProjectId || project._id !== currentProjectId) {
+
+    //get project slug from pathname
+    const pathname = history.location.pathname;
+    const regex = new RegExp('/dashboard/project/([A-z-0-9]+)/?.+', 'i');
+    const match = pathname.match(regex);
+
+    let projectSlug;
+    if (match) {
+        projectSlug = match[1];
+    }
+
+    // if the path is already pointing to project slug we do not need to switch projects
+    // esp. if this is from a redirectTo
+    if (project.slug === projectSlug) {
+        // ensure we update current project in localStorage
+        User.setCurrentProjectId(project._id);
+
+        // remove accessToken from url from redirects
+        const search = history.location.search;
+        if (search) {
+            const searchParams = new URLSearchParams(search);
+            searchParams.delete('accessToken');
+            history.push({
+                pathname: history.location.pathname,
+                search: searchParams.toString(),
+            });
+        }
+    } else if (!currentProjectId || project._id !== currentProjectId) {
         const isViewer = isMainProjectViewer(
             User.getUserId(),
             subProjects,
@@ -326,7 +360,7 @@ export function switchProject(dispatch, project, subProjects = []) {
     fetchMonitors(project._id)(dispatch);
     fetchResourceCategories(project._id)(dispatch);
     fetchResourceCategoriesForNewResource(project._id)(dispatch);
-    fetchUnresolvedIncidents(project._id)(dispatch);
+    fetchUnresolvedIncidents(project._id, true)(dispatch);
     fetchSchedules(project._id)(dispatch);
     fetchSubProjectSchedules(project._id)(dispatch);
     fetchNotifications(project._id)(dispatch);
@@ -1366,6 +1400,53 @@ export function fetchTrial(projectId) {
                     error = 'Network Error';
                 }
                 dispatch(fetchTrialError(errors(error)));
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchProjectSlugRequest() {
+    return {
+        type: types.FETCH_PROJECT_SLUG_REQUEST,
+    };
+}
+
+export function fetchProjectSlugSuccess(payload) {
+    return {
+        type: types.FETCH_PROJECT_SLUG_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchProjectSlugFailure(error) {
+    return {
+        type: types.FETCH_PROJECT_SLUG_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchProjectSlug(slug) {
+    return function(dispatch) {
+        const promise = getApi(`project/project-slug/${slug}`);
+
+        dispatch(fetchProjectSlugRequest());
+
+        promise.then(
+            function(response) {
+                dispatch(fetchProjectSlugSuccess(response.data));
+            },
+            function(error) {
+                const errorMsg =
+                    error.response && error.response.data
+                        ? error.response.data
+                        : error.data
+                        ? error.data
+                        : error.message
+                        ? error.message
+                        : 'Network Error';
+                dispatch(fetchProjectSlugFailure(errorMsg));
             }
         );
 

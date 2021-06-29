@@ -3,7 +3,7 @@
 #
 
 # Pull base image nodejs image.
-FROM node:15
+FROM node:16
 
 ENV NODE_OPTIONS="--max-old-space-size=8192"
 
@@ -21,6 +21,9 @@ RUN npm ci --only=production
 
 # Copy app source
 COPY . /usr/src/app
+
+# Install purgecss to mame CSS files smaller. 
+RUN npm install purgecss -g
 
 # Bundle app source
 RUN npm run build

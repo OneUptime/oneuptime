@@ -32,7 +32,8 @@ describe('Incident Priority API', () => {
         done();
     });
 
-    test(
+    // TEST CASE NO LONGER NEEDED
+    test.skip(
         'Should not remove the incident priority used by default.',
         async done => {
             await page.goto(utils.DASHBOARD_URL, {
@@ -151,7 +152,7 @@ describe('Incident Priority API', () => {
             await init.pageWaitForSelector(page, editButtonLastRowIndentifier);
             await init.pageClick(page, editButtonLastRowIndentifier);
             await init.pageWaitForSelector(page, '#EditIncidentPriority');
-            await init.pageClick(page, 'input[name=name]');
+            await init.pageClick(page, 'input[name=name]', { clickCount: 3 });
             await page.keyboard.press('Backspace');
             await init.pageType(page, 'input[name=name]', newPriorityName);
             await init.pageClick(page, '#EditIncidentPriority');

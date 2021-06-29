@@ -1,5 +1,5 @@
 # Pull base image nodejs image.
-FROM node:15
+FROM node:16
 
 RUN mkdir -p /usr/src/app
 
@@ -13,7 +13,7 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 1445: Fyipe Helm Chart Server
+#   - 3423: Fyipe Helm Chart Server
 EXPOSE 3423
 
 #Run the app

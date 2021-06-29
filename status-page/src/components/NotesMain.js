@@ -14,7 +14,7 @@ import {
     showIncidentCard,
 } from '../actions/status';
 import { openSubscribeMenu } from '../actions/subscribe';
-const countNum = 15;
+const countNum = 10;
 
 class NotesMain extends Component {
     constructor(props) {
@@ -35,7 +35,8 @@ class NotesMain extends Component {
             this.props.statusPageSlug,
             0,
             this.props.theme && countNum,
-            this.props.incidentHistoryDays || 14
+            this.props.incidentHistoryDays || 14,
+            this.props.theme === 'Clean Theme'
         );
     }
 
@@ -57,7 +58,7 @@ class NotesMain extends Component {
         this.props.showIncidentCard(true);
         this.props.getStatusPageNote(
             this.props.projectId,
-            this.props.statusPageId,
+            this.props.statusPageSlug,
             0
         );
     };
@@ -70,7 +71,7 @@ class NotesMain extends Component {
         );
         this.props.fetchLastIncidentTimelines(
             this.props.projectId,
-            this.props.statusPageId
+            this.props.statusPageSlug
         );
     };
 
