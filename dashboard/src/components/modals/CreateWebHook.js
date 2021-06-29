@@ -49,6 +49,7 @@ class CreateWebHook extends React.Component {
         postObj.endpoint = values.endpoint;
         postObj.endpointType = values.endpointType;
         postObj.monitors = monitorId ? [monitorId] : values.monitors;
+        postObj.monitors = postObj.monitors.filter(monitor => monitor !== null);
         postObj.type = 'webhook';
         postObj.incidentCreated = values.incidentCreated
             ? values.incidentCreated
@@ -466,6 +467,24 @@ class CreateWebHook extends React.Component {
                                                                             'post',
                                                                         label:
                                                                             'POST',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'put',
+                                                                        label:
+                                                                            'PUT',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'patch',
+                                                                        label:
+                                                                            'PATCH',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'delete',
+                                                                        label:
+                                                                            'DELETE',
                                                                     },
                                                                 ]}
                                                                 className="db-select-nw db-MultiSelect-input webhook-select"

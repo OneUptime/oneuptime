@@ -17,12 +17,6 @@ const integrationSchema = new Schema({
         required: true,
     },
     data: {},
-    monitorId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Monitor',
-        alias: 'monitor',
-        index: true,
-    },
     monitors: [
         {
             monitorId: {

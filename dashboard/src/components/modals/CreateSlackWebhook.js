@@ -44,6 +44,7 @@ class CreateSlack extends React.Component {
         postObj.webHookName = values.webHookName;
         postObj.endpoint = values.endpoint;
         postObj.monitors = monitorId ? [monitorId] : values.monitors;
+        postObj.monitors = postObj.monitors.filter(monitor => monitor !== null);
         postObj.type = 'slack';
         postObj.incidentCreated = values.incidentCreated
             ? values.incidentCreated

@@ -153,6 +153,7 @@ export function createWebHook(projectId, data) {
         return promise.then(
             function(webhook) {
                 dispatch(createWebHookSuccess(webhook.data));
+                dispatch(getWebHook(projectId));
                 return webhook.data;
             },
             function(error) {

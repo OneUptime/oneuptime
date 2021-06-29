@@ -331,8 +331,16 @@ module.exports = {
                     .request({
                         method: httpMethod,
                         url: webHookURL,
-                        data: httpMethod === 'post' ? payload : null,
-                        params: httpMethod === 'get' ? data : null,
+                        data:
+                            httpMethod === 'post' ||
+                            httpMethod === 'put' ||
+                            httpMethod === 'patch'
+                                ? payload
+                                : null,
+                        params:
+                            httpMethod === 'get' || httpMethod === 'delete'
+                                ? data
+                                : null,
                         headers: {
                             'Content-Type': 'application/json',
                         },

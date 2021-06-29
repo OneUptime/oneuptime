@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { deleteWebHook } from '../../actions/webHook';
+import { deleteWebHook, updateWebHook } from '../../actions/webHook';
 import { openModal, closeModal } from '../../actions/modal';
 import DeleteWebhook from '../modals/DeleteWebhook';
 import EditWebhook from '../modals/EditWebhook';
@@ -12,10 +12,46 @@ import { WebHookTableBody, WebHookBadgeTableBody } from './WebHookRow';
 
 class WebHookInput extends React.Component {
     deleteItem = () => {
-        return this.props.deleteWebHook(
-            this.props.currentProject._id,
-            this.props.data._id
-        );
+        const {
+            monitors,
+            monitorId,
+            data,
+            updateWebHook,
+            currentProject,
+        } = this.props;
+
+        //check if monitorId is present
+        //if the webhook contains more than one monitor just remove the monitor from it
+        //if not delete the monitor
+        if (monitorId) {
+            const newMonitors = monitors
+                .filter(monitor => monitor.monitorId._id !== monitorId)
+                .map(monitor => ({ monitorId: monitor.monitorId._id }));
+
+            if (newMonitors.length > 0) {
+                const postObj = {};
+                postObj.endpoint = data && data.data.endpoint;
+
+                postObj.monitors = newMonitors;
+                postObj.type = 'webhook';
+                postObj.endpointType = data && data.data.endpointType;
+
+                postObj.incidentCreated =
+                    data && data.notificationOptions.incidentCreated;
+                postObj.incidentResolved =
+                    data && data.notificationOptions.incidentResolved;
+                postObj.incidentAcknowledged =
+                    data && data.notificationOptions.incidentAcknowledged;
+                postObj.incidentNoteAdded =
+                    data && data.notificationOptions.incidentNoteAdded;
+
+                return updateWebHook(currentProject._id, data._id, postObj);
+            } else {
+                return this.props.deleteWebHook(currentProject._id, data._id);
+            }
+        } else {
+            return this.props.deleteWebHook(currentProject._id, data._id);
+        }
     };
 
     getMonitors(monitors) {
@@ -31,6 +67,8 @@ class WebHookInput extends React.Component {
 
     render() {
         const { data, webhooks, monitors, monitorId } = this.props;
+        // eslint-disable-next-line no-console
+        console.log(monitorId, 'monitor id being logged here man');
 
         const { endpoint, endpointType } = data.data;
         let deleting = false;
@@ -121,6 +159,7 @@ const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
             deleteWebHook,
+            updateWebHook,
             openModal,
             closeModal,
         },
@@ -141,6 +180,7 @@ WebHookInput.propTypes = {
     monitorId: PropTypes.string,
     webhooks: PropTypes.object,
     monitors: PropTypes.array,
+    updateWebHook: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(WebHookInput);

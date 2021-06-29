@@ -151,10 +151,10 @@ module.exports = {
                     query,
                     {
                         $set: {
-                            monitorId: data.monitorId,
+                            monitors: data.monitors,
                             'data.webHookName': data.webHookName,
                             'data.endpoint': data.endpoint,
-                            'data.monitorId': data.monitorId,
+                            'data.monitors': data.monitors,
                             'data.endpointType': data.endpointType,
                             'notificationOptions.incidentCreated':
                                 data.incidentCreated,

@@ -150,10 +150,10 @@ export function createSlack(projectId, data) {
         const promise = postApi(`webhook/${projectId}/create`, data);
 
         dispatch(createSlackRequest());
-
         return promise.then(
             function(webhook) {
                 dispatch(createSlackSuccess(webhook.data));
+                dispatch(getSlack(projectId));
                 return webhook.data;
             },
             function(error) {

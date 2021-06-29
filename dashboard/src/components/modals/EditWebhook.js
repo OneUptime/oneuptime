@@ -44,12 +44,9 @@ class EditWebHook extends React.Component {
 
         const postObj = {};
         postObj.endpoint = values.endpoint;
-        postObj.monitorId = values.monitorId;
         postObj.endpointType = values.endpointType;
         postObj.type = 'webhook';
-        postObj.monitors = data.currentMonitorId
-            ? [data.currentMonitorId]
-            : values.monitors;
+        postObj.monitors = values.monitors;
         postObj.incidentCreated = values.incidentCreated
             ? values.incidentCreated
             : false;
@@ -70,7 +67,7 @@ class EditWebHook extends React.Component {
             this.setState({
                 monitorError: 'Duplicate monitor selection found',
             });
-            postObj.monitorId = [];
+            postObj.monitors = [];
             return;
         }
         updateWebHook(currentProject._id, data._id, postObj).then(() => {
@@ -94,11 +91,10 @@ class EditWebHook extends React.Component {
     renderMonitors = ({ fields }) => {
         const { monitorError } = this.state;
         const { allComponents } = this.props;
-        //const monitors = formValues.monitorId;
+
         const allMonitors = this.props.monitor.monitorsList.monitors
             .map(monitor => monitor.monitors)
             .flat();
-        // .filter(monitor => !monitors.includes(monitor._id));
         const getParentComponent = monitor =>
             allComponents.filter(
                 component => component._id === monitor.componentId._id
@@ -290,7 +286,8 @@ class EditWebHook extends React.Component {
                                                                 type="url"
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 style={{
-                                                                    width: 250,
+                                                                    width:
+                                                                        '100%',
                                                                     padding:
                                                                         '3px 5px',
                                                                 }}
@@ -302,9 +299,7 @@ class EditWebHook extends React.Component {
                                             </div>
                                         </fieldset>
 
-                                        <ShouldRender
-                                            if={!data.currentMonitorId}
-                                        >
+                                        <ShouldRender if={!data.monitorId}>
                                             <fieldset className="Margin-bottom--16">
                                                 <div className="bs-Fieldset-rows">
                                                     <div
@@ -370,7 +365,8 @@ class EditWebHook extends React.Component {
                                         <ShouldRender
                                             if={
                                                 formValues &&
-                                                formValues.selectMonitors
+                                                formValues.selectMonitors &&
+                                                !data.monitorId
                                             }
                                         >
                                             <fieldset className="Margin-bottom--16">
@@ -449,6 +445,10 @@ class EditWebHook extends React.Component {
                                                                 validate={
                                                                     ValidateField.select
                                                                 }
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                }}
                                                                 options={[
                                                                     {
                                                                         value:
@@ -467,6 +467,24 @@ class EditWebHook extends React.Component {
                                                                             'post',
                                                                         label:
                                                                             'POST',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'put',
+                                                                        label:
+                                                                            'PUT',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'patch',
+                                                                        label:
+                                                                            'PATCH',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'delete',
+                                                                        label:
+                                                                            'DELETE',
                                                                     },
                                                                 ]}
                                                                 className="db-select-nw db-MultiSelect-input webhook-select"

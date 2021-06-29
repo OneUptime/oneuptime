@@ -40,7 +40,6 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
                 message: 'endpoint missing in body, must be present',
             });
         }
-
         if (!monitors || monitors.length < 1) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -137,10 +136,10 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
             });
         }
 
-        if (!data.monitorId) {
+        if (!data.monitors || !data.monitors.length > 0) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'monitorId missing in body, must be present',
+                message: 'monitors missing in body, must be present',
             });
         }
 
