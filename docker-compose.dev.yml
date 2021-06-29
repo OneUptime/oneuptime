@@ -129,6 +129,8 @@ services:
         build:
             context: ./script-runner
             dockerfile: ./Dockerfile.dev
+        env_file:
+            - ./script-runner/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SERVER_URL=http://backend:3002
