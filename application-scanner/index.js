@@ -1,6 +1,6 @@
 const { NODE_ENV } = process.env;
 
-if(!NODE_ENV || NODE_ENV === 'development'){
+if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /backend/.env
     require('custom-env').env();
 }
@@ -12,7 +12,9 @@ process.on('exit', () => {
 
 process.on('unhandledRejection', err => {
     /* eslint-disable no-console */
-    console.error('Unhandled rejection in application scanner process occurred');
+    console.error(
+        'Unhandled rejection in application scanner process occurred'
+    );
     /* eslint-disable no-console */
     console.error(err);
 });
@@ -40,9 +42,9 @@ app.set('port', process.env.PORT || 3005);
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log(
-        `Application Scanner Started on port ${app.get('port')}. Fyipe API URL: ${
-            config.serverUrl
-        }`
+        `Application Scanner Started on port ${app.get(
+            'port'
+        )}. Fyipe API URL: ${config.serverUrl}`
     );
 });
 
