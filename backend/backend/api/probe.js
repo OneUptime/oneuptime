@@ -20,8 +20,8 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const getUser = require('../middlewares/user').getUser;
 const { isAuthorized } = require('../middlewares/authorization');
-const multer = require('multer');
-const storage = require('../middlewares/upload');
+// const multer = require('multer');
+// const storage = require('../middlewares/upload');
 // const MUTEX_RESOURCES = require('../constants/MUTEX_RESOURCES');
 // const getMutex = require('../constants/mutexProvider');
 
@@ -676,7 +676,7 @@ router.get('/:projectId/probes', getUser, isAuthorized, async function(
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
-})
+});
 
 router.get('/containerSecurities', isAuthorizedProbe, async function(req, res) {
     try {

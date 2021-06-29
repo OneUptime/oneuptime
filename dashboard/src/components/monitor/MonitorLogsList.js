@@ -887,7 +887,7 @@ export class MonitorLogsList extends Component {
                                                                                     log
                                                                                         .scriptMetadata
                                                                                         .statusText !==
-                                                                                        'completed' ? (
+                                                                                        'success' ? (
                                                                                         <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                 <span>
@@ -905,7 +905,7 @@ export class MonitorLogsList extends Component {
                                                                                       log
                                                                                           .scriptMetadata
                                                                                           .statusText ===
-                                                                                          'completed' ? (
+                                                                                          'success' ? (
                                                                                         <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                             <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                 <span>
