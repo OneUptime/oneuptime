@@ -15,7 +15,7 @@ RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contri
 # Install app dependencies
 RUN cd /usr/src/app
 
-# RUN mkdir -p greenlock.d
+RUN mkdir -p greenlock.d || echo "Directory already exists"
 
 # Copy package.json files
 COPY ./package.json /usr/src/app/package.json
