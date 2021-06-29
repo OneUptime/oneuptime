@@ -111,43 +111,18 @@ class IncomingRequestList extends React.Component {
                         }}
                         id={`incomingRequest_${incomingRequest.name}`}
                     >
-                        {incomingRequest.isDefault ? (
-                            <div
-                                className="bs-ObjectList-cell bs-u-v-middle"
-                                style={{
-                                    display: 'flex',
-                                    width: '10vw',
-                                    whiteSpace: 'normal',
-                                }}
-                            >
-                                <div className="bs-ObjectList-cell-row">
-                                    {incomingRequest.name}
-                                </div>
-                                <div
-                                    style={{
-                                        marginLeft: 5,
-                                    }}
-                                    className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                >
-                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                        <span>Default</span>
-                                    </span>
-                                </div>
+                        <div
+                            className="bs-ObjectList-cell bs-u-v-middle"
+                            style={{
+                                display: 'flex',
+                                width: '15vw',
+                                whiteSpace: 'normal',
+                            }}
+                        >
+                            <div className="bs-ObjectList-cell-row">
+                                {incomingRequest.name}
                             </div>
-                        ) : (
-                            <div
-                                className="bs-ObjectList-cell bs-u-v-middle"
-                                style={{
-                                    display: 'flex',
-                                    width: '15vw',
-                                    whiteSpace: 'normal',
-                                }}
-                            >
-                                <div className="bs-ObjectList-cell-row">
-                                    {incomingRequest.name}
-                                </div>
-                            </div>
-                        )}
+                        </div>
                         <div
                             className="bs-ObjectList-cell bs-u-v-middle"
                             style={{ width: '40vw', whiteSpace: 'normal' }}

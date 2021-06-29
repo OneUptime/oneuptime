@@ -1,7 +1,7 @@
 module.exports = {
     incidentRequest: {
         name: 'pyInt',
-        isDefault: true,
+        selectAllMonitors: true,
         createIncident: true,
         incidentTitle: 'Test Incident',
         incidentType: 'offline',
