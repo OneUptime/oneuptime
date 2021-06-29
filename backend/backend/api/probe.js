@@ -113,9 +113,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
     req,
     response
 ) {
-    
     try {
-
         const {
             monitor,
             res,
