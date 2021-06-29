@@ -61,6 +61,35 @@ response = logger.log(item, tags)
 puts response
 ```
 
+## Basic Usage for Tracking
+
+```ruby
+require 'fyipe'
+
+# constructor
+
+# set up tracking configurations
+options = {
+    "maxTimeline": 50,
+    "captureCodeSnippet": true
+}
+tracker = FyipeLogger.new(
+    'API_URL', # https://fyipe.com/api
+    'ERROR_TRACKER_ID',
+    'ERROR_TRACKER_KEY',
+    options # optional
+)
+
+# capturing error exception manually and sent to your fyipe dashboard
+begin
+    # your code logic
+    result = 5/0 # Should throw a division by zero error
+rescue => ex
+    tracker.captureException(ex)
+end
+
+```
+
 ## API Documentation
 
 Main API to send logs to the server.
@@ -71,11 +100,20 @@ Main API to send logs to the server.
     -   [Installation](#installation)
         -   [Gem Install](#gem-install)
     -   [Basic Usage for Logging](#basic-usage-for-logging)
+    -   [Basic Usage for Tracking](#basic-usage-for-tracking)
     -   [API Documentation](#api-documentation)
         -   [FyipeLogger.new(apiUrl, applicationId, applicationKey)](#fyipeloggernewapiurl-applicationid-applicationkey)
             -   [logger.log(log, \tags)](#loggerloglog-tags)
             -   [logger.warning(warning, \tags)](#loggerwarningwarning-tags)
             -   [logger.error(error, \tags)](#loggererrorerror-tags)
+        -   [FyipeTracker.new(apiUrl, errorTrackerId, errorTrackerKey)](#fyipetrackernewapiurl-errortrackerid-errortrackerkey)
+            -   [options](#options)
+            -   [tracker.setTag(key, value)](#trackersettagkey-value)
+            -   [tracker.setTags([{key, value}])](#trackersettagskey-value)
+            -   [tracker.setFingerprint(fingerprint)](#trackersetfingerprintfingerprint)
+            -   [tracker.addToTimeline(category, content, type)](#trackeraddtotimelinecategory-content-type)
+            -   [tracker.captureMessage(message)](#trackercapturemessagemessage)
+            -   [tracker.captureException(error)](#trackercaptureexceptionerror)
     -   [Contribution](#contribution)
 
 <a name="logger_api--logger"></a>
@@ -128,6 +166,99 @@ Logs a request of type `error` to the server.
 | ------ | ------------------------------------------ | ----------------------------------------------------------- |
 | \error | <code>string</code> \| <code>Object</code> | The content to the logged on the server.                    |
 | \tags  | <code>string</code> \| <code>Array</code>  | The tag(s) to be attached to the logged item on the server. |
+
+<a name="tracker_api--tracker"></a>
+
+### FyipeTracker.new(apiUrl, errorTrackerId, errorTrackerKey)
+
+Create a constructor from the class, which will be used to track errors sent to the server.
+
+**Kind**: Constructor
+**Returns**: <code>null</code>
+
+| Param           | Type                | Description                                 |
+| --------------- | ------------------- | ------------------------------------------- |
+| apiUrl          | <code>string</code> | The Server URL.                             |
+| errorTrackerId  | <code>string</code> | The Error Tracker ID.                       |
+| errorTrackerKey | <code>string</code> | The Error Tracker Key.                      |
+| option          | <code>object</code> | The options to be considred by the tracker. |
+
+#### options
+
+| Param              | Type                 | Description                                                                                           |
+| ------------------ | -------------------- | ----------------------------------------------------------------------------------------------------- |
+| maxTimeline        | <code>int</code>     | The total amount of timeline that should be captured, defaults to 5                                   |
+| captureCodeSnippet | <code>boolean</code> | When set as `true` stack traces are automatically attached to all error sent to your fyipe dashboard. |
+
+#### tracker.setTag(key, value)
+
+Set tag for the error to be sent to the server.
+
+**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>null</code>
+
+| Param | Type                | Description            |
+| ----- | ------------------- | ---------------------- |
+| key   | <code>string</code> | The key for the tag.   |
+| value | <code>string</code> | The value for the tag. |
+
+#### tracker.setTags([{key, value}])
+
+Set multiple tags for the error to be sent to the server. Takes in a list
+
+**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>null</code>
+
+| Param | Type                | Description            |
+| ----- | ------------------- | ---------------------- |
+| key   | <code>string</code> | The key for the tag.   |
+| value | <code>string</code> | The value for the tag. |
+
+#### tracker.setFingerprint(fingerprint)
+
+Set fingerprint for the next error to be captured.
+
+**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>null</code>
+
+| Param       | Type                                                | Description                                                   |
+| ----------- | --------------------------------------------------- | ------------------------------------------------------------- |
+| fingerprint | <code>string</code> \| <code>list of strings</code> | The set of string used to group error messages on the server. |
+
+#### tracker.addToTimeline(category, content, type)
+
+Add a custom timeline element to the next error to be sent to the server
+
+**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>null</code>
+
+| Param    | Type                                       | Description                         |
+| -------- | ------------------------------------------ | ----------------------------------- |
+| category | <code>string</code>                        | The category of the timeline event. |
+| content  | <code>string</code> \| <code>object</code> | The content of the timeline event.  |
+| type     | <code>string</code>                        | The type of timeline event.         |
+
+#### tracker.captureMessage(message)
+
+Capture a custom error message to be sent to the server
+
+**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>Promise</code>
+
+| Param   | Type                | Description                           |
+| ------- | ------------------- | ------------------------------------- |
+| message | <code>string</code> | The message to be sent to the server. |
+
+#### tracker.captureException(error)
+
+Capture a custom error object to be sent to the server
+
+**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>Promise</code>
+
+| Param | Type                          | Description                                |
+| ----- | ----------------------------- | ------------------------------------------ |
+| error | <code>Exception object</code> | The Error Object to be sent to the server. |
 
 ## Contribution
 
