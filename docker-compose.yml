@@ -178,8 +178,11 @@ services:
         ports:
             - '3009:3009'
         build: ./script-runner
+        env_file:
+            - ./script-runner/.env
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - SERVER_URL=http://backend:3002
     application-scanner:
         ports:
             - '3005:3005'

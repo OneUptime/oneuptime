@@ -22,6 +22,10 @@ COPY ./package-lock.json /usr/src/app/package-lock.json
 # Install app dependencies
 RUN npm ci
 
+# Create .cache folder with necessary permissions for React-based apps
+# https://stackoverflow.com/questions/67087735/eacces-permission-denied-mkdir-usr-app-node-modules-cache-how-can-i-creat
+RUN mkdir -p node_modules/.cache && chmod -R 777 node_modules/.cache
+
 # Expose ports.
 #   - 3100:  Fyipe-admin-dashboard
 EXPOSE 3100

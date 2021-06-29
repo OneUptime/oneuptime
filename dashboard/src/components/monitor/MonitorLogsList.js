@@ -645,10 +645,14 @@ export class MonitorLogsList extends Component {
                                                                             : this
                                                                                   .props
                                                                                   .monitorType &&
-                                                                              this
-                                                                                  .props
-                                                                                  .monitorType ===
-                                                                                  'incomingHttpRequest'
+                                                                              [
+                                                                                  'incomingHttpRequest',
+                                                                                  'script',
+                                                                              ].includes(
+                                                                                  this
+                                                                                      .props
+                                                                                      .monitorType
+                                                                              )
                                                                             ? 'Fyipe'
                                                                             : 'Unknown Probe'}
                                                                     </span>
