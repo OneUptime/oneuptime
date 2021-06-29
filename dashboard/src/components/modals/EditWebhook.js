@@ -46,7 +46,7 @@ class EditWebHook extends React.Component {
         postObj.endpoint = values.endpoint;
         postObj.endpointType = values.endpointType;
         postObj.type = 'webhook';
-        postObj.monitors = values.monitors;
+        postObj.monitors = values.monitors.map(id => ({ monitorId: id }));
         postObj.incidentCreated = values.incidentCreated
             ? values.incidentCreated
             : false;

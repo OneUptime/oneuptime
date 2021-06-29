@@ -1,4 +1,5 @@
 const { update, find, removeFieldsFromMany } = require('../util/db');
+const { ObjectId } = require('mongodb');
 
 const integrationsCollection = 'integrations';
 
@@ -13,9 +14,11 @@ async function run() {
         delete data.monitorId;
         obj.data = {
             ...data,
-            monitors: [{ monitorId: integration.data.monitorId }],
+            monitors: [{ monitorId: integration.monitorId }],
         };
-        obj.monitors = [{ monitorId: integration.monitorId }];
+        obj.monitors = [
+            { _id: new ObjectId(), monitorId: String(integration.monitorId) },
+        ];
         await update(integrationsCollection, { _id: integration._id }, obj);
     }
 
