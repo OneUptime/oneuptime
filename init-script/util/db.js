@@ -14,6 +14,10 @@ async function find(collection, query = {}) {
         .toArray();
 }
 
+async function findOne(collection, query = {}) {
+    return global.db.collection(collection).findOne(query);
+}
+
 async function save(collection, docs) {
     return global.db.collection(collection).insertMany(docs);
 }
@@ -80,6 +84,7 @@ async function getVersion() {
 module.exports = {
     connectToDb,
     find,
+    findOne,
     save,
     update,
     getVersion,
