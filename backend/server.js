@@ -203,6 +203,7 @@ app.use(
 );
 app.use(['/probe', '/api/probe'], require('./backend/api/probe'));
 app.use(['/application', '/api/application'], require('./backend/api/applicationScanner'));
+app.use(['/lighthouse', '/api/lighthouse'], require('./backend/api/lighthouse'));
 app.use(['/version', '/api/version'], require('./backend/api/version'));
 app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));
 app.use(['/audit-logs', '/api/audit-logs'], require('./backend/api/auditLogs'));

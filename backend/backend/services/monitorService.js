@@ -695,6 +695,91 @@ module.exports = {
         }
     },
 
+    async getUrlMonitors(lighthouseId, date) {
+        try {
+            const newdate = new Date();
+            const monitors = await MonitorModel.find({
+                $and: [
+                    {
+                        deleted: false,
+                        disabled: false,
+                    },
+                    {
+                        $or: [
+                            {
+                                $and: [
+                                    {
+                                        type: {
+                                            $in: [
+                                                'url',
+                                            ],
+                                        },
+                                    },
+                                    {
+                                        $or: [
+                                            {
+                                                pollTime: {
+                                                    $elemMatch: {
+                                                        lighthouseId,
+                                                        date: { $lt: date },
+                                                    },
+                                                },
+                                            },
+                                            {
+                                                //pollTime doesn't include the probeId yet.
+                                                pollTime: {
+                                                    $not: {
+                                                        $elemMatch: {
+                                                            lighthouseId,
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            });
+
+            if (monitors && monitors.length) {
+                for (const monitor of monitors) {
+                    if (
+                        monitor.pollTime.length === 0 ||
+                        !monitor.pollTime.some(
+                            pt => String(pt.lighthouseId) === String(lighthouseId)
+                        )
+                    ) {
+                        await MonitorModel.updateOne(
+                            { _id: monitor._id },
+                            { $push: { pollTime: { lighthouseId, date: newdate } } }
+                        );
+                    } else {
+                        await MonitorModel.updateOne(
+                            {
+                                _id: monitor._id,
+                                pollTime: {
+                                    $elemMatch: {
+                                        lighthouseId,
+                                    },
+                                },
+                            },
+                            { $set: { 'pollTime.$.date': newdate } }
+                        );
+                    }
+                }
+                return monitors;
+            } else {
+                return [];
+            }
+        } catch (error) {
+            ErrorService.log('monitorService.getUrlMonitors', error);
+            throw error;
+        }
+    },
+
     async updateMonitorPingTime(id) {
         try {
             const newdate = new Date();
