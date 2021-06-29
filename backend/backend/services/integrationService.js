@@ -116,7 +116,7 @@ module.exports = {
                 .populate('createdById', 'name')
                 .populate('projectId', 'name')
                 .populate({
-                    path: 'monitorId',
+                    path: 'monitors.monitorId',
                     select: 'name',
                     populate: {
                         path: 'componentId',

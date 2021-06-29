@@ -153,7 +153,6 @@ export function createMsTeams(projectId, data) {
         return promise.then(
             function(webhook) {
                 dispatch(createMsTeamsSuccess(webhook.data));
-                dispatch(getMsTeams(projectId));
                 return webhook.data;
             },
             function(error) {

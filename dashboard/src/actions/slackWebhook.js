@@ -153,7 +153,6 @@ export function createSlack(projectId, data) {
         return promise.then(
             function(webhook) {
                 dispatch(createSlackSuccess(webhook.data));
-                dispatch(getSlack(projectId));
                 return webhook.data;
             },
             function(error) {
