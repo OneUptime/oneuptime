@@ -16,6 +16,7 @@ const incomingRequestSchema = new Schema(
             },
         ],
         isDefault: { type: Boolean, default: false },
+        selectAllMonitors: { type: Boolean, default: false },
         createIncident: { type: Boolean, default: false },
         acknowledgeIncident: { type: Boolean, default: false },
         resolveIncident: { type: Boolean, default: false },
