@@ -3,62 +3,38 @@
  * Copyright HackerBay, Inc.
  *
  */
-const ServiceAuthorizationService = require('../services/serviceAuthorizationService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ErrorService = require('../services/errorService');
+const CLUSTER_KEY = process.env.CLUSTER_KEY;
 
 module.exports = {
     isAuthorizedService: async function(req, res, next) {
         try {
-            let serviceKey, serviceName;
+            let clusterKey;
 
-            if (req.params.serviceKey) {
-                serviceKey = req.params.serviceKey;
-            } else if (req.query.serviceKey) {
-                serviceKey = req.query.serviceKey;
-            } else if (req.headers['serviceKey']) {
-                serviceKey = req.headers['serviceKey'];
-            } else if (req.headers['servicekey']) {
-                serviceKey = req.headers['servicekey'];
-            } else if (req.body.serviceKey) {
-                serviceKey = req.body.serviceKey;
+            if (req.params.clusterKey) {
+                clusterKey = req.params.clusterKey;
+            } else if (req.query.clusterKey) {
+                clusterKey = req.query.clusterKey;
+            } else if (req.headers['clusterKey']) {
+                clusterKey = req.headers['clusterKey'];
+            } else if (req.headers['clusterkey']) {
+                clusterKey = req.headers['clusterkey'];
+            } else if (req.body.clusterKey) {
+                clusterKey = req.body.clusterKey;
             } else {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Service Key not found.',
+                    message: 'Cluster key not found.',
                 });
             }
 
-            if (req.params.serviceName) {
-                serviceName = req.params.serviceName;
-            } else if (req.query.serviceName) {
-                serviceName = req.query.serviceName;
-            } else if (req.headers['serviceName']) {
-                serviceName = req.headers['serviceName'];
-            } else if (req.headers['servicename']) {
-                serviceName = req.headers['servicename'];
-            } else if (req.body.serviceName) {
-                serviceName = req.body.serviceName;
-            } else {
+            const isAuthorized = clusterKey === CLUSTER_KEY;
+
+            if (!isAuthorized) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'Service Name not found.',
-                });
-            }
-
-            let service = null;
-
-            service = await ServiceAuthorizationService.findByServiceKeyAndName(
-                {
-                    serviceKey,
-                    serviceName,
-                }
-            );
-
-            if (!service) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Invalid service key and or service name',
+                    message: 'Invalid cluster key provided',
                 });
             }
 
