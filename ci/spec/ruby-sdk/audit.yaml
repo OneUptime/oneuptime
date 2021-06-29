@@ -13,10 +13,10 @@ audit_ruby-sdk:
         - sudo apt install -y rbenv
         - ruby -v
         - gem env home
-        - sudo gem install bundler
+        - cd ruby-sdk/fyipe
+        - sudo gem install bundler -v "$(grep -A 1 "BUNDLED WITH" Gemfile.lock | tail -n 1)"
         - which bundle
         - gem list bundler
-        - cd ruby-sdk/fyipe
         - bundle install
         - cd ..
         - cd ..
