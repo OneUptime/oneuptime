@@ -18,6 +18,7 @@ test_ruby-sdk:
         - sudo apt install -y rbenv
         - sudo gem install bundler
         - cd ruby-sdk/fyipe
+        - bundle --version
         - bundle install
         - bundle exec rspec
         - cd ..
