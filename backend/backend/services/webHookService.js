@@ -77,9 +77,6 @@ module.exports = {
                 return;
             }
             const integrations = await IntegrationService.findBy(query);
-
-            // eslint-disable-next-line no-console
-            console.log(integrations.length);
             const monitorStatus = await MonitorStatusService.findOneBy({
                 monitorId: monitor._id,
             });
