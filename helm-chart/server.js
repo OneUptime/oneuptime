@@ -40,7 +40,7 @@ app.use(function(req, res, next) {
         return next();
     }
 
-    next();
+    return next();
 });
 
 // set the server port

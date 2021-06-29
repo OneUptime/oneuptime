@@ -98,7 +98,7 @@ app.use(function(req, res, next) {
         }
     }
 
-    next();
+    return next();
 });
 
 // Add limit of 10 MB to avoid "Request Entity too large error"

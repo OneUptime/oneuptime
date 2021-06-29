@@ -58,7 +58,7 @@ app.use(function(req, res, next) {
     if (req.get('host').includes('cluster.local')) {
         return next();
     }
-    next();
+    return next();
 });
 
 app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
@@ -120,7 +120,7 @@ app.use(/^\/dashboard\/static\/js\/2\.(.+)\.chunk\.js$/, function(
     if (chunkFile) {
         res.sendFile(path.join(__dirname, 'build', 'static', 'js', chunkFile));
     } else {
-        next();
+        return next();
     }
 });
 app.use(/^\/dashboard\/static\/js\/main\.(.+)\.chunk\.js$/, function(
@@ -133,7 +133,7 @@ app.use(/^\/dashboard\/static\/js\/main\.(.+)\.chunk\.js$/, function(
             path.join(__dirname, 'build', 'static', 'js', mainChunkFile)
         );
     } else {
-        next();
+        return next();
     }
 });
 app.use(

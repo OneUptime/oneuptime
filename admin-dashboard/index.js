@@ -24,7 +24,7 @@ const app = express();
 app.use('/', (req, res, next) => {
     //eslint-disable-next-line
     console.log(req.method, ' ', req.originalUrl);
-    next();
+    return next();
 });
 
 app.get(['/env.js', '/admin/env.js'], function(req, res) {

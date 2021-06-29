@@ -38,7 +38,7 @@ module.exports = {
                 });
             }
 
-            next();
+            return next();
         } catch (error) {
             ErrorService.log('serviceAuthorization.isAuthorizedService', error);
             throw error;

@@ -47,7 +47,7 @@ module.exports = {
             const subProjects = await ProjectService.findBy(query);
             if (subProjects.length > 0) {
                 req.user.subProjects = subProjects;
-                next();
+                return next();
             } else {
                 return sendErrorResponse(req, res, {
                     code: 400,

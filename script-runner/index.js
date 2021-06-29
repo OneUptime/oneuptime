@@ -46,7 +46,7 @@ app.use(function(req, res, next) {
         'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
     );
 
-    next();
+    return next();
 });
 
 app.set('port', process.env.PORT || 3009);

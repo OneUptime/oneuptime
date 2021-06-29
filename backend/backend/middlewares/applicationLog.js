@@ -62,7 +62,7 @@ const _this = {
             }
 
             // everything is fine at this point
-            next();
+            return next();
         } catch (error) {
             ErrorService.log('applicationLog.isApplicationLogValid', error);
             throw error;
