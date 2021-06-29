@@ -745,7 +745,7 @@ module.exports = {
                         const incidentType = handleVariable(
                             data.incidentType,
                             dataConfig
-                        );
+                        ).toLowerCase();
                         data.incidentType = [
                             'offline',
                             'online',
@@ -757,11 +757,12 @@ module.exports = {
                         const incidentPriority = handleVariable(
                             data.incidentPriority,
                             dataConfig
-                        );
+                        ).toLowerCase();
                         const priorityObj = {};
                         incidentPriorities.forEach(
                             priority =>
-                                (priorityObj[priority.name] = priority._id)
+                                (priorityObj[priority.name.toLowerCase()] =
+                                    priority._id)
                         );
                         data.incidentPriority =
                             priorityObj[incidentPriority] ||
@@ -848,7 +849,7 @@ module.exports = {
                         const incidentType = handleVariable(
                             data.incidentType,
                             dataConfig
-                        );
+                        ).toLowerCase();
                         data.incidentType = [
                             'offline',
                             'online',
@@ -860,11 +861,12 @@ module.exports = {
                         const incidentPriority = handleVariable(
                             data.incidentPriority,
                             dataConfig
-                        );
+                        ).toLowerCase();
                         const priorityObj = {};
                         incidentPriorities.forEach(
                             priority =>
-                                (priorityObj[priority.name] = priority._id)
+                                (priorityObj[priority.name.toLowerCase()] =
+                                    priority._id)
                         );
                         data.incidentPriority =
                             priorityObj[incidentPriority] ||
