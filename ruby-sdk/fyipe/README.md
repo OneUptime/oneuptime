@@ -80,13 +80,50 @@ tracker = FyipeLogger.new(
     options # optional
 )
 
-# capturing error exception manually and sent to your fyipe dashboard
+# capturing a timeline manually
+timelineContent = {}
+
+timelineContent["account"] = "debit"
+timelineContent["amount"] = "6000.00"
+timelineContent["userId"] = 471
+tracker.addToTimeline('payment', timelineContent, 'info')
+
+# setting custom tags
+tracker.setTag('category', 'QA Tester') # a single tag
+
+# multiple tags
+tags = []
+
+# create two tags
+tagOne = {}
+tagOne["key"] = 'type'
+tagOne["value"] = 'notification'
+tagTwo = {}
+tagTwo["key"] = 'location'
+tagTwo["value"] = 'Oslo'
+
+# add the two items to the array
+tags = [tagOne, tagTwo]
+
+# setting the array of tags
+tracker.setTags(tags)
+
+
+# all error exception captured are sent to your fyipe dashboard
+
+# capturing errors in a begin and rescue
 begin
-    # your code logic
+    # some code that might fail
     result = 5/0 # Should throw a division by zero error
 rescue => ex
     tracker.captureException(ex)
 end
+
+# capturing errors using the message signature
+tracker.captureMessage('some error text')
+
+# capturing errors authomatically
+NonExistingMethod() # calling this will trigger an error and its sent to your fyipe dashboard
 
 ```
 
