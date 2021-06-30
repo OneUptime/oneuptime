@@ -19,13 +19,6 @@ async function run() {
         await update(integrationsCollection, { _id: integration._id }, obj);
     }
 
-    //remove monitor id field
-    await removeFieldsFromMany(
-        integrationsCollection,
-        { monitorId: { $exists: true } },
-        'monitorId'
-    );
-
     return `Script ran for ${integrations.length} integrations`;
 }
 
