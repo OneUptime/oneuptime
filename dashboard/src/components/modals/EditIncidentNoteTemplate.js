@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { RenderField } from '../basic/RenderField';
-import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { ValidateField, incidentNoteTemplateVariables } from '../../config';
 import { closeModal } from '../../actions/modal';
 import { FormLoader } from '../basic/Loader';
@@ -15,6 +14,7 @@ import {
     updateIncidentNoteTemplate,
     updateIncidentNoteTemplateFailure,
 } from '../../actions/incidentNoteTemplate';
+import CodeEditor from '../basic/CodeEditor';
 
 class EditIncidentNoteTemplate extends React.Component {
     state = {
@@ -90,12 +90,17 @@ class EditIncidentNoteTemplate extends React.Component {
         closeModal();
     };
 
+    onContentChange = val => {
+        this.props.change('incidentNote', val);
+    };
+
     render() {
         const {
             handleSubmit,
             updatingNoteTemplate,
             updatingNoteTemplateError,
             formValues,
+            content,
         } = this.props;
         const { showVariables } = this.state;
 
@@ -234,33 +239,32 @@ class EditIncidentNoteTemplate extends React.Component {
                                                                 </div>
                                                             )}
                                                     </div>
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Incident Note
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <div
-                                                                style={{
-                                                                    width:
-                                                                        '100%',
-                                                                }}
-                                                            >
-                                                                <Field
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={
-                                                                        RenderCodeEditor
+                                                    <div className="bs-Fieldset-rows">
+                                                        <div
+                                                            className="bs-Fieldset-row"
+                                                            style={{
+                                                                paddingTop: 0,
+                                                                paddingBottom: 0,
+                                                            }}
+                                                        >
+                                                            <label className="bs-Fieldset-label">
+                                                                Incident Note
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                                <CodeEditor
+                                                                    code={
+                                                                        content
                                                                     }
-                                                                    id="incidentNote"
-                                                                    name="incidentNote"
-                                                                    mode="markdown"
-                                                                    width="100%"
-                                                                    height="150px"
-                                                                    wrapEnabled={
-                                                                        true
+                                                                    onCodeChange={
+                                                                        this
+                                                                            .onContentChange
                                                                     }
-                                                                    disabled={
-                                                                        updatingNoteTemplate
-                                                                    }
+                                                                    textareaId={`incidentNote`}
+                                                                    placeholder="This can be markdown"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
                                                                 />
                                                             </div>
                                                         </div>
@@ -461,6 +465,8 @@ EditIncidentNoteTemplate.propTypes = {
     updateIncidentNoteTemplate: PropTypes.func,
     updateIncidentNoteTemplateFailure: PropTypes.func,
     formValues: PropTypes.object,
+    change: PropTypes.func,
+    content: PropTypes.string,
 };
 
 const EditIncidentNoteTemplateForm = reduxForm({
@@ -478,6 +484,14 @@ const mapStateToProps = (state, ownProps) => {
         initialValues.incidentState = 'Others';
         initialValues.customIncidentState = template.incidentState;
     }
+
+    const content = state.form.EditIncidentNoteTemplateForm
+        ? state.form.EditIncidentNoteTemplateForm.values
+            ? state.form.EditIncidentNoteTemplateForm.values.incidentNote
+                ? state.form.EditIncidentNoteTemplateForm.values.incidentNote
+                : ''
+            : ''
+        : '';
     return {
         currentProject: state.project.currentProject,
         updatingNoteTemplate:
@@ -488,6 +502,7 @@ const mapStateToProps = (state, ownProps) => {
         formValues: state.form.EditIncidentNoteTemplateForm
             ? state.form.EditIncidentNoteTemplateForm.values
             : {},
+        content,
     };
 };
 const mapDispatchToProps = dispatch =>
