@@ -5,20 +5,23 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { RenderField } from '../basic/RenderField';
-import { ValidateField } from '../../config';
-import {
-    setRevealIncidentSettingsVariables,
-    createIncidentTemplate,
-    fetchIncidentTemplates,
-    createIncidentTemplateFailure,
-} from '../../actions/incidentBasicsSettings';
+import { ValidateField, incidentNoteTemplateVariables } from '../../config';
 import { closeModal } from '../../actions/modal';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderSelect } from '../basic/RenderSelect';
+import {
+    createIncidentNoteTemplate,
+    fetchIncidentNoteTemplates,
+    createIncidentNoteTemplateFailure,
+} from '../../actions/incidentNoteTemplate';
 import CodeEditor from '../basic/CodeEditor';
 
-class CreateIncidentTemplate extends React.Component {
+class CreateIncidentNoteTemplate extends React.Component {
+    state = {
+        showVariables: false,
+    };
+
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -34,7 +37,7 @@ class CreateIncidentTemplate extends React.Component {
             case 'Enter':
                 if (event.target.localName === 'body') {
                     return document
-                        .getElementById('createIncidentTemplate')
+                        .getElementById('createIncidentNoteTemplate')
                         .click();
                 }
                 return false;
@@ -45,61 +48,64 @@ class CreateIncidentTemplate extends React.Component {
 
     submit = values => {
         const {
-            createIncidentTemplate,
+            createIncidentNoteTemplate,
             currentProject,
             closeModal,
-            fetchIncidentTemplates,
+            fetchIncidentNoteTemplates,
         } = this.props;
 
         const projectId = currentProject._id;
         const {
-            title,
-            description,
-            incidentPriority,
+            incidentState,
+            incidentNote,
             name,
-            isDefault,
+            customIncidentState,
         } = values;
 
-        createIncidentTemplate({
+        const data = {
+            incidentNote: incidentNote.trim(),
+            name,
+            incidentState,
+        };
+        if (incidentState === 'Others') {
+            data.incidentState = customIncidentState;
+        }
+
+        createIncidentNoteTemplate({
             projectId,
-            data: {
-                title,
-                description,
-                incidentPriority,
-                name,
-                isDefault,
-            },
+            data,
         }).then(() => {
             if (
-                !this.props.creatingIncidentTemplate &&
-                !this.props.createIncidentTemplateError
+                !this.props.creatingNoteTemplate &&
+                !this.props.creatingNoteTemplateError
             ) {
-                fetchIncidentTemplates({ projectId, skip: 0, limit: 10 });
+                fetchIncidentNoteTemplates({ projectId, skip: 0, limit: 10 });
                 closeModal();
             }
         });
     };
 
     closeAndClearError = () => {
-        const { createIncidentTemplateFailure, closeModal } = this.props;
+        const { createIncidentNoteTemplateFailure, closeModal } = this.props;
 
         // clear error
-        createIncidentTemplateFailure(null);
+        createIncidentNoteTemplateFailure(null);
         closeModal();
     };
 
     onContentChange = val => {
-        this.props.change('description', val);
+        this.props.change('incidentNote', val);
     };
 
     render() {
         const {
             handleSubmit,
-            creatingIncidentTemplate,
-            incidentPriorities,
-            createIncidentTemplateError,
+            creatingNoteTemplate,
+            creatingNoteTemplateError,
+            formValues,
             content,
         } = this.props;
+        const { showVariables } = this.state;
 
         return (
             <div
@@ -123,7 +129,7 @@ class CreateIncidentTemplate extends React.Component {
                                 >
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
                                         <span>
-                                            Create New Incident Template
+                                            Create New Incident Note Template
                                         </span>
                                     </span>
                                 </div>
@@ -136,7 +142,10 @@ class CreateIncidentTemplate extends React.Component {
                                     <div className="bs-Modal-block bs-u-paddingless">
                                         <div className="bs-Modal-content">
                                             <span className="bs-Fieldset">
-                                                <fieldset className="bs-Fieldset">
+                                                <fieldset
+                                                    className="bs-Fieldset"
+                                                    style={{ padding: 0 }}
+                                                >
                                                     <div className="bs-Fieldset-rows">
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">
@@ -154,7 +163,7 @@ class CreateIncidentTemplate extends React.Component {
                                                                         ValidateField.text
                                                                     }
                                                                     disabled={
-                                                                        creatingIncidentTemplate
+                                                                        creatingNoteTemplate
                                                                     }
                                                                     style={{
                                                                         width:
@@ -165,35 +174,38 @@ class CreateIncidentTemplate extends React.Component {
                                                         </div>
                                                         <div className="bs-Fieldset-row">
                                                             <label className="bs-Fieldset-label">
-                                                                Incident
-                                                                Priority
+                                                                Incident State
                                                             </label>
                                                             <div className="bs-Fieldset-fields">
                                                                 <Field
-                                                                    className="db-select-nw"
+                                                                    className="db-select-nw full-width"
                                                                     component={
                                                                         RenderSelect
                                                                     }
-                                                                    id="incidentTemplatePriority"
-                                                                    name="incidentPriority"
+                                                                    id="incidentState"
+                                                                    name="incidentState"
                                                                     options={[
                                                                         {
                                                                             value:
-                                                                                '',
+                                                                                'Investigation',
                                                                             label:
-                                                                                'Select Priority',
+                                                                                'Investigation',
                                                                         },
-                                                                        ...incidentPriorities.map(
-                                                                            incidentPriority => ({
-                                                                                value:
-                                                                                    incidentPriority._id,
-                                                                                label:
-                                                                                    incidentPriority.name,
-                                                                            })
-                                                                        ),
+                                                                        {
+                                                                            value:
+                                                                                'Update',
+                                                                            label:
+                                                                                'Update',
+                                                                        },
+                                                                        {
+                                                                            value:
+                                                                                'Others',
+                                                                            label:
+                                                                                'Others',
+                                                                        },
                                                                     ]}
                                                                     disabled={
-                                                                        creatingIncidentTemplate
+                                                                        creatingNoteTemplate
                                                                     }
                                                                     style={{
                                                                         width:
@@ -202,31 +214,38 @@ class CreateIncidentTemplate extends React.Component {
                                                                 />
                                                             </div>
                                                         </div>
-                                                        <div className="bs-Fieldset-row">
-                                                            <label className="bs-Fieldset-label">
-                                                                Incident Title
-                                                            </label>
-                                                            <div className="bs-Fieldset-fields">
-                                                                <Field
-                                                                    id="title"
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={
-                                                                        RenderField
-                                                                    }
-                                                                    name="title"
-                                                                    validate={
-                                                                        ValidateField.text
-                                                                    }
-                                                                    disabled={
-                                                                        creatingIncidentTemplate
-                                                                    }
-                                                                    style={{
-                                                                        width:
-                                                                            '100%',
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </div>
+                                                        {formValues &&
+                                                            formValues.incidentState &&
+                                                            formValues.incidentState ===
+                                                                'Others' && (
+                                                                <div className="bs-Fieldset-row">
+                                                                    <label className="bs-Fieldset-label">
+                                                                        Custom
+                                                                        Incident
+                                                                        State
+                                                                    </label>
+                                                                    <div className="bs-Fieldset-fields">
+                                                                        <Field
+                                                                            id="customIncidentState"
+                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                            component={
+                                                                                RenderField
+                                                                            }
+                                                                            name="customIncidentState"
+                                                                            validate={
+                                                                                ValidateField.text
+                                                                            }
+                                                                            disabled={
+                                                                                creatingNoteTemplate
+                                                                            }
+                                                                            style={{
+                                                                                width:
+                                                                                    '100%',
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                     </div>
                                                     <div className="bs-Fieldset-rows">
                                                         <div
@@ -237,8 +256,7 @@ class CreateIncidentTemplate extends React.Component {
                                                             }}
                                                         >
                                                             <label className="bs-Fieldset-label">
-                                                                Incident
-                                                                Description
+                                                                Incident Note
                                                             </label>
                                                             <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                                 <CodeEditor
@@ -249,72 +267,13 @@ class CreateIncidentTemplate extends React.Component {
                                                                         this
                                                                             .onContentChange
                                                                     }
-                                                                    textareaId={`description`}
+                                                                    textareaId={`incidentNote`}
                                                                     placeholder="This can be markdown"
                                                                     style={{
                                                                         width:
                                                                             '100%',
-                                                                        height:
-                                                                            '150px',
                                                                     }}
                                                                 />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div
-                                                        className="bs-Fieldset-row"
-                                                        style={{
-                                                            padding: 0,
-                                                        }}
-                                                    >
-                                                        <label
-                                                            className="bs-Fieldset-label Text-align--left"
-                                                            htmlFor="isDefault"
-                                                        ></label>
-                                                        <div
-                                                            className="bs-Fieldset-fields"
-                                                            style={{
-                                                                paddingTop:
-                                                                    '6px',
-                                                            }}
-                                                        >
-                                                            <div className="bs-Fieldset-field">
-                                                                <label
-                                                                    className="Checkbox"
-                                                                    style={{
-                                                                        marginRight:
-                                                                            '12px',
-                                                                    }}
-                                                                    htmlFor="isDefault"
-                                                                >
-                                                                    <Field
-                                                                        component="input"
-                                                                        type="checkbox"
-                                                                        name="isDefault"
-                                                                        className="Checkbox-source"
-                                                                        id="isDefault"
-                                                                    />
-                                                                    <div className="Checkbox-box Box-root Margin-right--2">
-                                                                        <div className="Checkbox-target Box-root">
-                                                                            <div className="Checkbox-color Box-root"></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        className="Box-root"
-                                                                        style={{
-                                                                            paddingLeft:
-                                                                                '5px',
-                                                                        }}
-                                                                    >
-                                                                        <span>
-                                                                            Use
-                                                                            as
-                                                                            default
-                                                                            incident
-                                                                            template
-                                                                        </span>
-                                                                    </div>
-                                                                </label>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -347,9 +306,7 @@ class CreateIncidentTemplate extends React.Component {
                                                                     <div>
                                                                         <ShouldRender
                                                                             if={
-                                                                                !this
-                                                                                    .props
-                                                                                    .revealVariables
+                                                                                !showVariables
                                                                             }
                                                                         >
                                                                             <div
@@ -361,8 +318,10 @@ class CreateIncidentTemplate extends React.Component {
                                                                             >
                                                                                 <button
                                                                                     onClick={() =>
-                                                                                        this.props.setRevealIncidentSettingsVariables(
-                                                                                            true
+                                                                                        this.setState(
+                                                                                            {
+                                                                                                showVariables: true,
+                                                                                            }
                                                                                         )
                                                                                     }
                                                                                     className="button-as-anchor"
@@ -379,9 +338,7 @@ class CreateIncidentTemplate extends React.Component {
                                                                         </ShouldRender>
                                                                         <ShouldRender
                                                                             if={
-                                                                                this
-                                                                                    .props
-                                                                                    .revealVariables
+                                                                                showVariables
                                                                             }
                                                                         >
                                                                             <ul
@@ -391,7 +348,7 @@ class CreateIncidentTemplate extends React.Component {
                                                                                         'block',
                                                                                 }}
                                                                             >
-                                                                                {this.props.settingsVariables.map(
+                                                                                {incidentNoteTemplateVariables.map(
                                                                                     (
                                                                                         variable,
                                                                                         index
@@ -408,7 +365,9 @@ class CreateIncidentTemplate extends React.Component {
                                                                                                     'inside',
                                                                                             }}
                                                                                         >
-                                                                                            {`{{${variable.name}}} : ${variable.definition}`}
+                                                                                            {
+                                                                                                variable.description
+                                                                                            }
                                                                                         </li>
                                                                                     )
                                                                                 )}
@@ -433,7 +392,7 @@ class CreateIncidentTemplate extends React.Component {
                                         }}
                                     >
                                         <ShouldRender
-                                            if={createIncidentTemplateError}
+                                            if={creatingNoteTemplateError}
                                         >
                                             <div className="bs-Tail-copy">
                                                 <div
@@ -452,7 +411,7 @@ class CreateIncidentTemplate extends React.Component {
                                                             }}
                                                         >
                                                             {
-                                                                createIncidentTemplateError
+                                                                creatingNoteTemplateError
                                                             }
                                                         </span>
                                                     </div>
@@ -471,13 +430,13 @@ class CreateIncidentTemplate extends React.Component {
                                             </span>
                                         </button>
                                         <button
-                                            id="createIncidentTemplate"
+                                            id="createIncidentNoteTemplate"
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
-                                            disabled={creatingIncidentTemplate}
+                                            disabled={creatingNoteTemplate}
                                             type="submit"
                                             style={{ height: '35px' }}
                                         >
-                                            {!creatingIncidentTemplate && (
+                                            {!creatingNoteTemplate && (
                                                 <>
                                                     <span>Create</span>
                                                     <span className="create-btn__keycode">
@@ -485,7 +444,7 @@ class CreateIncidentTemplate extends React.Component {
                                                     </span>
                                                 </>
                                             )}
-                                            {creatingIncidentTemplate && (
+                                            {creatingNoteTemplate && (
                                                 <FormLoader />
                                             )}
                                         </button>
@@ -500,63 +459,58 @@ class CreateIncidentTemplate extends React.Component {
     }
 }
 
-CreateIncidentTemplate.displayName = 'CreateIncidentTemplate';
-CreateIncidentTemplate.propTypes = {
+CreateIncidentNoteTemplate.displayName = 'CreateIncidentNoteTemplate';
+CreateIncidentNoteTemplate.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
-    setRevealIncidentSettingsVariables: PropTypes.func.isRequired,
-    revealVariables: PropTypes.bool.isRequired,
-    settingsVariables: PropTypes.array.isRequired,
-    incidentPriorities: PropTypes.array.isRequired,
-    creatingIncidentTemplate: PropTypes.bool,
-    createIncidentTemplateError: PropTypes.oneOf([
+    creatingNoteTemplate: PropTypes.bool,
+    creatingNoteTemplateError: PropTypes.oneOf([
         PropTypes.string,
         PropTypes.oneOfType([null, undefined]),
     ]),
-    createIncidentTemplate: PropTypes.func,
     closeModal: PropTypes.func,
-    fetchIncidentTemplates: PropTypes.func,
-    createIncidentTemplateFailure: PropTypes.func,
+    createIncidentNoteTemplate: PropTypes.func,
+    fetchIncidentNoteTemplates: PropTypes.func,
+    createIncidentNoteTemplateFailure: PropTypes.func,
+    formValues: PropTypes.object,
     change: PropTypes.func,
     content: PropTypes.string,
 };
 
-const CreateIncidentTemplateForm = reduxForm({
-    form: 'CreateIncidentTemplateForm', // a unique identifier for this form
+const CreateIncidentNoteTemplateForm = reduxForm({
+    form: 'CreateIncidentNoteTemplateForm', // a unique identifier for this form
     enableReinitialize: true,
-})(CreateIncidentTemplate);
+})(CreateIncidentNoteTemplate);
 
 const mapStateToProps = state => {
-    const content = state.form.CreateIncidentTemplateForm
-        ? state.form.CreateIncidentTemplateForm.values
-            ? state.form.CreateIncidentTemplateForm.values.description
-                ? state.form.CreateIncidentTemplateForm.values.description
+    const content = state.form.CreateIncidentNoteTemplateForm
+        ? state.form.CreateIncidentNoteTemplateForm.values
+            ? state.form.CreateIncidentNoteTemplateForm.values.incidentNote
+                ? state.form.CreateIncidentNoteTemplateForm.values.incidentNote
                 : ''
             : ''
         : '';
+
     return {
         currentProject: state.project.currentProject,
-        revealVariables: state.incidentBasicSettings.revealVariables,
-        settingsVariables:
-            state.incidentBasicSettings.incidentBasicSettingsVariables
-                .incidentBasicSettingsVariables,
-        incidentPriorities:
-            state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
-        creatingIncidentTemplate:
-            state.incidentBasicSettings.createIncidentTemplate.requesting,
-        createIncidentTemplateError:
-            state.incidentBasicSettings.createIncidentTemplate.error,
+        creatingNoteTemplate:
+            state.incidentNoteTemplate.createNoteTemplate.requesting,
+        creatingNoteTemplateError:
+            state.incidentNoteTemplate.createNoteTemplate.error,
+        formValues: state.form.CreateIncidentNoteTemplateForm
+            ? state.form.CreateIncidentNoteTemplateForm.values
+            : {},
+        initialValues: { incidentState: 'Update' },
         content,
     };
 };
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            createIncidentTemplate,
-            setRevealIncidentSettingsVariables,
             closeModal,
-            fetchIncidentTemplates,
-            createIncidentTemplateFailure,
+            createIncidentNoteTemplate,
+            fetchIncidentNoteTemplates,
+            createIncidentNoteTemplateFailure,
         },
         dispatch
     );
@@ -564,4 +518,4 @@ const mapDispatchToProps = dispatch =>
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-)(CreateIncidentTemplateForm);
+)(CreateIncidentNoteTemplateForm);

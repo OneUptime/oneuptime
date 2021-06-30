@@ -308,6 +308,10 @@ app.use(
     ['/performanceMetric', '/api/performanceMetric'],
     require('./backend/api/performanceTrackerMetric')
 );
+app.use(
+    ['/incidentNoteTemplate', '/api/incidentNoteTemplate'],
+    require('./backend/api/incidentNoteTemplate')
+);
 
 app.get(['/', '/api'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
