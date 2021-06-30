@@ -91,8 +91,8 @@ class MSTeamsList extends React.Component {
             msTeams && count && count > skip + limit ? true : false;
         let canPaginateBackward = msTeams && skip && skip > 0 ? true : false;
         if (monitorId && webHooks) {
-            webHooks = webHooks.filter(
-                hook => hook.monitorId._id === monitorId
+            webHooks = webHooks.filter(hook =>
+                hook.monitors.some(mon => mon.monitorId._id === monitorId)
             );
         }
         const numberOfWebHooks = webHooks ? webHooks.length : 0;
@@ -130,6 +130,7 @@ class MSTeamsList extends React.Component {
                                         key={`${hook._id}`}
                                         data={hook}
                                         monitorId={monitorId}
+                                        monitors={hook.monitors}
                                         currentMonitorName={
                                             !monitorId &&
                                             hook.monitorId &&

@@ -87,8 +87,8 @@ class SlackList extends React.Component {
             slacks && count && count > skip + limit ? true : false;
         let canPaginateBackward = slacks && skip && skip > 0 ? true : false;
         if (monitorId && webHooks) {
-            webHooks = webHooks.filter(
-                hook => hook.monitorId._id === monitorId
+            webHooks = webHooks.filter(hook =>
+                hook.monitors.some(mon => mon.monitorId._id === monitorId)
             );
         }
         const numberOfWebHooks = webHooks ? webHooks.length : 0;
@@ -126,13 +126,7 @@ class SlackList extends React.Component {
                                         key={`${hook._id}`}
                                         data={hook}
                                         monitorId={monitorId}
-                                        currentMonitorName={
-                                            !monitorId &&
-                                            hook.monitorId &&
-                                            hook.monitorId.componentId
-                                                ? `${hook.monitorId.componentId.name} / ${hook.monitorId.name}`
-                                                : ''
-                                        }
+                                        monitors={hook.monitors}
                                     />
                                 ))}
                             </ShouldRender>

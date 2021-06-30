@@ -9836,6 +9836,9 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     animation: Notifications-animation--bell 1s;
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
 }
+.webhook-select{
+    width: 100%!important;
+}
 .db-Notifications-badge {
     position: absolute;
     top: 3px;
