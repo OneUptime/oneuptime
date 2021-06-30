@@ -358,33 +358,29 @@ class StatusPage extends Component {
                                                                             <PrivateStatusPage />
                                                                         </div>
                                                                         <div className="Box-root Margin-bottom--12">
-                                                                            {this
-                                                                                .props
-                                                                                .showDuplicateStatusPage ? (
-                                                                                <DuplicateStatusBox
-                                                                                    statusPageId={
-                                                                                        this
-                                                                                            .props
-                                                                                            .statusPage
-                                                                                            .status
-                                                                                            ._id
-                                                                                    }
-                                                                                    subProjectId={
-                                                                                        this
-                                                                                            .props
-                                                                                            .subProjectId
-                                                                                    }
-                                                                                    projectId={
-                                                                                        history.location.pathname
-                                                                                            .split(
-                                                                                                'project/'
-                                                                                            )[1]
-                                                                                            .split(
-                                                                                                '/'
-                                                                                            )[0]
-                                                                                    }
-                                                                                />
-                                                                            ) : null}
+                                                                            <DuplicateStatusBox
+                                                                                statusPageId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .statusPage
+                                                                                        .status
+                                                                                        ._id
+                                                                                }
+                                                                                subProjectId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .subProjectId
+                                                                                }
+                                                                                projectId={
+                                                                                    history.location.pathname
+                                                                                        .split(
+                                                                                            'project/'
+                                                                                        )[1]
+                                                                                        .split(
+                                                                                            '/'
+                                                                                        )[0]
+                                                                                }
+                                                                            />
                                                                         </div>
                                                                     </RenderIfSubProjectAdmin>
                                                                     <RenderIfSubProjectAdmin
@@ -465,7 +461,6 @@ function mapStateToProps(state, props) {
     }
     return {
         statusPage: statusPageObject,
-        showDuplicateStatusPage: state.statusPage.showDuplicateStatusPage,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         subProjectId: statusPage && statusPage.projectId._id,
@@ -480,7 +475,6 @@ StatusPage.propTypes = {
     switchStatusPage: PropTypes.func,
     fetchProjectStatusPage: PropTypes.func,
     fetchSubProjectStatusPages: PropTypes.func,
-    showDuplicateStatusPage: PropTypes.bool,
     match: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
