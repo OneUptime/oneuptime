@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { RenderField } from '../basic/RenderField';
-import RenderCodeEditor from '../basic/RenderCodeEditor';
 import { ValidateField } from '../../config';
 import {
     setRevealIncidentSettingsVariables,
@@ -16,6 +15,7 @@ import { closeModal } from '../../actions/modal';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderSelect } from '../basic/RenderSelect';
+import CodeEditor from '../basic/CodeEditor';
 
 class EditIncidentTemplate extends React.Component {
     componentDidMount() {
@@ -86,12 +86,17 @@ class EditIncidentTemplate extends React.Component {
         closeModal();
     };
 
+    onContentChange = val => {
+        this.props.change('description', val);
+    };
+
     render() {
         const {
             handleSubmit,
             updatingIncidentTemplate,
             incidentPriorities,
             updateIncidentTemplateError,
+            content,
         } = this.props;
 
         return (
@@ -209,33 +214,35 @@ class EditIncidentTemplate extends React.Component {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="bs-Fieldset-row">
-                                                        <label className="bs-Fieldset-label">
-                                                            Incident Description
-                                                        </label>
-                                                        <div className="bs-Fieldset-fields">
-                                                            <div
-                                                                style={{
-                                                                    width:
-                                                                        '100%',
-                                                                }}
-                                                            >
-                                                                <Field
-                                                                    className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                    component={
-                                                                        RenderCodeEditor
+                                                    <div className="bs-Fieldset-rows">
+                                                        <div
+                                                            className="bs-Fieldset-row"
+                                                            style={{
+                                                                paddingTop: 0,
+                                                                paddingBottom: 0,
+                                                            }}
+                                                        >
+                                                            <label className="bs-Fieldset-label">
+                                                                Incident
+                                                                Description
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                                <CodeEditor
+                                                                    code={
+                                                                        content
                                                                     }
-                                                                    id="description"
-                                                                    name="description"
-                                                                    mode="markdown"
-                                                                    width="100%"
-                                                                    height="150px"
-                                                                    wrapEnabled={
-                                                                        true
+                                                                    onCodeChange={
+                                                                        this
+                                                                            .onContentChange
                                                                     }
-                                                                    disabled={
-                                                                        updatingIncidentTemplate
-                                                                    }
+                                                                    textareaId={`description`}
+                                                                    placeholder="This can be markdown"
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                        height:
+                                                                            '150px',
+                                                                    }}
                                                                 />
                                                             </div>
                                                         </div>
@@ -496,6 +503,8 @@ EditIncidentTemplate.propTypes = {
     closeModal: PropTypes.func,
     updateIncidentTemplateFailure: PropTypes.func,
     data: PropTypes.object,
+    change: PropTypes.func,
+    content: PropTypes.string,
 };
 
 const EditIncidentTemplateForm = reduxForm({
@@ -512,6 +521,13 @@ const mapStateToProps = (state, ownProps) => {
             ? template.incidentPriority._id || template.incidentPriority
             : '',
     };
+    const content = state.form.EditIncidentTemplateForm
+        ? state.form.EditIncidentTemplateForm.values
+            ? state.form.EditIncidentTemplateForm.values.description
+                ? state.form.EditIncidentTemplateForm.values.description
+                : ''
+            : ''
+        : '';
     return {
         currentProject: state.project.currentProject,
         revealVariables: state.incidentBasicSettings.revealVariables,
@@ -525,6 +541,7 @@ const mapStateToProps = (state, ownProps) => {
         updateIncidentTemplateError:
             state.incidentBasicSettings.updateIncidentTemplate.error,
         initialValues,
+        content,
     };
 };
 const mapDispatchToProps = dispatch =>
