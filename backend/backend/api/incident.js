@@ -6,6 +6,7 @@
 
 const express = require('express');
 const moment = require('moment');
+const Handlebars = require('handlebars');
 const IncidentService = require('../services/incidentService');
 const IncidentTimelineService = require('../services/incidentTimelineService');
 const MonitorStatusService = require('../services/monitorStatusService');
@@ -29,6 +30,7 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const subscriberAlertService = require('../services/subscriberAlertService');
 const onCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 const Services = require('../utils/services');
+const joinNames = require('../utils/joinNames');
 
 // Route
 // Description: Creating incident.
@@ -653,6 +655,24 @@ router.post(
             let incidentMessage = null;
             if (incident && incident._id) {
                 data.incidentId = incidentId;
+
+                const monitors = incident.monitors.map(
+                    monitor => monitor.monitorId.name
+                );
+                const templateInput = {
+                    time: moment(incident.createdAt).format('h:mm:ss a'),
+                    date: moment(incident.createdAt).format('MMM Do YYYY'),
+                    projectName: incident.projectId.name,
+                    incidentType: incident.incidentType,
+                    monitorName: joinNames(monitors),
+                };
+                const incidentStateTemplate = Handlebars.compile(
+                    data.incident_state
+                );
+                const contentTemplate = Handlebars.compile(data.content);
+
+                data.incident_state = incidentStateTemplate(templateInput);
+                data.content = contentTemplate(templateInput);
 
                 // handle creation or updating
                 if (!data.id) {
