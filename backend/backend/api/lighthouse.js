@@ -9,11 +9,9 @@ const LighthouseService = require('../services/LighthouseService');
 const ProbeService = require('../services/ProbeService');
 const MonitorService = require('../services/monitorService');
 const ProjectService = require('../services/projectService');
+const MonitorLogService = require('../services/monitorLogService');
 const LighthouseLogService = require('../services/lighthouseLogService');
 const router = express.Router();
-const isAuthorizedAdmin = require('../middlewares/clusterAuthorization')
-    .isAuthorizedAdmin;
-
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;

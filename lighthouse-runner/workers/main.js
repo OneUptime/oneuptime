@@ -9,8 +9,14 @@ module.exports = {
             monitors = JSON.parse(monitors.data); // parse the stringified data
             await Promise.all(
                 monitors.map(monitor => {
-                    if(monitor.type === 'url'){
-                        return UrlMonitors.ping(monitor);
+                    if(monitor.type === 'url' && monitor.pollTime && monitor.pollTime.length > 0){ 
+                       const probe = monitor.pollTime.filter(probe => probe.probeId);
+                       if(probe.length > 0){ // This checks that the probe server is working
+                           return UrlMonitors.ping(monitor);
+                       }else{
+                           //eslint-disable-next-line
+                           console.log("Please Make Sure Probe Server is Up and Running!")
+                       }
                     }
                     return null;
                 })

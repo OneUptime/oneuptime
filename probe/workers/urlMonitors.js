@@ -150,29 +150,3 @@ const pingfetch = async url => {
     };
 };
 
-const lighthouseFetch = (monitor, url) => {
-    return new Promise((resolve, reject) => {
-        const lighthouseWorker = fork('./utils/lighthouse');
-        const timeoutHandler = setTimeout(async () => {
-            await processLighthouseScan({
-                data: { url },
-                error: { message: 'TIMEOUT' },
-            });
-        }, 300000);
-
-        lighthouseWorker.send(url);
-        lighthouseWorker.on('message', async result => {
-            await processLighthouseScan(result);
-        });
-
-        async function processLighthouseScan(result) {
-            clearTimeout(timeoutHandler);
-            lighthouseWorker.removeAllListeners();
-            if (result.error) {
-                reject({ status: 'failed', ...result });
-            } else {
-                resolve({ status: 'scanned', ...result });
-            }
-        }
-    });
-};
