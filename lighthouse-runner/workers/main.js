@@ -14,8 +14,7 @@ module.exports = {
                        if(probe.length > 0){ // This checks that the probe server is working
                            return UrlMonitors.ping(monitor);
                        }else{
-                           //eslint-disable-next-line
-                           console.log("Please Make Sure Probe Server is Up and Running!")
+                           ErrorService.log('getApi',"Please Make Sure Probe Server is Online.")
                        }
                     }
                     return null;

@@ -282,5 +282,25 @@ services:
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
+    lighthouse-runner:
+        ports:
+            - '3001:3001'
+            - '9241:9229' # Debugging port.
+        build:
+            context: ./lighthouse-runner
+            dockerfile: ./Dockerfile.dev
+        env_file:
+            - ./lighthouse-runner/.env
+        environment:
+            - PORT=3001
+            - SERVER_URL=http://backend:3002
+            - LIGHTHOUSE_NAME=US
+            - LIGHTHOUSE_KEY=test-key
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        volumes:
+            - ./lighthouse-runner:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
 volumes:
     mongodata:

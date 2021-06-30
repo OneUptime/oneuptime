@@ -192,6 +192,18 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
             - backend
+    lighthouse-runner:
+        ports:
+            - '3001:3001'
+        build: ./lighthouse-runner
+        env_file:
+            - ./lighthouse-runner/.env
+        environment:
+            - PORT=3001
+            - SERVER_URL=http://backend:3002
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        depends_on:
+            - backend
 
 volumes:
     mongodata:
