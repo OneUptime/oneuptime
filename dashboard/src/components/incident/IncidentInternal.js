@@ -11,6 +11,7 @@ import { logEvent } from '../../analytics';
 import IncidentMessageThread from './IncidentMessageThread';
 import { openModal } from '../../actions/modal';
 import { v4 as uuidv4 } from 'uuid';
+import { fetchIncidentNoteTemplates } from '../../actions/incidentNoteTemplate';
 
 export class IncidentInternal extends Component {
     constructor(props) {
@@ -21,6 +22,31 @@ export class IncidentInternal extends Component {
             editMessageModalId: uuidv4(),
             deleteMessageModalId: uuidv4(),
         };
+    }
+    componentDidMount() {
+        const { currentProject, fetchIncidentNoteTemplates } = this.props;
+        if (currentProject) {
+            fetchIncidentNoteTemplates({
+                projectId: currentProject._id,
+                skip: 0,
+                limit: 0,
+            });
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            JSON.stringify(prevProps.currentProject) !==
+            JSON.stringify(this.props.currentProject)
+        ) {
+            if (this.props.currentProject) {
+                this.props.fetchIncidentNoteTemplates({
+                    projectId: this.props.currentProject._id,
+                    skip: 0,
+                    limit: 0,
+                });
+            }
+        }
     }
     olderInternalMessage = () => {
         this.props.fetchIncidentMessages(
@@ -157,6 +183,7 @@ const mapDispatchToProps = dispatch =>
             fetchIncidentMessages,
             openModal,
             deleteIncidentMessage,
+            fetchIncidentNoteTemplates,
         },
         dispatch
     );
@@ -183,6 +210,7 @@ IncidentInternal.propTypes = {
     fetchIncidentMessages: PropTypes.func,
     openModal: PropTypes.func,
     deleteIncidentMessage: PropTypes.func,
+    fetchIncidentNoteTemplates: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(IncidentInternal);
