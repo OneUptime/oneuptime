@@ -158,11 +158,12 @@ router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
     try {
         const projectId = req.params.projectId;
 
+        //Important! Always pass required field(s)
         const populate = [
             { table: 'alertId', field: 'alertVia' },
             { table: 'subscriberAlertId', field: 'alertVia' },
-            { table: 'monitorId' },
-            { table: 'incidentId' },
+            { table: 'monitorId', field: 'name slug' },
+            { table: 'incidentId', field: 'idNumber' },
         ];
         const alertCharges = await alertChargeService.findBy(
             { projectId },

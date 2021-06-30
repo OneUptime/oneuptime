@@ -45,39 +45,28 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+            let alertQuery;
             let alertCharges;
-            let result;
             if (skip >= 0 && limit > 0) {
-                alertCharges = AlertChargeModel.find(query)
+                alertQuery = AlertChargeModel.find(query)
                     .lean()
                     .sort([['createdAt', sort]])
                     .limit(limit)
                     .skip(skip);
-
-                for (let populateItem of populate) {
-                    result = populateItem.field
-                        ? await alertCharges.populate(
-                              populateItem.table,
-                              populateItem.field
-                          )
-                        : await alertCharges.populate(populateItem.table);
-                }
             } else {
-                alertCharges = AlertChargeModel.find(query)
+                alertQuery = AlertChargeModel.find(query)
                     .lean()
                     .sort([['createdAt', sort]]);
-
-                for (let populateItem of populate) {
-                    result = populateItem.field
-                        ? await alertCharges.populate(
-                              populateItem.table,
-                              populateItem.field
-                          )
-                        : await alertCharges.populate(populateItem.table);
-                }
             }
 
-            return result;
+            for (let populateItem of populate) {
+                alertCharges = await alertQuery.populate(
+                    populateItem.table,
+                    populateItem.field
+                );
+            }
+
+            return alertCharges;
         } catch (error) {
             ErrorService.log('alertChargeService.findBy', error);
             throw error;
