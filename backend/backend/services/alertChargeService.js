@@ -26,7 +26,7 @@ module.exports = {
             throw error;
         }
     },
-    findBy: async function(query, skip, limit, sort) {
+    findBy: async function(query, skip, limit, sort, populate) {
         try {
             if (!sort) sort = -1;
 
@@ -46,25 +46,38 @@ module.exports = {
                 query = {};
             }
             let alertCharges;
+            let result;
             if (skip >= 0 && limit > 0) {
-                alertCharges = await AlertChargeModel.find(query)
+                alertCharges = AlertChargeModel.find(query)
                     .lean()
                     .sort([['createdAt', sort]])
-                    .populate('alertId', 'alertVia')
-                    .populate('subscriberAlertId', 'alertVia')
-                    .populate('monitorId')
-                    .populate('incidentId')
                     .limit(limit)
                     .skip(skip);
+
+                for (let populateItem of populate) {
+                    result = populateItem.field
+                        ? await alertCharges.populate(
+                              populateItem.table,
+                              populateItem.field
+                          )
+                        : await alertCharges.populate(populateItem.table);
+                }
             } else {
                 alertCharges = await AlertChargeModel.find(query)
                     .lean()
-                    .sort([['createdAt', sort]])
-                    .populate('alertId', 'alertVia')
-                    .populate('subscriberAlertId', 'alertVia')
-                    .populate('monitorId')
-                    .populate('incidentId');
+                    .sort([['createdAt', sort]]);
+
+                for (let populateItem of populate) {
+                    console.log(populateItem);
+                    result = populateItem.field
+                        ? await alertCharges.populate(
+                              populateItem.table,
+                              populateItem.field
+                          )
+                        : await alertCharges.populate(populateItem.table);
+                }
             }
+
             return alertCharges;
         } catch (error) {
             ErrorService.log('alertChargeService.findBy', error);
