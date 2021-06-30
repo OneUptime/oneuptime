@@ -107,8 +107,7 @@
              }
              req.lighthouse = {};
              req.lighthouse.id = lighthouse._id;
-             //await LighthouseService.updateLighthouseStatus(lighthouse._id);
- 
+            
              //Update lighthouse version
              const lighthouseValue = await LighthouseService.findOneBy({
                  lighthouseKey,
