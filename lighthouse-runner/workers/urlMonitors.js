@@ -52,7 +52,7 @@ module.exports = {
                                     monitor,
                                     url
                                 );
-                                console.log("Scanned Lighthouse :", resp);
+                               
                                 await UrlService.ping(monitor._id, {
                                     monitor,
                                     resp,

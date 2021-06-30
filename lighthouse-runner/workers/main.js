@@ -10,7 +10,6 @@ module.exports = {
             await Promise.all(
                 monitors.map(monitor => {
                     if(monitor.type === 'url'){
-                        console.log("monitor get: ", monitor)
                         return UrlMonitors.ping(monitor);
                     }
                     return null;

@@ -76,7 +76,6 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function (
             res,
             resp,
             rawResp,
-            serverData,
             type,
             retryCount,
         } = req.body;
@@ -206,8 +205,8 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function (
             }
         );
         data.monitorId = req.params.monitorId || monitor._id;
-        data.probeId = monitor.pollTime && monitor.pollTime[1].probeId ? monitor.pollTime[1].probeId : null;
-
+        let probeId = await ProbeService.findBy();
+        data.probeId = probeId ? probeId[0]._id : null;
         data.reason =
             data && data.reason && data.reason.length
                 ? data.reason.filter(
