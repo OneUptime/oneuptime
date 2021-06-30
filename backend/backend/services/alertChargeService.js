@@ -77,7 +77,7 @@ module.exports = {
                 }
             }
 
-            return alertCharges;
+            return result;
         } catch (error) {
             ErrorService.log('alertChargeService.findBy', error);
             throw error;
