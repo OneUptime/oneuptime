@@ -1812,3 +1812,28 @@ export const incomingRequestVariables = [
             '{{request.headers.*}} : You can attach any key value pair on the request headers',
     },
 ];
+
+export const incidentNoteTemplateVariables = [
+    {
+        variable: '{{incidentType}}',
+        description: '{{incidentType}}: Type of incident.',
+    },
+    {
+        name: '{{monitorName}}',
+        description:
+            '{{monitorName}}: Name of the monitor on which incident has occured.',
+    },
+    {
+        name: '{{projectName}}',
+        description:
+            '{{projectName}}: Name of the project on which the incident has occured.',
+    },
+    {
+        name: '{{time}}',
+        description: '{{time}}: Time when the incident has occured.',
+    },
+    {
+        name: '{{date}}',
+        description: '{{date}}: Date when the incident has occured.',
+    },
+];
