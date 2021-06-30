@@ -27,7 +27,7 @@ class FyipeTracker
         setEventId()
         @listenerObj = FyipeListener.new(getEventId(), @options)
         @apiTransport = FyipeTransport.new(@apiUrl)
-        # setUpExceptionHandlerListener()
+        setUpExceptionHandlerListener()
     end
 
     def setApiUrl(apiUrl)
