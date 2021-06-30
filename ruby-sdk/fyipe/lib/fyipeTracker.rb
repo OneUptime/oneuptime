@@ -4,7 +4,7 @@ require_relative 'fyipe/fyipeTransport'
 require File.expand_path('./fyipe/version', __dir__)
 
 class FyipeTracker
-    # FyipeLogger constructor.
+    # FyipeTracker constructor.
     # @param string apiUrl
     # @param string errorTrackerId
     # @param string errorTrackerKey
