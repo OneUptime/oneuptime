@@ -8,7 +8,6 @@ import {
     updatePrivateStatusPageSuccess,
     updatePrivateStatusPageError,
     fetchProjectStatusPage,
-    showDuplicateStatusPage,
 } from '../../actions/statusPage';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
@@ -147,7 +146,6 @@ export class PrivateStatusPage extends Component {
     render() {
         const { handleSubmit, formValues } = this.props;
         const { subscriberAdvanceOptionModalId, showMoreOptions } = this.state;
-        this.props.showDuplicateStatusPage(this.state.showMoreOptions);
         const historyLimit = value => {
             if (value < 1) {
                 return 1;
@@ -1189,7 +1187,6 @@ PrivateStatusPage.propTypes = {
     handleSubmit: PropTypes.func.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,
     formValues: PropTypes.object,
-    showDuplicateStatusPage: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -1201,7 +1198,6 @@ const mapDispatchToProps = dispatch =>
             updatePrivateStatusPageError,
             fetchProjectStatusPage,
             openModal,
-            showDuplicateStatusPage,
         },
         dispatch
     );

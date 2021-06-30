@@ -77,7 +77,6 @@ import {
     RESET_STATUSPAGE_EMBEDDED_CSS_REQUEST,
     RESET_STATUSPAGE_EMBEDDED_CSS_SUCCESS,
     RESET_STATUSPAGE_EMBEDDED_CSS_FAILURE,
-    SHOW_DUPLICATE_STATUSPAGE,
     DUPLICATE_STATUSPAGE_REQUEST,
     DUPLICATE_STATUSPAGE_SUCCESS,
     DUPLICATE_STATUSPAGE_FAILURE,
@@ -135,7 +134,6 @@ import {
 
 const INITIAL_STATE = {
     addMoreDomain: false,
-    showDuplicateStatusPage: false,
     setting: {
         error: null,
         requesting: false,
@@ -1568,11 +1566,6 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: action.payload,
                     success: false,
                 },
-            });
-
-        case SHOW_DUPLICATE_STATUSPAGE:
-            return Object.assign({}, state, {
-                showDuplicateStatusPage: action.payload,
             });
 
         case RESET_BRANDING_COLORS_REQUEST:

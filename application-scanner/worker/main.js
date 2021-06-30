@@ -10,7 +10,9 @@ const ApplicationSecurity = require('./applicationSecurity');
 module.exports = {
     runApplicationScan: async function() {
         try {
-            const securities = await getApi('application/applicationSecurities');
+            const securities = await getApi(
+                'application/applicationSecurities'
+            );
             if (securities && securities.length > 0) {
                 await Promise.all(
                     securities.map(security => {
