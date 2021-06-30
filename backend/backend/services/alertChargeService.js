@@ -59,12 +59,7 @@ module.exports = {
                     .sort([['createdAt', sort]]);
             }
 
-            for (let populateItem of populate) {
-                alertCharges = await alertQuery.populate(
-                    populateItem.table,
-                    populateItem.field
-                );
-            }
+            alertCharges = await populateDatabase(populate, alertQuery);
 
             return alertCharges;
         } catch (error) {
@@ -100,3 +95,4 @@ module.exports = {
 
 const AlertChargeModel = require('../models/alertCharge');
 const ErrorService = require('./errorService');
+const populateDatabase = require('../utils/populate');
