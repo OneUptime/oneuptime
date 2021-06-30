@@ -27,14 +27,17 @@ class CreateIncidentTemplate extends React.Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
-        switch (e.key) {
+    handleKeyBoard = event => {
+        switch (event.key) {
             case 'Escape':
                 return this.closeAndClearError();
             case 'Enter':
-                return document
-                    .getElementById('createIncidentTemplate')
-                    .click();
+                if (event.target.localName === 'body') {
+                    return document
+                        .getElementById('createIncidentTemplate')
+                        .click();
+                }
+                return false;
             default:
                 return false;
         }
