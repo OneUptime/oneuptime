@@ -46,7 +46,6 @@ module.exports = {
                 query = {};
             }
             let alertQuery;
-            let alertCharges;
             if (skip >= 0 && limit > 0) {
                 alertQuery = AlertChargeModel.find(query)
                     .lean()
@@ -59,7 +58,7 @@ module.exports = {
                     .sort([['createdAt', sort]]);
             }
 
-            alertCharges = await populateDatabase(populate, alertQuery);
+            let alertCharges = await populateDatabase(populate, alertQuery);
 
             return alertCharges;
         } catch (error) {
