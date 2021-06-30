@@ -202,7 +202,10 @@ app.use(
     require('./backend/api/scheduledEvent')
 );
 app.use(['/probe', '/api/probe'], require('./backend/api/probe'));
-app.use(['/application', '/api/application'], require('./backend/api/applicationScanner'));
+app.use(
+    ['/application', '/api/application'],
+    require('./backend/api/applicationScanner')
+);
 app.use(['/version', '/api/version'], require('./backend/api/version'));
 app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));
 app.use(['/audit-logs', '/api/audit-logs'], require('./backend/api/auditLogs'));
@@ -299,6 +302,10 @@ app.use(
 app.use(
     ['/performanceMetric', '/api/performanceMetric'],
     require('./backend/api/performanceTrackerMetric')
+);
+app.use(
+    ['/incidentNoteTemplate', '/api/incidentNoteTemplate'],
+    require('./backend/api/incidentNoteTemplate')
 );
 
 app.get(['/', '/api'], function(req, res) {
