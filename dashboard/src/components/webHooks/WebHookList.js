@@ -92,8 +92,8 @@ class WebHookList extends React.Component {
             webHook && count && count > skip + limit ? true : false;
         let canPaginateBackward = webHook && skip && skip > 0 ? true : false;
         if (monitorId && webHooks) {
-            webHooks = webHooks.filter(
-                hook => hook.monitorId._id === monitorId
+            webHooks = webHooks.filter(hook =>
+                hook.monitors.some(mon => mon.monitorId._id === monitorId)
             );
         }
         const numberOfWebHooks = webHooks ? webHooks.length : 0;
@@ -131,6 +131,7 @@ class WebHookList extends React.Component {
                                         key={`${hook._id}`}
                                         data={hook}
                                         monitorId={monitorId}
+                                        monitors={hook.monitors}
                                     />
                                 ))}
                             </ShouldRender>

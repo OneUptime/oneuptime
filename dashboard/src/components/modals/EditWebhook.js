@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators, compose } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { Validate } from '../../config';
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm, Field, FieldArray } from 'redux-form';
 import { updateWebHook } from '../../actions/webHook';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
@@ -23,6 +23,9 @@ function validate(values) {
 }
 
 class EditWebHook extends React.Component {
+    state = {
+        monitorError: null,
+    };
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -41,12 +44,9 @@ class EditWebHook extends React.Component {
 
         const postObj = {};
         postObj.endpoint = values.endpoint;
-        postObj.monitorId = values.monitorId;
         postObj.endpointType = values.endpointType;
         postObj.type = 'webhook';
-        postObj.monitorId = data.currentMonitorId
-            ? data.currentMonitorId
-            : values.monitorId;
+        postObj.monitors = values.monitors.map(id => ({ monitorId: id }));
         postObj.incidentCreated = values.incidentCreated
             ? values.incidentCreated
             : false;
@@ -57,6 +57,19 @@ class EditWebHook extends React.Component {
             ? values.incidentAcknowledged
             : false;
 
+        const isDuplicate = postObj.monitors
+            ? postObj.monitors.length === new Set(postObj.monitors).size
+                ? false
+                : true
+            : false;
+
+        if (isDuplicate) {
+            this.setState({
+                monitorError: 'Duplicate monitor selection found',
+            });
+            postObj.monitors = [];
+            return;
+        }
         updateWebHook(currentProject._id, data._id, postObj).then(() => {
             if (this.props.newWebHook && !this.props.newWebHook.error) {
                 closeThisDialog();
@@ -75,8 +88,133 @@ class EditWebHook extends React.Component {
         }
     };
 
+    renderMonitors = ({ fields }) => {
+        const { monitorError } = this.state;
+        const { allComponents } = this.props;
+
+        const allMonitors = this.props.monitor.monitorsList.monitors
+            .map(monitor => monitor.monitors)
+            .flat();
+        const getParentComponent = monitor =>
+            allComponents.filter(
+                component => component._id === monitor.componentId._id
+            )[0];
+
+        return (
+            <>
+                <div
+                    style={{
+                        width: '100%',
+                        position: 'relative',
+                    }}
+                >
+                    <button
+                        id="addMoreMonitor"
+                        className="Button bs-ButtonLegacy ActionIconParent"
+                        style={{
+                            position: 'absolute',
+                            zIndex: 1,
+                            right: 0,
+                        }}
+                        type="button"
+                        onClick={() => {
+                            fields.push();
+                        }}
+                    >
+                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                            <span>Add Monitor</span>
+                        </span>
+                    </button>
+                    {fields.map((field, index) => {
+                        return (
+                            <div
+                                style={{
+                                    width: '65%',
+                                    marginBottom: 10,
+                                }}
+                                key={index}
+                            >
+                                <Field
+                                    component={RenderSelect}
+                                    name={field}
+                                    id={`monitorfield_${index}`}
+                                    placeholder="Select monitor"
+                                    style={{
+                                        height: '28px',
+                                        width: '100%',
+                                    }}
+                                    disabled={this.props.newWebHook.requesting}
+                                    validate={ValidateField.select}
+                                    options={[
+                                        {
+                                            value: '',
+                                            label: 'Select monitor',
+                                        },
+                                        ...(allMonitors &&
+                                        allMonitors.length > 0
+                                            ? allMonitors.map(monitor => ({
+                                                  value: monitor._id,
+                                                  label: `${
+                                                      getParentComponent(
+                                                          monitor
+                                                      ).name
+                                                  } / ${monitor.name}`,
+                                              }))
+                                            : []),
+                                    ]}
+                                    className="db-select-nw db-MultiSelect-input"
+                                />
+                                {fields.length > 1 ? (
+                                    <button
+                                        id="removeMonitor"
+                                        className="Button bs-ButtonLegacy ActionIconParent"
+                                        style={{
+                                            marginTop: 10,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            fields.remove(index);
+                                        }}
+                                    >
+                                        <span className="bs-Button bs-Button--icon bs-Button--delete">
+                                            <span>Remove Monitor</span>
+                                        </span>
+                                    </button>
+                                ) : null}
+                            </div>
+                        );
+                    })}
+                    {monitorError && (
+                        <div
+                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                            style={{
+                                marginTop: '5px',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <div
+                                className="Box-root Margin-right--8"
+                                style={{ marginTop: '2px' }}
+                            >
+                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                            </div>
+                            <div className="Box-root">
+                                <span
+                                    id="monitorError"
+                                    style={{ color: 'red' }}
+                                >
+                                    {monitorError}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </>
+        );
+    };
+
     render() {
-        const { handleSubmit, closeThisDialog, data } = this.props;
+        const { handleSubmit, closeThisDialog, data, formValues } = this.props;
 
         const monitorList = [];
 
@@ -99,7 +237,7 @@ class EditWebHook extends React.Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal">
+                    <div className="bs-Modal" style={{ width: 600 }}>
                         <ClickOutside onClickOutside={closeThisDialog}>
                             <div className="bs-Modal-header">
                                 <div
@@ -135,7 +273,7 @@ class EditWebHook extends React.Component {
                                                         <div
                                                             className="bs-Fieldset-field"
                                                             style={{
-                                                                width: '70%',
+                                                                width: '100%',
                                                             }}
                                                         >
                                                             <Field
@@ -148,7 +286,8 @@ class EditWebHook extends React.Component {
                                                                 type="url"
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 style={{
-                                                                    width: 250,
+                                                                    width:
+                                                                        '100%',
                                                                     padding:
                                                                         '3px 5px',
                                                                 }}
@@ -160,8 +299,75 @@ class EditWebHook extends React.Component {
                                             </div>
                                         </fieldset>
 
+                                        <ShouldRender if={!data.monitorId}>
+                                            <fieldset className="Margin-bottom--16">
+                                                <div className="bs-Fieldset-rows">
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{ padding: 0 }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label Text-align--left"
+                                                            htmlFor="monitorId"
+                                                        >
+                                                            <span>
+                                                                Monitors
+                                                            </span>
+                                                        </label>
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                paddingTop:
+                                                                    '6px',
+                                                            }}
+                                                        >
+                                                            <div className="bs-Fieldset-field">
+                                                                <label
+                                                                    className="Checkbox"
+                                                                    style={{
+                                                                        marginRight:
+                                                                            '12px',
+                                                                    }}
+                                                                >
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name="selectMonitors"
+                                                                        className="Checkbox-source"
+                                                                        id="selectMonitors"
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <label>
+                                                                            <span>
+                                                                                Select
+                                                                                Monitors
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                        </ShouldRender>
                                         <ShouldRender
-                                            if={!data.currentMonitorId}
+                                            if={
+                                                formValues &&
+                                                formValues.selectMonitors &&
+                                                !data.monitorId
+                                            }
                                         >
                                             <fieldset className="Margin-bottom--16">
                                                 <div className="bs-Fieldset-rows">
@@ -173,57 +379,28 @@ class EditWebHook extends React.Component {
                                                             className="bs-Fieldset-label Text-align--left"
                                                             htmlFor="monitorId"
                                                         >
-                                                            <span>Monitor</span>
+                                                            <span></span>
                                                         </label>
-                                                        <div className="bs-Fieldset-fields">
+                                                        <div
+                                                            className="bs-Fieldset-fields"
+                                                            style={{
+                                                                paddingTop:
+                                                                    '6px',
+                                                            }}
+                                                        >
                                                             <div
                                                                 className="bs-Fieldset-field"
                                                                 style={{
                                                                     width:
-                                                                        '250px',
+                                                                        '100%',
                                                                 }}
                                                             >
-                                                                <Field
-                                                                    className="db-select-nw db-MultiSelect-input"
+                                                                <FieldArray
+                                                                    name="monitors"
                                                                     component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="monitorId"
-                                                                    id="monitorId"
-                                                                    placeholder="Select monitor"
-                                                                    disabled={
                                                                         this
-                                                                            .props
-                                                                            .newWebHook
-                                                                            .requesting
+                                                                            .renderMonitors
                                                                     }
-                                                                    validate={
-                                                                        ValidateField.select
-                                                                    }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select amount',
-                                                                        },
-                                                                        ...(monitorList &&
-                                                                        monitorList.length >
-                                                                            0
-                                                                            ? monitorList.map(
-                                                                                  monitor => ({
-                                                                                      value:
-                                                                                          monitor.value,
-                                                                                      label:
-                                                                                          monitor.label,
-                                                                                  })
-                                                                              )
-                                                                            : []),
-                                                                    ]}
-                                                                    style={{
-                                                                        width:
-                                                                            '250px',
-                                                                    }}
                                                                 />
                                                             </div>
                                                         </div>
@@ -250,7 +427,7 @@ class EditWebHook extends React.Component {
                                                         <div
                                                             className="bs-Fieldset-field"
                                                             style={{
-                                                                width: '250px',
+                                                                width: '100%',
                                                             }}
                                                         >
                                                             <Field
@@ -268,6 +445,10 @@ class EditWebHook extends React.Component {
                                                                 validate={
                                                                     ValidateField.select
                                                                 }
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                }}
                                                                 options={[
                                                                     {
                                                                         value:
@@ -287,8 +468,26 @@ class EditWebHook extends React.Component {
                                                                         label:
                                                                             'POST',
                                                                     },
+                                                                    {
+                                                                        value:
+                                                                            'put',
+                                                                        label:
+                                                                            'PUT',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'patch',
+                                                                        label:
+                                                                            'PATCH',
+                                                                    },
+                                                                    {
+                                                                        value:
+                                                                            'delete',
+                                                                        label:
+                                                                            'DELETE',
+                                                                    },
                                                                 ]}
-                                                                className="db-select-nw db-MultiSelect-input"
+                                                                className="db-select-nw db-MultiSelect-input webhook-select"
                                                             />
                                                         </div>
                                                     </div>
@@ -573,6 +772,8 @@ EditWebHook.propTypes = {
     monitor: PropTypes.object,
     newWebHook: PropTypes.object,
     data: PropTypes.object.isRequired,
+    allComponents: PropTypes.array,
+    formValues: PropTypes.object,
 };
 
 const NewEditWebHook = compose(
@@ -601,13 +802,22 @@ const mapStateToProps = (state, props) => {
         currentMonitorValue.label = props.data.monitorId.name;
         currentMonitorValue.value = props.data.monitorId._id;
     }
+    const allComponents = state.component.componentList.components
+        .map(component => component.components)
+        .flat();
+    const monitors = props.data.data.monitors.map(monitor => monitor.monitorId);
     return {
+        allComponents,
         webhook: state.webhook,
         monitor: state.monitor,
         currentProject: state.project.currentProject,
         newWebHook: state.webHooks.updateWebHook,
+        formValues:
+            state.form.NewEditWebHook && state.form.NewEditWebHook.values,
         initialValues: {
             endpoint: props.data.data.endpoint,
+            selectMonitors: true,
+            monitors,
             endpointType: props.data.data.endpointType,
             monitorId: currentMonitorValue.value,
             incidentCreated: props.data.notificationOptions.incidentCreated,

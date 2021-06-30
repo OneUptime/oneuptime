@@ -56,7 +56,7 @@ module.exports = {
             let query = {
                 projectId: projectId,
                 integrationType: 'webhook',
-                monitorId: monitor._id,
+                monitors: { $elemMatch: { monitorId: monitor._id } },
             };
             if (incidentStatus === INCIDENT_RESOLVED) {
                 query = {
@@ -328,8 +328,16 @@ module.exports = {
                     .request({
                         method: httpMethod,
                         url: webHookURL,
-                        data: httpMethod === 'post' ? payload : null,
-                        params: httpMethod === 'get' ? data : null,
+                        data:
+                            httpMethod === 'post' ||
+                            httpMethod === 'put' ||
+                            httpMethod === 'patch'
+                                ? payload
+                                : null,
+                        params:
+                            httpMethod === 'get' || httpMethod === 'delete'
+                                ? data
+                                : null,
                         headers: {
                             'Content-Type': 'application/json',
                         },
