@@ -55,7 +55,9 @@ deploy_production_ruby-sdk:
         - cd ruby-sdk/fyipe
         - sudo gem install bundler -v "$(grep -A 1 "BUNDLED WITH" Gemfile.lock | tail -n 1)"
         - bundle install
+        - pwd -P
         - git checkout -f master
+        - pwd -P
         - mkdir -p ~/.gem
         - GEMPATH=~/.gem/credentials
         - rm $GEMPATH || true # reomve previous saved file or just continue if it doesnt exist (new container)

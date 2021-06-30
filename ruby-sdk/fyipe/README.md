@@ -66,13 +66,13 @@ puts response
 ```ruby
 require 'fyipe'
 
-# constructor
-
 # set up tracking configurations
 options = {
     "maxTimeline": 50,
     "captureCodeSnippet": true
 }
+
+# constructor
 tracker = FyipeLogger.new(
     'API_URL', # https://fyipe.com/api
     'ERROR_TRACKER_ID',
