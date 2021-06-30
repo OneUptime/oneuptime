@@ -68,7 +68,6 @@ module.exports = {
                     .sort([['createdAt', sort]]);
 
                 for (let populateItem of populate) {
-                    console.log(populateItem);
                     result = populateItem.field
                         ? await alertCharges.populate(
                               populateItem.table,
