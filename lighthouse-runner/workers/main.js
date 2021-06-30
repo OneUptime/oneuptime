@@ -7,10 +7,10 @@ module.exports = {
         try {
             let monitors = await getApi('lighthouse/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data
-            console.log("The Data Monitor: ", monitors);console.log("The Data Monitor: ", monitors);
             await Promise.all(
                 monitors.map(monitor => {
                     if(monitor.type === 'url'){
+                        console.log("monitor get: ", monitor)
                         return UrlMonitors.ping(monitor);
                     }
                     return null;

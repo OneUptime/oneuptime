@@ -578,6 +578,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                           )
                         : data.reason;
             }
+   
             if (data.lighthouseScanStatus) {
                 if (data.lighthouseScanStatus === 'scanning') {
                     await MonitorService.updateOneBy(

@@ -9,7 +9,6 @@
  const CLUSTER_KEY = process.env.CLUSTER_KEY;
  module.exports = {
      isAuthorizedLighthouse: async function (req, res, next) {
-         console.log("Sent Values: ",req.headers);
 
          try {
              let lighthouseKey, lighthouseName, clusterKey, lighthouseVersion;
@@ -70,7 +69,6 @@
                  lighthouseVersion = req.body.lighthouseversion;
              }
              
-             console.log("Light House key: ", lighthouseKey);
              let lighthouse = null;
  
              if (clusterKey && clusterKey === CLUSTER_KEY) {
@@ -109,7 +107,6 @@
              }
              req.lighthouse = {};
              req.lighthouse.id = lighthouse._id;
-             console.log("Lighthouse ID: ", req.lighthouse);
              //await LighthouseService.updateLighthouseStatus(lighthouse._id);
  
              //Update lighthouse version

@@ -67,84 +67,107 @@ module.exports = {
             throw error;
         }
     },
-
-    conditions: async (monitorType, con, payload, resp, response) => {
-        const status = resp
-            ? resp.status
-                ? resp.status
-                : resp.statusCode
-                ? resp.statusCode
-                : null
-            : null;
-        const body = resp && resp.body ? resp.body : null;
-        const queryParams = resp && resp.queryParams ? resp.queryParams : null;
-        const headers = resp && resp.headers ? resp.headers : null;
-        const sslCertificate =
-            resp && resp.sslCertificate ? resp.sslCertificate : null;
-        const successReasons = [];
-        const failedReasons = [];
-
-        let eventOccurred = false;
-        let matchedCriterion;
-
-        if (con && con.length) {
-            eventOccurred = await some(con, async condition => {
-                let stat = true;
-                if (
-                    condition &&
-                    condition.criteria &&
-                    condition.criteria.condition &&
-                    condition.criteria.condition === 'and'
-                ) {
-                    stat = await checkAnd(
-                        payload,
-                        condition.criteria,
-                        status,
-                        body,
-                        sslCertificate,
-                        response,
-                        successReasons,
-                        failedReasons,
-                        monitorType,
-                        queryParams,
-                        headers
-                    );
-                } else if (
-                    condition &&
-                    condition.criteria &&
-                    condition.criteria.condition &&
-                    condition.criteria.condition === 'or'
-                ) {
-                    stat = await checkOr(
-                        payload,
-                        condition.criteria,
-                        status,
-                        body,
-                        sslCertificate,
-                        response,
-                        successReasons,
-                        failedReasons,
-                        monitorType,
-                        queryParams,
-                        headers
-                    );
-                }
-                if (stat) {
-                    matchedCriterion = condition;
-                    return true;
-                }
-
-                return false;
+    saveMonitorLog: async function(data) {
+        try {
+            const _this = this;
+            const monitorStatus = await MonitorStatusService.findOneBy({
+                monitorId: data.monitorId,
+                lighthouseId: data.lighthouseId,
             });
-        }
+            const lastStatus =
+                monitorStatus && monitorStatus.status
+                    ? monitorStatus.status
+                    : null;
 
-        return {
-            stat: eventOccurred,
-            successReasons,
-            failedReasons,
-            matchedCriterion,
-        };
+            let log = await MonitorLogService.create(data);
+            if (!data.stopPingTimeUpdate) {
+                await MonitorService.updateMonitorPingTime(data.monitorId);
+            }
+
+            // grab all the criteria in a monitor
+            const allCriteria = [];
+            if (data.matchedUpCriterion) {
+                data.matchedUpCriterion.forEach(criteria =>
+                    allCriteria.push(criteria)
+                );
+            }
+            if (data.matchedDownCriterion) {
+                data.matchedDownCriterion.forEach(criteria =>
+                    allCriteria.push(criteria)
+                );
+            }
+            if (data.matchedDegradedCriterion) {
+                data.matchedDegradedCriterion.forEach(criteria =>
+                    allCriteria.push(criteria)
+                );
+            }
+
+            if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
+                // check if monitor has a previous status
+                // check if previous status is different from the current status
+                // if different, resolve last incident, create a new incident and monitor status
+                if (lastStatus) {
+                    // check 3 times just to make sure
+                    if (
+                        typeof data.retry === 'boolean' &&
+                        data.retryCount >= 0 &&
+                        data.retryCount < 3
+                    )
+                        return { retry: true, retryCount: data.retryCount };
+
+                    await _this.incidentResolveOrAcknowledge(data, allCriteria);
+                }
+
+                const incidentIdsOrRetry = await _this.incidentCreateOrUpdate(
+                    data
+                );
+                if (incidentIdsOrRetry.retry) return incidentIdsOrRetry;
+
+                if (
+                    Array.isArray(incidentIdsOrRetry) &&
+                    incidentIdsOrRetry.length
+                ) {
+                    data.incidentId = incidentIdsOrRetry[0];
+                }
+
+                await MonitorStatusService.create(data);
+
+                if (incidentIdsOrRetry && incidentIdsOrRetry.length) {
+                    log = await MonitorLogService.updateOneBy(
+                        { _id: log._id },
+                        { incidentIds: incidentIdsOrRetry }
+                    );
+                }
+            } else {
+                // should make sure all unresolved incidents for the monitor is resolved
+                if (data.status === 'online') {
+                    await _this.incidentResolveOrAcknowledge(data, allCriteria);
+                }
+
+                const incidents = await IncidentService.findBy({
+                    'monitors.monitorId': data.monitorId,
+                    incidentType: data.status,
+                    resolved: false,
+                });
+
+                const incidentIds = incidents.map(incident => incident._id);
+
+                if (incidentIds && incidentIds.length) {
+                    log = await MonitorLogService.updateOneBy(
+                        { _id: log._id },
+                        { incidentIds }
+                    );
+                }
+            }
+            return log;
+        } catch (error) {
+            ErrorService.log('lighthouseService.saveMonitorLog', error);
+            throw error;
+        }
     },
+
 }
 const LighthouseModel = require('../models/lighthouse');
-const { some } = require('p-iteration');
+const ErrorService = require('./errorService');
+const MonitorStatusService = require('./monitorStatusService');
+const MonitorLogService = require('./monitorLogService');
