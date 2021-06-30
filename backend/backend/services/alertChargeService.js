@@ -63,7 +63,7 @@ module.exports = {
                         : await alertCharges.populate(populateItem.table);
                 }
             } else {
-                alertCharges = await AlertChargeModel.find(query)
+                alertCharges = AlertChargeModel.find(query)
                     .lean()
                     .sort([['createdAt', sort]]);
 
