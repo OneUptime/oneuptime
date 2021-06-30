@@ -1,5 +1,5 @@
 # spec/fyipe_tracker_spec.rb
-require_relative '../lib/fyipeTracker'
+require_relative '../lib/fyipe'
 require_relative 'helper'
 
 RSpec.configure do |config|
