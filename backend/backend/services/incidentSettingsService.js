@@ -1,7 +1,6 @@
 module.exports = {
-    create: async data => {
+    create: async function(data) {
         try {
-            const incidentSettings = new incidentSettingsModel();
             const {
                 projectId,
                 title,
@@ -11,6 +10,19 @@ module.exports = {
                 name,
             } = data;
 
+            const incidentSetting = await this.findOne({
+                projectId,
+                name,
+            });
+            if (incidentSetting) {
+                const error = new Error(
+                    'Incident template with this name already exist in project'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            const incidentSettings = new incidentSettingsModel();
             if (isDefault) {
                 // there can only be one default incident settings per project
                 await incidentSettingsModel.findOneAndUpdate(
@@ -93,6 +105,22 @@ module.exports = {
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;
 
+            if (data.name && query.projectId && query._id) {
+                const incidentSetting = await this.findOne({
+                    projectId: query.projectId,
+                    name: data.name,
+                    _id: { $ne: query._id },
+                });
+
+                if (incidentSetting) {
+                    const error = new Error(
+                        'Incident template with this name already exist in project'
+                    );
+                    error.code = 400;
+                    throw error;
+                }
+            }
+
             if (data.isDefault && query.projectId && query._id) {
                 // there can only be one default incident settings per project
                 // set any previous isDefault to false
@@ -115,7 +143,7 @@ module.exports = {
                     upsert: true,
                 }
             );
-            const incidentSettings = this.findOne(query);
+            const incidentSettings = await this.findOne(query);
             return incidentSettings;
         } catch (error) {
             ErrorService.log('IncidentSettingsService.updateOne', error);
