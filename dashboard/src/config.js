@@ -1757,7 +1757,7 @@ print(response)`,
                 id: 'ruby',
                 language: 'Ruby',
                 height: {
-                    install: '25px',
+                    install: '50px',
                     usage: '500px',
                 },
                 errorTracking: {
@@ -1776,7 +1776,7 @@ options = {
 }               
 
 # constructor                        
-fyipeTracker = FyipeTracker.new(                        
+tracker = FyipeTracker.new(                        
     "${apiUrl ? apiUrl : 'API_URL'}",
     '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
     '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
