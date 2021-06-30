@@ -17,55 +17,8 @@ const isAuthorizedAdmin = require('../middlewares/clusterAuthorization')
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const getUser = require('../middlewares/user').getUser;
-const { isAuthorized } = require('../middlewares/authorization');
-const storage = require('../middlewares/upload');
 const { isAuthorizedLighthouse } = require('../middlewares/lighthouseAuthorization');
 
-
-router.post('/', getUser, isAuthorizedAdmin, async function (req, res) {
-    try {
-        const data = req.body;
-        const lighthouse = await LighthouseService.create(data);
-        return sendItemResponse(req, res, lighthouse);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.get('/', getUser, isAuthorizedAdmin, async function (req, res) {
-    try {
-        const skip = req.query.skip || 0;
-        const limit = req.query.limit || 0;
-        const lighthouse = await LighthouseService.findBy({}, limit, skip);
-        const count = await LighthouseService.countBy({});
-        return sendListResponse(req, res, lighthouse, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.put('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
-    try {
-        const data = req.body;
-        const lighthouse = await LighthouseService.updateOneBy(
-            { _id: req.params.id },
-            data
-        );
-        return sendItemResponse(req, res, lighthouse);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.delete('/:id', getUser, isAuthorizedAdmin, async function (req, res) {
-    try {
-        const lighthouse = await LighthouseService.deleteBy({ _id: req.params.id });
-        return sendItemResponse(req, res, lighthouse);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
 
 // Route
 // Description: Updating profile setting.
@@ -117,14 +70,6 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
 ) {
     // let release;
     try {
-        // const monitorId = req.body.monitor
-        //     ? req.body.monitor._id.toString()
-        //     : '';
-
-        // const mutex = getMutex(MUTEX_RESOURCES.MONITOR, monitorId);
-        // if (mutex) {
-        //     release = await mutex.acquire();
-        // }
 
         const {
             monitor,
@@ -141,9 +86,8 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
             reason,
             data = {};
         let matchedCriterion;
-
-        console.log("The Lighthouse Monitor Probe Id: ", monitor);
-            if (type === 'api' || type === 'url') {
+       
+            if (type === 'url') {
                 const {
                     stat: validUp,
                     successReasons: upSuccessReasons,
@@ -225,138 +169,85 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                 data.status = status;
                 data.reason = reason;
             }
-            if (type === 'ip') {
-                const {
-                    stat: validUp,
-                    successReasons: upSuccessReasons,
-                    failedReasons: upFailedReasons,
-                    matchedCriterion: matchedUpCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.up
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.up,
-                          res,
-                          resp,
-                          rawResp
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
-                const {
-                    stat: validDown,
-                    successReasons: downSuccessReasons,
-                    failedReasons: downFailedReasons,
-                    matchedCriterion: matchedDownCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.down
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          [
-                              ...monitor.criteria.down.filter(
-                                  criterion => criterion.default !== true
-                              ),
-                          ],
-                          res,
-                          resp,
-                          rawResp
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
-                if (validUp) {
-                    status = 'online';
-                    reason = upSuccessReasons;
-                    matchedCriterion = matchedUpCriterion;
-                } else if (validDown) {
-                    matchedCriterion = matchedDownCriterion;
-                    status = 'offline';
-                    reason = [...downSuccessReasons, null, ...upFailedReasons];
-                } else {
-                    status = 'offline';
-                    reason = [...downFailedReasons, null, ...upFailedReasons];
-                    if (monitor.criteria.down) {
-                        matchedCriterion = monitor.criteria.down.find(
-                            criterion => criterion.default === true
-                        );
-                    }
-                }
-                data.status = status;
-                data.reason = reason;
-            }
             
-            if (type === 'server-monitor') {
-                data = serverData;
-                const {
-                    stat: validUp,
-                    successReasons: upSuccessReasons,
-                    failedReasons: upFailedReasons,
-                    matchedCriterion: matchedUpCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.up
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.up,
-                          data
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
-                const {
-                    stat: validDegraded,
-                    successReasons: degradedSuccessReasons,
-                    failedReasons: degradedFailedReasons,
-                    matchedCriterion: matchedDegradedCriterion,
-                } = await (monitor &&
-                monitor.criteria &&
-                monitor.criteria.degraded
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.degraded,
-                          data
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
-                const {
-                    stat: validDown,
-                    successReasons: downSuccessReasons,
-                    failedReasons: downFailedReasons,
-                    matchedCriterion: matchedDownCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.down
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          [
-                              ...monitor.criteria.down.filter(
-                                  criterion => criterion.default !== true
-                              ),
-                          ],
-                          data
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+            // if (type === 'server-monitor') {
+            //     data = serverData;
+            //     const {
+            //         stat: validUp,
+            //         successReasons: upSuccessReasons,
+            //         failedReasons: upFailedReasons,
+            //         matchedCriterion: matchedUpCriterion,
+            //     } = await (monitor && monitor.criteria && monitor.criteria.up
+            //         ? ProbeService.conditions(
+            //               monitor.type,
+            //               monitor.criteria.up,
+            //               data
+            //           )
+            //         : { stat: false, successReasons: [], failedReasons: [] });
+            //     const {
+            //         stat: validDegraded,
+            //         successReasons: degradedSuccessReasons,
+            //         failedReasons: degradedFailedReasons,
+            //         matchedCriterion: matchedDegradedCriterion,
+            //     } = await (monitor &&
+            //     monitor.criteria &&
+            //     monitor.criteria.degraded
+            //         ? ProbeService.conditions(
+            //               monitor.type,
+            //               monitor.criteria.degraded,
+            //               data
+            //           )
+            //         : { stat: false, successReasons: [], failedReasons: [] });
+            //     const {
+            //         stat: validDown,
+            //         successReasons: downSuccessReasons,
+            //         failedReasons: downFailedReasons,
+            //         matchedCriterion: matchedDownCriterion,
+            //     } = await (monitor && monitor.criteria && monitor.criteria.down
+            //         ? ProbeService.conditions(
+            //               monitor.type,
+            //               [
+            //                   ...monitor.criteria.down.filter(
+            //                       criterion => criterion.default !== true
+            //                   ),
+            //               ],
+            //               data
+            //           )
+            //         : { stat: false, successReasons: [], failedReasons: [] });
 
-                if (validUp) {
-                    data.status = 'online';
-                    data.reason = upSuccessReasons;
-                    matchedCriterion = matchedUpCriterion;
-                } else if (validDegraded) {
-                    data.status = 'degraded';
-                    data.reason = [
-                        ...degradedSuccessReasons,
-                        ...upFailedReasons,
-                    ];
-                    matchedCriterion = matchedDegradedCriterion;
-                } else if (validDown) {
-                    data.status = 'offline';
-                    data.reason = [
-                        ...downSuccessReasons,
-                        ...degradedFailedReasons,
-                        ...upFailedReasons,
-                    ];
-                    matchedCriterion = matchedDownCriterion;
-                } else {
-                    data.status = 'offline';
-                    data.reason = [
-                        ...downFailedReasons,
-                        ...degradedFailedReasons,
-                        ...upFailedReasons,
-                    ];
-                    if (monitor.criteria.down) {
-                        matchedCriterion = monitor.criteria.down.find(
-                            criterion => criterion.default === true
-                        );
-                    }
-                }
-            } else {
+            //     if (validUp) {
+            //         data.status = 'online';
+            //         data.reason = upSuccessReasons;
+            //         matchedCriterion = matchedUpCriterion;
+            //     } else if (validDegraded) {
+            //         data.status = 'degraded';
+            //         data.reason = [
+            //             ...degradedSuccessReasons,
+            //             ...upFailedReasons,
+            //         ];
+            //         matchedCriterion = matchedDegradedCriterion;
+            //     } else if (validDown) {
+            //         data.status = 'offline';
+            //         data.reason = [
+            //             ...downSuccessReasons,
+            //             ...degradedFailedReasons,
+            //             ...upFailedReasons,
+            //         ];
+            //         matchedCriterion = matchedDownCriterion;
+            //     } else {
+            //         data.status = 'offline';
+            //         data.reason = [
+            //             ...downFailedReasons,
+            //             ...degradedFailedReasons,
+            //             ...upFailedReasons,
+            //         ];
+            //         if (monitor.criteria.down) {
+            //             matchedCriterion = monitor.criteria.down.find(
+            //                 criterion => criterion.default === true
+            //             );
+            //         }
+            //     }
+            // } else {
                 data = req.body;
                 data.responseTime = res || 0;
                 data.responseStatus = resp && resp.status ? resp.status : null;
@@ -380,7 +271,7 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                 data.retryCount = retryCount || 0;
                 data.reason = reason;
                 data.response = rawResp;
-            }
+            //}
             
 
             data.matchedCriterion = matchedCriterion;
@@ -395,7 +286,7 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
             );
             data.monitorId = req.params.monitorId || monitor._id;
             data.probeId = monitor.pollTime && monitor.pollTime[1].probeId ? monitor.pollTime[1].probeId : null;
-            console.log("Data ProbeId: ", data.probeId);
+           
             data.reason =
                 data && data.reason && data.reason.length
                     ? data.reason.filter(
