@@ -1,14 +1,16 @@
-import Users from './Users';
-import User from './User';
-import Projects from './Projects';
-import Project from './Project';
-import Probes from './Probes';
-import AuditLogs from './AuditLogs';
-import EmailLogs from './EmailLogs';
-import CallLogs from './CallLogs';
-import SmsLogs from './SmsLogs';
-import Settings from './Settings';
-import License from './License';
+import { lazy } from 'react';
+
+const Users = lazy(() => import('./Users'));
+const User = lazy(() => import('./User'));
+const Projects = lazy(() => import('./Projects'));
+const Project = lazy(() => import('./Project'));
+const Probes = lazy(() => import('./Probes'));
+const AuditLogs = lazy(() => import('./AuditLogs'));
+const EmailLogs = lazy(() => import('./EmailLogs'));
+const CallLogs = lazy(() => import('./CallLogs'));
+const SmsLogs = lazy(() => import('./SmsLogs'));
+const Settings = lazy(() => import('./Settings'));
+const License = lazy(() => import('./License'));
 
 export default {
     Users,
