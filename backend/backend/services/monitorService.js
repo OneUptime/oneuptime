@@ -713,7 +713,7 @@ module.exports = {
                             {
                                 lighthouseScanStatus: {
                                     $exists: true,
-                                    $nin: ['scanning', 'scanned'] // Lighthouse scan status exist but 'failed'
+                                    $nin: ['scanning', 'scanned'] // Lighthouse scan status exist but 'failed' or the 'scan' button is clicked from UI
                                 }
                             }
                         ]
