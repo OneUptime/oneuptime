@@ -21,7 +21,6 @@ env.js
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-/newrelic_agent.log
 
 yarn.lock
 Untitled-1
