@@ -9,11 +9,9 @@ module.exports = {
             monitors = JSON.parse(monitors.data); // parse the stringified data
             await Promise.all(
                 monitors.map(monitor => {
-                   // console.log("The received monitor: ", monitor);
-                    if(monitor.type === 'url' && monitor.pollTime && monitor.pollTime.length > 0){ 
+                    if(monitor.type === 'url'){ 
                        const probe = monitor.pollTime.filter(probe => probe.probeId);
-                       if(probe.length > 0){ // This checks that the probe server is working
-                        console.log("The received monitor after probe check: ", monitor);
+                       if(probe.length > 0){ // This checks that the ssl result has already been published i.e probe is runnning.
                            return UrlMonitors.ping(monitor);
                        }else{
                            ErrorService.log('getApi',"Please Make Sure Probe Server is Online.")

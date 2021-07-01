@@ -44,7 +44,6 @@ module.exports = {
                                     url
                                 );
                 
-                               console.log("Response from lighthouse fetch: ", resp);
                                 await UrlService.ping(monitor._id, {
                                     monitor,
                                     resp,
