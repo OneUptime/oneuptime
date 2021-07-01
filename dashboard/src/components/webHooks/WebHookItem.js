@@ -67,8 +67,6 @@ class WebHookInput extends React.Component {
 
     render() {
         const { data, webhooks, monitors, monitorId } = this.props;
-        // eslint-disable-next-line no-console
-        console.log(monitorId, 'monitor id being logged here man');
 
         const { endpoint, endpointType } = data.data;
         let deleting = false;
@@ -117,7 +115,7 @@ class WebHookInput extends React.Component {
                                                     EditWebhook,
                                                     {
                                                         ...data,
-                                                        currentMonitorId: '',
+                                                        currentMonitorId: monitorId,
                                                     }
                                                 ),
                                             })
