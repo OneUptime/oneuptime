@@ -707,13 +707,13 @@ module.exports = {
                         $or: [
                             {
                                 lighthouseScanStatus: {
-                                    $exists: false,
+                                    $exists: false, // Lighthouse scan status does not exist
                                 }
                             },
                             {
                                 lighthouseScanStatus: {
                                     $exists: true,
-                                    $nin: ['scanning', 'scanned']
+                                    $nin: ['scanning', 'scanned'] // Lighthouse scan status exist but 'failed'
                                 }
                             }
                         ]
