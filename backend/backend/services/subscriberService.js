@@ -10,6 +10,7 @@ module.exports = {
         subscriberModel.contactPhone = data.contactPhone || null;
         subscriberModel.countryCode = data.countryCode || null;
         subscriberModel.contactWebhook = data.contactWebhook || null;
+        subscriberModel.notificationType = data.notificationType || null;
         subscriberModel.webhookMethod = data.webhookMethod || 'post';
         try {
             const subscriber = await subscriberModel.save();
@@ -197,7 +198,7 @@ module.exports = {
 
             const success = monitors.map(async monitor => {
                 const newSubscriber = Object.assign({}, data, {
-                    monitorId: monitor._id,
+                    monitorId: monitor._id ?? monitor,
                 });
                 const hasSubscribed = await _this.subscriberCheck(
                     newSubscriber
