@@ -26,6 +26,7 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
         const data = {};
         data.projectId = req.params.projectId;
         data.statusPageId = req.params.statusPageId;
+        data.notificationType = body.notificationType;
 
         if (!body.userDetails) {
             return sendErrorResponse(req, res, {
