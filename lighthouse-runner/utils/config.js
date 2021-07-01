@@ -39,8 +39,6 @@ const COMMAND = {
 module.exports = {
     COMMAND,
     serverUrl: process.env['SERVER_URL'],
-    lighthouseName: process.env['LIGHTHOUSE_NAME'],
-    lighthouseKey: process.env['LIGHTHOUSE_KEY'],
     clusterKey: process.env['CLUSTER_KEY'],
     lighthouseVersion: packageJson.version,
 };

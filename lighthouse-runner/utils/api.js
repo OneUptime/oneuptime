@@ -7,10 +7,7 @@ const _this = {
             'Access-Control-Allow-Origin': '*',
             Accept: 'application/json',
             'Content-Type': 'application/json;charset=UTF-8',
-            lighthouseName: config.lighthouseName,
-            lighthouseKey: config.lighthouseKey,
             clusterKey: config.clusterKey,
-            lighthouseVersion: config.lighthouseVersion,
         };
     },
     postApi: (url, data) => {

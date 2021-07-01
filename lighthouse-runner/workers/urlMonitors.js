@@ -48,11 +48,12 @@ module.exports = {
                         let failedCount = 0;
                         for (const url of sites) {
                             try {
-                                const resp = await lighthouseFetch(
+                                let resp = await lighthouseFetch(
                                     monitor,
                                     url
                                 );
-                               
+                                resp.lighthouseScanStatus = resp.status
+                               console.log("Response from lighthouse fetch: ", resp);
                                 await UrlService.ping(monitor._id, {
                                     monitor,
                                     resp,
@@ -66,15 +67,6 @@ module.exports = {
                             }
                         }
 
-                        await UrlService.ping(monitor._id, {
-                            monitor,
-                            resp: {
-                                lighthouseScanStatus:
-                                    failedCount === sites.length
-                                        ? 'failed'
-                                        : 'scanned',
-                            },
-                        });
                     }
                 }
             }

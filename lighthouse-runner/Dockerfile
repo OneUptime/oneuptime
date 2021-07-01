@@ -29,8 +29,8 @@ RUN npm ci --only=production
 COPY . /usr/src/app
 
 # Expose ports.
-#   - 3001: Lighthouse Runner
-EXPOSE 3001
+#   - 3015: Lighthouse Runner
+EXPOSE 3015
 
 #Run the app
 CMD [ "npm", "start"]

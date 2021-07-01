@@ -35,14 +35,12 @@ const config = require('./utils/config');
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
 
 app.use(cors());
-app.set('port', process.env.PORT || 3001);
+app.set('port', process.env.PORT || 3015);
 
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log(
-        `Lighthouse with Lighthouse Name ${config.lighthouseName} and Lighthouse Key ${
-            config.lighthouseKey
-        } Started on port ${app.get('port')}. Fyipe API URL: ${
+        `Lighthouse Started on port ${app.get('port')}. Fyipe API URL: ${
             config.serverUrl
         }`
     );

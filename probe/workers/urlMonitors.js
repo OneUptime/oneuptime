@@ -42,7 +42,6 @@ module.exports = {
                             retryCount++;
                         }
                     }
-                    // Lighthouse Refactored
                 }
             }
         } catch (error) {
