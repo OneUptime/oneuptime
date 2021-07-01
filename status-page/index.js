@@ -105,17 +105,17 @@ app.use('/', async function(req, res, next) {
                 res.writeHead(301, { Location: `https://${host}${req.url}` });
                 return res.end();
             }
-            next();
+            return next();
         } else {
             if (req.secure) {
                 res.writeHead(301, { Location: `http://${host}${req.url}` });
                 return res.end();
             }
-            next();
+            return next();
         }
     } catch (error) {
         console.log('Error with fetch', error);
-        next();
+        return next();
     }
 });
 

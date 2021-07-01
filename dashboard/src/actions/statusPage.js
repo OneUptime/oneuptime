@@ -1752,10 +1752,3 @@ export function switchStatusPage(statusPage) {
         payload: statusPage,
     };
 }
-
-export const showDuplicateStatusPage = function(obj) {
-    return {
-        type: types.SHOW_DUPLICATE_STATUSPAGE,
-        payload: obj,
-    };
-};

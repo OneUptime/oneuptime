@@ -109,7 +109,7 @@ module.exports = {
                 }
             });
 
-            next();
+            return next();
         } catch (error) {
             ErrorService.log('auditLogs.log', error);
             return sendErrorResponse(req, res, {

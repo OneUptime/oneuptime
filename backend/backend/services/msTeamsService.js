@@ -18,7 +18,7 @@ module.exports = {
             let query = {
                 projectId: projectId,
                 integrationType: 'msteams',
-                monitorId: monitor._id,
+                monitors: { $elemMatch: { monitorId: monitor._id } },
             };
             if (incidentStatus === INCIDENT_RESOLVED) {
                 query = {

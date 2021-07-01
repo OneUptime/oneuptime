@@ -12,9 +12,6 @@ const isAuthorizedApplicationScanner = require('../middlewares/applicationScanne
     .isAuthorizedApplicationScanner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const getUser = require('../middlewares/user').getUser;
-const multer = require('multer');
-const storage = require('../middlewares/upload');
 
 // Route
 // Description: Updating profile setting.
@@ -22,20 +19,23 @@ const storage = require('../middlewares/upload');
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
 // Returns: 200: Success, 400: Error; 500: Server Error.
 
+router.get(
+    '/applicationSecurities',
+    isAuthorizedApplicationScanner,
+    async function(req, res) {
+        try {
+            const response = await ApplicationSecurityService.getSecuritiesToScan();
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
-router.get('/applicationSecurities', isAuthorizedApplicationScanner, async function (
+router.post('/scan/git', isAuthorizedApplicationScanner, async function(
     req,
     res
 ) {
-    try {
-        const response = await ApplicationSecurityService.getSecuritiesToScan();
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.post('/scan/git', isAuthorizedApplicationScanner, async function (req, res) {
     try {
         let { security } = req.body;
 

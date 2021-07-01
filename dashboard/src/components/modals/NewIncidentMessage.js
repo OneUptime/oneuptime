@@ -130,6 +130,34 @@ class NewIncidentMessage extends Component {
                 return false;
         }
     };
+    onTemplateChange = value => {
+        const { change, noteTemplates } = this.props;
+
+        if (value) {
+            !noteTemplates.requesting &&
+                noteTemplates.templates.forEach(template => {
+                    if (String(template._id) === String(value)) {
+                        if (
+                            !['Investigation', 'Update'].includes(
+                                template.incidentState
+                            )
+                        ) {
+                            change('incident_state', 'Others');
+                            change(
+                                'custom_incident_state',
+                                template.incidentState
+                            );
+                        } else {
+                            change('incident_state', template.incidentState);
+                        }
+                        change('content', template.incidentNote);
+                    }
+                });
+        } else {
+            change('incident_state', 'Update');
+            change('content', '');
+        }
+    };
     render() {
         const {
             handleSubmit,
@@ -137,6 +165,7 @@ class NewIncidentMessage extends Component {
             incident_state,
             content,
             closeThisDialog,
+            noteTemplates,
         } = this.props;
         const { edit, type } = this.props.data;
         return (
@@ -176,14 +205,75 @@ class NewIncidentMessage extends Component {
                                 <div className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2">
                                     <div>
                                         <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
-                                            <fieldset className="bs-Fieldset">
+                                            <fieldset
+                                                className="bs-Fieldset"
+                                                style={{
+                                                    padding: 10,
+                                                }}
+                                            >
+                                                {!edit &&
+                                                    !noteTemplates.requesting &&
+                                                    noteTemplates.templates
+                                                        .length > 0 && (
+                                                        <div className="bs-Fieldset-row">
+                                                            <label className="bs-Fieldset-label">
+                                                                Incident Note
+                                                                Templates
+                                                            </label>
+                                                            <div className="bs-Fieldset-fields">
+                                                                <Field
+                                                                    className="db-select-nw-300 full-width"
+                                                                    component={
+                                                                        RenderSelect
+                                                                    }
+                                                                    name="noteTemplate"
+                                                                    id="noteTemplate"
+                                                                    placeholder="Incident Note Template"
+                                                                    disabled={
+                                                                        false
+                                                                    }
+                                                                    validate={
+                                                                        ValidateField.select
+                                                                    }
+                                                                    style={{
+                                                                        width:
+                                                                            '100%',
+                                                                    }}
+                                                                    options={[
+                                                                        {
+                                                                            value:
+                                                                                '',
+                                                                            label:
+                                                                                'Select template',
+                                                                        },
+                                                                        ...noteTemplates.templates.map(
+                                                                            template => ({
+                                                                                value:
+                                                                                    template._id,
+                                                                                label:
+                                                                                    template.name,
+                                                                            })
+                                                                        ),
+                                                                    ]}
+                                                                    onChange={(
+                                                                        event,
+                                                                        newValue
+                                                                    ) =>
+                                                                        this.onTemplateChange(
+                                                                            newValue
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 <div className="bs-Fieldset-row">
                                                     <label className="bs-Fieldset-label">
                                                         Incident State
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         <Field
-                                                            className="db-select-nw-300"
+                                                            className="db-select-nw-300 full-width"
                                                             component={
                                                                 RenderSelect
                                                             }
@@ -195,7 +285,7 @@ class NewIncidentMessage extends Component {
                                                                 ValidateField.select
                                                             }
                                                             style={{
-                                                                width: '300px',
+                                                                width: '100%',
                                                             }}
                                                             options={[
                                                                 {
@@ -245,6 +335,10 @@ class NewIncidentMessage extends Component {
                                                                 validate={
                                                                     ValidateField.text
                                                                 }
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                }}
                                                             />
                                                         </div>
                                                     </div>
@@ -284,6 +378,10 @@ class NewIncidentMessage extends Component {
                                                                         : 'new'
                                                                 }-${type}`}
                                                                 placeholder="This can be markdown"
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                }}
                                                             />
                                                         </div>
                                                     </div>
@@ -574,6 +672,7 @@ const mapStateToProps = (state, ownProps) => {
         currentProject,
         form: ownProps.data.formId,
         incident_state,
+        noteTemplates: state.incidentNoteTemplate.noteTemplates,
     };
 };
 NewIncidentMessage.displayName = 'NewIncidentMessage';
@@ -597,6 +696,7 @@ NewIncidentMessage.propTypes = {
     content: PropTypes.string,
     change: PropTypes.func,
     closeThisDialog: PropTypes.func,
+    noteTemplates: PropTypes.object,
 };
 export default connect(
     mapStateToProps,

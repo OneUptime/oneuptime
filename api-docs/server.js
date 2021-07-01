@@ -58,7 +58,7 @@ app.use(function(req, res, next) {
     if (req.get('host').includes('cluster.local')) {
         return next();
     }
-    next();
+    return next();
 });
 
 // set the server port

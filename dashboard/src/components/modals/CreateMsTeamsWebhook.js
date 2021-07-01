@@ -4,9 +4,8 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ClickOutside from 'react-click-outside';
 import { Validate } from '../../config';
-import { reduxForm, Field } from 'redux-form';
+import { reduxForm, Field, FieldArray } from 'redux-form';
 import { createMsTeams } from '../../actions/msteamsWebhook';
-import { ValidateField } from '../../config';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
 import { RenderField } from '../basic/RenderField';
@@ -23,6 +22,9 @@ function validate(values) {
 }
 
 class CreateMsTeams extends React.Component {
+    state = {
+        monitorError: null,
+    };
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -35,12 +37,36 @@ class CreateMsTeams extends React.Component {
         const {
             createMsTeams,
             closeThisDialog,
+            monitor,
             data: { monitorId },
         } = this.props;
         const postObj = {};
+        const { selectAllMonitors } = values;
+        let { monitors } = values;
+        const allMonitors = monitor.monitorsList.monitors
+            .map(monitor => monitor.monitors)
+            .flat();
+
+        if (selectAllMonitors) {
+            monitors = allMonitors.map(monitor => monitor._id);
+        }
+        if (monitors && monitors.length > 0) {
+            monitors = monitors.filter(
+                monitorId => typeof monitorId === 'string'
+            );
+        }
+        if (monitorId) {
+            monitors = [monitorId];
+        }
+        if (!monitors || (monitors && monitors.length === 0)) {
+            this.setState({
+                monitorError: 'No monitor was selected',
+            });
+            return;
+        }
         postObj.webHookName = values.webHookName;
         postObj.endpoint = values.endpoint;
-        postObj.monitorId = monitorId ? monitorId : values.monitorId;
+        postObj.monitors = monitors;
         postObj.type = 'msteams';
         postObj.incidentCreated = values.incidentCreated
             ? values.incidentCreated
@@ -55,6 +81,19 @@ class CreateMsTeams extends React.Component {
             ? values.incidentNoteAdded
             : false;
 
+        const isDuplicate = postObj.monitors
+            ? postObj.monitors.length === new Set(postObj.monitors).size
+                ? false
+                : true
+            : false;
+
+        if (isDuplicate) {
+            this.setState({
+                monitorError: 'Duplicate monitor selection found',
+            });
+            postObj.monitorId = [];
+            return;
+        }
         createMsTeams(this.props.currentProject._id, postObj).then(() => {
             if (this.props.newMsTeams && !this.props.newMsTeams.error) {
                 closeThisDialog();
@@ -71,6 +110,216 @@ class CreateMsTeams extends React.Component {
             default:
                 return false;
         }
+    };
+
+    renderMonitors = ({ fields }) => {
+        const { monitorError } = this.state;
+        const { allComponents, formValues } = this.props;
+
+        const allMonitors = this.props.monitor.monitorsList.monitors
+            .map(monitor => monitor.monitors)
+            .flat();
+
+        const getParentComponent = monitor =>
+            allComponents.filter(
+                component => component._id === monitor.componentId._id
+            )[0];
+
+        return (
+            <>
+                {formValues && formValues.selectAllMonitors && (
+                    <div
+                        className="bs-Fieldset-row"
+                        style={{ padding: 0, width: '100%' }}
+                    >
+                        <div
+                            className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                            style={{ padding: 0 }}
+                        >
+                            <div
+                                className="Box-root"
+                                style={{
+                                    height: '5px',
+                                }}
+                            ></div>
+                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                <label
+                                    className="Checkbox"
+                                    htmlFor="selectAllMonitorsBox"
+                                >
+                                    <Field
+                                        component="input"
+                                        type="checkbox"
+                                        name="selectAllMonitors"
+                                        className="Checkbox-source"
+                                        id="selectAllMonitorsBox"
+                                    />
+                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                        <div className="Checkbox-target Box-root">
+                                            <div className="Checkbox-color Box-root"></div>
+                                        </div>
+                                    </div>
+                                    <div className="Checkbox-label Box-root Margin-left--8">
+                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                            <span>All Monitors Selected</span>
+                                        </span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {formValues && !formValues.selectAllMonitors && (
+                    <div
+                        style={{
+                            width: '100%',
+                            position: 'relative',
+                        }}
+                    >
+                        <button
+                            id="addMoreMonitor"
+                            className="Button bs-ButtonLegacy ActionIconParent"
+                            style={{
+                                position: 'absolute',
+                                zIndex: 1,
+                                right: 0,
+                            }}
+                            type="button"
+                            onClick={() => {
+                                fields.push();
+                            }}
+                        >
+                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                <span>Add Monitor</span>
+                            </span>
+                        </button>
+                        {fields.length === 0 && !formValues.selectAllMonitors && (
+                            <div
+                                className="bs-Fieldset-row"
+                                style={{ padding: 0, width: '100%' }}
+                            >
+                                <div
+                                    className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                                    style={{ padding: 0 }}
+                                >
+                                    <div
+                                        className="Box-root"
+                                        style={{
+                                            height: '5px',
+                                        }}
+                                    ></div>
+                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                        <label
+                                            className="Checkbox"
+                                            htmlFor="selectAllMonitorsBox"
+                                        >
+                                            <Field
+                                                component="input"
+                                                type="checkbox"
+                                                name="selectAllMonitors"
+                                                className="Checkbox-source"
+                                                id="selectAllMonitorsBox"
+                                            />
+                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                <div className="Checkbox-target Box-root">
+                                                    <div className="Checkbox-color Box-root"></div>
+                                                </div>
+                                            </div>
+                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span>
+                                                        Select All Monitors
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {fields.map((field, index) => {
+                            return (
+                                <div
+                                    style={{
+                                        width: '65%',
+                                        marginBottom: 10,
+                                    }}
+                                    key={index}
+                                >
+                                    <Field
+                                        className="db-select-nw Table-cell--width--maximized"
+                                        component={RenderSelect}
+                                        name={field}
+                                        id={`monitorfield_${index}`}
+                                        placeholder="Monitor"
+                                        style={{
+                                            height: '28px',
+                                            width: '100%',
+                                        }}
+                                        options={[
+                                            {
+                                                value: '',
+                                                label: 'Select monitor',
+                                            },
+                                            ...(allMonitors &&
+                                            allMonitors.length > 0
+                                                ? allMonitors.map(monitor => ({
+                                                      value: monitor._id,
+                                                      label: `${
+                                                          getParentComponent(
+                                                              monitor
+                                                          ).name
+                                                      } / ${monitor.name}`,
+                                                  }))
+                                                : []),
+                                        ]}
+                                    />
+                                    <button
+                                        id="addMoreMonitor"
+                                        className="Button bs-ButtonLegacy ActionIconParent"
+                                        style={{
+                                            marginTop: 10,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            fields.remove(index);
+                                        }}
+                                    >
+                                        <span className="bs-Button bs-Button--icon bs-Button--delete">
+                                            <span>Remove Monitor</span>
+                                        </span>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                        {monitorError && (
+                            <div
+                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                style={{
+                                    marginTop: '5px',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <div
+                                    className="Box-root Margin-right--8"
+                                    style={{ marginTop: '2px' }}
+                                >
+                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                </div>
+                                <div className="Box-root">
+                                    <span
+                                        id="monitorError"
+                                        style={{ color: 'red' }}
+                                    >
+                                        {monitorError}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </>
+        );
     };
 
     render() {
@@ -99,7 +348,7 @@ class CreateMsTeams extends React.Component {
                 style={{ marginTop: '40px' }}
             >
                 <div className="bs-BIM">
-                    <div className="bs-Modal">
+                    <div className="bs-Modal" style={{ width: 600 }}>
                         <ClickOutside onClickOutside={this.closeThisDialog}>
                             <div className="bs-Modal-header">
                                 <div
@@ -153,7 +402,7 @@ class CreateMsTeams extends React.Component {
                                                         <div
                                                             className="bs-Fieldset-field"
                                                             style={{
-                                                                width: '70%',
+                                                                width: '100%',
                                                             }}
                                                         >
                                                             <Field
@@ -166,7 +415,8 @@ class CreateMsTeams extends React.Component {
                                                                 id="webHookName"
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 style={{
-                                                                    width: 250,
+                                                                    width:
+                                                                        '100%',
                                                                     padding:
                                                                         '3px 5px',
                                                                 }}
@@ -195,7 +445,7 @@ class CreateMsTeams extends React.Component {
                                                         <div
                                                             className="bs-Fieldset-field"
                                                             style={{
-                                                                width: '70%',
+                                                                width: '100%',
                                                             }}
                                                         >
                                                             <Field
@@ -208,7 +458,8 @@ class CreateMsTeams extends React.Component {
                                                                 id="endpoint"
                                                                 className="db-BusinessSettings-input TextInput bs-TextInput"
                                                                 style={{
-                                                                    width: 250,
+                                                                    width:
+                                                                        '100%',
                                                                     padding:
                                                                         '3px 5px',
                                                                 }}
@@ -223,68 +474,30 @@ class CreateMsTeams extends React.Component {
                                             <fieldset className="Margin-bottom--16">
                                                 <div className="bs-Fieldset-rows">
                                                     <div
-                                                        className="bs-Fieldset-row"
+                                                        className="bs-Fieldset-row Margin-bottom--12 Padding-left--0"
                                                         style={{ padding: 0 }}
                                                     >
                                                         <label
                                                             className="bs-Fieldset-label Text-align--left"
                                                             htmlFor="monitorId"
                                                         >
-                                                            <span>Monitor</span>
+                                                            <span>
+                                                                Monitors
+                                                            </span>
                                                         </label>
                                                         <div className="bs-Fieldset-fields">
-                                                            <div
-                                                                className="bs-Fieldset-field"
-                                                                style={{
-                                                                    width:
-                                                                        '250px',
-                                                                }}
-                                                            >
-                                                                <Field
-                                                                    component={
-                                                                        RenderSelect
-                                                                    }
-                                                                    name="monitorId"
-                                                                    id="monitorId"
-                                                                    placeholder="Select monitor"
-                                                                    disabled={
-                                                                        this
-                                                                            .props
-                                                                            .newMsTeams
-                                                                            .requesting
-                                                                    }
-                                                                    validate={
-                                                                        ValidateField.select
-                                                                    }
-                                                                    options={[
-                                                                        {
-                                                                            value:
-                                                                                '',
-                                                                            label:
-                                                                                'Select monitor',
-                                                                        },
-                                                                        ...(monitorList &&
-                                                                        monitorList.length >
-                                                                            0
-                                                                            ? monitorList.map(
-                                                                                  monitor => ({
-                                                                                      value:
-                                                                                          monitor.value,
-                                                                                      label:
-                                                                                          monitor.label,
-                                                                                  })
-                                                                              )
-                                                                            : []),
-                                                                    ]}
-                                                                    className="db-select-nw db-MultiSelect-input"
-                                                                />
-                                                            </div>
+                                                            <FieldArray
+                                                                name="monitors"
+                                                                component={
+                                                                    this
+                                                                        .renderMonitors
+                                                                }
+                                                            />
                                                         </div>
                                                     </div>
                                                 </div>
                                             </fieldset>
                                         </ShouldRender>
-
                                         <fieldset className="Margin-bottom--16">
                                             <div className="bs-Fieldset-rows">
                                                 <div
@@ -624,6 +837,8 @@ CreateMsTeams.propTypes = {
     monitor: PropTypes.object,
     newMsTeams: PropTypes.object,
     data: PropTypes.object,
+    allComponents: PropTypes.array,
+    formValues: PropTypes.object,
 };
 
 const NewCreateMsTeams = reduxForm({
@@ -641,12 +856,25 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const mapStateToProps = state => ({
-    msTeams: state.msTeams,
-    monitor: state.monitor,
-    currentProject: state.project.currentProject,
-    newMsTeams: state.msTeams.createMsTeams,
-    initialValues: { endpoint: '', endpointType: '', monitorId: '' },
-});
+const mapStateToProps = state => {
+    const allComponents = state.component.componentList.components
+        .map(component => component.components)
+        .flat();
+    return {
+        allComponents,
+        msTeams: state.msTeams,
+        monitor: state.monitor,
+        currentProject: state.project.currentProject,
+        formValues:
+            state.form.newCreateMsTeams && state.form.newCreateMsTeams.values,
+        newMsTeams: state.msTeams.createMsTeams,
+        initialValues: {
+            endpoint: '',
+            endpointType: '',
+            monitorId: '',
+            selectAllMonitors: false,
+        },
+    };
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewCreateMsTeams);

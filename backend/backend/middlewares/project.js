@@ -22,7 +22,7 @@ module.exports = {
         try {
             // authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {
-                next();
+                return next();
             } else {
                 const userId = req.user
                     ? req.user.id
@@ -71,7 +71,7 @@ module.exports = {
                 }
 
                 if (isUserPresentInProject) {
-                    next();
+                    return next();
                 } else {
                     return sendErrorResponse(req, res, {
                         code: 400,
@@ -115,7 +115,7 @@ module.exports = {
             }
             // authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {
-                next();
+                return next();
             } else {
                 const userId = req.user ? req.user.id : null;
                 const project = await ProjectService.findOneBy({
@@ -137,7 +137,7 @@ module.exports = {
                                 "You cannot edit the project because you're not an admin.",
                         });
                     } else {
-                        next();
+                        return next();
                     }
                 } else {
                     return sendErrorResponse(req, res, {
@@ -159,7 +159,7 @@ module.exports = {
         try {
             // authorize if user is master-admin
             if (req.authorizationType === 'MASTER-ADMIN') {
-                next();
+                return next();
             } else {
                 const UserId = req.user ? req.user.id : null;
                 const project = await ProjectService.findOneBy({
@@ -181,7 +181,7 @@ module.exports = {
                                 "You cannot edit the project because you're not an owner.",
                         });
                     } else {
-                        next();
+                        return next();
                     }
                 } else {
                     return sendErrorResponse(req, res, {

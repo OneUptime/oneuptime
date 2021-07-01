@@ -23,6 +23,7 @@ import IncidentCommunicationSla from '../components/incidentCommunicationSla/Inc
 import IncidentCustomFields from '../components/incident/IncidentCustomFields';
 import { fetchCustomFields } from '../actions/customField';
 import IncidentTemplates from '../components/incident/IncidentTemplates';
+import IncidentNoteTemplates from '../components/incident/IncidentNoteTemplates';
 
 class IncidentSettings extends React.Component {
     state = {
@@ -201,6 +202,7 @@ class IncidentSettings extends React.Component {
                             <TabPanel>
                                 <Fade>
                                     <IncidentTemplates />
+                                    <IncidentNoteTemplates />
                                 </Fade>
                             </TabPanel>
                             <TabPanel>

@@ -241,7 +241,7 @@ describe('Incoming HTTP Request API', function() {
 
     it('should list all the created incoming http request in a project', function(done) {
         incidentRequest.name = 'anotherOne';
-        incidentRequest.isDefault = false;
+        incidentRequest.selectAllMonitors = false;
         incidentRequest.monitors = [monitorId];
         // add one more incoming http request
         request

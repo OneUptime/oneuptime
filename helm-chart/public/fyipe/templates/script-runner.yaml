@@ -21,7 +21,7 @@ spec:
                 app: {{ printf "%s-%s" .Release.Name "runner"  }}
         spec:
             containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "runner" .Values.image.tag }}
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "script-runner" .Values.image.tag }}
                   name: {{ printf "%s-%s" .Release.Name "runner"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
@@ -31,6 +31,11 @@ spec:
                         value: {{ template "fyipe.serverUrl" $ }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'
+                      - name: CLUSTER_KEY
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
+                            key: clusterkey
                   ports:
                       - containerPort: {{ .Values.host.scriptRunnerPort }}
                         hostPort: {{ .Values.host.scriptRunnerPort }}

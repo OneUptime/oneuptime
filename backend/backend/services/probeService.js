@@ -6463,7 +6463,7 @@ const checkScriptCondition = (condition, body) => {
         }
 
         if (condition.filter === 'throwsError') {
-            if (body.statusText === 'error' && body.error) {
+            if (body.statusText === 'failed' && body.error) {
                 validity.valid = true;
                 validity.reason = `Script threw error ${body.error}`;
             } else {
@@ -6471,7 +6471,7 @@ const checkScriptCondition = (condition, body) => {
                 validity.reason = `Script did not throw error`;
             }
         } else if (condition.filter === 'doesNotThrowError') {
-            if (body.statusText === 'error' && body.error) {
+            if (body.statusText === 'failed' && body.error) {
                 validity.valid = false;
                 validity.reason = `Script threw error ${body.error}`;
             } else {

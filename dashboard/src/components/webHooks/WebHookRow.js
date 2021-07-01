@@ -60,15 +60,22 @@ WebHookTableBody.propTypes = {
     text: PropTypes.string,
 };
 
-function WebHookBadgeTableBody({ text, primary = true }) {
+function WebHookBadgeTableBody({ text }) {
+    const color = {
+        get: 'blue',
+        post: 'green',
+        delete: 'red',
+        put: 'green',
+        patch: 'green',
+    };
     return (
         <td className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell">
             <div className="db-ListViewItem-cellContent Box-root Padding-vertical--16 Padding-horizontal--8">
                 <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                     <span
-                        className={`Badge-text ${
-                            primary ? 'Text-color--green' : 'Text-color--blue'
-                        } Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
+                        className={`Badge-text 
+                            Text-color--${color[text]}
+                         Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap`}
                     >
                         <span>{text}</span>
                     </span>
@@ -82,7 +89,6 @@ WebHookBadgeTableBody.displayName = 'WebHookBadeTableBody';
 
 WebHookBadgeTableBody.propTypes = {
     text: PropTypes.string,
-    primary: PropTypes.bool,
 };
 
 export { WebHookTableBody, WebHookTableHeader, WebHookBadgeTableBody };

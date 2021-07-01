@@ -38,7 +38,7 @@ app.use(function(req, res, next) {
         'Access-Control-Allow-Headers',
         'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
     );
-    next();
+    return next();
 });
 
 // Add limit of 10 MB to avoid "Request Entity too large error"

@@ -29,6 +29,8 @@ const app = express();
 const http = require('http').createServer(app);
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const cron = require('node-cron');
+const main = require('./workers/main');
 
 app.use(cors());
 
@@ -44,7 +46,7 @@ app.use(function(req, res, next) {
         'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
     );
 
-    next();
+    return next();
 });
 
 app.set('port', process.env.PORT || 3009);
@@ -57,4 +59,10 @@ app.use(['/script', '/api/script'], require('./api/script'));
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log('Script runner started on port ' + app.get('port'));
+});
+const cronMinuteStartTime = Math.floor(Math.random() * 50);
+
+// script monitor cron job
+cron.schedule('* * * * *', () => {
+    setTimeout(() => main.runScriptMonitorsJob(), cronMinuteStartTime * 1000);
 });

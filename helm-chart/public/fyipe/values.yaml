@@ -277,3 +277,11 @@ autoScaler:
   averageCpuUtilization: 50
   minReplicas: 1
   maxReplicas: 1
+
+newRelic:
+  backend:
+    licenseKey: 
+    appName: 
+  probe:
+    licenseKey:
+    appName: 

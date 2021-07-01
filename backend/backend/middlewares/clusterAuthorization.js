@@ -14,7 +14,7 @@ module.exports = {
         }
 
         if (masterAdmin) {
-            next();
+            return next();
         } else {
             return sendErrorResponse(req, res, {
                 code: 400,

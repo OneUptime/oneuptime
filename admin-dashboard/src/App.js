@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
 import { history, isServer } from './store';
 import { connect } from 'react-redux';
@@ -8,6 +8,7 @@ import ReactGA from 'react-ga';
 import { User, ACCOUNTS_URL } from './config';
 import Cookies from 'universal-cookie';
 import 'font-awesome/css/font-awesome.min.css';
+import { LoadingState } from './components/basic/Loader';
 
 if (!isServer) {
     history.listen(location => {
@@ -31,21 +32,23 @@ if (userData !== undefined) {
 const App = () => (
     <div style={{ height: '100%' }}>
         <Router history={history}>
-            <Switch>
-                {allRoutes
-                    .filter(route => route.visible)
-                    .map((route, index) => {
-                        return (
-                            <Route
-                                exact
-                                path={route.path}
-                                key={index}
-                                component={route.component}
-                            />
-                        );
-                    })}
-                <Redirect to="admin/users" />
-            </Switch>
+            <Suspense fallback={LoadingState}>
+                <Switch>
+                    {allRoutes
+                        .filter(route => route.visible)
+                        .map((route, index) => {
+                            return (
+                                <Route
+                                    exact
+                                    path={route.path}
+                                    key={index}
+                                    component={route.component}
+                                />
+                            );
+                        })}
+                    <Redirect to="admin/users" />
+                </Switch>
+            </Suspense>
         </Router>
         <BackboneModals />
     </div>

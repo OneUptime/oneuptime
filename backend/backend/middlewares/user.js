@@ -103,7 +103,7 @@ const _this = {
                 { lastActive: Date.now() }
             );
             if (next) {
-                next();
+                return next();
             } else {
                 return req;
             }
@@ -121,7 +121,7 @@ const _this = {
 
             if (!accessToken) {
                 req.user = null;
-                next();
+                return next();
             } else {
                 if (accessToken && typeof accessToken !== 'string') {
                     return sendErrorResponse(req, res, {
@@ -146,7 +146,7 @@ const _this = {
                             { _id: req.user.id },
                             { lastActive: Date.now() }
                         );
-                        next();
+                        return next();
                     }
                 });
             }
@@ -162,7 +162,7 @@ const _this = {
                 url.parse(req.url, true).query.accessToken;
             if (!accessToken) {
                 req.user = null;
-                next();
+                return next();
             } else {
                 if (accessToken && typeof accessToken !== 'string') {
                     return sendErrorResponse(req, res, {
@@ -215,7 +215,7 @@ const _this = {
                             });
                         }
                         if (isUserPresentInProject) {
-                            next();
+                            return next();
                         } else {
                             return sendErrorResponse(req, res, {
                                 code: 400,
@@ -238,7 +238,7 @@ const _this = {
 
         if (req && req.authorizationType === 'MASTER-ADMIN') {
             if (next) {
-                next();
+                return next();
             } else {
                 return true;
             }

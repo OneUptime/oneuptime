@@ -27,7 +27,7 @@ app.use(compression());
 app.use('/', (req, res, next) => {
     //eslint-disable-next-line
     console.log(req.method, ' ', req.originalUrl);
-    next();
+    return next();
 });
 
 app.get(['/env.js', '/accounts/env.js'], function(req, res) {

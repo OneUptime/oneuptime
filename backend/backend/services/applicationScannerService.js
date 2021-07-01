@@ -11,15 +11,21 @@ module.exports = {
             const storedApplicationScanner = await _this.findOneBy({
                 applicationScannerName: data.applicationScannerName,
             });
-            if (storedApplicationScanner && storedApplicationScanner.applicationScannerName) {
-                const error = new Error('applicationScanner name already exists.');
+            if (
+                storedApplicationScanner &&
+                storedApplicationScanner.applicationScannerName
+            ) {
+                const error = new Error(
+                    'applicationScanner name already exists.'
+                );
                 error.code = 400;
                 ErrorService.log('applicationScanner.create', error);
                 throw error;
             } else {
                 const applicationScanner = new ApplicationScannerModel();
                 applicationScanner.applicationScannerKey = applicationScannerKey;
-                applicationScanner.applicationScannerName = data.applicationScannerName;
+                applicationScanner.applicationScannerName =
+                    data.applicationScannerName;
                 applicationScanner.version = data.applicationScannerVersion;
                 const savedApplicationScanner = await applicationScanner.save();
                 return savedApplicationScanner;
@@ -58,16 +64,19 @@ module.exports = {
             }
 
             query.deleted = false;
-            const applicationScanner = await ApplicationScannerModel.findOne(query, {
-                deleted: false,
-            }).lean();
+            const applicationScanner = await ApplicationScannerModel.findOne(
+                query,
+                {
+                    deleted: false,
+                }
+            ).lean();
             return applicationScanner;
         } catch (error) {
             ErrorService.log('applicationScannerService.findOneBy', error);
             throw error;
         }
     },
-   
+
     updateApplicationScannerStatus: async function(applicationScannerId) {
         try {
             const applicationScanner = await ApplicationScannerModel.findOneAndUpdate(
@@ -77,7 +86,10 @@ module.exports = {
             );
             return applicationScanner;
         } catch (error) {
-            ErrorService.log('applicationScannerService.updateApplicationScannerStatus', error);
+            ErrorService.log(
+                'applicationScannerService.updateApplicationScannerStatus',
+                error
+            );
             throw error;
         }
     },
@@ -232,11 +244,13 @@ module.exports = {
                     });
             });
         } catch (error) {
-            ErrorService.log('applicationScannerService.scanApplicationSecurity', error);
+            ErrorService.log(
+                'applicationScannerService.scanApplicationSecurity',
+                error
+            );
             throw error;
         }
     },
-    
 };
 
 /**

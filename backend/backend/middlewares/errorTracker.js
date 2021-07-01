@@ -95,7 +95,7 @@ const _this = {
                 });
             }
             // all checks fine now, proceed with the request
-            next();
+            return next();
         } catch (error) {
             ErrorService.log('errorTracker.isErrorTrackerValid', error);
             throw error;

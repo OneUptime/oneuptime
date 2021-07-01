@@ -33,6 +33,14 @@ spec:
                         value: {{ $value.name }}
                       - name: PROBE_KEY
                         value: {{ $value.key }}
+                      {{- if $.Values.newRelic.probe.licenseKey }}
+                      - name: NEW_RELIC_LICENSE_KEY
+                        value: {{ $.Values.newRelic.probe.licenseKey }}
+                      {{- end }}
+                      {{- if $.Values.newRelic.probe.appName }}
+                      - name: NEW_RELIC_APPLICATION_NAME
+                        value: {{ $.Values.newRelic.probe.appName}}
+                      {{- end }}
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:

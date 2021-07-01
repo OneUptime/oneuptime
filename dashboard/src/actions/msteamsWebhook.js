@@ -150,7 +150,6 @@ export function createMsTeams(projectId, data) {
         const promise = postApi(`webhook/${projectId}/create`, data);
 
         dispatch(createMsTeamsRequest());
-
         return promise.then(
             function(webhook) {
                 dispatch(createMsTeamsSuccess(webhook.data));

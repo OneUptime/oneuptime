@@ -66,7 +66,7 @@ module.exports = {
             req.user = {};
             req.user.id = 'API';
 
-            if (next) next();
+            if (next) return next();
             else return true;
         } else {
             if (res) {
@@ -167,7 +167,7 @@ module.exports = {
                 });
             } else {
                 req.monitor = monitor;
-                next();
+                return next();
             }
         } else {
             return sendErrorResponse(req, res, {

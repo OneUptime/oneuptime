@@ -123,7 +123,7 @@ module.exports = {
                 );
             }
 
-            next();
+            return next();
         } catch (error) {
             ErrorService.log('probeAuthorization.isAuthorizedProbe', error);
             throw error;

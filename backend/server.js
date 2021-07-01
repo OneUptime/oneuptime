@@ -1,3 +1,8 @@
+// if new relic license key exists. Then load the key.
+if(process.env.NEW_RELIC_LICENSE_KEY){
+    require('newrelic');
+}
+
 const express = require('express');
 const app = express();
 
@@ -98,7 +103,7 @@ app.use(function(req, res, next) {
         }
     }
 
-    next();
+    return next();
 });
 
 // Add limit of 10 MB to avoid "Request Entity too large error"
@@ -202,7 +207,10 @@ app.use(
     require('./backend/api/scheduledEvent')
 );
 app.use(['/probe', '/api/probe'], require('./backend/api/probe'));
-app.use(['/application', '/api/application'], require('./backend/api/applicationScanner'));
+app.use(
+    ['/application', '/api/application'],
+    require('./backend/api/applicationScanner')
+);
 app.use(['/version', '/api/version'], require('./backend/api/version'));
 app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));
 app.use(['/audit-logs', '/api/audit-logs'], require('./backend/api/auditLogs'));
@@ -267,6 +275,10 @@ app.use(
     require('./backend/api/incomingRequest')
 );
 app.use(
+    ['/script-runner', '/api/script-runner'],
+    require('./backend/api/scriptRunner')
+);
+app.use(
     ['/customField', '/api/customField'],
     require('./backend/api/customField')
 );
@@ -295,6 +307,10 @@ app.use(
 app.use(
     ['/performanceMetric', '/api/performanceMetric'],
     require('./backend/api/performanceTrackerMetric')
+);
+app.use(
+    ['/incidentNoteTemplate', '/api/incidentNoteTemplate'],
+    require('./backend/api/incidentNoteTemplate')
 );
 
 app.get(['/', '/api'], function(req, res) {

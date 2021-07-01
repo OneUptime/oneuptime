@@ -8,9 +8,12 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ErrorService = require('../services/errorService');
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
 module.exports = {
-    isAuthorizedApplicationScanner: async function (req, res, next) {
+    isAuthorizedApplicationScanner: async function(req, res, next) {
         try {
-            let applicationScannerKey, applicationScannerName, clusterKey, applicationScannerVersion;
+            let applicationScannerKey,
+                applicationScannerName,
+                clusterKey,
+                applicationScannerVersion;
 
             if (req.params.applicationscannerkey) {
                 applicationScannerKey = req.params.applicationscannerkey;
@@ -59,11 +62,13 @@ module.exports = {
             }
 
             if (req.params.applicationscannerversion) {
-                applicationScannerVersion = req.params.applicationscannerversion;
+                applicationScannerVersion =
+                    req.params.applicationscannerversion;
             } else if (req.query.applicationscannerversion) {
                 applicationScannerVersion = req.query.applicationscannerversion;
             } else if (req.headers['applicationscannerversion']) {
-                applicationScannerVersion = req.headers['applicationscannerversion'];
+                applicationScannerVersion =
+                    req.headers['applicationscannerversion'];
             } else if (req.body.applicationscannerversion) {
                 applicationScannerVersion = req.body.applicationscannerversion;
             }
@@ -74,15 +79,24 @@ module.exports = {
                 // if cluster key matches then just query by applicationScanner name,
                 // because if the applicationScanner key does not match, we can update applicationScanner key later
                 // without updating mongodb database manually.
-                applicationScanner = await ApplicationScannerService.findOneBy({ applicationScannerName });
+                applicationScanner = await ApplicationScannerService.findOneBy({
+                    applicationScannerName,
+                });
             } else {
-                applicationScanner = await ApplicationScannerService.findOneBy({ applicationScannerKey, applicationScannerName });
+                applicationScanner = await ApplicationScannerService.findOneBy({
+                    applicationScannerKey,
+                    applicationScannerName,
+                });
             }
 
-            if (!applicationScanner && (!clusterKey || clusterKey !== CLUSTER_KEY)) {
+            if (
+                !applicationScanner &&
+                (!clusterKey || clusterKey !== CLUSTER_KEY)
+            ) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'applicationScanner key and applicationScanner name do not match.',
+                    message:
+                        'applicationScanner key and applicationScanner name do not match.',
                 });
             }
 
@@ -95,7 +109,10 @@ module.exports = {
                 });
             }
 
-            if (applicationScanner.applicationScannerKey !== applicationScannerKey) {
+            if (
+                applicationScanner.applicationScannerKey !==
+                applicationScannerKey
+            ) {
                 //update applicationScanner key becasue it does not match.
                 await ApplicationScannerService.updateOneBy(
                     {
@@ -106,15 +123,22 @@ module.exports = {
             }
             req.applicationScanner = {};
             req.applicationScanner.id = applicationScanner._id;
-            await ApplicationScannerService.updateApplicationScannerStatus(applicationScanner._id);
+            await ApplicationScannerService.updateApplicationScannerStatus(
+                applicationScanner._id
+            );
 
             //Update applicationScanner version
-            const applicationScannerValue = await ApplicationScannerService.findOneBy({
-                applicationScannerKey,
-                applicationScannerName,
-            });
+            const applicationScannerValue = await ApplicationScannerService.findOneBy(
+                {
+                    applicationScannerKey,
+                    applicationScannerName,
+                }
+            );
 
-            if (!applicationScannerValue.version || applicationScannerValue.version !== applicationScannerVersion) {
+            if (
+                !applicationScannerValue.version ||
+                applicationScannerValue.version !== applicationScannerVersion
+            ) {
                 await ApplicationScannerService.updateOneBy(
                     {
                         applicationScannerName,
@@ -123,9 +147,12 @@ module.exports = {
                 );
             }
 
-            next();
+            return next();
         } catch (error) {
-            ErrorService.log('applicationScannerAuthorization.isAuthorizedApplicationScanner', error);
+            ErrorService.log(
+                'applicationScannerAuthorization.isAuthorizedApplicationScanner',
+                error
+            );
             throw error;
         }
     },

@@ -68,11 +68,13 @@ describe('Incoming HTTP Request', () => {
             await init.pageClick(page, '#name');
             await init.pageType(page, '#name', incidentRequest.name);
             await init.page$Eval(page, '#createIncident', elem => elem.click());
-            await init.pageWaitForSelector(page, '#isDefault', {
+            await init.pageWaitForSelector(page, '#selectAllMonitors', {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.page$Eval(page, '#isDefault', elem => elem.click());
+            await init.page$Eval(page, '#selectAllMonitors', elem =>
+                elem.click()
+            );
             await init.pageClick(page, '#advancedOptionsBtn');
             await init.pageWaitForSelector(page, '#incidentTitle', {
                 visible: true,
