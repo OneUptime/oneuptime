@@ -1,20 +1,11 @@
 /* eslint-disable no-console */
 const UrlService = require('../utils/urlService');
 const ErrorService = require('../utils/errorService');
-const fetch = require('node-fetch');
-const sslCert = require('get-ssl-certificate');
 const { fork } = require('child_process');
 const moment = require('moment');
-const https = require('https');
-const http = require('http');
-const httpsAgent = new https.Agent({
-    rejectUnauthorized: false,
-});
-const httpAgent = new http.Agent();
 
-// it collects all monitors then ping them one by one to store their response
-// checks if the website of the url in the monitors is up or down
-// creates incident if a website is down and resolves it when they come back up
+
+// This runs the lighthouse of URL Monitors
 
 module.exports = {
     ping: async monitor => {
@@ -48,11 +39,11 @@ module.exports = {
                         let failedCount = 0;
                         for (const url of sites) {
                             try {
-                                let resp = await lighthouseFetch(
+                                const resp = await lighthouseFetch(
                                     monitor,
                                     url
                                 );
-                                resp.lighthouseScanStatus = resp.status
+                
                                console.log("Response from lighthouse fetch: ", resp);
                                 await UrlService.ping(monitor._id, {
                                     monitor,
@@ -96,9 +87,9 @@ const lighthouseFetch = (monitor, url) => {
             clearTimeout(timeoutHandler);
             lighthouseWorker.removeAllListeners();
             if (result.error) {
-                reject({ status: 'failed', ...result });
+                reject({ lighthouseScanStatus: 'failed', ...result });
             } else {
-                resolve({ status: 'scanned', ...result });
+                resolve({ lighthouseScanStatus: 'scanned', ...result });
             }
         }
     });
