@@ -45,7 +45,7 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function (
             monitor,
             resp,
         } = req.body;
-        
+
         let log, data = {};
 
         data = req.body;
@@ -89,7 +89,7 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function (
                     lighthouseScannedBy: data.probeId,
                 }
             );
-            if (data.lighthouseData) { // The scanned result are published
+            if (data.lighthouseData) { // The scanned results are published
                 data.scanning = false;
                 log = await ProbeService.saveLighthouseLog(data);
             }
