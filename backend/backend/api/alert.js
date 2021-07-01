@@ -165,13 +165,13 @@ router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
             { table: 'monitorId', field: 'name slug' },
             { table: 'incidentId', field: 'idNumber' },
         ];
-        const alertCharges = await alertChargeService.findBy(
-            { projectId },
-            req.query.skip,
-            req.query.limit,
-            false,
-            populate
-        );
+        const alertCharges = await alertChargeService.findBy({
+            query: { projectId },
+            skip: req.query.skip,
+            limit: req.query.limit,
+            sort: false,
+            populate,
+        });
         const count = await alertChargeService.countBy({ projectId });
         return sendListResponse(req, res, alertCharges, count);
     } catch (error) {
