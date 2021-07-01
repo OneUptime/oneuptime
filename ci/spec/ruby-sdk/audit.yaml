@@ -28,4 +28,3 @@ audit_ruby-sdk:
         refs:
             - master
             - release
-            - feature-ruby-sdk
