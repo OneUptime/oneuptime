@@ -463,7 +463,7 @@ export const groups = [
             {
                 title: 'Automation Scripts',
                 path: '/dashboard/project/:slug/automation-scripts',
-                icon: 'performanceTracker',
+                icon: 'play',
                 visible: true,
                 component: AutomationScript,
                 exact: true,
@@ -472,7 +472,7 @@ export const groups = [
                         title: 'Automation Script',
                         path:
                             '/dashboard/project/:slug/automation-scripts/:automatedScriptslug',
-                        icon: 'performanceTracker',
+                        icon: 'play',
                         visible: true,
                         component: AutomatedScripView,
                         exact: true,

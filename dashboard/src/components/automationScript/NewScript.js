@@ -29,7 +29,7 @@ class NewScript extends Component {
         super(props);
         this.state = {
             name: '',
-            type: 'javascript',
+            type: 'JavaScript',
             successEventError: null,
             failureEventError: null,
         };
@@ -89,7 +89,7 @@ class NewScript extends Component {
                 this.props.fetchAutomatedScript(currentProject._id, 0, 10);
                 dispatch(reset('newScript'));
                 this.setState({
-                    type: 'javascript',
+                    type: 'JavaScript',
                     script: defaultScript,
                 });
             });
@@ -402,6 +402,10 @@ class NewScript extends Component {
                                         </ShouldRender>
                                     </span>
                                 </span>
+                                <div>
+                                    Create a new script which can be triggered
+                                    by a user, incident or another script.
+                                </div>
                             </div>
                         </div>
 
@@ -460,12 +464,12 @@ class NewScript extends Component {
                                                             />
                                                             <Dropdown.Menu>
                                                                 <MenuItem
-                                                                    title="javascript"
+                                                                    title="JavaScript"
                                                                     onClick={() => {
                                                                         this.setState(
                                                                             {
                                                                                 type:
-                                                                                    'javascript',
+                                                                                    'JavaScript',
                                                                             }
                                                                         );
                                                                     }}
@@ -473,12 +477,12 @@ class NewScript extends Component {
                                                                     JavaScript
                                                                 </MenuItem>
                                                                 <MenuItem
-                                                                    title="bash"
+                                                                    title="Bash"
                                                                     onClick={() => {
                                                                         this.setState(
                                                                             {
                                                                                 type:
-                                                                                    'bash',
+                                                                                    'Bash',
                                                                             }
                                                                         );
                                                                     }}
@@ -497,7 +501,7 @@ class NewScript extends Component {
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         {this.state.type ===
-                                                            'javascript' && (
+                                                            'JavaScript' && (
                                                             <AceEditor
                                                                 placeholder="Enter script here"
                                                                 mode="javascript"
@@ -543,7 +547,7 @@ class NewScript extends Component {
                                                             />
                                                         )}
                                                         {this.state.type ===
-                                                            'bash' && (
+                                                            'Bash' && (
                                                             <AceEditor
                                                                 placeholder="echo Hello World"
                                                                 mode="javascript"

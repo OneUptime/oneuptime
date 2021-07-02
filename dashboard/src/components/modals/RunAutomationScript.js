@@ -5,7 +5,11 @@ import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { runScript, fetchAutomatedScript } from '../../actions/automatedScript';
+import {
+    runScript,
+    fetchAutomatedScript,
+    fetchSingleAutomatedScript,
+} from '../../actions/automatedScript';
 import { history } from '../../store';
 
 class RunAutomationScript extends Component {
@@ -30,17 +34,22 @@ class RunAutomationScript extends Component {
 
     runScript = () => {
         const {
-            data: { automatedScriptId, projectId },
+            data: { automatedScriptId, projectId, automatedSlug, navigate },
             runScript,
             fetchAutomatedScript,
+            fetchSingleAutomatedScript,
             closeThisDialog,
         } = this.props;
         runScript(projectId, automatedScriptId).then(() => {
             fetchAutomatedScript(projectId, 0, 10);
             const pathName = history.location.pathname;
-            history.push({
-                pathname: `${pathName}/${this.props.data.automatedSlug}`,
-            });
+            if (navigate) {
+                history.push({
+                    pathname: `${pathName}/${this.props.data.automatedSlug}`,
+                });
+            } else {
+                fetchSingleAutomatedScript(projectId, automatedSlug, 0, 10);
+            }
             closeThisDialog();
         });
     };
@@ -157,6 +166,7 @@ RunAutomationScript.propTypes = {
     runScript: PropTypes.func,
     fetchAutomatedScript: PropTypes.func,
     scriptRun: PropTypes.object,
+    fetchSingleAutomatedScript: PropTypes.func,
 };
 
 const mapStateToProps = state => {
@@ -166,7 +176,10 @@ const mapStateToProps = state => {
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ runScript, fetchAutomatedScript }, dispatch);
+    bindActionCreators(
+        { runScript, fetchAutomatedScript, fetchSingleAutomatedScript },
+        dispatch
+    );
 
 export default connect(
     mapStateToProps,
