@@ -165,8 +165,6 @@ class LoggerTest extends TestCase
         $this->assertEquals($log->name, $response->content->name);
         $this->assertEquals(true, is_object($response->content));
         $this->assertEquals("error", $response->type);
-        $this->assertIsArray($response->tags);
-        $this->assertEquals([], $response->tags);
     }
     public function test_valid_object_content_of_type_warning_with_four_tags_is_logged()
     {
