@@ -66,7 +66,7 @@ RenderCodeEditor.propTypes = {
     // onBlur: PropTypes.func,
     wrapEnabled: PropTypes.bool,
     readOnly: PropTypes.bool,
-    name: PropTypes.name,
+    name: PropTypes.string,
 };
 
 export default RenderCodeEditor;
