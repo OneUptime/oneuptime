@@ -5,7 +5,6 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import ConfirmScanModal from '../modals/ConfirmScanModal';
 import { openModal } from '../../actions/modal';
-import DeleteApplicationSecurity from '../modals/DeleteApplicationSecurity';
 import SecurityDetail from './SecurityDetail';
 import Badge from '../common/Badge';
 import IssueIndicator from './IssueIndicator';
@@ -28,27 +27,6 @@ const ApplicationSecurityView = ({
     scanError,
     activeApplicationSecurity,
 }) => {
-    const handleDelete = ({
-        projectId,
-        componentId,
-        applicationSecurityId,
-        applicationSecuritySlug,
-    }) => {
-        openModal({
-            id: applicationSecurityId,
-            content: DeleteApplicationSecurity,
-            propArr: [
-                {
-                    projectId,
-                    componentId,
-                    applicationSecurityId,
-                    applicationSecuritySlug,
-                    componentSlug,
-                },
-            ],
-        });
-    };
-
     const handleSubmit = ({ projectId, applicationSecurityId }) => {
         openModal({
             id: applicationSecurityId,
@@ -262,21 +240,6 @@ const ApplicationSecurityView = ({
                                     id={`edit_${applicationSecurity.name}`}
                                 >
                                     <span>Edit</span>
-                                </button>
-                                <button
-                                    id="deleteApplicationSecurityBtn"
-                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                    disabled={isRequesting}
-                                    onClick={() =>
-                                        handleDelete({
-                                            projectId,
-                                            componentId,
-                                            applicationSecurityId,
-                                            applicationSecuritySlug,
-                                        })
-                                    }
-                                >
-                                    <span>Delete</span>
                                 </button>
                             </div>
                         </div>
