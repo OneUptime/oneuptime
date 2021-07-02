@@ -271,7 +271,7 @@ module.exports = {
                 _id: automatedScriptId,
             });
             let data = null;
-            if (scriptType === 'javascript') {
+            if (scriptType === 'JavaScript') {
                 const result = await postApi(`${scriptBaseUrl}/api/script/js`, {
                     script,
                 });
@@ -285,7 +285,7 @@ module.exports = {
                     executionTime: result.executionTime,
                     consoleLogs: result.consoleLogs,
                 };
-            } else if (scriptType === 'bash') {
+            } else if (scriptType === 'Bash') {
                 const result = await postApi(
                     `${scriptBaseUrl}/api/script/bash`,
                     {
