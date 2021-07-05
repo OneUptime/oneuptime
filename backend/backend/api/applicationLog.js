@@ -175,9 +175,16 @@ router.post(
             const { skip, limit, startDate, endDate, type, filter } = req.body;
             const applicationLogId = req.params.applicationLogId;
 
+            const populate = [
+                { table: 'componentId', field: 'name' },
+                { table: 'resourceCategory', field: 'name' },
+            ];
             const currentApplicationLog = await ApplicationLogService.findOneBy(
                 {
-                    _id: applicationLogId,
+                    query: {
+                        _id: applicationLogId,
+                    },
+                    populate,
                 }
             );
             if (!currentApplicationLog) {
@@ -341,10 +348,24 @@ router.put(
         };
         if (data.resourceCategory != '') {
             existingQuery.resourceCategory = data.resourceCategory;
+
+            const populate = [
+                [
+                    {
+                        path: 'componentId',
+                        select: 'name slug projectId',
+                        populate: {
+                            path: 'projectId',
+                            select: 'name slug',
+                        },
+                    },
+                ],
+            ];
         }
-        const existingApplicationLog = await ApplicationLogService.findBy(
-            existingQuery
-        );
+        const existingApplicationLog = await ApplicationLogService.findBy({
+            query: existingQuery,
+            populate,
+        });
 
         if (
             existingApplicationLog &&

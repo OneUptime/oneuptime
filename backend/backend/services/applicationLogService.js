@@ -50,7 +50,7 @@ module.exports = {
         }
     },
     //Description: Gets all application logs by component.
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -69,20 +69,16 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const applicationLogs = await ApplicationLogModel.find(query)
+            const applicationLogQuery = ApplicationLogModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate({
-                    path: 'componentId',
-                    select: 'name slug projectId',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name slug',
-                    },
-                })
-                .populate('resourceCategory', 'name');
+                .skip(skip);
+
+            const applicationLogs = await populateColumns(
+                populate,
+                applicationLogQuery
+            );
             return applicationLogs;
         } catch (error) {
             ErrorService.log('applicationLogService.findBy', error);
@@ -90,17 +86,21 @@ module.exports = {
         }
     },
 
-    async findOneBy(query) {
+    async findOneBy({ query, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const applicationLog = await ApplicationLogModel.findOne(query)
-                .lean()
-                .populate('componentId', 'name')
-                .populate('resourceCategory', 'name');
+            const applicationLogQuery = ApplicationLogModel.findOne(
+                query
+            ).lean();
+
+            const applicationLog = await populateColumns(
+                populate,
+                applicationLogQuery
+            );
             return applicationLog;
         } catch (error) {
             ErrorService.log('applicationLogService.findOneBy', error);
@@ -252,3 +252,4 @@ const NotificationService = require('./notificationService');
 const ResourceCategoryService = require('./resourceCategoryService');
 const uuid = require('uuid');
 const getSlug = require('../utils/getSlug');
+const populateColumns = require('../utils/populate');

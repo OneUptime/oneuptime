@@ -919,11 +919,26 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
-            const eventNote = await ScheduledEventNoteService.findBy(
+            const populate = [
+                { table: 'createdById', field: 'name' },
+                [
+                    {
+                        path: 'scheduledEventId',
+                        select: 'name monitors alertSubscriber projectId',
+                        populate: {
+                            path: 'projectId',
+                            select: 'name replyAddress',
+                        },
+                    },
+                ],
+            ];
+
+            const eventNote = await ScheduledEventNoteService.findBy({
                 query,
                 limit,
-                skip
-            );
+                skip,
+                populate,
+            });
 
             const count = await ScheduledEventNoteService.countBy(query);
 

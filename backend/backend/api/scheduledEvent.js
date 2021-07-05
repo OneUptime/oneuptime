@@ -673,11 +673,26 @@ router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
         const { eventId } = req.params;
         const { limit, skip } = req.query;
 
-        const eventNotes = await ScheduledEventNoteService.findBy(
-            { scheduledEventId: eventId },
+        const populate = [
+            { table: 'createdById', field: 'name' },
+            [
+                {
+                    path: 'scheduledEventId',
+                    select: 'name monitors alertSubscriber projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name replyAddress',
+                    },
+                },
+            ],
+        ];
+
+        const eventNotes = await ScheduledEventNoteService.findBy({
+            query: { scheduledEventId: eventId },
             limit,
-            skip
-        );
+            skip,
+            populate,
+        });
 
         const count = await ScheduledEventNoteService.countBy({
             scheduledEventId: eventId,
