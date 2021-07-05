@@ -66,7 +66,7 @@ app.get(['/application/version', '/version'], function(req, res) {
 });
 
 // Run this cron every minute.
-cron.schedule('*/2 * * * *', () => {
+cron.schedule('* * * * *', () => {
     setTimeout(() => {
         Main.runApplicationScan();
     }, cronApplicationSecurityStartTime * 1000);
