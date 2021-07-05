@@ -66,7 +66,7 @@ app.get(['/application/version', '/version'], function(req, res) {
 });
 
 // Run this cron at 3 AM once a day.
-cron.schedule('0 3 * * *', () => {
+cron.schedule('* * * * *', () => {
     setTimeout(() => {
         Main.runApplicationScan();
     }, cronApplicationSecurityStartTime * 1000);

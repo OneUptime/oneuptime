@@ -4,7 +4,6 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ApplicationSecurityService = require('../services/applicationSecurityService');
-const ApplicationScannerService = require('../services/applicationScannerService');
 const RealTimeService = require('../services/realTimeService');
 const ResourceCategoryService = require('../services/resourceCategoryService');
 
@@ -305,20 +304,8 @@ router.post(
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }
-
-            // decrypt password
-            applicationSecurity = await ApplicationSecurityService.decryptPassword(
-                applicationSecurity
-            );
-
-            const securityLog = await ApplicationScannerService.scanApplicationSecurity(
-                applicationSecurity
-            );
-            global.io.emit(
-                `securityLog_${applicationSecurity._id}`,
-                securityLog
-            );
-            return sendItemResponse(req, res, securityLog);
+            await ApplicationSecurityService.updateOneBy( { _id: applicationSecurityId },{scanned: false}); //This helps the application scanner to pull the application
+            
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
