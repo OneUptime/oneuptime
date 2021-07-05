@@ -25,21 +25,6 @@ class NotesMain extends Component {
         this.subscribebutton = this.subscribebutton.bind(this);
     }
 
-    componentDidMount() {
-        // this.props.fetchLastIncidentTimelines(
-        //     this.props.projectId,
-        //     this.props.statusPageSlug
-        // );
-        // this.props.getStatusPageNote(
-        //     this.props.projectId,
-        //     this.props.statusPageSlug,
-        //     0,
-        //     this.props.theme && countNum,
-        //     this.props.incidentHistoryDays || 14,
-        //     this.props.theme === 'Clean Theme'
-        // );
-    }
-
     componentDidUpdate(prevProps) {
         if (prevProps.statusPage !== this.props.statusPage) {
             if (this.props.individualnote) {
@@ -749,8 +734,6 @@ NotesMain.propTypes = {
     subscribed: PropTypes.bool,
     skip: PropTypes.number,
     count: PropTypes.number,
-    // eslint-disable-next-line react/no-unused-prop-types
-    incidentHistoryDays: PropTypes.number,
     statusPageId: PropTypes.string,
     isSubscriberEnabled: PropTypes.bool.isRequired,
     statusPage: PropTypes.object,
