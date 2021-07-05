@@ -1,7 +1,6 @@
 import React, { Fragment } from 'react';
 import PropTypes from 'prop-types';
 
-import Dashboard from '../components/Dashboard';
 import SMTP from '../components/settings/smtp';
 import Twilio from '../components/settings/twilio';
 import Sso from '../components/settings/sso';
@@ -40,27 +39,25 @@ const getChild = key => {
 
 const Component = ({ location: { pathname } }) => {
     return (
-        <Dashboard>
-            <div className="Box-root Margin-vertical--12">
+        <div className="Box-root Margin-vertical--12">
+            <div>
                 <div>
-                    <div>
-                        <div className="db-BackboneViewContainer">
-                            <div className="react-settings-view react-view">
-                                <span data-reactroot="">
+                    <div className="db-BackboneViewContainer">
+                        <div className="react-settings-view react-view">
+                            <span data-reactroot="">
+                                <div>
                                     <div>
-                                        <div>
-                                            <div className="Box-root Margin-bottom--12">
-                                                {getChild(pathname)}
-                                            </div>
+                                        <div className="Box-root Margin-bottom--12">
+                                            {getChild(pathname)}
                                         </div>
                                     </div>
-                                </span>
-                            </div>
+                                </div>
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
-        </Dashboard>
+        </div>
     );
 };
 
