@@ -1,4 +1,5 @@
 import * as types from '../constants/probe';
+import { FETCH_ALL_RESOURCES_SUCCESS } from '../constants/status';
 
 const INITIAL_STATE = {
     requesting: false,
@@ -33,7 +34,16 @@ export default function probes(state = INITIAL_STATE, action) {
                 limit: action.payload.limit,
                 skip: action.payload.skip,
             });
-
+        case FETCH_ALL_RESOURCES_SUCCESS:
+            return Object.assign({}, state, {
+                requesting: false,
+                error: null,
+                success: true,
+                probes: action.payload.probes.probes,
+                count: action.payload.probes.count,
+                limit: 10,
+                skip: 0,
+            });
         case types.PROBE_REQUEST:
             return Object.assign({}, state, {
                 ...state,
