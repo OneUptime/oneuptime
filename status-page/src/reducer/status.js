@@ -1239,6 +1239,7 @@ export default (state = INITIAL_STATE, action) => {
                     success: true,
                 },
                 requestingstatuses: false,
+                requesting: false,
                 monitorStatuses: action.payload.monitorStatus,
                 logs: action.payload.monitorLogs.map(log => ({
                     monitorId: log.monitorId,
