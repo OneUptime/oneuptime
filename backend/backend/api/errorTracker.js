@@ -68,12 +68,13 @@ router.post(
 
             data.componentId = componentId;
 
-            const errorTracker = await ErrorTrackerService.create(data);
-            const component = await ComponentService.findOneBy({
-                _id: componentId,
-            });
-
-            const user = await UserService.findOneBy({ _id: req.user.id });
+            const [errorTracker, component, user] = await Promise.all([
+                ErrorTrackerService.create(data),
+                ComponentService.findOneBy({
+                    _id: componentId,
+                }),
+                UserService.findOneBy({ _id: req.user.id }),
+            ]);
 
             await NotificationService.create(
                 component.projectId._id,
@@ -81,7 +82,8 @@ router.post(
                 user._id,
                 'errortrackeraddremove'
             );
-            await RealTimeService.sendErrorTrackerCreated(errorTracker);
+            // run in the background
+            RealTimeService.sendErrorTrackerCreated(errorTracker);
             return sendItemResponse(req, res, errorTracker);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -322,7 +324,8 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
 
         issue = errorTrackerIssue.totalErrorEvents[0];
 
-        await RealTimeService.sendErrorEventCreated({ errorEvent, issue });
+        // run in the background
+        RealTimeService.sendErrorEventCreated({ errorEvent, issue });
         return sendItemResponse(req, res, errorEvent);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -561,11 +564,6 @@ router.post(
                 };
                 const currentIssue = await IssueService.findOneBy(query);
                 if (currentIssue) {
-                    let issue = await IssueService.updateOneBy(
-                        query,
-                        updateData
-                    );
-
                     // add action to timeline for this particular issue
                     const timelineData = {
                         issueId: currentIssueId,
@@ -573,7 +571,10 @@ router.post(
                         status: action,
                     };
 
-                    await IssueTimelineService.create(timelineData);
+                    let [issue] = await Promise.all([
+                        IssueService.updateOneBy(query, updateData),
+                        IssueTimelineService.create(timelineData),
+                    ]);
                     issue = JSON.parse(JSON.stringify(issue));
 
                     // get the timeline attahced to this issue annd add it to the issue
@@ -584,7 +585,7 @@ router.post(
                     issues.push(issue);
 
                     // update a timeline object
-                    await RealTimeService.sendIssueStatusChange(issue, action);
+                    RealTimeService.sendIssueStatusChange(issue, action);
                 }
             }
 

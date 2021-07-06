@@ -213,14 +213,16 @@ module.exports = {
                                     String(escalation._id)
                             );
                             schedule.escalationIds = rmEscalation;
-                            await ScheduleService.updateOneBy(
-                                { _id: schedule._id },
-                                { escalationIds: rmEscalation }
-                            );
-                            await _this.deleteBy(
-                                { _id: escalation._id },
-                                deletedById
-                            );
+                            await Promise.all([
+                                ScheduleService.updateOneBy(
+                                    { _id: schedule._id },
+                                    { escalationIds: rmEscalation }
+                                ),
+                                _this.deleteBy(
+                                    { _id: escalation._id },
+                                    deletedById
+                                ),
+                            ]);
                         }
                     }
                     await _this.updateOneBy(

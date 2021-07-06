@@ -68,7 +68,8 @@ module.exports = {
             notification.meta = meta;
             notification = await notification.save();
             notification = await this.findOneBy({ _id: notification._id });
-            await RealTimeService.sendNotification(notification);
+            // run this in the background
+            RealTimeService.sendNotification(notification);
             return notification;
         } catch (error) {
             ErrorService.log('notificationService.create', error);

@@ -84,11 +84,14 @@ module.exports = {
                 }
             );
             const stripeSubscriptionId = numbers.stripeSubscriptionId;
-            await TwilioService.releasePhoneNumber(
-                numbers.projectId,
-                numbers.sid
-            );
-            await PaymentService.removeSubscription(stripeSubscriptionId);
+            await Promise.all([
+                TwilioService.releasePhoneNumber(
+                    numbers.projectId,
+                    numbers.sid
+                ),
+                PaymentService.removeSubscription(stripeSubscriptionId),
+            ]);
+
             return numbers;
         } catch (error) {
             ErrorService.log('callRoutingService.deleteBy', error);
@@ -258,13 +261,15 @@ module.exports = {
                 ) {
                     let dutyCheck = 0;
                     for (const teamMember of activeTeam.teamMembers) {
-                        const isOnDuty = await AlertService.checkIsOnDuty(
-                            teamMember.startTime,
-                            teamMember.endTime
-                        );
-                        const user = await UserService.findOneBy({
-                            _id: teamMember.userId,
-                        });
+                        const [isOnDuty, user] = await Promise.all([
+                            AlertService.checkIsOnDuty(
+                                teamMember.startTime,
+                                teamMember.endTime
+                            ),
+                            UserService.findOneBy({
+                                _id: teamMember.userId,
+                            }),
+                        ]);
                         if (!user || !isOnDuty) {
                             continue;
                         }

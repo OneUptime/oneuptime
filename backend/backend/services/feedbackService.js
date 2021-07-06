@@ -21,10 +21,11 @@ module.exports = {
             feedback = await feedback.save();
             feedback = feedback.toObject();
 
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const [project, user] = await Promise.all([
+                ProjectService.findOneBy({ _id: projectId }),
+                UserService.findOneBy({ _id: createdById }),
+            ]);
             feedback.project = project;
-
-            const user = await UserService.findOneBy({ _id: createdById });
 
             const record = await AirtableService.logFeedback({
                 message,

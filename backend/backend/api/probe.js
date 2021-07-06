@@ -35,8 +35,10 @@ router.get('/', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
-        const probe = await ProbeService.findBy({}, limit, skip);
-        const count = await ProbeService.countBy({});
+        const [probe, count] = await Promise.all([
+            ProbeService.findBy({}, limit, skip),
+            ProbeService.countBy({}),
+        ]);
         return sendListResponse(req, res, probe, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -566,18 +568,20 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             }
             if (data.lighthouseScanStatus) {
                 if (data.lighthouseScanStatus === 'scanning') {
-                    await MonitorService.updateOneBy(
-                        { _id: data.monitorId },
-                        {
-                            lighthouseScanStatus: data.lighthouseScanStatus,
-                        },
-                        { fetchLightHouse: true }
-                    );
-                    await LighthouseLogService.updateAllLighthouseLogs(
-                        data.monitor.projectId,
-                        data.monitorId,
-                        { scanning: true }
-                    );
+                    await Promise.all([
+                        MonitorService.updateOneBy(
+                            { _id: data.monitorId },
+                            {
+                                lighthouseScanStatus: data.lighthouseScanStatus,
+                            },
+                            { fetchLightHouse: true }
+                        ),
+                        LighthouseLogService.updateAllLighthouseLogs(
+                            data.monitor.projectId,
+                            data.monitorId,
+                            { scanning: true }
+                        ),
+                    ]);
                 } else {
                     await MonitorService.updateOneBy(
                         { _id: data.monitorId },
@@ -656,8 +660,10 @@ router.get('/:projectId/probes', getUser, isAuthorized, async function(
     try {
         const limit = req.query.limit || null;
         const skip = req.query.skip || null;
-        const probe = await ProbeService.findBy({}, limit, skip);
-        const count = await ProbeService.countBy({});
+        const [probe, count] = await Promise.all([
+            ProbeService.findBy({}, limit, skip),
+            ProbeService.countBy({}),
+        ]);
         return sendListResponse(req, res, probe, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

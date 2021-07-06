@@ -63,12 +63,14 @@ router.get('/:projectId/alert', getUser, isAuthorized, async function(
 ) {
     try {
         const projectId = req.params.projectId;
-        const alerts = await alertService.findBy({
-            query: { projectId },
-            skip: req.query.skip || 0,
-            limit: req.query.limit || 10,
-        });
-        const count = await alertService.countBy({ projectId });
+        const [alerts, count] = await Promise.all([
+            alertService.findBy({
+                query: { projectId },
+                skip: req.query.skip || 0,
+                limit: req.query.limit || 10,
+            }),
+            alertService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, alerts, count); // frontend expects sendListResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -94,14 +96,20 @@ router.get(
                 count = 0;
             if (incidentId) {
                 incidentId = incidentId._id;
-                alerts = await alertService.findBy({
-                    query: { incidentId: incidentId },
-                    skip,
-                    limit,
-                });
-                count = await alertService.countBy({
-                    incidentId: incidentId,
-                });
+
+                const [allAlerts, allCount] = new Promise([
+                    alertService.findBy({
+                        query: { incidentId: incidentId },
+                        skip,
+                        limit,
+                    }),
+                    alertService.countBy({
+                        incidentId: incidentId,
+                    }),
+                ]);
+
+                alerts = allAlerts;
+                count = allCount;
             }
             return sendListResponse(req, res, alerts, count);
         } catch (error) {
@@ -157,12 +165,14 @@ router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
 ) {
     try {
         const projectId = req.params.projectId;
-        const alertCharges = await alertChargeService.findBy(
-            { projectId },
-            req.query.skip,
-            req.query.limit
-        );
-        const count = await alertChargeService.countBy({ projectId });
+        const [alertCharges, count] = await Promise.all([
+            alertChargeService.findBy(
+                { projectId },
+                req.query.skip,
+                req.query.limit
+            ),
+            alertChargeService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, alertCharges, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

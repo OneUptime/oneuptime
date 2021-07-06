@@ -195,7 +195,8 @@ module.exports = {
                 _id: data.monitorId,
             });
             if (monitor && monitor.projectId && monitor.projectId._id) {
-                await RealTimeService.updateLighthouseLog(
+                // run in the background
+                RealTimeService.updateLighthouseLog(
                     data,
                     monitor.projectId._id
                 );
@@ -214,7 +215,8 @@ module.exports = {
                 limit: 5,
                 skip: 0,
             });
-            await RealTimeService.updateAllLighthouseLog(projectId, {
+            // run in the background
+            RealTimeService.updateAllLighthouseLog(projectId, {
                 monitorId,
                 logs,
             });

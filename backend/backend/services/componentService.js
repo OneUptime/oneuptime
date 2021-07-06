@@ -314,7 +314,8 @@ module.exports = {
                     component.deletedById._id,
                     'componentaddremove'
                 );
-                await RealTimeService.sendComponentDelete(component);
+                // run in the background
+                RealTimeService.sendComponentDelete(component);
 
                 return component;
             } else {

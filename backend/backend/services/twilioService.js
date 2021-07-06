@@ -1571,21 +1571,24 @@ const _this = {
                         to,
                     };
                     await twilioClient.messages.create(options);
-                    await SmsCountService.create(
-                        userId,
-                        to,
-                        projectId,
-                        options.body,
-                        'Success'
-                    );
-                    await UserService.updateOneBy(
-                        { _id: userId },
-                        {
-                            tempAlertPhoneNumber: to,
-                            alertPhoneVerificationCode,
-                            alertPhoneVerificationCodeRequestTime: Date.now(),
-                        }
-                    );
+                    await Promise.all([
+                        SmsCountService.create(
+                            userId,
+                            to,
+                            projectId,
+                            options.body,
+                            'Success'
+                        ),
+                        UserService.updateOneBy(
+                            { _id: userId },
+                            {
+                                tempAlertPhoneNumber: to,
+                                alertPhoneVerificationCode,
+                                alertPhoneVerificationCodeRequestTime: Date.now(),
+                            }
+                        ),
+                    ]);
+
                     return {};
                 } else {
                     const error = new Error(

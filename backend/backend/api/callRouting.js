@@ -93,12 +93,10 @@ router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
         if (typeof skip === 'string') skip = parseInt(skip);
         if (typeof limit === 'string') limit = parseInt(limit);
 
-        const numbers = await CallRoutingService.findBy(
-            { projectId },
-            skip,
-            limit
-        );
-        const count = await CallRoutingService.countBy({ projectId });
+        const [numbers, count] = await Promise.all([
+            CallRoutingService.findBy({ projectId }, skip, limit),
+            CallRoutingService.countBy({ projectId }),
+        ]);
 
         return sendItemResponse(req, res, { numbers, count, skip, limit });
     } catch (error) {
@@ -276,11 +274,13 @@ router.delete(
                 routingSchema.introAudio = null;
                 routingSchema.introAudioName = '';
             }
-            await FileService.deleteOneBy(query);
-            const data = await CallRoutingService.updateOneBy(
-                { _id: callRoutingId },
-                { routingSchema }
-            );
+            const [data] = new Promise.all([
+                CallRoutingService.updateOneBy(
+                    { _id: callRoutingId },
+                    { routingSchema }
+                ),
+                FileService.deleteOneBy(query),
+            ]);
             return sendItemResponse(req, res, data);
         } catch (error) {
             return sendErrorResponse(req, res, error);

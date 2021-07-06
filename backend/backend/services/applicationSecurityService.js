@@ -10,17 +10,23 @@ const getSlug = require('../utils/getSlug');
 module.exports = {
     create: async function(data) {
         try {
-            const applicationNameExist = await this.findOneBy({
-                name: data.name,
-                componentId: data.componentId,
-            });
-            const gitRepositoryUrlExist = await this.findOneBy({
-                gitRepositoryUrl: data.gitRepositoryUrl,
-                componentId: data.componentId,
-            });
-            const gitCredentialExist = await GitCredentialService.findOneBy({
-                _id: data.gitCredential,
-            });
+            const [
+                applicationNameExist,
+                gitRepositoryUrlExist,
+                gitCredentialExist,
+            ] = await Promise.all([
+                this.findOneBy({
+                    name: data.name,
+                    componentId: data.componentId,
+                }),
+                this.findOneBy({
+                    gitRepositoryUrl: data.gitRepositoryUrl,
+                    componentId: data.componentId,
+                }),
+                GitCredentialService.findOneBy({
+                    _id: data.gitCredential,
+                }),
+            ]);
 
             if (applicationNameExist) {
                 const error = new Error(

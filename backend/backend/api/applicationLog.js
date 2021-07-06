@@ -64,12 +64,13 @@ router.post(
 
             data.componentId = componentId;
 
-            const applicationLog = await ApplicationLogService.create(data);
-            const component = await ComponentService.findOneBy({
-                _id: componentId,
-            });
-
-            const user = await UserService.findOneBy({ _id: req.user.id });
+            const [applicationLog, component, user] = await Promise.all([
+                ApplicationLogService.create(data),
+                ComponentService.findOneBy({
+                    _id: componentId,
+                }),
+                UserService.findOneBy({ _id: req.user.id }),
+            ]);
 
             await NotificationService.create(
                 component.projectId._id,
@@ -77,7 +78,8 @@ router.post(
                 user._id,
                 'applicationlogaddremove'
             );
-            await RealTimeService.sendApplicationLogCreated(applicationLog);
+            // run in the background
+            RealTimeService.sendApplicationLogCreated(applicationLog);
             return sendItemResponse(req, res, applicationLog);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -159,7 +161,7 @@ router.post('/:applicationLogId/log', isApplicationLogValid, async function(
 
         const log = await LogService.create(data);
 
-        await RealTimeService.sendLogCreated(log);
+        RealTimeService.sendLogCreated(log);
         return sendItemResponse(req, res, log);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -203,9 +205,11 @@ router.post(
                 };
             }
 
-            const logs = await LogService.findBy(query, limit || 10, skip || 0);
-            const count = await LogService.countBy(query);
-            const dateRange = await LogService.getDateRange(query);
+            const [logs, count, dateRange] = await Promise.all([
+                LogService.findBy(query, limit || 10, skip || 0),
+                LogService.countBy(query),
+                LogService.getDateRange(query),
+            ]);
             return sendListResponse(req, res, { logs, dateRange }, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -238,23 +242,22 @@ router.post(
             if (applicationLogId) query.applicationLogId = applicationLogId;
 
             const stat = {};
-            let count = 0;
 
-            //query.type = '';
-            count = await LogService.countBy(query);
-            stat.all = count;
-
-            query.type = 'error';
-            count = await LogService.countBy(query);
-            stat.error = count;
-
-            query.type = 'info';
-            count = await LogService.countBy(query);
-            stat.info = count;
-
-            query.type = 'warning';
-            count = await LogService.countBy(query);
-            stat.warning = count;
+            const [
+                allCount,
+                errorCount,
+                infoCount,
+                warningCount,
+            ] = await Promise.all([
+                LogService.countBy({ ...query, type: '' }),
+                LogService.countBy({ ...query, type: 'error' }),
+                LogService.countBy({ ...query, type: 'info' }),
+                LogService.countBy({ ...query, type: 'warning' }),
+            ]);
+            stat.all = allCount;
+            stat.error = errorCount;
+            stat.info = infoCount;
+            stat.warning = warningCount;
 
             return sendListResponse(req, res, stat);
         } catch (error) {

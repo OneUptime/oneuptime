@@ -41,12 +41,14 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const projectId = req.params.projectId;
-        const schedules = await ScheduleService.findBy(
-            { projectId: projectId },
-            req.query.limit || 10,
-            req.query.skip || 0
-        );
-        const count = await ScheduleService.countBy({ projectId });
+        const [schedules, count] = await Promise.all([
+            ScheduleService.findBy(
+                { projectId: projectId },
+                req.query.limit || 10,
+                req.query.skip || 0
+            ),
+            ScheduleService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, schedules, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -79,12 +81,14 @@ router.get('/:projectId/schedule', getUser, isAuthorized, async function(
 ) {
     try {
         const projectId = req.params.projectId;
-        const schedule = await ScheduleService.findBy(
-            { projectId },
-            req.query.limit || 10,
-            req.query.skip || 0
-        );
-        const count = await ScheduleService.countBy({ projectId });
+        const [schedule, count] = await Promise.all([
+            ScheduleService.findBy(
+                { projectId },
+                req.query.limit || 10,
+                req.query.skip || 0
+            ),
+            ScheduleService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, schedule, count); // frontend expects sendListResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);

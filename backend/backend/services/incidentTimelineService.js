@@ -17,13 +17,16 @@ module.exports = {
             incidentTimeline.status = data.status;
 
             incidentTimeline = await incidentTimeline.save();
-            incidentTimeline = await this.findOneBy({
-                _id: incidentTimeline._id,
-            });
 
-            const incident = await IncidentService.findOneBy({
-                _id: data.incidentId,
-            });
+            const [timeline, incident] = await Promise.all([
+                this.findOneBy({
+                    _id: incidentTimeline._id,
+                }),
+                IncidentService.findOneBy({
+                    _id: data.incidentId,
+                }),
+            ]);
+            incidentTimeline = timeline;
 
             if (incident) {
                 const _incidentTimeline = Object.assign(

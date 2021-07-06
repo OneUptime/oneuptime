@@ -11,8 +11,10 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 10;
     try {
-        const ssos = await SsoDefaultRolesService.findBy({}, limit, skip);
-        const count = await SsoDefaultRolesService.countBy();
+        const [ssos, count] = await Promise.all([
+            SsoDefaultRolesService.findBy({}, limit, skip),
+            SsoDefaultRolesService.countBy(),
+        ]);
         return sendListResponse(req, res, ssos, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

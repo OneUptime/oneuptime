@@ -178,8 +178,10 @@ module.exports = {
             to: { $regex: new RegExp(filter), $options: 'i' },
         };
 
-        const searchedEmailLogs = await _this.findBy({ query, skip, limit });
-        const totalSearchCount = await _this.countBy({ query });
+        const [searchedEmailLogs, totalSearchCount] = await Promise.all([
+            _this.findBy({ query, skip, limit }),
+            _this.countBy({ query }),
+        ]);
 
         return { searchedEmailLogs, totalSearchCount };
     },
