@@ -274,7 +274,7 @@ router.delete(
                 routingSchema.introAudio = null;
                 routingSchema.introAudioName = '';
             }
-            const [data] = new Promise.all([
+            const [data] = await Promise.all([
                 CallRoutingService.updateOneBy(
                     { _id: callRoutingId },
                     { routingSchema }

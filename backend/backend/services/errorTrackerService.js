@@ -173,7 +173,7 @@ module.exports = {
                     errorTracker.deletedById._id,
                     'errorTrackeraddremove'
                 );
-                await RealTimeService.sendErrorTrackerDelete(errorTracker);
+                RealTimeService.sendErrorTrackerDelete(errorTracker);
                 return errorTracker;
             } else {
                 return null;
