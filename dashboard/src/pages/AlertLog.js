@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import Dashboard from '../components/Dashboard';
 import { bindActionCreators } from 'redux';
 import Fade from 'react-reveal/Fade';
 import { fetchAlert, fetchProjectAlert } from '../actions/alert';
@@ -23,6 +22,17 @@ class AlertLog extends Component {
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > ALERT LOG');
+        }
+        if (this.props?.currentProject?._id) {
+            this.ready();
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps?.currentProject?._id !== this.props?.currentProject?._id
+        ) {
+            this.ready();
         }
     }
 
@@ -229,27 +239,25 @@ class AlertLog extends Component {
         allAlerts && allAlerts.unshift(projectAlert);
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="On-Call Duty"
-                    />
-                    <BreadCrumbItem route={pathname} name="Alert Log" />
-                    <div className="Box-root">
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="On-Call Duty"
+                />
+                <BreadCrumbItem route={pathname} name="Alert Log" />
+                <div className="Box-root">
+                    <div>
                         <div>
-                            <div>
-                                <div
-                                    id="alertLogPage"
-                                    className="Margin-vertical--12"
-                                >
-                                    {allAlerts}
-                                </div>
+                            <div
+                                id="alertLogPage"
+                                className="Margin-vertical--12"
+                            >
+                                {allAlerts}
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }
