@@ -349,21 +349,22 @@ router.put(
             name: data.name,
             componentId: req.params.componentId,
         };
+
+        const populate = [
+            [
+                {
+                    path: 'componentId',
+                    select: 'name slug projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name slug',
+                    },
+                },
+            ],
+        ];
+
         if (data.resourceCategory != '') {
             existingQuery.resourceCategory = data.resourceCategory;
-
-            const populate = [
-                [
-                    {
-                        path: 'componentId',
-                        select: 'name slug projectId',
-                        populate: {
-                            path: 'projectId',
-                            select: 'name slug',
-                        },
-                    },
-                ],
-            ];
         }
         const existingApplicationLog = await ApplicationLogService.findBy({
             query: existingQuery,

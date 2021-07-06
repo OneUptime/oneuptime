@@ -9,13 +9,19 @@ module.exports = {
             monitors = JSON.parse(monitors.data); // parse the stringified data
             await Promise.all(
                 monitors.map(monitor => {
-                    if(monitor.type === 'url'){ 
-                       const probe = monitor.pollTime.filter(probe => probe.probeId);
-                       if(probe.length > 0){ // This checks that the ssl result has already been published i.e probe is runnning.
-                           return UrlMonitors.ping(monitor);
-                       }else{
-                           ErrorService.log('getApi',"Please Make Sure Probe Server is Online.")
-                       }
+                    if (monitor.type === 'url') {
+                        const probe = monitor.pollTime.filter(
+                            probe => probe.probeId
+                        );
+                        if (probe.length > 0) {
+                            // This checks that the ssl result has already been published i.e probe is runnning.
+                            return UrlMonitors.ping(monitor);
+                        } else {
+                            ErrorService.log(
+                                'getApi',
+                                'Please Make Sure Probe Server is Online.'
+                            );
+                        }
                     }
                     return null;
                 })
@@ -24,4 +30,4 @@ module.exports = {
             ErrorService.log('getApi', error);
         }
     },
-}
+};

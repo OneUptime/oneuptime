@@ -30,7 +30,6 @@ const socket = io.connect(API_URL.replace('/api', ''), {
 });
 
 class ApplicationSecurityDetail extends Component {
-
     constructor(props) {
         super(props);
         this.state = {
@@ -200,9 +199,7 @@ class ApplicationSecurityDetail extends Component {
                             className={'custom-tab-list'}
                         >
                             <Tab
-                                className={
-                                    'custom-tab custom-tab-2 basic-tab'
-                                }
+                                className={'custom-tab custom-tab-2 basic-tab'}
                             >
                                 Basic
                             </Tab>
@@ -213,17 +210,16 @@ class ApplicationSecurityDetail extends Component {
                             >
                                 Advanced Options
                             </Tab>
-                            <div
-                                id="tab-slider"
-                                className="custom-tab-2"
-                            ></div>
+                            <div id="tab-slider" className="custom-tab-2"></div>
                         </TabList>
                     </div>
                     <TabPanel>
                         <Fade>
                             <ShouldRender
                                 if={
-                                    isRequesting && gettingSecurityLog && gettingCredentials
+                                    isRequesting &&
+                                    gettingSecurityLog &&
+                                    gettingCredentials
                                 }
                             >
                                 <div style={{ textAlign: 'center' }}>
@@ -240,8 +236,12 @@ class ApplicationSecurityDetail extends Component {
                                 <ApplicationSecurityView
                                     projectId={projectId}
                                     componentId={componentId}
-                                    applicationSecurityId={applicationSecurityId}
-                                    applicationSecuritySlug={applicationSecuritySlug}
+                                    applicationSecurityId={
+                                        applicationSecurityId
+                                    }
+                                    applicationSecuritySlug={
+                                        applicationSecuritySlug
+                                    }
                                     isRequesting={isRequesting}
                                     applicationSecurity={applicationSecurity}
                                     componentSlug={componentSlug}
@@ -256,7 +256,9 @@ class ApplicationSecurityDetail extends Component {
                             >
                                 <SecurityLog
                                     type="Application"
-                                    applicationSecurityLog={applicationSecurityLog}
+                                    applicationSecurityLog={
+                                        applicationSecurityLog
+                                    }
                                 />
                             </ShouldRender>
                             <ShouldRender
@@ -287,15 +289,18 @@ class ApplicationSecurityDetail extends Component {
                                 <ApplicationSecurityDeleteBox
                                     projectId={projectId}
                                     componentId={componentId}
-                                    applicationSecurityId={applicationSecurityId}
-                                    applicationSecuritySlug={applicationSecuritySlug}
+                                    applicationSecurityId={
+                                        applicationSecurityId
+                                    }
+                                    applicationSecuritySlug={
+                                        applicationSecuritySlug
+                                    }
                                     componentSlug={componentSlug}
                                 />
                             </ShouldRender>
                         </Fade>
                     </TabPanel>
                 </Tabs>
-
             </div>
         );
     }

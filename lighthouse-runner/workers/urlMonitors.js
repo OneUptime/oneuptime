@@ -4,7 +4,6 @@ const ErrorService = require('../utils/errorService');
 const { fork } = require('child_process');
 const moment = require('moment');
 
-
 // This runs the lighthouse of URL Monitors
 
 module.exports = {
@@ -12,7 +11,6 @@ module.exports = {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {
-
                     const now = new Date().getTime();
                     const scanIntervalInDays = monitor.lighthouseScannedAt
                         ? moment(now).diff(
@@ -36,27 +34,25 @@ module.exports = {
                         });
 
                         const sites = monitor.siteUrls;
-                        let failedCount = 0;
+
                         for (const url of sites) {
                             try {
                                 const resp = await lighthouseFetch(
                                     monitor,
                                     url
                                 );
-                
+
                                 await UrlService.ping(monitor._id, {
                                     monitor,
                                     resp,
                                 });
                             } catch (error) {
-                                failedCount++;
                                 ErrorService.log(
                                     'lighthouseFetch',
                                     error.error
                                 );
                             }
                         }
-
                     }
                 }
             }

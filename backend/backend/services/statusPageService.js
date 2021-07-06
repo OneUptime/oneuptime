@@ -935,12 +935,12 @@ module.exports = {
             ];
 
             const [eventNote, count] = await Promise.all([
-               ScheduledEventNoteService.findBy({
-                query,
-                limit,
-                skip,
-                populate,
-            }),
+                ScheduledEventNoteService.findBy({
+                    query,
+                    limit,
+                    skip,
+                    populate,
+                }),
                 ScheduledEventNoteService.countBy(query),
             ]);
 

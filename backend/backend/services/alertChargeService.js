@@ -58,7 +58,7 @@ module.exports = {
                     .sort([['createdAt', sort]]);
             }
 
-            let alertCharges = await populateColumn(populate, alertQuery);
+            const alertCharges = await populateColumn(populate, alertQuery);
 
             return alertCharges;
         } catch (error) {

@@ -12,8 +12,9 @@ const router = express.Router();
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
-const { isAuthorizedLighthouse } = require('../middlewares/lighthouseAuthorization');
-
+const {
+    isAuthorizedLighthouse,
+} = require('../middlewares/lighthouseAuthorization');
 
 // Route
 // Description: Updating profile setting.
@@ -21,7 +22,7 @@ const { isAuthorizedLighthouse } = require('../middlewares/lighthouseAuthorizati
 // Param 1: req.headers-> {authorization}; req.user-> {id}; req.files-> {profilePic};
 // Returns: 200: Success, 400: Error; 500: Server Error.
 
-router.get('/monitors', isAuthorizedLighthouse, async function (req, res) {
+router.get('/monitors', isAuthorizedLighthouse, async function(req, res) {
     try {
         const monitors = await MonitorService.getUrlMonitors();
 
@@ -36,25 +37,22 @@ router.get('/monitors', isAuthorizedLighthouse, async function (req, res) {
     }
 });
 
-router.post('/ping/:monitorId', isAuthorizedLighthouse, async function (
+router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
     req,
     response
 ) {
     try {
-        const {
-            monitor,
-            resp,
-        } = req.body;
+        const { monitor, resp } = req.body;
 
-        let log, data = {};
+        let log,
+            data = {};
 
         data = req.body;
         data.lighthouseScanStatus =
-            resp && (resp.lighthouseScanStatus)
+            resp && resp.lighthouseScanStatus
                 ? resp.lighthouseScanStatus
                 : null;
-        data.performance =
-            resp && resp.performance ? resp.performance : null;
+        data.performance = resp && resp.performance ? resp.performance : null;
         data.accessibility =
             resp && resp.accessibility ? resp.accessibility : null;
         data.bestPractices =
@@ -64,7 +62,7 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function (
         data.lighthouseData =
             resp && resp.lighthouseData ? resp.lighthouseData : null;
         data.monitorId = req.params.monitorId || monitor._id;
-        let probeId = await ProbeService.findBy();
+        const probeId = await ProbeService.findBy();
         data.probeId = probeId ? probeId[0]._id : null;
 
         if (data.lighthouseScanStatus === 'scanning') {
@@ -89,7 +87,8 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function (
                     lighthouseScannedBy: data.probeId,
                 }
             );
-            if (data.lighthouseData) { // The scanned results are published
+            if (data.lighthouseData) {
+                // The scanned results are published
                 data.scanning = false;
                 log = await ProbeService.saveLighthouseLog(data);
             }

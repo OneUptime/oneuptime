@@ -2,7 +2,7 @@ const ErrorService = require('../services/errorService');
 module.exports = (populateArray, query) => {
     try {
         let result;
-        for (let populateItem of populateArray) {
+        for (const populateItem of populateArray) {
             if (!populateItem.length) {
                 if (
                     !populateItem.table ||
@@ -10,7 +10,7 @@ module.exports = (populateArray, query) => {
                     !populateItem.field ||
                     populateItem.field === ''
                 ) {
-                    let error = new Error(
+                    const error = new Error(
                         'Table and field columns are required'
                     );
                     error.code = 400;
@@ -30,7 +30,7 @@ module.exports = (populateArray, query) => {
                 ) {
                     result = query.populate(populateItem[0]);
                 } else {
-                    let error = new Error('Specify columns to be populated');
+                    const error = new Error('Specify columns to be populated');
                     error.code = 400;
                     throw error;
                 }

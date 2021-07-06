@@ -731,8 +731,6 @@ module.exports = {
         }
     },
 
-
-
     async getUrlMonitors() {
         try {
             const oneDay = moment()
@@ -749,22 +747,20 @@ module.exports = {
                             {
                                 lighthouseScanStatus: {
                                     $exists: false, // Lighthouse scan status does not exist
-                                }
+                                },
                             },
                             {
                                 lighthouseScanStatus: {
                                     $exists: true,
-                                    $nin: ['scanning', 'scanned'] // Lighthouse scan status exist but 'failed' or the 'scan' button is clicked from UI
-                                }
+                                    $nin: ['scanning', 'scanned'], // Lighthouse scan status exist but 'failed' or the 'scan' button is clicked from UI
+                                },
                             },
-                            { lighthouseScannedAt: { $lt: oneDay } }
-                        ]
+                            { lighthouseScannedAt: { $lt: oneDay } },
+                        ],
                     },
                     {
                         type: {
-                            $in: [
-                                'url',
-                            ],
+                            $in: ['url'],
                         },
                     },
                 ],
@@ -775,8 +771,6 @@ module.exports = {
             throw error;
         }
     },
-
-
 
     async updateMonitorPingTime(id) {
         try {

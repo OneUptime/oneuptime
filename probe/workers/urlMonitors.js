@@ -3,8 +3,6 @@ const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fetch = require('node-fetch');
 const sslCert = require('get-ssl-certificate');
-const { fork } = require('child_process');
-const moment = require('moment');
 const https = require('https');
 const http = require('http');
 const httpsAgent = new https.Agent({
@@ -27,7 +25,7 @@ module.exports = {
                         const { res, resp, rawResp } = await pingfetch(
                             monitor.data.url
                         );
-                        
+
                         const response = await ApiService.ping(monitor._id, {
                             monitor,
                             res,
@@ -148,4 +146,3 @@ const pingfetch = async url => {
         },
     };
 };
-
