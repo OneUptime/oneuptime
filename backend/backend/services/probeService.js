@@ -579,16 +579,18 @@ module.exports = {
         try {
             const incidents = await IncidentService.findBy({
                 'monitors.monitorId': data.monitorId,
-                // incidentType: lastStatus, // is this field needed at all??
                 resolved: false,
                 manuallyCreated: false,
             });
+
             const monitor = await MonitorService.findOneBy({
                 _id: data.monitorId,
             });
+
             // should grab all the criterion for the monitor and put them into one array
             // check the id of each criteria against the id of criteria attached to an incident
             // ack / resolve according to the criteria
+
             let autoAcknowledge, autoResolve;
             if (incidents && incidents.length > 0) {
                 incidents.forEach(incident => {
@@ -794,7 +796,7 @@ module.exports = {
         };
     },
 
-    conditions: async (monitorType, con, payload, resp, response) => {
+    conditions: (monitorType, con, payload, resp, response) => {
         const status = resp
             ? resp.status
                 ? resp.status
@@ -814,7 +816,7 @@ module.exports = {
         let matchedCriterion;
 
         if (con && con.length) {
-            eventOccurred = await some(con, async condition => {
+            eventOccurred = some(con, condition => {
                 let stat = true;
                 if (
                     condition &&
@@ -822,7 +824,7 @@ module.exports = {
                     condition.criteria.condition &&
                     condition.criteria.condition === 'and'
                 ) {
-                    stat = await checkAnd(
+                    stat = checkAnd(
                         payload,
                         condition.criteria,
                         status,
@@ -841,7 +843,7 @@ module.exports = {
                     condition.criteria.condition &&
                     condition.criteria.condition === 'or'
                 ) {
-                    stat = await checkOr(
+                    stat = checkOr(
                         payload,
                         condition.criteria,
                         status,
@@ -1249,11 +1251,11 @@ module.exports = {
         }
     },
 
-    incomingCondition: async (payload, conditions) => {
+    incomingCondition: (payload, conditions) => {
         let eventOccurred = false;
         let matchedCriterion;
         if (conditions && conditions.length) {
-            eventOccurred = await some(conditions, async condition => {
+            eventOccurred = some(conditions, condition => {
                 let response = false;
                 let respAnd = false,
                     respOr = false,
@@ -1266,10 +1268,7 @@ module.exports = {
                     condition.criteria.condition &&
                     condition.criteria.condition === 'and'
                 ) {
-                    respAnd = await incomingCheckAnd(
-                        payload,
-                        condition.criteria
-                    );
+                    respAnd = incomingCheckAnd(payload, condition.criteria);
                     countAnd++;
                 }
                 if (
@@ -1278,7 +1277,7 @@ module.exports = {
                     condition.criteria.condition &&
                     condition.criteria.condition === 'or'
                 ) {
-                    respOr = await incomingCheckOr(payload, condition.criteria);
+                    respOr = incomingCheckOr(payload, condition.criteria);
                     countOr++;
                 }
                 if (countAnd > 0 && countOr > 0) {
@@ -1467,27 +1466,33 @@ module.exports = {
             const {
                 eventOccurred: validUp,
                 matchedCriterion: matchedUpCriterion,
-            } = await (monitor && monitor.criteria && monitor.criteria.up
-                ? _this.incomingCondition(payload, monitor.criteria.up)
-                : false);
+            } =
+                monitor && monitor.criteria && monitor.criteria.up
+                    ? _this.incomingCondition(payload, monitor.criteria.up)
+                    : false;
 
             const {
                 eventOccurred: validDegraded,
                 matchedCriterion: matchedDegradedCriterion,
-            } = await (monitor && monitor.criteria && monitor.criteria.degraded
-                ? _this.incomingCondition(payload, monitor.criteria.degraded)
-                : false);
+            } =
+                monitor && monitor.criteria && monitor.criteria.degraded
+                    ? _this.incomingCondition(
+                          payload,
+                          monitor.criteria.degraded
+                      )
+                    : false;
 
             const {
                 eventOccurred: validDown,
                 matchedCriterion: matchedDownCriterion,
-            } = await (monitor && monitor.criteria && monitor.criteria.down
-                ? _this.incomingCondition(payload, [
-                      ...monitor.criteria.down.filter(
-                          criterion => criterion.default !== true
-                      ),
-                  ])
-                : false);
+            } =
+                monitor && monitor.criteria && monitor.criteria.down
+                    ? _this.incomingCondition(payload, [
+                          ...monitor.criteria.down.filter(
+                              criterion => criterion.default !== true
+                          ),
+                      ])
+                    : false;
             let timeHours = 0;
             let timeMinutes = payload;
             let tempReason = `${payload} min`;
@@ -1574,7 +1579,7 @@ const incomingCheckAnd = async (payload, condition) => {
                     condition.criteria[i].condition === 'and'
                 ) {
                     // incoming check and
-                    const tempAnd = await incomingCheckAnd(
+                    const tempAnd = incomingCheckAnd(
                         payload,
                         condition.criteria[i]
                     );
@@ -1587,7 +1592,7 @@ const incomingCheckAnd = async (payload, condition) => {
                     condition.criteria[i].condition === 'or'
                 ) {
                     // incoming check or
-                    const tempOr = await incomingCheckOr(
+                    const tempOr = incomingCheckOr(
                         payload,
                         condition.criteria[i]
                     );
@@ -1709,7 +1714,7 @@ const incomingCheckAnd = async (payload, condition) => {
     return validity;
 };
 
-const incomingCheckOr = async (payload, condition) => {
+const incomingCheckOr = (payload, condition) => {
     let validity = false;
     let val = 0;
     let incomingVal = 0;
@@ -1724,7 +1729,7 @@ const incomingCheckOr = async (payload, condition) => {
                     condition.criteria[i].condition === 'or'
                 ) {
                     // incoming check or
-                    const tempor = await incomingCheckAnd(
+                    const tempor = incomingCheckAnd(
                         payload,
                         condition.criteria[i]
                     );
@@ -1736,7 +1741,7 @@ const incomingCheckOr = async (payload, condition) => {
                     condition.criteria[i].condition &&
                     condition.criteria[i].condition === 'and'
                 ) {
-                    const tempAnd = await incomingCheckAnd(
+                    const tempAnd = incomingCheckAnd(
                         payload,
                         condition.criteria[i]
                     );
@@ -1858,7 +1863,7 @@ const incomingCheckOr = async (payload, condition) => {
     return validity;
 };
 
-const checkAnd = async (
+const checkAnd = (
     payload,
     con,
     statusCode,
@@ -1883,7 +1888,7 @@ const checkAnd = async (
                     con.criteria[i].condition === 'and'
                 ) {
                     // check and again
-                    const temp = await checkAnd(
+                    const temp = checkAnd(
                         payload,
                         con.criteria[i],
                         statusCode,
@@ -1905,7 +1910,7 @@ const checkAnd = async (
                     con.criteria[i].condition === 'or'
                 ) {
                     // check or again
-                    const temp1 = await checkOr(
+                    const temp1 = checkOr(
                         payload,
                         con.criteria[i],
                         statusCode,
@@ -4212,7 +4217,7 @@ const checkAnd = async (
     return validity;
 };
 
-const checkOr = async (
+const checkOr = (
     payload,
     con,
     statusCode,
@@ -4237,7 +4242,7 @@ const checkOr = async (
                     con.criteria[i].condition === 'or'
                 ) {
                     // check or again
-                    const temp1 = await checkOr(
+                    const temp1 = checkOr(
                         payload,
                         con.criteria[i],
                         statusCode,
@@ -4257,7 +4262,7 @@ const checkOr = async (
                     con.criteria[i].condition &&
                     con.criteria[i].condition === 'and'
                 ) {
-                    const temp = await checkAnd(
+                    const temp = checkAnd(
                         payload,
                         con.criteria[i],
                         statusCode,
