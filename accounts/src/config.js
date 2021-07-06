@@ -3,7 +3,7 @@ import isEmail from 'sane-email-validation';
 import validUrl from 'valid-url';
 import valid from 'card-validator';
 import FileSaver from 'file-saver';
-//import { emaildomains } from './constants/emaildomains';
+import { emaildomains } from './constants/emaildomains';
 
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
@@ -175,7 +175,7 @@ export const Validate = {
         return false;
     },
 
-    isValidBusinessEmail() {
+    isValidBusinessEmail(email) {
         //return emaildomains.test(email);
         return true;
     },
