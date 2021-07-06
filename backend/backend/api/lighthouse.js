@@ -5,7 +5,7 @@
  */
 
 const express = require('express');
-const ProbeService = require('../services/ProbeService');
+const ProbeService = require('../services/probeService');
 const MonitorService = require('../services/monitorService');
 const LighthouseLogService = require('../services/lighthouseLogService');
 const router = express.Router();
