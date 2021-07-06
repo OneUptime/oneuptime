@@ -19,14 +19,6 @@ class PastEvent extends Component {
         this.more = this.more.bind(this);
     }
 
-    componentDidMount() {
-        this.props.fetchPastEvents(
-            this.props.projectId,
-            this.props.statusPageSlug,
-            0
-        );
-    }
-
     getAll = () => {
         this.props.showEventCard(true);
         this.props.fetchPastEvents(

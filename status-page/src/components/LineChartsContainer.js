@@ -24,27 +24,6 @@ ChartContainer.propTypes = {
 };
 
 class LineChartsContainer extends React.Component {
-    componentDidMount() {
-        const {
-            _id: monitorId,
-            projectId: { _id: projectId },
-        } = this.props.monitor;
-        const {
-            memory,
-            cpu,
-            storage,
-            responseTime,
-            temperature,
-        } = this.props.selectedCharts;
-        const data = {
-            memory,
-            cpu,
-            storage,
-            responseTime,
-            temperature,
-        };
-        this.props.fetchMonitorLogs(projectId, monitorId, data);
-    }
     render() {
         const { _id: monitorId } = this.props.monitor;
         let requesting = true;
@@ -117,6 +96,7 @@ LineChartsContainer.displayName = 'LineChartsContainer';
 LineChartsContainer.propTypes = {
     monitor: PropTypes.object,
     selectedCharts: PropTypes.object.isRequired,
+    // eslint-disable-next-line react/no-unused-prop-types
     fetchMonitorLogs: PropTypes.func.isRequired,
     logs: PropTypes.array.isRequired,
 };

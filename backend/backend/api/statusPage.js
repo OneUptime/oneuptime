@@ -1635,4 +1635,331 @@ function handleMonitorList(monitors) {
     }
 }
 
+//load all status page resources
+router.get('/resources/:statusPageSlug', checkUser, ipWhitelist, async function(
+    req,
+    res
+) {
+    try {
+        const { statusPageSlug } = req.params;
+        const response = {};
+        //get status pages
+        const statusPage = await getStatusPage(req, statusPageSlug);
+        if (statusPage.error) {
+            return sendErrorResponse(req, res, statusPage.data);
+        }
+        response.statusPages = statusPage;
+        //get ongoing events
+        const ongoingEvents = await getOngoingScheduledEvents(
+            req,
+            statusPageSlug
+        );
+        response.ongoingEvents = ongoingEvents;
+        //get future events
+        const futureEvents = await getFutureEvents(req, statusPageSlug);
+        response.futureEvents = futureEvents;
+        //get past event
+        const pastEvents = await getPastEvents(req, statusPageSlug);
+        response.pastEvents = pastEvents;
+        //get probes
+        const probes = await getProbes(req);
+        response.probes = probes;
+        const { _id: statusPageId, monitors, projectId } = statusPage;
+        const monitorLogs = await getMonitorLogs(req, monitors);
+        response.monitorLogs = monitorLogs;
+        //get announcements
+        const announcement = await getAnnouncements(
+            req,
+            statusPageId,
+            projectId
+        );
+        response.announcement = announcement;
+        //get monitor status
+        const monitorStatus = await getMonitorStatuses(req, monitors);
+        response.monitorStatus = monitorStatus;
+        //get monitor timelines
+        const timelines = await getMonitorTimelines(statusPageSlug);
+        response.timelines = timelines;
+        //get status getStatusPageNote
+        const statusPageNote = await getStatusPageNote(
+            req,
+            statusPageSlug,
+            statusPage.theme
+        );
+        response.statusPageNote = statusPageNote;
+        //get all announcement logs
+        const announcementLogs = await getAnnouncementLogs(statusPage);
+        response.announcementLogs = announcementLogs;
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+async function getStatusPage(req, statusPageSlug) {
+    const url = req.query.url;
+    const user = req.user;
+    let statusPage = {};
+    // Call the StatusPageService.
+    if (url && url !== 'null') {
+        statusPage = await StatusPageService.getStatusPage(
+            { domains: { $elemMatch: { domain: url } } },
+            user
+        );
+    } else if ((!url || url === 'null') && statusPageSlug) {
+        statusPage = await StatusPageService.getStatusPage(
+            { slug: statusPageSlug },
+            user
+        );
+    } else {
+        return {
+            error: true,
+            data: {
+                code: 400,
+                message: 'StatusPage Slug or Url required',
+            },
+        };
+    }
+
+    if (statusPage.isPrivate && !req.user) {
+        return {
+            error: true,
+            data: {
+                code: 401,
+                message: 'You are unauthorized to access the page.',
+            },
+        };
+    } else {
+        return statusPage;
+    }
+}
+async function getOngoingScheduledEvents(req, statusPageSlug) {
+    const { skip = 0, limit = 5, theme = false } = req.query;
+    // Call the StatusPageService.
+    const response = await StatusPageService.getEvents(
+        { slug: statusPageSlug },
+        skip,
+        limit,
+        theme
+    );
+
+    let events = response.events;
+    const count = response.count;
+    if ((theme && typeof theme === 'boolean') || theme === 'true') {
+        const results = await fetchNotes(events, limit);
+        events = results;
+    }
+    return { events, count };
+}
+async function getFutureEvents(req, statusPageSlug) {
+    const { skip = 0, limit = 5, theme = false } = req.query;
+    const response = await StatusPageService.getFutureEvents(
+        { slug: statusPageSlug },
+        skip,
+        limit
+    );
+    if ((theme && typeof theme === 'boolean') || theme === 'true') {
+        const results = await fetchNotes(response.events, limit);
+        response.events = results;
+    }
+    return response;
+}
+async function getPastEvents(req, statusPageSlug) {
+    const { skip = 0, limit = 5, theme = false } = req.query;
+
+    const response = await StatusPageService.getPastEvents(
+        { slug: statusPageSlug },
+        skip,
+        limit
+    );
+    if ((theme && typeof theme === 'boolean') || theme === 'true') {
+        const results = await fetchNotes(response.events, limit);
+        response.events = results;
+    }
+
+    return response;
+}
+async function getProbes(req) {
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 0;
+    const probes = await ProbeService.findBy({}, limit, skip);
+    const count = await ProbeService.countBy({});
+    return { probes, count };
+}
+async function getMonitorLogs(req, monitors) {
+    const logs = [];
+    await Promise.all(
+        monitors.map(async monitor => {
+            const endDate = moment(Date.now());
+            const startDate = moment(endDate).subtract(90, 'days');
+            const {
+                memory,
+                cpu,
+                storage,
+                responseTime,
+                temperature,
+                monitor: monitorId,
+            } = monitor;
+            const filter = {
+                ...(!memory && {
+                    maxMemoryUsed: 0,
+                    memoryUsed: 0,
+                }),
+                ...(!cpu && {
+                    maxCpuLoad: 0,
+                    cpuLoad: 0,
+                }),
+                ...(!storage && {
+                    maxStorageUsed: 0,
+                    storageUsed: 0,
+                }),
+                ...(!responseTime && {
+                    maxResponseTime: 0,
+                    responseTime: 0,
+                }),
+                ...(!temperature && {
+                    maxMainTemp: 0,
+                    mainTemp: 0,
+                }),
+            };
+
+            const monitorLogs = await MonitorService.getMonitorLogsByDay(
+                monitorId._id,
+                startDate,
+                endDate,
+                filter
+            );
+            logs.push({
+                logs: monitorLogs,
+                monitorId: monitorId._id,
+                count: monitorLogs.length,
+            });
+        })
+    );
+    return logs;
+}
+
+async function getAnnouncements(req, statusPageId, projectId) {
+    const { skip, limit, show = true } = req.query;
+    const query = { projectId, statusPageId };
+    if (show) query.hideAnnouncement = false;
+
+    const allAnnouncements = await StatusPageService.getAnnouncements(
+        query,
+        skip,
+        limit
+    );
+
+    const count = await StatusPageService.countAnnouncements(query);
+
+    return {
+        allAnnouncements,
+        skip,
+        limit,
+        count,
+    };
+}
+//get monitor status
+async function getMonitorStatuses(req, monitors) {
+    const status = [];
+    const endDate = moment(Date.now());
+    const startDate = moment(Date.now()).subtract(90, 'days');
+    await Promise.all(
+        monitors.map(async monitor => {
+            const monitorId = monitor._id;
+            const monitorStatuses = await MonitorService.getMonitorStatuses(
+                monitorId,
+                startDate,
+                endDate
+            );
+            return status.push({ [monitorId]: monitorStatuses });
+        })
+    );
+
+    return status;
+}
+//get timelines
+async function getMonitorTimelines(statusPageSlug) {
+    const incidents = await StatusPageService.getNotes({
+        slug: statusPageSlug,
+    });
+    const response = await IncidentTimelineService.getIncidentLastTimelines(
+        incidents.notes
+    );
+    return response;
+}
+//get status page notes
+async function getStatusPageNote(req, statusPageSlug, theme) {
+    let result;
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 10;
+    const days = req.query.days || 14;
+    const newTheme = theme === 'Clean Theme';
+    // Call the StatusPageService.
+    const response = await StatusPageService.getNotes(
+        { slug: statusPageSlug },
+        skip,
+        limit
+    );
+    const notes = response.notes;
+    const count = response.count;
+    const updatedNotes = [];
+    if (newTheme) {
+        if (notes.length > 0) {
+            for (const note of notes) {
+                const statusPageNote = await StatusPageService.getIncidentNotes(
+                    { incidentId: note._id, postOnStatusPage: true },
+                    skip,
+                    limit
+                );
+
+                const sortMsg = statusPageNote.message.reverse();
+
+                updatedNotes.push({
+                    ...note,
+                    message: sortMsg,
+                });
+            }
+        }
+        result = formatNotes(updatedNotes, days);
+        result = checkDuplicateDates(result);
+    } else {
+        result = notes;
+    }
+    return { result, count };
+}
+//get announcement logs
+async function getAnnouncementLogs(statusPage, limit = 5, skip = 0) {
+    const theme = statusPage.theme === 'Clean Theme';
+    if (theme) {
+        limit = statusPage.announcementLogsHistory || 14;
+    }
+    let announcementLogs = await StatusPageService.getAnnouncementLogs(
+        {
+            statusPageId: statusPage._id,
+        },
+        skip,
+        limit
+    );
+
+    const count = await StatusPageService.countAnnouncementLogs({
+        statusPageId: statusPage._id,
+    });
+
+    if ((theme && typeof theme === 'boolean') || theme === 'true') {
+        const updatedLogs = [];
+        for (const log of announcementLogs) {
+            updatedLogs.push({ ...log });
+        }
+        announcementLogs = formatNotes(updatedLogs, 20);
+        announcementLogs = checkDuplicateDates(announcementLogs);
+    }
+
+    return {
+        announcementLogs,
+        skip,
+        limit,
+        count,
+    };
+}
 module.exports = router;
