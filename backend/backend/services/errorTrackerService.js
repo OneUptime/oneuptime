@@ -213,7 +213,8 @@ module.exports = {
 
             errorTracker = await this.findOneBy(query);
 
-            await RealTimeService.errorTrackerKeyReset(errorTracker);
+            // run in the background
+            RealTimeService.errorTrackerKeyReset(errorTracker);
 
             return errorTracker;
         } catch (error) {

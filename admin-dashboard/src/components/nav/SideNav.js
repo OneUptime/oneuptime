@@ -7,6 +7,7 @@ import { groups } from '../../routes';
 import { openModal, closeModal } from '../../actions/modal';
 import { closeSideNav } from '../../actions/page';
 import ClickOutside from 'react-click-outside';
+import { withRouter } from 'react-router-dom';
 
 class SideNav extends Component {
     handleKeyBoard = e => {
@@ -129,4 +130,6 @@ SideNav.propTypes = {
 SideNav.contextTypes = {
     mixpanel: PropTypes.object.isRequired,
 };
-export default connect(mapStateToProps, mapDispatchToProps)(SideNav);
+export default withRouter(
+    connect(mapStateToProps, mapDispatchToProps)(SideNav)
+);

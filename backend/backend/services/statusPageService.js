@@ -590,20 +590,22 @@ module.exports = {
                 ? statuspage.monitors.map(m => m.monitor._id)
                 : [];
             if (monitorIds && monitorIds.length) {
-                const notes = await IncidentService.findBy(
-                    {
+                const [notes, count] = await Promise.all([
+                    IncidentService.findBy(
+                        {
+                            'monitors.monitorId': { $in: monitorIds },
+                            hideIncident: false,
+                            ...option,
+                        },
+                        limit,
+                        skip
+                    ),
+                    IncidentService.countBy({
                         'monitors.monitorId': { $in: monitorIds },
                         hideIncident: false,
                         ...option,
-                    },
-                    limit,
-                    skip
-                );
-                const count = await IncidentService.countBy({
-                    'monitors.monitorId': { $in: monitorIds },
-                    hideIncident: false,
-                    ...option,
-                });
+                    }),
+                ]);
 
                 return { notes, count };
             } else {
@@ -642,13 +644,10 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
-            const message = await IncidentMessageService.findBy(
-                query,
-                skip,
-                limit
-            );
-
-            const count = await IncidentMessageService.countBy(query);
+            const [message, count] = await Promise.all([
+                IncidentMessageService.findBy(query, skip, limit),
+                IncidentMessageService.countBy(query),
+            ]);
 
             return { message, count };
         } catch (error) {
@@ -659,13 +658,15 @@ module.exports = {
 
     getNotesByDate: async function(query, skip, limit) {
         try {
-            const incidents = await IncidentService.findBy(query, limit, skip);
+            const [incidents, count] = await Promise.all([
+                IncidentService.findBy(query, limit, skip),
+                IncidentService.countBy(query),
+            ]);
 
             const investigationNotes = incidents.map(incident => {
                 // return all the incident object
                 return incident;
             });
-            const count = await IncidentService.countBy(query);
             return { investigationNotes, count };
         } catch (error) {
             ErrorService.log('statusPageService.getNotesByDate', error);
@@ -933,14 +934,15 @@ module.exports = {
                 ],
             ];
 
-            const eventNote = await ScheduledEventNoteService.findBy({
+            const [eventNote, count] = await Promise.all([
+               ScheduledEventNoteService.findBy({
                 query,
                 limit,
                 skip,
                 populate,
-            });
-
-            const count = await ScheduledEventNoteService.countBy(query);
+            }),
+                ScheduledEventNoteService.countBy(query),
+            ]);
 
             return { notes: eventNote, count };
         } catch (error) {
@@ -951,12 +953,10 @@ module.exports = {
 
     getEventsByDate: async function(query, skip, limit) {
         try {
-            const scheduledEvents = await ScheduledEventsService.findBy(
-                query,
-                limit,
-                skip
-            );
-            const count = await ScheduledEventsService.countBy(query);
+            const [scheduledEvents, count] = await Promise.all([
+                ScheduledEventsService.findBy(query, limit, skip),
+                ScheduledEventsService.countBy(query),
+            ]);
 
             return { scheduledEvents, count };
         } catch (error) {
@@ -1080,12 +1080,14 @@ module.exports = {
             const monitorIds =
                 statuspage && statuspage.monitors.map(m => m.monitor._id);
             if (monitorIds && monitorIds.length) {
-                const incidents = await IncidentService.findBy({
-                    'monitors.monitorId': { $in: monitorIds },
-                });
-                const count = await IncidentService.countBy({
-                    'monitors.monitorId': { $in: monitorIds },
-                });
+                const [incidents, count] = await Promise.all([
+                    IncidentService.findBy({
+                        'monitors.monitorId': { $in: monitorIds },
+                    }),
+                    IncidentService.countBy({
+                        'monitors.monitorId': { $in: monitorIds },
+                    }),
+                ]);
                 return { incidents, count };
             } else {
                 const error = new Error('No monitor to check');

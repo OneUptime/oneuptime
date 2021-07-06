@@ -52,12 +52,15 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
         }
 
         const query = { projectId };
-        const templates = await IncidentSettingsService.findBy({
-            query,
-            limit,
-            skip,
-        });
-        const count = await IncidentSettingsService.countBy(query);
+        const [templates, count] = await Promise.all([
+            IncidentSettingsService.findBy({
+                query,
+                limit,
+                skip,
+            }),
+            IncidentSettingsService.countBy(query),
+        ]);
+
         return sendListResponse(req, res, templates, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

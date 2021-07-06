@@ -93,7 +93,8 @@ module.exports = {
             }
 
             if (!recurring) {
-                await RealTimeService.addScheduledEvent(scheduledEvent);
+                // run in the background
+                RealTimeService.addScheduledEvent(scheduledEvent);
             }
             return scheduledEvent;
         } catch (error) {
@@ -178,7 +179,8 @@ module.exports = {
                 throw error;
             }
 
-            await RealTimeService.updateScheduledEvent(updatedScheduledEvent);
+            // run in the background
+            RealTimeService.updateScheduledEvent(updatedScheduledEvent);
 
             return updatedScheduledEvent;
         } catch (error) {
@@ -240,7 +242,8 @@ module.exports = {
                 throw error;
             }
 
-            await RealTimeService.deleteScheduledEvent(scheduledEvent);
+            // run in the background
+            RealTimeService.deleteScheduledEvent(scheduledEvent);
 
             return scheduledEvent;
         } catch (error) {
@@ -429,9 +432,7 @@ module.exports = {
                             _id: updatedEvent._id,
                         });
 
-                        await RealTimeService.updateScheduledEvent(
-                            updatedEvent
-                        );
+                        RealTimeService.updateScheduledEvent(updatedEvent);
                     } else {
                         // delete the scheduled event when no monitor is remaining
                         let deletedEvent = await ScheduledEventModel.findOneAndUpdate(
@@ -452,9 +453,7 @@ module.exports = {
                             .populate('createdById', 'name')
                             .execPopulate();
 
-                        await RealTimeService.deleteScheduledEvent(
-                            deletedEvent
-                        );
+                        RealTimeService.deleteScheduledEvent(deletedEvent);
                     }
                 })
             );
@@ -557,8 +556,8 @@ module.exports = {
             }
 
             // realtime update
-
-            await RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
+            // run in the background
+            RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
 
             return resolvedScheduledEvent;
         } catch (error) {

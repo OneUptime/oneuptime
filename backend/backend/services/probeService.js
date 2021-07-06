@@ -165,7 +165,8 @@ module.exports = {
             const probe = await this.findOneBy({ _id: probeId });
             if (probe) {
                 delete probe.deleted;
-                await RealTimeService.updateProbe(probe, monitorId);
+                // run in the background
+                RealTimeService.updateProbe(probe, monitorId);
             }
         } catch (error) {
             ErrorService.log('ProbeService.sendProbe', error);
@@ -320,15 +321,17 @@ module.exports = {
 
     incidentCreateOrUpdate: async function(data) {
         try {
-            const monitor = await MonitorService.findOneBy({
-                _id: data.monitorId,
-            });
-            const incidents = await IncidentService.findBy({
-                'monitors.monitorId': data.monitorId,
-                incidentType: data.status,
-                resolved: false,
-                manuallyCreated: false,
-            });
+            const [monitor, incidents] = await Promise.all([
+                MonitorService.findOneBy({
+                    _id: data.monitorId,
+                }),
+                IncidentService.findBy({
+                    'monitors.monitorId': data.monitorId,
+                    incidentType: data.status,
+                    resolved: false,
+                    manuallyCreated: false,
+                }),
+            ]);
             const { matchedCriterion } = data;
             let incidentIds = [];
             const scripts = matchedCriterion.scripts.map(script => {
@@ -1067,10 +1070,12 @@ module.exports = {
                         'Scanning failed please check your docker credential or image path/tag';
                     error.code = 400;
                     error.message = errorMessage;
-                    await ContainerSecurityService.updateScanTime({
-                        _id: security._id,
-                    });
-                    await deleteFile(exactFilePath);
+                    await Promise.all([
+                        ContainerSecurityService.updateScanTime({
+                            _id: security._id,
+                        }),
+                        deleteFile(exactFilePath),
+                    ]);
                     return reject(error);
                 });
 
@@ -1087,10 +1092,13 @@ module.exports = {
                             'Scanning failed please check your docker credential or image path/tag'
                         );
                         error.code = 400;
-                        await ContainerSecurityService.updateScanTime({
-                            _id: security._id,
-                        });
-                        await deleteFile(exactFilePath);
+
+                        await Promise.all([
+                            ContainerSecurityService.updateScanTime({
+                                _id: security._id,
+                            }),
+                            deleteFile(exactFilePath),
+                        ]);
                         return reject(error);
                     }
 
@@ -1107,13 +1115,15 @@ module.exports = {
                         error.code = 400;
                         error.message =
                             'Unable to clear cache, try again later';
-                        await ContainerSecurityService.updateOneBy(
-                            {
-                                _id: security._id,
-                            },
-                            { scanning: false }
-                        );
-                        await deleteFile(exactFilePath);
+                        await Promise.all([
+                            ContainerSecurityService.updateOneBy(
+                                {
+                                    _id: security._id,
+                                },
+                                { scanning: false }
+                            ),
+                            deleteFile(exactFilePath),
+                        ]);
                         return reject(error);
                     });
 
@@ -1223,11 +1233,12 @@ module.exports = {
                             }
                         );
 
-                        await ContainerSecurityService.updateScanTime({
-                            _id: security._id,
-                        });
-
-                        await deleteFile(exactFilePath);
+                        await Promise.all([
+                            ContainerSecurityService.updateScanTime({
+                                _id: security._id,
+                            }),
+                            deleteFile(exactFilePath),
+                        ]);
                         resolve(securityLog);
                     });
                 });
@@ -1426,16 +1437,18 @@ module.exports = {
             logData.matchedDegradedCriterion =
                 monitor && monitor.criteria && monitor.criteria.degraded;
             // update monitor to save the last matched criterion
-            await MonitorService.updateOneBy(
-                {
-                    _id: monitor._id,
-                },
-                {
-                    lastMatchedCriterion: matchedCriterion,
-                }
-            );
-            const log = await _this.saveMonitorLog(logData);
-            await MonitorService.updateMonitorPingTime(monitor._id);
+            const [, log] = await Promise.all([
+                MonitorService.updateOneBy(
+                    {
+                        _id: monitor._id,
+                    },
+                    {
+                        lastMatchedCriterion: matchedCriterion,
+                    }
+                ),
+                _this.saveMonitorLog(logData),
+                MonitorService.updateMonitorPingTime(monitor._id),
+            ]);
             return log;
         } catch (error) {
             ErrorService.log('monitorService.processHttpRequest', error);
@@ -1525,15 +1538,17 @@ module.exports = {
             logData.stopPingTimeUpdate = true;
             logData.matchedCriterion = matchedCriterion;
             // update monitor to save the last matched criterion
-            await MonitorService.updateOneBy(
-                {
-                    _id: monitor._id,
-                },
-                {
-                    lastMatchedCriterion: matchedCriterion,
-                }
-            );
-            const log = await _this.saveMonitorLog(logData);
+            const [, log] = await Promise.all([
+                MonitorService.updateOneBy(
+                    {
+                        _id: monitor._id,
+                    },
+                    {
+                        lastMatchedCriterion: matchedCriterion,
+                    }
+                ),
+                _this.saveMonitorLog(logData),
+            ]);
             return log;
         } catch (error) {
             ErrorService.log('monitorService.probeHttpRequest', error);

@@ -20,8 +20,10 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
         const query = {};
         const skip = req.query.skip;
         const limit = req.query.limit;
-        const callLogs = await CallLogsService.findBy(query, limit, skip);
-        const count = await CallLogsService.countBy(query);
+        const [callLogs, count] = await Promise.all([
+            CallLogsService.findBy(query, limit, skip),
+            CallLogsService.countBy(query),
+        ]);
         return sendListResponse(req, res, callLogs, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

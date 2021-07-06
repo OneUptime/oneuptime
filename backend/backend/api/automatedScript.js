@@ -18,12 +18,10 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
         const { skip, limit } = req.query;
-        const scripts = await AutomatedScriptService.findBy(
-            { projectId },
-            skip,
-            limit
-        );
-        const count = await AutomatedScriptService.countBy({ projectId });
+        const [scripts, count] = await Promise.all([
+            AutomatedScriptService.findBy({ projectId }, skip, limit),
+            AutomatedScriptService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, scripts, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -41,13 +39,6 @@ router.get(
             const details = await AutomatedScriptService.findOneBy({
                 slug: automatedSlug,
             });
-            const logs = await AutomatedScriptService.getAutomatedLogs(
-                {
-                    automationScriptId: details._id,
-                },
-                skip,
-                limit
-            );
 
             if (details.successEvent.length > 0) {
                 details.successEvent = formatEvent(details.successEvent);
@@ -57,9 +48,18 @@ router.get(
                 details.failureEvent = formatEvent(details.failureEvent);
             }
 
-            const count = await AutomatedScriptService.countLogsBy({
-                automationScriptId: details._id,
-            });
+            const [logs, count] = await Promise.all([
+                AutomatedScriptService.getAutomatedLogs(
+                    {
+                        automationScriptId: details._id,
+                    },
+                    skip,
+                    limit
+                ),
+                AutomatedScriptService.countLogsBy({
+                    automationScriptId: details._id,
+                }),
+            ]);
             const response = {
                 details,
                 logs,
@@ -171,19 +171,14 @@ router.put(
                 });
             }
 
-            // check former name
-            const formerName = await AutomatedScriptService.findOneBy({
-                projectId: data.projectId,
-                _id: automatedScriptId,
-            });
-
-            // check if name already exists
-            const uniqueName = await AutomatedScriptService.findOneBy({
+            // check if name already exist
+            const script = await AutomatedScriptService.findOneBy({
                 projectId: data.projectId,
                 name: data.name,
+                _id: { $ne: automatedScriptId },
             });
 
-            if (data.name !== formerName.name && uniqueName) {
+            if (script) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Script name already exists',

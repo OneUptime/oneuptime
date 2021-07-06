@@ -97,7 +97,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const applicationSecurityLog = ApplicationSecurityLogModel.findOneAndUpdate(
+            const applicationSecurityLog = await ApplicationSecurityLogModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,

@@ -57,13 +57,14 @@ const _this = {
                     subscriptionEndDate = moment(subscriptionEndDate * 1000);
                     const timeDiff = moment().diff(subscriptionEndDate, 'days');
 
-                    const user = await UserService.findOneBy({
-                        stripeCustomerId,
-                    });
-
-                    const project = await ProjectService.findOneBy({
-                        stripeSubscriptionId,
-                    });
+                    const [user, project] = await Promise.all([
+                        UserService.findOneBy({
+                            stripeCustomerId,
+                        }),
+                        ProjectService.findOneBy({
+                            stripeSubscriptionId,
+                        }),
+                    ]);
 
                     // ignore if there is no project or user
                     // also ignore if the unpaid subscription is not up to 5 or more days

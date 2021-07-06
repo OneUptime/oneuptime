@@ -42,50 +42,48 @@ module.exports = {
                 { new: true }
             );
 
-            await MonitorModel.updateMany(
-                { resourceCategory: query._id },
-                {
-                    $set: {
-                        resourceCategory: null,
-                    },
-                }
-            );
-
-            await ApplicationLogModel.updateMany(
-                { resourceCategory: query._id },
-                {
-                    $set: {
-                        resourceCategory: null,
-                    },
-                }
-            );
-
-            await ErrorTrackerModel.updateMany(
-                { resourceCategory: query._id },
-                {
-                    $set: {
-                        resourceCategory: null,
-                    },
-                }
-            );
-
-            await ApplicationSecurityModel.updateMany(
-                { resourceCategory: query._id },
-                {
-                    $set: {
-                        resourceCategory: null,
-                    },
-                }
-            );
-
-            await ContainerSecurityModel.updateMany(
-                { resourceCategory: query._id },
-                {
-                    $set: {
-                        resourceCategory: null,
-                    },
-                }
-            );
+            await Promise.all([
+                MonitorModel.updateMany(
+                    { resourceCategory: query._id },
+                    {
+                        $set: {
+                            resourceCategory: null,
+                        },
+                    }
+                ),
+                ApplicationLogModel.updateMany(
+                    { resourceCategory: query._id },
+                    {
+                        $set: {
+                            resourceCategory: null,
+                        },
+                    }
+                ),
+                ErrorTrackerModel.updateMany(
+                    { resourceCategory: query._id },
+                    {
+                        $set: {
+                            resourceCategory: null,
+                        },
+                    }
+                ),
+                ApplicationSecurityModel.updateMany(
+                    { resourceCategory: query._id },
+                    {
+                        $set: {
+                            resourceCategory: null,
+                        },
+                    }
+                ),
+                ContainerSecurityModel.updateMany(
+                    { resourceCategory: query._id },
+                    {
+                        $set: {
+                            resourceCategory: null,
+                        },
+                    }
+                ),
+            ]);
 
             return resourceCategory;
         } catch (error) {

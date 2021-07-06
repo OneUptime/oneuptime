@@ -21,8 +21,10 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
         const skip = req.query.skip;
         const limit = req.query.limit;
 
-        const auditLogs = await AuditLogsService.findBy({ query, skip, limit });
-        const count = await AuditLogsService.countBy({ query });
+        const [auditLogs, count] = await Promise.all([
+            AuditLogsService.findBy({ query, skip, limit }),
+            AuditLogsService.countBy({ query }),
+        ]);
 
         return sendListResponse(req, res, auditLogs, count);
     } catch (error) {

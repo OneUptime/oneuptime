@@ -171,7 +171,8 @@ module.exports = {
                     applicationLog.deletedById._id,
                     'applicationLogaddremove'
                 );
-                await RealTimeService.sendApplicationLogDelete(applicationLog);
+                // run in the background
+                RealTimeService.sendApplicationLogDelete(applicationLog);
                 return applicationLog;
             } else {
                 return null;
@@ -211,7 +212,8 @@ module.exports = {
 
             applicationLog = await this.findOneBy(query);
 
-            await RealTimeService.applicationLogKeyReset(applicationLog);
+            // run in the background
+            RealTimeService.applicationLogKeyReset(applicationLog);
 
             return applicationLog;
         } catch (error) {

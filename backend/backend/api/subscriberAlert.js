@@ -78,14 +78,16 @@ router.get('/:projectId', async (req, res) => {
         const projectId = req.params.projectId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const subscriberAlerts = await SubscriberAlertService.findBy(
-            { projectId: projectId },
-            skip,
-            limit
-        );
-        const count = await SubscriberAlertService.countBy({
-            projectId: projectId,
-        });
+        const [subscriberAlerts, count] = await Promise.all([
+            SubscriberAlertService.findBy(
+                { projectId: projectId },
+                skip,
+                limit
+            ),
+            SubscriberAlertService.countBy({
+                projectId: projectId,
+            }),
+        ]);
         return sendListResponse(req, res, subscriberAlerts, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -110,15 +112,19 @@ router.get('/:projectId/incident/:incidentId', async (req, res) => {
             count = 0;
         if (incidentId) {
             incidentId = incidentId._id;
-            subscriberAlerts = await SubscriberAlertService.findBy(
-                { incidentId: incidentId, projectId: projectId },
-                skip,
-                limit
-            );
-            count = await SubscriberAlertService.countBy({
-                incidentId: incidentId,
-                projectId: projectId,
-            });
+            const [alerts, alertCount] = await Promise.all([
+                SubscriberAlertService.findBy(
+                    { incidentId: incidentId, projectId: projectId },
+                    skip,
+                    limit
+                ),
+                SubscriberAlertService.countBy({
+                    incidentId: incidentId,
+                    projectId: projectId,
+                }),
+            ]);
+            subscriberAlerts = alerts;
+            count = alertCount;
         }
         return sendListResponse(req, res, subscriberAlerts, count);
     } catch (error) {

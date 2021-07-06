@@ -7,12 +7,15 @@ const Services = {
                     : chargeAttemptCount === 2
                     ? 'second'
                     : 'third';
-            const user = await UserService.findOneBy({
-                stripeCustomerId: customerId,
-            });
-            const project = await ProjectService.findOneBy({
-                stripeSubscriptionId: subscriptionId,
-            });
+
+            const [user, project] = await Promise.all([
+                UserService.findOneBy({
+                    stripeCustomerId: customerId,
+                }),
+                ProjectService.findOneBy({
+                    stripeSubscriptionId: subscriptionId,
+                }),
+            ]);
 
             MailService.sendPaymentFailedEmail(
                 project.name,
@@ -51,8 +54,10 @@ const Services = {
     creditCard: {
         create: async function(tok, userId) {
             try {
-                const tokenCard = await stripe.tokens.retrieve(tok);
-                const cards = await this.get(userId);
+                const [tokenCard, cards] = await Promise.all([
+                    stripe.tokens.retrieve(tok),
+                    this.get(userId),
+                ]);
                 let duplicateCard = false;
 
                 if (

@@ -23,14 +23,16 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map(project => project._id)
             : null;
-        const notifications = await NotificationService.findBy(
-            { projectId: { $in: subProjectIds } },
-            req.query.skip || 0,
-            req.query.limit || 20
-        );
-        const count = await NotificationService.countBy({
-            projectId: { $in: subProjectIds },
-        });
+        const [notifications, count] = await Promise.all([
+            NotificationService.findBy(
+                { projectId: { $in: subProjectIds } },
+                req.query.skip || 0,
+                req.query.limit || 20
+            ),
+            NotificationService.countBy({
+                projectId: { $in: subProjectIds },
+            }),
+        ]);
         return sendListResponse(req, res, notifications, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
