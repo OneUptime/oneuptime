@@ -303,8 +303,7 @@ router.post(
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }
-            const response = await ApplicationSecurityService.updateOneBy( { _id: applicationSecurityId },{scanned: false}); //This helps the application scanner to pull the application
-            return sendItemResponse(req, res, response);
+           await ApplicationSecurityService.updateOneBy( { _id: applicationSecurityId },{scanned: false}); //This helps the application scanner to pull the application
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

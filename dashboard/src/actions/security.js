@@ -590,13 +590,11 @@ export const scanApplicationSecurity = ({
     applicationSecurityId,
 }) => async dispatch => {
     dispatch(scanApplicationSecurityRequest());
+    dispatch(setActiveApplicationSecurity(applicationSecurityId));
     try {
-        const response = await postApi(
+        await postApi(
             `security/${projectId}/application/scan/${applicationSecurityId}`
         );
-        if (response.data.scanned === false) {
-            dispatch(setActiveApplicationSecurity(applicationSecurityId));
-        }
     } catch (error) {
         const errorMsg =
             error.response && error.response.data

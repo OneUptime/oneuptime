@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -29,14 +28,6 @@ const ApplicationSecurityView = ({
     scanError,
     activeApplicationSecurity,
 }) => {
-    console.log("Is Requesting: ", isRequesting);
-    console.log("App Sec Id: ", applicationSecurityId);
-    console.log("Active App Sec: ", activeApplicationSecurity);
-    console.log("Sec log: ", securityLog);
-    console.log("Scanning: ", scanning);
-    console.log("App Security: ", applicationSecurity);
-    console.log("Scan Error: ", scanError);
-    
     const handleDelete = ({
         projectId,
         componentId,
@@ -253,7 +244,7 @@ const ApplicationSecurityView = ({
                                         }
                                         id={`scan_${applicationSecurity.name}`}
                                     >
-                                        <span>Scanmm</span>
+                                        <span>Scan</span>
                                     </button>
                                 </ShouldRender>
                                 <button
