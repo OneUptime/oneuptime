@@ -413,7 +413,7 @@ router.post(
             ]);
             /* eslint-enable prefer-const */
 
-            const [subAlerts, scheduleStatus] = new Promise.all([
+            const [subAlerts, scheduleStatus] = await Promise.all([
                 Services.deduplicate(subscriberAlerts),
                 Services.checkCallSchedule(callScheduleStatus),
             ]);
