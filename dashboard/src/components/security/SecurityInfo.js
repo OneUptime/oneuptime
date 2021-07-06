@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { Fragment } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -35,8 +36,16 @@ const SecurityInfo = ({
     activeContainerSecurity,
     slug,
 }) => {
+    
+    console.log("App Sec Id: ", applicationSecurityId);
+    console.log("Active App Sec: ", activeApplicationSecurity);
+    console.log("Scanning: ", scanningApplication);
+    console.log("Sec log: ", applicationSecurityLog);
+    console.log("App Security: ", applicationSecurities);
+    console.log("Scan Error: ", scanApplicationError);
     const scanSecurity = () => {
         if (applicationSecurityId) {
+            console.log("Opened Modal ID: ", applicationSecurityId);
             openModal({
                 id: applicationSecurityId,
                 content: ConfirmScanModal,
@@ -261,7 +270,7 @@ const SecurityInfo = ({
                                             `scanContainerSecurity_${name}`)
                                     }
                                 >
-                                    <span>Scan</span>
+                                    <span>Scanoooooo</span>
                                 </button>
                             )}
                             <button
