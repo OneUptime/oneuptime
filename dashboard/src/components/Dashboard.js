@@ -30,26 +30,8 @@ export class DashboardApp extends Component {
         super(props);
     }
 
-    componentDidUpdate(prevProps) {
-        const {
-            project: { currentProject },
-            ready,
-        } = this.props;
-
-        if (
-            prevProps.project.currentProject &&
-            prevProps.project.currentProject._id &&
-            currentProject &&
-            currentProject._id
-        ) {
-            if (prevProps.project.currentProject._id !== currentProject._id) {
-                ready && ready();
-            }
-        }
-    }
-
     componentDidMount() {
-        const { project, ready, getProjects } = this.props;
+        const { project, getProjects } = this.props;
 
         if (
             project.projects &&
@@ -57,11 +39,7 @@ export class DashboardApp extends Component {
             project.projects.projects.length === 0 &&
             !project.projects.requesting
         ) {
-            getProjects(this.props.projectId || null).then(() => {
-                ready && ready();
-            });
-        } else {
-            ready && ready();
+            getProjects(this.props.projectId || null);
         }
     }
 
@@ -129,6 +107,17 @@ export class DashboardApp extends Component {
             location.pathname === '/dashboard/profile/changePassword' ||
             location.pathname === '/dashboard/profile/advanced';
 
+        // forcing children to re-render on dashboard redraw
+        // when projectId is changed/switched in user profile pages
+        // * usually children components are unmounted/remounted when project is switched
+        const childrenWithProps = React.Children.map(children, child => {
+            // Checking isValidElement to ensure child is an element
+            if (React.isValidElement(child)) {
+                return React.cloneElement(child, { key: projectId });
+            }
+            return child;
+        });
+
         return (
             <Fragment>
                 {userProfile ? (
@@ -168,7 +157,7 @@ export class DashboardApp extends Component {
 
                                 <div className="db-World-mainPane Box-root Margin-top--60 Padding-right--20">
                                     <div className="db-World-contentPane Box-root Padding-bottom--48">
-                                        {children}
+                                        {childrenWithProps}
                                     </div>
                                 </div>
 
@@ -200,11 +189,7 @@ export class DashboardApp extends Component {
                                         <div className="db-World-contentPane Box-root Padding-bottom--48">
                                             <BreadCrumbs
                                                 styles="breadCrumbContainer Card-shadow--medium db-mb"
-                                                showDeleteBtn={
-                                                    this.props.showDeleteBtn
-                                                }
-                                                close={this.props.close}
-                                                name={this.props.name}
+                                                name={this.props.pageName}
                                             />
                                             <ShouldRender
                                                 if={
@@ -220,7 +205,7 @@ export class DashboardApp extends Component {
                                             >
                                                 <UnVerifiedEmailBox />
                                             </ShouldRender>
-                                            {children}
+                                            {childrenWithProps}
                                         </div>
                                     </div>
                                 </ShouldRender>
@@ -363,13 +348,10 @@ DashboardApp.propTypes = {
     showForm: PropTypes.func,
     location: PropTypes.object.isRequired,
     children: PropTypes.any,
-    ready: PropTypes.func,
     projectId: PropTypes.string,
     currentModal: PropTypes.object,
     closeModal: PropTypes.func,
-    showDeleteBtn: PropTypes.bool,
-    close: PropTypes.func,
-    name: PropTypes.string,
+    pageName: PropTypes.string,
     switchToProjectViewerNav: PropTypes.bool,
 };
 
@@ -383,6 +365,7 @@ const mapStateToProps = state => ({
             ? state.modal.modals[state.modal.modals.length - 1]
             : '',
     switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+    pageName: state.page.title,
 });
 
 const mapDispatchToProps = dispatch =>
