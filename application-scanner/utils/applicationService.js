@@ -1,4 +1,3 @@
-const { postApi } = require('./api');
 const crypto = require('crypto');
 const EncryptionKeys = require('./encryptionKeys');
 const algorithm = EncryptionKeys.algorithm;

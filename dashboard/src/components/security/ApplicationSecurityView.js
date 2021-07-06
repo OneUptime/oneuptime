@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -343,6 +342,7 @@ ApplicationSecurityView.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     activeApplicationSecurity: PropTypes.string,
+    scannedStatus: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>

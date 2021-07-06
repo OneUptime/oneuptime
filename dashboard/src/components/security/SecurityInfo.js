@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import React, { Fragment } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -38,7 +37,7 @@ const SecurityInfo = ({
     scannedStatus
 }) => {
     let currentScannedStatus = true;
-    scannedStatus.map(scan =>{
+    scannedStatus.forEach(scan =>{
         if(applicationSecurityId === scan._id){
             currentScannedStatus = scan.scanned
         }
@@ -392,6 +391,7 @@ SecurityInfo.propTypes = {
     activeApplicationSecurity: PropTypes.string,
     activeContainerSecurity: PropTypes.string,
     slug: PropTypes.string,
+    scannedStatus: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch =>
