@@ -609,7 +609,7 @@ module.exports = {
 
                 return { notes, count };
             } else {
-                const error = new Error('no monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 ErrorService.log('statusPage.getNotes', error);
                 throw error;
@@ -738,7 +738,7 @@ module.exports = {
 
                 return { events, count };
             } else {
-                const error = new Error('no monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 ErrorService.log('statusPageService.getEvents', error);
                 throw error;
@@ -811,7 +811,7 @@ module.exports = {
                 const count = events.length;
                 return { events, count };
             } else {
-                const error = new Error('no monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 ErrorService.log('statusPageService.getFutureEvents', error);
                 throw error;
@@ -884,7 +884,7 @@ module.exports = {
                 const count = events.length;
                 return { events: limitEvents(events, limit, skip), count };
             } else {
-                const error = new Error('no monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 ErrorService.log('statusPageService.getPastEvents', error);
                 throw error;
@@ -1090,7 +1090,7 @@ module.exports = {
                 ]);
                 return { incidents, count };
             } else {
-                const error = new Error('No monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 throw error;
             }
