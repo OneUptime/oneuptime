@@ -124,14 +124,16 @@ router.post(
                 monitors,
             });
             if (incident) {
+                const monitorItems = [];
                 for (const monitor of monitors) {
-                    await MonitorStatusService.create({
+                    monitorItems.push({
                         monitorId: monitor,
                         incidentId: incident._id,
                         manuallyCreated: true,
                         status: incidentType,
                     });
                 }
+                await MonitorStatusService.createMany(monitorItems);
             }
             return sendItemResponse(req, res, incident);
         } catch (error) {
