@@ -1,5 +1,5 @@
 ## DEPLOYMENT STAGE - RUBY SDK
-deploy_staging_ruby-sdk:
+staging_ruby-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -40,7 +40,7 @@ deploy_staging_ruby-sdk:
     environment:
         name: staging
 
-deploy_production_ruby-sdk:
+production_ruby-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2
