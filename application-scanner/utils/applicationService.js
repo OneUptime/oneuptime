@@ -73,7 +73,7 @@ module.exports = {
             // to prevent pulling an applicaiton security multiple times by running cron job
             // due to network delay
             await updateApplicationSecurityToScanning(security);
-
+            
             return new Promise((resolve, reject) => {
                 git(securityDir)
                     .silent(true)

@@ -296,7 +296,6 @@ router.post(
             let applicationSecurity = await ApplicationSecurityService.findOneBy(
                 { _id: applicationSecurityId }
             );
-
             if (!applicationSecurity) {
                 const error = new Error(
                     'Application Security not found or does not exist'
@@ -304,8 +303,8 @@ router.post(
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }
-            await ApplicationSecurityService.updateOneBy( { _id: applicationSecurityId },{scanned: false}); //This helps the application scanner to pull the application
-            
+            const response = await ApplicationSecurityService.updateOneBy( { _id: applicationSecurityId },{scanned: false}); //This helps the application scanner to pull the application
+            return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

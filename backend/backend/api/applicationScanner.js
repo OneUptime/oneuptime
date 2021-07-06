@@ -42,10 +42,7 @@
              },
              { scanning: true }
          );
-         global.io.emit(
-             `security_${applicationSecurity._id}`,
-             applicationSecurity
-         );
+        
          return sendItemResponse(req, res, applicationSecurity);
      }catch(error){
          return sendErrorResponse(req,res,error);
@@ -59,10 +56,6 @@
                  _id: security._id,
              },
              { scanning: false }
-         );
-         global.io.emit(
-             `security_${applicationSecurity._id}`,
-             applicationSecurity
          );
          return sendItemResponse(req, res, applicationSecurity);
      }catch(error){
