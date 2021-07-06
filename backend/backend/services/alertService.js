@@ -3646,7 +3646,7 @@ module.exports = {
                                 hasGlobalSmtpSettings,
                                 hasCustomSmtpSettings,
                                 emailTemplate,
-                            ] = new Promise.all([
+                            ] = await Promise.all([
                                 GlobalConfigService.findOneBy({
                                     name: 'smtp',
                                 }),
