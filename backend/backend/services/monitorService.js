@@ -731,6 +731,53 @@ module.exports = {
         }
     },
 
+
+
+    async getUrlMonitors() {
+        try {
+            const oneDay = moment()
+                .subtract(1, 'days')
+                .toDate();
+            const monitors = await MonitorModel.find({
+                $and: [
+                    {
+                        deleted: false,
+                        disabled: false,
+                    },
+                    {
+                        $or: [
+                            {
+                                lighthouseScanStatus: {
+                                    $exists: false, // Lighthouse scan status does not exist
+                                }
+                            },
+                            {
+                                lighthouseScanStatus: {
+                                    $exists: true,
+                                    $nin: ['scanning', 'scanned'] // Lighthouse scan status exist but 'failed' or the 'scan' button is clicked from UI
+                                }
+                            },
+                            { lighthouseScannedAt: { $lt: oneDay } }
+                        ]
+                    },
+                    {
+                        type: {
+                            $in: [
+                                'url',
+                            ],
+                        },
+                    },
+                ],
+            });
+            return monitors;
+        } catch (error) {
+            ErrorService.log('monitorService.getUrlMonitors', error);
+            throw error;
+        }
+    },
+
+
+
     async updateMonitorPingTime(id) {
         try {
             const newdate = new Date();
