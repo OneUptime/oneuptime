@@ -253,7 +253,7 @@ const ApplicationSecurityView = ({
                                         }
                                         id={`scan_${applicationSecurity.name}`}
                                     >
-                                        <span>Scanmmmm</span>
+                                        <span>Scanmm</span>
                                     </button>
                                 </ShouldRender>
                                 <button

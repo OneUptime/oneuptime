@@ -270,7 +270,7 @@ const SecurityInfo = ({
                                             `scanContainerSecurity_${name}`)
                                     }
                                 >
-                                    <span>Scanoooooo</span>
+                                    <span>Scanooo</span>
                                 </button>
                             )}
                             <button

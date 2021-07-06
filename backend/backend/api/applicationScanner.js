@@ -72,9 +72,12 @@
                  data: security.data,
              }
          );
+        
+         const findLog = await ApplicationSecurityLogService.findOneBy(securityLog._id);
+         
          global.io.emit(
              `securityLog_${securityLog.securityId}`,
-             securityLog
+             findLog
          );
          return sendItemResponse(req, res, securityLog);
      }catch(error){
