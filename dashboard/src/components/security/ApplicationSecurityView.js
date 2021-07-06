@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -27,6 +28,7 @@ const ApplicationSecurityView = ({
     applicationSecurity,
     scanError,
     activeApplicationSecurity,
+    scannedStatus
 }) => {
     const handleDelete = ({
         projectId,
@@ -197,7 +199,7 @@ const ApplicationSecurityView = ({
                                                     activeApplicationSecurity
                                                 )) ||
                                         applicationSecurity.scanning ||
-                                        !applicationSecurity.lastScan
+                                        !applicationSecurity.lastScan || scannedStatus === false
                                     }
                                 >
                                     <button
@@ -205,7 +207,7 @@ const ApplicationSecurityView = ({
                                         disabled={
                                             scanning ||
                                             applicationSecurity.scanning ||
-                                            !applicationSecurity.lastScan
+                                            !applicationSecurity.lastScan || scannedStatus === false
                                         }
                                         id={`scanning_${applicationSecurity.name}`}
                                     >
@@ -223,7 +225,7 @@ const ApplicationSecurityView = ({
                                                     activeApplicationSecurity
                                                 )) &&
                                         !applicationSecurity.scanning &&
-                                        applicationSecurity.lastScan
+                                        applicationSecurity.lastScan && scannedStatus === true
                                     }
                                 >
                                     <button
@@ -358,6 +360,7 @@ const mapStateToProps = state => {
         scanning: state.security.scanApplicationSecurity.requesting,
         scanError: state.security.scanApplicationSecurity.error,
         activeApplicationSecurity: state.security.activeApplicationSecurity,
+        scannedStatus: state.security.applicationSecurity.scanned,
     };
 };
 
