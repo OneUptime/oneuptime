@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import Fade from 'react-reveal/Fade';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { logEvent } from '../analytics';
-import Dashboard from '../components/Dashboard';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
 import { connect } from 'react-redux';
@@ -26,7 +25,10 @@ class ApplicationLogView extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > LOG CONTAINERS > LOG CONTAINER DETAIL PAGE'
             );
         }
+
+        this.ready();
     }
+
     ready = () => {
         const {
             componentSlug,
@@ -99,62 +101,51 @@ class ApplicationLogView extends Component {
         const applicationLogName =
             applicationLog.length > 0 ? applicationLog[0].name : null;
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(
-                            pathname,
-                            null,
-                            'application-log'
-                        )}
-                        name={componentName}
-                    />
-                    <BreadCrumbItem
-                        route={getParentRoute(
-                            pathname,
-                            null,
-                            'application-logs'
-                        )}
-                        name="Logs"
-                    />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name={applicationLogName}
-                        pageTitle="Logs"
-                        containerType="Log Container"
-                    />
-                    <ShouldRender if={!this.props.applicationLog[0]}>
-                        <LoadingState />
-                    </ShouldRender>
-                    <ShouldRender if={this.props.applicationLog[0]}>
-                        {applicationLog[0] &&
-                        applicationLog[0].showQuickStart ? (
-                            <LibraryList
-                                title="Log Container"
-                                type="logs"
-                                applicationLog={this.props.applicationLog[0]}
-                                close={this.handleCloseQuickStart}
-                            />
-                        ) : null}
-                        <div>
-                            <ApplicationLogDetail
-                                componentId={componentId}
-                                index={this.props.applicationLog[0]?._id}
-                                isDetails={true}
-                                componentSlug={this.props.componentSlug}
-                            />
-                        </div>
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'application-log')}
+                    name={componentName}
+                />
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'application-logs')}
+                    name="Logs"
+                />
+                <BreadCrumbItem
+                    route={pathname}
+                    name={applicationLogName}
+                    pageTitle="Logs"
+                    containerType="Log Container"
+                />
+                <ShouldRender if={!this.props.applicationLog[0]}>
+                    <LoadingState />
+                </ShouldRender>
+                <ShouldRender if={this.props.applicationLog[0]}>
+                    {applicationLog[0] && applicationLog[0].showQuickStart ? (
+                        <LibraryList
+                            title="Log Container"
+                            type="logs"
+                            applicationLog={this.props.applicationLog[0]}
+                            close={this.handleCloseQuickStart}
+                        />
+                    ) : null}
+                    <div>
+                        <ApplicationLogDetail
+                            componentId={componentId}
+                            index={this.props.applicationLog[0]?._id}
+                            isDetails={true}
+                            componentSlug={this.props.componentSlug}
+                        />
+                    </div>
 
-                        <div className="Box-root Margin-bottom--12">
-                            <ApplicationLogViewDeleteBox
-                                componentId={this.props.componentId}
-                                applicationLog={this.props.applicationLog[0]}
-                                componentSlug={this.props.componentSlug}
-                            />
-                        </div>
-                    </ShouldRender>
-                </Fade>
-            </Dashboard>
+                    <div className="Box-root Margin-bottom--12">
+                        <ApplicationLogViewDeleteBox
+                            componentId={this.props.componentId}
+                            applicationLog={this.props.applicationLog[0]}
+                            componentSlug={this.props.componentSlug}
+                        />
+                    </div>
+                </ShouldRender>
+            </Fade>
         );
     }
 }
