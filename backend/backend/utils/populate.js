@@ -1,42 +1,24 @@
 const ErrorService = require('../services/errorService');
-module.exports = (populateArray, query) => {
+module.exports = (populateArray = null, query) => {
+    /**
+     * populate should be an array of object
+     *
+     * [{ path, select }, ...] // it also takes all acceptable field as well
+     *
+     * It can also accept a populate key which will have the same structure as the initial object or an array of object
+     *
+     * [{ path, select, populate: { path, select } ...}]
+     * OR
+     * [{ path, select, populate: [{ path, select }, ...] }]
+     */
     try {
-        let result;
-        for (const populateItem of populateArray) {
-            if (!populateItem.length) {
-                if (
-                    !populateItem.table ||
-                    populateItem.table === '' ||
-                    !populateItem.field ||
-                    populateItem.field === ''
-                ) {
-                    const error = new Error(
-                        'Table and field columns are required'
-                    );
-                    error.code = 400;
-                    throw error;
-                } else {
-                    result = query.populate(
-                        populateItem.table,
-                        populateItem.field
-                    );
-                }
-            } else {
-                //an array containing path
-                if (
-                    populateItem[0].populate &&
-                    populateItem[0].populate &&
-                    populateItem[0].populate.select.length > 1
-                ) {
-                    result = query.populate(populateItem[0]);
-                } else {
-                    const error = new Error('Specify columns to be populated');
-                    error.code = 400;
-                    throw error;
-                }
-            }
+        if (populateArray && !Array.isArray(populateArray)) {
+            const error = new Error('Populate should be an array of fields');
+            error.code = 400;
+            throw error;
         }
-        return result;
+
+        return query.populate(populateArray);
     } catch (error) {
         ErrorService.log('populate', error);
         throw error;
