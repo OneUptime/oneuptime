@@ -16,6 +16,19 @@ module.exports = {
         }
     },
 
+    createMany: async function(allData) {
+        try {
+            allData = allData.map(data => {
+                data.allowedVariables = smsTemplateVariables[data.smsType];
+                return data;
+            });
+            return await SmsTemplateModel.insertMany(allData);
+        } catch (error) {
+            ErrorService.log('smsTemplateService.createMany', error);
+            throw error;
+        }
+    },
+
     updateOneBy: async function(query, data) {
         if (!query) {
             query = {};
