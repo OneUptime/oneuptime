@@ -65,7 +65,7 @@ app.get(['/application/version', '/version'], function(req, res) {
     res.send({ applicationScannerVersion: process.env.npm_package_version });
 });
 
-// Run this cron every 5 minutes.
+// Run this cron every 5 minutes
 cron.schedule('*/5 * * * *', () => {
     setTimeout(() => {
         Main.runApplicationScan();
