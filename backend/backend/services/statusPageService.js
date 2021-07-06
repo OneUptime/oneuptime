@@ -920,8 +920,27 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
+            const populate = [
+                { table: 'createdById', field: 'name' },
+                [
+                    {
+                        path: 'scheduledEventId',
+                        select: 'name monitors alertSubscriber projectId',
+                        populate: {
+                            path: 'projectId',
+                            select: 'name replyAddress',
+                        },
+                    },
+                ],
+            ];
+
             const [eventNote, count] = await Promise.all([
-                ScheduledEventNoteService.findBy(query, limit, skip),
+               ScheduledEventNoteService.findBy({
+                query,
+                limit,
+                skip,
+                populate,
+            }),
                 ScheduledEventNoteService.countBy(query),
             ]);
 

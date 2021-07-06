@@ -2,6 +2,7 @@ const ScheduledEventNoteModel = require('../models/scheduledEventNote');
 const ErrorService = require('./errorService');
 const RealTimeService = require('./realTimeService');
 const AlertService = require('./alertService');
+const populateColumn = require('../utils/populate');
 
 module.exports = {
     create: async function(data, projectId) {
@@ -85,24 +86,19 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, populate }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const eventMessage = await ScheduledEventNoteModel.findOne(query)
-                .lean()
-                .populate('scheduledEventId', 'name')
-                .populate({
-                    path: 'scheduledEventId',
-                    select: 'name monitors alertSubscriber projectId',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name replyAddress',
-                    },
-                })
-                .populate('createdById', 'name');
+            const eventMessageQuery = ScheduledEventNoteModel.findOne(
+                query
+            ).lean();
+            const eventMessage = await populateColumn(
+                populate,
+                eventMessageQuery
+            );
 
             return eventMessage;
         } catch (error) {
@@ -110,7 +106,7 @@ module.exports = {
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -126,21 +122,15 @@ module.exports = {
 
             if (!query) query = {};
 
-            const eventMessage = await ScheduledEventNoteModel.find(query)
+            const eventMessageQuery = ScheduledEventNoteModel.find(query)
                 .lean()
                 .limit(limit)
                 .skip(skip)
-                .sort({ createdAt: -1 })
-                .populate('scheduledEventId', 'name')
-                .populate({
-                    path: 'scheduledEventId',
-                    select: 'name monitors alertSubscriber projectId',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name replyAddress',
-                    },
-                })
-                .populate('createdById', 'name');
+                .sort({ createdAt: -1 });
+            const eventMessage = await populateColumn(
+                populate,
+                eventMessageQuery
+            );
 
             return eventMessage;
         } catch (error) {

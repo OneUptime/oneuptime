@@ -679,16 +679,34 @@ router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
         const { eventId } = req.params;
         const { limit, skip } = req.query;
 
+
+        const populate = [
+            { table: 'createdById', field: 'name' },
+            [
+                {
+                    path: 'scheduledEventId',
+                    select: 'name monitors alertSubscriber projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name replyAddress',
+                    },
+                },
+            ],
+        ];
+
         const [eventNotes, count] = await Promise.all([
-            ScheduledEventNoteService.findBy(
-                { scheduledEventId: eventId },
-                limit,
-                skip
-            ),
+            ScheduledEventNoteService.findBy({
+            query: { scheduledEventId: eventId },
+            limit,
+            skip,
+            populate,
+        }),
             ScheduledEventNoteService.countBy({
                 scheduledEventId: eventId,
             }),
         ]);
+
+
         return sendListResponse(req, res, eventNotes, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

@@ -589,10 +589,27 @@ module.exports = {
             //fetch event notes without started note and create
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
+
+                const populate = [
+                    { table: 'createdById', field: 'name' },
+                    [
+                        {
+                            path: 'scheduledEventId',
+                            select: 'name monitors alertSubscriber projectId',
+                            populate: {
+                                path: 'projectId',
+                                select: 'name replyAddress',
+                            },
+                        },
+                    ],
+                ];
                 const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
                     {
-                        scheduledEventId,
-                        event_state: 'Started',
+                        query: {
+                            scheduledEventId,
+                            event_state: 'Started',
+                        },
+                        populate,
                     }
                 );
                 if (
@@ -636,10 +653,26 @@ module.exports = {
             //fetch event notes without started note and create
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
+                const populate = [
+                    { table: 'createdById', field: 'name' },
+                    [
+                        {
+                            path: 'scheduledEventId',
+                            select: 'name monitors alertSubscriber projectId',
+                            populate: {
+                                path: 'projectId',
+                                select: 'name replyAddress',
+                            },
+                        },
+                    ],
+                ];
                 const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
                     {
-                        scheduledEventId,
-                        event_state: 'Ended',
+                        query: {
+                            scheduledEventId,
+                            event_state: 'Ended',
+                        },
+                        populate,
                     }
                 );
                 if (
