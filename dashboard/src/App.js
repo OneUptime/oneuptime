@@ -14,6 +14,7 @@ import 'font-awesome/css/font-awesome.min.css';
 import { loadPage } from './actions/page';
 import { setUserId, setUserProperties, identify, logEvent } from './analytics';
 import { SHOULD_LOG_ANALYTICS } from './config';
+import Dashboard from './components/Dashboard';
 
 if (!isServer) {
     history.listen(location => {
@@ -59,31 +60,33 @@ const App = () => (
     <div style={{ height: '100%' }}>
         <Socket />
         <Router history={history}>
-            <Switch>
-                {allRoutes
-                    .filter(route => route.visible)
-                    .map((route, index) => {
-                        return (
-                            <Route
-                                exact={route.exact}
-                                path={route.path}
-                                key={index}
-                                render={props => (
-                                    <route.component
-                                        icon={route.icon}
-                                        {...props}
-                                    />
-                                )}
-                            />
-                        );
-                    })}
-                <Route
-                    path={'/dashboard/:404_path'}
-                    key={'404'}
-                    component={NotFound}
-                />
-                <Redirect to="/dashboard/project/project" />
-            </Switch>
+            <Dashboard>
+                <Switch>
+                    {allRoutes
+                        .filter(route => route.visible)
+                        .map((route, index) => {
+                            return (
+                                <Route
+                                    exact={route.exact}
+                                    path={route.path}
+                                    key={index}
+                                    render={props => (
+                                        <route.component
+                                            icon={route.icon}
+                                            {...props}
+                                        />
+                                    )}
+                                />
+                            );
+                        })}
+                    <Route
+                        path={'/dashboard/:404_path'}
+                        key={'404'}
+                        component={NotFound}
+                    />
+                    <Redirect to="/dashboard/project/project" />
+                </Switch>
+            </Dashboard>
         </Router>
         <BackboneModals />
     </div>
