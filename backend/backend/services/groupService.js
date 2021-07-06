@@ -15,18 +15,20 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-            const groups = await GroupModel.find(query)
-                .lean()
-                .sort([['createdAt', -1]])
-                .limit(limit)
-                .skip(skip)
-                .populate('projectId', 'name')
-                .populate({
-                    path: 'teams',
-                    select: 'name email',
-                });
             const response = {};
-            const count = await GroupModel.countDocuments(query);
+            const [groups, count] = await Promise.all([
+                GroupModel.find(query)
+                    .lean()
+                    .sort([['createdAt', -1]])
+                    .limit(limit)
+                    .skip(skip)
+                    .populate('projectId', 'name')
+                    .populate({
+                        path: 'teams',
+                        select: 'name email',
+                    }),
+                GroupModel.countDocuments(query),
+            ]);
             response.groups = groups;
             response.count = count;
             response.skip = skip;

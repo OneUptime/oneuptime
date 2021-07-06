@@ -163,15 +163,17 @@ router.get('/:projectId/teams', getUser, async function(req, res) {
     const integrationType = 'slack';
 
     try {
-        const integrations = await IntegrationService.findBy(
-            { projectId: projectId, integrationType: integrationType },
-            req.query.skip || 0,
-            req.query.limit || 10
-        );
-        const count = await IntegrationService.countBy({
-            projectId: projectId,
-            integrationType: integrationType,
-        });
+        const [integrations, count] = await Promise.all([
+            IntegrationService.findBy(
+                { projectId: projectId, integrationType: integrationType },
+                req.query.skip || 0,
+                req.query.limit || 10
+            ),
+            IntegrationService.countBy({
+                projectId: projectId,
+                integrationType: integrationType,
+            }),
+        ]);
         return sendListResponse(req, res, integrations, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

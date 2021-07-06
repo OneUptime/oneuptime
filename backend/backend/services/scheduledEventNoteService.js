@@ -73,10 +73,8 @@ module.exports = {
 
             eventMessage = await this.findOneBy(query); // If one of the values of query is not correct, a null is returned as such document could not be found in the DB
             eventMessage.type === 'internal'
-                ? await RealTimeService.updateScheduledEventInternalNote(
-                      eventMessage
-                  )
-                : await RealTimeService.updateScheduledEventInvestigationNote(
+                ? RealTimeService.updateScheduledEventInternalNote(eventMessage)
+                : RealTimeService.updateScheduledEventInvestigationNote(
                       eventMessage,
                       projectId
                   );
@@ -181,10 +179,10 @@ module.exports = {
             }
 
             deletedEventMessage.type === 'internal'
-                ? await RealTimeService.deleteScheduledEventInternalNote(
+                ? RealTimeService.deleteScheduledEventInternalNote(
                       deletedEventMessage
                   )
-                : await RealTimeService.deleteScheduledEventInvestigationNote(
+                : RealTimeService.deleteScheduledEventInvestigationNote(
                       deletedEventMessage,
                       projectId
                   );

@@ -21,8 +21,10 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
         const skip = req.query.skip;
         const limit = req.query.limit;
 
-        const emailLogs = await EmailLogsService.findBy({ query, skip, limit });
-        const count = await EmailLogsService.countBy(query);
+        const [emailLogs, count] = await Promise.all([
+            EmailLogsService.findBy({ query, skip, limit }),
+            EmailLogsService.countBy(query),
+        ]);
 
         return sendListResponse(req, res, emailLogs, count);
     } catch (error) {

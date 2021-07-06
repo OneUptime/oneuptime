@@ -539,18 +539,23 @@ module.exports = {
     handleIncomingRequestAction: async function(data) {
         const _this = this;
         try {
-            const incidentPriorities = await IncidentPrioritiesService.findBy({
-                projectId: data.projectId,
-            });
-            const incidentSettings = await IncidentSettingsService.findOne({
-                projectId: data.projectId,
-                isDefault: true,
-            });
-
-            const incomingRequest = await _this.findOneBy({
-                _id: data.requestId,
-                projectId: data.projectId,
-            });
+            const [
+                incidentPriorities,
+                incidentSettings,
+                incomingRequest,
+            ] = await Promise.all([
+                IncidentPrioritiesService.findBy({
+                    projectId: data.projectId,
+                }),
+                IncidentSettingsService.findOne({
+                    projectId: data.projectId,
+                    isDefault: true,
+                }),
+                _this.findOneBy({
+                    _id: data.requestId,
+                    projectId: data.projectId,
+                }),
+            ]);
 
             const filterMatch = incomingRequest.filterMatch;
             const filters = incomingRequest.filters;

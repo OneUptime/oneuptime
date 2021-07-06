@@ -235,15 +235,18 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             }
         }
         data.projectId = projectId;
-        const monitor = await MonitorService.create(data);
+
+        const [monitor, user] = await Promise.all([
+            MonitorService.create(data),
+            UserService.findOneBy({ _id: req.user.id }),
+        ]);
+
         if (data.callScheduleIds && data.callScheduleIds.length) {
             await ScheduleService.addMonitorToSchedules(
                 data.callScheduleIds,
                 monitor._id
             );
         }
-
-        const user = await UserService.findOneBy({ _id: req.user.id });
 
         await NotificationService.create(
             monitor.projectId._id,
@@ -252,7 +255,8 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             'monitoraddremove'
         );
 
-        await RealTimeService.sendMonitorCreated(monitor);
+        // RUN REALTIME SERVICE IN THE BACKGROUND
+        RealTimeService.sendMonitorCreated(monitor);
 
         return sendItemResponse(req, res, monitor);
     } catch (error) {
@@ -447,14 +451,16 @@ router.get(
                 ? { projectId: { $in: subProjectIds }, type }
                 : { projectId: { $in: subProjectIds } };
 
-            const monitors = await MonitorService.findBy(
-                query,
-                req.query.limit || 10,
-                req.query.skip || 0
-            );
-            const count = await MonitorService.countBy({
-                projectId: { $in: subProjectIds },
-            });
+            const [monitors, count] = await Promise.all([
+                MonitorService.findBy(
+                    query,
+                    req.query.limit || 10,
+                    req.query.skip || 0
+                ),
+                MonitorService.countBy({
+                    projectId: { $in: subProjectIds },
+                }),
+            ]);
             return sendListResponse(req, res, monitors, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -512,13 +518,10 @@ router.post(
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
-            // Call the MonitorService.
-            const monitorLogs = await MonitorLogService.findBy(
-                query,
-                limit || 10,
-                skip || 0
-            );
-            const count = await MonitorLogService.countBy(query);
+            const [monitorLogs, count] = await Promise.all([
+                MonitorLogService.findBy(query, limit || 10, skip || 0),
+                MonitorLogService.countBy(query),
+            ]);
             return sendListResponse(req, res, monitorLogs, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -887,17 +890,19 @@ router.post(
             const { monitorId } = req.params;
             const monitor = await MonitorService.findOneBy({ _id: monitorId });
             const disabled = monitor.disabled ? false : true;
-            const newMonitor = await MonitorService.updateOneBy(
-                {
-                    _id: monitorId,
-                },
-                { disabled: disabled }
-            );
-            await ProbeService.createMonitorDisabledStatus({
-                monitorId,
-                manuallyCreated: true,
-                status: disabled ? 'disabled' : 'enable',
-            });
+            const [newMonitor] = await Promise.all([
+                MonitorService.updateOneBy(
+                    {
+                        _id: monitorId,
+                    },
+                    { disabled: disabled }
+                ),
+                ProbeService.createMonitorDisabledStatus({
+                    monitorId,
+                    manuallyCreated: true,
+                    status: disabled ? 'disabled' : 'enable',
+                }),
+            ]);
             return sendItemResponse(req, res, newMonitor);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -931,13 +936,17 @@ router.post('/:monitorId/calculate-time', async function(req, res) {
         const { monitorId } = req.params;
         const { statuses, start, range } = req.body;
 
-        const monitor = await MonitorService.findOneBy({ _id: monitorId });
+        const [monitor, result] = await Promise.all([
+            MonitorService.findOneBy({ _id: monitorId }),
+            MonitorService.calcTime(statuses, start, range),
+        ]);
+
         if (!monitor) {
             const error = new Error('Monitor not found or does not exist');
             error.code = 400;
             throw error;
         }
-        const result = await MonitorService.calcTime(statuses, start, range);
+
         result.monitorId = monitor._id;
 
         return sendItemResponse(req, res, result);

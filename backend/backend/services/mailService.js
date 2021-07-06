@@ -280,8 +280,11 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, mailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = mailBody;
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -333,8 +336,11 @@ const _this = {
                             },
                         };
 
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, mailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = mailBody;
 
                         if (!mailer) {
                             await EmailStatusService.create({
@@ -448,8 +454,11 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, mailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = mailBody;
 
             if (!mailer) {
                 await EmailStatusService.create({
@@ -506,8 +515,11 @@ const _this = {
                             },
                         };
 
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, mailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = mailBody;
 
                         if (!mailer) {
                             await EmailStatusService.create({
@@ -585,8 +597,12 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, mailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = mailBody;
+
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -642,8 +658,12 @@ const _this = {
                             },
                         };
 
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
+
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -714,8 +734,13 @@ const _this = {
                     name: name.split(' ')[0].toString(),
                 },
             };
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
+
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -766,8 +791,13 @@ const _this = {
                                 name: name.split(' ')[0].toString(),
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
+
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -860,8 +890,12 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
+
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -937,8 +971,12 @@ const _this = {
                             },
                         };
 
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
+
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -1009,8 +1047,12 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
+
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1061,8 +1103,11 @@ const _this = {
                             },
                         };
 
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -1135,8 +1180,12 @@ const _this = {
                     subject: 'Thank you for your demo request.',
                     template: 'request_demo_body',
                 };
-                EmailBody = await _this.getEmailBody(mailOptions);
-                const mailer = await _this.createMailer({});
+
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
 
                 if (!mailer) {
                     await EmailStatusService.create({
@@ -1182,10 +1231,12 @@ const _this = {
                                 subject: 'Thank you for your demo request.',
                                 template: 'request_demo_body',
                             };
-                            EmailBody = await _this.getEmailBody(mailOptions);
-                            const mailer = await _this.createMailer(
-                                accountMail
-                            );
+
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
 
                             if (!mailer) {
                                 await EmailStatusService.create({
@@ -1280,8 +1331,12 @@ const _this = {
                         },
                     };
 
-                    const mailer = await _this.createMailer({});
-                    EmailBody = await _this.getEmailBody(mailOptions);
+                    const [mailer, emailBody] = await Promise.all([
+                        _this.createMailer({}),
+                        _this.getEmailBody(mailOptions),
+                    ]);
+                    EmailBody = emailBody;
+
                     if (!mailer) {
                         await EmailStatusService.create({
                             from: mailOptions.from,
@@ -1331,12 +1386,12 @@ const _this = {
                                     },
                                 };
 
-                                const mailer = await _this.createMailer(
-                                    accountMail
-                                );
-                                EmailBody = await _this.getEmailBody(
-                                    mailOptions
-                                );
+                                const [mailer, emailBody] = await Promise.all([
+                                    _this.createMailer(accountMail),
+                                    _this.getEmailBody(mailOptions),
+                                ]);
+                                EmailBody = emailBody;
+
                                 if (!mailer) {
                                     await EmailStatusService.create({
                                         from: mailOptions.from,
@@ -1417,8 +1472,11 @@ const _this = {
                     forgotPasswordURL,
                 },
             };
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1466,8 +1524,11 @@ const _this = {
                                 forgotPasswordURL,
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -1542,8 +1603,11 @@ const _this = {
                     accountsURL: global.homeHost + '/accounts',
                 },
             };
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1591,8 +1655,11 @@ const _this = {
                                 accountsURL: global.homeHost + '/accounts',
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -1674,8 +1741,11 @@ const _this = {
                     registerUrl,
                 },
             };
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1725,8 +1795,11 @@ const _this = {
                                 registerUrl,
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -1806,8 +1879,11 @@ const _this = {
                     dashboardURL: global.dashboardHost,
                 },
             };
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1857,8 +1933,11 @@ const _this = {
                                 dashboardURL: global.dashboardHost,
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -1937,8 +2016,11 @@ const _this = {
                     userName: addedByUser.name,
                 },
             };
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -1988,8 +2070,11 @@ const _this = {
                                 userName: addedByUser.name,
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -2069,8 +2154,11 @@ const _this = {
                     dashboardURL: global.dashboardHost,
                 },
             };
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2121,8 +2209,11 @@ const _this = {
                                 dashboardURL: global.dashboardHost,
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -2198,8 +2289,11 @@ const _this = {
                     accountsURL: global.homeHost + '/accounts',
                 },
             };
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2249,8 +2343,11 @@ const _this = {
                                 accountsURL: global.homeHost + '/accounts',
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -2330,8 +2427,11 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2383,8 +2483,11 @@ const _this = {
                             },
                         };
 
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -2462,8 +2565,11 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2515,8 +2621,11 @@ const _this = {
                             },
                         };
 
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -2597,8 +2706,11 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -2650,8 +2762,11 @@ const _this = {
                             },
                         };
 
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -3255,8 +3370,11 @@ const _this = {
                                 acknowledgedBy,
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -3432,8 +3550,11 @@ const _this = {
                                 resolvedBy,
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -5245,8 +5366,11 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -5298,8 +5422,11 @@ const _this = {
                             },
                         };
 
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -5373,8 +5500,11 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -5424,8 +5554,11 @@ const _this = {
                             },
                         };
 
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -5497,8 +5630,11 @@ const _this = {
                     dashboardURL: global.dashboardHost,
                 },
             };
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -5547,8 +5683,11 @@ const _this = {
                                 dashboardURL: global.dashboardHost,
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -5627,8 +5766,11 @@ const _this = {
                     email: email,
                 },
             };
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -5681,8 +5823,11 @@ const _this = {
                                 email: email,
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -5761,8 +5906,11 @@ const _this = {
                     dashboardURL: global.dashboardHost,
                 },
             };
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -5813,8 +5961,11 @@ const _this = {
                                 dashboardURL: global.dashboardHost,
                             },
                         };
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -6212,8 +6363,11 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -6269,8 +6423,11 @@ const _this = {
                             },
                         };
 
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,
@@ -6355,8 +6512,11 @@ const _this = {
                 },
             };
 
-            const mailer = await _this.createMailer({});
-            EmailBody = await _this.getEmailBody(mailOptions);
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
             if (!mailer) {
                 await EmailStatusService.create({
                     from: mailOptions.from,
@@ -6412,8 +6572,11 @@ const _this = {
                             },
                         };
 
-                        const mailer = await _this.createMailer(accountMail);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
                         if (!mailer) {
                             await EmailStatusService.create({
                                 from: mailOptions.from,

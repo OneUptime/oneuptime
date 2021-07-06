@@ -126,25 +126,34 @@ module.exports = {
                 let parentCount = 0,
                     deletedParentCount = 0;
                 if (project.parentProjectId) {
-                    parentCount = await _this.countBy({
-                        projectId:
-                            project.parentProjectId._id ||
-                            project.parentProjectId,
-                    });
-                    deletedParentCount = await _this.countBy({
-                        projectId:
-                            project.parentProjectId._id ||
-                            project.parentProjectId,
-                        deleted: true,
-                    });
+                    const [pCount, dpCount] = await Promise.all([
+                        _this.countBy({
+                            projectId:
+                                project.parentProjectId._id ||
+                                project.parentProjectId,
+                        }),
+                        _this.countBy({
+                            projectId:
+                                project.parentProjectId._id ||
+                                project.parentProjectId,
+                            deleted: true,
+                        }),
+                    ]);
+                    parentCount = pCount;
+                    deletedParentCount = dpCount;
                 }
-                const incidentsCountInProject = await _this.countBy({
-                    projectId: data.projectId,
-                });
-                const deletedIncidentsCountInProject = await _this.countBy({
-                    projectId: data.projectId,
-                    deleted: true,
-                });
+                const [
+                    incidentsCountInProject,
+                    deletedIncidentsCountInProject,
+                ] = await Promise.all([
+                    _this.countBy({
+                        projectId: data.projectId,
+                    }),
+                    _this.countBy({
+                        projectId: data.projectId,
+                        deleted: true,
+                    }),
+                ]);
 
                 incident.projectId = data.projectId || null;
                 incident.monitors = monitors;
@@ -244,7 +253,8 @@ module.exports = {
 
                 incident = await _this.findOneBy({ _id: incident._id });
 
-                await RealTimeService.sendCreatedIncident(incident);
+                // run in the background
+                RealTimeService.sendCreatedIncident(incident);
 
                 await IncidentTimelineService.create({
                     incidentId: incident._id,
@@ -434,7 +444,7 @@ module.exports = {
 
     async _sendIncidentCreatedAlert(incident) {
         try {
-            await ZapierService.pushToZapier('incident_created', incident);
+            ZapierService.pushToZapier('incident_created', incident);
             // await RealTimeService.sendCreatedIncident(incident);
 
             const notifications = [];
@@ -443,7 +453,7 @@ module.exports = {
                 monitor => monitor.monitorId
             );
             for (const monitor of monitors) {
-                await AlertService.sendCreatedIncident(incident, monitor);
+                AlertService.sendCreatedIncident(incident, monitor);
                 // handle this asynchronous operation in the background
                 AlertService.sendCreatedIncidentToSubscribers(
                     incident,
@@ -646,11 +656,11 @@ module.exports = {
                         downtimestring
                     );
 
-                    await AlertService.sendAcknowledgedIncidentToSubscribers(
+                    AlertService.sendAcknowledgedIncidentToSubscribers(
                         incident,
                         monitor
                     );
-                    await AlertService.sendAcknowledgedIncidentMail(
+                    AlertService.sendAcknowledgedIncidentMail(
                         incident,
                         monitor
                     );
@@ -763,11 +773,8 @@ module.exports = {
                     });
                 }
 
-                await _this.sendIncidentResolvedNotification(
-                    incident,
-                    name,
-                    monitor
-                );
+                // run this in the background
+                _this.sendIncidentResolvedNotification(incident, name, monitor);
             }
 
             RealTimeService.incidentResolved(incident);
@@ -853,8 +860,10 @@ module.exports = {
         const query = {
             'monitors.monitorId': { $in: monitorIds },
         };
-        const incidents = await _this.findBy(query, 10, 0);
-        const count = await _this.countBy(query);
+        const [incidents, count] = await Promise.all([
+            _this.findBy(query, 10, 0),
+            _this.countBy(query),
+        ]);
         const componentIncidents = [
             { incidents, _id: projectId, count, skip: 0, limit: 10 },
         ];
@@ -877,8 +886,10 @@ module.exports = {
             projectId,
             'monitors.monitorId': { $in: monitorIds },
         };
-        const incidents = await _this.findBy(query, limit, skip);
-        const count = await _this.countBy(query);
+        const [incidents, count] = await Promise.all([
+            _this.findBy(query, limit, skip),
+            _this.countBy(query),
+        ]);
         return { incidents, count, _id: projectId };
     },
     sendIncidentResolvedNotification: async function(incident, name, monitor) {
@@ -926,11 +937,8 @@ module.exports = {
             );
 
             // send notificaton to subscribers
-            await AlertService.sendResolvedIncidentToSubscribers(
-                incident,
-                monitor
-            );
-            await AlertService.sendResolveIncidentMail(incident, monitor);
+            AlertService.sendResolvedIncidentToSubscribers(incident, monitor);
+            AlertService.sendResolveIncidentMail(incident, monitor);
 
             const msg = `${
                 monitor.name
@@ -962,14 +970,14 @@ module.exports = {
                 monitor => monitor.monitorId
             );
             for (const monitor of monitors) {
-                await SlackService.sendIncidentNoteNotification(
+                SlackService.sendIncidentNoteNotification(
                     projectId,
                     incident,
                     data,
                     monitor
                 );
 
-                await MsTeamsService.sendIncidentNoteNotification(
+                MsTeamsService.sendIncidentNoteNotification(
                     projectId,
                     incident,
                     data,
@@ -977,7 +985,7 @@ module.exports = {
                 );
             }
 
-            await ZapierService.pushToZapier('incident_note', incident, data);
+            ZapierService.pushToZapier('incident_note', incident, data);
         } catch (error) {
             ErrorService.log('incidentService.sendIncidentNoteAdded', error);
             throw error;
@@ -1098,7 +1106,8 @@ module.exports = {
                         deleted: true,
                     });
 
-                    await RealTimeService.deleteIncident(updatedIncident);
+                    // run in the background
+                    RealTimeService.deleteIncident(updatedIncident);
                 })
             );
         } catch (error) {
@@ -1111,13 +1120,15 @@ module.exports = {
         const _this = this;
 
         monitors = monitors.map(monitor => monitor.monitorId);
-        const monitorList = await MonitorService.findBy({
-            _id: { $in: monitors },
-        });
-        // refetch the incident
-        const currentIncident = await _this.findOneBy({
-            _id: incident._id,
-        });
+        const [monitorList, currentIncident] = await Promise.all([
+            MonitorService.findBy({
+                _id: { $in: monitors },
+            }),
+            // refetch the incident
+            _this.findOneBy({
+                _id: incident._id,
+            }),
+        ]);
 
         if (!currentIncident.breachedCommunicationSla) {
             const slaList = {};
@@ -1175,6 +1186,9 @@ module.exports = {
                         // let seconds = countDown % 60;
                         // seconds =
                         //     seconds < 10 && seconds !== 0 ? `0${seconds}` : seconds;
+
+                        // await was left out here because we care about the slaCountDown
+                        // and also to ensure that it was delivered successfully
                         await RealTimeService.sendSlaCountDown(
                             currentIncident,
                             `${countDown}`
@@ -1182,7 +1196,7 @@ module.exports = {
 
                         if (countDown === alertTime) {
                             // send mail to team
-                            await AlertService.sendSlaEmailToTeamMembers(data);
+                            AlertService.sendSlaEmailToTeamMembers(data);
                         }
 
                         if (countDown === 0) {
@@ -1194,10 +1208,7 @@ module.exports = {
                             );
 
                             // send mail to team
-                            await AlertService.sendSlaEmailToTeamMembers(
-                                data,
-                                true
-                            );
+                            AlertService.sendSlaEmailToTeamMembers(data, true);
                         }
                     }, 1000);
 

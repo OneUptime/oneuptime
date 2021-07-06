@@ -132,8 +132,10 @@ module.exports = {
             $regex: new RegExp(filter),
             $options: 'i',
         };
-        const searchedLogs = await _this.findBy(query, skip, limit);
-        const totalSearchCount = await _this.countBy(query);
+        const [searchedLogs, totalSearchCount] = await Promise.all([
+            _this.findBy(query, skip, limit),
+            _this.countBy(query),
+        ]);
 
         return { searchedLogs, totalSearchCount };
     },
@@ -154,10 +156,12 @@ module.exports = {
                 };
             else {
                 // first and last log based on the query is fetched
-                const start_date = await LogModel.find(query).limit(1);
-                const end_date = await LogModel.find(query)
-                    .sort([['createdAt', -1]])
-                    .limit(1);
+                const [start_date, end_date] = await Promise.all([
+                    LogModel.find(query).limit(1),
+                    LogModel.find(query)
+                        .sort([['createdAt', -1]])
+                        .limit(1),
+                ]);
                 // if query returns anything, extrate date from both.
                 start_date[0] && end_date[0]
                     ? (dateRange = {

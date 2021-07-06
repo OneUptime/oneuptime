@@ -10,17 +10,23 @@ const getSlug = require('../utils/getSlug');
 module.exports = {
     create: async function(data) {
         try {
-            const containerNameExist = await this.findOneBy({
-                name: data.name,
-                componentId: data.componentId,
-            });
-            const imagePathExist = await this.findOneBy({
-                imagePath: data.imagePath,
-                componentId: data.componentId,
-            });
-            const dockerCredentialExist = await DockerCredentialService.findOneBy(
-                { _id: data.dockerCredential }
-            );
+            const [
+                containerNameExist,
+                imagePathExist,
+                dockerCredentialExist,
+            ] = await Promise.all([
+                this.findOneBy({
+                    name: data.name,
+                    componentId: data.componentId,
+                }),
+                this.findOneBy({
+                    imagePath: data.imagePath,
+                    componentId: data.componentId,
+                }),
+                DockerCredentialService.findOneBy({
+                    _id: data.dockerCredential,
+                }),
+            ]);
 
             if (containerNameExist) {
                 const error = new Error(

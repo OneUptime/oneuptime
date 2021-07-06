@@ -39,12 +39,14 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            const logs = await LoginHistoryModel.find(query)
-                .lean()
-                .sort([['createdAt', -1]])
-                .limit(limit)
-                .skip(skip);
-            const count = await LoginHistoryModel.countDocuments(query);
+            const [logs, count] = await Promise.all([
+                LoginHistoryModel.find(query)
+                    .lean()
+                    .sort([['createdAt', -1]])
+                    .limit(limit)
+                    .skip(skip),
+                LoginHistoryModel.countDocuments(query),
+            ]);
             const response = { logs, skip, limit, count };
             return response;
         } catch (error) {

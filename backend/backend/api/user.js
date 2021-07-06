@@ -125,12 +125,14 @@ router.post('/signup', async function(req, res) {
                 message: 'Name is not in string format.',
             });
         }
-        let user = await UserService.findOneBy({ email: data.email });
+        const [userData, token] = await Promise.all([
+            UserService.findOneBy({ email: data.email }),
+            VerificationTokenModel.findOne({
+                token: req.query.token,
+            }),
+        ]);
+        let user = userData;
         let verified = true;
-
-        const token = await VerificationTokenModel.findOne({
-            token: req.query.token,
-        });
         if (token) {
             user = await UserModel.findOne({
                 _id: token.userId,
@@ -1284,11 +1286,13 @@ router.get('/users', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const users = await UserService.getAllUsers(skip, limit);
-        const count = await UserService.countBy({
-            _id: { $ne: null },
-            deleted: { $ne: null },
-        });
+        const [users, count] = await Promise.all([
+            UserService.getAllUsers(skip, limit),
+            UserService.countBy({
+                _id: { $ne: null },
+                deleted: { $ne: null },
+            }),
+        ]);
         return sendListResponse(req, res, users, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1517,24 +1521,31 @@ router.post('/users/search', getUser, isUserMasterAdmin, async function(
         const filter = req.body.filter;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const users = await UserService.searchUsers(
-            {
+        const [users, count] = await Promise.all([
+            UserService.searchUsers(
+                {
+                    deleted: { $ne: null },
+                    $or: [
+                        { name: { $regex: new RegExp(filter), $options: 'i' } },
+                        {
+                            email: {
+                                $regex: new RegExp(filter),
+                                $options: 'i',
+                            },
+                        },
+                    ],
+                },
+                skip,
+                limit
+            ),
+            UserService.countBy({
                 deleted: { $ne: null },
                 $or: [
                     { name: { $regex: new RegExp(filter), $options: 'i' } },
                     { email: { $regex: new RegExp(filter), $options: 'i' } },
                 ],
-            },
-            skip,
-            limit
-        );
-        const count = await UserService.countBy({
-            deleted: { $ne: null },
-            $or: [
-                { name: { $regex: new RegExp(filter), $options: 'i' } },
-                { email: { $regex: new RegExp(filter), $options: 'i' } },
-            ],
-        });
+            }),
+        ]);
 
         return sendListResponse(req, res, users, count);
     } catch (error) {

@@ -47,21 +47,23 @@ module.exports = {
             const intervalDayDate = moment(now).format('MMM Do YYYY');
             const intervalWeekDate = moment(now).format('wo [week of] YYYY');
 
-            const logByHour = await MonitorLogByHourService.findOneBy({
-                probeId: data.probeId,
-                monitorId: data.monitorId,
-                intervalDate: intervalHourDate,
-            });
-            const logByDay = await MonitorLogByDayService.findOneBy({
-                probeId: data.probeId,
-                monitorId: data.monitorId,
-                intervalDate: intervalDayDate,
-            });
-            const logByWeek = await MonitorLogByWeekService.findOneBy({
-                probeId: data.probeId,
-                monitorId: data.monitorId,
-                intervalDate: intervalWeekDate,
-            });
+            const [logByHour, logByDay, logByWeek] = await Promise.all([
+                MonitorLogByHourService.findOneBy({
+                    probeId: data.probeId,
+                    monitorId: data.monitorId,
+                    intervalDate: intervalHourDate,
+                }),
+                MonitorLogByDayService.findOneBy({
+                    probeId: data.probeId,
+                    monitorId: data.monitorId,
+                    intervalDate: intervalDayDate,
+                }),
+                MonitorLogByWeekService.findOneBy({
+                    probeId: data.probeId,
+                    monitorId: data.monitorId,
+                    intervalDate: intervalWeekDate,
+                }),
+            ]);
 
             if (logByHour) {
                 await MonitorLogByHourService.updateOneBy(
@@ -262,12 +264,15 @@ module.exports = {
 
     async sendMonitorLog(data) {
         try {
-            const monitor = await MonitorService.findOneBy({
-                _id: data.monitorId,
-            });
-            const logData = await this.findOneBy({ _id: data._id });
+            const [monitor, logData] = await Promise.all([
+                MonitorService.findOneBy({
+                    _id: data.monitorId,
+                }),
+                this.findOneBy({ _id: data._id }),
+            ]);
             if (monitor && monitor.projectId && monitor.projectId._id) {
-                await RealTimeService.updateMonitorLog(
+                // run in the background
+                RealTimeService.updateMonitorLog(
                     data,
                     logData,
                     monitor.projectId._id

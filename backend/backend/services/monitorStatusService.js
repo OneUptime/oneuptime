@@ -151,7 +151,8 @@ module.exports = {
                 _id: data.monitorId,
             });
             if (monitor) {
-                await RealTimeService.updateMonitorStatus(
+                // run in the background
+                RealTimeService.updateMonitorStatus(
                     data,
                     monitor.projectId._id
                 );

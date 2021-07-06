@@ -149,7 +149,8 @@ module.exports = {
                     incidentMessage = await IncidentMessageService.findOneBy({
                         _id: incidentMessage._id,
                     });
-                    await RealTimeService.addIncidentNote(incidentMessage);
+                    // run in the background
+                    RealTimeService.addIncidentNote(incidentMessage);
 
                     incidentNoteArr.push(incidentMessage);
                 })
@@ -278,7 +279,8 @@ module.exports = {
                     null,
                     'warning'
                 );
-                await RealTimeService.sendCreatedIncident(incident);
+                // run in the background
+                RealTimeService.sendCreatedIncident(incident);
 
                 let project = await ProjectService.findOneBy({
                     _id: monitorObj.project._id,

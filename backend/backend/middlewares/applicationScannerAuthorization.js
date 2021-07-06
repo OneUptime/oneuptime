@@ -123,17 +123,16 @@ module.exports = {
             }
             req.applicationScanner = {};
             req.applicationScanner.id = applicationScanner._id;
-            await ApplicationScannerService.updateApplicationScannerStatus(
-                applicationScanner._id
-            );
 
-            //Update applicationScanner version
-            const applicationScannerValue = await ApplicationScannerService.findOneBy(
-                {
+            const [applicationScannerValue] = await Promise.all([
+                ApplicationScannerService.findOneBy({
                     applicationScannerKey,
                     applicationScannerName,
-                }
-            );
+                }),
+                ApplicationScannerService.updateApplicationScannerStatus(
+                    applicationScanner._id
+                ),
+            ]);
 
             if (
                 !applicationScannerValue.version ||

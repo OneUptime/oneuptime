@@ -32,9 +32,17 @@ module.exports = {
                 });
             }
             let subProjectIds = [];
-            const subProjects = await ProjectService.findBy({
-                parentProjectId: project._id,
-            });
+            const [subProjects, count, resourceCategory] = await Promise.all([
+                ProjectService.findBy({
+                    parentProjectId: project._id,
+                }),
+                _this.countBy({
+                    projectId: { $in: subProjectIds },
+                }),
+                ResourceCategoryService.findBy({
+                    _id: data.resourceCategory,
+                }),
+            ]);
             let userCount = 0;
             if (subProjects && subProjects.length > 0) {
                 const userId = [];
@@ -53,12 +61,6 @@ module.exports = {
                 userCount = project.users.length;
             }
             subProjectIds.push(project._id);
-            const count = await _this.countBy({
-                projectId: { $in: subProjectIds },
-            });
-            const resourceCategory = await ResourceCategoryService.findBy({
-                _id: data.resourceCategory,
-            });
             let plan = Plans.getPlanById(project.stripePlanId);
             // null plan => enterprise plan
             plan = plan && plan.category ? plan : { category: 'Enterprise' };
@@ -245,7 +247,8 @@ module.exports = {
             }
             query.deleted = false;
             const monitor = await this.findOneBy(query);
-            await RealTimeService.monitorEdit(monitor);
+            // run in the background
+            RealTimeService.monitorEdit(monitor);
 
             return monitor;
         } catch (error) {
@@ -395,16 +398,18 @@ module.exports = {
                         subProjectIds = subProjects.map(project => project._id);
                     }
                     subProjectIds.push(project._id);
-                    const monitorsCount = await this.countBy({
-                        projectId: { $in: subProjectIds },
-                    });
+                    const [monitorsCount, projectUsers] = await Promise.all([
+                        this.countBy({
+                            projectId: { $in: subProjectIds },
+                        }),
+                        TeamService.getTeamMembersBy({
+                            parentProjectId: project._id,
+                        }),
+                    ]);
                     let projectSeats = project.seats;
                     if (typeof projectSeats === 'string') {
                         projectSeats = parseInt(projectSeats);
                     }
-                    const projectUsers = await TeamService.getTeamMembersBy({
-                        parentProjectId: project._id,
-                    });
                     const seats = await TeamService.getSeats(projectUsers);
                     // check if project seats are more based on users in project or by count of monitors
                     if (
@@ -437,19 +442,23 @@ module.exports = {
                         await AlertService.deleteBy({ _id: alert._id }, userId);
                     })
                 );
-                await StatusPageService.removeMonitor(monitor._id);
-                await ScheduleService.removeMonitor(monitor._id);
-                await ScheduledEventService.removeMonitor(monitor._id, userId);
-                await IncomingRequestService.removeMonitor(monitor._id);
-                await IncidentService.removeMonitor(monitor._id, userId);
-                await IntegrationService.removeMonitor(monitor._id, userId);
+
                 await NotificationService.create(
                     monitor.projectId,
                     `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`,
                     monitor.deletedById._id,
                     'monitoraddremove'
                 );
-                await RealTimeService.sendMonitorDelete(monitor);
+
+                // run in the background
+                // no need to delay request
+                StatusPageService.removeMonitor(monitor._id);
+                ScheduleService.removeMonitor(monitor._id);
+                ScheduledEventService.removeMonitor(monitor._id, userId);
+                IncomingRequestService.removeMonitor(monitor._id);
+                IncidentService.removeMonitor(monitor._id, userId);
+                IntegrationService.removeMonitor(monitor._id, userId);
+                RealTimeService.sendMonitorDelete(monitor);
 
                 return monitor;
             } else {
@@ -469,11 +478,10 @@ module.exports = {
 
             const subProjectMonitors = await Promise.all(
                 subProjectIds.map(async id => {
-                    const monitors = await _this.findBy(
-                        { projectId: id },
-                        limit,
-                        skip
-                    );
+                    const [monitors, count] = await Promise.all([
+                        _this.findBy({ projectId: id }, limit, skip),
+                        _this.countBy({ projectId: id }),
+                    ]);
 
                     const monitorsWithStatus = await Promise.all(
                         monitors.map(async monitor => {
@@ -523,7 +531,6 @@ module.exports = {
                         })
                     );
 
-                    const count = await _this.countBy({ projectId: id });
                     return {
                         monitors: monitorsWithSchedules,
                         count,
@@ -1039,10 +1046,12 @@ module.exports = {
     async getManualMonitorTime(monitorId) {
         try {
             const _this = this;
-            const monitorTime = await _this.findOneBy({ _id: monitorId });
-            const monitorIncidents = await IncidentService.findBy({
-                'monitors.monitorId': monitorId,
-            });
+            const [monitorTime, monitorIncidents] = await Promise.all([
+                _this.findOneBy({ _id: monitorId }),
+                IncidentService.findBy({
+                    'monitors.monitorId': monitorId,
+                }),
+            ]);
             const dateNow = moment().utc();
             let days = moment(dateNow)
                 .utc()
@@ -1186,11 +1195,13 @@ module.exports = {
                             deleteBy: null,
                         }
                     );
-                    await IncidentService.restoreBy({
-                        'monitors.monitorId': monitorId,
-                        deleted: true,
-                    });
-                    await AlertService.restoreBy({ monitorId, deleted: true });
+                    await Promise.all([
+                        IncidentService.restoreBy({
+                            'monitors.monitorId': monitorId,
+                            deleted: true,
+                        }),
+                        AlertService.restoreBy({ monitorId, deleted: true }),
+                    ]);
                     return monitor;
                 })
             );
@@ -1259,7 +1270,8 @@ module.exports = {
                     const monitorData = await this.findOneBy({
                         _id: monitor._id,
                     });
-                    await RealTimeService.monitorEdit(monitorData);
+                    // run in the background
+                    RealTimeService.monitorEdit(monitorData);
                 }
             }
         } catch (error) {
@@ -1495,10 +1507,12 @@ module.exports = {
     },
 
     changeMonitorComponent: async function(projectId, monitorId, componentId) {
-        const monitor = await this.findOneBy({ _id: monitorId });
-        const component = await componentService.findOneBy({
-            _id: componentId,
-        });
+        const [monitor, component] = await Promise.all([
+            this.findOneBy({ _id: monitorId }),
+            componentService.findOneBy({
+                _id: componentId,
+            }),
+        ]);
 
         // ensure monitor and component belong to same project
         if (

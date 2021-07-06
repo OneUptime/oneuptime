@@ -57,8 +57,10 @@ module.exports = {
             'request.apiSection': { $regex: new RegExp(filter), $options: 'i' },
         };
 
-        const searchedAuditLogs = await _this.findBy({ query, skip, limit });
-        const totalSearchCount = await _this.countBy({ query });
+        const [searchedAuditLogs, totalSearchCount] = await Promise.all([
+            _this.findBy({ query, skip, limit }),
+            _this.countBy({ query }),
+        ]);
 
         return { searchedAuditLogs, totalSearchCount };
     },

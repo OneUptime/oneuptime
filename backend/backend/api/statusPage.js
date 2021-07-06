@@ -79,7 +79,8 @@ router.put(
                 { _id: statusPage._id },
                 req.user.id
             );
-            await RealTimeService.statusPageEdit(updatedStatusPage);
+            // run in the background
+            RealTimeService.statusPageEdit(updatedStatusPage);
             return sendItemResponse(req, res, updatedStatusPage);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -99,7 +100,8 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
             { _id: statusPageId },
             req.user.id
         );
-        await RealTimeService.statusPageEdit(updatedStatusPage);
+        // run in the background
+        RealTimeService.statusPageEdit(updatedStatusPage);
         return sendItemResponse(req, res, statusPage);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -514,7 +516,8 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 { _id: statusPage._id },
                 req.user.id
             );
-            await RealTimeService.statusPageEdit(updatedStatusPage);
+            // run in the background
+            RealTimeService.statusPageEdit(updatedStatusPage);
 
             return sendItemResponse(req, res, statusPage);
         } catch (error) {
@@ -574,12 +577,14 @@ router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
     const projectId = req.params.projectId;
     try {
         // Call the StatusPageService.
-        const statusPages = await StatusPageService.findBy(
-            { projectId: projectId },
-            req.query.skip || 0,
-            req.query.limit || 10
-        );
-        const count = await StatusPageService.countBy({ projectId: projectId });
+        const [statusPages, count] = await Promise.all([
+            StatusPageService.findBy(
+                { projectId: projectId },
+                req.query.skip || 0,
+                req.query.limit || 10
+            ),
+            StatusPageService.countBy({ projectId: projectId }),
+        ]);
         return sendListResponse(req, res, statusPages, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -612,12 +617,14 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
 ) {
     const projectId = req.params.projectId;
     try {
-        const statusPage = await StatusPageService.findBy(
-            { projectId },
-            req.query.skip || 0,
-            req.query.limit || 10
-        );
-        const count = await StatusPageService.countBy({ projectId });
+        const [statusPage, count] = await Promise.all([
+            StatusPageService.findBy(
+                { projectId },
+                req.query.skip || 0,
+                req.query.limit || 10
+            ),
+            StatusPageService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, statusPage, count); // frontend expects sendListResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1191,8 +1198,10 @@ router.get('/:projectId/probes', checkUser, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
-        const probes = await ProbeService.findBy({}, limit, skip);
-        const count = await ProbeService.countBy({});
+        const [probes, count] = await Promise.all([
+            ProbeService.findBy({}, limit, skip),
+            ProbeService.countBy({}),
+        ]);
         return sendListResponse(req, res, probes, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1279,9 +1288,14 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
         const { statusPageId } = req.params;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const statusPage = await StatusPageService.findOneBy({
-            _id: statusPageId,
-        });
+        const [statusPage, count] = await Promise.all([
+            StatusPageService.findOneBy({
+                _id: statusPageId,
+            }),
+            SubscriberService.countBy({
+                monitorId: monitors,
+            }),
+        ]);
         const monitors = statusPage.monitors.map(mon => mon.monitor._id);
         const subscribers = await SubscriberService.findBy(
             {
@@ -1290,9 +1304,6 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
             skip,
             limit
         );
-        const count = await SubscriberService.countBy({
-            monitorId: monitors,
-        });
         return sendItemResponse(req, res, { subscribers, skip, limit, count });
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1433,17 +1444,19 @@ router.get(
         try {
             const { statusPageId } = req.params;
             const { skip, limit, theme } = req.query;
-            let announcementLogs = await StatusPageService.getAnnouncementLogs(
-                {
+            const [logs, count] = await Promise.all([
+                StatusPageService.getAnnouncementLogs(
+                    {
+                        statusPageId,
+                    },
+                    skip,
+                    limit
+                ),
+                StatusPageService.countAnnouncementLogs({
                     statusPageId,
-                },
-                skip,
-                limit
-            );
-
-            const count = await StatusPageService.countAnnouncementLogs({
-                statusPageId,
-            });
+                }),
+            ]);
+            let announcementLogs = logs;
 
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
                 const updatedLogs = [];
@@ -1476,13 +1489,10 @@ router.get('/:projectId/announcement/:statusPageId', checkUser, async function(
         const query = { projectId, statusPageId };
         if (show) query.hideAnnouncement = false;
 
-        const allAnnouncements = await StatusPageService.getAnnouncements(
-            query,
-            skip,
-            limit
-        );
-
-        const count = await StatusPageService.countAnnouncements(query);
+        const [allAnnouncements, count] = await Promise.all([
+            StatusPageService.getAnnouncements(query, skip, limit),
+            StatusPageService.countAnnouncements(query),
+        ]);
 
         return sendItemResponse(req, res, {
             allAnnouncements,

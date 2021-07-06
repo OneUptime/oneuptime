@@ -26,79 +26,62 @@ router.post('/:projectId', getUser, getSubProjects, async function(req, res) {
             : null;
 
         const searchResponse = [];
-        const components = await getComponents(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
+
+        const [
+            components,
+            monitors,
+            statusPages,
+            users,
+            schedules,
+            getSchedultEvents,
+            incidents,
+            errorTrackers,
+            logContainers,
+            applicationTracker,
+        ] = await Promise.all([
+            getComponents(subProjectIds, val, parentProjectId),
+            getMonitors(subProjectIds, val, parentProjectId),
+            getStatusPages(subProjectIds, val, parentProjectId),
+            getUsers(subProjectIds, val, parentProjectId),
+            getOnCallDuty(subProjectIds, val, parentProjectId),
+            getSchedultEvent(subProjectIds, val, parentProjectId),
+            getIncidents(subProjectIds, val, parentProjectId),
+            getErrorTrackers(subProjectIds, val, parentProjectId),
+            getLogContainers(subProjectIds, val, parentProjectId),
+            getPerformanceTrackers(subProjectIds, val, parentProjectId),
+        ]);
+
         if (components) {
             searchResponse.push(components);
         }
-        const monitors = await getMonitors(subProjectIds, val, parentProjectId);
-
         if (monitors) {
             searchResponse.push(monitors);
         }
-        const statusPages = await getStatusPages(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (statusPages) {
             searchResponse.push(statusPages);
         }
-        const users = await getUsers(subProjectIds, val, parentProjectId);
         if (users) {
             searchResponse.push(users);
         }
-        const schedules = await getOnCallDuty(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (schedules) {
             searchResponse.push(schedules);
         }
-        const getSchedultEvents = await getSchedultEvent(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (getSchedultEvents) {
             searchResponse.push(getSchedultEvents);
         }
-        const incidents = await getIncidents(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (incidents) {
             searchResponse.push(incidents);
         }
-        const errorTrackers = await getErrorTrackers(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (errorTrackers) {
             searchResponse.push(errorTrackers);
         }
-        const logContainers = await getLogContainers(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (logContainers) {
             searchResponse.push(logContainers);
         }
-        const applicationTracker = await getPerformanceTrackers(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (applicationTracker) {
             searchResponse.push(applicationTracker);
         }
+
         return sendListResponse(req, res, searchResponse);
     } catch (error) {
         return sendErrorResponse(req, res, error);

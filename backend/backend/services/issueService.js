@@ -158,7 +158,9 @@ module.exports = {
                     issue.deletedById._id,
                     'errorTrackerIssueaddremove'
                 );
-                await RealTimeService.sendErrorTrackerIssueDelete(issue);
+
+                // run in the background
+                RealTimeService.sendErrorTrackerIssueDelete(issue);
                 return issue;
             } else {
                 return null;

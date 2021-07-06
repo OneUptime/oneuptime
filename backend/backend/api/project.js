@@ -104,14 +104,20 @@ router.post('/create', getUser, async function(req, res) {
                         message: 'Unsuccessful attempt to charge card',
                     });
                 }
-                user = await UserService.updateOneBy(
-                    { _id: userId },
-                    { stripeCustomerId: checkedPaymentIntent.customer }
-                );
-                const subscriptionnew = await PaymentService.subscribePlan(
-                    stripePlanId,
-                    checkedPaymentIntent.customer
-                );
+
+                const [updatedUser, subscriptionnew] = await Promise.all([
+                    UserService.updateOneBy(
+                        { _id: userId },
+                        { stripeCustomerId: checkedPaymentIntent.customer }
+                    ),
+                    PaymentService.subscribePlan(
+                        stripePlanId,
+                        checkedPaymentIntent.customer
+                    ),
+                ]);
+
+                user = updatedUser;
+
                 if (!data.stripeSubscriptionId) {
                     data.stripeSubscriptionId =
                         subscriptionnew.stripeSubscriptionId;
@@ -142,8 +148,13 @@ router.post('/create', getUser, async function(req, res) {
                     }
                 }
 
-                const project = await ProjectService.create(data);
-                user = await UserService.findOneBy({ _id: userId });
+                const [project, foundUser] = await Promise.all([
+                    ProjectService.create(data),
+                    UserService.findOneBy({ _id: userId }),
+                ]);
+
+                user = foundUser;
+
                 MailService.sendCreateProjectMail(projectName, user.email);
                 return sendItemResponse(req, res, project);
             }
@@ -191,12 +202,16 @@ router.get('/projects', getUser, async function(req, res) {
                 { _id: { $in: projectIds } },
             ],
         };
-        const response = await ProjectService.findBy(
-            query,
-            req.query.limit || 10,
-            req.query.skip || 0
-        );
-        const count = await ProjectService.countBy(query);
+
+        const [response, count] = await Promise.all([
+            ProjectService.findBy(
+                query,
+                req.query.limit || 10,
+                req.query.skip || 0
+            ),
+            ProjectService.countBy(query),
+        ]);
+
         return sendListResponse(req, res, response, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -439,26 +454,25 @@ router.delete(
             if (project) {
                 const projectName = project.name;
                 const user = await UserService.findOneBy({ _id: userId });
-                try {
-                    await MailService.sendDeleteProjectEmail({
-                        name: user.name,
-                        userEmail: user.email,
-                        projectName,
-                    });
-                } catch (error) {
-                    // eslint-disable-next-line
-                }
+                // SEND MAIL IN THE BACKGROUND
+                MailService.sendDeleteProjectEmail({
+                    name: user.name,
+                    userEmail: user.email,
+                    projectName,
+                });
             }
 
-            const user = await UserService.findOneBy({ _id: userId });
-            const record = await AirtableService.logProjectDeletionFeedback({
-                reason: feedback
-                    ? feedback
-                    : 'Feedback was not provided by the user',
-                project: project.name,
-                name: user.name,
-                email: user.email,
-            });
+            const [user, record] = await Promise.all([
+                UserService.findOneBy({ _id: userId }),
+                AirtableService.logProjectDeletionFeedback({
+                    reason: feedback
+                        ? feedback
+                        : 'Feedback was not provided by the user',
+                    project: project.name,
+                    name: user.name,
+                    email: user.email,
+                }),
+            ]);
             project.airtableId = record.id || null;
             return sendItemResponse(req, res, project);
         } catch (error) {
@@ -519,12 +533,10 @@ router.post(
                     message: 'New Plan must be present.',
                 });
             }
-            const project = await ProjectService.changePlan(
-                projectId,
-                userId,
-                planId
-            );
-            const user = await UserService.findOneBy({ _id: userId });
+            const [project, user] = await Promise.all([
+                ProjectService.changePlan(projectId, userId, planId),
+                UserService.findOneBy({ _id: userId }),
+            ]);
             const email = user.email;
             MailService.sendChangePlanMail(
                 projectName,
@@ -598,12 +610,10 @@ router.put(
                     _id: projectId,
                 });
                 const owner = project.users.find(user => user.role === 'Owner');
-                const updatedProject = await ProjectService.changePlan(
-                    projectId,
-                    owner.userId,
-                    planId
-                );
-                const user = await UserService.findOneBy({ _id: userId });
+                const [updatedProject, user] = await Promise.all([
+                    ProjectService.changePlan(projectId, owner.userId, planId),
+                    UserService.findOneBy({ _id: userId }),
+                ]);
                 const email = user.email;
                 MailService.sendChangePlanMail(
                     projectName,
@@ -788,15 +798,17 @@ router.get('/:projectId/subProjects', getUser, isAuthorized, async function(
         const userId = req.user ? req.user.id : null;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const subProjects = await ProjectService.findBy(
-            { parentProjectId, 'users.userId': userId },
-            limit,
-            skip
-        );
-        const count = await ProjectService.countBy({
-            parentProjectId,
-            'users.userId': userId,
-        });
+        const [subProjects, count] = await Promise.all([
+            ProjectService.findBy(
+                { parentProjectId, 'users.userId': userId },
+                limit,
+                skip
+            ),
+            ProjectService.countBy({
+                parentProjectId,
+                'users.userId': userId,
+            }),
+        ]);
         return sendListResponse(req, res, subProjects, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -829,11 +841,13 @@ router.get('/projects/allProjects', getUser, isUserMasterAdmin, async function(
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const projects = await ProjectService.getAllProjects(skip, limit);
-        const count = await ProjectService.countBy({
-            parentProjectId: null,
-            deleted: { $ne: null },
-        });
+        const [projects, count] = await Promise.all([
+            ProjectService.getAllProjects(skip, limit),
+            ProjectService.countBy({
+                parentProjectId: null,
+                deleted: { $ne: null },
+            }),
+        ]);
         return sendListResponse(req, res, projects, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1056,20 +1070,22 @@ router.post('/projects/search', getUser, isUserMasterAdmin, async function(
         const filter = req.body.filter;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const users = await ProjectService.searchProjects(
-            {
+        const [users, count] = await Promise.all([
+            ProjectService.searchProjects(
+                {
+                    parentProjectId: null,
+                    deleted: { $ne: null },
+                    name: { $regex: new RegExp(filter), $options: 'i' },
+                },
+                skip,
+                limit
+            ),
+            ProjectService.countBy({
                 parentProjectId: null,
                 deleted: { $ne: null },
                 name: { $regex: new RegExp(filter), $options: 'i' },
-            },
-            skip,
-            limit
-        );
-        const count = await ProjectService.countBy({
-            parentProjectId: null,
-            deleted: { $ne: null },
-            name: { $regex: new RegExp(filter), $options: 'i' },
-        });
+            }),
+        ]);
 
         return sendListResponse(req, res, users, count);
     } catch (error) {

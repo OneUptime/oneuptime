@@ -68,8 +68,10 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         data.projectId = projectId;
 
-        const component = await ComponentService.create(data);
-        const user = await UserService.findOneBy({ _id: req.user.id });
+        const [component, user] = await Promise.all([
+            ComponentService.create(data),
+            UserService.findOneBy({ _id: req.user.id }),
+        ]);
 
         await NotificationService.create(
             component.projectId._id,
@@ -77,7 +79,8 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             user._id,
             'componentaddremove'
         );
-        await RealTimeService.sendComponentCreated(component);
+        // run in the background
+        RealTimeService.sendComponentCreated(component);
         return sendItemResponse(req, res, component);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -168,14 +171,16 @@ router.get(
                 ? { projectId: { $in: subProjectIds }, type }
                 : { projectId: { $in: subProjectIds } };
 
-            const components = await ComponentService.findBy(
-                query,
-                req.query.limit || 10,
-                req.query.skip || 0
-            );
-            const count = await ComponentService.countBy({
-                projectId: { $in: subProjectIds },
-            });
+            const [components, count] = await Promise.all([
+                ComponentService.findBy(
+                    query,
+                    req.query.limit || 10,
+                    req.query.skip || 0
+                ),
+                ComponentService.countBy({
+                    projectId: { $in: subProjectIds },
+                }),
+            ]);
             return sendListResponse(req, res, components, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -334,12 +339,46 @@ router.get(
             const limit = 1000;
             const skip = req.query.skip || 0;
 
-            // fetch monitors
-            const monitors = await MonitorService.findBy(
-                { componentId: componentId },
-                limit,
-                skip
-            );
+            const [
+                monitors,
+                containerSecurity,
+                applicationSecurity,
+                applicationLogs,
+                errorTrackers,
+                performanceTrackers,
+            ] = await Promise.all([
+                MonitorService.findBy(
+                    { componentId: componentId },
+                    limit,
+                    skip
+                ),
+                ContainerSecurityService.findBy(
+                    { componentId: componentId },
+                    limit,
+                    skip
+                ),
+                ApplicationSecurityService.findBy(
+                    { componentId: componentId },
+                    limit,
+                    skip
+                ),
+                ApplicationLogService.getApplicationLogsByComponentId(
+                    componentId,
+                    limit,
+                    skip
+                ),
+                ErrorTrackerService.getErrorTrackersByComponentId(
+                    componentId,
+                    limit,
+                    skip
+                ),
+                PerformanceTrackerService.getPerformanceTrackerByComponentId(
+                    componentId,
+                    limit,
+                    skip
+                ),
+            ]);
+
             monitors.map(elem => {
                 const newElement = {
                     _id: elem._id,
@@ -363,12 +402,6 @@ router.get(
                 return newElement;
             });
 
-            // fetch container security
-            const containerSecurity = await ContainerSecurityService.findBy(
-                { componentId: componentId },
-                limit,
-                skip
-            );
             await Promise.all(
                 containerSecurity.map(async elem => {
                     const securityLog = await ContainerSecurityLogService.findOneBy(
@@ -392,12 +425,6 @@ router.get(
                 })
             );
 
-            // fetch application security
-            const applicationSecurity = await ApplicationSecurityService.findBy(
-                { componentId: componentId },
-                limit,
-                skip
-            );
             await Promise.all(
                 applicationSecurity.map(async elem => {
                     // get the security log
@@ -420,13 +447,6 @@ router.get(
                     totalResources.push(newElement);
                     return newElement;
                 })
-            );
-
-            // fetch application logs
-            const applicationLogs = await ApplicationLogService.getApplicationLogsByComponentId(
-                componentId,
-                limit,
-                skip
             );
 
             await Promise.all(
@@ -455,13 +475,6 @@ router.get(
                 })
             );
 
-            // fetch error trackers
-            const errorTrackers = await ErrorTrackerService.getErrorTrackersByComponentId(
-                componentId,
-                limit,
-                skip
-            );
-
             await Promise.all(
                 errorTrackers.map(async errorTracker => {
                     let errorStatus = 'No Errors yet';
@@ -484,13 +497,6 @@ router.get(
                     totalResources.push(newElement);
                     return newElement;
                 })
-            );
-
-            // fetch performance tracker
-            const performanceTrackers = await PerformanceTrackerService.getPerformanceTrackerByComponentId(
-                componentId,
-                limit,
-                skip
             );
 
             await Promise.all(
@@ -518,6 +524,7 @@ router.get(
                     return newElement;
                 })
             );
+
             // return response
             return sendItemResponse(req, res, {
                 totalResources,

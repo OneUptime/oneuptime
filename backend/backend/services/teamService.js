@@ -405,13 +405,15 @@ module.exports = {
                 );
             } else {
                 const allProjectMembers = members.concat(project.users);
-                await ProjectService.updateOneBy(
-                    { _id: projectId },
-                    { users: allProjectMembers }
-                );
-                const subProjects = await ProjectService.findBy({
-                    parentProjectId: project._id,
-                });
+                const [, subProjects] = await Promise.all([
+                    ProjectService.updateOneBy(
+                        { _id: projectId },
+                        { users: allProjectMembers }
+                    ),
+                    ProjectService.findBy({
+                        parentProjectId: project._id,
+                    }),
+                ]);
                 // add user to all subProjects
                 await Promise.all(
                     subProjects.map(async subProject => {
@@ -574,11 +576,15 @@ module.exports = {
                     }
                 }
 
-                project = await ProjectService.findOneBy({ _id: project._id });
-                const user = await UserService.findOneBy({ _id: userId });
-                const member = await UserService.findOneBy({
-                    _id: teamMemberUserId,
-                });
+                const [projectObj, user, member] = await Promise.all([
+                    ProjectService.findOneBy({ _id: project._id }),
+                    UserService.findOneBy({ _id: userId }),
+                    UserService.findOneBy({
+                        _id: teamMemberUserId,
+                    }),
+                ]);
+                project = projectObj;
+
                 if (subProject) {
                     MailService.sendRemoveFromSubProjectEmailToUser(
                         subProject,
@@ -632,7 +638,8 @@ module.exports = {
                     response = response.concat(subProjectTeamsUsers);
                 }
                 team = await _this.getTeamMembersBy({ _id: projectId });
-                await RealTimeService.deleteTeamMember(project._id, {
+                // run in the background
+                RealTimeService.deleteTeamMember(project._id, {
                     response,
                     teamMembers: team,
                     projectId,
@@ -744,10 +751,12 @@ module.exports = {
                             })
                         );
                     }
-                    const user = await UserService.findOneBy({ _id: userId });
-                    const member = await UserService.findOneBy({
-                        _id: teamMemberUserId,
-                    });
+                    const [user, member] = await Promise.all([
+                        UserService.findOneBy({ _id: userId }),
+                        UserService.findOneBy({
+                            _id: teamMemberUserId,
+                        }),
+                    ]);
                     if (subProject) {
                         MailService.sendChangeRoleEmailToUser(
                             subProject,
@@ -793,7 +802,8 @@ module.exports = {
                         response = response.concat(subProjectTeamsUsers);
                     }
                     team = await _this.getTeamMembersBy({ _id: projectId });
-                    await RealTimeService.updateTeamMemberRole(project._id, {
+                    // run in the background
+                    RealTimeService.updateTeamMemberRole(project._id, {
                         response,
                         teamMembers: team,
                         projectId,

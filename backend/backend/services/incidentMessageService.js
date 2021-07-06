@@ -48,8 +48,9 @@ module.exports = {
 
             incidentMessage = await this.findOneBy(query);
 
-            //await RealTimeService.applicationLogKeyReset(applicationLog);
-            await RealTimeService.updateIncidentNote(incidentMessage);
+            // run in the background
+            //RealTimeService.applicationLogKeyReset(applicationLog);
+            RealTimeService.updateIncidentNote(incidentMessage);
             return incidentMessage;
         } catch (error) {
             ErrorService.log('incidentMessageService.updateOneBy', error);

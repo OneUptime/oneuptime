@@ -168,12 +168,14 @@ router.post(
                 };
             }
 
-            const incidents = await IncidentService.findBy(
-                query,
-                req.body.limit || 3,
-                req.body.skip || 0
-            );
-            const count = await IncidentService.countBy(query);
+            const [incidents, count] = await Promise.all([
+                IncidentService.findBy(
+                    query,
+                    req.body.limit || 3,
+                    req.body.skip || 0
+                ),
+                IncidentService.countBy(query),
+            ]);
             return sendListResponse(req, res, incidents, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -251,12 +253,14 @@ router.get('/:projectId/incident', getUser, isAuthorized, async function(
 ) {
     try {
         const projectId = req.params.projectId;
-        const incident = await IncidentService.findBy(
-            { projectId },
-            req.query.limit || 10,
-            req.query.skip || 0
-        );
-        const count = await IncidentService.countBy({ projectId });
+        const [incident, count] = await Promise.all([
+            IncidentService.findBy(
+                { projectId },
+                req.query.limit || 10,
+                req.query.skip || 0
+            ),
+            IncidentService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, incident, count); // frontend expects sendListResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -324,12 +328,14 @@ router.get(
             //     projectId,
             //     idNumber: incidentId,
             // });
-            const timeline = await IncidentTimelineService.findBy(
-                { incidentId },
-                req.query.skip || 0,
-                req.query.limit || 10
-            );
-            const count = await IncidentTimelineService.countBy({ incidentId });
+            const [timeline, count] = await Promise.all([
+                IncidentTimelineService.findBy(
+                    { incidentId },
+                    req.query.skip || 0,
+                    req.query.limit || 10
+                ),
+                IncidentTimelineService.countBy({ incidentId }),
+            ]);
             return sendListResponse(req, res, timeline, count); // frontend expects sendListResponse
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -370,33 +376,47 @@ router.post(
         try {
             const userId = req.user ? req.user.id : null;
             const projectId = req.params.projectId;
-            // Call the IncidentService
-            const incident = await IncidentService.acknowledge(
-                req.params.incidentId,
-                userId,
-                req.user.name
-            );
-            let incidentMessages = await IncidentMessageService.findBy({
-                incidentId: incident._id,
-                type: 'internal',
-            });
-            const timeline = await IncidentTimelineService.findBy({
-                incidentId: incident._id,
-            });
-            const alerts = await AlertService.findBy({
-                query: { incidentId: incident._id },
-            });
-            const subscriberAlerts = await subscriberAlertService.findBy({
-                incidentId: incident._id,
-                projectId,
-            });
-            const subAlerts = await Services.deduplicate(subscriberAlerts);
-            let callScheduleStatus = await onCallScheduleStatusService.findBy({
-                query: { incident: incident._id },
-            });
-            callScheduleStatus = await Services.checkCallSchedule(
-                callScheduleStatus
-            );
+
+            /* eslint-disable prefer-const */
+            let [
+                incident,
+                incidentMessages,
+                timeline,
+                alerts,
+                subscriberAlerts,
+                callScheduleStatus,
+            ] = await Promise.all([
+                IncidentService.acknowledge(
+                    req.params.incidentId,
+                    userId,
+                    req.user.name
+                ),
+                IncidentMessageService.findBy({
+                    incidentId: req.params.incidentId,
+                    type: 'internal',
+                }),
+                IncidentTimelineService.findBy({
+                    incidentId: req.params.incidentId,
+                }),
+                AlertService.findBy({
+                    query: { incidentId: req.params.incidentId },
+                }),
+                subscriberAlertService.findBy({
+                    incidentId: req.params.incidentId,
+                    projectId,
+                }),
+                onCallScheduleStatusService.findBy({
+                    query: { incident: req.params.incidentId },
+                }),
+            ]);
+            /* eslint-enable prefer-const */
+
+            const [subAlerts, scheduleStatus] = new Promise.all([
+                Services.deduplicate(subscriberAlerts),
+                Services.checkCallSchedule(callScheduleStatus),
+            ]);
+            callScheduleStatus = scheduleStatus;
+
             const timelineAlerts = [
                 ...timeline,
                 ...alerts,
@@ -443,32 +463,43 @@ router.post(
         try {
             const userId = req.user ? req.user.id : null;
             const projectId = req.params.projectId;
-            // Call the IncidentService
-            const incident = await IncidentService.resolve(
-                req.params.incidentId,
-                userId
-            );
-            let incidentMessages = await IncidentMessageService.findBy({
-                incidentId: incident._id,
-                type: 'internal',
-            });
-            const timeline = await IncidentTimelineService.findBy({
-                incidentId: incident._id,
-            });
-            const alerts = await AlertService.findBy({
-                query: { incidentId: incident._id },
-            });
-            const subscriberAlerts = await subscriberAlertService.findBy({
-                incidentId: incident._id,
-                projectId,
-            });
-            const subAlerts = await Services.deduplicate(subscriberAlerts);
-            let callScheduleStatus = await onCallScheduleStatusService.findBy({
-                query: { incident: incident._id },
-            });
-            callScheduleStatus = await Services.checkCallSchedule(
-                callScheduleStatus
-            );
+            /* eslint-disable prefer-const */
+            let [
+                incident,
+                incidentMessages,
+                timeline,
+                alerts,
+                subscriberAlerts,
+                callScheduleStatus,
+            ] = await Promise.all([
+                IncidentService.resolve(req.params.incidentId, userId),
+                IncidentMessageService.findBy({
+                    incidentId: req.params.incidentId,
+                    type: 'internal',
+                }),
+                IncidentTimelineService.findBy({
+                    incidentId: req.params.incidentId,
+                }),
+                AlertService.findBy({
+                    query: { incidentId: req.params.incidentId },
+                }),
+                subscriberAlertService.findBy({
+                    incidentId: req.params.incidentId,
+                    projectId,
+                }),
+                onCallScheduleStatusService.findBy({
+                    query: { incident: req.params.incidentId },
+                }),
+            ]);
+            /* eslint-enable prefer-const */
+
+            const [subAlerts, scheduleStatus] = await Promise.all([
+                Services.deduplicate(subscriberAlerts),
+                Services.checkCallSchedule(callScheduleStatus),
+            ]);
+
+            callScheduleStatus = scheduleStatus;
+
             const timelineAlerts = [
                 ...timeline,
                 ...alerts,
@@ -546,17 +577,13 @@ router.put(
             });
         }
         try {
-            await IncidentService.updateOneBy(
+            const incident = await IncidentService.updateOneBy(
                 {
                     projectId,
                     _id: incidentId,
                 },
                 query
             );
-            const incident = await IncidentService.findOneBy({
-                projectId,
-                _id: incidentId,
-            });
             return sendItemResponse(req, res, incident);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -572,9 +599,11 @@ router.post(
             const data = req.body;
             const incidentId = req.params.incidentId;
             const projectId = req.params.projectId;
-            const { idNumber } = await IncidentService.findOneBy({
+            const incident = await IncidentService.findOneBy({
                 _id: incidentId,
             });
+            const idNumber = incident.idNumber;
+
             const userId = req.user.id;
             if (!data.content) {
                 return sendErrorResponse(req, res, {
@@ -625,11 +654,6 @@ router.post(
                     });
                 }
             }
-
-            // Call the IncidentService
-            const incident = await IncidentService.findOneBy({
-                _id: incidentId,
-            });
 
             if (!incident) {
                 return sendErrorResponse(req, res, {
@@ -693,15 +717,18 @@ router.post(
                         content: data.content,
                         incident_state: data.incident_state,
                     };
-                    incidentMessage = await IncidentMessageService.updateOneBy(
-                        { _id: data.id },
-                        updatedMessage
-                    );
-                    const investigation = await IncidentMessageService.findOneBy(
-                        {
+
+                    const [message, investigation] = await Promise.all([
+                        IncidentMessageService.updateOneBy(
+                            { _id: data.id },
+                            updatedMessage
+                        ),
+                        IncidentMessageService.findOneBy({
                             _id: data.id,
-                        }
-                    );
+                        }),
+                    ]);
+                    incidentMessage = message;
+
                     if (investigation.type === 'investigation') {
                         AlertService.sendInvestigationNoteToSubscribers(
                             incident,
@@ -734,49 +761,53 @@ router.post(
 
                 data.created_by = user && user.name ? user.name : 'Fyipe User';
 
-                // send slack/msteams notification
-                await IncidentService.sendIncidentNoteAdded(
-                    projectId,
-                    incident,
-                    data
-                );
-
-                // update timeline
-                await IncidentTimelineService.create({
-                    incidentId: incident._id,
-                    createdById: req.user.id,
-                    incident_state: data.incident_state,
-                    status,
-                });
-
-                const alerts = await AlertService.findBy({
-                    query: { incidentId: incident._id },
-                });
-                const subscriberAlerts = await subscriberAlertService.findBy({
-                    incidentId: incident._id,
-                    projectId: req.params.projectId,
-                });
+                const [alerts, subscriberAlerts] = await Promise.all([
+                    AlertService.findBy({
+                        query: { incidentId: incident._id },
+                    }),
+                    subscriberAlertService.findBy({
+                        incidentId: incident._id,
+                        projectId: req.params.projectId,
+                    }),
+                    IncidentTimelineService.create({
+                        incidentId: incident._id,
+                        createdById: req.user.id,
+                        incident_state: data.incident_state,
+                        status,
+                    }),
+                    IncidentService.sendIncidentNoteAdded(
+                        projectId,
+                        incident,
+                        data
+                    ),
+                ]);
 
                 if (
                     data.type === 'internal' ||
                     (data.type === 'internal' &&
                         data.incident_state === 'update')
                 ) {
-                    let incidentMessages = await IncidentMessageService.findBy({
-                        incidentId: incident._id,
-                        type: data.type,
-                    });
-                    const timeline = await IncidentTimelineService.findBy({
-                        incidentId: incident._id,
-                    });
-                    const subAlerts = await Services.deduplicate(
-                        subscriberAlerts
-                    );
-                    let callScheduleStatus = await onCallScheduleStatusService.findBy(
-                        {
+                    /* eslint-disable prefer-const */
+                    let [
+                        incidentMessages,
+                        timeline,
+                        subAlerts,
+                        callScheduleStatus,
+                    ] = await Promise.all([
+                        IncidentMessageService.findBy({
+                            incidentId: incident._id,
+                            type: data.type,
+                        }),
+                        IncidentTimelineService.findBy({
+                            incidentId: incident._id,
+                        }),
+                        Services.deduplicate(subscriberAlerts),
+                        onCallScheduleStatusService.findBy({
                             query: { incident: incident._id },
-                        }
-                    );
+                        }),
+                    ]);
+                    /* eslint-enable*/
+
                     callScheduleStatus = await Services.checkCallSchedule(
                         callScheduleStatus
                     );
@@ -861,58 +892,72 @@ router.delete(
     async function(req, res) {
         try {
             const { incidentId, incidentMessageId, projectId } = req.params;
-            const { idNumber } = await IncidentService.findOneBy({
-                _id: incidentId,
-            });
-            const checkMsg = await IncidentMessageService.findOneBy({
-                _id: incidentMessageId,
-            });
-            let result;
-            const incidentMessage = await IncidentMessageService.deleteBy(
-                {
+            const [incident, checkMsg, incidentMessage] = await Promise.all([
+                IncidentService.findOneBy({
+                    _id: incidentId,
+                }),
+                IncidentMessageService.findOneBy({
                     _id: incidentMessageId,
-                    incidentId,
-                },
-                req.user.id
-            );
+                }),
+                IncidentMessageService.deleteBy(
+                    {
+                        _id: incidentMessageId,
+                        incidentId,
+                    },
+                    req.user.id
+                ),
+            ]);
+            const idNumber = incident.idNumber;
+            let result;
+            /* eslint-disable prefer-const */
             if (incidentMessage) {
                 const status = `${incidentMessage.type} notes deleted`;
-                // update timeline
-                await IncidentTimelineService.create({
-                    incidentId,
-                    createdById: req.user.id,
-                    status,
-                });
-                const alerts = await AlertService.findBy({
-                    query: { incidentId: incidentId },
-                });
-                const subscriberAlerts = await subscriberAlertService.findBy({
-                    incidentId: incidentId,
-                    projectId,
-                });
 
-                await RealTimeService.deleteIncidentNote(incidentMessage);
-                let callScheduleStatus = await onCallScheduleStatusService.findBy(
-                    {
+                // RUN IN THE BACKGROUND
+                RealTimeService.deleteIncidentNote(incidentMessage);
+
+                let [
+                    alerts,
+                    subscriberAlerts,
+                    callScheduleStatus,
+                ] = await Promise.all([
+                    AlertService.findBy({
+                        query: { incidentId: incidentId },
+                    }),
+                    subscriberAlertService.findBy({
+                        incidentId: incidentId,
+                        projectId,
+                    }),
+                    onCallScheduleStatusService.findBy({
                         query: { incident: incidentId },
-                    }
-                );
+                    }),
+                    IncidentTimelineService.create({
+                        incidentId,
+                        createdById: req.user.id,
+                        status,
+                    }),
+                ]);
+
                 callScheduleStatus = await Services.checkCallSchedule(
                     callScheduleStatus
                 );
                 if (checkMsg.type === 'investigation') {
                     result = incidentMessage;
                 } else {
-                    let incidentMessages = await IncidentMessageService.findBy({
-                        incidentId,
-                        type: checkMsg.type,
-                    });
-                    const timeline = await IncidentTimelineService.findBy({
-                        incidentId,
-                    });
-                    const subAlerts = await Services.deduplicate(
-                        subscriberAlerts
-                    );
+                    let [
+                        incidentMessages,
+                        timeline,
+                        subAlerts,
+                    ] = await Promise.all([
+                        IncidentMessageService.findBy({
+                            incidentId,
+                            type: checkMsg.type,
+                        }),
+                        IncidentTimelineService.findBy({
+                            incidentId,
+                        }),
+                        Services.deduplicate(subscriberAlerts),
+                    ]);
                     const timelineAlerts = [
                         ...timeline,
                         ...alerts,
@@ -941,6 +986,7 @@ router.delete(
                         data: await Services.rearrangeDuty(filteredMsg),
                     };
                 }
+                /* eslint-enable prefer-const */
                 return sendItemResponse(req, res, result);
             } else {
                 return sendErrorResponse(req, res, {
@@ -974,45 +1020,55 @@ router.get(
             });
             if (incidentId) {
                 incidentId = incidentId._id;
+                let skip = 0,
+                    limit = 0;
                 if (type === 'investigation') {
-                    incidentMessages = await IncidentMessageService.findBy(
-                        { incidentId, type },
-                        req.query.skip || 0,
-                        req.query.limit || 10
-                    );
-                } else {
-                    incidentMessages = await IncidentMessageService.findBy({
+                    skip = req.query.skip || 0;
+                    limit = req.query.limit || 10;
+                }
+                const [
+                    timeline,
+                    alerts,
+                    subscriberAlerts,
+                    messageCount,
+                    incMessages,
+                ] = await Promise.all([
+                    IncidentTimelineService.findBy({
+                        incidentId,
+                    }),
+                    AlertService.findBy({
+                        query: { incidentId: incidentId },
+                    }),
+                    subscriberAlertService.findBy({
+                        incidentId: incidentId,
+                        projectId,
+                    }),
+                    IncidentMessageService.countBy({
                         incidentId,
                         type,
-                    });
-                }
-                const timeline = await IncidentTimelineService.findBy({
-                    incidentId,
-                });
-                const alerts = await AlertService.findBy({
-                    query: { incidentId: incidentId },
-                });
-                const subscriberAlerts = await subscriberAlertService.findBy({
-                    incidentId: incidentId,
-                    projectId,
-                });
-                count = await IncidentMessageService.countBy({
-                    incidentId,
-                    type,
-                });
+                    }),
+                    IncidentMessageService.findBy(
+                        {
+                            incidentId,
+                            type,
+                        },
+                        skip,
+                        limit
+                    ),
+                ]);
+                incidentMessages = incMessages;
+                count = messageCount;
                 if (type === 'investigation') {
                     result = incidentMessages;
                 } else {
-                    const subAlerts = await Services.deduplicate(
-                        subscriberAlerts
-                    );
-                    let callScheduleStatus = await onCallScheduleStatusService.findBy(
-                        {
+                    const [subAlerts, scheduleStatus] = await Promise.all([
+                        Services.deduplicate(subscriberAlerts),
+                        onCallScheduleStatusService.findBy({
                             query: { incident: incidentId },
-                        }
-                    );
-                    callScheduleStatus = await Services.checkCallSchedule(
-                        callScheduleStatus
+                        }),
+                    ]);
+                    const callScheduleStatus = await Services.checkCallSchedule(
+                        scheduleStatus
                     );
                     const timelineAlerts = [
                         ...timeline,
@@ -1058,7 +1114,8 @@ router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
             req.user.id
         );
         if (incident) {
-            await RealTimeService.deleteIncident(incident);
+            // RUN IN THE BACKGROUND
+            RealTimeService.deleteIncident(incident);
             return sendItemResponse(req, res, incident);
         } else {
             return sendErrorResponse(req, res, {
@@ -1100,14 +1157,18 @@ router.get(
     async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
-            await IncidentService.resolve(req.params.incidentId, userId);
 
             // get incident properties to build url
             const { incidentId, projectId } = req.params;
-            const incident = await IncidentService.findOneBy({
-                projectId,
-                _id: incidentId,
-            });
+
+            const [incident] = await Promise.all([
+                IncidentService.findOneBy({
+                    projectId,
+                    _id: incidentId,
+                }),
+                IncidentService.resolve(req.params.incidentId, userId),
+            ]);
+
             const { projectId: project } = incident;
 
             return res.status(200).render('incidentAction.ejs', {
@@ -1137,18 +1198,22 @@ router.get(
     async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
-            await IncidentService.acknowledge(
-                req.params.incidentId,
-                userId,
-                req.user.name
-            );
 
             // get incident properties to build url
             const { incidentId, projectId } = req.params;
-            const incident = await IncidentService.findOneBy({
-                projectId,
-                _id: incidentId,
-            });
+
+            const [incident] = await Promise.all([
+                IncidentService.findOneBy({
+                    projectId,
+                    _id: incidentId,
+                }),
+                IncidentService.acknowledge(
+                    req.params.incidentId,
+                    userId,
+                    req.user.name
+                ),
+            ]);
+
             const { projectId: project } = incident;
 
             return res.status(200).render('incidentAction.ejs', {

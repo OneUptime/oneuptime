@@ -199,12 +199,14 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
             });
         }
         // Call the ResourceCategoryService
-        const resourceCategories = await ResourceCategoryService.findBy(
-            { projectId },
-            query.limit,
-            query.skip
-        );
-        const count = await ResourceCategoryService.countBy({ projectId });
+        const [resourceCategories, count] = await Promise.all([
+            ResourceCategoryService.findBy(
+                { projectId },
+                query.limit,
+                query.skip
+            ),
+            ResourceCategoryService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, resourceCategories, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

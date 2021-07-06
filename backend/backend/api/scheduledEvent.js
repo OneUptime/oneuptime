@@ -365,18 +365,20 @@ router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function(
             });
         }
 
-        const events = await ScheduledEventService.findBy({
-            projectId,
-            startDate: { $lte: currentDate },
-            endDate: { $gt: currentDate },
-            resolved: false,
-        });
-        const count = await ScheduledEventService.countBy({
-            projectId,
-            startDate: { $lte: currentDate },
-            endDate: { $gt: currentDate },
-            resolved: false,
-        });
+        const [events, count] = await Promise.all([
+            ScheduledEventService.findBy({
+                projectId,
+                startDate: { $lte: currentDate },
+                endDate: { $gt: currentDate },
+                resolved: false,
+            }),
+            ScheduledEventService.countBy({
+                projectId,
+                startDate: { $lte: currentDate },
+                endDate: { $gt: currentDate },
+                resolved: false,
+            }),
+        ]);
         return sendListResponse(req, res, events, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -477,14 +479,16 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
             });
         }
 
-        const events = await ScheduledEventService.findBy(
-            { projectId },
-            query.limit,
-            query.skip
-        );
-        const count = await ScheduledEventService.countBy({
-            projectId,
-        });
+        const [events, count] = await Promise.all([
+            ScheduledEventService.findBy(
+                { projectId },
+                query.limit,
+                query.skip
+            ),
+            ScheduledEventService.countBy({
+                projectId,
+            }),
+        ]);
         return sendListResponse(req, res, events, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -550,16 +554,18 @@ router.get(
                     message: 'Monitor ID is not of string type.',
                 });
             }
-            const events = await ScheduledEventService.findBy(
-                { projectId, monitorId, showEventOnStatusPage: true },
-                query.limit,
-                query.skip
-            );
-            const count = await ScheduledEventService.countBy({
-                projectId,
-                monitorId,
-                showEventOnStatusPage: true,
-            });
+            const [events, count] = await Promise.all([
+                ScheduledEventService.findBy(
+                    { projectId, monitorId, showEventOnStatusPage: true },
+                    query.limit,
+                    query.skip
+                ),
+                ScheduledEventService.countBy({
+                    projectId,
+                    monitorId,
+                    showEventOnStatusPage: true,
+                }),
+            ]);
             return sendListResponse(req, res, events, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -673,15 +679,16 @@ router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
         const { eventId } = req.params;
         const { limit, skip } = req.query;
 
-        const eventNotes = await ScheduledEventNoteService.findBy(
-            { scheduledEventId: eventId },
-            limit,
-            skip
-        );
-
-        const count = await ScheduledEventNoteService.countBy({
-            scheduledEventId: eventId,
-        });
+        const [eventNotes, count] = await Promise.all([
+            ScheduledEventNoteService.findBy(
+                { scheduledEventId: eventId },
+                limit,
+                skip
+            ),
+            ScheduledEventNoteService.countBy({
+                scheduledEventId: eventId,
+            }),
+        ]);
         return sendListResponse(req, res, eventNotes, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
