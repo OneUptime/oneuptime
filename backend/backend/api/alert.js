@@ -97,7 +97,7 @@ router.get(
             if (incidentId) {
                 incidentId = incidentId._id;
 
-                const [allAlerts, allCount] = new Promise([
+                const [allAlerts, allCount] = await Promise.all([
                     alertService.findBy({
                         query: { incidentId: incidentId },
                         skip,

@@ -754,10 +754,11 @@ module.exports = {
 
             _this.clearInterval(incidentId);
 
+            const statusData = [];
             for (const monitor of monitors) {
                 if (incident.probes && incident.probes.length > 0) {
                     for (const probe of incident.probes) {
-                        await MonitorStatusService.create({
+                        statusData.push({
                             monitorId: monitor._id,
                             probeId: probe.probeId ? probe.probeId._id : null,
                             manuallyCreated: userId ? true : false,
@@ -765,7 +766,7 @@ module.exports = {
                         });
                     }
                 } else {
-                    await MonitorStatusService.create({
+                    statusData.push({
                         monitorId: monitor._id,
                         probeId,
                         manuallyCreated: userId ? true : false,
@@ -776,6 +777,7 @@ module.exports = {
                 // run this in the background
                 _this.sendIncidentResolvedNotification(incident, name, monitor);
             }
+            await MonitorStatusService.createMany(statusData);
 
             RealTimeService.incidentResolved(incident);
             ZapierService.pushToZapier('incident_resolve', incident);
