@@ -13,21 +13,27 @@ mongoose.set('useUnifiedTopology', true);
 mongoose.set('useFindAndModify', false);
 mongoose.set('useCreateIndex', true);
 
-mongoose
-    .connect(mongoUrl, {
+let options = {};
+
+if (process.env.IS_MONGO_REPLICA_SET) {
+    options = {
         server: {
             socketOptions: { keepAlive: 1 },
             readPreference: 'secondaryPreferred',
             strategy: 'ping',
         },
         replset: {
-            rs_name: 'rs0',
+            rs_name: process.env.MONGO_REPLICA_SET_NAME,
             socketOptions: { keepAlive: 1 },
             strategy: 'ping',
             readPreference: 'secondaryPreferred',
             poolSize: 10,
         },
-    })
+    }
+}
+
+mongoose
+    .connect(mongoUrl, options)
     .then(() => {
         // eslint-disable-next-line
         return console.log('Mongo connected');
