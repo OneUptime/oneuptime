@@ -268,7 +268,7 @@ export const groups = [
                         title: 'Application Detail',
                         path:
                             '/dashboard/project/:slug/component/:componentSlug/security/application/:applicationSecuritySlug',
-                        icon: 'info',
+                        icon: 'security',
                         visible: true,
                         component: ApplicationDetail,
                         index: 4,
