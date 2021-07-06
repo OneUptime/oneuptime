@@ -40,13 +40,38 @@ class EditWebHook extends React.Component {
             closeThisDialog,
             data,
             currentProject,
+            monitor,
         } = this.props;
 
         const postObj = {};
+        const { selectAllMonitors } = values;
+        const monitorId = data.currentMonitorId;
+        let { monitors } = values;
+        const allMonitors = monitor.monitorsList.monitors
+            .map(monitor => monitor.monitors)
+            .flat();
+
+        if (selectAllMonitors) {
+            monitors = allMonitors.map(monitor => monitor._id);
+        }
+        if (monitors && monitors.length > 0) {
+            monitors = monitors.filter(
+                monitorId => typeof monitorId === 'string'
+            );
+        }
+        if (monitorId) {
+            monitors = [monitorId];
+        }
+        if (!monitors || (monitors && monitors.length === 0)) {
+            this.setState({
+                monitorError: 'No monitor was selected',
+            });
+            return;
+        }
         postObj.endpoint = values.endpoint;
         postObj.endpointType = values.endpointType;
         postObj.type = 'webhook';
-        postObj.monitors = values.monitors.map(id => ({ monitorId: id }));
+        postObj.monitors = monitors;
         postObj.incidentCreated = values.incidentCreated
             ? values.incidentCreated
             : false;
@@ -90,11 +115,12 @@ class EditWebHook extends React.Component {
 
     renderMonitors = ({ fields }) => {
         const { monitorError } = this.state;
-        const { allComponents } = this.props;
+        const { allComponents, formValues } = this.props;
 
         const allMonitors = this.props.monitor.monitorsList.monitors
             .map(monitor => monitor.monitors)
             .flat();
+
         const getParentComponent = monitor =>
             allComponents.filter(
                 component => component._id === monitor.componentId._id
@@ -102,71 +128,155 @@ class EditWebHook extends React.Component {
 
         return (
             <>
-                <div
-                    style={{
-                        width: '100%',
-                        position: 'relative',
-                    }}
-                >
-                    <button
-                        id="addMoreMonitor"
-                        className="Button bs-ButtonLegacy ActionIconParent"
+                {formValues && formValues.selectAllMonitors && (
+                    <div
+                        className="bs-Fieldset-row"
+                        style={{ padding: 0, width: '100%' }}
+                    >
+                        <div
+                            className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                            style={{ padding: 0 }}
+                        >
+                            <div
+                                className="Box-root"
+                                style={{
+                                    height: '5px',
+                                }}
+                            ></div>
+                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                <label
+                                    className="Checkbox"
+                                    htmlFor="selectAllMonitorsBox"
+                                >
+                                    <Field
+                                        component="input"
+                                        type="checkbox"
+                                        name="selectAllMonitors"
+                                        className="Checkbox-source"
+                                        id="selectAllMonitorsBox"
+                                    />
+                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                        <div className="Checkbox-target Box-root">
+                                            <div className="Checkbox-color Box-root"></div>
+                                        </div>
+                                    </div>
+                                    <div className="Checkbox-label Box-root Margin-left--8">
+                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                            <span>All Monitors Selected</span>
+                                        </span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {formValues && !formValues.selectAllMonitors && (
+                    <div
                         style={{
-                            position: 'absolute',
-                            zIndex: 1,
-                            right: 0,
-                        }}
-                        type="button"
-                        onClick={() => {
-                            fields.push();
+                            width: '100%',
+                            position: 'relative',
                         }}
                     >
-                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                            <span>Add Monitor</span>
-                        </span>
-                    </button>
-                    {fields.map((field, index) => {
-                        return (
+                        <button
+                            id="addMoreMonitor"
+                            className="Button bs-ButtonLegacy ActionIconParent"
+                            style={{
+                                position: 'absolute',
+                                zIndex: 1,
+                                right: 0,
+                            }}
+                            type="button"
+                            onClick={() => {
+                                fields.push();
+                            }}
+                        >
+                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                <span>Add Monitor</span>
+                            </span>
+                        </button>
+                        {fields.length === 0 && !formValues.selectAllMonitors && (
                             <div
-                                style={{
-                                    width: '65%',
-                                    marginBottom: 10,
-                                }}
-                                key={index}
+                                className="bs-Fieldset-row"
+                                style={{ padding: 0, width: '100%' }}
                             >
-                                <Field
-                                    component={RenderSelect}
-                                    name={field}
-                                    id={`monitorfield_${index}`}
-                                    placeholder="Select monitor"
+                                <div
+                                    className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                                    style={{ padding: 0 }}
+                                >
+                                    <div
+                                        className="Box-root"
+                                        style={{
+                                            height: '5px',
+                                        }}
+                                    ></div>
+                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                        <label
+                                            className="Checkbox"
+                                            htmlFor="selectAllMonitorsBox"
+                                        >
+                                            <Field
+                                                component="input"
+                                                type="checkbox"
+                                                name="selectAllMonitors"
+                                                className="Checkbox-source"
+                                                id="selectAllMonitorsBox"
+                                            />
+                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                <div className="Checkbox-target Box-root">
+                                                    <div className="Checkbox-color Box-root"></div>
+                                                </div>
+                                            </div>
+                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span>
+                                                        Select All Monitors
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {fields.map((field, index) => {
+                            return (
+                                <div
                                     style={{
-                                        height: '28px',
-                                        width: '100%',
+                                        width: '65%',
+                                        marginBottom: 10,
                                     }}
-                                    disabled={this.props.newWebHook.requesting}
-                                    validate={ValidateField.select}
-                                    options={[
-                                        {
-                                            value: '',
-                                            label: 'Select monitor',
-                                        },
-                                        ...(allMonitors &&
-                                        allMonitors.length > 0
-                                            ? allMonitors.map(monitor => ({
-                                                  value: monitor._id,
-                                                  label: `${
-                                                      getParentComponent(
-                                                          monitor
-                                                      ).name
-                                                  } / ${monitor.name}`,
-                                              }))
-                                            : []),
-                                    ]}
-                                    className="db-select-nw db-MultiSelect-input"
-                                />
-                                {fields.length > 1 ? (
+                                    key={index}
+                                >
+                                    <Field
+                                        className="db-select-nw Table-cell--width--maximized"
+                                        component={RenderSelect}
+                                        name={field}
+                                        id={`monitorfield_${index}`}
+                                        placeholder="Monitor"
+                                        style={{
+                                            height: '28px',
+                                            width: '100%',
+                                        }}
+                                        options={[
+                                            {
+                                                value: '',
+                                                label: 'Select monitor',
+                                            },
+                                            ...(allMonitors &&
+                                            allMonitors.length > 0
+                                                ? allMonitors.map(monitor => ({
+                                                      value: monitor._id,
+                                                      label: `${
+                                                          getParentComponent(
+                                                              monitor
+                                                          ).name
+                                                      } / ${monitor.name}`,
+                                                  }))
+                                                : []),
+                                        ]}
+                                    />
                                     <button
-                                        id="removeMonitor"
+                                        id="addMoreMonitor"
                                         className="Button bs-ButtonLegacy ActionIconParent"
                                         style={{
                                             marginTop: 10,
@@ -180,41 +290,41 @@ class EditWebHook extends React.Component {
                                             <span>Remove Monitor</span>
                                         </span>
                                     </button>
-                                ) : null}
-                            </div>
-                        );
-                    })}
-                    {monitorError && (
-                        <div
-                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                            style={{
-                                marginTop: '5px',
-                                alignItems: 'center',
-                            }}
-                        >
+                                </div>
+                            );
+                        })}
+                        {monitorError && (
                             <div
-                                className="Box-root Margin-right--8"
-                                style={{ marginTop: '2px' }}
+                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                style={{
+                                    marginTop: '5px',
+                                    alignItems: 'center',
+                                }}
                             >
-                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                            </div>
-                            <div className="Box-root">
-                                <span
-                                    id="monitorError"
-                                    style={{ color: 'red' }}
+                                <div
+                                    className="Box-root Margin-right--8"
+                                    style={{ marginTop: '2px' }}
                                 >
-                                    {monitorError}
-                                </span>
+                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                </div>
+                                <div className="Box-root">
+                                    <span
+                                        id="monitorError"
+                                        style={{ color: 'red' }}
+                                    >
+                                        {monitorError}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </div>
+                        )}
+                    </div>
+                )}
             </>
         );
     };
 
     render() {
-        const { handleSubmit, closeThisDialog, data, formValues } = this.props;
+        const { handleSubmit, closeThisDialog, data } = this.props;
 
         const monitorList = [];
 
@@ -298,12 +408,13 @@ class EditWebHook extends React.Component {
                                                 </div>
                                             </div>
                                         </fieldset>
-
-                                        <ShouldRender if={!data.monitorId}>
+                                        <ShouldRender
+                                            if={!data.currentMonitorId}
+                                        >
                                             <fieldset className="Margin-bottom--16">
                                                 <div className="bs-Fieldset-rows">
                                                     <div
-                                                        className="bs-Fieldset-row"
+                                                        className="bs-Fieldset-row Margin-bottom--12 Padding-left--0"
                                                         style={{ padding: 0 }}
                                                     >
                                                         <label
@@ -314,101 +425,19 @@ class EditWebHook extends React.Component {
                                                                 Monitors
                                                             </span>
                                                         </label>
-                                                        <div
-                                                            className="bs-Fieldset-fields"
-                                                            style={{
-                                                                paddingTop:
-                                                                    '6px',
-                                                            }}
-                                                        >
-                                                            <div className="bs-Fieldset-field">
-                                                                <label
-                                                                    className="Checkbox"
-                                                                    style={{
-                                                                        marginRight:
-                                                                            '12px',
-                                                                    }}
-                                                                >
-                                                                    <Field
-                                                                        component="input"
-                                                                        type="checkbox"
-                                                                        name="selectMonitors"
-                                                                        className="Checkbox-source"
-                                                                        id="selectMonitors"
-                                                                    />
-                                                                    <div className="Checkbox-box Box-root Margin-right--2">
-                                                                        <div className="Checkbox-target Box-root">
-                                                                            <div className="Checkbox-color Box-root"></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        className="Box-root"
-                                                                        style={{
-                                                                            paddingLeft:
-                                                                                '5px',
-                                                                        }}
-                                                                    >
-                                                                        <label>
-                                                                            <span>
-                                                                                Select
-                                                                                Monitors
-                                                                            </span>
-                                                                        </label>
-                                                                    </div>
-                                                                </label>
-                                                            </div>
+                                                        <div className="bs-Fieldset-fields">
+                                                            <FieldArray
+                                                                name="monitors"
+                                                                component={
+                                                                    this
+                                                                        .renderMonitors
+                                                                }
+                                                            />
                                                         </div>
                                                     </div>
                                                 </div>
                                             </fieldset>
                                         </ShouldRender>
-                                        <ShouldRender
-                                            if={
-                                                formValues &&
-                                                formValues.selectMonitors &&
-                                                !data.monitorId
-                                            }
-                                        >
-                                            <fieldset className="Margin-bottom--16">
-                                                <div className="bs-Fieldset-rows">
-                                                    <div
-                                                        className="bs-Fieldset-row"
-                                                        style={{ padding: 0 }}
-                                                    >
-                                                        <label
-                                                            className="bs-Fieldset-label Text-align--left"
-                                                            htmlFor="monitorId"
-                                                        >
-                                                            <span></span>
-                                                        </label>
-                                                        <div
-                                                            className="bs-Fieldset-fields"
-                                                            style={{
-                                                                paddingTop:
-                                                                    '6px',
-                                                            }}
-                                                        >
-                                                            <div
-                                                                className="bs-Fieldset-field"
-                                                                style={{
-                                                                    width:
-                                                                        '100%',
-                                                                }}
-                                                            >
-                                                                <FieldArray
-                                                                    name="monitors"
-                                                                    component={
-                                                                        this
-                                                                            .renderMonitors
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </fieldset>
-                                        </ShouldRender>
-
                                         <fieldset className="Margin-bottom--16">
                                             <div className="bs-Fieldset-rows">
                                                 <div
@@ -556,7 +585,6 @@ class EditWebHook extends React.Component {
                                                 </div>
                                             </div>
                                         </fieldset>
-
                                         <fieldset className="Margin-bottom--16">
                                             <div className="bs-Fieldset-rows">
                                                 <div

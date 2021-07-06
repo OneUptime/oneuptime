@@ -4,7 +4,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import ProbeList from '../components/probe/ProbeList';
 import { getProbes } from '../actions/probe';
-import Dashboard from '../components/Dashboard';
 import ShouldRender from '../components/basic/ShouldRender';
 import { FormLoader } from '../components/basic/Loader';
 import uuid from 'uuid';
@@ -20,6 +19,7 @@ class Probes extends React.Component {
 
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyboard);
+        this.props.getProbes(0, 10);
     }
 
     componentWillUnmount() {
@@ -58,10 +58,6 @@ class Probes extends React.Component {
         this.setState({ page: this.state.page + 1 });
     };
 
-    ready = () => {
-        this.props.getProbes(0, 10);
-    };
-
     handleClick = () => {
         const { addModalId } = this.state;
         this.props.openModal({
@@ -73,114 +69,111 @@ class Probes extends React.Component {
 
     render() {
         return (
-            <Dashboard ready={this.ready}>
-                <div
-                    id="fyipeProbe"
-                    onKeyDown={this.handleKeyBoard}
-                    className="Box-root Margin-vertical--12"
-                >
+            <div
+                id="fyipeProbe"
+                onKeyDown={this.handleKeyBoard}
+                className="Box-root Margin-vertical--12"
+            >
+                <div>
                     <div>
-                        <div>
-                            <div className="db-BackboneViewContainer">
-                                <div
-                                    className="customers-list-view react-view popover-container"
-                                    style={{
-                                        position: 'relative',
-                                        overflow: 'visible',
-                                    }}
-                                ></div>
-                                <div className="bs-BIM">
-                                    <div className="Box-root Margin-bottom--12">
-                                        <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                            <div className="Box-root">
-                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                <span
-                                                                    style={{
-                                                                        textTransform:
-                                                                            'capitalize',
-                                                                    }}
-                                                                >
-                                                                    Fyipe Probes
-                                                                </span>
+                        <div className="db-BackboneViewContainer">
+                            <div
+                                className="customers-list-view react-view popover-container"
+                                style={{
+                                    position: 'relative',
+                                    overflow: 'visible',
+                                }}
+                            ></div>
+                            <div className="bs-BIM">
+                                <div className="Box-root Margin-bottom--12">
+                                    <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                        <div className="Box-root">
+                                            <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                        <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                            <span
+                                                                style={{
+                                                                    textTransform:
+                                                                        'capitalize',
+                                                                }}
+                                                            >
+                                                                Fyipe Probes
                                                             </span>
-                                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <span>
-                                                                    List of
-                                                                    Probes on
-                                                                    Fyipe.
-                                                                </span>
+                                                        </span>
+                                                        <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <span>
+                                                                List of Probes
+                                                                on Fyipe.
                                                             </span>
-                                                        </div>
-                                                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                            <div className="Box-root">
-                                                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                                    <div>
-                                                                        <button
-                                                                            className="bs-Button bs-ButtonLegacy ActionIconParent"
-                                                                            type="button"
-                                                                            disabled={
+                                                        </span>
+                                                    </div>
+                                                    <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                        <div className="Box-root">
+                                                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                                <div>
+                                                                    <button
+                                                                        className="bs-Button bs-ButtonLegacy ActionIconParent"
+                                                                        type="button"
+                                                                        disabled={
+                                                                            false
+                                                                        }
+                                                                        id="add_probe"
+                                                                        onClick={
+                                                                            this
+                                                                                .handleClick
+                                                                        }
+                                                                        style={{
+                                                                            paddingTop: 3,
+                                                                            paddingBottom: 3,
+                                                                        }}
+                                                                    >
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                true
+                                                                            }
+                                                                        >
+                                                                            <span className="bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
+                                                                                <span>
+                                                                                    Add
+                                                                                    New
+                                                                                    Probe
+                                                                                </span>
+                                                                                <span className="new-btn__keycode">
+                                                                                    N
+                                                                                </span>
+                                                                            </span>
+                                                                        </ShouldRender>
+                                                                        <ShouldRender
+                                                                            if={
                                                                                 false
                                                                             }
-                                                                            id="add_probe"
-                                                                            onClick={
-                                                                                this
-                                                                                    .handleClick
-                                                                            }
-                                                                            style={{
-                                                                                paddingTop: 3,
-                                                                                paddingBottom: 3,
-                                                                            }}
                                                                         >
-                                                                            <ShouldRender
-                                                                                if={
-                                                                                    true
-                                                                                }
-                                                                            >
-                                                                                <span className="bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                                                                                    <span>
-                                                                                        Add
-                                                                                        New
-                                                                                        Probe
-                                                                                    </span>
-                                                                                    <span className="new-btn__keycode">
-                                                                                        N
-                                                                                    </span>
-                                                                                </span>
-                                                                            </ShouldRender>
-                                                                            <ShouldRender
-                                                                                if={
-                                                                                    false
-                                                                                }
-                                                                            >
-                                                                                <FormLoader />
-                                                                            </ShouldRender>
-                                                                        </button>
-                                                                    </div>
+                                                                            <FormLoader />
+                                                                        </ShouldRender>
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                    <div></div>
-                                                </div>
                                             </div>
-                                            <ProbeList
-                                                prevClicked={this.prevClicked}
-                                                nextClicked={this.nextClicked}
-                                                page={this.state.page}
-                                            />
+                                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                <div></div>
+                                            </div>
                                         </div>
+                                        <ProbeList
+                                            prevClicked={this.prevClicked}
+                                            nextClicked={this.nextClicked}
+                                            page={this.state.page}
+                                        />
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </Dashboard>
+            </div>
         );
     }
 }

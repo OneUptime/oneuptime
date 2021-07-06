@@ -182,8 +182,6 @@ describe('FyipeLogger', function() {
             expect(response.data).to.be.an('object');
             expect(response.data.content).to.be.a('string');
             expect(response.data).to.include({ type: 'warning' });
-            expect(response.data.tags).to.be.an('array');
-            expect(response.data.tags).to.be.an('array').that.is.empty;
         });
     });
     it('should return a valid logged item with log type of error with 3 tags', function() {

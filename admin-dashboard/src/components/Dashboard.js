@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import SideNav from './nav/SideNav';
 import TopNav from './nav/TopNav';
-import { Link } from 'react-router-dom';
+import { Link, withRouter } from 'react-router-dom';
 import ShouldRender from './basic/ShouldRender';
 import ProfileMenu from './profile/ProfileMenu';
 import ClickOutside from 'react-click-outside';
@@ -18,16 +18,16 @@ import { IS_SAAS_SERVICE, IS_THIRD_PARTY_BILLING } from '../config';
 import { fetchSettings } from '../actions/settings';
 import AlertPanel from './basic/AlertPanel';
 import { closeModal } from '../actions/modal';
+import { loadDashboard } from '../actions/dashboard';
 
 export class DashboardApp extends Component {
-    componentDidMount() {
+    componentDidMount = async () => {
         const {
-            fetchUsers,
             fetchLicense,
-            ready,
             user,
             license,
             fetchSettings,
+            loadDashboard,
         } = this.props;
         if (
             user.users &&
@@ -35,9 +35,7 @@ export class DashboardApp extends Component {
             user.users.users.length === 0 &&
             !user.users.requesting
         ) {
-            fetchUsers().then(() => ready && ready());
-        } else {
-            this.props.ready && this.props.ready();
+            await loadDashboard();
         }
 
         if (
@@ -50,7 +48,7 @@ export class DashboardApp extends Component {
         }
         fetchSettings('twilio');
         fetchSettings('smtp');
-    }
+    };
 
     showProjectForm = () => {
         this.props.showForm();
@@ -89,7 +87,14 @@ export class DashboardApp extends Component {
         });
 
     render() {
-        const { user, children, license, settings, twilio, smtp } = this.props;
+        const {
+            children,
+            license,
+            settings,
+            twilio,
+            smtp,
+            dashboardLoadState,
+        } = this.props;
 
         return (
             <Fragment>
@@ -104,7 +109,10 @@ export class DashboardApp extends Component {
 
                 <div onKeyDown={this.handleKeyBoard} className="db-World-root">
                     <ShouldRender
-                        if={!user.users.requesting && user.users.success}
+                        if={
+                            !dashboardLoadState.requesting &&
+                            dashboardLoadState.success
+                        }
                     >
                         <div className="db-World-wrapper Box-root Flex-flex Flex-direction--column">
                             <div className="db-World-scrollWrapper">
@@ -183,7 +191,7 @@ export class DashboardApp extends Component {
                         </div>
                     </ShouldRender>
 
-                    <ShouldRender if={user.users.requesting}>
+                    <ShouldRender if={dashboardLoadState.requesting}>
                         <div
                             id="app-loading"
                             style={{
@@ -216,7 +224,7 @@ export class DashboardApp extends Component {
                         </div>
                     </ShouldRender>
 
-                    <ShouldRender if={user.users.error}>
+                    <ShouldRender if={dashboardLoadState.error}>
                         <div
                             id="app-loading"
                             style={{
@@ -249,10 +257,8 @@ DashboardApp.propTypes = {
     hideProfileMenu: PropTypes.func,
     closeNotificationMenu: PropTypes.func,
     showForm: PropTypes.func,
-    fetchUsers: PropTypes.func,
     fetchLicense: PropTypes.func.isRequired,
     children: PropTypes.any,
-    ready: PropTypes.func,
     user: PropTypes.object.isRequired,
     license: PropTypes.oneOfType([null, PropTypes.object]),
     fetchSettings: PropTypes.func.isRequired,
@@ -261,6 +267,8 @@ DashboardApp.propTypes = {
     smtp: PropTypes.object.isRequired,
     currentModal: PropTypes.object,
     closeModal: PropTypes.func,
+    dashboardLoadState: PropTypes.object,
+    loadDashboard: PropTypes.func,
 };
 
 const mapStateToProps = state => ({
@@ -275,6 +283,7 @@ const mapStateToProps = state => ({
         state.modal.modals && state.modal.modals.length > 0
             ? state.modal.modals[state.modal.modals.length - 1]
             : '',
+    dashboardLoadState: state.dashboard,
 });
 
 const mapDispatchToProps = dispatch =>
@@ -286,6 +295,7 @@ const mapDispatchToProps = dispatch =>
             fetchLicense,
             fetchSettings,
             closeModal,
+            loadDashboard,
         },
         dispatch
     );
@@ -294,4 +304,6 @@ DashboardApp.contextTypes = {
     mixpanel: PropTypes.object.isRequired,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardApp);
+export default withRouter(
+    connect(mapStateToProps, mapDispatchToProps)(DashboardApp)
+);

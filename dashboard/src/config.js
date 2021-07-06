@@ -1676,7 +1676,7 @@ fyipeTracker = tracker.FyipeTracker(
     '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
     '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
     options # Optional Field               
-);
+)
                             
 # capturing error exception manually and sent to your fyipe dashboard
 try:
@@ -1757,13 +1757,72 @@ print(response)`,
                 id: 'ruby',
                 language: 'Ruby',
                 height: {
-                    install: '25px',
+                    install: '50px',
                     usage: '500px',
                 },
-                errorTracking:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
-                logs:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                errorTracking: {
+                    installation: {
+                        package: 'Gem Install',
+                        command: `
+$ gem install fyipe`,
+                    },
+                    usage: `
+require 'fyipe'
+                
+# set up tracking configurations    
+options = {
+    "maxTimeline": 50,
+    "captureCodeSnippet": true
+}               
+
+# constructor                        
+tracker = FyipeTracker.new(                        
+    "${apiUrl ? apiUrl : 'API_URL'}",
+    '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
+    '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
+    options # Optional Field               
+)
+                
+# capturing error exception manually and sent to your fyipe dashboard
+begin
+    # your code logic
+    result = 5/0 # Should throw a division by zero error
+rescue => ex
+    tracker.captureException(ex)
+end
+`,
+                },
+                logs: {
+                    installation: {
+                        package: 'Gem Install',
+                        command: `
+$ gem install fyipe`,
+                    },
+                    usage: `
+require 'fyipe'
+                
+# constructor
+logger = FyipeLogger.new(                    
+    '${apiUrl ? apiUrl : 'API_URL'}',
+    '${
+        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+    }',                    
+    '${applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'}'
+);
+                
+# Sending an object log to the server
+
+item = {
+    "user" => "Test User",
+    "page" => "Landing Page"
+}
+                
+response = logger.log(item)
+
+# response after logging a request
+puts response
+                `,
+                },
             },
             {
                 id: 'go',

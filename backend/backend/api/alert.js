@@ -165,14 +165,26 @@ router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
 ) {
     try {
         const projectId = req.params.projectId;
+
+        //Important! Always pass required field(s)
+        const populate = [
+            { table: 'alertId', field: 'alertVia' },
+            { table: 'subscriberAlertId', field: 'alertVia' },
+            { table: 'monitorId', field: 'name slug' },
+            { table: 'incidentId', field: 'idNumber' },
+        ];
+
         const [alertCharges, count] = await Promise.all([
-            alertChargeService.findBy(
-                { projectId },
-                req.query.skip,
-                req.query.limit
-            ),
+            alertChargeService.findBy({
+                query: { projectId },
+                skip: req.query.skip,
+                limit: req.query.limit,
+                sort: false,
+                populate,
+            }),
             alertChargeService.countBy({ projectId }),
         ]);
+
         return sendListResponse(req, res, alertCharges, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
