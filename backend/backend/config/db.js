@@ -14,7 +14,20 @@ mongoose.set('useFindAndModify', false);
 mongoose.set('useCreateIndex', true);
 
 mongoose
-    .connect(mongoUrl)
+    .connect(mongoUrl, {
+        server: {
+            socketOptions:  {keepAlive: 1},
+            readPreference: "secondaryPreferred",
+            strategy: "ping"
+        },
+        replset: {
+            rs_name: 'rs0',
+            socketOptions: { keepAlive: 1 },
+            strategy: 'ping',
+            readPreference: 'secondaryPreferred',
+            poolSize: 10
+        }
+    })
     .then(() => {
         // eslint-disable-next-line
         return console.log('Mongo connected');
