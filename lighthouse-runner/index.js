@@ -63,8 +63,8 @@ app.get(['/lighthouse/version', '/version'], function(req, res) {
     res.send({ lighthouseVersion: process.env.npm_package_version });
 });
 
-// This cron runs every other minute.
-cron.schedule('*/2 * * * *', () => {
+// This cron runs every 10 minute.
+cron.schedule('*/10 * * * *', () => {
     setTimeout(() => {
         Main.runJob();
     }, cronMinuteStartTime * 1000);
