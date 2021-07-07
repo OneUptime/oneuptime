@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import Members from '../components/reports/Members';
 import Monitors from '../components/reports/Monitors';
 import Incidents from '../components/reports/Incidents';
@@ -159,11 +158,11 @@ export class Reports extends Component {
         });
     }
 
-    ready = () => {
+    componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > REPORTS');
         }
-    };
+    }
 
     render() {
         const {
@@ -171,476 +170,465 @@ export class Reports extends Component {
         } = this.props;
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem route={pathname} name="Reports" />
-                    <div className="Box-root Margin-vertical--12">
-                        <div>
-                            <div id="reportPage">
-                                <div className="db-RadarRulesLists-page">
-                                    <div className="Box-root Margin-bottom--12">
-                                        <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                            <div className="Box-root">
-                                                <div>
-                                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                    <span>
-                                                                        Average
-                                                                        Resolve
-                                                                        Time{' '}
-                                                                    </span>
+            <Fade>
+                <BreadCrumbItem route={pathname} name="Reports" />
+                <div className="Box-root Margin-vertical--12">
+                    <div>
+                        <div id="reportPage">
+                            <div className="db-RadarRulesLists-page">
+                                <div className="Box-root Margin-bottom--12">
+                                    <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                        <div className="Box-root">
+                                            <div>
+                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Average
+                                                                    Resolve Time{' '}
                                                                 </span>
-                                                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                    <span>
-                                                                        {' '}
-                                                                        Average
-                                                                        incident
-                                                                        resolve
-                                                                        time for
-                                                                        the past
-                                                                        12
-                                                                        monhts
-                                                                    </span>
+                                                            </span>
+                                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    {' '}
+                                                                    Average
+                                                                    incident
+                                                                    resolve time
+                                                                    for the past
+                                                                    12 monhts
                                                                 </span>
-                                                            </div>
+                                                            </span>
+                                                        </div>
 
-                                                            <div
-                                                                className="db-Trends-timeControls Margin-horizontal--12"
-                                                                style={{
-                                                                    justifyContent:
-                                                                        'flex-end',
-                                                                }}
-                                                            >
-                                                                <div className="db-DateRangeInputWithComparison">
+                                                        <div
+                                                            className="db-Trends-timeControls Margin-horizontal--12"
+                                                            style={{
+                                                                justifyContent:
+                                                                    'flex-end',
+                                                            }}
+                                                        >
+                                                            <div className="db-DateRangeInputWithComparison">
+                                                                <div
+                                                                    className="db-DateRangeInput bs-Control"
+                                                                    style={{
+                                                                        cursor:
+                                                                            'pointer',
+                                                                        padding:
+                                                                            '0',
+                                                                    }}
+                                                                >
                                                                     <div
-                                                                        className="db-DateRangeInput bs-Control"
+                                                                        className="db-DateRangeInput-input"
+                                                                        role="button"
+                                                                        tabIndex="0"
                                                                         style={{
                                                                             cursor:
                                                                                 'pointer',
-                                                                            padding:
-                                                                                '0',
                                                                         }}
                                                                     >
-                                                                        <div
-                                                                            className="db-DateRangeInput-input"
-                                                                            role="button"
-                                                                            tabIndex="0"
-                                                                            style={{
-                                                                                cursor:
-                                                                                    'pointer',
-                                                                            }}
-                                                                        >
-                                                                            <span className="db-DateRangeInput-start">
-                                                                                <Select
-                                                                                    name="filter"
-                                                                                    value={
-                                                                                        this
-                                                                                            .state
-                                                                                            .resolveTimeFilter
-                                                                                    }
-                                                                                    className="db-select-ne"
-                                                                                    onChange={
-                                                                                        this
-                                                                                            .handleResolveTimeFilterChange
-                                                                                    }
-                                                                                    options={[
-                                                                                        {
-                                                                                            value:
-                                                                                                'day',
-                                                                                            label:
-                                                                                                'Daily',
-                                                                                        },
-                                                                                        {
-                                                                                            value:
-                                                                                                'week',
-                                                                                            label:
-                                                                                                'Weekly',
-                                                                                        },
-                                                                                        {
-                                                                                            value:
-                                                                                                'month',
-                                                                                            label:
-                                                                                                'Monthly',
-                                                                                        },
-                                                                                        {
-                                                                                            value:
-                                                                                                'year',
-                                                                                            label:
-                                                                                                'Yearly',
-                                                                                        },
-                                                                                    ]}
-                                                                                />
-                                                                            </span>
-                                                                        </div>
+                                                                        <span className="db-DateRangeInput-start">
+                                                                            <Select
+                                                                                name="filter"
+                                                                                value={
+                                                                                    this
+                                                                                        .state
+                                                                                        .resolveTimeFilter
+                                                                                }
+                                                                                className="db-select-ne"
+                                                                                onChange={
+                                                                                    this
+                                                                                        .handleResolveTimeFilterChange
+                                                                                }
+                                                                                options={[
+                                                                                    {
+                                                                                        value:
+                                                                                            'day',
+                                                                                        label:
+                                                                                            'Daily',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'week',
+                                                                                        label:
+                                                                                            'Weekly',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'month',
+                                                                                        label:
+                                                                                            'Monthly',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'year',
+                                                                                        label:
+                                                                                            'Yearly',
+                                                                                    },
+                                                                                ]}
+                                                                            />
+                                                                        </span>
                                                                     </div>
                                                                 </div>
                                                             </div>
-
-                                                            <div
-                                                                className="db-Trends-timeControls"
-                                                                style={{
-                                                                    justifyContent:
-                                                                        'flex-end',
-                                                                }}
-                                                            >
-                                                                <DateTimeRangePicker
-                                                                    currentDateRange={{
-                                                                        startDate: this
-                                                                            .state
-                                                                            .resolveTimeStart,
-                                                                        endDate: this
-                                                                            .state
-                                                                            .resolveTimeEnd,
-                                                                    }}
-                                                                    handleStartDateTimeChange={
-                                                                        this
-                                                                            .handleStartDateTimeChange
-                                                                    }
-                                                                    handleEndDateTimeChange={
-                                                                        this
-                                                                            .handleEndDateTimeChange
-                                                                    }
-                                                                    formId={
-                                                                        'averageResolveTimeForm'
-                                                                    }
-                                                                    style={{
-                                                                        height:
-                                                                            '28px',
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <ResolveTime
-                                                            filter={
-                                                                this.state
-                                                                    .resolveTimeFilter
-                                                                    .value
-                                                            }
-                                                            startDate={
-                                                                this.state
-                                                                    .resolveTimeStart
-                                                            }
-                                                            endDate={
-                                                                this.state
-                                                                    .resolveTimeEnd
-                                                            }
-                                                            currentProject={
-                                                                this.props
-                                                                    .currentProjectId
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="Box-root Margin-bottom--12">
-                                        <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                            <div className="Box-root">
-                                                <div>
-                                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                    <span>
-                                                                        Incidents
-                                                                    </span>
-                                                                </span>
-                                                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                    <span>
-                                                                        {' '}
-                                                                        Graph
-                                                                        comparing
-                                                                        number
-                                                                        of
-                                                                        incidents
-                                                                    </span>
-                                                                </span>
-                                                            </div>
-
-                                                            <div
-                                                                className="db-Trends-timeControls Margin-horizontal--12"
-                                                                style={{
-                                                                    justifyContent:
-                                                                        'flex-end',
-                                                                }}
-                                                            >
-                                                                <div className="db-DateRangeInputWithComparison">
-                                                                    <div
-                                                                        className="db-DateRangeInput bs-Control"
-                                                                        style={{
-                                                                            cursor:
-                                                                                'pointer',
-                                                                            padding:
-                                                                                '0',
-                                                                        }}
-                                                                    >
-                                                                        <div
-                                                                            className="db-DateRangeInput-input"
-                                                                            role="button"
-                                                                            tabIndex="0"
-                                                                            style={{
-                                                                                cursor:
-                                                                                    'pointer',
-                                                                            }}
-                                                                        >
-                                                                            <span className="db-DateRangeInput-start">
-                                                                                <Select
-                                                                                    name="filter"
-                                                                                    value={
-                                                                                        this
-                                                                                            .state
-                                                                                            .incidentFilter
-                                                                                    }
-                                                                                    className="db-select-ne"
-                                                                                    onChange={
-                                                                                        this
-                                                                                            .handleIncidentFilterChange
-                                                                                    }
-                                                                                    options={[
-                                                                                        {
-                                                                                            value:
-                                                                                                'day',
-                                                                                            label:
-                                                                                                'Daily',
-                                                                                        },
-                                                                                        {
-                                                                                            value:
-                                                                                                'week',
-                                                                                            label:
-                                                                                                'Weekly',
-                                                                                        },
-                                                                                        {
-                                                                                            value:
-                                                                                                'month',
-                                                                                            label:
-                                                                                                'Monthly',
-                                                                                        },
-                                                                                        {
-                                                                                            value:
-                                                                                                'year',
-                                                                                            label:
-                                                                                                'Yearly',
-                                                                                        },
-                                                                                    ]}
-                                                                                />
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div
-                                                                className="db-Trends-timeControls"
-                                                                style={{
-                                                                    justifyContent:
-                                                                        'flex-end',
-                                                                }}
-                                                            >
-                                                                <DateTimeRangePicker
-                                                                    currentDateRange={{
-                                                                        startDate: this
-                                                                            .state
-                                                                            .incidentStart,
-                                                                        endDate: this
-                                                                            .state
-                                                                            .incidentEnd,
-                                                                    }}
-                                                                    handleStartDateTimeChange={
-                                                                        this
-                                                                            .handleIncidentStartDateTimeChange
-                                                                    }
-                                                                    handleEndDateTimeChange={
-                                                                        this
-                                                                            .handleIncidentEndDateTimeChange
-                                                                    }
-                                                                    formId={
-                                                                        'incidentReportForm'
-                                                                    }
-                                                                    style={{
-                                                                        height:
-                                                                            '28px',
-                                                                    }}
-                                                                />
-                                                            </div>
                                                         </div>
 
-                                                        <Incidents
-                                                            filter={
-                                                                this.state
-                                                                    .incidentFilter
-                                                                    .value
-                                                            }
-                                                            startDate={
-                                                                this.state
-                                                                    .incidentStart
-                                                            }
-                                                            endDate={
-                                                                this.state
-                                                                    .incidentEnd
-                                                            }
-                                                            currentProject={
-                                                                this.props
-                                                                    .currentProjectId
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="Box-root Margin-bottom--12">
-                                        <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                            <div className="Box-root">
-                                                <div>
-                                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                    <span>
-                                                                        Members
-                                                                    </span>
-                                                                </span>
-                                                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                    <span>
-                                                                        {' '}
-                                                                        Members
-                                                                        who have
-                                                                        resolved
-                                                                        most
-                                                                        incidents
-                                                                    </span>
-                                                                </span>
-                                                            </div>
-
-                                                            <div
-                                                                className="db-Trends-timeControls"
-                                                                style={{
-                                                                    justifyContent:
-                                                                        'flex-end',
+                                                        <div
+                                                            className="db-Trends-timeControls"
+                                                            style={{
+                                                                justifyContent:
+                                                                    'flex-end',
+                                                            }}
+                                                        >
+                                                            <DateTimeRangePicker
+                                                                currentDateRange={{
+                                                                    startDate: this
+                                                                        .state
+                                                                        .resolveTimeStart,
+                                                                    endDate: this
+                                                                        .state
+                                                                        .resolveTimeEnd,
                                                                 }}
-                                                            >
-                                                                <DateTimeRangePicker
-                                                                    currentDateRange={{
-                                                                        startDate: this
-                                                                            .state
-                                                                            .membersStart,
-                                                                        endDate: this
-                                                                            .state
-                                                                            .membersEnd,
-                                                                    }}
-                                                                    handleStartDateTimeChange={
-                                                                        this
-                                                                            .handleMemberStartDateTimeChange
-                                                                    }
-                                                                    handleEndDateTimeChange={
-                                                                        this
-                                                                            .handleMemberEndDateTimeChange
-                                                                    }
-                                                                    formId={
-                                                                        'memberReportForm'
-                                                                    }
-                                                                    style={{
-                                                                        height:
-                                                                            '28px',
-                                                                    }}
-                                                                />
-                                                            </div>
+                                                                handleStartDateTimeChange={
+                                                                    this
+                                                                        .handleStartDateTimeChange
+                                                                }
+                                                                handleEndDateTimeChange={
+                                                                    this
+                                                                        .handleEndDateTimeChange
+                                                                }
+                                                                formId={
+                                                                    'averageResolveTimeForm'
+                                                                }
+                                                                style={{
+                                                                    height:
+                                                                        '28px',
+                                                                }}
+                                                            />
                                                         </div>
                                                     </div>
-                                                    <Members
+                                                    <ResolveTime
+                                                        filter={
+                                                            this.state
+                                                                .resolveTimeFilter
+                                                                .value
+                                                        }
                                                         startDate={
                                                             this.state
-                                                                .membersStart
+                                                                .resolveTimeStart
                                                         }
                                                         endDate={
                                                             this.state
-                                                                .membersEnd
+                                                                .resolveTimeEnd
                                                         }
                                                         currentProject={
                                                             this.props
                                                                 .currentProjectId
                                                         }
-                                                        styles={styles.number}
                                                     />
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="Box-root Margin-bottom--12">
-                                        <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                            <div className="Box-root">
-                                                <div>
-                                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                    <span>
-                                                                        Monitors
-                                                                    </span>
+                                </div>
+                                <div className="Box-root Margin-bottom--12">
+                                    <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                        <div className="Box-root">
+                                            <div>
+                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Incidents
                                                                 </span>
-                                                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                    <span>
-                                                                        Monitors
-                                                                        with
-                                                                        most
-                                                                        incidents.
-                                                                    </span>
+                                                            </span>
+                                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    {' '}
+                                                                    Graph
+                                                                    comparing
+                                                                    number of
+                                                                    incidents
                                                                 </span>
-                                                            </div>
-                                                            <div
-                                                                className="db-Trends-timeControls"
-                                                                style={{
-                                                                    justifyContent:
-                                                                        'flex-end',
-                                                                }}
-                                                            >
-                                                                <DateTimeRangePicker
-                                                                    currentDateRange={{
-                                                                        startDate: this
-                                                                            .state
-                                                                            .monitorStart,
-                                                                        endDate: this
-                                                                            .state
-                                                                            .monitorEnd,
-                                                                    }}
-                                                                    handleStartDateTimeChange={
-                                                                        this
-                                                                            .handleMonitorStartDateTimeChange
-                                                                    }
-                                                                    handleEndDateTimeChange={
-                                                                        this
-                                                                            .handleMonitorEndDateTimeChange
-                                                                    }
-                                                                    formId={
-                                                                        'monitorReportForm'
-                                                                    }
+                                                            </span>
+                                                        </div>
+
+                                                        <div
+                                                            className="db-Trends-timeControls Margin-horizontal--12"
+                                                            style={{
+                                                                justifyContent:
+                                                                    'flex-end',
+                                                            }}
+                                                        >
+                                                            <div className="db-DateRangeInputWithComparison">
+                                                                <div
+                                                                    className="db-DateRangeInput bs-Control"
                                                                     style={{
-                                                                        height:
-                                                                            '28px',
+                                                                        cursor:
+                                                                            'pointer',
+                                                                        padding:
+                                                                            '0',
                                                                     }}
-                                                                />
+                                                                >
+                                                                    <div
+                                                                        className="db-DateRangeInput-input"
+                                                                        role="button"
+                                                                        tabIndex="0"
+                                                                        style={{
+                                                                            cursor:
+                                                                                'pointer',
+                                                                        }}
+                                                                    >
+                                                                        <span className="db-DateRangeInput-start">
+                                                                            <Select
+                                                                                name="filter"
+                                                                                value={
+                                                                                    this
+                                                                                        .state
+                                                                                        .incidentFilter
+                                                                                }
+                                                                                className="db-select-ne"
+                                                                                onChange={
+                                                                                    this
+                                                                                        .handleIncidentFilterChange
+                                                                                }
+                                                                                options={[
+                                                                                    {
+                                                                                        value:
+                                                                                            'day',
+                                                                                        label:
+                                                                                            'Daily',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'week',
+                                                                                        label:
+                                                                                            'Weekly',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'month',
+                                                                                        label:
+                                                                                            'Monthly',
+                                                                                    },
+                                                                                    {
+                                                                                        value:
+                                                                                            'year',
+                                                                                        label:
+                                                                                            'Yearly',
+                                                                                    },
+                                                                                ]}
+                                                                            />
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
+
+                                                        <div
+                                                            className="db-Trends-timeControls"
+                                                            style={{
+                                                                justifyContent:
+                                                                    'flex-end',
+                                                            }}
+                                                        >
+                                                            <DateTimeRangePicker
+                                                                currentDateRange={{
+                                                                    startDate: this
+                                                                        .state
+                                                                        .incidentStart,
+                                                                    endDate: this
+                                                                        .state
+                                                                        .incidentEnd,
+                                                                }}
+                                                                handleStartDateTimeChange={
+                                                                    this
+                                                                        .handleIncidentStartDateTimeChange
+                                                                }
+                                                                handleEndDateTimeChange={
+                                                                    this
+                                                                        .handleIncidentEndDateTimeChange
+                                                                }
+                                                                formId={
+                                                                    'incidentReportForm'
+                                                                }
+                                                                style={{
+                                                                    height:
+                                                                        '28px',
+                                                                }}
+                                                            />
+                                                        </div>
                                                     </div>
-                                                    <Monitors
+
+                                                    <Incidents
+                                                        filter={
+                                                            this.state
+                                                                .incidentFilter
+                                                                .value
+                                                        }
                                                         startDate={
                                                             this.state
-                                                                .monitorStart
+                                                                .incidentStart
                                                         }
                                                         endDate={
                                                             this.state
-                                                                .monitorEnd
+                                                                .incidentEnd
                                                         }
                                                         currentProject={
                                                             this.props
                                                                 .currentProjectId
                                                         }
-                                                        styles={styles.number}
                                                     />
                                                 </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="Box-root Margin-bottom--12">
+                                    <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                        <div className="Box-root">
+                                            <div>
+                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Members
+                                                                </span>
+                                                            </span>
+                                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    {' '}
+                                                                    Members who
+                                                                    have
+                                                                    resolved
+                                                                    most
+                                                                    incidents
+                                                                </span>
+                                                            </span>
+                                                        </div>
+
+                                                        <div
+                                                            className="db-Trends-timeControls"
+                                                            style={{
+                                                                justifyContent:
+                                                                    'flex-end',
+                                                            }}
+                                                        >
+                                                            <DateTimeRangePicker
+                                                                currentDateRange={{
+                                                                    startDate: this
+                                                                        .state
+                                                                        .membersStart,
+                                                                    endDate: this
+                                                                        .state
+                                                                        .membersEnd,
+                                                                }}
+                                                                handleStartDateTimeChange={
+                                                                    this
+                                                                        .handleMemberStartDateTimeChange
+                                                                }
+                                                                handleEndDateTimeChange={
+                                                                    this
+                                                                        .handleMemberEndDateTimeChange
+                                                                }
+                                                                formId={
+                                                                    'memberReportForm'
+                                                                }
+                                                                style={{
+                                                                    height:
+                                                                        '28px',
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <Members
+                                                    startDate={
+                                                        this.state.membersStart
+                                                    }
+                                                    endDate={
+                                                        this.state.membersEnd
+                                                    }
+                                                    currentProject={
+                                                        this.props
+                                                            .currentProjectId
+                                                    }
+                                                    styles={styles.number}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="Box-root Margin-bottom--12">
+                                    <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                        <div className="Box-root">
+                                            <div>
+                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Monitors
+                                                                </span>
+                                                            </span>
+                                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Monitors
+                                                                    with most
+                                                                    incidents.
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                        <div
+                                                            className="db-Trends-timeControls"
+                                                            style={{
+                                                                justifyContent:
+                                                                    'flex-end',
+                                                            }}
+                                                        >
+                                                            <DateTimeRangePicker
+                                                                currentDateRange={{
+                                                                    startDate: this
+                                                                        .state
+                                                                        .monitorStart,
+                                                                    endDate: this
+                                                                        .state
+                                                                        .monitorEnd,
+                                                                }}
+                                                                handleStartDateTimeChange={
+                                                                    this
+                                                                        .handleMonitorStartDateTimeChange
+                                                                }
+                                                                handleEndDateTimeChange={
+                                                                    this
+                                                                        .handleMonitorEndDateTimeChange
+                                                                }
+                                                                formId={
+                                                                    'monitorReportForm'
+                                                                }
+                                                                style={{
+                                                                    height:
+                                                                        '28px',
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <Monitors
+                                                    startDate={
+                                                        this.state.monitorStart
+                                                    }
+                                                    endDate={
+                                                        this.state.monitorEnd
+                                                    }
+                                                    currentProject={
+                                                        this.props
+                                                            .currentProjectId
+                                                    }
+                                                    styles={styles.number}
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -648,8 +636,8 @@ export class Reports extends Component {
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

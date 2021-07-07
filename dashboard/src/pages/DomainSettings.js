@@ -1,7 +1,6 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import Dashboard from '../components/Dashboard';
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -20,6 +19,18 @@ class DomainSettings extends React.Component {
         );
     };
 
+    componentDidMount() {
+        this.ready();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps?.currentProject?._id !== this.props?.currentProject?._id
+        ) {
+            this.ready();
+        }
+    }
+
     componentWillMount() {
         // resetIdCounter();
     }
@@ -30,26 +41,24 @@ class DomainSettings extends React.Component {
         } = this.props;
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Project Settings"
-                    />
-                    <div id="monitorSettingsPage">
-                        <BreadCrumbItem route={pathname} name="Domains" />
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <div id="monitorSettingsPage">
+                    <BreadCrumbItem route={pathname} name="Domains" />
 
-                        <div>
-                            <Domains
-                                projectId={
-                                    this.props.currentProject &&
-                                    this.props.currentProject._id
-                                }
-                            />
-                        </div>
+                    <div>
+                        <Domains
+                            projectId={
+                                this.props.currentProject &&
+                                this.props.currentProject._id
+                            }
+                        />
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

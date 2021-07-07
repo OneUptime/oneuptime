@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import Dashboard from '../components/Dashboard';
 import getParentRoute from '../utils/getParentRoute';
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
@@ -25,6 +24,8 @@ class ErrorEventView extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKING >  ERROR TRACKING DETAIL > ERROR TRACKING ISSUE DETAIL PAGE'
             );
         }
+
+        this.ready();
     }
     componentDidUpdate(prevProps) {
         if (
@@ -126,54 +127,52 @@ class ErrorEventView extends Component {
         const errorTrackerName =
             errorTracker.length > 0 ? errorTracker[0].name : null;
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'error-tracker')}
-                        name={componentName}
-                    />
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'error-trackers')}
-                        name="Error Tracking"
-                    />
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'events')}
-                        name={errorTrackerName}
-                    />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name={
-                            errorEvent &&
-                            errorEvent.errorEvent &&
-                            errorEvent.errorEvent.content
-                                ? errorEvent.errorEvent.content.type
-                                : ''
-                        }
-                        pageTitle="Error Tracking"
-                        containerType="Error Tracker Container"
-                    />
-                    <ShouldRender if={!errorEvent}>
-                        <LoadingState />
-                    </ShouldRender>
-                    <ShouldRender if={errorEvent}>
-                        <div>
-                            <ErrorEventDetail
-                                errorEvent={errorEvent}
-                                componentId={componentId}
-                                componentSlug={componentSlug}
-                                projectId={currentProject && currentProject._id}
-                                errorTrackerId={
-                                    errorTracker[0] && errorTracker[0]._id
-                                }
-                                errorTrackerSlug={
-                                    errorTracker[0] && errorTracker[0].slug
-                                }
-                                navigationLink={this.navigationLink}
-                            />
-                        </div>
-                    </ShouldRender>
-                </Fade>
-            </Dashboard>
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'error-tracker')}
+                    name={componentName}
+                />
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'error-trackers')}
+                    name="Error Tracking"
+                />
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'events')}
+                    name={errorTrackerName}
+                />
+                <BreadCrumbItem
+                    route={pathname}
+                    name={
+                        errorEvent &&
+                        errorEvent.errorEvent &&
+                        errorEvent.errorEvent.content
+                            ? errorEvent.errorEvent.content.type
+                            : ''
+                    }
+                    pageTitle="Error Tracking"
+                    containerType="Error Tracker Container"
+                />
+                <ShouldRender if={!errorEvent}>
+                    <LoadingState />
+                </ShouldRender>
+                <ShouldRender if={errorEvent}>
+                    <div>
+                        <ErrorEventDetail
+                            errorEvent={errorEvent}
+                            componentId={componentId}
+                            componentSlug={componentSlug}
+                            projectId={currentProject && currentProject._id}
+                            errorTrackerId={
+                                errorTracker[0] && errorTracker[0]._id
+                            }
+                            errorTrackerSlug={
+                                errorTracker[0] && errorTracker[0].slug
+                            }
+                            navigationLink={this.navigationLink}
+                        />
+                    </div>
+                </ShouldRender>
+            </Fade>
         );
     }
 }

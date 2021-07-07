@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import ShouldRender from '../components/basic/ShouldRender';
 import { connect } from 'react-redux';
@@ -26,7 +25,9 @@ class PerformanceTracker extends Component {
         }
         const { currentProject, fetchComponent, componentSlug } = this.props;
         if (currentProject) {
-            fetchComponent(currentProject._id, componentSlug);
+            fetchComponent(currentProject._id, componentSlug).then(() => {
+                this.ready();
+            });
         }
     }
 
@@ -98,49 +99,35 @@ class PerformanceTracker extends Component {
 
         const componentName = component ? component.name : '';
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(
-                            pathname,
-                            null,
-                            'component-tracker'
-                        )}
-                        name={componentName}
-                    />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name="Performance Tracker"
-                    />
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'component-tracker')}
+                    name={componentName}
+                />
+                <BreadCrumbItem route={pathname} name="Performance Tracker" />
+                <div>
                     <div>
-                        <div>
-                            <ShouldRender
-                                if={
-                                    this.props.performanceTrackerList.requesting
-                                }
-                            >
-                                <LoadingState />
-                            </ShouldRender>
-                            {this.renderPerformanceTrackerList()}
-                            <ShouldRender
-                                if={
-                                    !this.props.performanceTrackerList
-                                        .requesting
-                                }
-                            >
-                                <div className="db-RadarRulesLists-page">
-                                    <NewPerformanceTracker
-                                        index={2000}
-                                        formKey="NewPerformanceTrackerForm"
-                                        componentId={this.props.componentId}
-                                        componentSlug={this.props.componentSlug}
-                                    />
-                                </div>
-                            </ShouldRender>
-                        </div>
+                        <ShouldRender
+                            if={this.props.performanceTrackerList.requesting}
+                        >
+                            <LoadingState />
+                        </ShouldRender>
+                        {this.renderPerformanceTrackerList()}
+                        <ShouldRender
+                            if={!this.props.performanceTrackerList.requesting}
+                        >
+                            <div className="db-RadarRulesLists-page">
+                                <NewPerformanceTracker
+                                    index={2000}
+                                    formKey="NewPerformanceTrackerForm"
+                                    componentId={this.props.componentId}
+                                    componentSlug={this.props.componentSlug}
+                                />
+                            </div>
+                        </ShouldRender>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

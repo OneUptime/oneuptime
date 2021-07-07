@@ -3,7 +3,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { destroy } from 'redux-form';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import NewComponent from '../components/component/NewComponent';
 import ComponentList from '../components/component/ComponentList';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -32,6 +31,16 @@ class DashboardView extends Component {
         this.props.loadPage('Components');
         if (IS_SAAS_SERVICE) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > COMPONENT');
+        }
+
+        this.ready();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps?.currentProject?._id !== this.props?.currentProject?._id
+        ) {
+            this.ready();
         }
     }
 
@@ -174,164 +183,24 @@ class DashboardView extends Component {
         components && components.unshift(projectComponent);
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem route={pathname} name="Components" />
-                    <ShouldRender
-                        if={
-                            this.props.monitors &&
-                            this.props.monitors.length > 0
-                        }
-                    >
-                        <AlertDisabledWarning page="Component" />
-                    </ShouldRender>
-                    <div className="Box-root">
+            <Fade>
+                <BreadCrumbItem route={pathname} name="Components" />
+                <ShouldRender
+                    if={this.props.monitors && this.props.monitors.length > 0}
+                >
+                    <AlertDisabledWarning page="Component" />
+                </ShouldRender>
+                <div className="Box-root">
+                    <div>
                         <div>
-                            <div>
-                                <div className="db-BackboneViewContainer">
-                                    <div className="dashboard-home-view react-view">
+                            <div className="db-BackboneViewContainer">
+                                <div className="dashboard-home-view react-view">
+                                    <div>
                                         <div>
-                                            <div>
-                                                <span>
-                                                    <ShouldRender
-                                                        if={
-                                                            !(
-                                                                this.props
-                                                                    .component
-                                                                    .componentList
-                                                                    .requesting ||
-                                                                this.props
-                                                                    .monitorListRequesting ||
-                                                                this.props
-                                                                    .monitorsRequesting
-                                                            )
-                                                        }
-                                                    >
-                                                        {/* Here, component notifier */}
-                                                        <CustomTutorial
-                                                            components={
-                                                                allComponents
-                                                            }
-                                                            tutorialStat={
-                                                                this.props
-                                                                    .tutorialStat
-                                                            }
-                                                            currentProjectId={
-                                                                currentProjectId
-                                                            }
-                                                            slug={
-                                                                this.props.slug
-                                                            }
-                                                            hideActionButton={
-                                                                true
-                                                            }
-                                                        />
-                                                        <ShouldRender
-                                                            if={
-                                                                (!this.props
-                                                                    .tutorialStat
-                                                                    .componentCustom
-                                                                    .show ||
-                                                                    allComponents.length >
-                                                                        0) &&
-                                                                this.props
-                                                                    .tutorialStat
-                                                                    .component
-                                                                    .show
-                                                            }
-                                                        >
-                                                            <TutorialBox
-                                                                type="component"
-                                                                currentProjectId={
-                                                                    currentProjectId
-                                                                }
-                                                            />
-                                                        </ShouldRender>
-
-                                                        {components}
-
-                                                        <RenderIfSubProjectAdmin>
-                                                            <NewComponent
-                                                                index={1000}
-                                                                formKey="NewComponentForm"
-                                                            />
-                                                        </RenderIfSubProjectAdmin>
-
-                                                        <RenderIfSubProjectMember>
-                                                            <ShouldRender
-                                                                if={
-                                                                    !this.props
-                                                                        .component
-                                                                        .componentList
-                                                                        .requesting &&
-                                                                    allComponents.length ===
-                                                                        0
-                                                                }
-                                                            >
-                                                                <div className="Box-root ">
-                                                                    <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
-                                                                        <div className="Box-root Card-shadow--medium Border-radius--4">
-                                                                            <div
-                                                                                className="bs-ContentSection-content Box-root Padding-horizontal--20 Padding-vertical--12"
-                                                                                style={{
-                                                                                    paddingBottom:
-                                                                                        '100px',
-                                                                                    paddingTop:
-                                                                                        '100px',
-                                                                                }}
-                                                                            >
-                                                                                <div
-                                                                                    className="db-SideNav-icon db-SideNav-icon--square "
-                                                                                    style={{
-                                                                                        backgroundRepeat:
-                                                                                            'no-repeat',
-                                                                                        backgroundSize:
-                                                                                            'contain',
-                                                                                        backgroundPosition:
-                                                                                            'center',
-                                                                                        height:
-                                                                                            '40px',
-                                                                                        width:
-                                                                                            '40px',
-                                                                                        marginRight:
-                                                                                            '50%',
-                                                                                        marginLeft:
-                                                                                            '50%',
-                                                                                    }}
-                                                                                ></div>
-                                                                                <div
-                                                                                    style={{
-                                                                                        width:
-                                                                                            '100%',
-                                                                                        padding:
-                                                                                            '10px',
-                                                                                        textAlign:
-                                                                                            'center',
-                                                                                    }}
-                                                                                >
-                                                                                    No
-                                                                                    components
-                                                                                    are
-                                                                                    added
-                                                                                    to
-                                                                                    this
-                                                                                    project.
-                                                                                    Please
-                                                                                    contact
-                                                                                    your
-                                                                                    project
-                                                                                    admin.
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </ShouldRender>
-                                                        </RenderIfSubProjectMember>
-                                                    </ShouldRender>
-
-                                                    <ShouldRender
-                                                        if={
+                                            <span>
+                                                <ShouldRender
+                                                    if={
+                                                        !(
                                                             this.props.component
                                                                 .componentList
                                                                 .requesting ||
@@ -339,20 +208,149 @@ class DashboardView extends Component {
                                                                 .monitorListRequesting ||
                                                             this.props
                                                                 .monitorsRequesting
+                                                        )
+                                                    }
+                                                >
+                                                    {/* Here, component notifier */}
+                                                    <CustomTutorial
+                                                        components={
+                                                            allComponents
+                                                        }
+                                                        tutorialStat={
+                                                            this.props
+                                                                .tutorialStat
+                                                        }
+                                                        currentProjectId={
+                                                            currentProjectId
+                                                        }
+                                                        slug={this.props.slug}
+                                                        hideActionButton={true}
+                                                    />
+                                                    <ShouldRender
+                                                        if={
+                                                            (!this.props
+                                                                .tutorialStat
+                                                                .componentCustom
+                                                                .show ||
+                                                                allComponents.length >
+                                                                    0) &&
+                                                            this.props
+                                                                .tutorialStat
+                                                                .component.show
                                                         }
                                                     >
-                                                        <LoadingState />
+                                                        <TutorialBox
+                                                            type="component"
+                                                            currentProjectId={
+                                                                currentProjectId
+                                                            }
+                                                        />
                                                     </ShouldRender>
-                                                </span>
-                                            </div>
+
+                                                    {components}
+
+                                                    <RenderIfSubProjectAdmin>
+                                                        <NewComponent
+                                                            index={1000}
+                                                            formKey="NewComponentForm"
+                                                        />
+                                                    </RenderIfSubProjectAdmin>
+
+                                                    <RenderIfSubProjectMember>
+                                                        <ShouldRender
+                                                            if={
+                                                                !this.props
+                                                                    .component
+                                                                    .componentList
+                                                                    .requesting &&
+                                                                allComponents.length ===
+                                                                    0
+                                                            }
+                                                        >
+                                                            <div className="Box-root ">
+                                                                <div className="db-Trends bs-ContentSection Card-root Card-shadow--small">
+                                                                    <div className="Box-root Card-shadow--medium Border-radius--4">
+                                                                        <div
+                                                                            className="bs-ContentSection-content Box-root Padding-horizontal--20 Padding-vertical--12"
+                                                                            style={{
+                                                                                paddingBottom:
+                                                                                    '100px',
+                                                                                paddingTop:
+                                                                                    '100px',
+                                                                            }}
+                                                                        >
+                                                                            <div
+                                                                                className="db-SideNav-icon db-SideNav-icon--square "
+                                                                                style={{
+                                                                                    backgroundRepeat:
+                                                                                        'no-repeat',
+                                                                                    backgroundSize:
+                                                                                        'contain',
+                                                                                    backgroundPosition:
+                                                                                        'center',
+                                                                                    height:
+                                                                                        '40px',
+                                                                                    width:
+                                                                                        '40px',
+                                                                                    marginRight:
+                                                                                        '50%',
+                                                                                    marginLeft:
+                                                                                        '50%',
+                                                                                }}
+                                                                            ></div>
+                                                                            <div
+                                                                                style={{
+                                                                                    width:
+                                                                                        '100%',
+                                                                                    padding:
+                                                                                        '10px',
+                                                                                    textAlign:
+                                                                                        'center',
+                                                                                }}
+                                                                            >
+                                                                                No
+                                                                                components
+                                                                                are
+                                                                                added
+                                                                                to
+                                                                                this
+                                                                                project.
+                                                                                Please
+                                                                                contact
+                                                                                your
+                                                                                project
+                                                                                admin.
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </ShouldRender>
+                                                    </RenderIfSubProjectMember>
+                                                </ShouldRender>
+
+                                                <ShouldRender
+                                                    if={
+                                                        this.props.component
+                                                            .componentList
+                                                            .requesting ||
+                                                        this.props
+                                                            .monitorListRequesting ||
+                                                        this.props
+                                                            .monitorsRequesting
+                                                    }
+                                                >
+                                                    <LoadingState />
+                                                </ShouldRender>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

@@ -3,7 +3,6 @@ import { PropTypes } from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import RoutingNumberBox from '../components/callrouting/RoutingNumberBox';
 import CallRoutingLog from '../components/callrouting/CallRoutingLog';
 import { logEvent } from '../analytics';
@@ -28,6 +27,18 @@ class CallRouting extends Component {
 
     componentWillMount() {
         resetIdCounter();
+    }
+
+    componentDidMount() {
+        this.ready();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps?.currentProject?._id !== this.props?.currentProject?._id
+        ) {
+            this.ready();
+        }
     }
 
     ready = () => {
@@ -60,50 +71,48 @@ class CallRouting extends Component {
         } = this.props;
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Project Settings"
-                    />
-                    <BreadCrumbItem route={pathname} name="Call Routing" />
-                    <div>
-                        <Tabs
-                            selectedTabClassName={'custom-tab-selected'}
-                            onSelect={tabIndex => this.tabSelected(tabIndex)}
-                            selectedIndex={this.state.tabIndex}
-                        >
-                            <div className="Flex-flex Flex-direction--columnReverse">
-                                <TabList
-                                    id="customTabList"
-                                    className={'custom-tab-list'}
-                                >
-                                    <Tab className={'custom-tab custom-tab-2'}>
-                                        Call Routing
-                                    </Tab>
-                                    <Tab className={'custom-tab custom-tab-2'}>
-                                        Call Routing Logs
-                                    </Tab>
-                                    <div
-                                        id="tab-slider"
-                                        className="custom-tab-2"
-                                    ></div>
-                                </TabList>
-                            </div>
-                            <TabPanel>
-                                <Fade>
-                                    <RoutingNumberBox />
-                                </Fade>
-                            </TabPanel>
-                            <TabPanel>
-                                <Fade>
-                                    <CallRoutingLog />
-                                </Fade>
-                            </TabPanel>
-                        </Tabs>
-                    </div>
-                </Fade>
-            </Dashboard>
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Call Routing" />
+                <div>
+                    <Tabs
+                        selectedTabClassName={'custom-tab-selected'}
+                        onSelect={tabIndex => this.tabSelected(tabIndex)}
+                        selectedIndex={this.state.tabIndex}
+                    >
+                        <div className="Flex-flex Flex-direction--columnReverse">
+                            <TabList
+                                id="customTabList"
+                                className={'custom-tab-list'}
+                            >
+                                <Tab className={'custom-tab custom-tab-2'}>
+                                    Call Routing
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-2'}>
+                                    Call Routing Logs
+                                </Tab>
+                                <div
+                                    id="tab-slider"
+                                    className="custom-tab-2"
+                                ></div>
+                            </TabList>
+                        </div>
+                        <TabPanel>
+                            <Fade>
+                                <RoutingNumberBox />
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <CallRoutingLog />
+                            </Fade>
+                        </TabPanel>
+                    </Tabs>
+                </div>
+            </Fade>
         );
     }
 }

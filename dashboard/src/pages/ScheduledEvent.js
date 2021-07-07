@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
-import Dashboard from '../components/Dashboard';
 import ScheduledEventBox from '../components/scheduledEvent/ScheduledEvent';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -15,22 +14,20 @@ class ScheduledEvent extends Component {
         } = this.props;
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem
-                        route={pathname}
-                        name="Scheduled Maintenance Event"
-                        pageTitle="Scheduled Event Detail"
-                        containerType="Scheduled Maintenance Event"
-                    />
-                    <div id="scheduleEventsPage">
-                        <ScheduledEventBox projectId={this.props.projectId} />
-                    </div>
-                    <ShouldRender if={this.props.requesting}>
-                        <LoadingState />
-                    </ShouldRender>
-                </Fade>
-            </Dashboard>
+            <Fade>
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Scheduled Maintenance Event"
+                    pageTitle="Scheduled Event Detail"
+                    containerType="Scheduled Maintenance Event"
+                />
+                <div id="scheduleEventsPage">
+                    <ScheduledEventBox projectId={this.props.projectId} />
+                </div>
+                <ShouldRender if={this.props.requesting}>
+                    <LoadingState />
+                </ShouldRender>
+            </Fade>
         );
     }
 }

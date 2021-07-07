@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import Invoice from '../components/invoice/Invoice';
 import PaymentCard from '../components/paymentCard/PaymentCard';
 import { logEvent } from '../analytics';
@@ -28,21 +27,16 @@ class ProfileBilling extends Component {
         } = this.props;
 
         return (
-            <Dashboard>
-                <Fade>
-                    <div className="Profile-Pages--view">
-                        <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
-                        <BreadCrumbItem route={pathname} name="Billing" />
-                        <div
-                            id="profileBilling"
-                            className="Margin-vertical--12"
-                        >
-                            <Invoice />
-                            <PaymentCard />
-                        </div>
+            <Fade>
+                <div className="Profile-Pages--view">
+                    <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
+                    <BreadCrumbItem route={pathname} name="Billing" />
+                    <div id="profileBilling" className="Margin-vertical--12">
+                        <Invoice />
+                        <PaymentCard />
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

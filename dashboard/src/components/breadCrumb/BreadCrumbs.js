@@ -4,21 +4,39 @@ import { CrumbItem, Breadcrumbs } from 'react-breadcrumbs-dynamic';
 import { PropTypes } from 'prop-types';
 import { Spinner } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
+import { bindActionCreators } from 'redux';
+import { closeIncident } from '../../actions/incident';
 
 function BreadCrumbs({
     styles,
-    showDeleteBtn,
-    close,
     name,
     closeIncidentRequest,
+    incidents,
+    currentProjectId,
+    closeIncident,
 }) {
     const [loading, setLoading] = useState(true);
+
+    const close = async () => {
+        const incidents = incidents;
+        const projectId = currentProjectId;
+        for (const incident of incidents) {
+            if (incident.resolved) {
+                closeIncident(projectId, incident._id);
+            }
+        }
+    };
+
     const closeAllIncidents = async () => {
         await close();
         setLoading(false);
     };
+
     const deleteBtnStyle =
         ' Flex-flex Flex-justifyContent--spaceBetween Flex-alignItems--center mobile-flex-direction-breadcrumb';
+
+    const showDeleteBtn = incidents.some(incident => incident.resolved);
+
     return (
         <div
             id="breadcrumb-wrap"
@@ -89,16 +107,33 @@ function BreadCrumbs({
 
 BreadCrumbs.displayName = 'BreadCrumbs';
 const mapStateToProps = state => {
+    const currentProjectId =
+        state.project.currentProject && state.project.currentProject._id;
     return {
         closeIncidentRequest: state.incident.closeincident,
+        incidents: state.incident.unresolvedincidents.incidents,
+        currentProjectId,
     };
+};
+
+const mapDispatchToProps = dispatch => {
+    return bindActionCreators(
+        {
+            closeIncident,
+        },
+        dispatch
+    );
 };
 BreadCrumbs.propTypes = {
     styles: PropTypes.string.isRequired,
-    showDeleteBtn: PropTypes.bool,
-    close: PropTypes.func,
     name: PropTypes.string,
     closeIncidentRequest: PropTypes.object,
+    incidents: PropTypes.oneOfType([
+        PropTypes.array,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    closeIncident: PropTypes.func,
+    currentProjectId: PropTypes.string,
 };
 
-export default connect(mapStateToProps, null)(BreadCrumbs);
+export default connect(mapStateToProps, mapDispatchToProps)(BreadCrumbs);

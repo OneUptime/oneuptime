@@ -75,10 +75,16 @@ module.exports = {
                 .limit(limit)
                 .skip(skip);
 
-            const applicationLogs = await populateColumns(
-                populate,
-                applicationLogQuery
-            );
+            let applicationLogs = applicationLogQuery;
+
+            // if populate array provided, populate columns
+            if (populate?.length) {
+                applicationLogs = await populateColumns(
+                    populate,
+                    applicationLogQuery
+                );
+            }
+
             return applicationLogs;
         } catch (error) {
             ErrorService.log('applicationLogService.findBy', error);

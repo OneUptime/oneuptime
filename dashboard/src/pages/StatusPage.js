@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import ShouldRender from '../components/basic/ShouldRender';
 import Setting from '../components/statusPage/Setting';
 import Basic from '../components/statusPage/Basic';
@@ -135,163 +134,103 @@ class StatusPage extends Component {
         };
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Status Pages"
-                    />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name={pageName}
-                        pageTitle="Status Page"
-                        status={pageName}
-                    />
-                    <div className="Box-root Margin-bottom--12">
-                        <Header />
-                    </div>
-                    <Tabs
-                        selectedTabClassName={'custom-tab-selected'}
-                        onSelect={tabIndex => this.tabSelected(tabIndex)}
-                        selectedIndex={this.state.tabIndex}
-                    >
-                        <div className="Flex-flex Flex-direction--columnReverse">
-                            <TabList
-                                id="customTabList"
-                                className={'custom-tab-list'}
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Status Pages"
+                />
+                <BreadCrumbItem
+                    route={pathname}
+                    name={pageName}
+                    pageTitle="Status Page"
+                    status={pageName}
+                />
+                <div className="Box-root Margin-bottom--12">
+                    <Header />
+                </div>
+                <Tabs
+                    selectedTabClassName={'custom-tab-selected'}
+                    onSelect={tabIndex => this.tabSelected(tabIndex)}
+                    selectedIndex={this.state.tabIndex}
+                >
+                    <div className="Flex-flex Flex-direction--columnReverse">
+                        <TabList
+                            id="customTabList"
+                            className={'custom-tab-list'}
+                        >
+                            <Tab
+                                className={'custom-tab custom-tab-6 basic-tab'}
                             >
-                                <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 basic-tab'
-                                    }
-                                >
-                                    Basic
-                                </Tab>
-                                <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 subscribers-tab'
-                                    }
-                                >
-                                    Subscribers
-                                </Tab>
-                                <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 announcements-tab'
-                                    }
-                                >
-                                    Announcements
-                                </Tab>
-                                <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 custom-domains-tab'
-                                    }
-                                >
-                                    Custom Domains
-                                </Tab>
-                                <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 branding-tab'
-                                    }
-                                >
-                                    Branding
-                                </Tab>
-                                <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 embedded-tab'
-                                    }
-                                >
-                                    Embedded
-                                </Tab>
-                                <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 advanced-options-tab'
-                                    }
-                                >
-                                    Advanced Options
-                                </Tab>
-                                <div
-                                    id="tab-slider"
-                                    className="custom-tab-6 status-tab"
-                                ></div>
-                            </TabList>
-                        </div>
+                                Basic
+                            </Tab>
+                            <Tab
+                                className={
+                                    'custom-tab custom-tab-6 subscribers-tab'
+                                }
+                            >
+                                Subscribers
+                            </Tab>
+                            <Tab
+                                className={
+                                    'custom-tab custom-tab-6 announcements-tab'
+                                }
+                            >
+                                Announcements
+                            </Tab>
+                            <Tab
+                                className={
+                                    'custom-tab custom-tab-6 custom-domains-tab'
+                                }
+                            >
+                                Custom Domains
+                            </Tab>
+                            <Tab
+                                className={
+                                    'custom-tab custom-tab-6 branding-tab'
+                                }
+                            >
+                                Branding
+                            </Tab>
+                            <Tab
+                                className={
+                                    'custom-tab custom-tab-6 embedded-tab'
+                                }
+                            >
+                                Embedded
+                            </Tab>
+                            <Tab
+                                className={
+                                    'custom-tab custom-tab-6 advanced-options-tab'
+                                }
+                            >
+                                Advanced Options
+                            </Tab>
+                            <div
+                                id="tab-slider"
+                                className="custom-tab-6 status-tab"
+                            ></div>
+                        </TabList>
+                    </div>
 
-                        <div className="Box-root">
+                    <div className="Box-root">
+                        <div>
                             <div>
-                                <div>
-                                    <div className="db-BackboneViewContainer">
-                                        <div className="react-settings-view react-view">
-                                            <span data-reactroot="">
+                                <div className="db-BackboneViewContainer">
+                                    <div className="react-settings-view react-view">
+                                        <span data-reactroot="">
+                                            <div>
                                                 <div>
-                                                    <div>
-                                                        <ShouldRender
-                                                            if={
-                                                                !this.props
-                                                                    .statusPage
-                                                                    .requesting
-                                                            }
-                                                        >
-                                                            <TabPanel>
-                                                                <Fade>
-                                                                    <div className="Box-root Margin-bottom--12">
-                                                                        <Basic
-                                                                            currentProject={
-                                                                                this
-                                                                                    .props
-                                                                                    .currentProject
-                                                                            }
-                                                                        />
-                                                                    </div>
-                                                                    <RenderIfSubProjectAdmin
-                                                                        subProjectId={
-                                                                            this
-                                                                                .props
-                                                                                .subProjectId
-                                                                        }
-                                                                    >
-                                                                        <div className="Box-root Margin-bottom--12">
-                                                                            <Monitors
-                                                                                subProjectId={
-                                                                                    this
-                                                                                        .props
-                                                                                        .subProjectId
-                                                                                }
-                                                                            />
-                                                                        </div>
-                                                                    </RenderIfSubProjectAdmin>
-                                                                </Fade>
-                                                            </TabPanel>
-                                                            <TabPanel>
-                                                                <div className="Box-root Margin-bottom--12 bs-ContentSection Card-root Card-shadow--medium>">
-                                                                    <StatusPageSubscriber
-                                                                        projectId={
-                                                                            data.projectId
-                                                                        }
-                                                                        statusPage={
-                                                                            status
-                                                                        }
-                                                                        currentProject={
-                                                                            this
-                                                                                .props
-                                                                                .currentProject
-                                                                        }
-                                                                        subProjects={
-                                                                            this
-                                                                                .props
-                                                                                .subProjects
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                            </TabPanel>
-                                                            <TabPanel>
-                                                                <div>
-                                                                    <Announcements
-                                                                        projectId={
-                                                                            data.projectId
-                                                                        }
-                                                                        statusPage={
-                                                                            status
-                                                                        }
+                                                    <ShouldRender
+                                                        if={
+                                                            !this.props
+                                                                .statusPage
+                                                                .requesting
+                                                        }
+                                                    >
+                                                        <TabPanel>
+                                                            <Fade>
+                                                                <div className="Box-root Margin-bottom--12">
+                                                                    <Basic
                                                                         currentProject={
                                                                             this
                                                                                 .props
@@ -299,133 +238,189 @@ class StatusPage extends Component {
                                                                         }
                                                                     />
                                                                 </div>
-                                                            </TabPanel>
-                                                            <TabPanel>
-                                                                <Fade>
+                                                                <RenderIfSubProjectAdmin
+                                                                    subProjectId={
+                                                                        this
+                                                                            .props
+                                                                            .subProjectId
+                                                                    }
+                                                                >
                                                                     <div className="Box-root Margin-bottom--12">
-                                                                        <Setting />
-                                                                    </div>
-                                                                </Fade>
-                                                            </TabPanel>
-                                                            <TabPanel>
-                                                                <Fade>
-                                                                    <RenderIfSubProjectAdmin
-                                                                        subProjectId={
-                                                                            this
-                                                                                .props
-                                                                                .subProjectId
-                                                                        }
-                                                                    >
-                                                                        <div className="Box-root Margin-bottom--12">
-                                                                            <Themes
-                                                                                data={
-                                                                                    data
-                                                                                }
-                                                                            />
-                                                                        </div>
-                                                                        <div className="Box-root Margin-bottom--12">
-                                                                            <Branding />
-                                                                        </div>
-                                                                        <div className="Box-root Margin-bottom--12">
-                                                                            <Links />
-                                                                        </div>
-                                                                        <div className="Box-root Margin-bottom--12">
-                                                                            <CustomStyles />
-                                                                        </div>
-                                                                        <div className="Box-root Margin-bottom--12">
-                                                                            <StatusPageLayout />
-                                                                        </div>
-                                                                    </RenderIfSubProjectAdmin>
-                                                                </Fade>
-                                                            </TabPanel>
-                                                            <TabPanel>
-                                                                <Fade>
-                                                                    <div className="Box-root Margin-bottom--12">
-                                                                        <EmbeddedBubble />
-                                                                    </div>
-                                                                </Fade>
-                                                            </TabPanel>
-                                                            <TabPanel>
-                                                                <Fade>
-                                                                    <RenderIfSubProjectAdmin
-                                                                        subProjectId={
-                                                                            this
-                                                                                .props
-                                                                                .subProjectId
-                                                                        }
-                                                                    >
-                                                                        <div className="Box-root Margin-bottom--12">
-                                                                            <PrivateStatusPage />
-                                                                        </div>
-                                                                        <div className="Box-root Margin-bottom--12">
-                                                                            <DuplicateStatusBox
-                                                                                statusPageId={
-                                                                                    this
-                                                                                        .props
-                                                                                        .statusPage
-                                                                                        .status
-                                                                                        ._id
-                                                                                }
-                                                                                subProjectId={
-                                                                                    this
-                                                                                        .props
-                                                                                        .subProjectId
-                                                                                }
-                                                                                projectId={
-                                                                                    history.location.pathname
-                                                                                        .split(
-                                                                                            'project/'
-                                                                                        )[1]
-                                                                                        .split(
-                                                                                            '/'
-                                                                                        )[0]
-                                                                                }
-                                                                            />
-                                                                        </div>
-                                                                    </RenderIfSubProjectAdmin>
-                                                                    <RenderIfSubProjectAdmin
-                                                                        subProjectId={
-                                                                            this
-                                                                                .props
-                                                                                .subProjectId
-                                                                        }
-                                                                    >
-                                                                        <DeleteBox
-                                                                            match={
-                                                                                this
-                                                                                    .props
-                                                                                    .match
-                                                                            }
+                                                                        <Monitors
                                                                             subProjectId={
                                                                                 this
                                                                                     .props
                                                                                     .subProjectId
                                                                             }
                                                                         />
-                                                                    </RenderIfSubProjectAdmin>
-                                                                </Fade>
-                                                            </TabPanel>
-                                                        </ShouldRender>
-                                                        <ShouldRender
-                                                            if={
-                                                                this.props
-                                                                    .statusPage
-                                                                    .requesting
-                                                            }
-                                                        >
-                                                            <LoadingState />
-                                                        </ShouldRender>
-                                                    </div>
+                                                                    </div>
+                                                                </RenderIfSubProjectAdmin>
+                                                            </Fade>
+                                                        </TabPanel>
+                                                        <TabPanel>
+                                                            <div className="Box-root Margin-bottom--12 bs-ContentSection Card-root Card-shadow--medium>">
+                                                                <StatusPageSubscriber
+                                                                    projectId={
+                                                                        data.projectId
+                                                                    }
+                                                                    statusPage={
+                                                                        status
+                                                                    }
+                                                                    currentProject={
+                                                                        this
+                                                                            .props
+                                                                            .currentProject
+                                                                    }
+                                                                    subProjects={
+                                                                        this
+                                                                            .props
+                                                                            .subProjects
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </TabPanel>
+                                                        <TabPanel>
+                                                            <div>
+                                                                <Announcements
+                                                                    projectId={
+                                                                        data.projectId
+                                                                    }
+                                                                    statusPage={
+                                                                        status
+                                                                    }
+                                                                    currentProject={
+                                                                        this
+                                                                            .props
+                                                                            .currentProject
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </TabPanel>
+                                                        <TabPanel>
+                                                            <Fade>
+                                                                <div className="Box-root Margin-bottom--12">
+                                                                    <Setting />
+                                                                </div>
+                                                            </Fade>
+                                                        </TabPanel>
+                                                        <TabPanel>
+                                                            <Fade>
+                                                                <RenderIfSubProjectAdmin
+                                                                    subProjectId={
+                                                                        this
+                                                                            .props
+                                                                            .subProjectId
+                                                                    }
+                                                                >
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <Themes
+                                                                            data={
+                                                                                data
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <Branding />
+                                                                    </div>
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <Links />
+                                                                    </div>
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <CustomStyles />
+                                                                    </div>
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <StatusPageLayout />
+                                                                    </div>
+                                                                </RenderIfSubProjectAdmin>
+                                                            </Fade>
+                                                        </TabPanel>
+                                                        <TabPanel>
+                                                            <Fade>
+                                                                <div className="Box-root Margin-bottom--12">
+                                                                    <EmbeddedBubble />
+                                                                </div>
+                                                            </Fade>
+                                                        </TabPanel>
+                                                        <TabPanel>
+                                                            <Fade>
+                                                                <RenderIfSubProjectAdmin
+                                                                    subProjectId={
+                                                                        this
+                                                                            .props
+                                                                            .subProjectId
+                                                                    }
+                                                                >
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <PrivateStatusPage />
+                                                                    </div>
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <DuplicateStatusBox
+                                                                            statusPageId={
+                                                                                this
+                                                                                    .props
+                                                                                    .statusPage
+                                                                                    .status
+                                                                                    ._id
+                                                                            }
+                                                                            subProjectId={
+                                                                                this
+                                                                                    .props
+                                                                                    .subProjectId
+                                                                            }
+                                                                            projectId={
+                                                                                history.location.pathname
+                                                                                    .split(
+                                                                                        'project/'
+                                                                                    )[1]
+                                                                                    .split(
+                                                                                        '/'
+                                                                                    )[0]
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </RenderIfSubProjectAdmin>
+                                                                <RenderIfSubProjectAdmin
+                                                                    subProjectId={
+                                                                        this
+                                                                            .props
+                                                                            .subProjectId
+                                                                    }
+                                                                >
+                                                                    <DeleteBox
+                                                                        match={
+                                                                            this
+                                                                                .props
+                                                                                .match
+                                                                        }
+                                                                        subProjectId={
+                                                                            this
+                                                                                .props
+                                                                                .subProjectId
+                                                                        }
+                                                                    />
+                                                                </RenderIfSubProjectAdmin>
+                                                            </Fade>
+                                                        </TabPanel>
+                                                    </ShouldRender>
+                                                    <ShouldRender
+                                                        if={
+                                                            this.props
+                                                                .statusPage
+                                                                .requesting
+                                                        }
+                                                    >
+                                                        <LoadingState />
+                                                    </ShouldRender>
                                                 </div>
-                                            </span>
-                                        </div>
+                                            </div>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </Tabs>
-                </Fade>
-            </Dashboard>
+                    </div>
+                </Tabs>
+            </Fade>
         );
     }
 }

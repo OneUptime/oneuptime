@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { PropTypes } from 'prop-types';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import WebHookBox from '../components/webHooks/WebHookBox';
 import ZapierBox from '../components/zapier/ZapierBox';
 import { logEvent } from '../analytics';
@@ -30,20 +29,18 @@ class Integrations extends Component {
         } = this.props;
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Project Settings"
-                    />
-                    <BreadCrumbItem route={pathname} name="Integrations" />
-                    <WebHookBox />
-                    <IncomingRequestBox />
-                    <MSTeamsBox />
-                    <SlackBox />
-                    <ZapierBox />
-                </Fade>
-            </Dashboard>
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Integrations" />
+                <WebHookBox />
+                <IncomingRequestBox />
+                <MSTeamsBox />
+                <SlackBox />
+                <ZapierBox />
+            </Fade>
         );
     }
 }
