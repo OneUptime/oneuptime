@@ -302,7 +302,8 @@ module.exports = {
                     );
                 }
                 const monitors = await MonitorService.findBy({
-                    componentId: component._id,
+                    query: { componentId: component._id },
+                    select: '_id',
                 });
 
                 for (const monitor of monitors) {

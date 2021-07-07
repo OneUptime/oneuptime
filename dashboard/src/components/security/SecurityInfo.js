@@ -34,15 +34,15 @@ const SecurityInfo = ({
     activeApplicationSecurity,
     activeContainerSecurity,
     slug,
-    scannedStatus
+    scannedStatus,
 }) => {
     let currentScannedStatus = true;
-    scannedStatus.forEach(scan =>{
-        if(applicationSecurityId === scan._id){
-            currentScannedStatus = scan.scanned
+    scannedStatus.forEach(scan => {
+        if (applicationSecurityId === scan._id) {
+            currentScannedStatus = scan.scanned;
         }
-    })
-   
+    });
+
     const scanSecurity = () => {
         if (applicationSecurityId) {
             openModal({
@@ -236,7 +236,8 @@ const SecurityInfo = ({
                                 String(containerSecurityId) ===
                                     String(activeContainerSecurity)) ||
                             security.scanning ||
-                            !security.lastScan || (currentScannedStatus === false )? (
+                            !security.lastScan ||
+                            currentScannedStatus === false ? (
                                 <button
                                     className="bs-Button bs-DeprecatedButton"
                                     disabled={
@@ -245,7 +246,8 @@ const SecurityInfo = ({
                                         (containerSecurityId &&
                                             scanningContainer) ||
                                         security.scanning ||
-                                        !security.lastScan || currentScannedStatus === false
+                                        !security.lastScan ||
+                                        currentScannedStatus === false
                                     }
                                     id={
                                         (applicationSecurityId &&

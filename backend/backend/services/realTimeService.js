@@ -776,7 +776,10 @@ module.exports = {
                 return;
             }
 
-            const monitor = await MonitorService.findOneBy({ _id: monitorId });
+            const monitor = await MonitorService.findOneBy({
+                query: { _id: monitorId },
+                select: 'projectId',
+            });
 
             if (!monitor) {
                 return;

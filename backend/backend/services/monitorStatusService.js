@@ -202,7 +202,9 @@ module.exports = {
     async sendMonitorStatus(data) {
         try {
             const monitor = await MonitorService.findOneBy({
-                _id: data.monitorId,
+                query: { _id: data.monitorId },
+                select: 'projectId',
+                populate: [{ path: 'projectId', select: '_id' }],
             });
             if (monitor) {
                 // run in the background

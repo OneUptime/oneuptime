@@ -18,7 +18,8 @@ module.exports = {
             const {
                 lastMatchedCriterion: matchedCriterion,
             } = await MonitorService.findOneBy({
-                _id: monitorId,
+                query: { _id: monitorId },
+                select: 'lastMatchedCriterion',
             });
             let schedules = [];
 
@@ -361,8 +362,14 @@ module.exports = {
             return;
         }
 
+        const monitorPopulate = [{ path: 'componentId', select: 'name' }];
+        const monitorSelect = '_id name data method componentId';
         const [monitor, callScheduleStatuses, escalation] = await Promise.all([
-            MonitorService.findOneBy({ _id: monitorId }),
+            MonitorService.findOneBy({
+                query: { _id: monitorId },
+                populate: monitorPopulate,
+                select: monitorSelect,
+            }),
             OnCallScheduleStatusService.findBy({
                 query: { incident: incident._id, schedule: schedule },
             }),
@@ -1748,10 +1755,17 @@ module.exports = {
                     ? incident.projectId._id
                     : incident.projectId;
 
+                const monitorPopulate = [
+                    { path: 'componentId', select: 'name' },
+                ];
+                const monitorSelect = '_id name data method componentId';
+
                 const [schedules, mon, project] = await Promise.all([
                     this.getSchedulesForAlerts(incident, monitor),
                     MonitorService.findOneBy({
-                        _id: monitor._id,
+                        query: { _id: monitor._id },
+                        populate: monitorPopulate,
+                        select: monitorSelect,
                     }),
                     ProjectService.findOneBy({
                         _id: projectId,
@@ -2061,10 +2075,17 @@ module.exports = {
                     ? incident.projectId._id
                     : incident.projectId;
 
+                const monitorPopulate = [
+                    { path: 'componentId', select: 'name' },
+                ];
+                const monitorSelect = '_id name data method componentId';
+
                 const [schedules, mon, project] = await Promise.all([
                     this.getSchedulesForAlerts(incident, monitor),
                     MonitorService.findOneBy({
-                        _id: monitor._id,
+                        query: { _id: monitor._id },
+                        populate: monitorPopulate,
+                        select: monitorSelect,
                     }),
                     ProjectService.findOneBy({
                         _id: projectId,
@@ -2487,12 +2508,19 @@ module.exports = {
             const statusPageNoteAlertEventType = `Investigation note ${statusNoteStatus}`;
 
             const projectId = incident.projectId._id || incident.projectId;
+            const monitorPopulate = [
+                { path: 'componentId', select: '_id' },
+                { path: 'projectId', select: 'slug' },
+            ];
+            const monitorSelect = '_id customFields componentId projectId';
             const [project, mon] = await Promise.all([
                 ProjectService.findOneBy({
                     _id: projectId,
                 }),
                 MonitorService.findOneBy({
-                    _id: monitor._id,
+                    query: { _id: monitor._id },
+                    populate: monitorPopulate,
+                    select: monitorSelect,
                 }),
             ]);
             monitor = mon;
@@ -3617,8 +3645,8 @@ module.exports = {
                 );
 
             const monitorsAffected = await MonitorService.findBy({
-                _id: { $in: monitorIds },
-                deleted: false,
+                query: { _id: { $in: monitorIds }, deleted: false },
+                select: 'name',
             });
 
             if (message) {
@@ -4482,8 +4510,8 @@ module.exports = {
                 message && message.monitors.map(monitor => monitor.monitorId);
 
             const monitorsAffected = await MonitorService.findBy({
-                _id: { $in: monitorIds },
-                deleted: false,
+                query: { _id: { $in: monitorIds }, deleted: false },
+                select: 'name',
             });
 
             if (message) {

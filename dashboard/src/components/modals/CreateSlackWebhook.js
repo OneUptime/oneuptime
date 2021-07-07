@@ -122,7 +122,9 @@ class CreateSlack extends React.Component {
 
         const getParentComponent = monitor =>
             allComponents.filter(
-                component => component._id === monitor.componentId._id
+                component =>
+                    component._id === monitor.componentId._id ||
+                    monitor.componentId
             )[0];
 
         return (

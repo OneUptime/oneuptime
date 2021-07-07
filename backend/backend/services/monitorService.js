@@ -9,11 +9,18 @@ module.exports = {
         try {
             const _this = this;
             let subProject = null;
-            const existingMonitor = await _this.findBy({
+
+            const query = {
                 name: data.name,
                 componentId: data.componentId,
                 projectId: data.projectId,
+            };
+            const select = 'name _id';
+            const existingMonitor = await _this.findBy({
+                query,
+                select,
             });
+
             if (existingMonitor && existingMonitor.length > 0) {
                 const error = new Error(
                     'Monitor with that name already exists.'
@@ -156,7 +163,21 @@ module.exports = {
                         monitor.slug = getSlug(data.name);
                     }
                     const savedMonitor = await monitor.save();
-                    monitor = await _this.findOneBy({ _id: savedMonitor._id });
+
+                    const select = '-__v -createdAt';
+                    const populate = [
+                        {
+                            path: 'monitorSla',
+                            select: 'frequency _id',
+                        },
+                        { path: 'componentId', select: 'name' },
+                        { path: 'incidentCommunicationSla', select: '_id' },
+                    ];
+                    monitor = await _this.findOneBy({
+                        query: { _id: savedMonitor._id },
+                        select,
+                        populate,
+                    });
                     if (data.type === 'manual') {
                         await MonitorStatusService.create({
                             monitorId: monitor._id,
@@ -194,10 +215,11 @@ module.exports = {
 
             let errorMsg;
             if (data && data.customFields && data.customFields.length > 0) {
-                const monitor = await _this.findOneBy(query);
+                const select = '_id';
+                const monitor = await _this.findOneBy({ query, select });
                 for (const field of data.customFields) {
                     if (field.uniqueField) {
-                        const _monitor = await _this.findOneBy({
+                        const query = {
                             customFields: {
                                 $elemMatch: {
                                     fieldName: field.fieldName,
@@ -205,6 +227,10 @@ module.exports = {
                                     fieldValue: field.fieldValue,
                                 },
                             },
+                        };
+                        const _monitor = await _this.findOneBy({
+                            query,
+                            select,
                         });
 
                         if (
@@ -246,7 +272,17 @@ module.exports = {
                 );
             }
             query.deleted = false;
-            const monitor = await this.findOneBy(query);
+
+            const select = '-__v -createdAt';
+            const populate = [
+                {
+                    path: 'monitorSla',
+                    select: 'frequency _id',
+                },
+                { path: 'componentId', select: 'name' },
+                { path: 'incidentCommunicationSla', select: '_id' },
+            ];
+            const monitor = await this.findOneBy({ query, select, populate });
             // run in the background
             RealTimeService.monitorEdit(monitor);
 
@@ -267,7 +303,16 @@ module.exports = {
             let updatedData = await MonitorModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const select = '-__v -createdAt';
+            const populate = [
+                {
+                    path: 'monitorSla',
+                    select: 'frequency _id',
+                },
+                { path: 'componentId', select: 'name' },
+                { path: 'incidentCommunicationSla', select: '_id' },
+            ];
+            updatedData = await this.findBy({ query, select, populate });
             return updatedData;
         } catch (error) {
             ErrorService.log('monitorService.updateMany', error);
@@ -279,7 +324,7 @@ module.exports = {
     //Params:
     //Param 1: data: MonitorModal.
     //Returns: promise with monitor model or error.
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, populate = null, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -472,10 +517,25 @@ module.exports = {
             if (typeof skip === 'string') skip = parseInt(skip);
             const _this = this;
 
+            const select = '-__v -createdAt';
+            const populate = [
+                {
+                    path: 'monitorSla',
+                    select: 'frequency _id',
+                },
+                { path: 'componentId', select: 'name' },
+                { path: 'incidentCommunicationSla', select: '_id' },
+            ];
             const subProjectMonitors = await Promise.all(
                 subProjectIds.map(async id => {
                     const [monitors, count] = await Promise.all([
-                        _this.findBy({ projectId: id }, limit, skip),
+                        _this.findBy({
+                            query: { projectId: id },
+                            limit,
+                            skip,
+                            select,
+                            populate,
+                        }),
                         _this.countBy({ projectId: id }),
                     ]);
 
@@ -789,8 +849,8 @@ module.exports = {
         try {
             const thisObj = this;
             let monitor = await thisObj.findOneBy({
-                projectId: projectId,
-                data: { deviceId: deviceId },
+                query: { projectId: projectId, data: { deviceId: deviceId } },
+                select: '_id',
             });
 
             if (!monitor) {
@@ -827,7 +887,11 @@ module.exports = {
 
             await this.updateMonitorSlaStat({ _id: monitorId });
 
-            const monitor = await this.findOneBy({ _id: monitorId });
+            const select = 'type agentlessConfig createdAt';
+            const monitor = await this.findOneBy({
+                query: { _id: monitorId },
+                select,
+            });
             const isNewMonitor =
                 moment(endDate).diff(moment(monitor.createdAt), 'days') < 2;
 
@@ -898,7 +962,10 @@ module.exports = {
         try {
             const start = moment(startDate).toDate();
             const end = moment(endDate).toDate();
-            const monitor = await this.findOneBy({ _id: monitorId });
+            const monitor = await this.findOneBy({
+                query: { _id: monitorId },
+                select: 'type agentlessConfig',
+            });
             let probes;
             if (monitor.type === 'server-monitor' && !monitor.agentlessConfig) {
                 probes = [undefined];
@@ -938,7 +1005,10 @@ module.exports = {
         try {
             const start = moment(startDate).toDate();
             const end = moment(endDate).toDate();
-            const monitor = await this.findOneBy({ _id: monitorId });
+            const monitor = await this.findOneBy({
+                query: { _id: monitorId },
+                select: 'type agentlessConfig',
+            });
 
             let probes;
             const probeStatuses = [];
@@ -1017,7 +1087,7 @@ module.exports = {
 
     addSiteUrl: async function(query, data) {
         try {
-            let monitor = await this.findOneBy(query);
+            let monitor = await this.findOneBy({ query, select: 'siteUrls' });
 
             if (
                 monitor.siteUrls &&
@@ -1043,7 +1113,7 @@ module.exports = {
 
     removeSiteUrl: async function(query, data) {
         try {
-            let monitor = await this.findOneBy(query);
+            let monitor = await this.findOneBy({ query, select: 'siteUrls' });
             const siteUrlIndex =
                 monitor.siteUrls && monitor.siteUrls.length > 0
                     ? monitor.siteUrls.indexOf(data.siteUrl)
@@ -1084,7 +1154,10 @@ module.exports = {
         try {
             const _this = this;
             const [monitorTime, monitorIncidents] = await Promise.all([
-                _this.findOneBy({ _id: monitorId }),
+                _this.findOneBy({
+                    query: { _id: monitorId },
+                    select: 'createdAt',
+                }),
                 IncidentService.findBy({
                     'monitors.monitorId': monitorId,
                 }),
@@ -1219,7 +1292,8 @@ module.exports = {
     restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
-        const monitor = await _this.findBy(query);
+        const select = '_id';
+        const monitor = await _this.findBy({ query, select });
         if (monitor && monitor.length > 0) {
             const monitors = await Promise.all(
                 monitor.map(async monitor => {
@@ -1253,14 +1327,21 @@ module.exports = {
             const _this = this;
             const currentDate = moment().format();
             let startDate = moment(currentDate).subtract(30, 'days'); // default frequency
-            const monitor = await this.findOneBy(query);
+            const populate = [
+                { path: 'monitorSla', select: 'frequency monitorUptime' },
+            ];
+            const monitor = await this.findOneBy({
+                query,
+                select: '_id monitorSla projectId',
+                populate,
+            });
             if (monitor) {
                 // eslint-disable-next-line prefer-const
                 let { monitorSla, projectId } = monitor;
 
                 if (!monitorSla) {
                     monitorSla = await MonitorSlaService.findOneBy({
-                        projectId: projectId._id,
+                        projectId: projectId._id || projectId,
                         isDefault: true,
                     });
                 }
@@ -1305,7 +1386,8 @@ module.exports = {
                     }
 
                     const monitorData = await this.findOneBy({
-                        _id: monitor._id,
+                        query: { _id: monitor._id },
+                        select: '-__v',
                     });
                     // run in the background
                     RealTimeService.monitorEdit(monitorData);
@@ -1545,7 +1627,7 @@ module.exports = {
 
     changeMonitorComponent: async function(projectId, monitorId, componentId) {
         const [monitor, component] = await Promise.all([
-            this.findOneBy({ _id: monitorId }),
+            this.findOneBy({ query: { _id: monitorId }, select: 'projectId' }),
             componentService.findOneBy({
                 _id: componentId,
             }),
@@ -1553,8 +1635,8 @@ module.exports = {
 
         // ensure monitor and component belong to same project
         if (
-            !monitor.projectId.equals(projectId) ||
-            !component.projectId.equals(projectId)
+            String(monitor.projectId) !== String(projectId) ||
+            String(component.projectId) !== String(projectId)
         ) {
             throw new Error(
                 'Monitor and component do not belong to the same project or sub-project'
@@ -1840,3 +1922,5 @@ const MonitorSlaService = require('./monitorSlaService');
 const IncomingRequestService = require('./incomingRequestService');
 const componentService = require('./componentService');
 const getSlug = require('../utils/getSlug');
+const handlePopulate = require('../utils/populate');
+const handleSelect = require('../utils/select');

@@ -323,7 +323,8 @@ module.exports = {
         try {
             const [monitor, incidents] = await Promise.all([
                 MonitorService.findOneBy({
-                    _id: data.monitorId,
+                    query: { _id: data.monitorId },
+                    select: 'type',
                 }),
                 IncidentService.findBy({
                     'monitors.monitorId': data.monitorId,
@@ -584,7 +585,8 @@ module.exports = {
             });
 
             const monitor = await MonitorService.findOneBy({
-                _id: data.monitorId,
+                query: { _id: data.monitorId },
+                select: 'type',
             });
 
             // should grab all the criterion for the monitor and put them into one array
@@ -1261,7 +1263,12 @@ module.exports = {
             logData.responseStatus = null;
             logData.status = status;
             logData.probeId = null;
-            logData.monitorId = monitor && monitor.id ? monitor.id : null;
+            logData.monitorId =
+                monitor && monitor.id
+                    ? monitor.id
+                    : monitor._id
+                    ? monitor._id
+                    : null;
             logData.sslCertificate = null;
             logData.lighthouseScanStatus = null;
             logData.performance = null;
@@ -1373,7 +1380,12 @@ module.exports = {
             logData.responseStatus = null;
             logData.status = status;
             logData.probeId = probeId;
-            logData.monitorId = monitor && monitor.id ? monitor.id : null;
+            logData.monitorId =
+                monitor && monitor.id
+                    ? monitor.id
+                    : monitor._id
+                    ? monitor._id
+                    : null;
             logData.sslCertificate = null;
             logData.lighthouseScanStatus = null;
             logData.performance = null;
