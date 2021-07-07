@@ -19,6 +19,9 @@ module.exports = (select, query) => {
             throw error;
         }
 
+        // TODO: Validate Select. 
+        // Validate to make sure it does not have "-" negated columns.  
+
         return query.select(select);
     } catch (error) {
         ErrorService.log('select', error);
