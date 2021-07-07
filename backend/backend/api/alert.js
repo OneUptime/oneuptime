@@ -168,10 +168,10 @@ router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
 
         //Important! Always pass required field(s)
         const populate = [
-            { table: 'alertId', field: 'alertVia' },
-            { table: 'subscriberAlertId', field: 'alertVia' },
-            { table: 'monitorId', field: 'name slug' },
-            { table: 'incidentId', field: 'idNumber' },
+            { path: 'alertId', select: 'alertVia' },
+            { path: 'subscriberAlertId', select: 'alertVia' },
+            { path: 'monitorId', select: 'name slug' },
+            { path: 'incidentId', select: 'idNumber' },
         ];
 
         const [alertCharges, count] = await Promise.all([

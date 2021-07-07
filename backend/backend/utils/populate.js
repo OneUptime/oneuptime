@@ -1,5 +1,5 @@
 const ErrorService = require('../services/errorService');
-module.exports = (populateArray = null, query) => {
+module.exports = (populateArray, query) => {
     /**
      * populate should be an array of object
      *
@@ -17,7 +17,6 @@ module.exports = (populateArray = null, query) => {
             error.code = 400;
             throw error;
         }
-
         return query.populate(populateArray);
     } catch (error) {
         ErrorService.log('populate', error);
