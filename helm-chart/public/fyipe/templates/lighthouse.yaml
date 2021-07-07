@@ -1,0 +1,76 @@
+#######-------- LIGHTHOUSE RUNNER --------#########
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "lighthouse-runner" }}
+    namespace: {{ .Release.Namespace }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "lighthouse-runner" }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+      matchLabels:
+          app: {{ printf "%s-%s" .Release.Name "lighthouse-runner" }}
+  replicas: 1
+  template:
+      metadata:
+          labels:
+              app: {{ printf "%s-%s" .Release.Name "lighthouse-runner" }}
+      spec:
+          containers:
+              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "lighthouse-runner" .Values.image.tag }}
+                name: {{ printf "%s-%s" .Release.Name "lighthouse-runner" }}
+                imagePullPolicy: {{ .Values.image.pullPolicy }}
+                env:
+                    - name: NODE_ENV
+                      value: 'production'
+                    - name: PORT
+                      value: {{ .Values.host.lighthouseRunnerPort | quote }}
+                    - name: SERVER_URL
+                      value: {{ template "fyipe.serverUrl" $ }}
+                    - name: IS_SAAS_SERVICE
+                      value: 'true'
+                ports:
+                    - containerPort: {{ .Values.host.lighthouseRunnerPort }}
+                      hostPort: {{ .Values.host.lighthouseRunnerPort }}
+                      name: {{ printf "%s-%s" .Release.Name "lighthouse-runner" }}
+          restartPolicy: {{ .Values.image.restartPolicy }}
+---
+
+# Fyipe Lighthouse Runner Deployment
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "lighthouse-runner"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" .Release.Name "lighthouse-runner"  }}
+    namespace: {{ .Release.Namespace }}
+spec:
+    ports:
+        - port: {{ .Values.host.lighthouseRunnerServicePort }}
+          targetPort: {{ .Values.host.lighthouseRunnerPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "lighthouse-runner"  }}
+    type: ClusterIP
+---
+###################################
+
+
+{{- if .Values.autoScaler.enabled }}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ printf "%s-%s" .Release.Name "lighthouse-runner"  }}
+spec:
+  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
+  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ printf "%s-%s" .Release.Name "lighthouse-runner"  }}
+  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+---
+{{- end }}

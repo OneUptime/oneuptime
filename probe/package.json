@@ -28,7 +28,6 @@
         "custom-env": "^2.0.1",
         "express": "^4.17.1",
         "get-ssl-certificate": "^2.3.3",
-        "lighthouse": "^6.0.0",
         "moment": "^2.24.0",
         "newrelic": "^7.5.1",
         "node-cron": "^2.0.3",
