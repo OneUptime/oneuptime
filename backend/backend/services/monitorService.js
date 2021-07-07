@@ -298,19 +298,17 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const monitors = await MonitorModel.find(query)
+
+            let monitors = MonitorModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId', 'name')
-                .populate('componentId', 'name slug')
-                .populate('resourceCategory', 'name')
-                .populate('incidentCommunicationSla')
-                .populate('criteria.up.scripts.scriptId', 'name')
-                .populate('criteria.down.scripts.scriptId', 'name')
-                .populate('criteria.degraded.scripts.scriptId', 'name')
-                .populate('monitorSla');
+                .skip(skip);
+
+            monitors = await handlePopulate(
+                populate,
+                handleSelect(select, monitors)
+            );
             return monitors;
         } catch (error) {
             ErrorService.log('monitorService.findBy', error);
@@ -318,23 +316,21 @@ module.exports = {
         }
     },
 
-    async findOneBy(query) {
+    async findOneBy({ query, populate = null, select }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const monitor = await MonitorModel.findOne(query)
-                .lean()
-                .populate('projectId', ['_id', 'name', 'slug'])
-                .populate('componentId', ['_id', 'name', 'slug'])
-                .populate('resourceCategory', 'name')
-                .populate('incidentCommunicationSla')
-                .populate('criteria.up.scripts.scriptId', 'name')
-                .populate('criteria.down.scripts.scriptId', 'name')
-                .populate('criteria.degraded.scripts.scriptId', 'name')
-                .populate('monitorSla');
+
+            let monitor = MonitorModel.findOne(query).lean();
+
+            monitor = await handlePopulate(
+                populate,
+                handleSelect(select, monitor)
+            );
+
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);
