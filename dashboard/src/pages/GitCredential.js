@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { getGitCredentials } from '../actions/credential';
@@ -52,38 +51,36 @@ class GitCredential extends Component {
         } = this.props;
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Project Settings"
-                    />
-                    <BreadCrumbItem route={pathname} name="Git Credentials" />
-                    <div className="Margin-vertical--12">
-                        <div>
-                            <TutorialBox
-                                type="gitCredentials"
-                                currentProjectId={projectId}
-                            />
-                            <div
-                                id="gitCredentialPage"
-                                className="db-BackboneViewContainer"
-                            >
-                                <div className="react-settings-view react-view">
-                                    <span>
-                                        <GitCredentialList
-                                            gitCredentials={gitCredentials}
-                                            error={getError}
-                                            projectId={projectId}
-                                            isRequesting={isRequesting}
-                                        />
-                                    </span>
-                                </div>
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Git Credentials" />
+                <div className="Margin-vertical--12">
+                    <div>
+                        <TutorialBox
+                            type="gitCredentials"
+                            currentProjectId={projectId}
+                        />
+                        <div
+                            id="gitCredentialPage"
+                            className="db-BackboneViewContainer"
+                        >
+                            <div className="react-settings-view react-view">
+                                <span>
+                                    <GitCredentialList
+                                        gitCredentials={gitCredentials}
+                                        error={getError}
+                                        projectId={projectId}
+                                        isRequesting={isRequesting}
+                                    />
+                                </span>
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

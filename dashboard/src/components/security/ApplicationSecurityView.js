@@ -26,7 +26,7 @@ const ApplicationSecurityView = ({
     applicationSecurity,
     scanError,
     activeApplicationSecurity,
-    scannedStatus
+    scannedStatus,
 }) => {
     const handleSubmit = ({ projectId, applicationSecurityId }) => {
         openModal({
@@ -176,7 +176,8 @@ const ApplicationSecurityView = ({
                                                     activeApplicationSecurity
                                                 )) ||
                                         applicationSecurity.scanning ||
-                                        !applicationSecurity.lastScan || scannedStatus === false
+                                        !applicationSecurity.lastScan ||
+                                        scannedStatus === false
                                     }
                                 >
                                     <button
@@ -184,7 +185,8 @@ const ApplicationSecurityView = ({
                                         disabled={
                                             scanning ||
                                             applicationSecurity.scanning ||
-                                            !applicationSecurity.lastScan || scannedStatus === false
+                                            !applicationSecurity.lastScan ||
+                                            scannedStatus === false
                                         }
                                         id={`scanning_${applicationSecurity.name}`}
                                     >
@@ -202,7 +204,8 @@ const ApplicationSecurityView = ({
                                                     activeApplicationSecurity
                                                 )) &&
                                         !applicationSecurity.scanning &&
-                                        applicationSecurity.lastScan && scannedStatus === true
+                                        applicationSecurity.lastScan &&
+                                        scannedStatus === true
                                     }
                                 >
                                     <button

@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import DeleteProject from '../components/settings/DeleteProject';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 import { hideDeleteModal } from '../actions/project';
@@ -34,31 +33,29 @@ class Advanced extends Component {
         } = this.props;
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem route={pathname} name="Advanced" />
-                    <div
-                        onKeyDown={this.handleKeyBoard}
-                        className="Margin-vertical--12"
-                    >
-                        <div>
-                            <div id="advancedPage">
-                                <div className="db-BackboneViewContainer">
-                                    <div className="react-settings-view react-view">
-                                        <span>
-                                            <div>
-                                                <RenderIfOwner>
-                                                    <DeleteProject />
-                                                </RenderIfOwner>
-                                            </div>
-                                        </span>
-                                    </div>
+            <Fade>
+                <BreadCrumbItem route={pathname} name="Advanced" />
+                <div
+                    onKeyDown={this.handleKeyBoard}
+                    className="Margin-vertical--12"
+                >
+                    <div>
+                        <div id="advancedPage">
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <span>
+                                        <div>
+                                            <RenderIfOwner>
+                                                <DeleteProject />
+                                            </RenderIfOwner>
+                                        </div>
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

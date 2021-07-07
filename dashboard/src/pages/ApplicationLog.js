@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import ShouldRender from '../components/basic/ShouldRender';
 import TutorialBox from '../components/tutorial/TutorialBox';
@@ -36,7 +35,9 @@ class ApplicationLog extends Component {
         }
         const { currentProject, fetchComponent, componentSlug } = this.props;
         if (currentProject) {
-            fetchComponent(currentProject._id, componentSlug);
+            fetchComponent(currentProject._id, componentSlug).then(() => {
+                this.ready();
+            });
         }
     }
     componentDidUpdate(prevProps) {
@@ -50,7 +51,9 @@ class ApplicationLog extends Component {
                 componentSlug,
             } = this.props;
             if (currentProject) {
-                fetchComponent(currentProject._id, componentSlug);
+                fetchComponent(currentProject._id, componentSlug).then(() => {
+                    this.ready();
+                });
             }
         }
     }
@@ -113,50 +116,46 @@ class ApplicationLog extends Component {
 
         const componentName = component ? component.name : '';
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name={componentName}
-                    />
-                    <BreadCrumbItem route={pathname} name="Logs" />
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name={componentName}
+                />
+                <BreadCrumbItem route={pathname} name="Logs" />
+                <div>
                     <div>
-                        <div>
-                            <ShouldRender
-                                if={this.props.applicationLog.requesting}
-                            >
-                                <LoadingState />
-                            </ShouldRender>
-                            <ShouldRender
-                                if={!this.props.applicationLog.requesting}
-                            >
-                                <div className="db-RadarRulesLists-page">
-                                    <ShouldRender
-                                        if={
-                                            this.props.tutorialStat
-                                                .applicationLog.show
+                        <ShouldRender if={this.props.applicationLog.requesting}>
+                            <LoadingState />
+                        </ShouldRender>
+                        <ShouldRender
+                            if={!this.props.applicationLog.requesting}
+                        >
+                            <div className="db-RadarRulesLists-page">
+                                <ShouldRender
+                                    if={
+                                        this.props.tutorialStat.applicationLog
+                                            .show
+                                    }
+                                >
+                                    <TutorialBox
+                                        type="applicationLog"
+                                        currentProjectId={
+                                            this.props.currentProject?._id
                                         }
-                                    >
-                                        <TutorialBox
-                                            type="applicationLog"
-                                            currentProjectId={
-                                                this.props.currentProject?._id
-                                            }
-                                        />
-                                    </ShouldRender>
-                                    {applicationLogsList}
-                                    <NewApplicationLog
-                                        index={2000}
-                                        formKey="NewApplicationLogForm"
-                                        componentId={this.props.componentId}
-                                        componentSlug={this.props.componentSlug}
                                     />
-                                </div>
-                            </ShouldRender>
-                        </div>
+                                </ShouldRender>
+                                {applicationLogsList}
+                                <NewApplicationLog
+                                    index={2000}
+                                    formKey="NewApplicationLogForm"
+                                    componentId={this.props.componentId}
+                                    componentSlug={this.props.componentSlug}
+                                />
+                            </div>
+                        </ShouldRender>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }
