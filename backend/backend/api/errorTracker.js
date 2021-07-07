@@ -76,7 +76,7 @@ router.post(
                 UserService.findOneBy({ _id: req.user.id }),
             ]);
 
-            await NotificationService.create(
+            NotificationService.create(
                 component.projectId._id,
                 `A New Error Tracker was Created with name ${errorTracker.name} by ${user.name}`,
                 user._id,

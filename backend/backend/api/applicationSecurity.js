@@ -293,7 +293,7 @@ router.post(
     async (req, res) => {
         try {
             const { applicationSecurityId } = req.params;
-            let applicationSecurity = await ApplicationSecurityService.findOneBy(
+            const applicationSecurity = await ApplicationSecurityService.findOneBy(
                 { _id: applicationSecurityId }
             );
             if (!applicationSecurity) {
@@ -303,8 +303,11 @@ router.post(
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }
-            const updatedApplicationSecurity = await ApplicationSecurityService.updateOneBy({ _id: applicationSecurityId }, { scanned: false }); //This helps the application scanner to pull the application
-           
+            const updatedApplicationSecurity = await ApplicationSecurityService.updateOneBy(
+                { _id: applicationSecurityId },
+                { scanned: false }
+            ); //This helps the application scanner to pull the application
+
             global.io.emit(
                 `security_${applicationSecurity._id}`,
                 updatedApplicationSecurity

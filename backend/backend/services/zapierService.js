@@ -273,7 +273,7 @@ module.exports = {
                 });
 
                 const msg = `A New Incident was created for ${monitorObj.name} by Zapier`;
-                await NotificationService.create(
+                NotificationService.create(
                     incident.projectId,
                     msg,
                     null,

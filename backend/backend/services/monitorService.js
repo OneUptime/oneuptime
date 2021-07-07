@@ -443,7 +443,7 @@ module.exports = {
                     })
                 );
 
-                await NotificationService.create(
+                NotificationService.create(
                     monitor.projectId,
                     `A Monitor ${monitor.name} was deleted from the project by ${monitor.deletedById.name}`,
                     monitor.deletedById._id,

@@ -331,7 +331,7 @@ module.exports = {
                                 member.email
                             );
                         }
-                        await NotificationService.create(
+                        NotificationService.create(
                             project._id,
                             `New user added to ${subProject.name} subproject by ${addedBy.name}`,
                             addedBy.id,
@@ -351,7 +351,7 @@ module.exports = {
                                 member.email
                             );
                         }
-                        await NotificationService.create(
+                        NotificationService.create(
                             project._id,
                             `New user added to the project by ${addedBy.name}`,
                             addedBy.id,
@@ -381,7 +381,7 @@ module.exports = {
                             registerUrl
                         );
                     }
-                    await NotificationService.create(
+                    NotificationService.create(
                         project._id,
                         `New user added to the project by ${addedBy.name}`,
                         addedBy.id,
@@ -591,7 +591,7 @@ module.exports = {
                         user,
                         member.email
                     );
-                    await NotificationService.create(
+                    NotificationService.create(
                         project._id,
                         `User removed from subproject ${subProject.name} by ${user.name}`,
                         userId,
@@ -603,7 +603,7 @@ module.exports = {
                         user,
                         member.email
                     );
-                    await NotificationService.create(
+                    NotificationService.create(
                         project._id,
                         `User removed from the project by ${user.name}`,
                         userId,

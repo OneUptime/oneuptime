@@ -17,19 +17,9 @@ let options = {};
 
 if (process.env.IS_MONGO_REPLICA_SET) {
     options = {
-        server: {
-            socketOptions: { keepAlive: 1 },
-            readPreference: 'secondaryPreferred',
-            strategy: 'ping',
-        },
-        replset: {
-            rs_name: process.env.MONGO_REPLICA_SET_NAME,
-            socketOptions: { keepAlive: 1 },
-            strategy: 'ping',
-            readPreference: 'secondaryPreferred',
-            poolSize: 10,
-        },
-    }
+        readPreference: 'secondaryPreferred',
+        keepAlive: 1
+    };
 }
 
 mongoose

@@ -307,7 +307,7 @@ router.put(
                         data.role
                     ),
                 ]);
-                await NotificationService.create(
+                NotificationService.create(
                     req.params.projectId,
                     `A team members role was updated by ${req.user.name}`,
                     req.user.id,
@@ -322,7 +322,7 @@ router.put(
                     teamMemberId,
                     data.role
                 );
-                await NotificationService.create(
+                NotificationService.create(
                     req.params.projectId,
                     `A team members role was updated by ${req.user.name}`,
                     req.user.id,

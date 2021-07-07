@@ -51,7 +51,7 @@ router.post(
                 data
             );
 
-            await NotificationService.create(
+            NotificationService.create(
                 performanceTracker.componentId.projectId._id,
                 `A New Performance Tracker was Created with name ${performanceTracker.name} by ${performanceTracker.createdById.name}`,
                 performanceTracker.createdById._id,

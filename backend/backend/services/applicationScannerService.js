@@ -104,4 +104,3 @@ module.exports = {
 const ApplicationScannerModel = require('../models/applicationScanner');
 const ErrorService = require('./errorService');
 const uuidv1 = require('uuid/v1');
-

@@ -446,7 +446,7 @@ module.exports = {
                         type: 'action',
                         client_secret: paymentIntent.client_secret,
                     };
-                    await NotificationService.create(
+                    NotificationService.create(
                         projectId,
                         message,
                         userId,

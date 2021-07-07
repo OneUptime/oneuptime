@@ -248,7 +248,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             );
         }
 
-        await NotificationService.create(
+        NotificationService.create(
             monitor.projectId._id,
             `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
             user._id,

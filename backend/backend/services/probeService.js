@@ -336,7 +336,11 @@ module.exports = {
             let incidentIds = [];
             let scripts = [];
 
-            if(matchedCriterion && matchedCriterion.scripts && matchedCriterion.scripts.length > 0){
+            if (
+                matchedCriterion &&
+                matchedCriterion.scripts &&
+                matchedCriterion.scripts.length > 0
+            ) {
                 scripts = matchedCriterion.scripts.map(script => {
                     return {
                         automatedScript: script.scriptId,
@@ -409,7 +413,7 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
-                    
+
                     AutomatedScriptService.runResource({
                         triggeredId: incident._id,
                         triggeredBy: 'incident',
@@ -484,7 +488,7 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
-                    
+
                     AutomatedScriptService.runResource({
                         triggeredId: incident._id,
                         triggeredBy: 'incident',
@@ -560,7 +564,7 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
-                    
+
                     AutomatedScriptService.runResource({
                         triggeredId: incident._id,
                         triggeredBy: 'incident',
@@ -6584,21 +6588,6 @@ function createDir(dirPath) {
     });
 }
 
-async function deleteFolderRecursive(dir) {
-    if (fs.existsSync(dir)) {
-        const entries = await readdir(dir, { withFileTypes: true });
-        await Promise.all(
-            entries.map(entry => {
-                const fullPath = Path.join(dir, entry.name);
-                return entry.isDirectory()
-                    ? deleteFolderRecursive(fullPath)
-                    : unlink(fullPath);
-            })
-        );
-        await rmdir(dir); // finally remove now empty directory
-    }
-}
-
 async function deleteFile(file) {
     if (fs.existsSync(file)) {
         await unlink(file);
@@ -6616,31 +6605,6 @@ function readFileContent(filePath) {
             });
         }
     });
-}
-
-function formatUrl(url) {
-    // remove https://www. from url
-    if (url.indexOf('https://www.') === 0) {
-        return url.slice(12);
-    }
-    // remove http://www. from url
-    if (url.indexOf('http://www.') === 0) {
-        return url.slice(11);
-    }
-    // remove https:// from url
-    if (url.indexOf('https://') === 0) {
-        return url.slice(8);
-    }
-    // remove http:// from url
-    if (url.indexOf('http://') === 0) {
-        return url.slice(7);
-    }
-    // remove www. from url
-    if (url.indexOf('www.') === 0) {
-        return url.slice(4);
-    }
-
-    return url;
 }
 
 const ProbeModel = require('../models/probe');
@@ -6661,8 +6625,6 @@ const ContainerSecurityService = require('./containerSecurityService');
 const ContainerSecurityLogService = require('./containerSecurityLogService');
 const flattenArray = require('../utils/flattenArray');
 const { promisify } = require('util');
-const readdir = promisify(fs.readdir);
-const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
 const { some, forEach } = require('p-iteration');
 const vm = require('vm');

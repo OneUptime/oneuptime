@@ -308,7 +308,7 @@ module.exports = {
                 for (const monitor of monitors) {
                     await MonitorService.deleteBy({ _id: monitor._id }, userId);
                 }
-                await NotificationService.create(
+                NotificationService.create(
                     component.projectId,
                     `A Component ${component.name} was deleted from the project by ${component.deletedById.name}`,
                     component.deletedById._id,

@@ -167,7 +167,7 @@ module.exports = {
                 const component = ComponentService.findOneBy({
                     _id: errorTracker.componentId._id,
                 });
-                await NotificationService.create(
+                NotificationService.create(
                     component.projectId,
                     `An Error Tracker ${errorTracker.name} was deleted from the component ${errorTracker.componentId.name} by ${errorTracker.deletedById.name}`,
                     errorTracker.deletedById._id,

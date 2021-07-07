@@ -218,7 +218,7 @@ module.exports = {
                         default:
                             return null;
                     }
-                    
+
                     await _this.createLog(resource.automatedScript, data);
                 }
             }

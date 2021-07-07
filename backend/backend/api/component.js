@@ -73,12 +73,13 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             UserService.findOneBy({ _id: req.user.id }),
         ]);
 
-        await NotificationService.create(
+        NotificationService.create(
             component.projectId._id,
             `A New Component was Created with name ${component.name} by ${user.name}`,
             user._id,
             'componentaddremove'
         );
+
         // run in the background
         RealTimeService.sendComponentCreated(component);
         return sendItemResponse(req, res, component);

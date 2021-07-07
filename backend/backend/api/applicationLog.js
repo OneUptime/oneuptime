@@ -8,7 +8,6 @@ const express = require('express');
 const ApplicationLogService = require('../services/applicationLogService');
 const UserService = require('../services/userService');
 const ComponentService = require('../services/componentService');
-const NotificationService = require('../services/notificationService');
 const RealTimeService = require('../services/realTimeService');
 const LogService = require('../services/logService');
 
@@ -72,12 +71,10 @@ router.post(
                 UserService.findOneBy({ _id: req.user.id }),
             ]);
 
-            await NotificationService.create(
-                component.projectId._id,
+            component.projectId._id,
                 `A New Application Log was Created with name ${applicationLog.name} by ${user.name}`,
                 user._id,
-                'applicationlogaddremove'
-            );
+                'applicationlogaddremove';
             // run in the background
             RealTimeService.sendApplicationLogCreated(applicationLog);
             return sendItemResponse(req, res, applicationLog);

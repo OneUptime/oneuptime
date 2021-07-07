@@ -171,7 +171,7 @@ module.exports = {
                 const component = ComponentService.findOneBy({
                     _id: applicationLog.componentId._id,
                 });
-                await NotificationService.create(
+                NotificationService.create(
                     component.projectId,
                     `An Application Log ${applicationLog.name} was deleted from the component ${applicationLog.componentId.name} by ${applicationLog.deletedById.name}`,
                     applicationLog.deletedById._id,

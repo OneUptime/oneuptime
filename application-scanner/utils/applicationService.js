@@ -12,18 +12,19 @@ const readdir = promisify(fs.readdir);
 const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
 const { spawn } = require('child_process');
-const { updateApplicationSecurityToScanning,
+const {
+    updateApplicationSecurityToScanning,
     updateApplicationSecurityLogService,
     updateApplicationSecurityScanTime,
-    updateApplicationSecurityToFailed
+    updateApplicationSecurityToFailed,
 } = require('./applicationSecurityUpdate');
 
 module.exports = {
-    scan: async function (security) {
+    scan: async function(security) {
         const decryptedSecurity = await this.decryptPassword(security);
         await this.scanApplicationSecurity(decryptedSecurity);
     },
-    decryptPassword: async function (security) {
+    decryptPassword: async function(security) {
         try {
             const values = [];
             for (let i = 0; i <= 15; i++)
@@ -72,7 +73,7 @@ module.exports = {
             // to prevent pulling an applicaiton security multiple times by running cron job
             // due to network delay
             await updateApplicationSecurityToScanning(security);
-            
+
             return new Promise((resolve, reject) => {
                 git(securityDir)
                     .silent(true)
@@ -153,7 +154,7 @@ module.exports = {
                                         auditOutput.metadata.vulnerabilities,
                                     advisories,
                                 };
-                             
+
                                 const resolvedLog = await updateApplicationSecurityLogService(
                                     {
                                         securityId: security._id,
@@ -163,7 +164,7 @@ module.exports = {
                                 );
                                 await updateApplicationSecurityScanTime({
                                     _id: security._id,
-                                })
+                                });
                                 await deleteFolderRecursive(repoPath);
                                 return resolve(resolvedLog);
                             });
@@ -171,7 +172,8 @@ module.exports = {
                     })
                     .catch(async error => {
                         await updateApplicationSecurityToFailed(security);
-                        error.message = 'Authentication failed please check your git credentials or git repository url'
+                        error.message =
+                            'Authentication failed please check your git credentials or git repository url';
                         ErrorService.log(
                             'applicationSecurityUpdate.updateApplicationSecurityToFailed',
                             error
@@ -181,7 +183,6 @@ module.exports = {
                         return reject(error);
                     });
             });
-
         } catch (error) {
             ErrorService.log(
                 'applicationScannerService.scanApplicationSecurity',
@@ -190,7 +191,6 @@ module.exports = {
             throw error;
         }
     },
-
 };
 async function deleteFolderRecursive(dir) {
     if (fs.existsSync(dir)) {
