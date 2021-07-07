@@ -130,7 +130,8 @@ module.exports = {
                 }
 
                 const monitors = await MonitorService.findBy({
-                    incidentCommunicationSla: query._id,
+                    query: { incidentCommunicationSla: query._id },
+                    select: '_id',
                 });
                 const initialMonitorIds = monitors.map(monitor => monitor._id);
 

@@ -451,12 +451,14 @@ router.get(
                 ? { projectId: { $in: subProjectIds }, type }
                 : { projectId: { $in: subProjectIds } };
 
+            const select = '-__v';
             const [monitors, count] = await Promise.all([
-                MonitorService.findBy(
+                MonitorService.findBy({
                     query,
-                    req.query.limit || 10,
-                    req.query.skip || 0
-                ),
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
+                    select,
+                }),
                 MonitorService.countBy({
                     projectId: { $in: subProjectIds },
                 }),
@@ -484,7 +486,8 @@ router.get(
                 ? { _id: monitorId, projectId: { $in: subProjectIds }, type }
                 : { _id: monitorId, projectId: { $in: subProjectIds } };
 
-            const monitor = await MonitorService.findOneBy(query);
+            const select = '-__v';
+            const monitor = await MonitorService.findOneBy({ query, select });
             return sendItemResponse(req, res, monitor);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -569,7 +572,11 @@ router.post(
             const data = req.body;
             data.monitorId = monitorId;
 
-            const monitor = await MonitorService.findOneBy({ _id: monitorId });
+            const select = 'type criteria';
+            const monitor = await MonitorService.findOneBy({
+                query: { _id: monitorId },
+                select,
+            });
 
             const {
                 stat: validUp,
@@ -853,8 +860,8 @@ router.get(
         try {
             const { projectId } = req.params;
             const monitors = await MonitorService.findBy({
-                projectId,
-                breachedMonitorSla: true,
+                query: { projectId, breachedMonitorSla: true },
+                select: '-__v -createdAt',
             });
             return sendItemResponse(req, res, monitors);
         } catch (error) {
@@ -891,7 +898,12 @@ router.post(
     async function(req, res) {
         try {
             const { monitorId } = req.params;
-            const monitor = await MonitorService.findOneBy({ _id: monitorId });
+            const select = 'disabled';
+            const monitor = await MonitorService.findOneBy({
+                query: { _id: monitorId },
+                select,
+            });
+
             const disabled = monitor.disabled ? false : true;
             const [newMonitor] = await Promise.all([
                 MonitorService.updateOneBy(
@@ -939,8 +951,9 @@ router.post('/:monitorId/calculate-time', async function(req, res) {
         const { monitorId } = req.params;
         const { statuses, start, range } = req.body;
 
+        const select = '_id';
         const [monitor, result] = await Promise.all([
-            MonitorService.findOneBy({ _id: monitorId }),
+            MonitorService.findOneBy({ query: { _id: monitorId }, select }),
             MonitorService.calcTime(statuses, start, range),
         ]);
 

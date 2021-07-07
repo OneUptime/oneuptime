@@ -133,7 +133,8 @@ module.exports = {
                     ssoDefaultRoles,
                 ] = await Promise.all([
                     MonitorService.findBy({
-                        projectId: project._id,
+                        query: { projectId: project._id },
+                        select: '_id',
                     }),
                     ScheduleService.findBy({
                         projectId: project._id,

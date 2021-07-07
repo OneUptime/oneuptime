@@ -591,17 +591,15 @@ module.exports = {
                 const scheduledEventId = scheduledEvent._id;
 
                 const populate = [
-                    { table: 'createdById', field: 'name' },
-                    [
-                        {
-                            path: 'scheduledEventId',
-                            select: 'name monitors alertSubscriber projectId',
-                            populate: {
-                                path: 'projectId',
-                                select: 'name replyAddress',
-                            },
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'scheduledEventId',
+                        select: 'name monitors alertSubscriber projectId',
+                        populate: {
+                            path: 'projectId',
+                            select: 'name replyAddress',
                         },
-                    ],
+                    },
                 ];
                 const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
                     {
@@ -654,17 +652,15 @@ module.exports = {
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
                 const populate = [
-                    { table: 'createdById', field: 'name' },
-                    [
-                        {
-                            path: 'scheduledEventId',
-                            select: 'name monitors alertSubscriber projectId',
-                            populate: {
-                                path: 'projectId',
-                                select: 'name replyAddress',
-                            },
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'scheduledEventId',
+                        select: 'name monitors alertSubscriber projectId',
+                        populate: {
+                            path: 'projectId',
+                            select: 'name replyAddress',
                         },
-                    ],
+                    },
                 ];
                 const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
                     {

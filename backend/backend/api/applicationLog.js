@@ -175,8 +175,8 @@ router.post(
             const applicationLogId = req.params.applicationLogId;
 
             const populate = [
-                { table: 'componentId', field: 'name' },
-                { table: 'resourceCategory', field: 'name' },
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
             ];
             const currentApplicationLog = await ApplicationLogService.findOneBy(
                 {

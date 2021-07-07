@@ -35,6 +35,9 @@ class LogList extends Component {
     };
 
     displayTags = tags => {
+        if (!Array.isArray(tags)) {
+            return '';
+        }
         return tags.map(tag => {
             return (
                 <span className="tag" key={tag}>

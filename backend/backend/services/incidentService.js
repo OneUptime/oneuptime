@@ -64,7 +64,8 @@ module.exports = {
             }
 
             let monitors = await MonitorService.findBy({
-                _id: { $in: data.monitors },
+                query: { _id: { $in: data.monitors } },
+                select: 'disabled name _id shouldNotMonitor',
             });
             monitors = monitors.filter(monitor => !monitor.disabled);
             if (monitors.length === 0) {
@@ -854,8 +855,8 @@ module.exports = {
     getComponentIncidents: async function(projectId, componentId) {
         const _this = this;
         const monitors = await MonitorService.findBy({
-            projectId,
-            componentId,
+            query: { projectId, componentId },
+            select: '_id',
         });
         const monitorIds = monitors.map(monitor => monitor._id);
 
@@ -880,7 +881,8 @@ module.exports = {
     ) {
         const _this = this;
         const monitors = await MonitorService.findBy({
-            componentId: componentId,
+            query: { componentId: componentId },
+            select: '_id',
         });
         const monitorIds = monitors.map(monitor => monitor._id);
 
@@ -1124,7 +1126,9 @@ module.exports = {
         monitors = monitors.map(monitor => monitor.monitorId);
         const [monitorList, currentIncident] = await Promise.all([
             MonitorService.findBy({
-                _id: { $in: monitors },
+                query: { _id: { $in: monitors } },
+                select: 'incidentCommunicationSla',
+                populate: [{ path: 'incidentCommunicationSla' }],
             }),
             // refetch the incident
             _this.findOneBy({

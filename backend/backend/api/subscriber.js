@@ -355,8 +355,8 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
         );
 
         const subscriberMonitors = await MonitorService.findBy({
-            _id: { $in: monitorIds },
-            deleted: false,
+            query: { _id: { $in: monitorIds }, deleted: false },
+            select: '_id',
         });
 
         const filteredSubscriptions = [];

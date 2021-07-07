@@ -588,7 +588,12 @@ module.exports = {
                 let monitors = [];
                 if (incomingRequest.selectAllMonitors) {
                     monitors = await MonitorService.findBy({
-                        projectId: data.projectId,
+                        query: { projectId: data.projectId },
+                        select: '_id customFields componentId projectId name',
+                        populate: [
+                            { path: 'componentId', select: 'name' },
+                            { path: 'projectId', select: 'name' },
+                        ],
                     });
                 } else {
                     monitors = incomingRequest.monitors

@@ -10,7 +10,8 @@ module.exports = {
         try {
             const newDate = new moment();
             const monitors = await MonitorService.findBy({
-                type: 'server-monitor',
+                query: { type: 'server-monitor' },
+                select: 'lastPingTime _id criteria',
             });
             if (monitors) {
                 monitors.forEach(async monitor => {
