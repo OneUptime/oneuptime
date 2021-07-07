@@ -4,7 +4,6 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ApplicationSecurityService = require('../services/applicationSecurityService');
-const ApplicationScannerService = require('../services/applicationScannerService');
 const RealTimeService = require('../services/realTimeService');
 const ResourceCategoryService = require('../services/resourceCategoryService');
 
@@ -297,7 +296,6 @@ router.post(
             let applicationSecurity = await ApplicationSecurityService.findOneBy(
                 { _id: applicationSecurityId }
             );
-
             if (!applicationSecurity) {
                 const error = new Error(
                     'Application Security not found or does not exist'
@@ -305,20 +303,12 @@ router.post(
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }
-
-            // decrypt password
-            applicationSecurity = await ApplicationSecurityService.decryptPassword(
-                applicationSecurity
-            );
-
-            const securityLog = await ApplicationScannerService.scanApplicationSecurity(
-                applicationSecurity
-            );
+            const updatedApplicationSecurity = await ApplicationSecurityService.updateOneBy({ _id: applicationSecurityId }, { scanned: false }); //This helps the application scanner to pull the application
+           
             global.io.emit(
-                `securityLog_${applicationSecurity._id}`,
-                securityLog
+                `security_${applicationSecurity._id}`,
+                updatedApplicationSecurity
             );
-            return sendItemResponse(req, res, securityLog);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
