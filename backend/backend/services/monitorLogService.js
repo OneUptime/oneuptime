@@ -266,7 +266,9 @@ module.exports = {
         try {
             const [monitor, logData] = await Promise.all([
                 MonitorService.findOneBy({
-                    _id: data.monitorId,
+                    query: { _id: data.monitorId },
+                    select: 'projectId',
+                    populate: [{ path: 'projectId', select: '_id' }],
                 }),
                 this.findOneBy({ _id: data._id }),
             ]);

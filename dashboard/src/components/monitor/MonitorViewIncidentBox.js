@@ -29,7 +29,7 @@ export class MonitorViewIncidentBox extends Component {
 
     prevClicked = () => {
         this.props.fetchMonitorsIncidents(
-            this.props.monitor.projectId._id,
+            this.props.monitor.projectId._id || this.props.monitor.projectId,
             this.props.monitor._id,
             this.props.monitor.skip
                 ? parseInt(this.props.monitor.skip, 10) - 10
@@ -43,7 +43,9 @@ export class MonitorViewIncidentBox extends Component {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > PREVIOUS INCIDENT CLICKED',
                 {
-                    projectId: this.props.monitor.projectId._id,
+                    projectId:
+                        this.props.monitor.projectId._id ||
+                        this.props.monitor.projectId,
                 }
             );
         }
@@ -51,7 +53,7 @@ export class MonitorViewIncidentBox extends Component {
 
     nextClicked = () => {
         this.props.fetchMonitorsIncidents(
-            this.props.monitor.projectId._id,
+            this.props.monitor.projectId._id || this.props.monitor.projectId,
             this.props.monitor._id,
             this.props.monitor.skip
                 ? parseInt(this.props.monitor.skip, 10) + 10
@@ -63,7 +65,9 @@ export class MonitorViewIncidentBox extends Component {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > COMPONENT > MONITOR > NEXT INCIDENT CLICKED',
                 {
-                    projectId: this.props.monitor.projectId._id,
+                    projectId:
+                        this.props.monitor.projectId._id ||
+                        this.props.monitor.projectId,
                 }
             );
         }
@@ -204,8 +208,11 @@ export class MonitorViewIncidentBox extends Component {
                                             {
                                                 monitorId: this.props.monitor
                                                     ._id,
-                                                projectId: this.props.monitor
-                                                    .projectId._id,
+                                                projectId:
+                                                    this.props.monitor.projectId
+                                                        ._id ||
+                                                    this.props.monitor
+                                                        .projectId,
                                                 monitor: this.props.monitor,
                                             }
                                         ),

@@ -680,17 +680,15 @@ router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
         const { limit, skip } = req.query;
 
         const populate = [
-            { table: 'createdById', field: 'name' },
-            [
-                {
-                    path: 'scheduledEventId',
-                    select: 'name monitors alertSubscriber projectId',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name replyAddress',
-                    },
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'scheduledEventId',
+                select: 'name monitors alertSubscriber projectId',
+                populate: {
+                    path: 'projectId',
+                    select: 'name replyAddress',
                 },
-            ],
+            },
         ];
 
         const [eventNotes, count] = await Promise.all([

@@ -115,10 +115,23 @@ const getComponents = async (projectIds, val, parentProjectId) => {
 };
 
 const getMonitors = async (projectIds, val, parentProjectId) => {
-    const monitors = await MonitorService.findBy({
+    const query = {
         projectId: { $in: projectIds },
         deleted: false,
         $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+    };
+    const populate = [
+        {
+            path: 'componentId',
+            select: 'name slug _id',
+        },
+        { path: 'projectId', select: '_id name' },
+    ];
+    const select = '_id name componentId projectId type slug';
+    const monitors = await MonitorService.findBy({
+        query,
+        populate,
+        select,
     });
     if (monitors.length > 0) {
         const resultObj = {

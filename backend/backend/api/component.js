@@ -240,8 +240,10 @@ router.post(
             }
 
             // fetch monitors
+            const select = '_id name';
             let monitors = await MonitorService.findBy({
-                componentId: componentId,
+                query: { componentId: componentId },
+                select,
             });
 
             if (monitors && monitors.length) {
@@ -348,11 +350,12 @@ router.get(
                 errorTrackers,
                 performanceTrackers,
             ] = await Promise.all([
-                MonitorService.findBy(
-                    { componentId: componentId },
+                MonitorService.findBy({
+                    query: { componentId: componentId },
                     limit,
-                    skip
-                ),
+                    skip,
+                    select: '_id name slug type createdAt',
+                }),
                 ContainerSecurityService.findBy(
                     { componentId: componentId },
                     limit,

@@ -258,7 +258,9 @@ module.exports = {
         await Promise.all(
             monitors.map(async monitor => {
                 const monitorObj = await MonitorService.findOneBy({
-                    _id: monitor,
+                    query: { _id: monitor },
+                    select: 'name projectId _id',
+                    populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let incident = new IncidentModel();
                 incident.projectId = monitorObj.projectId._id;
@@ -316,10 +318,12 @@ module.exports = {
                     true
                 );
                 const monitorObj = await MonitorService.findOneBy({
-                    _id: monitor,
+                    query: { _id: monitor },
+                    select: 'projectId',
+                    populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.project._id,
+                    _id: monitorObj.projectId._id,
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
@@ -356,10 +360,12 @@ module.exports = {
                     })
                 );
                 const monitorObj = await MonitorService.findOneBy({
-                    _id: monitor,
+                    query: { _id: monitor },
+                    select: 'projectId',
+                    populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.project._id,
+                    _id: monitorObj.projectId._id,
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
@@ -424,10 +430,12 @@ module.exports = {
                     true
                 );
                 const monitorObj = await MonitorService.findOneBy({
-                    _id: monitor,
+                    query: { _id: monitor },
+                    select: 'projectId',
+                    populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.project._id,
+                    _id: monitorObj.projectId._id,
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
@@ -464,10 +472,12 @@ module.exports = {
                     })
                 );
                 const monitorObj = await MonitorService.findOneBy({
-                    _id: monitor,
+                    query: { _id: monitor },
+                    select: 'projectId',
+                    populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.project._id,
+                    _id: monitorObj.projectId._id,
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({

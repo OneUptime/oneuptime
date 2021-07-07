@@ -154,8 +154,11 @@ module.exports = {
     isValidMonitor: async function(req, res, next) {
         const id = req.params.id;
         let monitor = await MonitorService.findBy({
-            type: 'incomingHttpRequest',
-            'data.link': `${global.apiHost}/incomingHttpRequest/${id}`,
+            query: {
+                type: 'incomingHttpRequest',
+                'data.link': `${global.apiHost}/incomingHttpRequest/${id}`,
+            },
+            select: 'lastPingTime criteria type _id',
         });
         if (monitor && monitor.length) {
             monitor = monitor && monitor[0] ? monitor[0] : monitor;

@@ -136,7 +136,8 @@ module.exports = {
             let siteUrls;
 
             const monitor = await MonitorService.findOneBy({
-                _id: monitorId,
+                query: { _id: monitorId },
+                select: 'siteUrls',
             });
 
             if (url) {
@@ -192,7 +193,9 @@ module.exports = {
     async sendLighthouseLog(data) {
         try {
             const monitor = await MonitorService.findOneBy({
-                _id: data.monitorId,
+                query: { _id: data.monitorId },
+                select: 'projectId',
+                populate: [{ path: 'projectId', select: '_id' }],
             });
             if (monitor && monitor.projectId && monitor.projectId._id) {
                 // run in the background

@@ -135,7 +135,8 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
         if (type === 'incomingHttpRequest') {
             const newMonitor = await MonitorService.findOneBy({
-                _id: monitor._id,
+                query: { _id: monitor._id },
+                select: 'lastPingTime _id criteria',
             });
             const probeId = req.probe && req.probe.id ? req.probe.id : null;
             log = await ProbeService.probeHttpRequest(newMonitor, probeId);
