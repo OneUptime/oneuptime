@@ -1,65 +1,69 @@
-import Home from './Home';
+import { lazy } from 'react';
 
-import Monitor from './Monitor';
-import IncidentLog from './IncidentLog';
-import Incident from './Incident';
-import IncidentSettings from './IncidentSettings';
-import MonitorSettings from './MonitorSettings';
+const Home = lazy(() => import('./Home'));
 
-import StatusPage from './StatusPage';
-import StatusPages from './StatusPages';
+const Monitor = lazy(() => import('./Monitor'));
+const IncidentLog = lazy(() => import('./IncidentLog'));
+const Incident = lazy(() => import('./Incident'));
+const IncidentSettings = lazy(() => import('./IncidentSettings'));
+const MonitorSettings = lazy(() => import('./MonitorSettings'));
 
-import OnCall from './OnCall';
-import AlertLog from './AlertLog';
-import Schedule from './Schedule';
+const StatusPage = lazy(() => import('./StatusPage'));
+const StatusPages = lazy(() => import('./StatusPages'));
 
-import ScheduledEvent from './ScheduledEvent';
-import ScheduledEventDetail from './ScheduledEventDetail';
+const OnCall = lazy(() => import('./OnCall'));
+const AlertLog = lazy(() => import('./AlertLog'));
+const Schedule = lazy(() => import('./Schedule'));
 
-import ChangePassword from './ChangePassword';
+const ScheduledEvent = lazy(() => import('./ScheduledEvent'));
+const ScheduledEventDetail = lazy(() => import('./ScheduledEventDetail'));
 
-import TeamMembers from './TeamMembers';
-import TeamMemberProfile from './TeamMemberProfile';
-import Profile from './Profile';
-import Settings from './Settings';
+const ChangePassword = lazy(() => import('./ChangePassword'));
 
-import Billing from './Billing';
-import Resources from './Resources';
-import Component from './Component';
-import Integrations from './Integrations';
+const TeamMembers = lazy(() => import('./TeamMembers'));
+const TeamMemberProfile = lazy(() => import('./TeamMemberProfile'));
+const Profile = lazy(() => import('./Profile'));
+const Settings = lazy(() => import('./Settings'));
 
-import EmailTemplates from './EmailTemplates';
-import SmsTemplates from './SmsTemplates';
+const Billing = lazy(() => import('./Billing'));
+const Resources = lazy(() => import('./Resources'));
+const Component = lazy(() => import('./Component'));
+const Integrations = lazy(() => import('./Integrations'));
 
-import MonitorView from './MonitorView';
-import WebsiteMonitorIssues from './WebsiteMonitorIssues';
-import Reports from './Reports';
+const EmailTemplates = lazy(() => import('./EmailTemplates'));
+const SmsTemplates = lazy(() => import('./SmsTemplates'));
 
-import Probe from './Probe';
-import ProfileBilling from './ProfileBilling';
+const MonitorView = lazy(() => import('./MonitorView'));
+const WebsiteMonitorIssues = lazy(() => import('./WebsiteMonitorIssues'));
+const Reports = lazy(() => import('./Reports'));
 
-import ApplicationLog from './ApplicationLog';
-import ApplicationLogView from './ApplicationLogView';
-import Container from './Container';
-import Application from './Application';
-import ApplicationDetail from './ApplicationDetail';
-import ContainerDetail from './ContainerDetail';
-import GitCredential from './GitCredential';
-import DockerCredential from './DockerCredential';
-import FyipeApi from './FyipeApi';
-import ChangePasswordSetting from './ChangePasswordSetting';
-import DeleteAccountPage from './DeleteAccountPage';
-import Consulting from './Consulting';
-import ErrorTracking from './ErrorTracking';
-import Advanced from './Advanced';
-import ComponentSettings from './ComponentSettings';
-import ComponentSettingsAdvanced from './ComponentSettingsAdvanced';
-import CallRouting from './CallRouting';
-import DomainSettings from './DomainSettings';
-import Groups from './Group';
-import PerformanceTrackerView from './PerformanceTrackerView';
-import PerformanceTracker from './PerformanceTracker';
-import AutomationScript from './AutomationScript';
+const Probe = lazy(() => import('./Probe'));
+const ProfileBilling = lazy(() => import('./ProfileBilling'));
+
+const ApplicationLog = lazy(() => import('./ApplicationLog'));
+const ApplicationLogView = lazy(() => import('./ApplicationLogView'));
+const Container = lazy(() => import('./Container'));
+const Application = lazy(() => import('./Application'));
+const ApplicationDetail = lazy(() => import('./ApplicationDetail'));
+const ContainerDetail = lazy(() => import('./ContainerDetail'));
+const GitCredential = lazy(() => import('./GitCredential'));
+const DockerCredential = lazy(() => import('./DockerCredential'));
+const FyipeApi = lazy(() => import('./FyipeApi'));
+const ChangePasswordSetting = lazy(() => import('./ChangePasswordSetting'));
+const DeleteAccountPage = lazy(() => import('./DeleteAccountPage'));
+const Consulting = lazy(() => import('./Consulting'));
+const ErrorTracking = lazy(() => import('./ErrorTracking'));
+const Advanced = lazy(() => import('./Advanced'));
+const ComponentSettings = lazy(() => import('./ComponentSettings'));
+const ComponentSettingsAdvanced = lazy(() =>
+    import('./ComponentSettingsAdvanced')
+);
+const CallRouting = lazy(() => import('./CallRouting'));
+const DomainSettings = lazy(() => import('./DomainSettings'));
+const Groups = lazy(() => import('./Group'));
+const PerformanceTrackerView = lazy(() => import('./PerformanceTrackerView'));
+const PerformanceTracker = lazy(() => import('./PerformanceTracker'));
+const AutomationScript = lazy(() => import('./AutomationScript'));
 
 export default {
     ChangePassword,

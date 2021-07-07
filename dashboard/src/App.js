@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
 import store, { history, isServer } from './store';
 import { connect } from 'react-redux';
@@ -15,6 +15,7 @@ import { loadPage } from './actions/page';
 import { setUserId, setUserProperties, identify, logEvent } from './analytics';
 import { SHOULD_LOG_ANALYTICS } from './config';
 import Dashboard from './components/Dashboard';
+import { LoadingState } from './components/basic/Loader';
 
 if (!isServer) {
     history.listen(location => {
@@ -61,31 +62,33 @@ const App = () => (
         <Socket />
         <Router history={history}>
             <Dashboard>
-                <Switch>
-                    {allRoutes
-                        .filter(route => route.visible)
-                        .map((route, index) => {
-                            return (
-                                <Route
-                                    exact={route.exact}
-                                    path={route.path}
-                                    key={index}
-                                    render={props => (
-                                        <route.component
-                                            icon={route.icon}
-                                            {...props}
-                                        />
-                                    )}
-                                />
-                            );
-                        })}
-                    <Route
-                        path={'/dashboard/:404_path'}
-                        key={'404'}
-                        component={NotFound}
-                    />
-                    <Redirect to="/dashboard/project/project" />
-                </Switch>
+                <Suspense fallback={<LoadingState />}>
+                    <Switch>
+                        {allRoutes
+                            .filter(route => route.visible)
+                            .map((route, index) => {
+                                return (
+                                    <Route
+                                        exact={route.exact}
+                                        path={route.path}
+                                        key={index}
+                                        render={props => (
+                                            <route.component
+                                                icon={route.icon}
+                                                {...props}
+                                            />
+                                        )}
+                                    />
+                                );
+                            })}
+                        <Route
+                            path={'/dashboard/:404_path'}
+                            key={'404'}
+                            component={NotFound}
+                        />
+                        <Redirect to="/dashboard/project/project" />
+                    </Switch>
+                </Suspense>
             </Dashboard>
         </Router>
         <BackboneModals />
