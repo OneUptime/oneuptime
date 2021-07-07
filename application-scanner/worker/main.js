@@ -17,6 +17,7 @@ module.exports = {
                 await Promise.all(
                     securities.map(security => {
                         return ApplicationSecurity.scan(security);
+                        
                     })
                 );
             }

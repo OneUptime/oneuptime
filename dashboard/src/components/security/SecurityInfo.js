@@ -34,7 +34,15 @@ const SecurityInfo = ({
     activeApplicationSecurity,
     activeContainerSecurity,
     slug,
+    scannedStatus
 }) => {
+    let currentScannedStatus = true;
+    scannedStatus.forEach(scan =>{
+        if(applicationSecurityId === scan._id){
+            currentScannedStatus = scan.scanned
+        }
+    })
+   
     const scanSecurity = () => {
         if (applicationSecurityId) {
             openModal({
@@ -228,7 +236,7 @@ const SecurityInfo = ({
                                 String(containerSecurityId) ===
                                     String(activeContainerSecurity)) ||
                             security.scanning ||
-                            !security.lastScan ? (
+                            !security.lastScan || (currentScannedStatus === false )? (
                                 <button
                                     className="bs-Button bs-DeprecatedButton"
                                     disabled={
@@ -237,7 +245,7 @@ const SecurityInfo = ({
                                         (containerSecurityId &&
                                             scanningContainer) ||
                                         security.scanning ||
-                                        !security.lastScan
+                                        !security.lastScan || currentScannedStatus === false
                                     }
                                     id={
                                         (applicationSecurityId &&
@@ -383,6 +391,7 @@ SecurityInfo.propTypes = {
     activeApplicationSecurity: PropTypes.string,
     activeContainerSecurity: PropTypes.string,
     slug: PropTypes.string,
+    scannedStatus: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -399,6 +408,7 @@ const mapStateToProps = state => {
         activeApplicationSecurity: state.security.activeApplicationSecurity,
         activeContainerSecurity: state.security.activeContainerSecurity,
         slug: state.project.currentProject && state.project.currentProject.slug,
+        scannedStatus: state.security.applicationSecurities,
     };
 };
 
