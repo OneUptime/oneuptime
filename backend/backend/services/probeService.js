@@ -334,11 +334,15 @@ module.exports = {
             ]);
             const { matchedCriterion } = data;
             let incidentIds = [];
-            const scripts = matchedCriterion.scripts.map(script => {
-                return {
-                    automatedScript: script.scriptId,
-                };
-            });
+            let scripts = [];
+
+            if(matchedCriterion && matchedCriterion.scripts && matchedCriterion.scripts.length > 0){
+                scripts = matchedCriterion.scripts.map(script => {
+                    return {
+                        automatedScript: script.scriptId,
+                    };
+                });
+            }
 
             if (
                 data.status === 'online' &&
@@ -405,7 +409,8 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
-                    await AutomatedScriptService.runResource({
+                    
+                    AutomatedScriptService.runResource({
                         triggeredId: incident._id,
                         triggeredBy: 'incident',
                         resources: scripts,
@@ -479,7 +484,8 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
-                    await AutomatedScriptService.runResource({
+                    
+                    AutomatedScriptService.runResource({
                         triggeredId: incident._id,
                         triggeredBy: 'incident',
                         resources: scripts,
@@ -554,7 +560,8 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
-                    await AutomatedScriptService.runResource({
+                    
+                    AutomatedScriptService.runResource({
                         triggeredId: incident._id,
                         triggeredBy: 'incident',
                         resources: scripts,
