@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import ContainerSecurityForm from '../components/security/ContainerSecurityForm';
 import ContainerSecurity from '../components/security/ContainerSecurity';
 import { logEvent } from '../analytics';
@@ -88,27 +87,6 @@ class Container extends Component {
         }
     }
 
-    ready = () => {
-        const {
-            projectId,
-            componentId,
-            getContainerSecurities,
-            getContainerSecurityLogs,
-            componentSlug,
-            fetchComponent,
-        } = this.props;
-        if (projectId && componentId) {
-            // load container security logs
-            getContainerSecurityLogs({ projectId, componentId });
-
-            // load container security
-            getContainerSecurities({ projectId, componentId });
-        }
-        if (componentSlug && projectId) {
-            fetchComponent(projectId, componentSlug);
-        }
-    };
-
     render() {
         const {
             componentId,
@@ -146,100 +124,98 @@ class Container extends Component {
         const componentName = component ? component.name : '';
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'component')}
-                        name={componentName}
-                    />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name="Container Security"
-                        pageTitle="Container"
-                    />
-                    <div className="Margin-vertical--12">
-                        <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="react-settings-view react-view">
-                                    <ShouldRender
-                                        if={
-                                            gettingContainerSecurities &&
-                                            gettingSecurityLogs
-                                        }
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'component')}
+                    name={componentName}
+                />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Container Security"
+                    pageTitle="Container"
+                />
+                <div className="Margin-vertical--12">
+                    <div>
+                        <div className="db-BackboneViewContainer">
+                            <div className="react-settings-view react-view">
+                                <ShouldRender
+                                    if={
+                                        gettingContainerSecurities &&
+                                        gettingSecurityLogs
+                                    }
+                                >
+                                    <div
+                                        id="largeSpinner"
+                                        style={{ textAlign: 'center' }}
                                     >
-                                        <div
-                                            id="largeSpinner"
-                                            style={{ textAlign: 'center' }}
-                                        >
-                                            <LargeSpinner />
-                                        </div>
-                                    </ShouldRender>
-                                    <ShouldRender
-                                        if={
-                                            !gettingContainerSecurities &&
-                                            !gettingSecurityLogs
-                                        }
-                                    >
-                                        {containerSecurities.length > 0 &&
-                                            containerSecurities.map(
-                                                containerSecurity => {
-                                                    return (
-                                                        <span
-                                                            key={
-                                                                containerSecurity._id
-                                                            }
-                                                        >
+                                        <LargeSpinner />
+                                    </div>
+                                </ShouldRender>
+                                <ShouldRender
+                                    if={
+                                        !gettingContainerSecurities &&
+                                        !gettingSecurityLogs
+                                    }
+                                >
+                                    {containerSecurities.length > 0 &&
+                                        containerSecurities.map(
+                                            containerSecurity => {
+                                                return (
+                                                    <span
+                                                        key={
+                                                            containerSecurity._id
+                                                        }
+                                                    >
+                                                        <div>
                                                             <div>
-                                                                <div>
-                                                                    <ContainerSecurity
-                                                                        name={
-                                                                            containerSecurity.name
-                                                                        }
-                                                                        dockerRegistryUrl={
-                                                                            containerSecurity.dockerRegistryUrl
-                                                                        }
-                                                                        imagePath={
-                                                                            containerSecurity.imagePath
-                                                                        }
-                                                                        containerSecurityId={
-                                                                            containerSecurity._id
-                                                                        }
-                                                                        containerSecuritySlug={
-                                                                            containerSecurity.slug
-                                                                        }
-                                                                        projectId={
-                                                                            projectId
-                                                                        }
-                                                                        componentId={
-                                                                            componentId
-                                                                        }
-                                                                        componentSlug={
-                                                                            componentSlug
-                                                                        }
-                                                                    />
-                                                                </div>
+                                                                <ContainerSecurity
+                                                                    name={
+                                                                        containerSecurity.name
+                                                                    }
+                                                                    dockerRegistryUrl={
+                                                                        containerSecurity.dockerRegistryUrl
+                                                                    }
+                                                                    imagePath={
+                                                                        containerSecurity.imagePath
+                                                                    }
+                                                                    containerSecurityId={
+                                                                        containerSecurity._id
+                                                                    }
+                                                                    containerSecuritySlug={
+                                                                        containerSecurity.slug
+                                                                    }
+                                                                    projectId={
+                                                                        projectId
+                                                                    }
+                                                                    componentId={
+                                                                        componentId
+                                                                    }
+                                                                    componentSlug={
+                                                                        componentSlug
+                                                                    }
+                                                                />
                                                             </div>
-                                                        </span>
-                                                    );
-                                                }
-                                            )}
-                                    </ShouldRender>
-                                    <span>
+                                                        </div>
+                                                    </span>
+                                                );
+                                            }
+                                        )}
+                                </ShouldRender>
+                                <span>
+                                    <div>
                                         <div>
-                                            <div>
-                                                <ContainerSecurityForm
-                                                    componentId={componentId}
-                                                    projectId={projectId}
-                                                />
-                                            </div>
+                                            <ContainerSecurityForm
+                                                componentId={componentId}
+                                                projectId={projectId}
+                                            />
                                         </div>
-                                    </span>
-                                </div>
+                                    </div>
+                                </span>
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

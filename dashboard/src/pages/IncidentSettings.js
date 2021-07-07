@@ -2,7 +2,6 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
-import Dashboard from '../components/Dashboard';
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -34,6 +33,15 @@ class IncidentSettings extends React.Component {
     componentDidMount() {
         resetIdCounter();
         window.addEventListener('keydown', this.handleKeyboard);
+        this.ready();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps?.currentProject?._id !== this.props?.currentProject?._id
+        ) {
+            this.ready();
+        }
     }
 
     componentWillUnmount() {
@@ -147,231 +155,227 @@ class IncidentSettings extends React.Component {
                 : false;
         const numberOfPages = Math.ceil(parseInt(count) / 10);
         return (
-            <Dashboard ready={() => this.ready()}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Project Settings"
-                    />
-                    <BreadCrumbItem route={pathname} name="Incidents" />
-                    <div id="incidentSettingsPage">
-                        <Tabs
-                            selectedTabClassName={'custom-tab-selected'}
-                            onSelect={tabIndex => this.tabSelected(tabIndex)}
-                            selectedIndex={this.state.tabIndex}
-                        >
-                            <div className="Flex-flex Flex-direction--columnReverse">
-                                <TabList
-                                    id="customTabList"
-                                    className={'custom-tab-list'}
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Incidents" />
+                <div id="incidentSettingsPage">
+                    <Tabs
+                        selectedTabClassName={'custom-tab-selected'}
+                        onSelect={tabIndex => this.tabSelected(tabIndex)}
+                        selectedIndex={this.state.tabIndex}
+                    >
+                        <div className="Flex-flex Flex-direction--columnReverse">
+                            <TabList
+                                id="customTabList"
+                                className={'custom-tab-list'}
+                            >
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-3 incident-templates-tab'
+                                    }
                                 >
-                                    <Tab
-                                        className={
-                                            'custom-tab custom-tab-3 incident-templates-tab'
-                                        }
-                                    >
-                                        Incident Templates
-                                    </Tab>
-                                    <Tab
-                                        className={
-                                            'custom-tab custom-tab-3 incident-priority-tab'
-                                        }
-                                    >
-                                        Incident Priority
-                                    </Tab>
-                                    <Tab
-                                        className={
-                                            'custom-tab custom-tab-3 communication-sla-tab'
-                                        }
-                                    >
-                                        Communication SLA
-                                    </Tab>
-                                    <Tab
-                                        className={
-                                            'custom-tab custom-tab-3 advanced-tab'
-                                        }
-                                    >
-                                        Advanced
-                                    </Tab>
-                                    <div
-                                        id="tab-slider"
-                                        className="custom-tab-4"
-                                    ></div>
-                                </TabList>
-                            </div>
-                            <TabPanel>
-                                <Fade>
-                                    <IncidentTemplates />
-                                    <IncidentNoteTemplates />
-                                </Fade>
-                            </TabPanel>
-                            <TabPanel>
-                                <Fade>
-                                    <div className="Box-root Margin-vertical--12">
-                                        <div className="Box-root Margin-bottom--12">
-                                            <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                                <div className="Box-root">
-                                                    <div>
-                                                        <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                            <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                    <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                        <span>
-                                                                            Incident
-                                                                            Priority
-                                                                        </span>
+                                    Incident Templates
+                                </Tab>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-3 incident-priority-tab'
+                                    }
+                                >
+                                    Incident Priority
+                                </Tab>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-3 communication-sla-tab'
+                                    }
+                                >
+                                    Communication SLA
+                                </Tab>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-3 advanced-tab'
+                                    }
+                                >
+                                    Advanced
+                                </Tab>
+                                <div
+                                    id="tab-slider"
+                                    className="custom-tab-4"
+                                ></div>
+                            </TabList>
+                        </div>
+                        <TabPanel>
+                            <Fade>
+                                <IncidentTemplates />
+                                <IncidentNoteTemplates />
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <div className="Box-root Margin-vertical--12">
+                                    <div className="Box-root Margin-bottom--12">
+                                        <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                            <div className="Box-root">
+                                                <div>
+                                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>
+                                                                        Incident
+                                                                        Priority
                                                                     </span>
-                                                                    <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                        <span>
-                                                                            Incidents
-                                                                            can
-                                                                            have
-                                                                            different
-                                                                            severity
-                                                                            or
-                                                                            priority.
-                                                                            You
-                                                                            can
-                                                                            define
-                                                                            your
-                                                                            organization
-                                                                            incident
-                                                                            severity
-                                                                            policy
-                                                                            here.
-                                                                        </span>
+                                                                </span>
+                                                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                    <span>
+                                                                        Incidents
+                                                                        can have
+                                                                        different
+                                                                        severity
+                                                                        or
+                                                                        priority.
+                                                                        You can
+                                                                        define
+                                                                        your
+                                                                        organization
+                                                                        incident
+                                                                        severity
+                                                                        policy
+                                                                        here.
                                                                     </span>
-                                                                </div>
-                                                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                                    <div className="Box-root">
-                                                                        <button
-                                                                            id="addNewPriority"
-                                                                            className="Button bs-ButtonLegacy ActionIconParent"
-                                                                            type="button"
-                                                                            onClick={() =>
-                                                                                this.handleCreateNewIncidentPriority()
-                                                                            }
-                                                                        >
-                                                                            <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                                <div className="Box-root Margin-right--8">
-                                                                                    <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
-                                                                                </div>
-                                                                                <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
-                                                                                    <span>
-                                                                                        Add
-                                                                                        Priority
-                                                                                    </span>
-                                                                                    <span className="new-btn__keycode">
-                                                                                        N
-                                                                                    </span>
-                                                                                </span>
+                                                                </span>
+                                                            </div>
+                                                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                                <div className="Box-root">
+                                                                    <button
+                                                                        id="addNewPriority"
+                                                                        className="Button bs-ButtonLegacy ActionIconParent"
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            this.handleCreateNewIncidentPriority()
+                                                                        }
+                                                                    >
+                                                                        <div className="bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                            <div className="Box-root Margin-right--8">
+                                                                                <div className="SVGInline SVGInline--cleaned Button-icon ActionIcon ActionIcon--color--inherit Box-root Flex-flex"></div>
                                                                             </div>
-                                                                        </button>
-                                                                    </div>
+                                                                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new keycode__wrapper">
+                                                                                <span>
+                                                                                    Add
+                                                                                    Priority
+                                                                                </span>
+                                                                                <span className="new-btn__keycode">
+                                                                                    N
+                                                                                </span>
+                                                                            </span>
+                                                                        </div>
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <IncidentPrioritiesList
-                                                            incidentPrioritiesList={
-                                                                this.props
-                                                                    .incidentPriorities
-                                                            }
-                                                            handleEditIncidentPriority={id =>
-                                                                this.handleEditIncidentPriority(
-                                                                    id
-                                                                )
-                                                            }
-                                                            handleDeleteIncidentPriority={id =>
-                                                                this.handleDeleteIncidentPriority(
-                                                                    id
-                                                                )
-                                                            }
-                                                        />
                                                     </div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-                                                        <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
-                                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <span>
-                                                                    <span
-                                                                        id="incidentPrioritiesCount"
-                                                                        className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
-                                                                    >
-                                                                        {numberOfPages >
-                                                                        0
-                                                                            ? `Page ${
-                                                                                  this
-                                                                                      .state
-                                                                                      .page
-                                                                              } of ${numberOfPages} (${count} Priorit${
-                                                                                  count ===
-                                                                                  1
-                                                                                      ? 'y'
-                                                                                      : 'ies'
-                                                                              })`
-                                                                            : `${count} Priorit${
-                                                                                  count ===
-                                                                                  1
-                                                                                      ? 'y'
-                                                                                      : 'ies'
-                                                                              }`}
-                                                                    </span>
+                                                    <IncidentPrioritiesList
+                                                        incidentPrioritiesList={
+                                                            this.props
+                                                                .incidentPriorities
+                                                        }
+                                                        handleEditIncidentPriority={id =>
+                                                            this.handleEditIncidentPriority(
+                                                                id
+                                                            )
+                                                        }
+                                                        handleDeleteIncidentPriority={id =>
+                                                            this.handleDeleteIncidentPriority(
+                                                                id
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                                                    <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
+                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <span>
+                                                                <span
+                                                                    id="incidentPrioritiesCount"
+                                                                    className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
+                                                                >
+                                                                    {numberOfPages >
+                                                                    0
+                                                                        ? `Page ${
+                                                                              this
+                                                                                  .state
+                                                                                  .page
+                                                                          } of ${numberOfPages} (${count} Priorit${
+                                                                              count ===
+                                                                              1
+                                                                                  ? 'y'
+                                                                                  : 'ies'
+                                                                          })`
+                                                                        : `${count} Priorit${
+                                                                              count ===
+                                                                              1
+                                                                                  ? 'y'
+                                                                                  : 'ies'
+                                                                          }`}
                                                                 </span>
                                                             </span>
-                                                        </div>
-                                                        <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
-                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                                                                <div className="Box-root Margin-right--8">
-                                                                    <button
-                                                                        id="btnPrev"
-                                                                        className={`Button bs-ButtonLegacy ${
-                                                                            !canPaginateBackward
-                                                                                ? 'Is--disabled'
-                                                                                : ''
-                                                                        }`}
-                                                                        data-db-analytics-name="list_view.pagination.previous"
-                                                                        disabled={
-                                                                            !canPaginateBackward
-                                                                        }
-                                                                        type="button"
-                                                                        onClick={() =>
-                                                                            this.prevClicked()
-                                                                        }
-                                                                    >
-                                                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                            <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                                <span>
-                                                                                    Previous
-                                                                                </span>
+                                                        </span>
+                                                    </div>
+                                                    <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                                            <div className="Box-root Margin-right--8">
+                                                                <button
+                                                                    id="btnPrev"
+                                                                    className={`Button bs-ButtonLegacy ${
+                                                                        !canPaginateBackward
+                                                                            ? 'Is--disabled'
+                                                                            : ''
+                                                                    }`}
+                                                                    data-db-analytics-name="list_view.pagination.previous"
+                                                                    disabled={
+                                                                        !canPaginateBackward
+                                                                    }
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        this.prevClicked()
+                                                                    }
+                                                                >
+                                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                            <span>
+                                                                                Previous
                                                                             </span>
-                                                                        </div>
-                                                                    </button>
-                                                                </div>
-                                                                <div className="Box-root">
-                                                                    <button
-                                                                        id="btnNext"
-                                                                        className={`Button bs-ButtonLegacy ${
-                                                                            !canPaginateForward
-                                                                                ? 'Is--disabled'
-                                                                                : ''
-                                                                        }`}
-                                                                        data-db-analytics-name="list_view.pagination.next"
-                                                                        disabled={
-                                                                            !canPaginateForward
-                                                                        }
-                                                                        type="button"
-                                                                        onClick={() =>
-                                                                            this.nextClicked()
-                                                                        }
-                                                                    >
-                                                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                            <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                                <span>
-                                                                                    Next
-                                                                                </span>
+                                                                        </span>
+                                                                    </div>
+                                                                </button>
+                                                            </div>
+                                                            <div className="Box-root">
+                                                                <button
+                                                                    id="btnNext"
+                                                                    className={`Button bs-ButtonLegacy ${
+                                                                        !canPaginateForward
+                                                                            ? 'Is--disabled'
+                                                                            : ''
+                                                                    }`}
+                                                                    data-db-analytics-name="list_view.pagination.next"
+                                                                    disabled={
+                                                                        !canPaginateForward
+                                                                    }
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        this.nextClicked()
+                                                                    }
+                                                                >
+                                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                            <span>
+                                                                                Next
                                                                             </span>
-                                                                        </div>
-                                                                    </button>
-                                                                </div>
+                                                                        </span>
+                                                                    </div>
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -379,32 +383,32 @@ class IncidentSettings extends React.Component {
                                             </div>
                                         </div>
                                     </div>
-                                </Fade>
-                            </TabPanel>
-                            <TabPanel>
-                                <Fade>
-                                    <IncidentCommunicationSla
-                                        projectId={
-                                            this.props.currentProject &&
-                                            this.props.currentProject._id
-                                        }
-                                    />
-                                </Fade>
-                            </TabPanel>
-                            <TabPanel>
-                                <Fade>
-                                    <IncidentCustomFields
-                                        projectId={
-                                            this.props.currentProject &&
-                                            this.props.currentProject._id
-                                        }
-                                    />
-                                </Fade>
-                            </TabPanel>
-                        </Tabs>
-                    </div>
-                </Fade>
-            </Dashboard>
+                                </div>
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <IncidentCommunicationSla
+                                    projectId={
+                                        this.props.currentProject &&
+                                        this.props.currentProject._id
+                                    }
+                                />
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <IncidentCustomFields
+                                    projectId={
+                                        this.props.currentProject &&
+                                        this.props.currentProject._id
+                                    }
+                                />
+                            </Fade>
+                        </TabPanel>
+                    </Tabs>
+                </div>
+            </Fade>
         );
     }
 }

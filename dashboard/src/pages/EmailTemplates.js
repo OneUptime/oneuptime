@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -30,6 +29,16 @@ class EmailTemplates extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > EMAIL TEMPLATE'
             );
         }
+
+        this.ready();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps?.currentProject?._id !== this.props?.currentProject?._id
+        ) {
+            this.ready();
+        }
     }
 
     render() {
@@ -38,18 +47,16 @@ class EmailTemplates extends Component {
         } = this.props;
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Project Settings"
-                    />
-                    <BreadCrumbItem route={pathname} name="Email" />
-                    <EmailTemplatesBox />
-                    <EmailSmtpBox />
-                    <AdvancedIncidentNotification type="email" />
-                </Fade>
-            </Dashboard>
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Email" />
+                <EmailTemplatesBox />
+                <EmailSmtpBox />
+                <AdvancedIncidentNotification type="email" />
+            </Fade>
         );
     }
 }
