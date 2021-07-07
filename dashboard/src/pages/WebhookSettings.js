@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
@@ -30,23 +29,21 @@ class WebhookSettings extends Component {
         } = this.props;
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Project Settings"
-                        icon={icon}
-                    />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name="Webhooks Settings"
-                        icon={icon}
-                    />
-                    <div id="webhooksSettingsPage">
-                        <AdvancedIncidentNotification type="webhook" />
-                    </div>
-                </Fade>
-            </Dashboard>
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                    icon={icon}
+                />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Webhooks Settings"
+                    icon={icon}
+                />
+                <div id="webhooksSettingsPage">
+                    <AdvancedIncidentNotification type="webhook" />
+                </div>
+            </Fade>
         );
     }
 }

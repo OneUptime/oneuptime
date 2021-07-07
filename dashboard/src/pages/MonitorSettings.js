@@ -1,7 +1,6 @@
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import Dashboard from '../components/Dashboard';
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
@@ -26,6 +25,18 @@ class MonitorSettings extends React.Component {
         );
     };
 
+    componentDidMount() {
+        this.ready();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps?.currentProject?._id !== this.props?.currentProject?._id
+        ) {
+            this.ready();
+        }
+    }
+
     componentWillMount() {
         resetIdCounter();
     }
@@ -44,73 +55,69 @@ class MonitorSettings extends React.Component {
         } = this.props;
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Project Settings"
-                    />
-                    <div id="monitorSettingsPage">
-                        <BreadCrumbItem route={pathname} name="Monitors" />
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <div id="monitorSettingsPage">
+                    <BreadCrumbItem route={pathname} name="Monitors" />
 
-                        <div>
-                            <Tabs
-                                selectedTabClassName={'custom-tab-selected'}
-                                onSelect={tabIndex =>
-                                    this.tabSelected(tabIndex)
-                                }
-                                selectedIndex={this.state.tabIndex}
-                            >
-                                <div className="Flex-flex Flex-direction--columnReverse">
-                                    <TabList
-                                        id="customTabList"
-                                        className={'custom-tab-list'}
+                    <div>
+                        <Tabs
+                            selectedTabClassName={'custom-tab-selected'}
+                            onSelect={tabIndex => this.tabSelected(tabIndex)}
+                            selectedIndex={this.state.tabIndex}
+                        >
+                            <div className="Flex-flex Flex-direction--columnReverse">
+                                <TabList
+                                    id="customTabList"
+                                    className={'custom-tab-list'}
+                                >
+                                    <Tab
+                                        className={
+                                            'custom-tab custom-tab-2 monitor-sla'
+                                        }
                                     >
-                                        <Tab
-                                            className={
-                                                'custom-tab custom-tab-2 monitor-sla'
-                                            }
-                                        >
-                                            Monitor SLA
-                                        </Tab>
-                                        <Tab
-                                            className={
-                                                'custom-tab custom-tab-2 monitor-sla-advanced'
-                                            }
-                                        >
-                                            Advanced
-                                        </Tab>
-                                        <div
-                                            id="tab-slider"
-                                            className="custom-tab-2"
-                                        ></div>
-                                    </TabList>
-                                </div>
-                                <TabPanel>
-                                    <Fade>
-                                        <MonitorSla
-                                            projectId={
-                                                this.props.currentProject &&
-                                                this.props.currentProject._id
-                                            }
-                                        />
-                                    </Fade>
-                                </TabPanel>
-                                <TabPanel>
-                                    <Fade>
-                                        <MonitorCustomFields
-                                            projectId={
-                                                this.props.currentProject &&
-                                                this.props.currentProject._id
-                                            }
-                                        />
-                                    </Fade>
-                                </TabPanel>
-                            </Tabs>
-                        </div>
+                                        Monitor SLA
+                                    </Tab>
+                                    <Tab
+                                        className={
+                                            'custom-tab custom-tab-2 monitor-sla-advanced'
+                                        }
+                                    >
+                                        Advanced
+                                    </Tab>
+                                    <div
+                                        id="tab-slider"
+                                        className="custom-tab-2"
+                                    ></div>
+                                </TabList>
+                            </div>
+                            <TabPanel>
+                                <Fade>
+                                    <MonitorSla
+                                        projectId={
+                                            this.props.currentProject &&
+                                            this.props.currentProject._id
+                                        }
+                                    />
+                                </Fade>
+                            </TabPanel>
+                            <TabPanel>
+                                <Fade>
+                                    <MonitorCustomFields
+                                        projectId={
+                                            this.props.currentProject &&
+                                            this.props.currentProject._id
+                                        }
+                                    />
+                                </Fade>
+                            </TabPanel>
+                        </Tabs>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }
