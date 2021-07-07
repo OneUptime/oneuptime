@@ -43,7 +43,7 @@ spec:
                         value: {{ template "fyipe.mongodbConnectionString" . }}
                       {{- if .Values.mongodb.replicaSet.enabled }}
                       - name: IS_MONGO_REPLICA_SET
-                        value: {{ .Values.mongodb.replicaSet.enabled }}
+                        value: {{ .Values.mongodb.replicaSet.enabled | quote }}
                       - name: MONGO_REPLICA_SET_NAME
                         value: {{ .Values.mongodb.replicaSet.name }}
                       {{- end }}
