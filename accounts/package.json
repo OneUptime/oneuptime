@@ -44,7 +44,7 @@
         "build-sw": "node ./src/sw-build.js",
         "test": "jest --forceExit --runInBand ./src/test/*.test.js",
         "enterprise-test": "jest --forceExit --runInBand ./src/test/*.test.enterprise.js",
-        "start": "node index.js",
+        "start": "node --max-old-space-size=4096 index.js",
         "audit": "npm audit --audit-level=low",
         "light-house": "node lighthouse.js --web",
         "light-house-mobile": "node lighthouse.js --mobile",
