@@ -590,30 +590,13 @@ module.exports = {
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
 
-                const populate = [
-                    { path: 'createdById', select: 'name' },
+                const scheduledEventNoteCount = await ScheduledEventNoteService.countBy(
                     {
-                        path: 'scheduledEventId',
-                        select: 'name monitors alertSubscriber projectId',
-                        populate: {
-                            path: 'projectId',
-                            select: 'name replyAddress',
-                        },
-                    },
-                ];
-                const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
-                    {
-                        query: {
-                            scheduledEventId,
-                            event_state: 'Started',
-                        },
-                        populate,
+                        scheduledEventId,
+                        event_state: 'Started',
                     }
                 );
-                if (
-                    scheduledEventNoteList &&
-                    scheduledEventNoteList.length === 0
-                ) {
+                if (scheduledEventNoteCount === 0) {
                     await ScheduledEventNoteService.create({
                         content: 'This scheduled event has started',
                         scheduledEventId,
@@ -651,30 +634,14 @@ module.exports = {
             //fetch event notes without started note and create
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
-                const populate = [
-                    { path: 'createdById', select: 'name' },
+
+                const scheduledEventNoteListCount = await ScheduledEventNoteService.countBy(
                     {
-                        path: 'scheduledEventId',
-                        select: 'name monitors alertSubscriber projectId',
-                        populate: {
-                            path: 'projectId',
-                            select: 'name replyAddress',
-                        },
-                    },
-                ];
-                const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
-                    {
-                        query: {
-                            scheduledEventId,
-                            event_state: 'Ended',
-                        },
-                        populate,
+                        scheduledEventId,
+                        event_state: 'Ended',
                     }
                 );
-                if (
-                    scheduledEventNoteList &&
-                    scheduledEventNoteList.length === 0
-                ) {
+                if (scheduledEventNoteListCount === 0) {
                     await ScheduledEventNoteService.create({
                         content: 'This scheduled event has ended',
                         scheduledEventId,

@@ -174,19 +174,12 @@ router.post(
             const { skip, limit, startDate, endDate, type, filter } = req.body;
             const applicationLogId = req.params.applicationLogId;
 
-            const populate = [
-                { path: 'componentId', select: 'name' },
-                { path: 'resourceCategory', select: 'name' },
-            ];
-            const currentApplicationLog = await ApplicationLogService.findOneBy(
+            const currentApplicationCount = await ApplicationLogService.countBy(
                 {
-                    query: {
-                        _id: applicationLogId,
-                    },
-                    populate,
+                    _id: applicationLogId,
                 }
             );
-            if (!currentApplicationLog) {
+            if (currentApplicationCount === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
                     message: 'Application Log not found',
@@ -229,12 +222,12 @@ router.post(
         try {
             const applicationLogId = req.params.applicationLogId;
 
-            const currentApplicationLog = await ApplicationLogService.findOneBy(
+            const currentApplicationCount = await ApplicationLogService.countBy(
                 {
                     _id: applicationLogId,
                 }
             );
-            if (!currentApplicationLog) {
+            if (currentApplicationCount === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
                     message: 'Application Log not found',
@@ -279,10 +272,10 @@ router.post(
     async function(req, res) {
         const applicationLogId = req.params.applicationLogId;
 
-        const currentApplicationLog = await ApplicationLogService.findOneBy({
+        const currentApplicationCount = await ApplicationLogService.countBy({
             _id: applicationLogId,
         });
-        if (!currentApplicationLog) {
+        if (!currentApplicationCount === 0) {
             return sendErrorResponse(req, res, {
                 code: 404,
                 message: 'Application Log not found',
@@ -332,7 +325,8 @@ router.put(
         }
 
         const currentApplicationLog = await ApplicationLogService.findOneBy({
-            _id: applicationLogId,
+            query: { _id: applicationLogId },
+            select: ['_id'],
         });
         if (!currentApplicationLog) {
             return sendErrorResponse(req, res, {
@@ -347,30 +341,15 @@ router.put(
             componentId: req.params.componentId,
         };
 
-        const populate = [
-            [
-                {
-                    path: 'componentId',
-                    select: 'name slug projectId',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name slug',
-                    },
-                },
-            ],
-        ];
-
         if (data.resourceCategory != '') {
             existingQuery.resourceCategory = data.resourceCategory;
         }
-        const existingApplicationLog = await ApplicationLogService.findBy({
-            query: existingQuery,
-            populate,
-        });
+        const existingApplicationCount = await ApplicationLogService.countBy(
+            existingQuery
+        );
 
         if (
-            existingApplicationLog &&
-            existingApplicationLog.length > 0 &&
+            existingApplicationCount > 0 &&
             data.resourceCategory != '' &&
             data.showQuickStart === undefined
         ) {

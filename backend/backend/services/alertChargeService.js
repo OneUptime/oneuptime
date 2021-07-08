@@ -26,7 +26,7 @@ module.exports = {
             throw error;
         }
     },
-    findBy: async function({ query, skip, limit, sort, populate }) {
+    findBy: async function({ query, skip, limit, sort, populate, select }) {
         try {
             if (!sort) sort = -1;
 
@@ -45,6 +45,7 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+
             let alertQuery;
             if (skip >= 0 && limit > 0) {
                 alertQuery = AlertChargeModel.find(query)
@@ -58,7 +59,9 @@ module.exports = {
                     .sort([['createdAt', sort]]);
             }
 
-            const alertCharges = await populateColumn(populate, alertQuery);
+            alertQuery = handleSelect(select, alertQuery);
+            alertQuery = handlePopulate(populate, alertQuery);
+            alertCharges = await alertQuery;
 
             return alertCharges;
         } catch (error) {
@@ -94,4 +97,5 @@ module.exports = {
 
 const AlertChargeModel = require('../models/alertCharge');
 const ErrorService = require('./errorService');
-const populateColumn = require('../utils/populate');
+const handlePopulate = require('../utils/populate');
+const handleSelect = require('../utils/select');

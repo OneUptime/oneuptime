@@ -931,6 +931,8 @@ module.exports = {
                     },
                 },
             ];
+            const select =
+                'updated content type event_state createdAt updatedAt createdById scheduledEventId';
 
             const [eventNote, count] = await Promise.all([
                 ScheduledEventNoteService.findBy({
@@ -938,6 +940,7 @@ module.exports = {
                     limit,
                     skip,
                     populate,
+                    select,
                 }),
                 ScheduledEventNoteService.countBy(query),
             ]);

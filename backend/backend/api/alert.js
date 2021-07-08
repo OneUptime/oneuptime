@@ -174,6 +174,9 @@ router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
             { path: 'incidentId', select: 'idNumber' },
         ];
 
+        const select =
+            'alertId subscriberAlertId monitorId incidentId closingAccountBalance chargeAmount';
+
         const [alertCharges, count] = await Promise.all([
             alertChargeService.findBy({
                 query: { projectId },
@@ -181,10 +184,10 @@ router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
                 limit: req.query.limit,
                 sort: false,
                 populate,
+                select,
             }),
             alertChargeService.countBy({ projectId }),
         ]);
-
         return sendListResponse(req, res, alertCharges, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

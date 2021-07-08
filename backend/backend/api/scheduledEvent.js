@@ -690,6 +690,8 @@ router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
                 },
             },
         ];
+        const selectFields =
+            'updated content type event_state createdAt updatedAt createdById scheduledEventId';
 
         const [eventNotes, count] = await Promise.all([
             ScheduledEventNoteService.findBy({
@@ -697,6 +699,7 @@ router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
                 limit,
                 skip,
                 populate,
+                select: selectFields,
             }),
             ScheduledEventNoteService.countBy({
                 scheduledEventId: eventId,
