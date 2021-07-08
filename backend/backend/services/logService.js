@@ -85,11 +85,12 @@ module.exports = {
     },
     async getLogsByApplicationLogId(applicationLogId, limit, skip) {
         // try to get the application log by the ID
-        const applicationLog = await ApplicationLogService.findOneBy({
+
+        const applicationLogCount = await ApplicationLogService.countBy({
             _id: applicationLogId,
         });
         // send an error if the component doesnt exist
-        if (!applicationLog) {
+        if (applicationLogCount === 0) {
             const error = new Error('Application Log does not exist.');
             error.code = 400;
             ErrorService.log('logService.getLogsByApplicationLogId', error);

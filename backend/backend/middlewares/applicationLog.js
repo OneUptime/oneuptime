@@ -48,13 +48,13 @@ const _this = {
                 });
             }
 
-            // try to get the application log by the ID and key
-            const applicationLog = await ApplicationLogService.findOneBy({
+            // try to get the application log count by the ID and key
+            const applicationLogCount = await ApplicationLogService.countBy({
                 _id: applicationLogId,
                 key: data.applicationLogKey,
             });
             // send an error if the application log doesnt exist
-            if (!applicationLog) {
+            if (applicationLogCount === 0) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Application Log does not exist.',
