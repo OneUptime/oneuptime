@@ -701,17 +701,38 @@ module.exports = {
             if (monitorIds && monitorIds.length) {
                 const currentDate = moment();
                 const eventIds = [];
+
+                const populate = [
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name',
+                        populate: {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                    },
+                ];
+                const select =
+                    'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
                         const scheduledEvents = await ScheduledEventsService.findBy(
                             {
-                                'monitors.monitorId': monitorId,
-                                showEventOnStatusPage: true,
-                                startDate: { $lte: currentDate },
-                                endDate: {
-                                    $gte: currentDate,
+                                query: {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    startDate: { $lte: currentDate },
+                                    endDate: {
+                                        $gte: currentDate,
+                                    },
+                                    resolved: false,
                                 },
-                                resolved: false,
+                                select,
+                                populate,
                             }
                         );
                         scheduledEvents.map(event => {
@@ -776,13 +797,33 @@ module.exports = {
             if (monitorIds && monitorIds.length) {
                 const currentDate = moment();
                 const eventIds = [];
+                const populate = [
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name',
+                        populate: {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                    },
+                ];
+                const select =
+                    'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
                         const scheduledEvents = await ScheduledEventsService.findBy(
                             {
-                                'monitors.monitorId': monitorId,
-                                showEventOnStatusPage: true,
-                                startDate: { $gt: currentDate },
+                                query: {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    startDate: { $gt: currentDate },
+                                },
+                                select,
+                                populate,
                             }
                         );
                         scheduledEvents.map(event => {
@@ -849,13 +890,33 @@ module.exports = {
             if (monitorIds && monitorIds.length) {
                 const currentDate = moment();
                 const eventIds = [];
+                const populate = [
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name',
+                        populate: {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                    },
+                ];
+                const select =
+                    'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
                         const scheduledEvents = await ScheduledEventsService.findBy(
                             {
-                                'monitors.monitorId': monitorId,
-                                showEventOnStatusPage: true,
-                                endDate: { $lt: currentDate },
+                                query: {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    endDate: { $lt: currentDate },
+                                },
+                                populate,
+                                select,
                             }
                         );
                         scheduledEvents.map(event => {
@@ -896,10 +957,28 @@ module.exports = {
     },
 
     getEvent: async function(query) {
+        const populate = [
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: {
+                    path: 'componentId',
+                    select: 'name slug',
+                },
+            },
+        ];
+        const select =
+            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
         try {
-            const scheduledEvent = await ScheduledEventsService.findOneBy(
-                query
-            );
+            const scheduledEvent = await ScheduledEventsService.findOneBy({
+                query,
+                select,
+                populate,
+            });
             return scheduledEvent;
         } catch (error) {
             ErrorService.log('statusPageService.getEvent', error);
@@ -954,8 +1033,30 @@ module.exports = {
 
     getEventsByDate: async function(query, skip, limit) {
         try {
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
             const [scheduledEvents, count] = await Promise.all([
-                ScheduledEventsService.findBy(query, limit, skip),
+                ScheduledEventsService.findBy({
+                    query,
+                    limit,
+                    skip,
+                    populate,
+                    select,
+                }),
                 ScheduledEventsService.countBy(query),
             ]);
 
