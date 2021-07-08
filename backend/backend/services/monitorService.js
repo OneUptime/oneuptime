@@ -354,10 +354,6 @@ module.exports = {
             monitorQuery = handleSelect(select, monitorQuery);
             monitorQuery = handlePopulate(populate, monitorQuery);
 
-            // monitorQuery = await handlePopulate(
-            //     populate,
-            //     handleSelect(select, monitors)
-            // );
             const monitors = await monitorQuery;
             return monitors;
         } catch (error) {
