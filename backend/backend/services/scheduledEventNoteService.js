@@ -2,7 +2,8 @@ const ScheduledEventNoteModel = require('../models/scheduledEventNote');
 const ErrorService = require('./errorService');
 const RealTimeService = require('./realTimeService');
 const AlertService = require('./alertService');
-const populateColumn = require('../utils/populate');
+const handlePopulate = require('../utils/populate');
+const handleSelect = require('../utils/Select');
 
 module.exports = {
     create: async function(data, projectId) {
@@ -10,8 +11,25 @@ module.exports = {
             let scheduledEventMessage = await ScheduledEventNoteModel.create(
                 data
             );
+
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'scheduledEventId',
+                    select: 'name monitors alertSubscriber projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name replyAddress',
+                    },
+                },
+            ];
+            const select =
+                'updated content type event_state createdAt updatedAt createdById scheduledEventId';
+
             scheduledEventMessage = await this.findOneBy({
-                _id: scheduledEventMessage._id,
+                query: { _id: scheduledEventMessage._id },
+                select,
+                populate,
             });
             if (
                 scheduledEventMessage.scheduledEventId.alertSubscriber &&
@@ -72,7 +90,21 @@ module.exports = {
                 throw error;
             }
 
-            eventMessage = await this.findOneBy(query); // If one of the values of query is not correct, a null is returned as such document could not be found in the DB
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'scheduledEventId',
+                    select: 'name monitors alertSubscriber projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name replyAddress',
+                    },
+                },
+            ];
+            const select =
+                'updated content type event_state createdAt updatedAt createdById scheduledEventId';
+
+            eventMessage = await this.findOneBy({ query, populate, select }); // If one of the values of query is not correct, a null is returned as such document could not be found in the DB
             eventMessage.type === 'internal'
                 ? RealTimeService.updateScheduledEventInternalNote(eventMessage)
                 : RealTimeService.updateScheduledEventInvestigationNote(
@@ -86,27 +118,26 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function({ query, populate }) {
+    findOneBy: async function({ query, populate, select }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const eventMessageQuery = ScheduledEventNoteModel.findOne(
+            let eventMessageQuery = ScheduledEventNoteModel.findOne(
                 query
             ).lean();
-            const eventMessage = await populateColumn(
-                populate,
-                eventMessageQuery
-            );
 
+            eventMessageQuery = handleSelect(select, eventMessageQuery);
+            eventMessageQuery = handlePopulate(populate, eventMessageQuery);
+            eventMessage = await eventMessageQuery;
             return eventMessage;
         } catch (error) {
             ErrorService.log('scheduledEventNoteService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function({ query, limit, skip, populate }) {
+    findBy: async function({ query, limit, skip, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -122,16 +153,16 @@ module.exports = {
 
             if (!query) query = {};
 
-            const eventMessageQuery = ScheduledEventNoteModel.find(query)
+            let eventMessageQuery = ScheduledEventNoteModel.find(query)
                 .lean()
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 });
-            const eventMessage = await populateColumn(
-                populate,
-                eventMessageQuery
-            );
 
+            eventMessageQuery = handleSelect(select, eventMessageQuery);
+            eventMessageQuery = handlePopulate(populate, eventMessageQuery);
+
+            eventMessage = await eventMessageQuery;
             return eventMessage;
         } catch (error) {
             ErrorService.log('scheduledEventNoteService.findBy', error);
