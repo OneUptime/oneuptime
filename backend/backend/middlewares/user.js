@@ -14,7 +14,6 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const apiMiddleware = require('../middlewares/api');
 
 const _this = {
-    
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
     // Params:
     // Param 1: req.headers-> {token}

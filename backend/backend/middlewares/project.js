@@ -123,7 +123,7 @@ module.exports = {
             }
 
             // authorize if user is master-admin
-            // 
+            //
             if (req.authorizationType === 'MASTER-ADMIN') {
                 return next();
             } else {

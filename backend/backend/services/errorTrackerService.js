@@ -51,6 +51,22 @@ module.exports = {
             throw error;
         }
     },
+
+    async countBy(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            const count = await ErrorTrackerModel.countDocuments(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('errorTrackerService.countBy', error);
+            throw error;
+        }
+    },
+
     // find a list of error trackers
     async findBy(query, limit, skip) {
         try {

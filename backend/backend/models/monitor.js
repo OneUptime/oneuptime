@@ -96,7 +96,7 @@ const monitorSchema = new Schema({
             'kubernetes',
             'ip',
         ],
-        index: true
+        index: true,
     }, //type can be 'url', 'process', 'machine'. We can monitor URL, a process in a machine or a server itself.
     agentlessConfig: Object,
     kubernetesConfig: Schema.Types.Mixed,
@@ -104,7 +104,7 @@ const monitorSchema = new Schema({
     resourceCategory: {
         type: String,
         ref: 'ResourceCategory',
-        index: true
+        index: true,
     },
     createdAt: {
         type: Date,
@@ -112,17 +112,17 @@ const monitorSchema = new Schema({
     },
     pollTime: {
         type: Array,
-        index: true
+        index: true,
     },
     lastPingTime: {
         type: Date,
         default: Date.now,
-        index: true
+        index: true,
     },
     updateTime: {
         type: Date,
         default: Date.now,
-        index: true
+        index: true,
     },
     criteria: {
         up: { type: [criterionEventSchema], default: [] },

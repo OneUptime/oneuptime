@@ -54,11 +54,12 @@ module.exports = {
             }
         }
 
-        const project = await ProjectService.findOneBy({
+        const projectCount = await ProjectService.countBy({
             _id: projectId,
             apiKey: apiKey,
         });
-        if (project) {
+
+        if (projectCount > 0) {
             req.authorizationType = 'API';
 
             //set user Id to API.
@@ -163,7 +164,7 @@ module.exports = {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message:
-                        'Sorry this monitor is disabled.Please enable it to start monitoring again.',
+                        'Sorry this monitor is disabled. Please enable it to start monitoring again.',
                 });
             } else {
                 req.monitor = monitor;
