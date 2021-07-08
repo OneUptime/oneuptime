@@ -100,10 +100,7 @@ export function markAsRead(projectId, notificationIds) {
                     notification.notificationId ||
                     notification.notificaitonId._id
             );
-            const notifications = await putApi(
-                `notification/${projectId}/read`,
-                { notificationIds }
-            );
+
             for (const notificationId of notifications.data) {
                 dispatch(
                     notificationReadSuccess({
@@ -112,6 +109,11 @@ export function markAsRead(projectId, notificationIds) {
                     })
                 );
             }
+
+            const notifications = await putApi(
+                `notification/${projectId}/read`,
+                { notificationIds }
+            );
         } catch (error) {
             let payload;
             if (error && error.response && error.response.data)
@@ -134,16 +136,15 @@ export function closeNotification(projectId, notificationId) {
     return async function(dispatch) {
         try {
             const userId = User.getUserId();
-            const notifications = await putApi(
-                `notification/${projectId}/${notificationId}/closed`
-            );
 
             dispatch(
                 notificationClosedSuccess({
-                    notificationId: notifications.data,
+                    notificationId,
                     userId,
                 })
             );
+
+            await putApi(`notification/${projectId}/${notificationId}/closed`);
         } catch (error) {
             let payload;
             if (error && error.response && error.response.data)
