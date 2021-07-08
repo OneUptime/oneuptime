@@ -180,7 +180,7 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, async function(
 
         const existingScheduledEvent = await ScheduledEventService.findOneBy({
             query: { name: data.name, projectId },
-            select: '_id',
+            select: '_id createdById',
         });
 
         if (

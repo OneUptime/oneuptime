@@ -1043,26 +1043,9 @@ router.get('/:projectId/notes/:scheduledEventSlug', checkUser, async function(
     const { scheduledEventSlug } = req.params;
     const { skip, limit, type } = req.query;
 
-    const populate = [
-        { path: 'resolvedBy', select: 'name' },
-        { path: 'projectId', select: 'name slug' },
-        { path: 'createdById', select: 'name' },
-        {
-            path: 'monitors.monitorId',
-            select: 'name',
-            populate: {
-                path: 'componentId',
-                select: 'name slug',
-            },
-        },
-    ];
-    const select =
-        'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
-
     const scheduledEventId = await ScheduledEventService.findOneBy({
         query: { slug: scheduledEventSlug },
-        select,
-        populate,
+        select: '_id',
     });
 
     try {

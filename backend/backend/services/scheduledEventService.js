@@ -55,7 +55,27 @@ module.exports = {
                 ...data,
             });
 
-            scheduledEvent = await this.findOneBy({ _id: scheduledEvent._id });
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
+            scheduledEvent = await this.findOneBy({
+                query: { _id: scheduledEvent._id },
+                select,
+                populate,
+            });
             // add note when a scheduled event is created
             await ScheduledEventNoteService.create({
                 content: 'THIS SCHEDULED EVENT HAS BEEN CREATED',
@@ -169,8 +189,26 @@ module.exports = {
                 { new: true }
             );
 
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
             updatedScheduledEvent = await this.findOneBy({
-                _id: updatedScheduledEvent._id,
+                query: { _id: updatedScheduledEvent._id },
+                populate,
+                select,
             });
 
             if (!updatedScheduledEvent) {
