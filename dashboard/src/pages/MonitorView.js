@@ -977,9 +977,11 @@ const mapStateToProps = (state, props) => {
             monitor.data && monitor.data.IPAddress;
         initialValues[`description_${monitor._id}`] =
             monitor.data && monitor.data.description;
-        initialValues[`subProject_${monitor._id}`] = monitor.projectId._id;
+        initialValues[`subProject_${monitor._id}`] =
+            monitor.projectId._id || monitor.projectId;
         initialValues[`resourceCategory_${monitor._id}`] =
-            monitor.resourceCategory && monitor.resourceCategory._id;
+            monitor.resourceCategory &&
+            (monitor.resourceCategory._id || monitor.resourceCategory);
 
         const monitorSchedules = [];
         if (schedules && schedules.data) {
