@@ -14,10 +14,12 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const apiMiddleware = require('../middlewares/api');
 
 const _this = {
+    
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
     // Params:
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
+
     getUser: async function(req, res, next) {
         try {
             const projectId = apiMiddleware.getProjectId(req);
