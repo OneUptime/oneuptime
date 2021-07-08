@@ -3,7 +3,7 @@ const ErrorService = require('./errorService');
 const RealTimeService = require('./realTimeService');
 const AlertService = require('./alertService');
 const handlePopulate = require('../utils/populate');
-const handleSelect = require('../utils/Select');
+const handleSelect = require('../utils/select');
 
 module.exports = {
     create: async function(data, projectId) {
