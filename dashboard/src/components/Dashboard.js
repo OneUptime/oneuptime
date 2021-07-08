@@ -150,10 +150,7 @@ export class DashboardApp extends Component {
                     <div className="db-World-wrapper Box-root Flex-flex Flex-direction--column">
                         <ShouldRender if={userProfile}>
                             <div className="db-World-scrollWrapper">
-                                <SideNav
-                                    location={this.props.location}
-                                    match={this.props.match}
-                                />
+                                <SideNav />
 
                                 <div className="db-World-mainPane Box-root Margin-top--60 Padding-right--20">
                                     <div className="db-World-contentPane Box-root Padding-bottom--48">
@@ -180,10 +177,7 @@ export class DashboardApp extends Component {
                                         project.projects.projects[0]
                                     }
                                 >
-                                    <SideNav
-                                        location={this.props.location}
-                                        match={this.props.match}
-                                    />
+                                    <SideNav />
 
                                     <div className="db-World-mainPane Box-root Margin-top--60">
                                         <div className="db-World-contentPane Box-root Padding-bottom--48">
@@ -341,7 +335,6 @@ DashboardApp.propTypes = {
     project: PropTypes.object.isRequired,
     profile: PropTypes.object.isRequired,
     notification: PropTypes.object.isRequired,
-    match: PropTypes.object,
     getProjects: PropTypes.func,
     hideProfileMenu: PropTypes.func,
     closeNotificationMenu: PropTypes.func,
