@@ -1,9 +1,13 @@
 const ErrorService = require('../services/errorService');
 module.exports = (select, query) => {
     /**
-     * select is an array of column(s) to show or hide
+     * select is an array of column(s) to show
      *
-     * eg: select = '_id -__v'
+     * eg: select = '_id createdAt'
+     *
+     * hidding of column(s) is not allowed, so don't do this
+     *
+     * select = '-__v -_id' // it will throw an error
      */
     try {
         if (typeof select !== 'string') {
@@ -13,14 +17,22 @@ module.exports = (select, query) => {
             error.code = 400;
             throw error;
         }
+
         if (!select || !select.trim()) {
             const error = new Error('Please specify fields to select');
             error.code = 400;
             throw error;
         }
 
-        // TODO: Validate Select.
         // Validate to make sure it does not have "-" negated columns.
+        const regex = /[-]/g;
+        if (regex.test(select)) {
+            const error = new Error(
+                'Negated columns are not allowed, only select the fields you need'
+            );
+            error.code = 400;
+            throw error;
+        }
 
         return query.select(select);
     } catch (error) {
