@@ -1664,7 +1664,7 @@ router.get('/resources/:statusPageSlug', checkUser, ipWhitelist, async function(
             timelines,
             statusPageNote,
             announcementLogs,
-        ] = await Promise.all([
+        ] = await Promise.allSettled([
             //get ongoing events.
             getOngoingScheduledEvents(req, statusPageSlug),
 
@@ -1690,25 +1690,25 @@ router.get('/resources/:statusPageSlug', checkUser, ipWhitelist, async function(
             getAnnouncementLogs(statusPage),
         ]);
 
-        response.ongoingEvents = ongoingEvents;
+        response.ongoingEvents = ongoingEvents.value || {};
 
-        response.futureEvents = futureEvents;
+        response.futureEvents = futureEvents.value || {};
 
-        response.pastEvents = pastEvents;
+        response.pastEvents = pastEvents.value || {};
 
-        response.probes = probes;
+        response.probes = probes.value || {};
 
-        response.monitorLogs = monitorLogs;
+        response.monitorLogs = monitorLogs.value || {};
 
-        response.announcement = announcement;
+        response.announcement = announcement.value || {};
 
-        response.monitorStatus = monitorStatus;
+        response.monitorStatus = monitorStatus.value || {};
 
-        response.timelines = timelines;
+        response.timelines = timelines.value || {};
 
-        response.statusPageNote = statusPageNote;
+        response.statusPageNote = statusPageNote.value || {};
 
-        response.announcementLogs = announcementLogs;
+        response.announcementLogs = announcementLogs.value || {};
 
         return sendItemResponse(req, res, response);
     } catch (error) {
