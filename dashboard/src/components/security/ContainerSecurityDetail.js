@@ -213,7 +213,9 @@ class ContainerSecurityDetail extends Component {
                         <Fade>
                             <ShouldRender
                                 if={
-                                    isRequesting && gettingSecurityLog && gettingCredentials
+                                    isRequesting &&
+                                    gettingSecurityLog &&
+                                    gettingCredentials
                                 }
                             >
                                 <div style={{ textAlign: 'center' }}>
@@ -231,7 +233,9 @@ class ContainerSecurityDetail extends Component {
                                     projectId={projectId}
                                     componentId={componentId}
                                     containerSecurityId={containerSecurityId}
-                                    containerSecuritySlug={containerSecuritySlug}
+                                    containerSecuritySlug={
+                                        containerSecuritySlug
+                                    }
                                     isRequesting={isRequesting}
                                     containerSecurity={containerSecurity}
                                     componentSlug={componentSlug}
@@ -259,7 +263,9 @@ class ContainerSecurityDetail extends Component {
                                         fetchCredentialError)
                                 }
                             >
-                                {getContainerError || fetchLogError || fetchCredentialError}
+                                {getContainerError ||
+                                    fetchLogError ||
+                                    fetchCredentialError}
                             </ShouldRender>
                         </Fade>
                     </TabPanel>
@@ -276,7 +282,9 @@ class ContainerSecurityDetail extends Component {
                                     projectId={projectId}
                                     componentId={componentId}
                                     containerSecurityId={containerSecurityId}
-                                    containerSecuritySlug={containerSecuritySlug}
+                                    containerSecuritySlug={
+                                        containerSecuritySlug
+                                    }
                                     componentSlug={componentSlug}
                                 />
                             </ShouldRender>

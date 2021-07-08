@@ -19,10 +19,8 @@ module.exports = (populateArray, query) => {
         }
 
         // TODO: Validate populate
-        // Make sure populate has select prop so we dont "select" the entire object but ONLY a part of the object. 
-        // Make sure nested populate also has "select" so we dont select the entire object. 
-
-
+        // Make sure populate has select prop so we dont "select" the entire object but ONLY a part of the object.
+        // Make sure nested populate also has "select" so we dont select the entire object.
 
         return query.populate(populateArray);
     } catch (error) {
