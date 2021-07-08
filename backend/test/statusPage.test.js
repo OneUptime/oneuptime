@@ -1,5 +1,3 @@
-/* eslint-disable quotes, no-undef */
-
 process.env.PORT = 3020;
 process.env.IS_SAAS_SERVICE = true;
 const expect = require('chai').expect;

@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  *
  * Copyright HackerBay, Inc.

@@ -1,5 +1,5 @@
 'use strict';
-/* eslint-disable no-console */
+
 /*eslint-disable no-unused-vars*/
 import axios from 'axios';
 const cron = require('node-cron');

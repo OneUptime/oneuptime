@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 const data = require('./data/user');
@@ -29,7 +27,7 @@ describe('Email SMTP Api Test', function() {
 
         const project = res.body.project;
         projectId = project._id;
-        userId = res.body.id;
+        const userId = res.body.id;
 
         const verificationToken = await VerificationTokenModel.findOne({
             userId,

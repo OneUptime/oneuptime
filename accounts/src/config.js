@@ -156,7 +156,6 @@ export const Validate = {
     },
 
     isValidNumber(number) {
-        // eslint-disable-next-line
         if (number.match('^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-s./0-9]*$')) {
             return true;
         }
@@ -226,7 +225,6 @@ export const Validate = {
     },
 
     isValidName(name) {
-        // eslint-disable-next-line
         if (name.match('[A-Z][a-zA-Z][^#&<>"~;$^%{}?]{1,20}$')) {
             return true;
         }

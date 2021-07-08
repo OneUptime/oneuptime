@@ -1,5 +1,3 @@
-/* eslint-disable quotes, indent */
-
 module.exports = {
     //Description: Upsert function for monitor.
     //Params:
@@ -803,11 +801,13 @@ module.exports = {
             const oneDay = moment()
                 .subtract(1, 'days')
                 .toDate();
+
             const monitors = await MonitorModel.find({
                 $and: [
                     {
                         deleted: false,
                         disabled: false,
+                        type: 'url',
                     },
                     {
                         $or: [
@@ -825,13 +825,9 @@ module.exports = {
                             { lighthouseScannedAt: { $lt: oneDay } },
                         ],
                     },
-                    {
-                        type: {
-                            $in: ['url'],
-                        },
-                    },
                 ],
             });
+
             return monitors;
         } catch (error) {
             ErrorService.log('monitorService.getUrlMonitors', error);

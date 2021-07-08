@@ -17,7 +17,7 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 function submitUserForm(values, dispatch, props) {
     const scheduleId = props && props.scheduleId;
     const users = [];
-    /* eslint-disable no-unused-vars */
+
     for (const id in values) {
         if (Object.prototype.hasOwnProperty.call(values, id)) {
             values[id] && users.push(id);

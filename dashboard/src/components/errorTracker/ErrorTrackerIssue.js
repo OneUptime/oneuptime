@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import React from 'react';
 import * as moment from 'moment';
 import Badge from '../common/Badge';

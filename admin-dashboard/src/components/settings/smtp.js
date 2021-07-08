@@ -484,7 +484,6 @@ export class Component extends React.Component {
 
 Component.displayName = 'SettingsForm';
 
-/* eslint-disable */
 Component.propTypes = {
     settings: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,

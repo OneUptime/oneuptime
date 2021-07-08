@@ -19,7 +19,7 @@ function submitMonitorForm(values, dispatch, props) {
     const subProjectId = props && props.subProjectId;
     const scheduleId = props && props.scheduleId;
     const monitors = [];
-    /* eslint-disable no-unused-vars */
+
     for (const id in values) {
         if (
             Object.prototype.hasOwnProperty.call(values, id) &&

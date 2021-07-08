@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const UrlService = require('../utils/urlService');
 const ErrorService = require('../utils/errorService');
 const { fork } = require('child_process');
@@ -37,10 +36,7 @@ module.exports = {
 
                         for (const url of sites) {
                             try {
-                                const resp = await lighthouseFetch(
-                                    monitor,
-                                    url
-                                );
+                                const resp = await lighthouseFetch(url);
 
                                 await UrlService.ping(monitor._id, {
                                     monitor,
@@ -63,7 +59,7 @@ module.exports = {
     },
 };
 
-const lighthouseFetch = (monitor, url) => {
+const lighthouseFetch = url => {
     return new Promise((resolve, reject) => {
         const lighthouseWorker = fork('./utils/lighthouse');
         const timeoutHandler = setTimeout(async () => {

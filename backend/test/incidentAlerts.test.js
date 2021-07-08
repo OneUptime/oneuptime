@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 process.env.PORT = 3020;
 const userData = require('./data/user');
 const chai = require('chai');

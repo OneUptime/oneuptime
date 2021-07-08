@@ -6,21 +6,21 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Lighthouse Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Unhandled rejection in Lighthouse process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in Lighthouse process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -63,8 +63,8 @@ app.get(['/lighthouse/version', '/version'], function(req, res) {
     res.send({ lighthouseVersion: process.env.npm_package_version });
 });
 
-// This cron runs every 10 minute.
-cron.schedule('*/10 * * * *', () => {
+// This cron runs every 30 minutes.
+cron.schedule('*/30 * * * *', () => {
     setTimeout(() => {
         Main.runJob();
     }, cronMinuteStartTime * 1000);

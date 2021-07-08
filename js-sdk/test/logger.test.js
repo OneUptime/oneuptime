@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 const chai = require('chai');
 chai.use(require('chai-http'));
 

@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fetch = require('node-fetch');

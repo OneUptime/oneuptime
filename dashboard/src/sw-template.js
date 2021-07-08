@@ -1,10 +1,8 @@
-/* eslint-disable */
 if ('function' === typeof importScripts) {
     importScripts(
         'https://storage.googleapis.com/workbox-cdn/releases/6.1.1/workbox-sw.js'
     );
 
-    /* global workbox */
     if (workbox) {
         const { skipWaiting, clientsClaim } = workbox.core;
         const { precacheAndRoute, cleanupOutdatedCaches } = workbox.precaching;
@@ -31,6 +29,7 @@ if ('function' === typeof importScripts) {
             });
         });
     } else {
+        // eslint-disable-next-line no-console
         console.log('Workbox could not be loaded. No Offline support');
     }
 }

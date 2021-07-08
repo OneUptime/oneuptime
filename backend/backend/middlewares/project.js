@@ -4,8 +4,6 @@
  *
  */
 
-/* eslint-disable quotes */
-
 const ProjectService = require('../services/projectService');
 const ErrorService = require('../services/errorService');
 const url = require('url');

@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  *
  * Copyright HackerBay, Inc.
@@ -102,6 +101,7 @@ module.exports = {
 
     sendErrorResponse: function(req, res, error) {
         //log error to the console.
+        // eslint-disable-next-line no-console
         console.error(error);
 
         if (error.statusCode && error.message) {

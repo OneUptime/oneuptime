@@ -1,19 +1,19 @@
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Unhandled rejection in process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -29,7 +29,7 @@ fs.readdir(directory, function(err, files) {
     const chunkRegex = /2\.(.+)\.chunk\.(js)$/;
     const mainChunkRegex = /main\.(.+)\.chunk\.(js)$/;
     if (err) {
-        /* eslint-disable no-console */
+        // eslint-disable-next-line no-console
         console.log('Unable to scan directory: ', err);
     }
     for (let i = 0; i < files.length; i++) {
