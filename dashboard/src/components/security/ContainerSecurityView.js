@@ -4,7 +4,6 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { openModal } from '../../actions/modal';
-import DeleteContainerSecurity from '../modals/DeleteContainerSecurity';
 import ConfirmScanModal from '../modals/ConfirmScanModal';
 import SecurityDetail from './SecurityDetail';
 import Badge from '../common/Badge';
@@ -15,7 +14,6 @@ import EditContainerSecurity from '../modals/EditContainerSecurity';
 import threatLevel from '../../utils/threatLevel';
 
 const ContainerSecurityView = ({
-    isRequesting,
     containerSecurityId,
     containerSecuritySlug,
     projectId,
@@ -28,27 +26,6 @@ const ContainerSecurityView = ({
     scanError,
     activeContainerSecurity,
 }) => {
-    const handleDelete = ({
-        projectId,
-        componentId,
-        containerSecurityId,
-        containerSecuritySlug,
-    }) => {
-        openModal({
-            id: containerSecurityId,
-            content: DeleteContainerSecurity,
-            propArr: [
-                {
-                    projectId,
-                    componentId,
-                    containerSecurityId,
-                    containerSecuritySlug,
-                    componentSlug,
-                },
-            ],
-        });
-    };
-
     const handleSubmit = ({ projectId, containerSecurityId }) => {
         openModal({
             id: containerSecurityId,
@@ -261,21 +238,6 @@ const ContainerSecurityView = ({
                                 >
                                     <span>Edit</span>
                                 </button>
-                                <button
-                                    id="deleteContainerSecurityBtn"
-                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                    disabled={isRequesting}
-                                    onClick={() =>
-                                        handleDelete({
-                                            projectId,
-                                            componentId,
-                                            containerSecurityId,
-                                            containerSecuritySlug,
-                                        })
-                                    }
-                                >
-                                    <span>Delete</span>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -324,7 +286,6 @@ const ContainerSecurityView = ({
 ContainerSecurityView.displayName = 'Container Security View';
 
 ContainerSecurityView.propTypes = {
-    isRequesting: PropTypes.bool,
     containerSecurityId: PropTypes.string,
     containerSecuritySlug: PropTypes.string,
     projectId: PropTypes.string,
@@ -351,7 +312,6 @@ const mapDispatchToProps = dispatch =>
 
 const mapStateToProps = state => {
     return {
-        isRequesting: state.security.deleteContainer.requesting,
         scanning: state.security.scanContainerSecurity.requesting,
         securityLog: state.security.containerSecurityLog || {},
         scanError: state.security.scanContainerSecurity.error,
