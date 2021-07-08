@@ -451,13 +451,23 @@ router.get(
                 ? { projectId: { $in: subProjectIds }, type }
                 : { projectId: { $in: subProjectIds } };
 
-            const select = '-__v';
+            const select =
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
+            const populate = [
+                {
+                    path: 'monitorSla',
+                    select: 'frequency _id',
+                },
+                { path: 'componentId', select: 'name' },
+                { path: 'incidentCommunicationSla', select: '_id' },
+            ];
             const [monitors, count] = await Promise.all([
                 MonitorService.findBy({
                     query,
                     limit: req.query.limit || 10,
                     skip: req.query.skip || 0,
                     select,
+                    populate,
                 }),
                 MonitorService.countBy({
                     projectId: { $in: subProjectIds },
@@ -486,8 +496,21 @@ router.get(
                 ? { _id: monitorId, projectId: { $in: subProjectIds }, type }
                 : { _id: monitorId, projectId: { $in: subProjectIds } };
 
-            const select = '-__v';
-            const monitor = await MonitorService.findOneBy({ query, select });
+            const select =
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
+            const populate = [
+                {
+                    path: 'monitorSla',
+                    select: 'frequency _id',
+                },
+                { path: 'componentId', select: 'name' },
+                { path: 'incidentCommunicationSla', select: '_id' },
+            ];
+            const monitor = await MonitorService.findOneBy({
+                query,
+                select,
+                populate,
+            });
             return sendItemResponse(req, res, monitor);
         } catch (error) {
             return sendErrorResponse(req, res, error);

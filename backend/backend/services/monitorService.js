@@ -164,7 +164,8 @@ module.exports = {
                     }
                     const savedMonitor = await monitor.save();
 
-                    const select = '-__v -createdAt';
+                    const select =
+                        '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
                     const populate = [
                         {
                             path: 'monitorSla',
@@ -273,7 +274,8 @@ module.exports = {
             }
             query.deleted = false;
 
-            const select = '-__v -createdAt';
+            const select =
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
             const populate = [
                 {
                     path: 'monitorSla',
@@ -303,7 +305,8 @@ module.exports = {
             let updatedData = await MonitorModel.updateMany(query, {
                 $set: data,
             });
-            const select = '-__v -createdAt';
+            const select =
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
             const populate = [
                 {
                     path: 'monitorSla',
@@ -344,16 +347,20 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            let monitors = MonitorModel.find(query)
+            let monitorQuery = MonitorModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
 
-            monitors = await handlePopulate(
-                populate,
-                handleSelect(select, monitors)
-            );
+            monitorQuery = handleSelect(select, monitorQuery);
+            monitorQuery = handlePopulate(populate, monitorQuery);
+
+            // monitorQuery = await handlePopulate(
+            //     populate,
+            //     handleSelect(select, monitors)
+            // );
+            const monitors = await monitorQuery;
             return monitors;
         } catch (error) {
             ErrorService.log('monitorService.findBy', error);
@@ -369,13 +376,16 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            let monitor = MonitorModel.findOne(query).lean();
+            let monitorQuery = MonitorModel.findOne(query).lean();
 
-            monitor = await handlePopulate(
-                populate,
-                handleSelect(select, monitor)
-            );
+            monitorQuery = handleSelect(select, monitorQuery);
+            monitorQuery = handlePopulate(populate, monitorQuery);
 
+            // monitor = await handlePopulate(
+            //     populate,
+            //     handleSelect(select, monitor)
+            // );
+            const monitor = await monitorQuery;
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);
@@ -517,7 +527,8 @@ module.exports = {
             if (typeof skip === 'string') skip = parseInt(skip);
             const _this = this;
 
-            const select = '-__v -createdAt';
+            const select =
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
             const populate = [
                 {
                     path: 'monitorSla',
@@ -1385,9 +1396,12 @@ module.exports = {
                         }
                     }
 
+                    const select =
+                        '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria lastPingTime lastMatchedCriterion method disabled customFields';
+
                     const monitorData = await this.findOneBy({
                         query: { _id: monitor._id },
-                        select: '-__v',
+                        select,
                     });
                     // run in the background
                     RealTimeService.monitorEdit(monitorData);
