@@ -130,7 +130,7 @@ module.exports = {
 
             eventMessageQuery = handleSelect(select, eventMessageQuery);
             eventMessageQuery = handlePopulate(populate, eventMessageQuery);
-            eventMessage = await eventMessageQuery;
+            const eventMessage = await eventMessageQuery;
             return eventMessage;
         } catch (error) {
             ErrorService.log('scheduledEventNoteService.findOneBy', error);
@@ -162,7 +162,7 @@ module.exports = {
             eventMessageQuery = handleSelect(select, eventMessageQuery);
             eventMessageQuery = handlePopulate(populate, eventMessageQuery);
 
-            eventMessage = await eventMessageQuery;
+            const eventMessage = await eventMessageQuery;
             return eventMessage;
         } catch (error) {
             ErrorService.log('scheduledEventNoteService.findBy', error);

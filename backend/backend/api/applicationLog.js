@@ -275,7 +275,8 @@ router.post(
         const currentApplicationCount = await ApplicationLogService.countBy({
             _id: applicationLogId,
         });
-        if (!currentApplicationCount === 0) {
+
+        if (currentApplicationCount === 0) {
             return sendErrorResponse(req, res, {
                 code: 404,
                 message: 'Application Log not found',
@@ -289,7 +290,7 @@ router.post(
 
         try {
             const applicationLog = await ApplicationLogService.updateOneBy(
-                { _id: currentApplicationLog._id },
+                { _id: req.params.applicationLogId },
                 data
             );
             return sendItemResponse(req, res, applicationLog);

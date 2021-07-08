@@ -1649,47 +1649,67 @@ router.get('/resources/:statusPageSlug', checkUser, ipWhitelist, async function(
             return sendErrorResponse(req, res, statusPage.data);
         }
         response.statusPages = statusPage;
-        //get ongoing events
-        const ongoingEvents = await getOngoingScheduledEvents(
-            req,
-            statusPageSlug
-        );
-        response.ongoingEvents = ongoingEvents;
-        //get future events
-        const futureEvents = await getFutureEvents(req, statusPageSlug);
-        response.futureEvents = futureEvents;
-        //get past event
-        const pastEvents = await getPastEvents(req, statusPageSlug);
-        response.pastEvents = pastEvents;
-        //get probes
-        const probes = await getProbes(req);
-        response.probes = probes;
+
         const { _id: statusPageId, monitors, projectId } = statusPage;
-        const monitorLogs = await getMonitorLogs(req, monitors);
+
+        //get all resources.
+        const [
+            ongoingEvents,
+            futureEvents,
+            pastEvents,
+            probes,
+            monitorLogs,
+            announcement,
+            monitorStatus,
+            timelines,
+            statusPageNote,
+            announcementLogs,
+        ] = await Promise.all([
+            //get ongoing events.
+            getOngoingScheduledEvents(req, statusPageSlug),
+
+            //get future events
+            getFutureEvents(req, statusPageSlug),
+
+            //get past events.
+            getPastEvents(req, statusPageSlug),
+
+            //get probes.
+            getProbes(req),
+
+            getMonitorLogs(req, monitors),
+
+            getAnnouncements(req, statusPageId, projectId),
+
+            getMonitorStatuses(req, monitors),
+
+            getMonitorTimelines(statusPageSlug),
+
+            getStatusPageNote(req, statusPageSlug, statusPage.theme),
+
+            getAnnouncementLogs(statusPage),
+        ]);
+
+        response.ongoingEvents = ongoingEvents;
+
+        response.futureEvents = futureEvents;
+
+        response.pastEvents = pastEvents;
+
+        response.probes = probes;
+
         response.monitorLogs = monitorLogs;
-        //get announcements
-        const announcement = await getAnnouncements(
-            req,
-            statusPageId,
-            projectId
-        );
+
         response.announcement = announcement;
-        //get monitor status
-        const monitorStatus = await getMonitorStatuses(req, monitors);
+
         response.monitorStatus = monitorStatus;
-        //get monitor timelines
-        const timelines = await getMonitorTimelines(statusPageSlug);
+
         response.timelines = timelines;
-        //get status getStatusPageNote
-        const statusPageNote = await getStatusPageNote(
-            req,
-            statusPageSlug,
-            statusPage.theme
-        );
+
         response.statusPageNote = statusPageNote;
-        //get all announcement logs
-        const announcementLogs = await getAnnouncementLogs(statusPage);
+
         response.announcementLogs = announcementLogs;
+
         return sendItemResponse(req, res, response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1733,6 +1753,7 @@ async function getStatusPage(req, statusPageSlug) {
         return statusPage;
     }
 }
+
 async function getOngoingScheduledEvents(req, statusPageSlug) {
     const { skip = 0, limit = 5, theme = false } = req.query;
     // Call the StatusPageService.

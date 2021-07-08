@@ -61,7 +61,7 @@ module.exports = {
 
             alertQuery = handleSelect(select, alertQuery);
             alertQuery = handlePopulate(populate, alertQuery);
-            alertCharges = await alertQuery;
+            const alertCharges = await alertQuery;
 
             return alertCharges;
         } catch (error) {
