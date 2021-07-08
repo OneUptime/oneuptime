@@ -882,9 +882,11 @@ router.get(
     async function(req, res) {
         try {
             const { projectId } = req.params;
+            const select =
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
             const monitors = await MonitorService.findBy({
                 query: { projectId, breachedMonitorSla: true },
-                select: '-__v -createdAt',
+                select,
             });
             return sendItemResponse(req, res, monitors);
         } catch (error) {

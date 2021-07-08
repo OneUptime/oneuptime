@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import {
     FETCH_MONITORS_SUCCESS,
     FETCH_MONITORS_FAILURE,

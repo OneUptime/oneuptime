@@ -8,7 +8,7 @@ const ProjectService = require('../services/projectService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ObjectID = mongoose.Types.ObjectId;
 const MonitorService = require('../services/monitorService');
-/* eslint-disable no-unused-vars */
+
 module.exports = {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
     // Params:
@@ -88,21 +88,18 @@ module.exports = {
         return true;
     },
     hasAPIKey: function(req) {
-        let apiKey;
         if (req.query.apiKey) {
-            apiKey = req.query.apiKey;
+            return true;
         } else if (req.headers.apikey || req.headers.apiKey) {
-            apiKey = req.headers.apikey;
+            return true;
         } else if (req.body.apiKey) {
-            apiKey = req.body.apiKey;
-        } else {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     },
 
-    getProjectId: function(req, res) {
+    getProjectId: function(req) {
         // Get Project Id, If Available
         let projectId;
 

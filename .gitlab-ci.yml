@@ -65,6 +65,10 @@ include:
   - '/ci/spec/init-script/audit.yaml'
   - '/ci/spec/init-script/deploy.yaml'
 
+  # LIGHTHOUSE RUNNER
+  - '/ci/spec/lighthouse-runner/audit.yaml'
+  - '/ci/spec/lighthouse-runner/deploy.yaml'
+
   # LICENSING
   - '/ci/spec/licensing/audit.yaml'
   - '/ci/spec/licensing/build-n-test.yaml'

@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const express = require('express');
 const path = require('path');
 const app = express();
@@ -114,6 +113,7 @@ app.use('/', async function(req, res, next) {
             return next();
         }
     } catch (error) {
+        // eslint-disable-next-line no-console
         console.log('Error with fetch', error);
         return next();
     }
@@ -187,6 +187,7 @@ function createDir(dirPath) {
 (async function() {
     // create http server
     http.createServer(app).listen(3006, () =>
+        // eslint-disable-next-line no-console
         console.log('Server running on port 3006')
     );
 
@@ -337,11 +338,14 @@ function createDir(dirPath) {
             },
         };
 
-        https
-            .createServer(options, app)
-            .listen(3007, () => console.log('Server running on port 3007'));
+        https.createServer(options, app).listen(3007, () => {
+            // eslint-disable-next-line no-console
+            console.log('Server running on port 3007');
+        });
     } catch (e) {
+        // eslint-disable-next-line no-console
         console.log('Unable to create HTTPS Server');
+        // eslint-disable-next-line no-console
         console.log(e);
     }
 })();

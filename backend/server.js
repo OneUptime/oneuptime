@@ -14,21 +14,21 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Server Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Unhandled rejection in server process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in server process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 

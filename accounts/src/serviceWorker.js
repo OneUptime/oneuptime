@@ -1,4 +1,3 @@
-/* eslint-disable */
 // This optional code is used to register a service worker.
 // register() is not called by default.
 
@@ -40,12 +39,6 @@ export function register(config) {
                 checkValidServiceWorker(swUrl, config);
                 // Add some additional logging to localhost, pointing developers to the
                 // service worker/PWA documentation.
-                navigator.serviceWorker.ready.then(() => {
-                    console.log(
-                        'This web app is being served cache-first by a service ' +
-                            'worker. To learn more, visit https://bit.ly/CRA-PWA'
-                    );
-                });
             } else {
                 // Is not localhost. Just register service worker
                 registerValidSW(swUrl, config);
@@ -81,10 +74,6 @@ function registerValidSW(swUrl, config) {
                             // At this point, the updated precached content has been fetched,
                             // but the previous service worker will still serve the older
                             // content until all client tabs are closed.
-                            console.log(
-                                'New content is available and will be used when all ' +
-                                    'tabs for this page are closed. See https://bit.ly/CRA-PWA.'
-                            );
 
                             // Execute callback
                             if (config && config.onUpdate) {
@@ -105,6 +94,7 @@ function registerValidSW(swUrl, config) {
             };
         })
         .catch(error => {
+            // eslint-disable-next-line no-console
             console.error('Error during service worker registration: ', error);
         });
 }
@@ -132,6 +122,7 @@ function checkValidServiceWorker(swUrl, config) {
             }
         })
         .catch(() => {
+            // eslint-disable-next-line no-console
             console.log(
                 'No internet connection found. App is running in offline mode.'
             );

@@ -1,5 +1,3 @@
-/* eslint-disable quotes */
-
 /**
  *
  * Copyright HackerBay, Inc.
