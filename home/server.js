@@ -777,7 +777,11 @@ app.get('/sitemap.xml', async (req, res) => {
         },
     ];
 
-    const timestamp = new Date().toISOString();
+    // get previous day's date/timestamp
+    const today = new Date();
+    today.setDate(today.getDate() - 1);
+
+    const timestamp = today.toISOString();
 
     const urlset = builder.create().ele('urlset');
 
