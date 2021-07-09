@@ -120,8 +120,21 @@ module.exports = {
                     select: '_id',
                 });
                 const incidentIds = incidents.map(incident => incident._id);
+
+                const populateIncidentMessage = [
+                    {
+                        path: 'incidentId',
+                        select: 'idNumber name',
+                    },
+                    { path: 'createdById', select: 'name' },
+                ];
+
+                const selectIncidentMessage =
+                    '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
                 const incidentMessages = await IncidentMessageService.findBy({
-                    incidentId: { $in: incidentIds },
+                    query: { incidentId: { $in: incidentIds } },
+                    select: selectIncidentMessage,
+                    populate: populateIncidentMessage,
                 });
                 await Promise.all(
                     incidentMessages.map(async incidentNote => {
@@ -148,6 +161,16 @@ module.exports = {
         try {
             const zapierResponse = {};
             const incidentNoteArr = [];
+            const populateIncidentMessage = [
+                {
+                    path: 'incidentId',
+                    select: 'idNumber name',
+                },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
             await Promise.all(
                 data.incidents.map(async incidentId => {
                     let incidentMessage = new IncidentMessageModel();
@@ -159,7 +182,9 @@ module.exports = {
                     IncidentService.refreshInterval(incidentId);
 
                     incidentMessage = await IncidentMessageService.findOneBy({
-                        _id: incidentMessage._id,
+                        query: { _id: incidentMessage._id },
+                        select: selectIncidentMessage,
+                        populate: populateIncidentMessage,
                     });
                     // run in the background
                     RealTimeService.addIncidentNote(incidentMessage);

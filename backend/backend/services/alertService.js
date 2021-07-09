@@ -186,6 +186,17 @@ module.exports = {
 
     sendRealTimeUpdate: async function({ incidentId, projectId }) {
         const _this = this;
+
+        const populateIncidentMessage = [
+            {
+                path: 'incidentId',
+                select: 'idNumber name',
+            },
+            { path: 'createdById', select: 'name' },
+        ];
+
+        const selectIncidentMessage =
+            '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
         const [
             incidentMsgs,
             timeline,
@@ -193,8 +204,9 @@ module.exports = {
             subscriberAlerts,
         ] = await Promise.all([
             IncidentMessageService.findBy({
-                incidentId,
-                type: 'internal',
+                query: { incidentId, type: 'internal' },
+                select: selectIncidentMessage,
+                populate: populateIncidentMessage,
             }),
             IncidentTimelineService.findBy({
                 incidentId,

@@ -16,8 +16,18 @@ module.exports = {
                 await IncidentService.refreshInterval(data.incidentId);
             }
 
+            const populate = [
+                { path: 'incidentId', select: 'idNumber name' },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const select =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
             incidentMessage = await this.findOneBy({
-                _id: incidentMessage._id,
+                query: { _id: incidentMessage._id },
+                select,
+                populate,
             });
 
             if (incidentMessage.postOnStatusPage) {
@@ -46,7 +56,15 @@ module.exports = {
                 }
             );
 
-            incidentMessage = await this.findOneBy(query);
+            const populate = [
+                { path: 'incidentId', select: 'idNumber name' },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const select =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
+            incidentMessage = await this.findOneBy({ query, populate, select });
 
             // run in the background
             //RealTimeService.applicationLogKeyReset(applicationLog);
@@ -57,24 +75,31 @@ module.exports = {
             throw error;
         }
     },
-    async findOneBy(query) {
+    async findOneBy({ query, populate, select }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const incidentMessage = await IncidentMessageModel.findOne(query)
-                .lean()
-                .populate('incidentId', 'idNumber name')
-                .populate('createdById', 'name');
+            let incidentMessageQuery = IncidentMessageModel.findOne(
+                query
+            ).lean();
+
+            incidentMessageQuery = handleSelect(select, incidentMessageQuery);
+            incidentMessageQuery = handlePopulate(
+                populate,
+                incidentMessageQuery
+            );
+
+            const incidentMessage = await incidentMessageQuery;
             return incidentMessage;
         } catch (error) {
             ErrorService.log('incidentMessageService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, populate, select }) {
         try {
             if (!skip) skip = 0;
             if (!limit) limit = 0;
@@ -86,14 +111,17 @@ module.exports = {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            const incidentMessages = await IncidentMessageModel.find(query)
+            let incidentMessagesQuery = IncidentMessageModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]]) // fetch from latest to oldest
                 .limit(limit)
-                .skip(skip)
-                .populate('createdById', 'name')
-                .populate('incidentId', 'name');
-
+                .skip(skip);
+            incidentMessagesQuery = handleSelect(select, incidentMessagesQuery);
+            incidentMessageQuery = handlePopulate(
+                populate,
+                incidentMessagesQuery
+            );
+            const incidentMessages = await incidentMessagesQuery;
             return incidentMessages;
         } catch (error) {
             ErrorService.log('incidentMessageService.findBy', error);
@@ -149,3 +177,5 @@ const IncidentMessageModel = require('../models/incidentMessage');
 const ErrorService = require('./errorService');
 const RealTimeService = require('./realTimeService');
 const IncidentService = require('./incidentService');
+const handlePopulate = require('../utils/populate');
+const handleSelect = require('../utils/select');

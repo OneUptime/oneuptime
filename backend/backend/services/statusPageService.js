@@ -694,8 +694,25 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
+            const populateIncidentMessage = [
+                {
+                    path: 'incidentId',
+                    select: 'idNumber name',
+                },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
             const [message, count] = await Promise.all([
-                IncidentMessageService.findBy(query, skip, limit),
+                IncidentMessageService.findBy({
+                    query,
+                    skip,
+                    limit,
+                    populate: populateIncidentMessage,
+                    select: selectIncidentMessage,
+                }),
                 IncidentMessageService.countBy(query),
             ]);
 
