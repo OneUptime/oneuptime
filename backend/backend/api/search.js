@@ -269,10 +269,39 @@ const getSchedultEvent = async (projectIds, val, parentProjectId) => {
 const getIncidents = async (projectIds, val, parentProjectId) => {
     const isNumber = Number(val);
     if (isNumber) {
+        const populate = [
+            {
+                path: 'monitors.monitorId',
+                select: 'name slug componentId projectId type',
+                populate: [
+                    { path: 'componentId', select: 'name slug' },
+                    { path: 'projectId', select: 'name slug' },
+                ],
+            },
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'acknowledgedBy', select: 'name' },
+            { path: 'incidentPriority', select: 'name color' },
+            {
+                path: 'acknowledgedByIncomingHttpRequest',
+                select: 'name',
+            },
+            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+            { path: 'createdByIncomingHttpRequest', select: 'name' },
+            { path: 'probes.probeId', select: 'name _id' },
+        ];
+        const select =
+            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber notifications';
+
         const incidents = await IncidentService.findBy({
-            projectId: { $in: projectIds },
-            deleted: false,
-            idNumber: Number(val),
+            query: {
+                projectId: { $in: projectIds },
+                deleted: false,
+                idNumber: Number(val),
+            },
+            select,
+            populate,
         });
         if (incidents.length > 0) {
             const resultObj = {

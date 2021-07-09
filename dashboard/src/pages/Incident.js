@@ -269,9 +269,10 @@ class Incident extends React.Component {
             10
         );
 
-        const monitors = this.props.incident
-            ? this.props.incident.monitors.map(monitor => monitor.monitorId)
-            : [];
+        const monitors =
+            this.props.incident && this.props.incident.monitors
+                ? this.props.incident.monitors.map(monitor => monitor.monitorId)
+                : [];
         for (const monitor of monitors) {
             this.props.getMonitorLogs(
                 this.props.projectId,

@@ -38,7 +38,10 @@ router.get('/voice/status', async (req, res) => {
             To,
             redialCount,
         } = req.query;
-        const incident = await IncidentService.findOneBy({ _id: incidentId });
+        const incident = await IncidentService.findOneBy({
+            query: { _id: incidentId },
+            select: 'acknowledged',
+        });
         const newRedialCount = parseInt(redialCount) + 1;
 
         switch (CallStatus) {

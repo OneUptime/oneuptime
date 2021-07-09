@@ -552,8 +552,11 @@ module.exports = {
 
                             const monitorIncidents = await IncidentService.findBy(
                                 {
-                                    'monitors.monitorId': monitor._id,
-                                    resolved: false,
+                                    query: {
+                                        'monitors.monitorId': monitor._id,
+                                        resolved: false,
+                                    },
+                                    select: 'incidentType',
                                 }
                             );
 
@@ -1162,7 +1165,8 @@ module.exports = {
                     select: 'createdAt',
                 }),
                 IncidentService.findBy({
-                    'monitors.monitorId': monitorId,
+                    query: { 'monitors.monitorId': monitorId },
+                    select: 'createdAt resolvedAt',
                 }),
             ]);
             const dateNow = moment().utc();

@@ -315,7 +315,9 @@ export class IncidentStatus extends Component {
 
     render() {
         const isUserSubProjectId =
-            this.props.incident.projectId._id ?? this.props.incident.projectId;
+            this.props.incident.projectId &&
+            (this.props.incident.projectId._id ||
+                this.props.incident.projectId);
         const subProject =
             this.props.subProjects &&
             this.props.subProjects.filter(
