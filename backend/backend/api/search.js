@@ -218,10 +218,34 @@ const getUsers = async (projectIds, val) => {
 };
 
 const getOnCallDuty = async (projectIds, val, parentProjectId) => {
+    const populate = [
+        { path: 'userIds', select: 'name' },
+        { path: 'createdById', select: 'name' },
+        { path: 'monitorIds', select: 'name' },
+        {
+            path: 'projectId',
+            select: '_id name slug',
+        },
+        {
+            path: 'escalationIds',
+            select: 'teams',
+            populate: {
+                path: 'teams.teamMembers.userId',
+                select: 'name email',
+            },
+        },
+    ];
+
+    const select =
+        '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
     const schedules = await ScheduleService.findBy({
-        projectId: { $in: projectIds },
-        deleted: false,
-        $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+        query: {
+            projectId: { $in: projectIds },
+            deleted: false,
+            $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+        },
+        select,
+        populate,
     });
     if (schedules.length > 0) {
         const resultObj = {

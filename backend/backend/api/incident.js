@@ -493,6 +493,16 @@ router.post(
                 userId,
                 req.user.name
             );
+            const populateIncidentMessage = [
+                {
+                    path: 'incidentId',
+                    select: 'idNumber name',
+                },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
             /* eslint-disable prefer-const */
             let [
                 incidentMessages,
@@ -502,8 +512,12 @@ router.post(
                 callScheduleStatus,
             ] = await Promise.all([
                 IncidentMessageService.findBy({
-                    incidentId: req.params.incidentId,
-                    type: 'internal',
+                    query: {
+                        incidentId: req.params.incidentId,
+                        type: 'internal',
+                    },
+                    populate: populateIncidentMessage,
+                    select: selectIncidentMessage,
                 }),
                 IncidentTimelineService.findBy({
                     incidentId: req.params.incidentId,
@@ -578,6 +592,16 @@ router.post(
                 req.params.incidentId,
                 userId
             );
+            const populateIncidentMessage = [
+                {
+                    path: 'incidentId',
+                    select: 'idNumber name',
+                },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
             /* eslint-disable prefer-const */
             let [
                 incidentMessages,
@@ -587,8 +611,12 @@ router.post(
                 callScheduleStatus,
             ] = await Promise.all([
                 IncidentMessageService.findBy({
-                    incidentId: req.params.incidentId,
-                    type: 'internal',
+                    query: {
+                        incidentId: req.params.incidentId,
+                        type: 'internal',
+                    },
+                    populate: populateIncidentMessage,
+                    select: selectIncidentMessage,
                 }),
                 IncidentTimelineService.findBy({
                     incidentId: req.params.incidentId,
@@ -736,6 +764,18 @@ router.post(
             ];
             const select =
                 'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+            const populateIncidentMessage = [
+                {
+                    path: 'incidentId',
+                    select: 'idNumber name',
+                },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
             const incident = await IncidentService.findOneBy({
                 query: { _id: incidentId },
                 select,
@@ -804,11 +844,11 @@ router.post(
             // If the message ID is available, treat this as an update
             if (data.id) {
                 // validate if Message ID exist or not
-                const incidentMsg = await IncidentMessageService.findOneBy({
+                const incidentMsgCount = await IncidentMessageService.countBy({
                     _id: data.id,
                 });
 
-                if (!incidentMsg) {
+                if (!incidentMsgCount || incidentMsgCount === 0) {
                     return sendErrorResponse(req, res, {
                         code: 404,
                         message: 'Incident Message not found.',
@@ -863,7 +903,9 @@ router.post(
                             updatedMessage
                         ),
                         IncidentMessageService.findOneBy({
-                            _id: data.id,
+                            query: { _id: data.id },
+                            select: selectIncidentMessage,
+                            populate: populateIncidentMessage,
                         }),
                     ]);
                     incidentMessage = message;
@@ -934,8 +976,12 @@ router.post(
                         callScheduleStatus,
                     ] = await Promise.all([
                         IncidentMessageService.findBy({
-                            incidentId: incident._id,
-                            type: data.type,
+                            query: {
+                                incidentId: incident._id,
+                                type: data.type,
+                            },
+                            select: selectIncidentMessage,
+                            populate: populateIncidentMessage,
                         }),
                         IncidentTimelineService.findBy({
                             incidentId: incident._id,
@@ -979,8 +1025,12 @@ router.post(
                     };
                 } else {
                     incidentMessage = await IncidentMessageService.findOneBy({
-                        _id: incidentMessage._id,
-                        incidentId: incidentMessage.incidentId,
+                        query: {
+                            _id: incidentMessage._id,
+                            incidentId: incidentMessage.incidentId,
+                        },
+                        select: selectIncidentMessage,
+                        populate: populateIncidentMessage,
                     });
                 }
             }
@@ -1031,13 +1081,23 @@ router.delete(
     async function(req, res) {
         try {
             const { incidentId, incidentMessageId, projectId } = req.params;
+            const populateIncidentMessage = [
+                { path: 'incidentId', select: 'idNumber name' },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
             const [incident, checkMsg, incidentMessage] = await Promise.all([
                 IncidentService.findOneBy({
                     query: { _id: incidentId },
                     select: 'idNumber',
                 }),
                 IncidentMessageService.findOneBy({
-                    _id: incidentMessageId,
+                    query: { _id: incidentMessageId },
+                    select: selectIncidentMessage,
+                    populate: populateIncidentMessage,
                 }),
                 IncidentMessageService.deleteBy(
                     {
@@ -1090,8 +1150,9 @@ router.delete(
                         subAlerts,
                     ] = await Promise.all([
                         IncidentMessageService.findBy({
-                            incidentId,
-                            type: checkMsg.type,
+                            query: { incidentId, type: checkMsg.type },
+                            populate: populateIncidentMessage,
+                            select: selectIncidentMessage,
                         }),
                         IncidentTimelineService.findBy({
                             incidentId,
@@ -1166,6 +1227,17 @@ router.get(
                     skip = req.query.skip || 0;
                     limit = req.query.limit || 10;
                 }
+
+                const populateIncidentMessage = [
+                    {
+                        path: 'incidentId',
+                        select: 'idNumber name',
+                    },
+                    { path: 'createdById', select: 'name' },
+                ];
+
+                const selectIncidentMessage =
+                    '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
                 const [
                     timeline,
                     alerts,
@@ -1187,14 +1259,16 @@ router.get(
                         incidentId,
                         type,
                     }),
-                    IncidentMessageService.findBy(
-                        {
+                    IncidentMessageService.findBy({
+                        query: {
                             incidentId,
                             type,
                         },
                         skip,
-                        limit
-                    ),
+                        limit,
+                        populate: populateIncidentMessage,
+                        select: selectIncidentMessage,
+                    }),
                 ]);
                 incidentMessages = incMessages;
                 count = messageCount;
