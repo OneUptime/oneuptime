@@ -1,4 +1,3 @@
-const { postApi } = require('./api');
 const crypto = require('crypto');
 const EncryptionKeys = require('./encryptionKeys');
 const algorithm = EncryptionKeys.algorithm;
@@ -7,8 +6,6 @@ const uuidv1 = require('uuid/v1');
 const fs = require('fs');
 const Path = require('path');
 const { promisify } = require('util');
-const readdir = promisify(fs.readdir);
-const rmdir = promisify(fs.rmdir);
 const unlink = promisify(fs.unlink);
 const { spawn } = require('child_process');
 const ErrorService = require('./errorService');
@@ -21,14 +18,16 @@ const {
 const flattenArray = require('../utils/flattenArray');
 
 module.exports = {
-    scan: async function (security) {
+    scan: async function(security) {
         const decryptedSecurity = await this.decryptPassword(security);
         await this.scanContainerSecurity(decryptedSecurity);
     },
-    decryptPassword: async function (security) {
+    decryptPassword: async function(security) {
         try {
             const values = [];
-            for (let i = 0; i <= 15; i++) { values.push(security.dockerCredential.iv[i]); }
+            for (let i = 0; i <= 15; i++) {
+                values.push(security.dockerCredential.iv[i]);
+            }
             const iv = Buffer.from(values);
             security.dockerCredential.dockerPassword = await this.decrypt(
                 security.dockerCredential.dockerPassword,
@@ -55,7 +54,7 @@ module.exports = {
     },
     scanContainerSecurity: async security => {
         try {
-            const { imagePath, imageTags} = security;
+            const { imagePath, imageTags } = security;
             const testPath = imageTags
                 ? `${imagePath}:${imageTags}`
                 : imagePath;
@@ -67,7 +66,7 @@ module.exports = {
             // so the cron job does not pull it multiple times due to network delays
             // since the cron job runs every minute
             await updateContainerSecurityToScanning(security);
-            
+
             return new Promise((resolve, reject) => {
                 // use trivy open source package to audit a container
                 const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
@@ -77,7 +76,7 @@ module.exports = {
                     cwd: securityDir,
                     shell: true,
                 });
-     
+
                 output.on('error', async error => {
                     const errorMessage =
                         'Scanning failed please check your docker credential or image path/tag';
@@ -90,8 +89,10 @@ module.exports = {
                             },
                             { scanning: false }
                         ),
-                        await updateContainerSecurityScanTime({_id: security._id}),
-                
+                        await updateContainerSecurityScanTime({
+                            _id: security._id,
+                        }),
+
                         deleteFile(exactFilePath),
                     ]);
                     return reject(error);
@@ -118,7 +119,9 @@ module.exports = {
                                 },
                                 { scanning: false }
                             ),
-                            await updateContainerSecurityScanTime({_id: security._id}),
+                            await updateContainerSecurityScanTime({
+                                _id: security._id,
+                            }),
                             deleteFile(exactFilePath),
                         ]);
                         return reject(error);
@@ -143,7 +146,7 @@ module.exports = {
                                     _id: security._id,
                                 },
                                 { scanning: false }
-                            ), 
+                            ),
                             deleteFile(exactFilePath),
                         ]);
                         return reject(error);
@@ -246,17 +249,19 @@ module.exports = {
                             ...moderateArr,
                             ...lowArr,
                         ];
-                        
-                       const securityLog = await updateContainerSecurityLogService(
+
+                        const securityLog = await updateContainerSecurityLogService(
                             {
                                 securityId: security._id,
                                 componentId: security.componentId._id,
                                 data: auditData,
                             }
                         );
-                    
+
                         await Promise.all([
-                            await updateContainerSecurityScanTime({_id: security._id}),
+                            await updateContainerSecurityScanTime({
+                                _id: security._id,
+                            }),
                             deleteFile(exactFilePath),
                         ]);
                         resolve(securityLog);

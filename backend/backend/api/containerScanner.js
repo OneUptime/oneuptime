@@ -12,18 +12,17 @@ const isAuthorizedContainerScanner = require('../middlewares/containerScannerAut
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 
-router.get(
-    '/containerSecurities',
-    isAuthorizedContainerScanner,
-    async function (req, res) {
-        try {
-            const response = await ContainerSecurityService.getSecuritiesToScan();
-            return sendItemResponse(req, res, response);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
+router.get('/containerSecurities', isAuthorizedContainerScanner, async function(
+    req,
+    res
+) {
+    try {
+        const response = await ContainerSecurityService.getSecuritiesToScan();
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
     }
-);
+});
 router.post('/scanning', isAuthorizedContainerScanner, async function(
     req,
     res
@@ -36,20 +35,14 @@ router.post('/scanning', isAuthorizedContainerScanner, async function(
             },
             { scanning: true }
         );
-        global.io.emit(
-            `security_${containerSecurity._id}`,
-            containerSecurity
-        );
+        global.io.emit(`security_${containerSecurity._id}`, containerSecurity);
         return sendItemResponse(req, res, containerSecurity);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
 
-router.post('/failed', isAuthorizedContainerScanner, async function(
-    req,
-    res
-) {
+router.post('/failed', isAuthorizedContainerScanner, async function(req, res) {
     try {
         const security = req.body;
         const containerSecurity = await ContainerSecurityService.updateOneBy(

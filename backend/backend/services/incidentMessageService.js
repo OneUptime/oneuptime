@@ -117,7 +117,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip);
             incidentMessagesQuery = handleSelect(select, incidentMessagesQuery);
-            incidentMessageQuery = handlePopulate(
+            incidentMessagesQuery = handlePopulate(
                 populate,
                 incidentMessagesQuery
             );

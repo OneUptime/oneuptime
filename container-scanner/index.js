@@ -12,9 +12,7 @@ process.on('exit', () => {
 
 process.on('unhandledRejection', err => {
     // eslint-disable-next-line no-console
-    console.error(
-        'Unhandled rejection in container scanner process occurred'
-    );
+    console.error('Unhandled rejection in container scanner process occurred');
     // eslint-disable-next-line no-console
     console.error(err);
 });
@@ -42,9 +40,9 @@ app.set('port', process.env.PORT || 3055);
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log(
-        `Container Scanner Started on port ${app.get(
-            'port'
-        )}. Fyipe API URL: ${config.serverUrl}`
+        `Container Scanner Started on port ${app.get('port')}. Fyipe API URL: ${
+            config.serverUrl
+        }`
     );
 });
 
