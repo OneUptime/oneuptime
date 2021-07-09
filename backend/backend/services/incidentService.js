@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -14,7 +14,8 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const incidents = await IncidentModel.find(query)
+
+            let incidentQuery = IncidentModel.find(query)
                 .lean()
                 .limit(limit)
                 .skip(skip)
@@ -339,35 +340,20 @@ module.exports = {
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with incident or error.
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, populate, select }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const incident = await IncidentModel.findOne(query)
-                .lean()
-                .populate('acknowledgedBy', 'name')
-                .populate('resolvedBy', 'name')
-                .populate('createdById', 'name')
-                .populate('incidentPriority', 'name color')
-                .populate('probes.probeId')
-                .populate('acknowledgedByIncomingHttpRequest', 'name')
-                .populate('resolvedByIncomingHttpRequest', 'name')
-                .populate('createdByIncomingHttpRequest', 'name')
-                .populate({
-                    path: 'monitors.monitorId',
-                    select: 'name slug componentId projectId',
-                    populate: [
-                        {
-                            path: 'componentId',
-                            select: 'name slug',
-                        },
-                        { path: 'projectId', select: 'name slug' },
-                    ],
-                })
-                .populate('projectId', 'name slug');
+
+            let incidentQuery = IncidentModel.findOne(query).lean();
+
+            incidentQuery = handleSelect(select, incidentQuery);
+            incidentQuery = handlePopulate(populate, incidentQuery);
+
+            const incident = await incidentQuery;
             return incident;
         } catch (error) {
             ErrorService.log('incidentService.findOne', error);

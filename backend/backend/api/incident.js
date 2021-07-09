@@ -379,20 +379,19 @@ router.post(
             const userId = req.user ? req.user.id : null;
             const projectId = req.params.projectId;
 
+            const incident = await IncidentService.acknowledge(
+                req.params.incidentId,
+                userId,
+                req.user.name
+            );
             /* eslint-disable prefer-const */
             let [
-                incident,
                 incidentMessages,
                 timeline,
                 alerts,
                 subscriberAlerts,
                 callScheduleStatus,
             ] = await Promise.all([
-                IncidentService.acknowledge(
-                    req.params.incidentId,
-                    userId,
-                    req.user.name
-                ),
                 IncidentMessageService.findBy({
                     incidentId: req.params.incidentId,
                     type: 'internal',
@@ -465,16 +464,19 @@ router.post(
         try {
             const userId = req.user ? req.user.id : null;
             const projectId = req.params.projectId;
+
+            const incident = IncidentService.resolve(
+                req.params.incidentId,
+                userId
+            );
             /* eslint-disable prefer-const */
             let [
-                incident,
                 incidentMessages,
                 timeline,
                 alerts,
                 subscriberAlerts,
                 callScheduleStatus,
             ] = await Promise.all([
-                IncidentService.resolve(req.params.incidentId, userId),
                 IncidentMessageService.findBy({
                     incidentId: req.params.incidentId,
                     type: 'internal',
