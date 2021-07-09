@@ -15,7 +15,6 @@ import {
 import { fetchIncidentStatusPages } from '../actions/statusPage';
 import { fetchIncidentPriorities } from '../actions/incidentPriorities';
 import { fetchIncidentAlert, fetchSubscriberAlert } from '../actions/alert';
-import Dashboard from '../components/Dashboard';
 import IncidentStatus from '../components/incident/IncidentStatus';
 import IncidentAlert from '../components/incident/IncidentAlert';
 import SubscriberAlert from '../components/subscriber/subscriberAlert';
@@ -60,16 +59,8 @@ class Incident extends React.Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT');
         }
-        if (
-            this.props.currentProject &&
-            this.props.currentProject._id &&
-            this.props.componentSlug
-        ) {
-            this.props.fetchComponent(
-                this.props.currentProject._id,
-                this.props.componentSlug
-            );
-        }
+
+        this.ready();
     }
     componentDidUpdate(prevProps) {
         if (
@@ -278,9 +269,10 @@ class Incident extends React.Component {
             10
         );
 
-        const monitors = this.props.incident
-            ? this.props.incident.monitors.map(monitor => monitor.monitorId)
-            : [];
+        const monitors =
+            this.props.incident && this.props.incident.monitors
+                ? this.props.incident.monitors.map(monitor => monitor.monitorId)
+                : [];
         for (const monitor of monitors) {
             this.props.getMonitorLogs(
                 this.props.projectId,
@@ -676,64 +668,58 @@ class Incident extends React.Component {
         const componentName = component ? component.name : '';
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    {componentSlug && componentName ? (
-                        <>
-                            <BreadCrumbItem
-                                route={getParentRoute(
-                                    pathname,
-                                    null,
-                                    'incidents'
-                                )}
-                                name={componentName}
-                            />
-                            <BreadCrumbItem
-                                route={getParentRoute(
-                                    pathname,
-                                    null,
-                                    'incident-log'
-                                )}
-                                name="Incident Log"
-                            />
-                            <BreadCrumbItem
-                                route={pathname}
-                                name="Incident"
-                                containerType="Incident"
-                            />
-                        </>
-                    ) : (
-                        <>
-                            <BreadCrumbItem
-                                route={getParentRoute(
-                                    pathname,
-                                    null,
-                                    'project-incidents'
-                                )}
-                                name="Incidents"
-                            />
-                            <BreadCrumbItem
-                                route={pathname}
-                                name="Incident"
-                                containerType="Incident"
-                            />
-                        </>
-                    )}
+            <Fade>
+                {componentSlug && componentName ? (
+                    <>
+                        <BreadCrumbItem
+                            route={getParentRoute(pathname, null, 'incidents')}
+                            name={componentName}
+                        />
+                        <BreadCrumbItem
+                            route={getParentRoute(
+                                pathname,
+                                null,
+                                'incident-log'
+                            )}
+                            name="Incident Log"
+                        />
+                        <BreadCrumbItem
+                            route={pathname}
+                            name="Incident"
+                            containerType="Incident"
+                        />
+                    </>
+                ) : (
+                    <>
+                        <BreadCrumbItem
+                            route={getParentRoute(
+                                pathname,
+                                null,
+                                'project-incidents'
+                            )}
+                            name="Incidents"
+                        />
+                        <BreadCrumbItem
+                            route={pathname}
+                            name="Incident"
+                            containerType="Incident"
+                        />
+                    </>
+                )}
+                <div>
                     <div>
-                        <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="react-settings-view react-view">
-                                    <span>
-                                        <div>
-                                            <div>{variable}</div>
-                                        </div>
-                                    </span>
-                                </div>
+                        <div className="db-BackboneViewContainer">
+                            <div className="react-settings-view react-view">
+                                <span>
+                                    <div>
+                                        <div>{variable}</div>
+                                    </div>
+                                </span>
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

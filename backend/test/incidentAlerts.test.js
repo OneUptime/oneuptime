@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 process.env.PORT = 3020;
 const userData = require('./data/user');
 const chai = require('chai');
@@ -982,7 +981,8 @@ describe('SMS/Calls Incident Alerts', function() {
             await sleep(120 * 1000);
 
             const { _id: lastIncidentId } = await IncidentService.findOneBy({
-                monitorId: newMonitorId,
+                query: { monitorId: newMonitorId },
+                select: '_id',
             });
 
             const onCallAlerts = await getOnCallAlerts({
@@ -1140,7 +1140,8 @@ describe('SMS/Calls Incident Alerts', function() {
             await sleep(30 * 1000);
 
             const { _id: lastIncidentId } = await IncidentService.findOneBy({
-                monitorId: newMonitorId,
+                query: { monitorId: newMonitorId },
+                select: '_id',
             });
 
             const onCallAlerts = await getOnCallAlerts({
@@ -1288,7 +1289,8 @@ describe('SMS/Calls Incident Alerts', function() {
             await sleep(120 * 1000);
 
             const { _id: lastIncidentId } = await IncidentService.findOneBy({
-                monitorId: newMonitorId,
+                query: { monitorId: newMonitorId },
+                select: '_id',
             });
 
             const onCallAlerts = await getOnCallAlerts({

@@ -10,7 +10,8 @@ module.exports = {
         try {
             const newDate = new moment();
             const monitors = await MonitorService.findBy({
-                type: 'server-monitor',
+                query: { type: 'server-monitor' },
+                select: 'lastPingTime _id criteria',
             });
             if (monitors) {
                 monitors.forEach(async monitor => {
@@ -43,16 +44,14 @@ module.exports = {
 
 const job = async monitor => {
     try {
-        const { stat: validUp, successReasons } = await (monitor &&
-        monitor.criteria &&
-        monitor.criteria.up
-            ? ProbeService.conditions(monitor.type, monitor.criteria.up)
-            : { stat: false, successReasons: [] });
-        const { stat: validDown } = await (monitor &&
-        monitor.criteria &&
-        monitor.criteria.down
-            ? ProbeService.conditions(monitor.type, monitor.criteria.down)
-            : { stat: false });
+        const { stat: validUp, successReasons } =
+            monitor && monitor.criteria && monitor.criteria.up
+                ? ProbeService.conditions(monitor.type, monitor.criteria.up)
+                : { stat: false, successReasons: [] };
+        const { stat: validDown } =
+            monitor && monitor.criteria && monitor.criteria.down
+                ? ProbeService.conditions(monitor.type, monitor.criteria.down)
+                : { stat: false };
         if (!validUp || validDown) {
             await ProbeService.saveMonitorLog({
                 monitorId: monitor._id,

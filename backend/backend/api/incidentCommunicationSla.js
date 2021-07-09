@@ -12,16 +12,19 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
         const { limit, skip } = req.query;
-        const incidentSlas = await IncidentCommunicationSlaService.findBy(
-            {
+
+        const [incidentSlas, count] = await Promise.all([
+            IncidentCommunicationSlaService.findBy(
+                {
+                    projectId,
+                },
+                limit,
+                skip
+            ),
+            IncidentCommunicationSlaService.countBy({
                 projectId,
-            },
-            limit,
-            skip
-        );
-        const count = await IncidentCommunicationSlaService.countBy({
-            projectId,
-        });
+            }),
+        ]);
 
         return sendListResponse(req, res, incidentSlas, count);
     } catch (error) {

@@ -14,11 +14,11 @@ module.exports = {
                 throw error;
             }
             // try to find in the application log if the name already exist for that component
-            const existingApplicationLog = await _this.findBy({
+            const existingApplicationLogCount = await _this.countBy({
                 name: data.name,
                 componentId: data.componentId,
             });
-            if (existingApplicationLog && existingApplicationLog.length > 0) {
+            if (existingApplicationLogCount > 0) {
                 const error = new Error(
                     'Application Log with that name already exists.'
                 );
@@ -40,8 +40,17 @@ module.exports = {
             }
             applicationLog.slug = getSlug(data.name);
             const savedApplicationLog = await applicationLog.save();
+
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
+            const select =
+                'componentId name slug resourceCategory showQuickStart createdById key';
             applicationLog = await _this.findOneBy({
-                _id: savedApplicationLog._id,
+                query: { _id: savedApplicationLog._id },
+                populate,
+                select,
             });
             return applicationLog;
         } catch (error) {
@@ -50,7 +59,7 @@ module.exports = {
         }
     },
     //Description: Gets all application logs by component.
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -69,20 +78,16 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const applicationLogs = await ApplicationLogModel.find(query)
+
+            let applicationLogQuery = ApplicationLogModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate({
-                    path: 'componentId',
-                    select: 'name slug projectId',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name slug',
-                    },
-                })
-                .populate('resourceCategory', 'name');
+                .skip(skip);
+
+            applicationLogQuery = handleSelect(select, applicationLogQuery);
+            applicationLogQuery = handlePopulate(populate, applicationLogQuery);
+            const applicationLogs = await applicationLogQuery;
             return applicationLogs;
         } catch (error) {
             ErrorService.log('applicationLogService.findBy', error);
@@ -90,17 +95,19 @@ module.exports = {
         }
     },
 
-    async findOneBy(query) {
+    async findOneBy({ query, populate, select }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const applicationLog = await ApplicationLogModel.findOne(query)
-                .lean()
-                .populate('componentId', 'name')
-                .populate('resourceCategory', 'name');
+            let applicationLogQuery = ApplicationLogModel.findOne(query).lean();
+
+            applicationLogQuery = handleSelect(select, applicationLogQuery);
+            applicationLogQuery = handlePopulate(populate, applicationLogQuery);
+
+            const applicationLog = await applicationLogQuery;
             return applicationLog;
         } catch (error) {
             ErrorService.log('applicationLogService.findOneBy', error);
@@ -129,11 +136,26 @@ module.exports = {
             if (typeof skip === 'string') skip = parseInt(skip);
             const _this = this;
 
-            const applicationLogs = await _this.findBy(
-                { componentId: componentId },
+            const populate = [
+                {
+                    path: 'componentId',
+                    select: 'name slug projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name slug',
+                    },
+                },
+            ];
+
+            const select =
+                'componentId name slug resourceCategory showQuickStart createdById key';
+            const applicationLogs = await _this.findBy({
+                query: { componentId: componentId },
                 limit,
-                skip
-            );
+                skip,
+                populate,
+                select,
+            });
             return applicationLogs;
         } catch (error) {
             ErrorService.log(
@@ -165,13 +187,14 @@ module.exports = {
                 const component = ComponentService.findOneBy({
                     _id: applicationLog.componentId._id,
                 });
-                await NotificationService.create(
+                NotificationService.create(
                     component.projectId,
                     `An Application Log ${applicationLog.name} was deleted from the component ${applicationLog.componentId.name} by ${applicationLog.deletedById.name}`,
                     applicationLog.deletedById._id,
                     'applicationLogaddremove'
                 );
-                await RealTimeService.sendApplicationLogDelete(applicationLog);
+                // run in the background
+                RealTimeService.sendApplicationLogDelete(applicationLog);
                 return applicationLog;
             } else {
                 return null;
@@ -209,9 +232,16 @@ module.exports = {
                 );
             }
 
-            applicationLog = await this.findOneBy(query);
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
+            const select =
+                'componentId name slug resourceCategory showQuickStart createdById key';
+            applicationLog = await this.findOneBy({ query, populate, select });
 
-            await RealTimeService.applicationLogKeyReset(applicationLog);
+            // run in the background
+            RealTimeService.applicationLogKeyReset(applicationLog);
 
             return applicationLog;
         } catch (error) {
@@ -252,3 +282,5 @@ const NotificationService = require('./notificationService');
 const ResourceCategoryService = require('./resourceCategoryService');
 const uuid = require('uuid');
 const getSlug = require('../utils/getSlug');
+const handlePopulate = require('../utils/populate');
+const handleSelect = require('../utils/select');

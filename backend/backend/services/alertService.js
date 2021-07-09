@@ -18,9 +18,30 @@ module.exports = {
             const {
                 lastMatchedCriterion: matchedCriterion,
             } = await MonitorService.findOneBy({
-                _id: monitorId,
+                query: { _id: monitorId },
+                select: 'lastMatchedCriterion',
             });
             let schedules = [];
+            const populate = [
+                { path: 'userIds', select: 'name' },
+                { path: 'createdById', select: 'name' },
+                { path: 'monitorIds', select: 'name' },
+                {
+                    path: 'projectId',
+                    select: '_id name slug',
+                },
+                {
+                    path: 'escalationIds',
+                    select: 'teams',
+                    populate: {
+                        path: 'teams.teamMembers.userId',
+                        select: 'name email',
+                    },
+                },
+            ];
+
+            const select =
+                '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
 
             // first, try to find schedules associated with the matched criterion of the monitor
             if (
@@ -29,18 +50,23 @@ module.exports = {
                 matchedCriterion.scheduleIds.length
             ) {
                 schedules = await ScheduleService.findBy({
-                    _id: { $in: matchedCriterion.scheduleIds },
+                    query: { _id: { $in: matchedCriterion.scheduleIds } },
+                    select,
+                    populate,
                 });
             } else {
                 // then, try to find schedules in the monitor
                 schedules = await ScheduleService.findBy({
-                    monitorIds: monitorId,
+                    query: { monitorIds: monitorId },
+                    select,
+                    populate,
                 });
                 // lastly, find default schedules for the project
                 if (schedules.length === 0) {
                     schedules = await ScheduleService.findBy({
-                        isDefault: true,
-                        projectId,
+                        query: { isDefault: true, projectId },
+                        select,
+                        populate,
                     });
                 }
             }
@@ -144,12 +170,13 @@ module.exports = {
                 alert.errorMessage = errorMessage;
             }
 
-            const savedAlert = await alert.save();
-
-            await _this.sendRealTimeUpdate({
-                incidentId,
-                projectId,
-            });
+            const [savedAlert] = await Promise.all([
+                alert.save(),
+                _this.sendRealTimeUpdate({
+                    incidentId,
+                    projectId,
+                }),
+            ]);
             return savedAlert;
         } catch (error) {
             ErrorService.log('alertService.create', error);
@@ -159,27 +186,47 @@ module.exports = {
 
     sendRealTimeUpdate: async function({ incidentId, projectId }) {
         const _this = this;
-        let incidentMessages = await IncidentMessageService.findBy({
-            incidentId,
-            type: 'internal',
-        });
-        const timeline = await IncidentTimelineService.findBy({
-            incidentId,
-        });
-        const alerts = await _this.findBy({
-            query: { incidentId },
-        });
-        const subscriberAlerts = await SubscriberAlertService.findBy({
-            incidentId,
-            projectId,
-        });
-        const subAlerts = await Services.deduplicate(subscriberAlerts);
-        let callScheduleStatus = await OnCallScheduleStatusService.findBy({
-            query: { incident: incidentId },
-        });
-        callScheduleStatus = await Services.checkCallSchedule(
-            callScheduleStatus
-        );
+
+        const populateIncidentMessage = [
+            {
+                path: 'incidentId',
+                select: 'idNumber name',
+            },
+            { path: 'createdById', select: 'name' },
+        ];
+
+        const selectIncidentMessage =
+            '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+        const [
+            incidentMsgs,
+            timeline,
+            alerts,
+            subscriberAlerts,
+        ] = await Promise.all([
+            IncidentMessageService.findBy({
+                query: { incidentId, type: 'internal' },
+                select: selectIncidentMessage,
+                populate: populateIncidentMessage,
+            }),
+            IncidentTimelineService.findBy({
+                incidentId,
+            }),
+            _this.findBy({
+                query: { incidentId },
+            }),
+            SubscriberAlertService.findBy({
+                incidentId,
+                projectId,
+            }),
+        ]);
+        let incidentMessages = incidentMsgs;
+        const [subAlerts, callStatus] = await Promise.all([
+            Services.deduplicate(subscriberAlerts),
+            OnCallScheduleStatusService.findBy({
+                query: { incident: incidentId },
+            }),
+        ]);
+        const callScheduleStatus = await Services.checkCallSchedule(callStatus);
         const timelineAlerts = [
             ...timeline,
             ...alerts,
@@ -207,7 +254,8 @@ module.exports = {
             incidentId,
             projectId,
         };
-        await RealTimeService.sendIncidentTimeline(result);
+        // run in the background
+        RealTimeService.sendIncidentTimeline(result);
     },
 
     countBy: async function(query) {
@@ -342,8 +390,6 @@ module.exports = {
             ? incident.projectId._id
             : incident.projectId;
 
-        const monitor = await MonitorService.findOneBy({ _id: monitorId });
-
         if (!schedule || !incident) {
             return;
         }
@@ -353,9 +399,22 @@ module.exports = {
             return;
         }
 
-        const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
-            query: { incident: incident._id, schedule: schedule },
-        });
+        const monitorPopulate = [{ path: 'componentId', select: 'name' }];
+        const monitorSelect = '_id name data method componentId';
+        const [monitor, callScheduleStatuses, escalation] = await Promise.all([
+            MonitorService.findOneBy({
+                query: { _id: monitorId },
+                populate: monitorPopulate,
+                select: monitorSelect,
+            }),
+            OnCallScheduleStatusService.findBy({
+                query: { incident: incident._id, schedule: schedule },
+            }),
+            EscalationService.findOneBy({
+                _id: escalationId,
+            }),
+        ]);
+
         let onCallScheduleStatus = null;
         let escalationId = null;
         let currentEscalationStatus = null;
@@ -397,11 +456,6 @@ module.exports = {
         let shouldSendCallReminder = false;
         let shouldSendEmailReminder = false;
         let shouldSendPushReminder = false;
-
-        //No escalation found in the database skip.
-        const escalation = await EscalationService.findOneBy({
-            _id: escalationId,
-        });
 
         if (!escalation) {
             return;
@@ -564,9 +618,13 @@ module.exports = {
         const projectId = incident.projectId._id
             ? incident.projectId._id
             : incident.projectId;
-        const project = await ProjectService.findOneBy({ _id: projectId });
 
-        escalation = await EscalationService.findOneBy({ _id: escalation._id });
+        const [project, ec] = await Promise.all([
+            ProjectService.findOneBy({ _id: projectId }),
+            EscalationService.findOneBy({ _id: escalation._id }),
+        ]);
+        escalation = ec;
+
         const activeTeam = escalation.activeTeam;
         const teamGroup = [];
 
@@ -942,18 +1000,21 @@ module.exports = {
         }
 
         try {
-            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy({
-                name: 'smtp',
-            });
+            const [
+                hasGlobalSmtpSettings,
+                hasCustomSmtpSettings,
+            ] = await Promise.all([
+                GlobalConfigService.findOneBy({
+                    name: 'smtp',
+                }),
+                MailService.hasCustomSmtpSettings(projectId),
+            ]);
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
                 hasGlobalSmtpSettings.value &&
                 hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
-            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
-                projectId
-            );
             if (
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
@@ -1065,20 +1126,21 @@ module.exports = {
             });
 
             if (teamMembers && teamMembers.length > 0) {
-                const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
-                    {
+                const [
+                    hasGlobalSmtpSettings,
+                    hasCustomSmtpSettings,
+                ] = await Promise.all([
+                    GlobalConfigService.findOneBy({
                         name: 'smtp',
-                    }
-                );
+                    }),
+                    MailService.hasCustomSmtpSettings(projectId),
+                ]);
                 const areEmailAlertsEnabledInGlobalSettings =
                     hasGlobalSmtpSettings &&
                     hasGlobalSmtpSettings.value &&
                     hasGlobalSmtpSettings.value['email-enabled']
                         ? true
                         : false;
-                const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
-                    projectId
-                );
 
                 if (
                     !areEmailAlertsEnabledInGlobalSettings &&
@@ -1181,18 +1243,21 @@ module.exports = {
             });
         }
 
-        const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy({
-            name: 'twilio',
-        });
+        const [
+            hasGlobalTwilioSettings,
+            hasCustomTwilioSettings,
+        ] = await Promise.all([
+            GlobalConfigService.findOneBy({
+                name: 'twilio',
+            }),
+            TwilioService.hasCustomSettings(projectId),
+        ]);
         const areAlertsEnabledGlobally =
             hasGlobalTwilioSettings &&
             hasGlobalTwilioSettings.value &&
             hasGlobalTwilioSettings.value['call-enabled']
                 ? true
                 : false;
-        const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
-            projectId
-        );
 
         if (
             !hasCustomTwilioSettings &&
@@ -1383,18 +1448,21 @@ module.exports = {
             });
         }
 
-        const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy({
-            name: 'twilio',
-        });
+        const [
+            hasGlobalTwilioSettings,
+            hasCustomTwilioSettings,
+        ] = await Promise.all([
+            GlobalConfigService.findOneBy({
+                name: 'twilio',
+            }),
+            TwilioService.hasCustomSettings(projectId),
+        ]);
         const areAlertsEnabledGlobally =
             hasGlobalTwilioSettings &&
             hasGlobalTwilioSettings.value &&
             hasGlobalTwilioSettings.value['sms-enabled']
                 ? true
                 : false;
-        const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
-            projectId
-        );
 
         if (
             !hasCustomTwilioSettings &&
@@ -1724,17 +1792,24 @@ module.exports = {
                     ? incident.projectId._id
                     : incident.projectId;
 
-                const schedules = await this.getSchedulesForAlerts(
-                    incident,
-                    monitor
-                );
+                const monitorPopulate = [
+                    { path: 'componentId', select: 'name' },
+                ];
+                const monitorSelect = '_id name data method componentId';
 
-                monitor = await MonitorService.findOneBy({
-                    _id: monitor._id,
-                });
-                const project = await ProjectService.findOneBy({
-                    _id: projectId,
-                });
+                const [schedules, mon, project] = await Promise.all([
+                    this.getSchedulesForAlerts(incident, monitor),
+                    MonitorService.findOneBy({
+                        query: { _id: monitor._id },
+                        populate: monitorPopulate,
+                        select: monitorSelect,
+                    }),
+                    ProjectService.findOneBy({
+                        _id: projectId,
+                    }),
+                ]);
+                monitor = mon;
+
                 for (const schedule of schedules) {
                     if (!schedule || !incident) {
                         continue;
@@ -1890,18 +1965,21 @@ module.exports = {
         }
 
         try {
-            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy({
-                name: 'smtp',
-            });
+            const [
+                hasGlobalSmtpSettings,
+                hasCustomSmtpSettings,
+            ] = await Promise.all([
+                GlobalConfigService.findOneBy({
+                    name: 'smtp',
+                }),
+                MailService.hasCustomSmtpSettings(projectId),
+            ]);
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
                 hasGlobalSmtpSettings.value &&
                 hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
-            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
-                projectId
-            );
             if (
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
@@ -2034,17 +2112,24 @@ module.exports = {
                     ? incident.projectId._id
                     : incident.projectId;
 
-                const schedules = await this.getSchedulesForAlerts(
-                    incident,
-                    monitor
-                );
+                const monitorPopulate = [
+                    { path: 'componentId', select: 'name' },
+                ];
+                const monitorSelect = '_id name data method componentId';
 
-                monitor = await MonitorService.findOneBy({
-                    _id: monitor._id,
-                });
-                const project = await ProjectService.findOneBy({
-                    _id: projectId,
-                });
+                const [schedules, mon, project] = await Promise.all([
+                    this.getSchedulesForAlerts(incident, monitor),
+                    MonitorService.findOneBy({
+                        query: { _id: monitor._id },
+                        populate: monitorPopulate,
+                        select: monitorSelect,
+                    }),
+                    ProjectService.findOneBy({
+                        _id: projectId,
+                    }),
+                ]);
+                monitor = mon;
+
                 for (const schedule of schedules) {
                     if (!schedule || !incident) {
                         continue;
@@ -2116,13 +2201,15 @@ module.exports = {
                         continue;
                     }
                     for (const teamMember of activeTeam.teamMembers) {
-                        const isOnDuty = await _this.checkIsOnDuty(
-                            teamMember.startTime,
-                            teamMember.endTime
-                        );
-                        const user = await UserService.findOneBy({
-                            _id: teamMember.userId,
-                        });
+                        const [isOnDuty, user] = await Promise.all([
+                            _this.checkIsOnDuty(
+                                teamMember.startTime,
+                                teamMember.endTime
+                            ),
+                            UserService.findOneBy({
+                                _id: teamMember.userId,
+                            }),
+                        ]);
 
                         if (!user) {
                             continue;
@@ -2196,18 +2283,21 @@ module.exports = {
         }
 
         try {
-            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy({
-                name: 'smtp',
-            });
+            const [
+                hasGlobalSmtpSettings,
+                hasCustomSmtpSettings,
+            ] = await Promise.all([
+                GlobalConfigService.findOneBy({
+                    name: 'smtp',
+                }),
+                MailService.hasCustomSmtpSettings(projectId),
+            ]);
             const areEmailAlertsEnabledInGlobalSettings =
                 hasGlobalSmtpSettings &&
                 hasGlobalSmtpSettings.value &&
                 hasGlobalSmtpSettings.value['email-enabled']
                     ? true
                     : false;
-            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
-                projectId
-            );
             if (
                 !areEmailAlertsEnabledInGlobalSettings &&
                 !hasCustomSmtpSettings
@@ -2455,13 +2545,22 @@ module.exports = {
             const statusPageNoteAlertEventType = `Investigation note ${statusNoteStatus}`;
 
             const projectId = incident.projectId._id || incident.projectId;
-            const project = await ProjectService.findOneBy({
-                _id: projectId,
-            });
-            // get the monitor
-            monitor = await MonitorService.findOneBy({
-                _id: monitor._id,
-            });
+            const monitorPopulate = [
+                { path: 'componentId', select: '_id' },
+                { path: 'projectId', select: 'slug' },
+            ];
+            const monitorSelect = '_id customFields componentId projectId';
+            const [project, mon] = await Promise.all([
+                ProjectService.findOneBy({
+                    _id: projectId,
+                }),
+                MonitorService.findOneBy({
+                    query: { _id: monitor._id },
+                    populate: monitorPopulate,
+                    select: monitorSelect,
+                }),
+            ]);
+            monitor = mon;
             // get the component
             const component = await ComponentService.findOneBy({
                 _id:
@@ -2605,20 +2704,21 @@ module.exports = {
                 !webhookNotificationSent ||
                 subscriber.alertVia === AlertType.Email
             ) {
-                const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
-                    {
+                const [
+                    hasGlobalSmtpSettings,
+                    hasCustomSmtpSettings,
+                ] = await Promise.all([
+                    GlobalConfigService.findOneBy({
                         name: 'smtp',
-                    }
-                );
+                    }),
+                    MailService.hasCustomSmtpSettings(projectId),
+                ]);
                 const areEmailAlertsEnabledInGlobalSettings =
                     hasGlobalSmtpSettings &&
                     hasGlobalSmtpSettings.value &&
                     hasGlobalSmtpSettings.value['email-enabled']
                         ? true
                         : false;
-                const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
-                    projectId
-                );
 
                 const investigationNoteNotificationEmailDisabled =
                     isStatusPageNoteAlert &&
@@ -3393,18 +3493,20 @@ module.exports = {
             return true;
         }
         const yesterday = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
-        const alerts = await _this.countBy({
-            projectId: projectId,
-            alertVia: { $in: [AlertType.Call, AlertType.SMS] },
-            error: { $in: [null, undefined, false] },
-            createdAt: { $gte: yesterday },
-        });
-        const smsCounts = await SmsCountService.countBy({
-            projectId: projectId,
-            createdAt: { $gte: yesterday },
-        });
-        const project = await ProjectService.findOneBy({ _id: projectId });
-        const twilioSettings = await TwilioService.getSettings();
+        const [alerts, smsCounts, project, twilioSettings] = await Promise.all([
+            _this.countBy({
+                projectId: projectId,
+                alertVia: { $in: [AlertType.Call, AlertType.SMS] },
+                error: { $in: [null, undefined, false] },
+                createdAt: { $gte: yesterday },
+            }),
+            SmsCountService.countBy({
+                projectId: projectId,
+                createdAt: { $gte: yesterday },
+            }),
+            ProjectService.findOneBy({ _id: projectId }),
+            TwilioService.getSettings(),
+        ]);
         let limit =
             project && project.alertLimit
                 ? project.alertLimit
@@ -3580,8 +3682,8 @@ module.exports = {
                 );
 
             const monitorsAffected = await MonitorService.findBy({
-                _id: { $in: monitorIds },
-                deleted: false,
+                query: { _id: { $in: monitorIds }, deleted: false },
+                select: 'name',
             });
 
             if (message) {
@@ -3605,11 +3707,21 @@ module.exports = {
                         const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                         if (subscriber.alertVia === AlertType.Email) {
-                            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
-                                {
+                            const [
+                                hasGlobalSmtpSettings,
+                                hasCustomSmtpSettings,
+                                emailTemplate,
+                            ] = await Promise.all([
+                                GlobalConfigService.findOneBy({
                                     name: 'smtp',
-                                }
-                            );
+                                }),
+                                MailService.hasCustomSmtpSettings(projectId),
+                                EmailTemplateService.findOneBy({
+                                    projectId,
+                                    emailType:
+                                        'Scheduled Maintenance Event Note',
+                                }),
+                            ]);
 
                             const NotificationEmailDisabled = !project.sendNewScheduledEventInvestigationNoteNotificationEmail;
 
@@ -3619,16 +3731,6 @@ module.exports = {
                                 hasGlobalSmtpSettings.value['email-enabled']
                                     ? true
                                     : false;
-                            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
-                                projectId
-                            );
-                            const emailTemplate = await EmailTemplateService.findOneBy(
-                                {
-                                    projectId,
-                                    emailType:
-                                        'Scheduled Maintenance Event Note',
-                                }
-                            );
 
                             let errorMessageText = null;
 
@@ -4008,20 +4110,26 @@ module.exports = {
                     : 'Scheduled maintenance cancelled';
 
             if (subscriber.alertVia === AlertType.Email) {
-                const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
-                    {
+                const [
+                    hasGlobalSmtpSettings,
+                    hasCustomSmtpSettings,
+                    emailTemplate,
+                ] = await Promise.all([
+                    GlobalConfigService.findOneBy({
                         name: 'smtp',
-                    }
-                );
+                    }),
+                    MailService.hasCustomSmtpSettings(projectId),
+                    EmailTemplateService.findOneBy({
+                        projectId,
+                        emailType: templateType,
+                    }),
+                ]);
                 const areEmailAlertsEnabledInGlobalSettings =
                     hasGlobalSmtpSettings &&
                     hasGlobalSmtpSettings.value &&
                     hasGlobalSmtpSettings.value['email-enabled']
                         ? true
                         : false;
-                const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
-                    projectId
-                );
 
                 const notificationEmailDisabled =
                     templateType === 'Subscriber Scheduled Maintenance Created'
@@ -4030,11 +4138,6 @@ module.exports = {
                           'Subscriber Scheduled Maintenance Resolved'
                         ? !project.sendScheduledEventResolvedNotificationEmail
                         : !project.sendScheduledEventCancelledNotificationEmail;
-
-                const emailTemplate = await EmailTemplateService.findOneBy({
-                    projectId,
-                    emailType: templateType,
-                });
 
                 let errorMessageText;
                 if (
@@ -4444,8 +4547,8 @@ module.exports = {
                 message && message.monitors.map(monitor => monitor.monitorId);
 
             const monitorsAffected = await MonitorService.findBy({
-                _id: { $in: monitorIds },
-                deleted: false,
+                query: { _id: { $in: monitorIds }, deleted: false },
+                select: 'name',
             });
 
             if (message) {
@@ -4468,11 +4571,21 @@ module.exports = {
                         const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                         if (subscriber.alertVia === AlertType.Email) {
-                            const hasGlobalSmtpSettings = await GlobalConfigService.findOneBy(
-                                {
+                            const [
+                                hasGlobalSmtpSettings,
+                                hasCustomSmtpSettings,
+                                emailTemplate,
+                            ] = await Promise.all([
+                                GlobalConfigService.findOneBy({
                                     name: 'smtp',
-                                }
-                            );
+                                }),
+                                MailService.hasCustomSmtpSettings(projectId),
+                                EmailTemplateService.findOneBy({
+                                    projectId,
+                                    emailType:
+                                        'Subscriber Announcement Notification Created',
+                                }),
+                            ]);
 
                             const NotificationEmailDisabled = !project.sendAnnouncementNotificationEmail;
 
@@ -4482,16 +4595,6 @@ module.exports = {
                                 hasGlobalSmtpSettings.value['email-enabled']
                                     ? true
                                     : false;
-                            const hasCustomSmtpSettings = await MailService.hasCustomSmtpSettings(
-                                projectId
-                            );
-                            const emailTemplate = await EmailTemplateService.findOneBy(
-                                {
-                                    projectId,
-                                    emailType:
-                                        'Subscriber Announcement Notification Created',
-                                }
-                            );
 
                             let errorMessageText = null;
 
@@ -4576,21 +4679,21 @@ module.exports = {
                         } else if (subscriber.alertVia === AlertType.SMS) {
                             try {
                                 let owner;
-                                const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
-                                    {
+                                const [
+                                    hasGlobalTwilioSettings,
+                                    hasCustomTwilioSettings,
+                                ] = await Promise.all([
+                                    GlobalConfigService.findOneBy({
                                         name: 'twilio',
-                                    }
-                                );
+                                    }),
+                                    TwilioService.hasCustomSettings(projectId),
+                                ]);
                                 const areAlertsEnabledGlobally =
                                     hasGlobalTwilioSettings &&
                                     hasGlobalTwilioSettings.value &&
                                     hasGlobalTwilioSettings.value['sms-enabled']
                                         ? true
                                         : false;
-
-                                const hasCustomTwilioSettings = await TwilioService.hasCustomSettings(
-                                    projectId
-                                );
 
                                 const notificationSMSDisabled = !project.sendAnnouncementNotificationSms;
 

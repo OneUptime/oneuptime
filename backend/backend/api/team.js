@@ -293,19 +293,21 @@ router.put(
         try {
             if (data.role === 'Owner') {
                 // Call the TeamService
-                await TeamService.updateTeamMemberRole(
-                    req.params.projectId,
-                    userId,
-                    teamMemberId,
-                    data.role
-                );
-                const teamMembers = await TeamService.updateTeamMemberRole(
-                    req.params.projectId,
-                    userId,
-                    userId,
-                    'Administrator'
-                );
-                await NotificationService.create(
+                const [teamMembers] = await Promise.all([
+                    TeamService.updateTeamMemberRole(
+                        req.params.projectId,
+                        userId,
+                        userId,
+                        'Administrator'
+                    ),
+                    TeamService.updateTeamMemberRole(
+                        req.params.projectId,
+                        userId,
+                        teamMemberId,
+                        data.role
+                    ),
+                ]);
+                NotificationService.create(
                     req.params.projectId,
                     `A team members role was updated by ${req.user.name}`,
                     req.user.id,
@@ -320,7 +322,7 @@ router.put(
                     teamMemberId,
                     data.role
                 );
-                await NotificationService.create(
+                NotificationService.create(
                     req.params.projectId,
                     `A team members role was updated by ${req.user.name}`,
                     req.user.id,

@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 const userData = require('./data/user');
 process.env.PORT = 3020;
 process.env.ADMIN_EMAIL = userData.adminUser.email;

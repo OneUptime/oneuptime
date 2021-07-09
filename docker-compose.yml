@@ -195,6 +195,30 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         depends_on:
             - backend
+    container-scanner:
+        ports:
+            - '3055:3055'
+        build: ./container-scanner
+        env_file:
+            - ./container-scanner/.env
+        environment:
+            - PORT=3055
+            - SERVER_URL=http://backend:3002
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        depends_on:
+            - backend
+    lighthouse-runner:
+        ports:
+            - '3015:3015'
+        build: ./lighthouse-runner
+        env_file:
+            - ./lighthouse-runner/.env
+        environment:
+            - PORT=3015
+            - SERVER_URL=http://backend:3002
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+        depends_on:
+            - backend
 
 volumes:
     mongodata:

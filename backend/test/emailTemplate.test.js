@@ -1,5 +1,3 @@
-/* eslint-disable no-useless-escape, no-undef */
-
 const expect = require('chai').expect;
 process.env.PORT = 3020;
 const userData = require('./data/user');

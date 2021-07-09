@@ -17,12 +17,10 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
         });
     }
     try {
-        const IncidentPriorities = await IncidentPrioritiesService.findBy(
-            { projectId },
-            limit,
-            skip
-        );
-        const count = await IncidentPrioritiesService.countBy({ projectId });
+        const [IncidentPriorities, count] = await Promise.all([
+            IncidentPrioritiesService.findBy({ projectId }, limit, skip),
+            IncidentPrioritiesService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, IncidentPriorities, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

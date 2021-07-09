@@ -8,7 +8,7 @@ const ProjectService = require('../services/projectService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ObjectID = mongoose.Types.ObjectId;
 const MonitorService = require('../services/monitorService');
-/* eslint-disable no-unused-vars */
+
 module.exports = {
     // Description: Checking if user is authorized to access the page and decode jwt to get user data.
     // Params:
@@ -54,11 +54,12 @@ module.exports = {
             }
         }
 
-        const project = await ProjectService.findOneBy({
+        const projectCount = await ProjectService.countBy({
             _id: projectId,
             apiKey: apiKey,
         });
-        if (project) {
+
+        if (projectCount > 0) {
             req.authorizationType = 'API';
 
             //set user Id to API.
@@ -88,21 +89,18 @@ module.exports = {
         return true;
     },
     hasAPIKey: function(req) {
-        let apiKey;
         if (req.query.apiKey) {
-            apiKey = req.query.apiKey;
+            return true;
         } else if (req.headers.apikey || req.headers.apiKey) {
-            apiKey = req.headers.apikey;
+            return true;
         } else if (req.body.apiKey) {
-            apiKey = req.body.apiKey;
-        } else {
-            return false;
+            return true;
         }
 
-        return true;
+        return false;
     },
 
-    getProjectId: function(req, res) {
+    getProjectId: function(req) {
         // Get Project Id, If Available
         let projectId;
 
@@ -154,8 +152,11 @@ module.exports = {
     isValidMonitor: async function(req, res, next) {
         const id = req.params.id;
         let monitor = await MonitorService.findBy({
-            type: 'incomingHttpRequest',
-            'data.link': `${global.apiHost}/incomingHttpRequest/${id}`,
+            query: {
+                type: 'incomingHttpRequest',
+                'data.link': `${global.apiHost}/incomingHttpRequest/${id}`,
+            },
+            select: 'lastPingTime criteria type _id',
         });
         if (monitor && monitor.length) {
             monitor = monitor && monitor[0] ? monitor[0] : monitor;
@@ -163,7 +164,7 @@ module.exports = {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message:
-                        'Sorry this monitor is disabled.Please enable it to start monitoring again.',
+                        'Sorry this monitor is disabled. Please enable it to start monitoring again.',
                 });
             } else {
                 req.monitor = monitor;

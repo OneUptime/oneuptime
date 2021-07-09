@@ -9,7 +9,7 @@ import {
     searchEmailLogs,
     fetchEmailLogStatus,
 } from '../actions/emailLogs';
-import Dashboard from '../components/Dashboard';
+
 import { Link } from 'react-router-dom';
 import AlertPanel from '../components/basic/AlertPanel';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -51,10 +51,10 @@ class EmailLogs extends React.Component {
         this.setState({ page: this.state.page + 1 });
     };
 
-    ready = () => {
+    componentDidMount() {
         this.props.fetchEmailLogs();
         this.props.fetchEmailLogStatus();
-    };
+    }
 
     onChange = e => {
         const value = e.target.value;
@@ -68,49 +68,47 @@ class EmailLogs extends React.Component {
     render() {
         const { emailLogStatus } = this.props;
         return (
-            <Dashboard ready={this.ready}>
-                <div
-                    id="fyipeEmailLog"
-                    onKeyDown={this.handleKeyBoard}
-                    className="Box-root Margin-vertical--12"
-                >
+            <div
+                id="fyipeEmailLog"
+                onKeyDown={this.handleKeyBoard}
+                className="Box-root Margin-vertical--12"
+            >
+                <div>
                     <div>
-                        <div>
-                            <div className="db-BackboneViewContainer">
-                                <div
-                                    className="customers-list-view react-view popover-container"
-                                    style={{
-                                        position: 'relative',
-                                        overflow: 'visible',
-                                    }}
-                                ></div>
-                                <div className="bs-BIM">
-                                    <div className="Box-root Margin-bottom--12">
-                                        <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                            <div className="Box-root">
-                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                <span
-                                                                    style={{
-                                                                        textTransform:
-                                                                            'capitalize',
-                                                                    }}
-                                                                >
-                                                                    Email Logs
-                                                                </span>
+                        <div className="db-BackboneViewContainer">
+                            <div
+                                className="customers-list-view react-view popover-container"
+                                style={{
+                                    position: 'relative',
+                                    overflow: 'visible',
+                                }}
+                            ></div>
+                            <div className="bs-BIM">
+                                <div className="Box-root Margin-bottom--12">
+                                    <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                        <div className="Box-root">
+                                            <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                        <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                            <span
+                                                                style={{
+                                                                    textTransform:
+                                                                        'capitalize',
+                                                                }}
+                                                            >
+                                                                Email Logs
                                                             </span>
-                                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <span>
-                                                                    Here is a
-                                                                    complete
-                                                                    list of
-                                                                    Email logs.
-                                                                </span>
+                                                        </span>
+                                                        <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <span>
+                                                                Here is a
+                                                                complete list of
+                                                                Email logs.
                                                             </span>
-                                                        </div>
-                                                        {/* <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                        </span>
+                                                    </div>
+                                                    {/* <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                                             <div className="Box-root">
                                                                 <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                                                     <div>
@@ -127,62 +125,57 @@ class EmailLogs extends React.Component {
                                                                 </div>
                                                             </div>
                                                         </div> */}
-                                                    </div>
-                                                </div>
-                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column">
-                                                    <ShouldRender
-                                                        if={
-                                                            emailLogStatus.data &&
-                                                            !emailLogStatus.data
-                                                                .value
-                                                        }
-                                                    >
-                                                        <AlertPanel
-                                                            className=""
-                                                            message={
-                                                                <span id="emailLogDisabled">
-                                                                    You are
-                                                                    currently
-                                                                    not storing
-                                                                    any email
-                                                                    logs at the
-                                                                    moment.
-                                                                    Click{' '}
-                                                                    <Link
-                                                                        className="Border-bottom--white Text-fontWeight--bold Text-color--white"
-                                                                        to="/admin/settings/email-logs"
-                                                                        id="emailLogSetting"
-                                                                    >
-                                                                        here
-                                                                    </Link>{' '}
-                                                                    to turn it
-                                                                    on.
-                                                                </span>
-                                                            }
-                                                        />
-                                                    </ShouldRender>
                                                 </div>
                                             </div>
-                                            <EmailLogsList
-                                                emailLogs={
-                                                    this.props.emailLogs || {}
-                                                }
-                                                prevClicked={this.prevClicked}
-                                                nextClicked={this.nextClicked}
-                                                userId={this.props.userId}
-                                                requesting={
-                                                    this.props.requesting
-                                                }
-                                                page={this.state.page}
-                                            />
+                                            <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column">
+                                                <ShouldRender
+                                                    if={
+                                                        emailLogStatus.data &&
+                                                        !emailLogStatus.data
+                                                            .value
+                                                    }
+                                                >
+                                                    <AlertPanel
+                                                        className=""
+                                                        message={
+                                                            <span id="emailLogDisabled">
+                                                                You are
+                                                                currently not
+                                                                storing any
+                                                                email logs at
+                                                                the moment.
+                                                                Click{' '}
+                                                                <Link
+                                                                    className="Border-bottom--white Text-fontWeight--bold Text-color--white"
+                                                                    to="/admin/settings/email-logs"
+                                                                    id="emailLogSetting"
+                                                                >
+                                                                    here
+                                                                </Link>{' '}
+                                                                to turn it on.
+                                                            </span>
+                                                        }
+                                                    />
+                                                </ShouldRender>
+                                            </div>
                                         </div>
+                                        <EmailLogsList
+                                            emailLogs={
+                                                this.props.emailLogs || {}
+                                            }
+                                            prevClicked={this.prevClicked}
+                                            nextClicked={this.nextClicked}
+                                            userId={this.props.userId}
+                                            requesting={this.props.requesting}
+                                            page={this.state.page}
+                                        />
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </Dashboard>
+            </div>
         );
     }
 }

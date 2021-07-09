@@ -7,6 +7,8 @@ const AlertService = require('./alertService');
 const moment = require('moment');
 const getSlug = require('../utils/getSlug');
 const MonitorService = require('./monitorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
     create: async function({ projectId }, data, recurring) {
@@ -53,7 +55,27 @@ module.exports = {
                 ...data,
             });
 
-            scheduledEvent = await this.findOneBy({ _id: scheduledEvent._id });
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
+            scheduledEvent = await this.findOneBy({
+                query: { _id: scheduledEvent._id },
+                select,
+                populate,
+            });
             // add note when a scheduled event is created
             await ScheduledEventNoteService.create({
                 content: 'THIS SCHEDULED EVENT HAS BEEN CREATED',
@@ -93,7 +115,8 @@ module.exports = {
             }
 
             if (!recurring) {
-                await RealTimeService.addScheduledEvent(scheduledEvent);
+                // run in the background
+                RealTimeService.addScheduledEvent(scheduledEvent);
             }
             return scheduledEvent;
         } catch (error) {
@@ -166,8 +189,26 @@ module.exports = {
                 { new: true }
             );
 
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
             updatedScheduledEvent = await this.findOneBy({
-                _id: updatedScheduledEvent._id,
+                query: { _id: updatedScheduledEvent._id },
+                populate,
+                select,
             });
 
             if (!updatedScheduledEvent) {
@@ -178,7 +219,8 @@ module.exports = {
                 throw error;
             }
 
-            await RealTimeService.updateScheduledEvent(updatedScheduledEvent);
+            // run in the background
+            RealTimeService.updateScheduledEvent(updatedScheduledEvent);
 
             return updatedScheduledEvent;
         } catch (error) {
@@ -197,7 +239,25 @@ module.exports = {
             let updatedData = await ScheduledEventModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
+            updatedData = await this.findBy({ query, populate, select });
+
             return updatedData;
         } catch (error) {
             ErrorService.log('scheduledEventService.updateMany', error);
@@ -240,7 +300,8 @@ module.exports = {
                 throw error;
             }
 
-            await RealTimeService.deleteScheduledEvent(scheduledEvent);
+            // run in the background
+            RealTimeService.deleteScheduledEvent(scheduledEvent);
 
             return scheduledEvent;
         } catch (error) {
@@ -249,7 +310,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -268,19 +329,16 @@ module.exports = {
             }
 
             query.deleted = false;
-            const scheduledEvents = await ScheduledEventModel.find(query)
+            let scheduledEventQuery = ScheduledEventModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
-                .populate('resolvedBy', 'name')
-                .populate({
-                    path: 'monitors.monitorId',
-                    select: 'name',
-                    populate: { path: 'componentId', select: 'name slug' },
-                })
-                .populate('projectId', 'name slug')
-                .populate('createdById', 'name')
                 .lean();
+
+            scheduledEventQuery = handleSelect(select, scheduledEventQuery);
+            scheduledEventQuery = handlePopulate(populate, scheduledEventQuery);
+
+            const scheduledEvents = await scheduledEventQuery;
 
             return scheduledEvents;
         } catch (error) {
@@ -289,23 +347,19 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const scheduledEvent = await ScheduledEventModel.findOne(query)
-                .populate('resolvedBy', 'name')
-                .populate({
-                    path: 'monitors.monitorId',
-                    select: 'name',
-                    populate: { path: 'componentId', select: 'name slug' },
-                })
-                .populate('projectId', 'name slug')
-                .populate('createdById', 'name')
-                .lean();
+            let scheduledEventQuery = ScheduledEventModel.findOne(query).lean();
+
+            scheduledEventQuery = handleSelect(select, scheduledEventQuery);
+            scheduledEventQuery = handlePopulate(populate, scheduledEventQuery);
+
+            const scheduledEvent = await scheduledEventQuery;
 
             if (scheduledEvent) {
                 if (scheduledEvent.createdById === 'API') {
@@ -317,6 +371,7 @@ module.exports = {
                     const user = await UserModel.findOne({
                         _id: scheduledEvent.createdById,
                     }).lean();
+
                     scheduledEvent.createdById = {
                         _id: user._id,
                         name: user.name,
@@ -332,13 +387,28 @@ module.exports = {
     },
 
     getSubProjectScheduledEvents: async function(subProjectIds) {
+        const populate = [
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: { path: 'componentId', select: 'name slug' },
+            },
+        ];
+        const select =
+            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
         const subProjectScheduledEvents = await Promise.all(
             subProjectIds.map(async id => {
-                const scheduledEvents = await this.findBy(
-                    { projectId: id },
-                    10,
-                    0
-                );
+                const scheduledEvents = await this.findBy({
+                    query: { projectId: id },
+                    limit: 10,
+                    skip: 0,
+                    populate,
+                    select,
+                });
                 const count = await this.countBy({ projectId: id });
                 return {
                     scheduledEvents,
@@ -353,11 +423,25 @@ module.exports = {
     },
 
     getSubProjectOngoingScheduledEvents: async function(subProjectIds, query) {
+        const populate = [
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: { path: 'componentId', select: 'name slug' },
+            },
+        ];
+        const select =
+            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
         const subProjectOngoingScheduledEvents = await Promise.all(
             subProjectIds.map(async id => {
                 const ongoingScheduledEvents = await this.findBy({
-                    projectId: id,
-                    ...query,
+                    query: { projectId: id, ...query },
+                    populate,
+                    select,
                 });
                 const count = await this.countBy({
                     projectId: id,
@@ -406,8 +490,26 @@ module.exports = {
      */
     removeMonitor: async function(monitorId, userId) {
         try {
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
             const scheduledEvents = await this.findBy({
-                'monitors.monitorId': monitorId,
+                query: { 'monitors.monitorId': monitorId },
+                populate,
+                select,
             });
 
             const _this = this;
@@ -425,13 +527,14 @@ module.exports = {
                             { $set: { monitors: event.monitors } },
                             { new: true }
                         );
+
                         updatedEvent = await _this.findOneBy({
-                            _id: updatedEvent._id,
+                            query: { _id: updatedEvent._id },
+                            select,
+                            populate,
                         });
 
-                        await RealTimeService.updateScheduledEvent(
-                            updatedEvent
-                        );
+                        RealTimeService.updateScheduledEvent(updatedEvent);
                     } else {
                         // delete the scheduled event when no monitor is remaining
                         let deletedEvent = await ScheduledEventModel.findOneAndUpdate(
@@ -452,9 +555,7 @@ module.exports = {
                             .populate('createdById', 'name')
                             .execPopulate();
 
-                        await RealTimeService.deleteScheduledEvent(
-                            deletedEvent
-                        );
+                        RealTimeService.deleteScheduledEvent(deletedEvent);
                     }
                 })
             );
@@ -535,8 +636,26 @@ module.exports = {
                 _this.create({ projectId }, postObj, true);
             }
             // populate the necessary data
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt';
+
             resolvedScheduledEvent = await _this.findOneBy({
-                _id: resolvedScheduledEvent._id,
+                query: { _id: resolvedScheduledEvent._id },
+                select,
+                populate,
             });
 
             // add note automatically
@@ -557,8 +676,8 @@ module.exports = {
             }
 
             // realtime update
-
-            await RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
+            // run in the background
+            RealTimeService.resolveScheduledEvent(resolvedScheduledEvent);
 
             return resolvedScheduledEvent;
         } catch (error) {
@@ -577,29 +696,28 @@ module.exports = {
             const currentTime = moment();
 
             //fetch events that have started
-            const scheduledEventList = await this.findBy(
-                {
+            const scheduledEventList = await this.findBy({
+                query: {
                     startDate: { $lte: currentTime },
                     deleted: false,
                     cancelled: false,
                 },
-                0,
-                0
-            );
+                limit: 0,
+                skip: 0,
+                select: '_id',
+            });
 
             //fetch event notes without started note and create
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
-                const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
+
+                const scheduledEventNoteCount = await ScheduledEventNoteService.countBy(
                     {
                         scheduledEventId,
                         event_state: 'Started',
                     }
                 );
-                if (
-                    scheduledEventNoteList &&
-                    scheduledEventNoteList.length === 0
-                ) {
+                if (scheduledEventNoteCount === 0) {
                     await ScheduledEventNoteService.create({
                         content: 'This scheduled event has started',
                         scheduledEventId,
@@ -624,29 +742,28 @@ module.exports = {
             const currentTime = moment();
 
             //fetch events that have ended
-            const scheduledEventList = await this.findBy(
-                {
+            const scheduledEventList = await this.findBy({
+                query: {
                     endDate: { $lte: currentTime },
                     deleted: false,
                     cancelled: false,
                 },
-                0,
-                0
-            );
+                limit: 0,
+                skip: 0,
+                select: '_id',
+            });
 
             //fetch event notes without started note and create
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
-                const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
+
+                const scheduledEventNoteListCount = await ScheduledEventNoteService.countBy(
                     {
                         scheduledEventId,
                         event_state: 'Ended',
                     }
                 );
-                if (
-                    scheduledEventNoteList &&
-                    scheduledEventNoteList.length === 0
-                ) {
+                if (scheduledEventNoteListCount === 0) {
                     await ScheduledEventNoteService.create({
                         content: 'This scheduled event has ended',
                         scheduledEventId,

@@ -1,4 +1,3 @@
-/* eslint-disable linebreak-style */
 /**
  *
  * Copyright HackerBay, Inc.

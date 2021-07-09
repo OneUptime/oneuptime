@@ -23,6 +23,7 @@ import {
     selectedProbe,
     getScheduledEvent,
     getOngoingScheduledEvent,
+    getAllStatusPageResource,
 } from '../actions/status';
 import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
@@ -79,29 +80,6 @@ class Main extends Component {
     }
 
     componentDidUpdate(prevProps) {
-        const fetchData = (skip = 0, theme = false, limit = 5) => {
-            this.props.getOngoingScheduledEvent(
-                this.props.statusData.projectId._id,
-                this.props.statusData.slug,
-                skip,
-                theme,
-                limit
-            );
-            this.props.fetchFutureEvents(
-                this.props.statusData.projectId._id,
-                this.props.statusData.slug,
-                skip,
-                theme,
-                limit
-            );
-            this.props.fetchPastEvents(
-                this.props.statusData.slug,
-                this.props.statusData.slug,
-                skip,
-                theme,
-                limit
-            );
-        };
         if (
             JSON.stringify(prevProps.probes) !==
             JSON.stringify(this.props.probes)
@@ -112,11 +90,7 @@ class Main extends Component {
 
             this.setLastAlive();
         }
-        if (prevProps.statusData._id !== this.props.statusData._id) {
-            this.props.getProbes(this.props.statusData._id, 0, 10).then(() => {
-                this.selectbutton(this.props.activeProbe);
-            });
-        }
+
         if (
             prevProps.statusData.customJS !== this.props.statusData.customJS &&
             this.props.statusData.customJS
@@ -125,17 +99,6 @@ class Main extends Component {
                 .createRange()
                 .createContextualFragment(this.props.statusData.customJS);
             document.body.appendChild(javascript);
-        }
-        if (
-            JSON.stringify(prevProps.statusData.projectId) !==
-            JSON.stringify(this.props.statusData.projectId)
-        ) {
-            if (this.props.statusData.theme === 'Clean Theme') {
-                fetchData(0, true, this.props.scheduleHistoryDays || 14);
-            }
-            if (this.props.statusData.theme === 'Classic Theme') {
-                fetchData(0, false, 5);
-            }
         }
     }
 
@@ -176,21 +139,15 @@ class Main extends Component {
             statusPageSlug = 'null';
             url = window.location.host;
         }
-        if (this.props.statusData._id) {
-            this.props.getProbes(this.props.statusData._id, 0, 10).then(() => {
-                this.selectbutton(this.props.activeProbe);
-            });
-        }
-
-        this.props.getStatusPage(statusPageSlug, url).catch(err => {
+        this.props.getAllStatusPageResource(statusPageSlug, url).catch(err => {
             if (err.message === 'Request failed with status code 401') {
                 const { loginRequired } = this.props.login;
                 if (loginRequired) {
                     window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
                 }
+                this.selectbutton(this.props.activeProbe);
             }
         });
-
         this.setLastAlive();
     }
 
@@ -1443,6 +1400,7 @@ const mapDispatchToProps = dispatch =>
             getOngoingScheduledEvent,
             fetchFutureEvents,
             fetchPastEvents,
+            getAllStatusPageResource,
         },
         dispatch
     );
@@ -1471,6 +1429,7 @@ Main.propTypes = {
     fetchPastEvents: PropTypes.func,
     futureEvents: PropTypes.func,
     pastEvents: PropTypes.func,
+    getAllStatusPageResource: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

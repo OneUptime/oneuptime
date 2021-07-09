@@ -65,6 +65,10 @@ include:
   - '/ci/spec/init-script/audit.yaml'
   - '/ci/spec/init-script/deploy.yaml'
 
+  # LIGHTHOUSE RUNNER
+  - '/ci/spec/lighthouse-runner/audit.yaml'
+  - '/ci/spec/lighthouse-runner/deploy.yaml'
+
   # LICENSING
   - '/ci/spec/licensing/audit.yaml'
   - '/ci/spec/licensing/build-n-test.yaml'
@@ -114,6 +118,11 @@ include:
   - '/ci/spec/python-sdk/audit.yaml'
   - '/ci/spec/python-sdk/build-n-test.yaml'
   - '/ci/spec/python-sdk/deploy.yaml'
+
+  # RUBY-SDK
+  - '/ci/spec/ruby-sdk/audit.yaml'
+  - '/ci/spec/ruby-sdk/build-n-test.yaml'
+  - '/ci/spec/ruby-sdk/deploy.yaml'
 
   # HARAKA
   - '/ci/spec/haraka/deploy.yaml'

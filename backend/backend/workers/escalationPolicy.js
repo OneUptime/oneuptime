@@ -49,8 +49,32 @@ module.exports = {
                     continue;
                 }
 
+                const populate = [
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name slug componentId projectId type',
+                        populate: { path: 'componentId', select: 'name slug' },
+                    },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'acknowledgedBy', select: 'name' },
+                    { path: 'incidentPriority', select: 'name color' },
+                    {
+                        path: 'acknowledgedByIncomingHttpRequest',
+                        select: 'name',
+                    },
+                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                    { path: 'createdByIncomingHttpRequest', select: 'name' },
+                    { path: 'probes.probeId', select: 'name _id' },
+                ];
+                const select =
+                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
                 const incident = await IncidentService.findOneBy({
-                    _id: notAcknowledgedCallScheduleStatus.incident,
+                    query: { _id: notAcknowledgedCallScheduleStatus.incident },
+                    select,
+                    populate,
                 });
 
                 if (!incident) {
@@ -92,15 +116,41 @@ module.exports = {
                         continue;
                     }
                 }
+                const populateSchedule = [
+                    { path: 'userIds', select: 'name' },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'monitorIds', select: 'name' },
+                    {
+                        path: 'projectId',
+                        select: '_id name slug',
+                    },
+                    {
+                        path: 'escalationIds',
+                        select: 'teamMember',
+                        populate: {
+                            path: 'teamMember.userId',
+                            select: 'name',
+                        },
+                    },
+                ];
+
+                const selectSchedule =
+                    '_id userIds name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
                 let schedule = await ScheduleService.findOneBy({
-                    _id: notAcknowledgedCallScheduleStatus.schedule,
+                    query: { _id: notAcknowledgedCallScheduleStatus.schedule },
+                    populate: populateSchedule,
+                    select: selectSchedule,
                 });
                 if (!schedule) {
                     schedule = await ScheduleService.findOneBy({
-                        isDefault: true,
-                        projectId:
-                            notAcknowledgedCallScheduleStatus.project._id ||
-                            notAcknowledgedCallScheduleStatus.project,
+                        query: {
+                            isDefault: true,
+                            projectId:
+                                notAcknowledgedCallScheduleStatus.project._id ||
+                                notAcknowledgedCallScheduleStatus.project,
+                        },
+                        populate: populateSchedule,
+                        select: selectSchedule,
                     });
                 }
                 //and the rest happens here.

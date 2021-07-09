@@ -15,6 +15,20 @@ module.exports = {
             throw error;
         }
     },
+    createMany: async function(allData) {
+        try {
+            const allMetrics = await PerformanceTrackerMetricModel.insertMany(
+                allData
+            );
+            return allMetrics;
+        } catch (error) {
+            ErrorService.log(
+                'performanceTrackerMetricService.createMany',
+                error
+            );
+            throw error;
+        }
+    },
     //Description: Gets all performance metrics by component.
     findBy: async function(
         query,
@@ -256,8 +270,9 @@ module.exports = {
         receivedAt = moment(receivedAt).format();
         try {
             // handle incoming/outgoing request
+            const allData = [];
             for (const [key, value] of Object.entries(data)) {
-                await _this.create({
+                allData.push({
                     type,
                     callIdentifier: key,
                     performanceTrackerId: appId,
@@ -271,6 +286,7 @@ module.exports = {
                     createdAt: receivedAt,
                 });
             }
+            await _this.createMany(allData);
 
             // fetch the stored data in that time frame
             // get the total avg time, and probably the total avg max time

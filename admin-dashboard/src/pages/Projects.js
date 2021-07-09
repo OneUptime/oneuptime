@@ -4,7 +4,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import ProjectList from '../components/project/ProjectList';
 import { fetchProjects, searchProjects } from '../actions/project';
-import Dashboard from '../components/Dashboard';
 
 class Projects extends React.Component {
     constructor(props) {
@@ -44,7 +43,7 @@ class Projects extends React.Component {
         this.setState({ page: this.state.page + 1 });
     };
 
-    ready = () => {
+    componentDidMount = () => {
         this.props.fetchProjects();
     };
 
@@ -59,91 +58,84 @@ class Projects extends React.Component {
 
     render() {
         return (
-            <Dashboard ready={this.ready}>
-                <div
-                    id="fyipeProject"
-                    onKeyDown={this.handleKeyBoard}
-                    className="Box-root Margin-vertical--12"
-                >
+            <div
+                id="fyipeProject"
+                onKeyDown={this.handleKeyBoard}
+                className="Box-root Margin-vertical--12"
+            >
+                <div>
                     <div>
-                        <div>
-                            <div className="db-BackboneViewContainer">
-                                <div
-                                    className="customers-list-view react-view popover-container"
-                                    style={{
-                                        position: 'relative',
-                                        overflow: 'visible',
-                                    }}
-                                ></div>
-                                <div className="bs-BIM">
-                                    <div className="Box-root Margin-bottom--12">
-                                        <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                            <div className="Box-root">
-                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                <span
-                                                                    style={{
-                                                                        textTransform:
-                                                                            'capitalize',
-                                                                    }}
-                                                                >
-                                                                    Fyipe
-                                                                    Projects
-                                                                </span>
+                        <div className="db-BackboneViewContainer">
+                            <div
+                                className="customers-list-view react-view popover-container"
+                                style={{
+                                    position: 'relative',
+                                    overflow: 'visible',
+                                }}
+                            ></div>
+                            <div className="bs-BIM">
+                                <div className="Box-root Margin-bottom--12">
+                                    <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                        <div className="Box-root">
+                                            <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                    <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                        <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                            <span
+                                                                style={{
+                                                                    textTransform:
+                                                                        'capitalize',
+                                                                }}
+                                                            >
+                                                                Fyipe Projects
                                                             </span>
-                                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                <span>
-                                                                    Here is a
-                                                                    list of all
-                                                                    the projects
-                                                                    on Fyipe.
-                                                                </span>
+                                                        </span>
+                                                        <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                            <span>
+                                                                Here is a list
+                                                                of all the
+                                                                projects on
+                                                                Fyipe.
                                                             </span>
-                                                        </div>
-                                                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                            <div className="Box-root">
-                                                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                                    <div>
-                                                                        <input
-                                                                            className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                                            placeholder="Search Projects"
-                                                                            onChange={
-                                                                                this
-                                                                                    .onChange
-                                                                            }
-                                                                        />
-                                                                    </div>
+                                                        </span>
+                                                    </div>
+                                                    <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                        <div className="Box-root">
+                                                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                                <div>
+                                                                    <input
+                                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                                        placeholder="Search Projects"
+                                                                        onChange={
+                                                                            this
+                                                                                .onChange
+                                                                        }
+                                                                    />
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                    <div></div>
-                                                </div>
                                             </div>
-                                            <ProjectList
-                                                projects={
-                                                    this.props.projects || {}
-                                                }
-                                                prevClicked={this.prevClicked}
-                                                nextClicked={this.nextClicked}
-                                                userId={this.props.userId}
-                                                requesting={
-                                                    this.props.requesting
-                                                }
-                                                page={this.state.page}
-                                            />
+                                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                <div></div>
+                                            </div>
                                         </div>
+                                        <ProjectList
+                                            projects={this.props.projects || {}}
+                                            prevClicked={this.prevClicked}
+                                            nextClicked={this.nextClicked}
+                                            userId={this.props.userId}
+                                            requesting={this.props.requesting}
+                                            page={this.state.page}
+                                        />
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </Dashboard>
+            </div>
         );
     }
 }

@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import Dashboard from '../components/Dashboard';
 import getParentRoute from '../utils/getParentRoute';
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
@@ -31,6 +30,8 @@ class ErrorTracking extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKING LIST'
             );
         }
+
+        this.ready();
     }
     componentWillUnmount() {
         socket.removeListener(`createErrorTracker-${this.props.componentId}`);
@@ -116,48 +117,42 @@ class ErrorTracking extends Component {
 
         const componentName = component ? component.name : '';
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name={componentName}
-                    />
-                    <BreadCrumbItem route={pathname} name="Error Tracking" />
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name={componentName}
+                />
+                <BreadCrumbItem route={pathname} name="Error Tracking" />
+                <div>
                     <div>
-                        <div>
-                            <ShouldRender
-                                if={this.props.errorTracker.requesting}
-                            >
-                                <LoadingState />
-                            </ShouldRender>
-                            <ShouldRender
-                                if={!this.props.errorTracker.requesting}
-                            >
-                                <div className="db-RadarRulesLists-page">
-                                    <ShouldRender
-                                        if={
-                                            this.props.tutorialStat.errorTracker
-                                                .show
+                        <ShouldRender if={this.props.errorTracker.requesting}>
+                            <LoadingState />
+                        </ShouldRender>
+                        <ShouldRender if={!this.props.errorTracker.requesting}>
+                            <div className="db-RadarRulesLists-page">
+                                <ShouldRender
+                                    if={
+                                        this.props.tutorialStat.errorTracker
+                                            .show
+                                    }
+                                >
+                                    <TutorialBox
+                                        type="errorTracking"
+                                        currentProjectId={
+                                            this.props.currentProject?._id
                                         }
-                                    >
-                                        <TutorialBox
-                                            type="errorTracking"
-                                            currentProjectId={
-                                                this.props.currentProject?._id
-                                            }
-                                        />
-                                    </ShouldRender>
-                                </div>
-                                {errorTrackersList}
-                                <NewErrorTracker
-                                    componentId={this.props.componentId}
-                                    componentSlug={this.props.componentSlug}
-                                />
-                            </ShouldRender>
-                        </div>
+                                    />
+                                </ShouldRender>
+                            </div>
+                            {errorTrackersList}
+                            <NewErrorTracker
+                                componentId={this.props.componentId}
+                                componentSlug={this.props.componentSlug}
+                            />
+                        </ShouldRender>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

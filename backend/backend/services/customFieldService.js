@@ -54,13 +54,15 @@ module.exports = {
                     $set: data,
                 }
             );
-            const customField = await _this.findOneBy(query);
 
             // fetch all the corresponding incoming request
             // and update the custom fields
-            const incomingRequests = await IncomingRequestService.findBy({
-                projectId: query.projectId,
-            });
+            const [customField, incomingRequests] = await Promise.all([
+                _this.findOneBy(query),
+                IncomingRequestService.findBy({
+                    projectId: query.projectId,
+                }),
+            ]);
 
             for (const request of incomingRequests) {
                 const data = {
@@ -147,22 +149,23 @@ module.exports = {
 
     deleteBy: async function(query) {
         try {
-            const customField = await CustomFieldModel.findOneAndUpdate(
-                query,
-                {
-                    $set: {
-                        deleted: true,
-                        deletedAt: Date.now(),
-                    },
-                },
-                { new: true }
-            );
-
             // when a custom field is deleted
             // it should be removed from the corresponding incoming request
-            const incomingRequests = await IncomingRequestService.findBy({
-                projectId: query.projectId,
-            });
+            const [customField, incomingRequests] = await Promise.all([
+                CustomFieldModel.findOneAndUpdate(
+                    query,
+                    {
+                        $set: {
+                            deleted: true,
+                            deletedAt: Date.now(),
+                        },
+                    },
+                    { new: true }
+                ),
+                IncomingRequestService.findBy({
+                    projectId: query.projectId,
+                }),
+            ]);
 
             for (const request of incomingRequests) {
                 const data = {

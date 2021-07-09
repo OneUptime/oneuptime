@@ -302,19 +302,21 @@ module.exports = {
                     );
                 }
                 const monitors = await MonitorService.findBy({
-                    componentId: component._id,
+                    query: { componentId: component._id },
+                    select: '_id',
                 });
 
                 for (const monitor of monitors) {
                     await MonitorService.deleteBy({ _id: monitor._id }, userId);
                 }
-                await NotificationService.create(
+                NotificationService.create(
                     component.projectId,
                     `A Component ${component.name} was deleted from the project by ${component.deletedById.name}`,
                     component.deletedById._id,
                     'componentaddremove'
                 );
-                await RealTimeService.sendComponentDelete(component);
+                // run in the background
+                RealTimeService.sendComponentDelete(component);
 
                 return component;
             } else {

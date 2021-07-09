@@ -6,11 +6,15 @@ const CertificateStoreService = require('../services/certificateStoreService');
 async function handleFetchingDomains() {
     const domainsWithoutCert = [];
 
-    const statusPages = await StatusPageService.findBy({
-        'domains.enableHttps': { $eq: true },
-        'domains.autoProvisioning': { $eq: true },
-        'domains.domain': { $type: 'string' },
-    });
+    const statusPages = await StatusPageService.findBy(
+        {
+            'domains.enableHttps': { $eq: true },
+            'domains.autoProvisioning': { $eq: true },
+            'domains.domain': { $type: 'string' },
+        },
+        0,
+        99999
+    );
 
     for (const statusPage of statusPages) {
         for (const domain of statusPage.domains) {

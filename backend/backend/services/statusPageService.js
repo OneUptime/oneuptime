@@ -590,24 +590,50 @@ module.exports = {
                 ? statuspage.monitors.map(m => m.monitor._id)
                 : [];
             if (monitorIds && monitorIds.length) {
-                const notes = await IncidentService.findBy(
+                const populate = [
                     {
+                        path: 'monitors.monitorId',
+                        select: 'name slug componentId projectId type',
+                        populate: { path: 'componentId', select: 'name slug' },
+                    },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'acknowledgedBy', select: 'name' },
+                    { path: 'incidentPriority', select: 'name color' },
+                    {
+                        path: 'acknowledgedByIncomingHttpRequest',
+                        select: 'name',
+                    },
+                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                    { path: 'createdByIncomingHttpRequest', select: 'name' },
+                    { path: 'probes.probeId', select: 'name _id' },
+                ];
+                const select =
+                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+                const [notes, count] = await Promise.all([
+                    IncidentService.findBy({
+                        query: {
+                            'monitors.monitorId': { $in: monitorIds },
+                            hideIncident: false,
+                            ...option,
+                        },
+                        limit,
+                        skip,
+                        populate,
+                        select,
+                    }),
+                    IncidentService.countBy({
                         'monitors.monitorId': { $in: monitorIds },
                         hideIncident: false,
                         ...option,
-                    },
-                    limit,
-                    skip
-                );
-                const count = await IncidentService.countBy({
-                    'monitors.monitorId': { $in: monitorIds },
-                    hideIncident: false,
-                    ...option,
-                });
+                    }),
+                ]);
 
                 return { notes, count };
             } else {
-                const error = new Error('no monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 ErrorService.log('statusPage.getNotes', error);
                 throw error;
@@ -620,7 +646,33 @@ module.exports = {
 
     getIncident: async function(query) {
         try {
-            const incident = await IncidentService.findOneBy(query);
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: { path: 'componentId', select: 'name slug' },
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+            const incident = await IncidentService.findOneBy({
+                query,
+                select,
+                populate,
+            });
 
             return incident;
         } catch (error) {
@@ -642,13 +694,27 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
-            const message = await IncidentMessageService.findBy(
-                query,
-                skip,
-                limit
-            );
+            const populateIncidentMessage = [
+                {
+                    path: 'incidentId',
+                    select: 'idNumber name',
+                },
+                { path: 'createdById', select: 'name' },
+            ];
 
-            const count = await IncidentMessageService.countBy(query);
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
+            const [message, count] = await Promise.all([
+                IncidentMessageService.findBy({
+                    query,
+                    skip,
+                    limit,
+                    populate: populateIncidentMessage,
+                    select: selectIncidentMessage,
+                }),
+                IncidentMessageService.countBy(query),
+            ]);
 
             return { message, count };
         } catch (error) {
@@ -659,13 +725,43 @@ module.exports = {
 
     getNotesByDate: async function(query, skip, limit) {
         try {
-            const incidents = await IncidentService.findBy(query, limit, skip);
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: { path: 'componentId', select: 'name slug' },
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+            const [incidents, count] = await Promise.all([
+                IncidentService.findBy({
+                    query,
+                    limit,
+                    skip,
+                    populate,
+                    select,
+                }),
+                IncidentService.countBy(query),
+            ]);
 
             const investigationNotes = incidents.map(incident => {
                 // return all the incident object
                 return incident;
             });
-            const count = await IncidentService.countBy(query);
             return { investigationNotes, count };
         } catch (error) {
             ErrorService.log('statusPageService.getNotesByDate', error);
@@ -700,17 +796,38 @@ module.exports = {
             if (monitorIds && monitorIds.length) {
                 const currentDate = moment();
                 const eventIds = [];
+
+                const populate = [
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name',
+                        populate: {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                    },
+                ];
+                const select =
+                    'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
                         const scheduledEvents = await ScheduledEventsService.findBy(
                             {
-                                'monitors.monitorId': monitorId,
-                                showEventOnStatusPage: true,
-                                startDate: { $lte: currentDate },
-                                endDate: {
-                                    $gte: currentDate,
+                                query: {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    startDate: { $lte: currentDate },
+                                    endDate: {
+                                        $gte: currentDate,
+                                    },
+                                    resolved: false,
                                 },
-                                resolved: false,
+                                select,
+                                populate,
                             }
                         );
                         scheduledEvents.map(event => {
@@ -737,7 +854,7 @@ module.exports = {
 
                 return { events, count };
             } else {
-                const error = new Error('no monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 ErrorService.log('statusPageService.getEvents', error);
                 throw error;
@@ -775,13 +892,33 @@ module.exports = {
             if (monitorIds && monitorIds.length) {
                 const currentDate = moment();
                 const eventIds = [];
+                const populate = [
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name',
+                        populate: {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                    },
+                ];
+                const select =
+                    'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
                         const scheduledEvents = await ScheduledEventsService.findBy(
                             {
-                                'monitors.monitorId': monitorId,
-                                showEventOnStatusPage: true,
-                                startDate: { $gt: currentDate },
+                                query: {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    startDate: { $gt: currentDate },
+                                },
+                                select,
+                                populate,
                             }
                         );
                         scheduledEvents.map(event => {
@@ -810,7 +947,7 @@ module.exports = {
                 const count = events.length;
                 return { events, count };
             } else {
-                const error = new Error('no monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 ErrorService.log('statusPageService.getFutureEvents', error);
                 throw error;
@@ -848,13 +985,33 @@ module.exports = {
             if (monitorIds && monitorIds.length) {
                 const currentDate = moment();
                 const eventIds = [];
+                const populate = [
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name',
+                        populate: {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                    },
+                ];
+                const select =
+                    'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
                         const scheduledEvents = await ScheduledEventsService.findBy(
                             {
-                                'monitors.monitorId': monitorId,
-                                showEventOnStatusPage: true,
-                                endDate: { $lt: currentDate },
+                                query: {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    endDate: { $lt: currentDate },
+                                },
+                                populate,
+                                select,
                             }
                         );
                         scheduledEvents.map(event => {
@@ -883,7 +1040,7 @@ module.exports = {
                 const count = events.length;
                 return { events: limitEvents(events, limit, skip), count };
             } else {
-                const error = new Error('no monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 ErrorService.log('statusPageService.getPastEvents', error);
                 throw error;
@@ -895,10 +1052,28 @@ module.exports = {
     },
 
     getEvent: async function(query) {
+        const populate = [
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: {
+                    path: 'componentId',
+                    select: 'name slug',
+                },
+            },
+        ];
+        const select =
+            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
         try {
-            const scheduledEvent = await ScheduledEventsService.findOneBy(
-                query
-            );
+            const scheduledEvent = await ScheduledEventsService.findOneBy({
+                query,
+                select,
+                populate,
+            });
             return scheduledEvent;
         } catch (error) {
             ErrorService.log('statusPageService.getEvent', error);
@@ -919,13 +1094,30 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
-            const eventNote = await ScheduledEventNoteService.findBy(
-                query,
-                limit,
-                skip
-            );
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'scheduledEventId',
+                    select: 'name monitors alertSubscriber projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name replyAddress',
+                    },
+                },
+            ];
+            const select =
+                'updated content type event_state createdAt updatedAt createdById scheduledEventId';
 
-            const count = await ScheduledEventNoteService.countBy(query);
+            const [eventNote, count] = await Promise.all([
+                ScheduledEventNoteService.findBy({
+                    query,
+                    limit,
+                    skip,
+                    populate,
+                    select,
+                }),
+                ScheduledEventNoteService.countBy(query),
+            ]);
 
             return { notes: eventNote, count };
         } catch (error) {
@@ -936,12 +1128,32 @@ module.exports = {
 
     getEventsByDate: async function(query, skip, limit) {
         try {
-            const scheduledEvents = await ScheduledEventsService.findBy(
-                query,
-                limit,
-                skip
-            );
-            const count = await ScheduledEventsService.countBy(query);
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
+            const [scheduledEvents, count] = await Promise.all([
+                ScheduledEventsService.findBy({
+                    query,
+                    limit,
+                    skip,
+                    populate,
+                    select,
+                }),
+                ScheduledEventsService.countBy(query),
+            ]);
 
             return { scheduledEvents, count };
         } catch (error) {
@@ -1065,15 +1277,41 @@ module.exports = {
             const monitorIds =
                 statuspage && statuspage.monitors.map(m => m.monitor._id);
             if (monitorIds && monitorIds.length) {
-                const incidents = await IncidentService.findBy({
-                    'monitors.monitorId': { $in: monitorIds },
-                });
-                const count = await IncidentService.countBy({
-                    'monitors.monitorId': { $in: monitorIds },
-                });
+                const populate = [
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name slug componentId projectId type',
+                        populate: { path: 'componentId', select: 'name slug' },
+                    },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'acknowledgedBy', select: 'name' },
+                    { path: 'incidentPriority', select: 'name color' },
+                    {
+                        path: 'acknowledgedByIncomingHttpRequest',
+                        select: 'name',
+                    },
+                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                    { path: 'createdByIncomingHttpRequest', select: 'name' },
+                    { path: 'probes.probeId', select: 'name _id' },
+                ];
+                const select =
+                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+                const [incidents, count] = await Promise.all([
+                    IncidentService.findBy({
+                        query: { 'monitors.monitorId': { $in: monitorIds } },
+                        select,
+                        populate,
+                    }),
+                    IncidentService.countBy({
+                        'monitors.monitorId': { $in: monitorIds },
+                    }),
+                ]);
                 return { incidents, count };
             } else {
-                const error = new Error('No monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 throw error;
             }

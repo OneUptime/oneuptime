@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fetch = require('node-fetch');
@@ -17,18 +16,17 @@ module.exports = {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {
-                    const headers = await ApiService.headers(
-                        monitor.headers,
-                        monitor.bodyType
-                    );
-                    const body = await ApiService.body(
-                        monitor && monitor.text && monitor.text.length
-                            ? monitor.text
-                            : monitor.formData,
-                        monitor && monitor.text && monitor.text.length
-                            ? 'text'
-                            : 'formData'
-                    );
+                    const [headers, body] = await Promise.all([
+                        ApiService.headers(monitor.headers, monitor.bodyType),
+                        ApiService.body(
+                            monitor && monitor.text && monitor.text.length
+                                ? monitor.text
+                                : monitor.formData,
+                            monitor && monitor.text && monitor.text.length
+                                ? 'text'
+                                : 'formData'
+                        ),
+                    ]);
 
                     let retry = true;
                     let retryCount = 0;

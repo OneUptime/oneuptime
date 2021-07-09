@@ -539,18 +539,23 @@ module.exports = {
     handleIncomingRequestAction: async function(data) {
         const _this = this;
         try {
-            const incidentPriorities = await IncidentPrioritiesService.findBy({
-                projectId: data.projectId,
-            });
-            const incidentSettings = await IncidentSettingsService.findOne({
-                projectId: data.projectId,
-                isDefault: true,
-            });
-
-            const incomingRequest = await _this.findOneBy({
-                _id: data.requestId,
-                projectId: data.projectId,
-            });
+            const [
+                incidentPriorities,
+                incidentSettings,
+                incomingRequest,
+            ] = await Promise.all([
+                IncidentPrioritiesService.findBy({
+                    projectId: data.projectId,
+                }),
+                IncidentSettingsService.findOne({
+                    projectId: data.projectId,
+                    isDefault: true,
+                }),
+                _this.findOneBy({
+                    _id: data.requestId,
+                    projectId: data.projectId,
+                }),
+            ]);
 
             const filterMatch = incomingRequest.filterMatch;
             const filters = incomingRequest.filters;
@@ -583,7 +588,12 @@ module.exports = {
                 let monitors = [];
                 if (incomingRequest.selectAllMonitors) {
                     monitors = await MonitorService.findBy({
-                        projectId: data.projectId,
+                        query: { projectId: data.projectId },
+                        select: '_id customFields componentId projectId name',
+                        populate: [
+                            { path: 'componentId', select: 'name' },
+                            { path: 'projectId', select: 'name' },
+                        ],
                     });
                 } else {
                     monitors = incomingRequest.monitors
@@ -719,18 +729,23 @@ module.exports = {
                                 ) {
                                     _incident = await IncidentService.findOneBy(
                                         {
-                                            customFields: {
-                                                $elemMatch: {
-                                                    fieldName: field.fieldName,
-                                                    fieldType: field.fieldType,
-                                                    uniqueField:
-                                                        field.uniqueField,
-                                                    fieldValue: handleVariable(
-                                                        field.fieldValue,
-                                                        dataConfig
-                                                    ),
+                                            query: {
+                                                customFields: {
+                                                    $elemMatch: {
+                                                        fieldName:
+                                                            field.fieldName,
+                                                        fieldType:
+                                                            field.fieldType,
+                                                        uniqueField:
+                                                            field.uniqueField,
+                                                        fieldValue: handleVariable(
+                                                            field.fieldValue,
+                                                            dataConfig
+                                                        ),
+                                                    },
                                                 },
                                             },
+                                            select: '_id',
                                         }
                                     );
                                 }
@@ -824,18 +839,23 @@ module.exports = {
                                 ) {
                                     _incident = await IncidentService.findOneBy(
                                         {
-                                            customFields: {
-                                                $elemMatch: {
-                                                    fieldName: field.fieldName,
-                                                    fieldType: field.fieldType,
-                                                    uniqueField:
-                                                        field.uniqueField,
-                                                    fieldValue: handleVariable(
-                                                        field.fieldValue,
-                                                        dataConfig
-                                                    ),
+                                            query: {
+                                                customFields: {
+                                                    $elemMatch: {
+                                                        fieldName:
+                                                            field.fieldName,
+                                                        fieldType:
+                                                            field.fieldType,
+                                                        uniqueField:
+                                                            field.uniqueField,
+                                                        fieldValue: handleVariable(
+                                                            field.fieldValue,
+                                                            dataConfig
+                                                        ),
+                                                    },
                                                 },
                                             },
+                                            select: '_id',
                                         }
                                     );
                                 }
@@ -919,9 +939,36 @@ module.exports = {
 
                 let incidents = [],
                     updatedFilters = [];
+                const populate = [
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name slug componentId projectId type',
+                        populate: [
+                            { path: 'componentId', select: 'name slug' },
+                            { path: 'projectId', select: 'name slug' },
+                        ],
+                    },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'acknowledgedBy', select: 'name' },
+                    { path: 'incidentPriority', select: 'name color' },
+                    {
+                        path: 'acknowledgedByIncomingHttpRequest',
+                        select: 'name',
+                    },
+                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                    { path: 'createdByIncomingHttpRequest', select: 'name' },
+                    { path: 'probes.probeId', select: 'name _id' },
+                ];
+                const select =
+                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
                 if (!filters || filters.length === 0) {
                     incidents = await IncidentService.findBy({
-                        projectId: incomingRequest.projectId,
+                        query: { projectId: incomingRequest.projectId },
+                        select,
+                        populate,
                     });
                 } else {
                     updatedFilters = filters.map(filter => {
@@ -974,18 +1021,28 @@ module.exports = {
                                     filterCriteria === 'incidentId'
                                 ) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: data.incidentId,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            idNumber: data.incidentId,
+                                        },
+                                        select,
+                                        populate,
                                     });
                                 }
 
                                 if (data.fieldName && data.fieldValue) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue':
-                                            data.fieldValue,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            'customFields.fieldName':
+                                                data.fieldName,
+                                            'customFields.fieldValue':
+                                                data.fieldValue,
+                                        },
+                                        select,
+                                        populate,
                                     });
                                 }
                             }
@@ -996,19 +1053,29 @@ module.exports = {
                                     filterCriteria === 'incidentId'
                                 ) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: { $ne: data.incidentId },
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            idNumber: { $ne: data.incidentId },
+                                        },
+                                        select,
+                                        populate,
                                     });
                                 }
 
                                 if (data.fieldName && data.fieldValue) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue': {
-                                            $ne: data.fieldValue,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            'customFields.fieldName':
+                                                data.fieldName,
+                                            'customFields.fieldValue': {
+                                                $ne: data.fieldValue,
+                                            },
                                         },
+                                        select,
+                                        populate,
                                     });
                                 }
                             }
@@ -1024,11 +1091,15 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $lt: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $lt: data.incidentId,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1036,13 +1107,17 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $lt: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $lt: data.fieldValue,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1053,11 +1128,15 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $gt: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $gt: data.incidentId,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1065,13 +1144,17 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $gt: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $gt: data.fieldValue,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1084,11 +1167,15 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $lte: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $lte: data.incidentId,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1096,13 +1183,17 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $lte: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $lte: data.fieldValue,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1115,11 +1206,15 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $gte: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $gte: data.incidentId,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1127,13 +1222,17 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $gte: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $gte: data.fieldValue,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1322,10 +1421,39 @@ module.exports = {
 
                 let incidents = [],
                     updatedFilters = [];
+                const populate = [
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name slug componentId projectId type',
+                        populate: [
+                            { path: 'componentId', select: 'name slug' },
+                            { path: 'projectId', select: 'name slug' },
+                        ],
+                    },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'acknowledgedBy', select: 'name' },
+                    { path: 'incidentPriority', select: 'name color' },
+                    {
+                        path: 'acknowledgedByIncomingHttpRequest',
+                        select: 'name',
+                    },
+                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                    { path: 'createdByIncomingHttpRequest', select: 'name' },
+                    { path: 'probes.probeId', select: 'name _id' },
+                ];
+                const select =
+                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
                 if (!filters || filters.length === 0) {
                     incidents = await IncidentService.findBy({
-                        projectId: incomingRequest.projectId,
-                        ...incidentQuery,
+                        query: {
+                            projectId: incomingRequest.projectId,
+                            ...incidentQuery,
+                        },
+                        select,
+                        populate,
                     });
                 } else {
                     updatedFilters = filters.map(filter => {
@@ -1375,20 +1503,30 @@ module.exports = {
                             if (filterCondition === 'equalTo') {
                                 if (data.incidentId) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: data.incidentId,
-                                        ...incidentQuery,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            idNumber: data.incidentId,
+                                            ...incidentQuery,
+                                        },
+                                        select,
+                                        populate,
                                     });
                                 }
 
                                 if (data.fieldName && data.fieldValue) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue':
-                                            data.fieldValue,
-                                        ...incidentQuery,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            'customFields.fieldName':
+                                                data.fieldName,
+                                            'customFields.fieldValue':
+                                                data.fieldValue,
+                                            ...incidentQuery,
+                                        },
+                                        select,
+                                        populate,
                                     });
                                 }
                             }
@@ -1396,21 +1534,31 @@ module.exports = {
                             if (filterCondition === 'notEqualTo') {
                                 if (data.incidentId) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: { $ne: data.incidentId },
-                                        ...incidentQuery,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            idNumber: { $ne: data.incidentId },
+                                            ...incidentQuery,
+                                        },
+                                        select,
+                                        populate,
                                     });
                                 }
 
                                 if (data.fieldName && data.fieldValue) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue': {
-                                            $ne: data.fieldValue,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            'customFields.fieldName':
+                                                data.fieldName,
+                                            'customFields.fieldValue': {
+                                                $ne: data.fieldValue,
+                                            },
+                                            ...incidentQuery,
                                         },
-                                        ...incidentQuery,
+                                        select,
+                                        populate,
                                     });
                                 }
                             }
@@ -1426,12 +1574,16 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $lt: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $lt: data.incidentId,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1439,14 +1591,18 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $lt: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $lt: data.fieldValue,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1457,12 +1613,16 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $gt: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $gt: data.incidentId,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1470,14 +1630,18 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $gt: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $gt: data.fieldValue,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1490,12 +1654,16 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $lte: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $lte: data.incidentId,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1503,14 +1671,18 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $lte: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $lte: data.fieldValue,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1520,12 +1692,16 @@ module.exports = {
                                     if (data.incidentId) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $gte: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $gte: data.incidentId,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1533,14 +1709,18 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $gte: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $gte: data.fieldValue,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }

@@ -1,10 +1,7 @@
-/* eslint-disable no-console */
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fetch = require('node-fetch');
 const sslCert = require('get-ssl-certificate');
-const { fork } = require('child_process');
-const moment = require('moment');
 const https = require('https');
 const http = require('http');
 const httpsAgent = new https.Agent({
@@ -36,67 +33,11 @@ module.exports = {
                             type: monitor.type,
                             retryCount,
                         });
-
                         if (response && !response.retry) {
                             retry = false;
                         } else {
                             retryCount++;
                         }
-                    }
-
-                    const now = new Date().getTime();
-                    const scanIntervalInDays = monitor.lighthouseScannedAt
-                        ? moment(now).diff(
-                              moment(monitor.lighthouseScannedAt),
-                              'days'
-                          )
-                        : -1;
-                    if (
-                        (monitor.lighthouseScanStatus &&
-                            monitor.lighthouseScanStatus === 'scan') ||
-                        (monitor.lighthouseScanStatus &&
-                            monitor.lighthouseScanStatus === 'failed') ||
-                        ((!monitor.lighthouseScannedAt ||
-                            scanIntervalInDays > 0) &&
-                            (!monitor.lighthouseScanStatus ||
-                                monitor.lighthouseScanStatus !== 'scanning'))
-                    ) {
-                        await ApiService.ping(monitor._id, {
-                            monitor,
-                            resp: { lighthouseScanStatus: 'scanning' },
-                        });
-
-                        const sites = monitor.siteUrls;
-                        let failedCount = 0;
-                        for (const url of sites) {
-                            try {
-                                const resp = await lighthouseFetch(
-                                    monitor,
-                                    url
-                                );
-
-                                await ApiService.ping(monitor._id, {
-                                    monitor,
-                                    resp,
-                                });
-                            } catch (error) {
-                                failedCount++;
-                                ErrorService.log(
-                                    'lighthouseFetch',
-                                    error.error
-                                );
-                            }
-                        }
-
-                        await ApiService.ping(monitor._id, {
-                            monitor,
-                            resp: {
-                                lighthouseScanStatus:
-                                    failedCount === sites.length
-                                        ? 'failed'
-                                        : 'scanned',
-                            },
-                        });
                     }
                 }
             }
@@ -203,31 +144,4 @@ const pingfetch = async url => {
             body: resp && resp.body ? resp.body : null,
         },
     };
-};
-
-const lighthouseFetch = (monitor, url) => {
-    return new Promise((resolve, reject) => {
-        const lighthouseWorker = fork('./utils/lighthouse');
-        const timeoutHandler = setTimeout(async () => {
-            await processLighthouseScan({
-                data: { url },
-                error: { message: 'TIMEOUT' },
-            });
-        }, 300000);
-
-        lighthouseWorker.send(url);
-        lighthouseWorker.on('message', async result => {
-            await processLighthouseScan(result);
-        });
-
-        async function processLighthouseScan(result) {
-            clearTimeout(timeoutHandler);
-            lighthouseWorker.removeAllListeners();
-            if (result.error) {
-                reject({ status: 'failed', ...result });
-            } else {
-                resolve({ status: 'scanned', ...result });
-            }
-        }
-    });
 };

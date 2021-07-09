@@ -100,14 +100,16 @@ router.get('/:projectId/domains', getUser, isAuthorized, async (req, res) => {
     const { skip, limit } = req.query;
     try {
         // a unique case where we have to consider the subProject as well
-        const domains = await DomainVerificationService.findBy(
-            {
-                projectId,
-            },
-            limit,
-            skip
-        );
-        const count = await DomainVerificationService.countBy({ projectId });
+        const [domains, count] = await Promise.all([
+            DomainVerificationService.findBy(
+                {
+                    projectId,
+                },
+                limit,
+                skip
+            ),
+            DomainVerificationService.countBy({ projectId }),
+        ]);
 
         return sendListResponse(req, res, domains, count);
     } catch (error) {

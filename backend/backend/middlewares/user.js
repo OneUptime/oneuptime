@@ -18,6 +18,7 @@ const _this = {
     // Params:
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
+
     getUser: async function(req, res, next) {
         try {
             const projectId = apiMiddleware.getProjectId(req);
@@ -180,10 +181,7 @@ const _this = {
                     } else {
                         req.authorizationType = 'USER';
                         req.user = decoded;
-                        UserService.updateOneBy(
-                            { _id: req.user.id },
-                            { lastActive: Date.now() }
-                        );
+
                         const userId = req.user
                             ? req.user.id
                             : null || url.parse(req.url, true).query.userId;
@@ -197,9 +195,15 @@ const _this = {
                                 message: 'Project id is not present.',
                             });
                         }
-                        const project = await ProjectService.findOneBy({
-                            _id: projectId,
-                        });
+                        const [project] = await Promise.all([
+                            ProjectService.findOneBy({
+                                _id: projectId,
+                            }),
+                            UserService.updateOneBy(
+                                { _id: req.user.id },
+                                { lastActive: Date.now() }
+                            ),
+                        ]);
                         let isUserPresentInProject = false;
                         if (project) {
                             for (let i = 0; i < project.users.length; i++) {

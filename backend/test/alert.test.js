@@ -1,15 +1,14 @@
-/* eslint-disable */
 process.env.PORT = 3020;
 process.env.NODE_ENV = 'development';
-let expect = require('chai').expect;
-let userData = require('./data/user');
-let incidentData = require('./data/incident');
-let chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const incidentData = require('./data/incident');
+const chai = require('chai');
 chai.use(require('chai-http'));
-let app = require('../server');
+const app = require('../server');
 
-let request = chai.request.agent(app);
-let { createUser } = require('./utils/userSignUp');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
 const UserService = require('../backend/services/userService');
 const UserModel = require('../backend/models/user');
 const IncidentService = require('../backend/services/incidentService');
@@ -22,18 +21,13 @@ const AirtableService = require('../backend/services/airtableService');
 const NotificationService = require('../backend/services/notificationService');
 const ComponentModel = require('../backend/models/component');
 
-let token,
-    userId,
-    projectId,
-    subProjectId,
-    incidentId,
-    alertId,
-    monitorId,
-    monitor = {
-        name: 'New Monitor',
-        type: 'url',
-        data: { url: 'http://www.tests.org' },
-    };
+let token, userId, projectId, subProjectId, incidentId, alertId, monitorId;
+
+const monitor = {
+    name: 'New Monitor',
+    type: 'url',
+    data: { url: 'http://www.tests.org' },
+};
 
 describe('Alert API', function() {
     describe('Alert API without subprojects', function() {
@@ -43,7 +37,7 @@ describe('Alert API', function() {
             this.timeout(30000);
             GlobalConfig.initTestConfig().then(function() {
                 createUser(request, userData.user, function(err, res) {
-                    let project = res.body.project;
+                    const project = res.body.project;
                     projectId = project._id;
                     userId = res.body.id;
 
@@ -62,7 +56,7 @@ describe('Alert API', function() {
                                         .end(function(err, res) {
                                             token =
                                                 res.body.tokens.jwtAccessToken;
-                                            let authorization = `Basic ${token}`;
+                                            const authorization = `Basic ${token}`;
                                             request
                                                 .post(`/monitor/${projectId}`)
                                                 .set(
@@ -75,7 +69,9 @@ describe('Alert API', function() {
                                                 })
                                                 .end(function(err, res) {
                                                     monitorId = res.body._id;
-                                                    incidentData.monitors = [monitorId];
+                                                    incidentData.monitors = [
+                                                        monitorId,
+                                                    ];
                                                     expect(res).to.have.status(
                                                         200
                                                     );
@@ -104,7 +100,7 @@ describe('Alert API', function() {
 
         // 'post /:projectId'
         it('should register with valid projectId, monitorId, incidentId, alertVia', function(done) {
-            let authorization = `Basic ${token}`;
+            const authorization = `Basic ${token}`;
             request
                 .post(`/incident/${projectId}/create-incident`)
                 .set('Authorization', authorization)
@@ -119,7 +115,7 @@ describe('Alert API', function() {
                             monitorId,
                             alertVia: 'email',
                             incidentId: incidentId,
-                            eventType: 'identified'
+                            eventType: 'identified',
                         })
                         .end(function(err, res) {
                             alertId = res.body._id;
@@ -131,7 +127,7 @@ describe('Alert API', function() {
         });
 
         it('should get an array of alerts by valid projectId', function(done) {
-            let authorization = `Basic ${token}`;
+            const authorization = `Basic ${token}`;
             request
                 .get(`/alert/${projectId}/alert`)
                 .set('Authorization', authorization)
@@ -145,7 +141,7 @@ describe('Alert API', function() {
         });
 
         it('should get an array alerts of by valid incidentId', function(done) {
-            let authorization = `Basic ${token}`;
+            const authorization = `Basic ${token}`;
             request
                 .get(`/alert/${projectId}/incident/${incidentId}`)
                 .set('Authorization', authorization)
@@ -159,7 +155,7 @@ describe('Alert API', function() {
         });
 
         it('should deleted alert', function(done) {
-            let authorization = `Basic ${token}`;
+            const authorization = `Basic ${token}`;
             request
                 .delete(`/alert/${projectId}`)
                 .set('Authorization', authorization)
@@ -170,7 +166,7 @@ describe('Alert API', function() {
         });
 
         it('should not delete alert with non-existing projectId', function(done) {
-            let authorization = `Basic ${token}`;
+            const authorization = `Basic ${token}`;
             request
                 .delete('/alert/5f71e52737c855f7c5b347d3')
                 .set('Authorization', authorization)
@@ -181,13 +177,13 @@ describe('Alert API', function() {
         });
     });
 
-    let newUserToken, subProjectAlertId;
+    let newUserToken;
 
     describe('Alert API with Sub-Projects', function() {
         this.timeout(40000);
         before(function(done) {
             this.timeout(30000);
-            let authorization = `Basic ${token}`;
+            const authorization = `Basic ${token}`;
             // create a subproject for parent project
             GlobalConfig.initTestConfig().then(function() {
                 request
@@ -215,7 +211,7 @@ describe('Alert API', function() {
                                         .end(function(err, res) {
                                             newUserToken =
                                                 res.body.tokens.jwtAccessToken;
-                                            let authorization = `Basic ${token}`;
+                                            const authorization = `Basic ${token}`;
                                             // add second user to subproject
                                             request
                                                 .post(`/team/${subProjectId}`)
@@ -228,7 +224,7 @@ describe('Alert API', function() {
                                                         userData.newUser.email,
                                                     role: 'Member',
                                                 })
-                                                .end(function(err, res) {
+                                                .end(function() {
                                                     done();
                                                 });
                                         });
@@ -272,7 +268,7 @@ describe('Alert API', function() {
                                 password: userData.anotherUser.password,
                             })
                             .end(function(err, res) {
-                                let authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                                const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                                 request
                                     .post(`/alert/${projectId}`)
                                     .set('Authorization', authorization)
@@ -296,7 +292,7 @@ describe('Alert API', function() {
         });
 
         it('should create alert in parent project', function(done) {
-            let authorization = `Basic ${token}`;
+            const authorization = `Basic ${token}`;
             request
                 .post(`/alert/${projectId}`)
                 .set('Authorization', authorization)
@@ -304,7 +300,7 @@ describe('Alert API', function() {
                     monitorId: monitorId,
                     alertVia: 'email',
                     incidentId: incidentId,
-                    eventType: 'identified'
+                    eventType: 'identified',
                 })
                 .end(function(err, res) {
                     alertId = res.body._id;
@@ -315,7 +311,7 @@ describe('Alert API', function() {
         });
 
         it('should create alert in sub-project', function(done) {
-            let authorization = `Basic ${newUserToken}`;
+            const authorization = `Basic ${newUserToken}`;
             request
                 .post(`/alert/${subProjectId}`)
                 .set('Authorization', authorization)
@@ -323,10 +319,9 @@ describe('Alert API', function() {
                     monitorId: monitorId,
                     alertVia: 'email',
                     incidentId: incidentId,
-                    eventType: 'identified'
+                    eventType: 'identified',
                 })
                 .end(function(err, res) {
-                    subProjectAlertId = res.body._id;
                     expect(res).to.have.status(200);
                     expect(res.body).to.be.an('object');
                     done();
@@ -334,7 +329,7 @@ describe('Alert API', function() {
         });
 
         it('should get only sub-project alerts for valid user.', function(done) {
-            let authorization = `Basic ${newUserToken}`;
+            const authorization = `Basic ${newUserToken}`;
             request
                 .get(`/alert/${subProjectId}/alert`)
                 .set('Authorization', authorization)
@@ -348,7 +343,7 @@ describe('Alert API', function() {
         });
 
         it('should get both project and sub-project alerts for valid user.', function(done) {
-            let authorization = `Basic ${token}`;
+            const authorization = `Basic ${token}`;
             request
                 .get(`/alert/${projectId}`)
                 .set('Authorization', authorization)
@@ -364,7 +359,7 @@ describe('Alert API', function() {
         });
 
         it('should delete sub-project alert', function(done) {
-            let authorization = `Basic ${token}`;
+            const authorization = `Basic ${token}`;
             request
                 .delete(`/alert/${subProjectId}`)
                 .set('Authorization', authorization)
@@ -375,7 +370,7 @@ describe('Alert API', function() {
         });
 
         it('should delete project alert', function(done) {
-            let authorization = `Basic ${token}`;
+            const authorization = `Basic ${token}`;
             request
                 .delete(`/alert/${projectId}`)
                 .set('Authorization', authorization)

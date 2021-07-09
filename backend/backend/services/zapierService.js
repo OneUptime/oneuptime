@@ -63,7 +63,16 @@ module.exports = {
                     acknowledged: false,
                     resolved: false,
                 };
-                const incidents = await IncidentService.findBy(findquery);
+                const incidents = await IncidentService.findBy({
+                    query: findquery,
+                    select:
+                        '_id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
+                    populate: [
+                        { path: 'acknowledgedBy', select: 'name' },
+                        { path: 'resolvedBy', select: 'name' },
+                        { path: 'createdById', select: 'name' },
+                    ],
+                });
                 for (const incident of incidents) {
                     const monitors = incident.monitors.map(
                         monitor => monitor.monitorId
@@ -106,10 +115,26 @@ module.exports = {
                 const findquery = {
                     projectId: { $in: projectIds },
                 };
-                const incidents = await IncidentService.findBy(findquery);
+                const incidents = await IncidentService.findBy({
+                    query: findquery,
+                    select: '_id',
+                });
                 const incidentIds = incidents.map(incident => incident._id);
+
+                const populateIncidentMessage = [
+                    {
+                        path: 'incidentId',
+                        select: 'idNumber name',
+                    },
+                    { path: 'createdById', select: 'name' },
+                ];
+
+                const selectIncidentMessage =
+                    '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
                 const incidentMessages = await IncidentMessageService.findBy({
-                    incidentId: { $in: incidentIds },
+                    query: { incidentId: { $in: incidentIds } },
+                    select: selectIncidentMessage,
+                    populate: populateIncidentMessage,
                 });
                 await Promise.all(
                     incidentMessages.map(async incidentNote => {
@@ -136,6 +161,16 @@ module.exports = {
         try {
             const zapierResponse = {};
             const incidentNoteArr = [];
+            const populateIncidentMessage = [
+                {
+                    path: 'incidentId',
+                    select: 'idNumber name',
+                },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
             await Promise.all(
                 data.incidents.map(async incidentId => {
                     let incidentMessage = new IncidentMessageModel();
@@ -147,9 +182,12 @@ module.exports = {
                     IncidentService.refreshInterval(incidentId);
 
                     incidentMessage = await IncidentMessageService.findOneBy({
-                        _id: incidentMessage._id,
+                        query: { _id: incidentMessage._id },
+                        select: selectIncidentMessage,
+                        populate: populateIncidentMessage,
                     });
-                    await RealTimeService.addIncidentNote(incidentMessage);
+                    // run in the background
+                    RealTimeService.addIncidentNote(incidentMessage);
 
                     incidentNoteArr.push(incidentMessage);
                 })
@@ -179,7 +217,16 @@ module.exports = {
                     acknowledged: true,
                     resolved: false,
                 };
-                const incidents = await IncidentService.findBy(findquery);
+                const incidents = await IncidentService.findBy({
+                    query: findquery,
+                    select:
+                        '_id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
+                    populate: [
+                        { path: 'acknowledgedBy', select: 'name' },
+                        { path: 'resolvedBy', select: 'name' },
+                        { path: 'createdById', select: 'name' },
+                    ],
+                });
                 for (const incident of incidents) {
                     const monitors = incident.monitors.map(
                         monitor => monitor.monitorId
@@ -224,7 +271,16 @@ module.exports = {
                     acknowledged: true,
                     resolved: true,
                 };
-                const incidents = await IncidentService.findBy(findquery);
+                const incidents = await IncidentService.findBy({
+                    query: findquery,
+                    select:
+                        '_id acknowledgedAt acknowledged acknowledgedBy resolved resolvedBy resolvedAt idNumber internalNote investigationNote createdAt createdById',
+                    populate: [
+                        { path: 'acknowledgedBy', select: 'name' },
+                        { path: 'resolvedBy', select: 'name' },
+                        { path: 'createdById', select: 'name' },
+                    ],
+                });
                 for (const incident of incidents) {
                     const monitors = incident.monitors.map(
                         monitor => monitor.monitorId
@@ -257,7 +313,9 @@ module.exports = {
         await Promise.all(
             monitors.map(async monitor => {
                 const monitorObj = await MonitorService.findOneBy({
-                    _id: monitor,
+                    query: { _id: monitor },
+                    select: 'name projectId _id',
+                    populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let incident = new IncidentModel();
                 incident.projectId = monitorObj.projectId._id;
@@ -272,13 +330,14 @@ module.exports = {
                 });
 
                 const msg = `A New Incident was created for ${monitorObj.name} by Zapier`;
-                await NotificationService.create(
+                NotificationService.create(
                     incident.projectId,
                     msg,
                     null,
                     'warning'
                 );
-                await RealTimeService.sendCreatedIncident(incident);
+                // run in the background
+                RealTimeService.sendCreatedIncident(incident);
 
                 let project = await ProjectService.findOneBy({
                     _id: monitorObj.project._id,
@@ -303,8 +362,11 @@ module.exports = {
         await Promise.all(
             monitors.map(async monitor => {
                 let lastIncident = await IncidentService.findOneBy({
-                    'monitors.monitorId': monitor,
-                    acknowledged: false,
+                    query: {
+                        'monitors.monitorId': monitor,
+                        acknowledged: false,
+                    },
+                    select: '_id',
                 });
                 lastIncident = await IncidentService.acknowledge(
                     lastIncident._id,
@@ -314,10 +376,12 @@ module.exports = {
                     true
                 );
                 const monitorObj = await MonitorService.findOneBy({
-                    _id: monitor,
+                    query: { _id: monitor },
+                    select: 'projectId',
+                    populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.project._id,
+                    _id: monitorObj.projectId._id,
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
@@ -339,8 +403,11 @@ module.exports = {
         await Promise.all(
             monitors.map(async monitor => {
                 let incidents = await IncidentService.findBy({
-                    'monitors.monitorId': monitor,
-                    acknowledged: false,
+                    query: {
+                        'monitors.monitorId': monitor,
+                        acknowledged: false,
+                    },
+                    select: '_id',
                 });
                 incidents = await Promise.all(
                     incidents.map(async incident => {
@@ -354,10 +421,12 @@ module.exports = {
                     })
                 );
                 const monitorObj = await MonitorService.findOneBy({
-                    _id: monitor,
+                    query: { _id: monitor },
+                    select: 'projectId',
+                    populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.project._id,
+                    _id: monitorObj.projectId._id,
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
@@ -376,6 +445,28 @@ module.exports = {
     acknowledgeIncident: async function(incidents) {
         const zapierResponse = {};
         const incidentArr = [];
+        const populate = [
+            {
+                path: 'monitors.monitorId',
+                select: 'name slug componentId projectId type',
+                populate: { path: 'componentId', select: 'name slug' },
+            },
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'acknowledgedBy', select: 'name' },
+            { path: 'incidentPriority', select: 'name color' },
+            {
+                path: 'acknowledgedByIncomingHttpRequest',
+                select: 'name',
+            },
+            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+            { path: 'createdByIncomingHttpRequest', select: 'name' },
+            { path: 'probes.probeId', select: 'name _id' },
+        ];
+        const select =
+            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
         await Promise.all(
             incidents.map(async incident => {
                 await IncidentService.acknowledge(
@@ -386,10 +477,12 @@ module.exports = {
                     true
                 );
                 const incidentObj = await IncidentService.findOneBy({
-                    _id: incident,
+                    query: { _id: incident },
+                    select,
+                    populate,
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: incidentObj.projectId,
+                    _id: incidentObj.projectId._id || incidentObj.projectId,
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
@@ -408,11 +501,34 @@ module.exports = {
     resolveLastIncident: async function(monitors) {
         const zapierResponse = {};
         const incidentArr = [];
+        const populate = [
+            {
+                path: 'monitors.monitorId',
+                select: 'name slug componentId projectId type',
+                populate: { path: 'componentId', select: 'name slug' },
+            },
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'acknowledgedBy', select: 'name' },
+            { path: 'incidentPriority', select: 'name color' },
+            {
+                path: 'acknowledgedByIncomingHttpRequest',
+                select: 'name',
+            },
+            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+            { path: 'createdByIncomingHttpRequest', select: 'name' },
+            { path: 'probes.probeId', select: 'name _id' },
+        ];
+        const select =
+            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
         await Promise.all(
             monitors.map(async monitor => {
                 let lastIncident = await IncidentService.findOneBy({
-                    'monitors.monitorId': monitor,
-                    resolved: false,
+                    query: { 'monitors.monitorId': monitor, resolved: false },
+                    select,
+                    populate,
                 });
                 lastIncident = await IncidentService.resolve(
                     lastIncident._id,
@@ -422,10 +538,12 @@ module.exports = {
                     true
                 );
                 const monitorObj = await MonitorService.findOneBy({
-                    _id: monitor,
+                    query: { _id: monitor },
+                    select: 'projectId',
+                    populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.project._id,
+                    _id: monitorObj.projectId._id,
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
@@ -444,11 +562,34 @@ module.exports = {
     resolveAllIncidents: async function(monitors) {
         const zapierResponse = {};
         let incidentArr = [];
+        const populate = [
+            {
+                path: 'monitors.monitorId',
+                select: 'name slug componentId projectId type',
+                populate: { path: 'componentId', select: 'name slug' },
+            },
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'acknowledgedBy', select: 'name' },
+            { path: 'incidentPriority', select: 'name color' },
+            {
+                path: 'acknowledgedByIncomingHttpRequest',
+                select: 'name',
+            },
+            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+            { path: 'createdByIncomingHttpRequest', select: 'name' },
+            { path: 'probes.probeId', select: 'name _id' },
+        ];
+        const select =
+            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
         await Promise.all(
             monitors.map(async monitor => {
                 let incidents = await IncidentService.findBy({
-                    'monitors.monitorId': monitor,
-                    resolved: false,
+                    query: { 'monitors.monitorId': monitor, resolved: false },
+                    select,
+                    populate,
                 });
                 incidents = await Promise.all(
                     incidents.map(async incident => {
@@ -462,10 +603,12 @@ module.exports = {
                     })
                 );
                 const monitorObj = await MonitorService.findOneBy({
-                    _id: monitor,
+                    query: { _id: monitor },
+                    select: 'projectId',
+                    populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.project._id,
+                    _id: monitorObj.projectId._id,
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
@@ -484,6 +627,28 @@ module.exports = {
     resolveIncident: async function(incidents) {
         const zapierResponse = {};
         const incidentArr = [];
+        const populate = [
+            {
+                path: 'monitors.monitorId',
+                select: 'name slug componentId projectId type',
+                populate: { path: 'componentId', select: 'name slug' },
+            },
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'acknowledgedBy', select: 'name' },
+            { path: 'incidentPriority', select: 'name color' },
+            {
+                path: 'acknowledgedByIncomingHttpRequest',
+                select: 'name',
+            },
+            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+            { path: 'createdByIncomingHttpRequest', select: 'name' },
+            { path: 'probes.probeId', select: 'name _id' },
+        ];
+        const select =
+            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
         await Promise.all(
             incidents.map(async incident => {
                 await IncidentService.resolve(
@@ -494,10 +659,12 @@ module.exports = {
                     true
                 );
                 const incidentObj = await IncidentService.findOneBy({
-                    _id: incident,
+                    query: { _id: incident },
+                    select,
+                    populate,
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: incidentObj.projectId,
+                    _id: incidentObj.projectId._id || incidentObj.projectId,
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({

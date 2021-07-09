@@ -26,79 +26,62 @@ router.post('/:projectId', getUser, getSubProjects, async function(req, res) {
             : null;
 
         const searchResponse = [];
-        const components = await getComponents(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
+
+        const [
+            components,
+            monitors,
+            statusPages,
+            users,
+            schedules,
+            getSchedultEvents,
+            incidents,
+            errorTrackers,
+            logContainers,
+            applicationTracker,
+        ] = await Promise.all([
+            getComponents(subProjectIds, val, parentProjectId),
+            getMonitors(subProjectIds, val, parentProjectId),
+            getStatusPages(subProjectIds, val, parentProjectId),
+            getUsers(subProjectIds, val, parentProjectId),
+            getOnCallDuty(subProjectIds, val, parentProjectId),
+            getSchedultEvent(subProjectIds, val, parentProjectId),
+            getIncidents(subProjectIds, val, parentProjectId),
+            getErrorTrackers(subProjectIds, val, parentProjectId),
+            getLogContainers(subProjectIds, val, parentProjectId),
+            getPerformanceTrackers(subProjectIds, val, parentProjectId),
+        ]);
+
         if (components) {
             searchResponse.push(components);
         }
-        const monitors = await getMonitors(subProjectIds, val, parentProjectId);
-
         if (monitors) {
             searchResponse.push(monitors);
         }
-        const statusPages = await getStatusPages(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (statusPages) {
             searchResponse.push(statusPages);
         }
-        const users = await getUsers(subProjectIds, val, parentProjectId);
         if (users) {
             searchResponse.push(users);
         }
-        const schedules = await getOnCallDuty(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (schedules) {
             searchResponse.push(schedules);
         }
-        const getSchedultEvents = await getSchedultEvent(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (getSchedultEvents) {
             searchResponse.push(getSchedultEvents);
         }
-        const incidents = await getIncidents(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (incidents) {
             searchResponse.push(incidents);
         }
-        const errorTrackers = await getErrorTrackers(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (errorTrackers) {
             searchResponse.push(errorTrackers);
         }
-        const logContainers = await getLogContainers(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (logContainers) {
             searchResponse.push(logContainers);
         }
-        const applicationTracker = await getPerformanceTrackers(
-            subProjectIds,
-            val,
-            parentProjectId
-        );
         if (applicationTracker) {
             searchResponse.push(applicationTracker);
         }
+
         return sendListResponse(req, res, searchResponse);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -132,10 +115,23 @@ const getComponents = async (projectIds, val, parentProjectId) => {
 };
 
 const getMonitors = async (projectIds, val, parentProjectId) => {
-    const monitors = await MonitorService.findBy({
+    const query = {
         projectId: { $in: projectIds },
         deleted: false,
         $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+    };
+    const populate = [
+        {
+            path: 'componentId',
+            select: 'name slug _id',
+        },
+        { path: 'projectId', select: '_id name' },
+    ];
+    const select = '_id name componentId projectId type slug';
+    const monitors = await MonitorService.findBy({
+        query,
+        populate,
+        select,
     });
     if (monitors.length > 0) {
         const resultObj = {
@@ -222,10 +218,34 @@ const getUsers = async (projectIds, val) => {
 };
 
 const getOnCallDuty = async (projectIds, val, parentProjectId) => {
+    const populate = [
+        { path: 'userIds', select: 'name' },
+        { path: 'createdById', select: 'name' },
+        { path: 'monitorIds', select: 'name' },
+        {
+            path: 'projectId',
+            select: '_id name slug',
+        },
+        {
+            path: 'escalationIds',
+            select: 'teams',
+            populate: {
+                path: 'teams.teamMembers.userId',
+                select: 'name email',
+            },
+        },
+    ];
+
+    const select =
+        '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
     const schedules = await ScheduleService.findBy({
-        projectId: { $in: projectIds },
-        deleted: false,
-        $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+        query: {
+            projectId: { $in: projectIds },
+            deleted: false,
+            $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+        },
+        select,
+        populate,
     });
     if (schedules.length > 0) {
         const resultObj = {
@@ -273,10 +293,39 @@ const getSchedultEvent = async (projectIds, val, parentProjectId) => {
 const getIncidents = async (projectIds, val, parentProjectId) => {
     const isNumber = Number(val);
     if (isNumber) {
+        const populate = [
+            {
+                path: 'monitors.monitorId',
+                select: 'name slug componentId projectId type',
+                populate: [
+                    { path: 'componentId', select: 'name slug' },
+                    { path: 'projectId', select: 'name slug' },
+                ],
+            },
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'acknowledgedBy', select: 'name' },
+            { path: 'incidentPriority', select: 'name color' },
+            {
+                path: 'acknowledgedByIncomingHttpRequest',
+                select: 'name',
+            },
+            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+            { path: 'createdByIncomingHttpRequest', select: 'name' },
+            { path: 'probes.probeId', select: 'name _id' },
+        ];
+        const select =
+            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber notifications';
+
         const incidents = await IncidentService.findBy({
-            projectId: { $in: projectIds },
-            deleted: false,
-            idNumber: Number(val),
+            query: {
+                projectId: { $in: projectIds },
+                deleted: false,
+                idNumber: Number(val),
+            },
+            select,
+            populate,
         });
         if (incidents.length > 0) {
             const resultObj = {

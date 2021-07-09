@@ -8,6 +8,7 @@ import ReactGA from 'react-ga';
 import { User, ACCOUNTS_URL } from './config';
 import Cookies from 'universal-cookie';
 import 'font-awesome/css/font-awesome.min.css';
+import Dashboard from './components/Dashboard';
 import { LoadingState } from './components/basic/Loader';
 
 if (!isServer) {
@@ -32,23 +33,25 @@ if (userData !== undefined) {
 const App = () => (
     <div style={{ height: '100%' }}>
         <Router history={history}>
-            <Suspense fallback={LoadingState}>
-                <Switch>
-                    {allRoutes
-                        .filter(route => route.visible)
-                        .map((route, index) => {
-                            return (
-                                <Route
-                                    exact
-                                    path={route.path}
-                                    key={index}
-                                    component={route.component}
-                                />
-                            );
-                        })}
-                    <Redirect to="admin/users" />
-                </Switch>
-            </Suspense>
+            <Dashboard>
+                <Suspense fallback={<LoadingState />}>
+                    <Switch>
+                        {allRoutes
+                            .filter(route => route.visible)
+                            .map((route, index) => {
+                                return (
+                                    <Route
+                                        exact
+                                        path={route.path}
+                                        key={index}
+                                        component={route.component}
+                                    />
+                                );
+                            })}
+                        <Redirect to="admin/users" />
+                    </Switch>
+                </Suspense>
+            </Dashboard>
         </Router>
         <BackboneModals />
     </div>

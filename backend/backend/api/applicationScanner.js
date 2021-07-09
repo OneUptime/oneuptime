@@ -5,8 +5,8 @@
  */
 
 const express = require('express');
-const ApplicationScannerService = require('../services/applicationScannerService');
 const ApplicationSecurityService = require('../services/applicationSecurityService');
+const ApplicationSecurityLogService = require('../services//applicationSecurityLogService');
 const router = express.Router();
 const isAuthorizedApplicationScanner = require('../middlewares/applicationScannerAuthorization')
     .isAuthorizedApplicationScanner;
@@ -32,19 +32,71 @@ router.get(
     }
 );
 
-router.post('/scan/git', isAuthorizedApplicationScanner, async function(
+router.post('/scanning', isAuthorizedApplicationScanner, async function(
     req,
     res
 ) {
     try {
-        let { security } = req.body;
-
-        security = await ApplicationSecurityService.decryptPassword(security);
-        const securityLog = await ApplicationScannerService.scanApplicationSecurity(
-            security
+        const security = req.body.security;
+        const applicationSecurity = await ApplicationSecurityService.updateOneBy(
+            {
+                _id: security._id,
+            },
+            { scanning: true }
         );
-        global.io.emit(`securityLog_${security._id}`, securityLog);
+        global.io.emit(
+            `security_${applicationSecurity._id}`,
+            applicationSecurity
+        );
+        return sendItemResponse(req, res, applicationSecurity);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+router.post('/failed', isAuthorizedApplicationScanner, async function(
+    req,
+    res
+) {
+    try {
+        const security = req.body;
+        const applicationSecurity = await ApplicationSecurityService.updateOneBy(
+            {
+                _id: security._id,
+            },
+            { scanning: false }
+        );
+        return sendItemResponse(req, res, applicationSecurity);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
+    try {
+        const security = req.body;
+        const securityLog = await ApplicationSecurityLogService.create({
+            securityId: security.securityId,
+            componentId: security.componentId,
+            data: security.data,
+        });
+
+        const findLog = await ApplicationSecurityLogService.findOneBy(
+            securityLog._id
+        );
+
+        global.io.emit(`securityLog_${securityLog.securityId}`, findLog);
         return sendItemResponse(req, res, securityLog);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/time', isAuthorizedApplicationScanner, async function(req, res) {
+    try {
+        const security = req.body;
+        const updatedTime = await ApplicationSecurityService.updateScanTime({
+            _id: security._id,
+        });
+        return sendItemResponse(req, res, updatedTime);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

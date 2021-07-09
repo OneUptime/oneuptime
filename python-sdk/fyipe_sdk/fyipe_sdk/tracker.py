@@ -5,7 +5,6 @@ from .fyipeTransport import FyipeTransport
 import sys
 import logging
 import traceback
-
 class FyipeTracker:
     def __init__(self, apiUrl, errorTrackerId, errorTrackerKey, options = {}):
         self.configKeys = ['baseUrl'];
@@ -187,7 +186,7 @@ class FyipeTracker:
     
     def sendErrorEventToServer(self):
         response = None
-        # TODO send to API properly
+        # send to API properly
         response = self.apiTransport.sendErrorEventToServer(self.event)
         # generate a new event Id
         self.setEventId()

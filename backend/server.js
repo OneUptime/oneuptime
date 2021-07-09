@@ -1,5 +1,5 @@
 // if new relic license key exists. Then load the key.
-if(process.env.NEW_RELIC_LICENSE_KEY){
+if (process.env.NEW_RELIC_LICENSE_KEY) {
     require('newrelic');
 }
 
@@ -14,21 +14,21 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Server Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Unhandled rejection in server process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in server process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -210,6 +210,14 @@ app.use(['/probe', '/api/probe'], require('./backend/api/probe'));
 app.use(
     ['/application', '/api/application'],
     require('./backend/api/applicationScanner')
+);
+app.use(
+    ['/container', '/api/container'],
+    require('./backend/api/containerScanner')
+);
+app.use(
+    ['/lighthouse', '/api/lighthouse'],
+    require('./backend/api/lighthouse')
 );
 app.use(['/version', '/api/version'], require('./backend/api/version'));
 app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));

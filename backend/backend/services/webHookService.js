@@ -10,13 +10,15 @@ module.exports = {
         { note, incidentState, statusNoteStatus } = {}
     ) {
         try {
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const [project, monitorStatus] = await Promise.all([
+                ProjectService.findOneBy({ _id: projectId }),
+                MonitorStatusService.findOneBy({
+                    monitorId: monitor._id,
+                }),
+            ]);
             if (project && project.parentProjectId) {
                 projectId = project.parentProjectId._id;
             }
-            const monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: monitor._id,
-            });
 
             return await this.notify(
                 project,
@@ -76,10 +78,12 @@ module.exports = {
             } else {
                 return;
             }
-            const integrations = await IntegrationService.findBy(query);
-            const monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: monitor._id,
-            });
+            const [integrations, monitorStatus] = await Promise.all([
+                IntegrationService.findBy(query),
+                MonitorStatusService.findOneBy({
+                    monitorId: monitor._id,
+                }),
+            ]);
             // if (integrations.length === 0) deferred.resolve('no webhook added for this to notify');
             for (const integration of integrations) {
                 response = await self.notify(

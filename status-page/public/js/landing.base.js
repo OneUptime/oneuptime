@@ -1,4 +1,4 @@
-/* eslint-disable */
+
 $(document).ready(() => {
       $("div.bar").tipsy({
         gravity: 's',

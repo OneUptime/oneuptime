@@ -1,4 +1,4 @@
-const { update, find, removeFieldsFromMany } = require('../util/db');
+const { update, find } = require('../util/db');
 
 const integrationsCollection = 'integrations';
 

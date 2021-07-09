@@ -6,23 +6,23 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Application Scanner Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(
         'Unhandled rejection in application scanner process occurred'
     );
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in application scanner process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -65,8 +65,8 @@ app.get(['/application/version', '/version'], function(req, res) {
     res.send({ applicationScannerVersion: process.env.npm_package_version });
 });
 
-// Run this cron at 3 AM once a day.
-cron.schedule('0 3 * * *', () => {
+// Run this cron every 5 minute.
+cron.schedule('*/5 * * * *', () => {
     setTimeout(() => {
         Main.runApplicationScan();
     }, cronApplicationSecurityStartTime * 1000);

@@ -158,8 +158,6 @@ class LoggerTest(unittest.TestCase):
         response = logger.error(log)
         self.assertEqual(log["location"], response["content"]["location"])
         self.assertEqual("error", response["type"])
-        self.assertIsInstance(response["tags"], list)
-        self.assertEqual(0, len(response["tags"]))
 
     def test_valid_object_content_of_type_warning_with_four_tags_is_logged(self):
         log = {"location": "Atlanta", "country": "USA"}

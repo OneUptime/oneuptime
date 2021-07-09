@@ -5,7 +5,6 @@ import PropTypes from 'prop-types';
 import moment from 'moment';
 import ConfirmScanModal from '../modals/ConfirmScanModal';
 import { openModal } from '../../actions/modal';
-import DeleteApplicationSecurity from '../modals/DeleteApplicationSecurity';
 import SecurityDetail from './SecurityDetail';
 import Badge from '../common/Badge';
 import IssueIndicator from './IssueIndicator';
@@ -27,28 +26,8 @@ const ApplicationSecurityView = ({
     applicationSecurity,
     scanError,
     activeApplicationSecurity,
+    scannedStatus,
 }) => {
-    const handleDelete = ({
-        projectId,
-        componentId,
-        applicationSecurityId,
-        applicationSecuritySlug,
-    }) => {
-        openModal({
-            id: applicationSecurityId,
-            content: DeleteApplicationSecurity,
-            propArr: [
-                {
-                    projectId,
-                    componentId,
-                    applicationSecurityId,
-                    applicationSecuritySlug,
-                    componentSlug,
-                },
-            ],
-        });
-    };
-
     const handleSubmit = ({ projectId, applicationSecurityId }) => {
         openModal({
             id: applicationSecurityId,
@@ -197,7 +176,8 @@ const ApplicationSecurityView = ({
                                                     activeApplicationSecurity
                                                 )) ||
                                         applicationSecurity.scanning ||
-                                        !applicationSecurity.lastScan
+                                        !applicationSecurity.lastScan ||
+                                        scannedStatus === false
                                     }
                                 >
                                     <button
@@ -205,7 +185,8 @@ const ApplicationSecurityView = ({
                                         disabled={
                                             scanning ||
                                             applicationSecurity.scanning ||
-                                            !applicationSecurity.lastScan
+                                            !applicationSecurity.lastScan ||
+                                            scannedStatus === false
                                         }
                                         id={`scanning_${applicationSecurity.name}`}
                                     >
@@ -223,7 +204,8 @@ const ApplicationSecurityView = ({
                                                     activeApplicationSecurity
                                                 )) &&
                                         !applicationSecurity.scanning &&
-                                        applicationSecurity.lastScan
+                                        applicationSecurity.lastScan &&
+                                        scannedStatus === true
                                     }
                                 >
                                     <button
@@ -262,21 +244,6 @@ const ApplicationSecurityView = ({
                                     id={`edit_${applicationSecurity.name}`}
                                 >
                                     <span>Edit</span>
-                                </button>
-                                <button
-                                    id="deleteApplicationSecurityBtn"
-                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                    disabled={isRequesting}
-                                    onClick={() =>
-                                        handleDelete({
-                                            projectId,
-                                            componentId,
-                                            applicationSecurityId,
-                                            applicationSecuritySlug,
-                                        })
-                                    }
-                                >
-                                    <span>Delete</span>
                                 </button>
                             </div>
                         </div>
@@ -341,6 +308,7 @@ ApplicationSecurityView.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     activeApplicationSecurity: PropTypes.string,
+    scannedStatus: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -358,6 +326,7 @@ const mapStateToProps = state => {
         scanning: state.security.scanApplicationSecurity.requesting,
         scanError: state.security.scanApplicationSecurity.error,
         activeApplicationSecurity: state.security.activeApplicationSecurity,
+        scannedStatus: state.security.applicationSecurity.scanned,
     };
 };
 

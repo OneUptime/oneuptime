@@ -85,11 +85,12 @@ module.exports = {
     },
     async getLogsByApplicationLogId(applicationLogId, limit, skip) {
         // try to get the application log by the ID
-        const applicationLog = await ApplicationLogService.findOneBy({
+
+        const applicationLogCount = await ApplicationLogService.countBy({
             _id: applicationLogId,
         });
         // send an error if the component doesnt exist
-        if (!applicationLog) {
+        if (applicationLogCount === 0) {
             const error = new Error('Application Log does not exist.');
             error.code = 400;
             ErrorService.log('logService.getLogsByApplicationLogId', error);
@@ -132,8 +133,10 @@ module.exports = {
             $regex: new RegExp(filter),
             $options: 'i',
         };
-        const searchedLogs = await _this.findBy(query, skip, limit);
-        const totalSearchCount = await _this.countBy(query);
+        const [searchedLogs, totalSearchCount] = await Promise.all([
+            _this.findBy(query, skip, limit),
+            _this.countBy(query),
+        ]);
 
         return { searchedLogs, totalSearchCount };
     },
@@ -154,10 +157,12 @@ module.exports = {
                 };
             else {
                 // first and last log based on the query is fetched
-                const start_date = await LogModel.find(query).limit(1);
-                const end_date = await LogModel.find(query)
-                    .sort([['createdAt', -1]])
-                    .limit(1);
+                const [start_date, end_date] = await Promise.all([
+                    LogModel.find(query).limit(1),
+                    LogModel.find(query)
+                        .sort([['createdAt', -1]])
+                        .limit(1),
+                ]);
                 // if query returns anything, extrate date from both.
                 start_date[0] && end_date[0]
                     ? (dateRange = {

@@ -51,6 +51,22 @@ module.exports = {
             throw error;
         }
     },
+
+    async countBy(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            const count = await ErrorTrackerModel.countDocuments(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('errorTrackerService.countBy', error);
+            throw error;
+        }
+    },
+
     // find a list of error trackers
     async findBy(query, limit, skip) {
         try {
@@ -167,13 +183,13 @@ module.exports = {
                 const component = ComponentService.findOneBy({
                     _id: errorTracker.componentId._id,
                 });
-                await NotificationService.create(
+                NotificationService.create(
                     component.projectId,
                     `An Error Tracker ${errorTracker.name} was deleted from the component ${errorTracker.componentId.name} by ${errorTracker.deletedById.name}`,
                     errorTracker.deletedById._id,
                     'errorTrackeraddremove'
                 );
-                await RealTimeService.sendErrorTrackerDelete(errorTracker);
+                RealTimeService.sendErrorTrackerDelete(errorTracker);
                 return errorTracker;
             } else {
                 return null;
@@ -213,7 +229,8 @@ module.exports = {
 
             errorTracker = await this.findOneBy(query);
 
-            await RealTimeService.errorTrackerKeyReset(errorTracker);
+            // run in the background
+            RealTimeService.errorTrackerKeyReset(errorTracker);
 
             return errorTracker;
         } catch (error) {

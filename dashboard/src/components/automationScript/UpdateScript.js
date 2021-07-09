@@ -428,6 +428,10 @@ class UpdateScript extends Component {
                                         </ShouldRender>
                                     </span>
                                 </span>
+                                <div>
+                                    Edit existing script which can be triggered
+                                    by a user, incident or another script.
+                                </div>
                             </div>
                         </div>
 
@@ -486,12 +490,12 @@ class UpdateScript extends Component {
                                                             />
                                                             <Dropdown.Menu>
                                                                 <MenuItem
-                                                                    title="javascript"
+                                                                    title="JavaScript"
                                                                     onClick={() => {
                                                                         this.setState(
                                                                             {
                                                                                 type:
-                                                                                    'javascript',
+                                                                                    'JavaScript',
                                                                             }
                                                                         );
                                                                     }}
@@ -499,12 +503,12 @@ class UpdateScript extends Component {
                                                                     JavaScript
                                                                 </MenuItem>
                                                                 <MenuItem
-                                                                    title="bash"
+                                                                    title="Bash"
                                                                     onClick={() => {
                                                                         this.setState(
                                                                             {
                                                                                 type:
-                                                                                    'bash',
+                                                                                    'Bash',
                                                                             }
                                                                         );
                                                                     }}
@@ -523,7 +527,7 @@ class UpdateScript extends Component {
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
                                                         {this.state.type ===
-                                                            'javascript' && (
+                                                            'JavaScript' && (
                                                             <AceEditor
                                                                 placeholder="Enter script here"
                                                                 mode="javascript"
@@ -569,7 +573,7 @@ class UpdateScript extends Component {
                                                             />
                                                         )}
                                                         {this.state.type ===
-                                                            'bash' && (
+                                                            'Bash' && (
                                                             <AceEditor
                                                                 placeholder="echo Hello World"
                                                                 mode="javascript"

@@ -139,29 +139,37 @@ module.exports = {
                         issueId: issue._id,
                     };
                     // run a query to get the first and last error event that has current error tracker id and fingerprint hash
-                    const earliestErrorEvent = await ErrorEventModel.findOne(
-                        innerQuery
-                    ).sort({ createdAt: 1 });
-                    const latestErrorEvent = await ErrorEventModel.findOne(
-                        innerQuery
-                    ).sort({ createdAt: -1 });
+                    const [
+                        earliestErrorEvent,
+                        latestErrorEvent,
+                    ] = await Promise.all([
+                        ErrorEventModel.findOne(innerQuery).sort({
+                            createdAt: 1,
+                        }),
+                        ErrorEventModel.findOne(innerQuery).sort({
+                            createdAt: -1,
+                        }),
+                    ]);
                     // if we have an earliest and latest error event
                     if (earliestErrorEvent && latestErrorEvent) {
-                        // get total number of events for that issue
-                        const totalNumberOfEvents = await this.countBy(
-                            innerQuery
-                        );
+                        const [
+                            totalNumberOfEvents,
+                            members,
+                            timeline,
+                        ] = await Promise.all([
+                            // get total number of events for that issue
+                            this.countBy(innerQuery),
+                            // we get the memebrs attached to this issue
+                            IssueMemberService.findBy({
+                                issueId: issue._id,
+                                removed: false,
+                            }),
+                            // we get the timeline to attach to this issue
+                            IssueTimelineService.findBy({
+                                issueId: issue._id,
+                            }),
+                        ]);
 
-                        // we get the memebrs attached to this issue
-                        const members = await IssueMemberService.findBy({
-                            issueId: issue._id,
-                            removed: false,
-                        });
-
-                        // we get the timeline to attach to this issue
-                        const timeline = await IssueTimelineService.findBy({
-                            issueId: issue._id,
-                        });
                         // fill in its biodata with the latest error event details
                         const errorEvent = {
                             _id: issue._id,
@@ -245,50 +253,57 @@ module.exports = {
             errorEvent = JSON.parse(JSON.stringify(errorEvent));
             errorEvent.issueId.timeline = issueTimeline;
 
-            const previousErrorEvent = await ErrorEventModel.find({
-                _id: { $lt: errorEventId },
-                errorTrackerId: errorEvent.errorTrackerId,
-                issueId: errorEvent.issueId,
-            })
-                .sort({ _id: -1 })
-                .limit(1);
+            const [
+                previousErrorEvent,
+                oldestErrorEvent,
+                nextErrorEvent,
+                latestErrorEvent,
+            ] = await Promise.all([
+                ErrorEventModel.find({
+                    _id: { $lt: errorEventId },
+                    errorTrackerId: errorEvent.errorTrackerId,
+                    issueId: errorEvent.issueId,
+                })
+                    .sort({ _id: -1 })
+                    .limit(1),
+                ErrorEventModel.find({
+                    _id: { $lt: errorEventId },
+                    errorTrackerId: errorEvent.errorTrackerId,
+                    issueId: errorEvent.issueId,
+                })
+                    .sort({ _id: 1 })
+                    .limit(1),
+                ErrorEventModel.find({
+                    _id: { $gt: errorEventId },
+                    errorTrackerId: errorEvent.errorTrackerId,
+                    issueId: errorEvent.issueId,
+                })
+                    .sort({ _id: 1 })
+                    .limit(1),
+                ErrorEventModel.find({
+                    _id: { $gt: errorEventId },
+                    errorTrackerId: errorEvent.errorTrackerId,
+                    issueId: errorEvent.issueId,
+                })
+                    .sort({ _id: -1 })
+                    .limit(1),
+            ]);
+
             if (previousErrorEvent.length > 0) {
                 previous = {
                     _id: previousErrorEvent[0]._id,
                     createdAt: previousErrorEvent[0].createdAt,
                 };
             }
-            const oldestErrorEvent = await ErrorEventModel.find({
-                _id: { $lt: errorEventId },
-                errorTrackerId: errorEvent.errorTrackerId,
-                issueId: errorEvent.issueId,
-            })
-                .sort({ _id: 1 })
-                .limit(1);
             if (oldestErrorEvent.length > 0) {
                 previous.oldest = oldestErrorEvent[0]._id;
             }
-
-            const nextErrorEvent = await ErrorEventModel.find({
-                _id: { $gt: errorEventId },
-                errorTrackerId: errorEvent.errorTrackerId,
-                issueId: errorEvent.issueId,
-            })
-                .sort({ _id: 1 })
-                .limit(1);
             if (nextErrorEvent.length > 0) {
                 next = {
                     _id: nextErrorEvent[0]._id,
                     createdAt: nextErrorEvent[0].createdAt,
                 };
             }
-            const latestErrorEvent = await ErrorEventModel.find({
-                _id: { $gt: errorEventId },
-                errorTrackerId: errorEvent.errorTrackerId,
-                issueId: errorEvent.issueId,
-            })
-                .sort({ _id: -1 })
-                .limit(1);
             if (latestErrorEvent.length > 0) {
                 next.latest = latestErrorEvent[0]._id;
             }

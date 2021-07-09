@@ -16,16 +16,18 @@ router.get(
         try {
             const { projectId } = req.params;
             const { limit, skip } = req.query;
-            const allIncomingRequest = await IncomingRequestService.findBy(
-                {
+            const [allIncomingRequest, count] = await Promise.all([
+                IncomingRequestService.findBy(
+                    {
+                        projectId,
+                    },
+                    limit,
+                    skip
+                ),
+                IncomingRequestService.countBy({
                     projectId,
-                },
-                limit,
-                skip
-            );
-            const count = await IncomingRequestService.countBy({
-                projectId,
-            });
+                }),
+            ]);
 
             return sendListResponse(req, res, allIncomingRequest, count);
         } catch (error) {

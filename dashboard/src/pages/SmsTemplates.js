@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
@@ -30,6 +29,16 @@ class SmsTemplates extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > SETTINGS > SMS TEMPLATES'
             );
         }
+
+        this.ready();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps?.currentProject?._id !== this.props?.currentProject?._id
+        ) {
+            this.ready();
+        }
     }
 
     render() {
@@ -38,18 +47,16 @@ class SmsTemplates extends Component {
         } = this.props;
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Project Settings"
-                    />
-                    <BreadCrumbItem route={pathname} name="SMS &#38; Calls" />
-                    <SmsTemplatesBox />
-                    <SmsSmtpBox />
-                    <AdvancedIncidentNotification type="sms" />
-                </Fade>
-            </Dashboard>
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="SMS &#38; Calls" />
+                <SmsTemplatesBox />
+                <SmsSmtpBox />
+                <AdvancedIncidentNotification type="sms" />
+            </Fade>
         );
     }
 }

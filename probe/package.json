@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "start": "node --max-http-header-size=80000 index.js",
+        "start": "node --max-old-space-size=4096 --max-http-header-size=80000 index.js",
         "dev": "nodemon --inspect=0.0.0.0 --max-http-header-size=80000 index.js",
         "test": "echo 'no tests'",
         "audit": "npm audit --audit-level=low",
@@ -28,7 +28,6 @@
         "custom-env": "^2.0.1",
         "express": "^4.17.1",
         "get-ssl-certificate": "^2.3.3",
-        "lighthouse": "^6.0.0",
         "moment": "^2.24.0",
         "newrelic": "^7.5.1",
         "node-cron": "^2.0.3",

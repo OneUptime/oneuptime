@@ -64,8 +64,8 @@ describe('Project API', () => {
                 init.pageClick(page, 'button[type=submit]'),
                 page.waitForNavigation(),
             ]);
-            // eslint-disable-next-line no-undef
-            localStorageData = await page.evaluate(() => {
+
+            const localStorageData = await page.evaluate(() => {
                 const json = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
@@ -73,7 +73,7 @@ describe('Project API', () => {
                 }
                 return json;
             });
-            // eslint-disable-next-line no-undef
+
             localStorageData.should.have.property('project');
 
             done();
@@ -104,8 +104,8 @@ describe('Project API', () => {
 
             await element.click();
             await page.waitForNavigation();
-            // eslint-disable-next-line no-undef
-            localStorageData = await page.evaluate(() => {
+
+            const localStorageData = await page.evaluate(() => {
                 const json = {};
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
@@ -113,7 +113,7 @@ describe('Project API', () => {
                 }
                 return json;
             });
-            // eslint-disable-next-line no-undef
+
             localStorageData.should.have.property('project');
 
             done();

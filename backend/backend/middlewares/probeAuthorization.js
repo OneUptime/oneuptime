@@ -106,13 +106,14 @@ module.exports = {
             }
             req.probe = {};
             req.probe.id = probe._id;
-            await ProbeService.updateProbeStatus(probe._id);
 
-            //Update probe version
-            const probeValue = await ProbeService.findOneBy({
-                probeKey,
-                probeName,
-            });
+            const [probeValue] = await Promise.all([
+                ProbeService.findOneBy({
+                    probeKey,
+                    probeName,
+                }),
+                ProbeService.updateProbeStatus(probe._id),
+            ]);
 
             if (!probeValue.version || probeValue.version !== probeVersion) {
                 await ProbeService.updateOneBy(

@@ -79,10 +79,10 @@ module.exports = {
                     },
                 },
             };
-            const priority = await IncidentPrioritiesService.create(
-                prioritiesData.high
-            );
-            await IncidentPrioritiesService.create(prioritiesData.low);
+            const [priority] = await Promise.all([
+                IncidentPrioritiesService.create(prioritiesData.high),
+                IncidentPrioritiesService.create(prioritiesData.low),
+            ]);
             // create initial default incident template
             await IncidentSettingsService.create({
                 name: 'Default',
@@ -123,10 +123,62 @@ module.exports = {
                         project.stripeSubscriptionId
                     );
                 }
+                const populate = [
+                    { path: 'userIds', select: 'name' },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'monitorIds', select: 'name' },
+                    {
+                        path: 'projectId',
+                        select: '_id name slug',
+                    },
+                    {
+                        path: 'escalationIds',
+                        select: 'teams',
+                        populate: {
+                            path: 'teams.teamMembers.userId',
+                            select: 'name email',
+                        },
+                    },
+                ];
 
-                const monitors = await MonitorService.findBy({
-                    projectId: project._id,
-                });
+                const select =
+                    '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
+
+                const [
+                    monitors,
+                    schedules,
+                    domains,
+                    statusPages,
+                    components,
+                    ssoDefaultRoles,
+                ] = await Promise.all([
+                    MonitorService.findBy({
+                        query: { projectId: project._id },
+                        select: '_id',
+                    }),
+                    ScheduleService.findBy({
+                        query: { projectId: project._id },
+                        select,
+                        populate,
+                    }),
+                    DomainVerificationService.findBy({
+                        projectId: project._id,
+                    }),
+                    StatusPageService.findBy({
+                        projectId: project._id,
+                    }),
+                    componentService.findBy({
+                        projectId: project._id,
+                    }),
+                    SsoDefaultRolesService.findBy({
+                        project: project._id,
+                    }),
+                    integrationService.deleteBy(
+                        { projectId: project._id },
+                        userId
+                    ),
+                ]);
+
                 await Promise.all(
                     monitors.map(async monitor => {
                         await MonitorService.deleteBy(
@@ -136,27 +188,18 @@ module.exports = {
                     })
                 );
 
-                const schedules = await ScheduleService.findBy({
-                    projectId: project._id,
-                });
                 await Promise.all(
                     schedules.map(async schedule => {
                         await ScheduleService.deleteBy({ _id: schedule._id });
                     })
                 );
 
-                const domains = await DomainVerificationService.findBy({
-                    projectId: project._id,
-                });
                 for (const domain of domains) {
                     await DomainVerificationService.deleteBy({
                         _id: domain._id,
                     });
                 }
 
-                const statusPages = await StatusPageService.findBy({
-                    projectId: project._id,
-                });
                 await Promise.all(
                     statusPages.map(async statusPage => {
                         await StatusPageService.deleteBy({
@@ -165,14 +208,6 @@ module.exports = {
                     })
                 );
 
-                await integrationService.deleteBy(
-                    { projectId: project._id },
-                    userId
-                );
-
-                const components = await componentService.findBy({
-                    projectId: project._id,
-                });
                 await Promise.all(
                     components.map(async component => {
                         await componentService.deleteBy(
@@ -181,13 +216,12 @@ module.exports = {
                         );
                     })
                 );
-                const ssoDefaultRoles = await SsoDefaultRolesService.findBy({
-                    project: project._id,
-                });
+
                 for (const ssoDefaultRole of ssoDefaultRoles) {
                     const { _id } = ssoDefaultRole;
                     await SsoDefaultRolesService.deleteBy({ _id });
                 }
+
                 project = await ProjectModel.findOneAndUpdate(
                     query,
                     {
@@ -566,15 +600,17 @@ module.exports = {
                         remainingUsers.push(user);
                     }
                 }
-                await _this.updateOneBy(
-                    { _id: projectId },
-                    { users: remainingUsers }
-                );
-                await EscalationService.deleteEscalationMember(
-                    projectId,
-                    userId,
-                    deletedById
-                );
+                await Promise.all([
+                    _this.updateOneBy(
+                        { _id: projectId },
+                        { users: remainingUsers }
+                    ),
+                    EscalationService.deleteEscalationMember(
+                        projectId,
+                        userId,
+                        deletedById
+                    ),
+                ]);
                 const countUserInSubProjects = await _this.findBy({
                     parentProjectId: project._id,
                     'users.userId': userId,
@@ -727,12 +763,14 @@ module.exports = {
             ],
             deleted: { $ne: null },
         };
-        let projects = await _this.findBy(query, limit || 10, skip || 0);
-        const count = await _this.countBy(query);
+        const [allProjects, count] = await Promise.all([
+            _this.findBy(query, limit || 10, skip || 0),
+            _this.countBy(query),
+        ]);
 
         // add project monitors
-        projects = await Promise.all(
-            projects.map(async project => {
+        const projects = await Promise.all(
+            allProjects.map(async project => {
                 // get both sub-project users and project users
                 let users = [];
                 if (project.parentProjectId) {
@@ -810,26 +848,28 @@ module.exports = {
                 projectSeats
             );
         }
-        await ScheduleService.restoreBy({
-            projectId,
-            deleted: true,
-        });
-        await StatusPageService.restoreBy({
-            projectId,
-            deleted: true,
-        });
-        await integrationService.restoreBy({
-            projectId,
-            deleted: true,
-        });
-        await MonitorService.restoreBy({
-            projectId,
-            deleted: true,
-        });
-        await componentService.restoreBy({
-            projectId: projectId,
-            deleted: true,
-        });
+        await Promise.all([
+            ScheduleService.restoreBy({
+                projectId,
+                deleted: true,
+            }),
+            StatusPageService.restoreBy({
+                projectId,
+                deleted: true,
+            }),
+            integrationService.restoreBy({
+                projectId,
+                deleted: true,
+            }),
+            MonitorService.restoreBy({
+                projectId,
+                deleted: true,
+            }),
+            componentService.restoreBy({
+                projectId: projectId,
+                deleted: true,
+            }),
+        ]);
         return project;
     },
 

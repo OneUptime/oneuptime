@@ -1,5 +1,3 @@
-/* eslint-disable quotes */
-
 /**
  *
  * Copyright HackerBay, Inc.
@@ -174,7 +172,8 @@ module.exports = {
             const wrapper = {};
             for (const monitor of result[0].monitors) {
                 let response = await MonitorService.findOneBy({
-                    _id: monitor._id,
+                    query: { _id: monitor._id },
+                    select: 'name',
                 });
 
                 if (!response) response = {};

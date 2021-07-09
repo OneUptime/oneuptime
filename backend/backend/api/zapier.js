@@ -34,7 +34,8 @@ router.get('/monitors', isAuthorized, async function(req, res) {
         });
         const projectIds = projects.map(project => project._id);
         let monitors = await MonitorService.findBy({
-            projectId: { $in: projectIds },
+            query: { projectId: { $in: projectIds } },
+            select: '_id name',
         });
         if (monitors) {
             if (monitors.length) {

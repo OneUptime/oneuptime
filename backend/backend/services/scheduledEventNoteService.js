@@ -2,6 +2,8 @@ const ScheduledEventNoteModel = require('../models/scheduledEventNote');
 const ErrorService = require('./errorService');
 const RealTimeService = require('./realTimeService');
 const AlertService = require('./alertService');
+const handlePopulate = require('../utils/populate');
+const handleSelect = require('../utils/select');
 
 module.exports = {
     create: async function(data, projectId) {
@@ -9,8 +11,25 @@ module.exports = {
             let scheduledEventMessage = await ScheduledEventNoteModel.create(
                 data
             );
+
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'scheduledEventId',
+                    select: 'name monitors alertSubscriber projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name replyAddress',
+                    },
+                },
+            ];
+            const select =
+                'updated content type event_state createdAt updatedAt createdById scheduledEventId';
+
             scheduledEventMessage = await this.findOneBy({
-                _id: scheduledEventMessage._id,
+                query: { _id: scheduledEventMessage._id },
+                select,
+                populate,
             });
             if (
                 scheduledEventMessage.scheduledEventId.alertSubscriber &&
@@ -71,12 +90,24 @@ module.exports = {
                 throw error;
             }
 
-            eventMessage = await this.findOneBy(query); // If one of the values of query is not correct, a null is returned as such document could not be found in the DB
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'scheduledEventId',
+                    select: 'name monitors alertSubscriber projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name replyAddress',
+                    },
+                },
+            ];
+            const select =
+                'updated content type event_state createdAt updatedAt createdById scheduledEventId';
+
+            eventMessage = await this.findOneBy({ query, populate, select }); // If one of the values of query is not correct, a null is returned as such document could not be found in the DB
             eventMessage.type === 'internal'
-                ? await RealTimeService.updateScheduledEventInternalNote(
-                      eventMessage
-                  )
-                : await RealTimeService.updateScheduledEventInvestigationNote(
+                ? RealTimeService.updateScheduledEventInternalNote(eventMessage)
+                : RealTimeService.updateScheduledEventInvestigationNote(
                       eventMessage,
                       projectId
                   );
@@ -87,32 +118,26 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, populate, select }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const eventMessage = await ScheduledEventNoteModel.findOne(query)
-                .lean()
-                .populate('scheduledEventId', 'name')
-                .populate({
-                    path: 'scheduledEventId',
-                    select: 'name monitors alertSubscriber projectId',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name replyAddress',
-                    },
-                })
-                .populate('createdById', 'name');
+            let eventMessageQuery = ScheduledEventNoteModel.findOne(
+                query
+            ).lean();
 
+            eventMessageQuery = handleSelect(select, eventMessageQuery);
+            eventMessageQuery = handlePopulate(populate, eventMessageQuery);
+            const eventMessage = await eventMessageQuery;
             return eventMessage;
         } catch (error) {
             ErrorService.log('scheduledEventNoteService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -128,22 +153,16 @@ module.exports = {
 
             if (!query) query = {};
 
-            const eventMessage = await ScheduledEventNoteModel.find(query)
+            let eventMessageQuery = ScheduledEventNoteModel.find(query)
                 .lean()
                 .limit(limit)
                 .skip(skip)
-                .sort({ createdAt: -1 })
-                .populate('scheduledEventId', 'name')
-                .populate({
-                    path: 'scheduledEventId',
-                    select: 'name monitors alertSubscriber projectId',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name replyAddress',
-                    },
-                })
-                .populate('createdById', 'name');
+                .sort({ createdAt: -1 });
 
+            eventMessageQuery = handleSelect(select, eventMessageQuery);
+            eventMessageQuery = handlePopulate(populate, eventMessageQuery);
+
+            const eventMessage = await eventMessageQuery;
             return eventMessage;
         } catch (error) {
             ErrorService.log('scheduledEventNoteService.findBy', error);
@@ -181,10 +200,10 @@ module.exports = {
             }
 
             deletedEventMessage.type === 'internal'
-                ? await RealTimeService.deleteScheduledEventInternalNote(
+                ? RealTimeService.deleteScheduledEventInternalNote(
                       deletedEventMessage
                   )
-                : await RealTimeService.deleteScheduledEventInvestigationNote(
+                : RealTimeService.deleteScheduledEventInvestigationNote(
                       deletedEventMessage,
                       projectId
                   );

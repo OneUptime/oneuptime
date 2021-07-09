@@ -204,8 +204,30 @@ module.exports = {
                             teamMembers: filtered,
                         });
                         if (filtered.length < 1) {
+                            const populate = [
+                                { path: 'userIds', select: 'name' },
+                                { path: 'createdById', select: 'name' },
+                                { path: 'monitorIds', select: 'name' },
+                                {
+                                    path: 'projectId',
+                                    select: '_id name slug',
+                                },
+                                {
+                                    path: 'escalationIds',
+                                    select: 'teamMember',
+                                    populate: {
+                                        path: 'teamMember.userId',
+                                        select: 'name',
+                                    },
+                                },
+                            ];
+
+                            const select =
+                                '_id userIds name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
                             const schedule = await ScheduleService.findOneBy({
-                                _id: escalation.scheduleId,
+                                query: { _id: escalation.scheduleId },
+                                select,
+                                populate,
                             });
                             const rmEscalation = schedule.escalationIds.filter(
                                 escalationId =>
@@ -213,14 +235,16 @@ module.exports = {
                                     String(escalation._id)
                             );
                             schedule.escalationIds = rmEscalation;
-                            await ScheduleService.updateOneBy(
-                                { _id: schedule._id },
-                                { escalationIds: rmEscalation }
-                            );
-                            await _this.deleteBy(
-                                { _id: escalation._id },
-                                deletedById
-                            );
+                            await Promise.all([
+                                ScheduleService.updateOneBy(
+                                    { _id: schedule._id },
+                                    { escalationIds: rmEscalation }
+                                ),
+                                _this.deleteBy(
+                                    { _id: escalation._id },
+                                    deletedById
+                                ),
+                            ]);
                         }
                     }
                     await _this.updateOneBy(

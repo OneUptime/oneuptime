@@ -3,7 +3,7 @@
     "version": "3.0.0",
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "start": "node server.js",
+        "start": "node --max-old-space-size=4096 server.js",
         "dev": "nodemon --inspect=0.0.0.0 server.js",
         "test": "echo 'no tests'",
         "lighthouse-test": "jest --forceExit lighthouse-tests/test/index.test.js --env=node",
@@ -22,7 +22,8 @@
         "ejs": "^2.6.2",
         "express": "^4.17.1",
         "minify": "^5.1.1",
-        "try-to-catch": "^3.0.0"
+        "try-to-catch": "^3.0.0",
+        "xmlbuilder2": "^2.4.1"
     },
     "resolutions": {},
     "devDependencies": {

@@ -165,7 +165,8 @@ module.exports = {
             const probe = await this.findOneBy({ _id: probeId });
             if (probe) {
                 delete probe.deleted;
-                await RealTimeService.updateProbe(probe, monitorId);
+                // run in the background
+                RealTimeService.updateProbe(probe, monitorId);
             }
         } catch (error) {
             ErrorService.log('ProbeService.sendProbe', error);
@@ -282,9 +283,12 @@ module.exports = {
                 }
 
                 const incidents = await IncidentService.findBy({
-                    'monitors.monitorId': data.monitorId,
-                    incidentType: data.status,
-                    resolved: false,
+                    query: {
+                        'monitors.monitorId': data.monitorId,
+                        incidentType: data.status,
+                        resolved: false,
+                    },
+                    select: '_id',
                 });
 
                 const incidentIds = incidents.map(incident => incident._id);
@@ -320,22 +324,62 @@ module.exports = {
 
     incidentCreateOrUpdate: async function(data) {
         try {
-            const monitor = await MonitorService.findOneBy({
-                _id: data.monitorId,
-            });
-            const incidents = await IncidentService.findBy({
-                'monitors.monitorId': data.monitorId,
-                incidentType: data.status,
-                resolved: false,
-                manuallyCreated: false,
-            });
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+            const [monitor, incidents] = await Promise.all([
+                MonitorService.findOneBy({
+                    query: { _id: data.monitorId },
+                    select: 'type',
+                }),
+                IncidentService.findBy({
+                    query: {
+                        'monitors.monitorId': data.monitorId,
+                        incidentType: data.status,
+                        resolved: false,
+                        manuallyCreated: false,
+                    },
+                    select,
+                    populate,
+                }),
+            ]);
             const { matchedCriterion } = data;
             let incidentIds = [];
-            const scripts = matchedCriterion.scripts.map(script => {
-                return {
-                    automatedScript: script.scriptId,
-                };
-            });
+            let scripts = [];
+
+            if (
+                matchedCriterion &&
+                matchedCriterion.scripts &&
+                matchedCriterion.scripts.length > 0
+            ) {
+                scripts = matchedCriterion.scripts.map(script => {
+                    return {
+                        automatedScript: script.scriptId,
+                    };
+                });
+            }
 
             if (
                 data.status === 'online' &&
@@ -402,7 +446,8 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
-                    await AutomatedScriptService.runResource({
+
+                    AutomatedScriptService.runResource({
                         triggeredId: incident._id,
                         triggeredBy: 'incident',
                         resources: scripts,
@@ -476,7 +521,8 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
-                    await AutomatedScriptService.runResource({
+
+                    AutomatedScriptService.runResource({
                         triggeredId: incident._id,
                         triggeredBy: 'incident',
                         resources: scripts,
@@ -551,7 +597,8 @@ module.exports = {
                             matchedCriterion,
                         }),
                     });
-                    await AutomatedScriptService.runResource({
+
+                    AutomatedScriptService.runResource({
                         triggeredId: incident._id,
                         triggeredBy: 'incident',
                         resources: scripts,
@@ -574,18 +621,33 @@ module.exports = {
 
     incidentResolveOrAcknowledge: async function(data, allCriteria) {
         try {
+            const populate = [
+                {
+                    path: 'probes.probeId',
+                    select: '_id probeId updatedAt status reportedStatus',
+                },
+            ];
+            const select = '_id acknowledged criterionCause probes';
+
             const incidents = await IncidentService.findBy({
-                'monitors.monitorId': data.monitorId,
-                // incidentType: lastStatus, // is this field needed at all??
-                resolved: false,
-                manuallyCreated: false,
+                query: {
+                    'monitors.monitorId': data.monitorId,
+                    resolved: false,
+                    manuallyCreated: false,
+                },
+                select,
+                populate,
             });
+
             const monitor = await MonitorService.findOneBy({
-                _id: data.monitorId,
+                query: { _id: data.monitorId },
+                select: 'type',
             });
+
             // should grab all the criterion for the monitor and put them into one array
             // check the id of each criteria against the id of criteria attached to an incident
             // ack / resolve according to the criteria
+
             let autoAcknowledge, autoResolve;
             if (incidents && incidents.length > 0) {
                 incidents.forEach(incident => {
@@ -791,7 +853,7 @@ module.exports = {
         };
     },
 
-    conditions: async (monitorType, con, payload, resp, response) => {
+    conditions: (monitorType, con, payload, resp, response) => {
         const status = resp
             ? resp.status
                 ? resp.status
@@ -811,7 +873,7 @@ module.exports = {
         let matchedCriterion;
 
         if (con && con.length) {
-            eventOccurred = await some(con, async condition => {
+            eventOccurred = some(con, condition => {
                 let stat = true;
                 if (
                     condition &&
@@ -819,7 +881,7 @@ module.exports = {
                     condition.criteria.condition &&
                     condition.criteria.condition === 'and'
                 ) {
-                    stat = await checkAnd(
+                    stat = checkAnd(
                         payload,
                         condition.criteria,
                         status,
@@ -838,7 +900,7 @@ module.exports = {
                     condition.criteria.condition &&
                     condition.criteria.condition === 'or'
                 ) {
-                    stat = await checkOr(
+                    stat = checkOr(
                         payload,
                         condition.criteria,
                         status,
@@ -869,380 +931,11 @@ module.exports = {
         };
     },
 
-    scanApplicationSecurity: async security => {
-        try {
-            let securityDir = 'application_security_dir';
-            securityDir = await createDir(securityDir);
-
-            const USER = security.gitCredential.gitUsername;
-            const PASS = security.gitCredential.gitPassword;
-            // format the url
-            const REPO = formatUrl(security.gitRepositoryUrl);
-            const remote = `https://${USER}:${PASS}@${REPO}`;
-            const cloneDirectory = `${uuidv1()}security`; // always create unique paths
-            const repoPath = Path.resolve(securityDir, cloneDirectory);
-
-            // update application security to scanning true
-            // to prevent pulling an applicaiton security multiple times by running cron job
-            // due to network delay
-            let applicationSecurity = await ApplicationSecurityService.updateOneBy(
-                {
-                    _id: security._id,
-                },
-                { scanning: true }
-            );
-            global.io.emit(
-                `security_${applicationSecurity._id}`,
-                applicationSecurity
-            );
-
-            return new Promise((resolve, reject) => {
-                git(securityDir)
-                    .silent(true)
-                    .clone(remote, cloneDirectory)
-                    .then(() => {
-                        const output = spawn('npm', ['install'], {
-                            cwd: repoPath,
-                        });
-                        output.on('error', error => {
-                            error.code = 500;
-                            throw error;
-                        });
-
-                        output.on('close', () => {
-                            let auditOutput = '';
-                            const audit = spawn('npm', ['audit', '--json'], {
-                                cwd: repoPath,
-                            });
-
-                            audit.on('error', error => {
-                                error.code = 500;
-                                throw error;
-                            });
-
-                            audit.stdout.on('data', data => {
-                                const strData = data.toString();
-                                auditOutput += strData;
-                            });
-
-                            audit.on('close', async () => {
-                                let advisories = [];
-                                auditOutput = JSON.parse(auditOutput); // parse the stringified json
-                                for (const key in auditOutput.advisories) {
-                                    advisories.push(
-                                        auditOutput.advisories[key]
-                                    );
-                                }
-
-                                const criticalArr = [],
-                                    highArr = [],
-                                    moderateArr = [],
-                                    lowArr = [];
-                                advisories.map(advisory => {
-                                    if (advisory.severity === 'critical') {
-                                        criticalArr.push(advisory);
-                                    }
-                                    if (advisory.severity === 'high') {
-                                        highArr.push(advisory);
-                                    }
-                                    if (advisory.severity === 'moderate') {
-                                        moderateArr.push(advisory);
-                                    }
-                                    if (advisory.severity === 'low') {
-                                        lowArr.push(advisory);
-                                    }
-                                    return advisory;
-                                });
-
-                                // restructure advisories from the most critical case to the least critical(low)
-                                advisories = [
-                                    ...criticalArr,
-                                    ...highArr,
-                                    ...moderateArr,
-                                    ...lowArr,
-                                ];
-
-                                const auditData = {
-                                    dependencies:
-                                        auditOutput.metadata.dependencies,
-                                    devDependencies:
-                                        auditOutput.metadata.devDependencies,
-                                    optionalDependencies:
-                                        auditOutput.metadata
-                                            .optionalDependencies,
-                                    totalDependencies:
-                                        auditOutput.metadata.totalDependencies,
-                                    vulnerabilities:
-                                        auditOutput.metadata.vulnerabilities,
-                                    advisories,
-                                };
-
-                                const securityLog = await ApplicationSecurityLogService.create(
-                                    {
-                                        securityId: security._id,
-                                        componentId: security.componentId._id,
-                                        data: auditData,
-                                    }
-                                );
-
-                                await ApplicationSecurityService.updateScanTime(
-                                    {
-                                        _id: security._id,
-                                    }
-                                );
-
-                                await deleteFolderRecursive(repoPath);
-                                return resolve(securityLog);
-                            });
-                        });
-                    })
-                    .catch(async error => {
-                        applicationSecurity = await ApplicationSecurityService.updateOneBy(
-                            {
-                                _id: security._id,
-                            },
-                            { scanning: false }
-                        );
-                        global.io.emit(
-                            `security_${applicationSecurity._id}`,
-                            applicationSecurity
-                        );
-                        await deleteFolderRecursive(repoPath);
-                        ErrorService.log(
-                            'probeService.scanApplicationSecurity',
-                            error
-                        );
-                        error.code = 400;
-                        error.message =
-                            'Authentication failed please check your git credentials or git repository url';
-                        return reject(error);
-                    });
-            });
-        } catch (error) {
-            ErrorService.log('probeService.scanApplicationSecurity', error);
-            throw error;
-        }
-    },
-
-    scanContainerSecurity: async security => {
-        try {
-            const { imagePath, imageTags, dockerCredential } = security;
-            const testPath = imageTags
-                ? `${imagePath}:${imageTags}`
-                : imagePath;
-            const outputFile = `${uuidv1()}result.json`;
-            let securityDir = 'container_security_dir';
-            securityDir = await createDir(securityDir);
-            const exactFilePath = Path.resolve(securityDir, outputFile);
-            // update container security to scanning true
-            // so the cron job does not pull it multiple times due to network delays
-            // since the cron job runs every minute
-            const containerSecurity = await ContainerSecurityService.updateOneBy(
-                {
-                    _id: security._id,
-                },
-                { scanning: true }
-            );
-            global.io.emit(
-                `security_${containerSecurity._id}`,
-                containerSecurity
-            );
-            return new Promise((resolve, reject) => {
-                // use trivy open source package to audit a container
-                const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
-                const clearCommand = `trivy image --clear-cache ${testPath}`;
-
-                const output = spawn(scanCommand, {
-                    cwd: securityDir,
-                    env: {
-                        TRIVY_AUTH_URL: dockerCredential.dockerRegistryUrl,
-                        TRIVY_USERNAME: dockerCredential.dockerUsername,
-                        TRIVY_PASSWORD: dockerCredential.dockerPassword,
-                    },
-                    shell: true,
-                });
-
-                output.on('error', async error => {
-                    const errorMessage =
-                        'Scanning failed please check your docker credential or image path/tag';
-                    error.code = 400;
-                    error.message = errorMessage;
-                    await ContainerSecurityService.updateScanTime({
-                        _id: security._id,
-                    });
-                    await deleteFile(exactFilePath);
-                    return reject(error);
-                });
-
-                output.on('close', async () => {
-                    let auditLogs = await readFileContent(exactFilePath);
-                    // if auditLogs is empty, then scanning was unsuccessful
-                    // the provided credentials or image path must have been wrong
-                    if (
-                        !auditLogs ||
-                        (typeof auditLogs === 'string' &&
-                            !JSON.stringify(auditLogs).trim())
-                    ) {
-                        const error = new Error(
-                            'Scanning failed please check your docker credential or image path/tag'
-                        );
-                        error.code = 400;
-                        await ContainerSecurityService.updateScanTime({
-                            _id: security._id,
-                        });
-                        await deleteFile(exactFilePath);
-                        return reject(error);
-                    }
-
-                    if (typeof auditLogs === 'string') {
-                        auditLogs = JSON.parse(auditLogs); // parse the stringified logs
-                    }
-
-                    const clearCache = spawn('trivy', [clearCommand], {
-                        cwd: securityDir,
-                        shell: true,
-                    });
-
-                    clearCache.on('error', async error => {
-                        error.code = 400;
-                        error.message =
-                            'Unable to clear cache, try again later';
-                        await ContainerSecurityService.updateOneBy(
-                            {
-                                _id: security._id,
-                            },
-                            { scanning: false }
-                        );
-                        await deleteFile(exactFilePath);
-                        return reject(error);
-                    });
-
-                    clearCache.on('close', async () => {
-                        const auditData = {
-                            vulnerabilityInfo: {},
-                            vulnerabilityData: [],
-                        };
-                        const counter = {
-                            low: 0,
-                            moderate: 0,
-                            high: 0,
-                            critical: 0,
-                        };
-
-                        auditLogs.map(auditLog => {
-                            const log = {
-                                type: auditLog.Type,
-                                vulnerabilities: [],
-                            };
-
-                            if (
-                                auditLog.Vulnerabilities &&
-                                auditLog.Vulnerabilities.length > 0
-                            ) {
-                                auditLog.Vulnerabilities.map(vulnerability => {
-                                    let severity;
-                                    if (vulnerability.Severity === 'LOW') {
-                                        counter.low += 1;
-                                        severity = 'low';
-                                    }
-                                    if (vulnerability.Severity === 'MEDIUM') {
-                                        counter.moderate += 1;
-                                        severity = 'moderate';
-                                    }
-                                    if (vulnerability.Severity === 'HIGH') {
-                                        counter.high += 1;
-                                        severity = 'high';
-                                    }
-                                    if (vulnerability.Severity === 'CRITICAL') {
-                                        counter.critical += 1;
-                                        severity = 'critical';
-                                    }
-
-                                    const vulObj = {
-                                        vulnerabilityId:
-                                            vulnerability.VulnerabilityID,
-                                        library: vulnerability.PkgName,
-                                        installedVersion:
-                                            vulnerability.InstalledVersion,
-                                        fixedVersions:
-                                            vulnerability.FixedVersion,
-                                        title: vulnerability.Title,
-                                        description: vulnerability.Description,
-                                        severity,
-                                    };
-                                    log.vulnerabilities.push(vulObj);
-
-                                    return vulnerability;
-                                });
-                            }
-
-                            auditData.vulnerabilityData.push(log);
-                            return auditLog;
-                        });
-
-                        auditData.vulnerabilityInfo = counter;
-
-                        const arrayData = auditData.vulnerabilityData.map(
-                            log => log.vulnerabilities
-                        );
-
-                        auditData.vulnerabilityData = flattenArray(arrayData);
-
-                        const criticalArr = [],
-                            highArr = [],
-                            moderateArr = [],
-                            lowArr = [];
-                        auditData.vulnerabilityData.map(vulnerability => {
-                            if (vulnerability.severity === 'critical') {
-                                criticalArr.push(vulnerability);
-                            }
-                            if (vulnerability.severity === 'high') {
-                                highArr.push(vulnerability);
-                            }
-                            if (vulnerability.severity === 'moderate') {
-                                moderateArr.push(vulnerability);
-                            }
-                            if (vulnerability.severity === 'low') {
-                                lowArr.push(vulnerability);
-                            }
-                            return vulnerability;
-                        });
-
-                        auditData.vulnerabilityData = [
-                            ...criticalArr,
-                            ...highArr,
-                            ...moderateArr,
-                            ...lowArr,
-                        ];
-
-                        const securityLog = await ContainerSecurityLogService.create(
-                            {
-                                securityId: security._id,
-                                componentId: security.componentId._id,
-                                data: auditData,
-                            }
-                        );
-
-                        await ContainerSecurityService.updateScanTime({
-                            _id: security._id,
-                        });
-
-                        await deleteFile(exactFilePath);
-                        resolve(securityLog);
-                    });
-                });
-            });
-        } catch (error) {
-            ErrorService.log('probeService.scanContainerSecurity', error);
-            throw error;
-        }
-    },
-
-    incomingCondition: async (payload, conditions) => {
+    incomingCondition: (payload, conditions) => {
         let eventOccurred = false;
         let matchedCriterion;
         if (conditions && conditions.length) {
-            eventOccurred = await some(conditions, async condition => {
+            eventOccurred = some(conditions, condition => {
                 let response = false;
                 let respAnd = false,
                     respOr = false,
@@ -1255,10 +948,7 @@ module.exports = {
                     condition.criteria.condition &&
                     condition.criteria.condition === 'and'
                 ) {
-                    respAnd = await incomingCheckAnd(
-                        payload,
-                        condition.criteria
-                    );
+                    respAnd = incomingCheckAnd(payload, condition.criteria);
                     countAnd++;
                 }
                 if (
@@ -1267,7 +957,7 @@ module.exports = {
                     condition.criteria.condition &&
                     condition.criteria.condition === 'or'
                 ) {
-                    respOr = await incomingCheckOr(payload, condition.criteria);
+                    respOr = incomingCheckOr(payload, condition.criteria);
                     countOr++;
                 }
                 if (countAnd > 0 && countOr > 0) {
@@ -1406,7 +1096,12 @@ module.exports = {
             logData.responseStatus = null;
             logData.status = status;
             logData.probeId = null;
-            logData.monitorId = monitor && monitor.id ? monitor.id : null;
+            logData.monitorId =
+                monitor && monitor.id
+                    ? monitor.id
+                    : monitor._id
+                    ? monitor._id
+                    : null;
             logData.sslCertificate = null;
             logData.lighthouseScanStatus = null;
             logData.performance = null;
@@ -1426,16 +1121,18 @@ module.exports = {
             logData.matchedDegradedCriterion =
                 monitor && monitor.criteria && monitor.criteria.degraded;
             // update monitor to save the last matched criterion
-            await MonitorService.updateOneBy(
-                {
-                    _id: monitor._id,
-                },
-                {
-                    lastMatchedCriterion: matchedCriterion,
-                }
-            );
-            const log = await _this.saveMonitorLog(logData);
-            await MonitorService.updateMonitorPingTime(monitor._id);
+            const [, log] = await Promise.all([
+                MonitorService.updateOneBy(
+                    {
+                        _id: monitor._id,
+                    },
+                    {
+                        lastMatchedCriterion: matchedCriterion,
+                    }
+                ),
+                _this.saveMonitorLog(logData),
+                MonitorService.updateMonitorPingTime(monitor._id),
+            ]);
             return log;
         } catch (error) {
             ErrorService.log('monitorService.processHttpRequest', error);
@@ -1454,27 +1151,33 @@ module.exports = {
             const {
                 eventOccurred: validUp,
                 matchedCriterion: matchedUpCriterion,
-            } = await (monitor && monitor.criteria && monitor.criteria.up
-                ? _this.incomingCondition(payload, monitor.criteria.up)
-                : false);
+            } =
+                monitor && monitor.criteria && monitor.criteria.up
+                    ? _this.incomingCondition(payload, monitor.criteria.up)
+                    : false;
 
             const {
                 eventOccurred: validDegraded,
                 matchedCriterion: matchedDegradedCriterion,
-            } = await (monitor && monitor.criteria && monitor.criteria.degraded
-                ? _this.incomingCondition(payload, monitor.criteria.degraded)
-                : false);
+            } =
+                monitor && monitor.criteria && monitor.criteria.degraded
+                    ? _this.incomingCondition(
+                          payload,
+                          monitor.criteria.degraded
+                      )
+                    : false;
 
             const {
                 eventOccurred: validDown,
                 matchedCriterion: matchedDownCriterion,
-            } = await (monitor && monitor.criteria && monitor.criteria.down
-                ? _this.incomingCondition(payload, [
-                      ...monitor.criteria.down.filter(
-                          criterion => criterion.default !== true
-                      ),
-                  ])
-                : false);
+            } =
+                monitor && monitor.criteria && monitor.criteria.down
+                    ? _this.incomingCondition(payload, [
+                          ...monitor.criteria.down.filter(
+                              criterion => criterion.default !== true
+                          ),
+                      ])
+                    : false;
             let timeHours = 0;
             let timeMinutes = payload;
             let tempReason = `${payload} min`;
@@ -1510,7 +1213,12 @@ module.exports = {
             logData.responseStatus = null;
             logData.status = status;
             logData.probeId = probeId;
-            logData.monitorId = monitor && monitor.id ? monitor.id : null;
+            logData.monitorId =
+                monitor && monitor.id
+                    ? monitor.id
+                    : monitor._id
+                    ? monitor._id
+                    : null;
             logData.sslCertificate = null;
             logData.lighthouseScanStatus = null;
             logData.performance = null;
@@ -1525,15 +1233,17 @@ module.exports = {
             logData.stopPingTimeUpdate = true;
             logData.matchedCriterion = matchedCriterion;
             // update monitor to save the last matched criterion
-            await MonitorService.updateOneBy(
-                {
-                    _id: monitor._id,
-                },
-                {
-                    lastMatchedCriterion: matchedCriterion,
-                }
-            );
-            const log = await _this.saveMonitorLog(logData);
+            const [, log] = await Promise.all([
+                MonitorService.updateOneBy(
+                    {
+                        _id: monitor._id,
+                    },
+                    {
+                        lastMatchedCriterion: matchedCriterion,
+                    }
+                ),
+                _this.saveMonitorLog(logData),
+            ]);
             return log;
         } catch (error) {
             ErrorService.log('monitorService.probeHttpRequest', error);
@@ -1559,7 +1269,7 @@ const incomingCheckAnd = async (payload, condition) => {
                     condition.criteria[i].condition === 'and'
                 ) {
                     // incoming check and
-                    const tempAnd = await incomingCheckAnd(
+                    const tempAnd = incomingCheckAnd(
                         payload,
                         condition.criteria[i]
                     );
@@ -1572,7 +1282,7 @@ const incomingCheckAnd = async (payload, condition) => {
                     condition.criteria[i].condition === 'or'
                 ) {
                     // incoming check or
-                    const tempOr = await incomingCheckOr(
+                    const tempOr = incomingCheckOr(
                         payload,
                         condition.criteria[i]
                     );
@@ -1694,7 +1404,7 @@ const incomingCheckAnd = async (payload, condition) => {
     return validity;
 };
 
-const incomingCheckOr = async (payload, condition) => {
+const incomingCheckOr = (payload, condition) => {
     let validity = false;
     let val = 0;
     let incomingVal = 0;
@@ -1709,7 +1419,7 @@ const incomingCheckOr = async (payload, condition) => {
                     condition.criteria[i].condition === 'or'
                 ) {
                     // incoming check or
-                    const tempor = await incomingCheckAnd(
+                    const tempor = incomingCheckAnd(
                         payload,
                         condition.criteria[i]
                     );
@@ -1721,7 +1431,7 @@ const incomingCheckOr = async (payload, condition) => {
                     condition.criteria[i].condition &&
                     condition.criteria[i].condition === 'and'
                 ) {
-                    const tempAnd = await incomingCheckAnd(
+                    const tempAnd = incomingCheckAnd(
                         payload,
                         condition.criteria[i]
                     );
@@ -1843,7 +1553,7 @@ const incomingCheckOr = async (payload, condition) => {
     return validity;
 };
 
-const checkAnd = async (
+const checkAnd = (
     payload,
     con,
     statusCode,
@@ -1868,7 +1578,7 @@ const checkAnd = async (
                     con.criteria[i].condition === 'and'
                 ) {
                     // check and again
-                    const temp = await checkAnd(
+                    const temp = checkAnd(
                         payload,
                         con.criteria[i],
                         statusCode,
@@ -1890,7 +1600,7 @@ const checkAnd = async (
                     con.criteria[i].condition === 'or'
                 ) {
                     // check or again
-                    const temp1 = await checkOr(
+                    const temp1 = checkOr(
                         payload,
                         con.criteria[i],
                         statusCode,
@@ -4197,7 +3907,7 @@ const checkAnd = async (
     return validity;
 };
 
-const checkOr = async (
+const checkOr = (
     payload,
     con,
     statusCode,
@@ -4222,7 +3932,7 @@ const checkOr = async (
                     con.criteria[i].condition === 'or'
                 ) {
                     // check or again
-                    const temp1 = await checkOr(
+                    const temp1 = checkOr(
                         payload,
                         con.criteria[i],
                         statusCode,
@@ -4242,7 +3952,7 @@ const checkOr = async (
                     con.criteria[i].condition &&
                     con.criteria[i].condition === 'and'
                 ) {
-                    const temp = await checkAnd(
+                    const temp = checkAnd(
                         payload,
                         con.criteria[i],
                         statusCode,
@@ -6698,79 +6408,6 @@ const formatBytes = (a, b, c, d, e) => {
     );
 };
 
-function createDir(dirPath) {
-    return new Promise((resolve, reject) => {
-        const workPath = Path.resolve(process.cwd(), dirPath);
-        if (fs.existsSync(workPath)) {
-            resolve(workPath);
-        }
-
-        fs.mkdir(workPath, error => {
-            if (error) reject(error);
-            resolve(workPath);
-        });
-    });
-}
-
-async function deleteFolderRecursive(dir) {
-    if (fs.existsSync(dir)) {
-        const entries = await readdir(dir, { withFileTypes: true });
-        await Promise.all(
-            entries.map(entry => {
-                const fullPath = Path.join(dir, entry.name);
-                return entry.isDirectory()
-                    ? deleteFolderRecursive(fullPath)
-                    : unlink(fullPath);
-            })
-        );
-        await rmdir(dir); // finally remove now empty directory
-    }
-}
-
-async function deleteFile(file) {
-    if (fs.existsSync(file)) {
-        await unlink(file);
-    }
-}
-
-function readFileContent(filePath) {
-    return new Promise((resolve, reject) => {
-        if (fs.existsSync(filePath)) {
-            fs.readFile(filePath, { encoding: 'utf8' }, function(error, data) {
-                if (error) {
-                    reject(error);
-                }
-                resolve(data);
-            });
-        }
-    });
-}
-
-function formatUrl(url) {
-    // remove https://www. from url
-    if (url.indexOf('https://www.') === 0) {
-        return url.slice(12);
-    }
-    // remove http://www. from url
-    if (url.indexOf('http://www.') === 0) {
-        return url.slice(11);
-    }
-    // remove https:// from url
-    if (url.indexOf('https://') === 0) {
-        return url.slice(8);
-    }
-    // remove http:// from url
-    if (url.indexOf('http://') === 0) {
-        return url.slice(7);
-    }
-    // remove www. from url
-    if (url.indexOf('www.') === 0) {
-        return url.slice(4);
-    }
-
-    return url;
-}
-
 const ProbeModel = require('../models/probe');
 const RealTimeService = require('./realTimeService');
 const ErrorService = require('./errorService');
@@ -6782,19 +6419,6 @@ const LighthouseLogService = require('./lighthouseLogService');
 const IncidentService = require('./incidentService');
 const IncidentTimelineService = require('./incidentTimelineService');
 const moment = require('moment');
-const git = require('simple-git/promise');
-const fs = require('fs');
-const { spawn } = require('child_process');
-const Path = require('path');
-const ApplicationSecurityLogService = require('./applicationSecurityLogService');
-const ApplicationSecurityService = require('./applicationSecurityService');
-const ContainerSecurityService = require('./containerSecurityService');
-const ContainerSecurityLogService = require('./containerSecurityLogService');
-const flattenArray = require('../utils/flattenArray');
-const { promisify } = require('util');
-const readdir = promisify(fs.readdir);
-const rmdir = promisify(fs.rmdir);
-const unlink = promisify(fs.unlink);
 const { some, forEach } = require('p-iteration');
 const vm = require('vm');
 const AutomatedScriptService = require('./automatedScriptService');

@@ -55,16 +55,18 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
         const { limit, skip } = req.query;
-        const customFields = await MonitorCustomFieldService.findBy(
-            {
+        const [customFields, count] = await Promise.all([
+            MonitorCustomFieldService.findBy(
+                {
+                    projectId,
+                },
+                limit,
+                skip
+            ),
+            MonitorCustomFieldService.countBy({
                 projectId,
-            },
-            limit,
-            skip
-        );
-        const count = await MonitorCustomFieldService.countBy({
-            projectId,
-        });
+            }),
+        ]);
 
         return sendListResponse(req, res, customFields, count);
     } catch (error) {

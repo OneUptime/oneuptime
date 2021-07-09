@@ -1,5 +1,4 @@
 import React from 'react';
-import Dashboard from '../components/Dashboard';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -14,6 +13,18 @@ class Probe extends React.Component {
         super(props);
         this.props = props;
         this.state = { page: 1 };
+    }
+
+    componentDidMount() {
+        this.ready();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps?.currentProject?._id !== this.props?.currentProject?._id
+        ) {
+            this.ready();
+        }
     }
 
     ready = () => {
@@ -48,71 +59,65 @@ class Probe extends React.Component {
         } = this.props;
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Project Settings"
-                    />
-                    <BreadCrumbItem route={pathname} name="Probe" />
-                    <div className="Box-root Margin-vertical--12">
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Probe" />
+                <div className="Box-root Margin-vertical--12">
+                    <div>
                         <div>
-                            <div>
-                                <div
-                                    id="probeList"
-                                    className="db-RadarRulesLists-page"
-                                >
-                                    <div className="Box-root Margin-bottom--12">
-                                        <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                            <div className="Box-root">
-                                                <div>
-                                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                    <span>
-                                                                        Probes
-                                                                    </span>
+                            <div
+                                id="probeList"
+                                className="db-RadarRulesLists-page"
+                            >
+                                <div className="Box-root Margin-bottom--12">
+                                    <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                        <div className="Box-root">
+                                            <div>
+                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                        <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                            <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Probes
                                                                 </span>
-                                                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                    <span>
-                                                                        Probes
-                                                                        will
-                                                                        monitor
-                                                                        resources
-                                                                        in your
-                                                                        project
-                                                                        like
-                                                                        API&apos;s,
-                                                                        Websites
-                                                                        and more
-                                                                        from
-                                                                        different
-                                                                        locations
-                                                                        around
-                                                                        the
-                                                                        world.
-                                                                    </span>
+                                                            </span>
+                                                            <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                <span>
+                                                                    Probes will
+                                                                    monitor
+                                                                    resources in
+                                                                    your project
+                                                                    like
+                                                                    API&apos;s,
+                                                                    Websites and
+                                                                    more from
+                                                                    different
+                                                                    locations
+                                                                    around the
+                                                                    world.
                                                                 </span>
-                                                            </div>
-                                                            <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
-                                                                <div></div>
-                                                            </div>
+                                                            </span>
+                                                        </div>
+                                                        <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
+                                                            <div></div>
                                                         </div>
                                                     </div>
-                                                    <ProbeList
-                                                        probesList={
-                                                            this.props.probes
-                                                        }
-                                                        prevClicked={
-                                                            this.prevClicked
-                                                        }
-                                                        nextClicked={
-                                                            this.nextClicked
-                                                        }
-                                                        page={this.state.page}
-                                                    />
                                                 </div>
+                                                <ProbeList
+                                                    probesList={
+                                                        this.props.probes
+                                                    }
+                                                    prevClicked={
+                                                        this.prevClicked
+                                                    }
+                                                    nextClicked={
+                                                        this.nextClicked
+                                                    }
+                                                    page={this.state.page}
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -120,8 +125,8 @@ class Probe extends React.Component {
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

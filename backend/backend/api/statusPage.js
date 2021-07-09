@@ -79,7 +79,8 @@ router.put(
                 { _id: statusPage._id },
                 req.user.id
             );
-            await RealTimeService.statusPageEdit(updatedStatusPage);
+            // run in the background
+            RealTimeService.statusPageEdit(updatedStatusPage);
             return sendItemResponse(req, res, updatedStatusPage);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -99,7 +100,8 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
             { _id: statusPageId },
             req.user.id
         );
-        await RealTimeService.statusPageEdit(updatedStatusPage);
+        // run in the background
+        RealTimeService.statusPageEdit(updatedStatusPage);
         return sendItemResponse(req, res, statusPage);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -514,7 +516,8 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 { _id: statusPage._id },
                 req.user.id
             );
-            await RealTimeService.statusPageEdit(updatedStatusPage);
+            // run in the background
+            RealTimeService.statusPageEdit(updatedStatusPage);
 
             return sendItemResponse(req, res, statusPage);
         } catch (error) {
@@ -574,12 +577,14 @@ router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
     const projectId = req.params.projectId;
     try {
         // Call the StatusPageService.
-        const statusPages = await StatusPageService.findBy(
-            { projectId: projectId },
-            req.query.skip || 0,
-            req.query.limit || 10
-        );
-        const count = await StatusPageService.countBy({ projectId: projectId });
+        const [statusPages, count] = await Promise.all([
+            StatusPageService.findBy(
+                { projectId: projectId },
+                req.query.skip || 0,
+                req.query.limit || 10
+            ),
+            StatusPageService.countBy({ projectId: projectId }),
+        ]);
         return sendListResponse(req, res, statusPages, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -612,12 +617,14 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
 ) {
     const projectId = req.params.projectId;
     try {
-        const statusPage = await StatusPageService.findBy(
-            { projectId },
-            req.query.skip || 0,
-            req.query.limit || 10
-        );
-        const count = await StatusPageService.countBy({ projectId });
+        const [statusPage, count] = await Promise.all([
+            StatusPageService.findBy(
+                { projectId },
+                req.query.skip || 0,
+                req.query.limit || 10
+            ),
+            StatusPageService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, statusPage, count); // frontend expects sendListResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -820,8 +827,8 @@ router.get('/:projectId/incident/:incidentId', checkUser, async function(
         const { incidentId, projectId } = req.params;
 
         const incidentData = await IncidentService.findOneBy({
-            projectId,
-            idNumber: incidentId,
+            query: { projectId, idNumber: incidentId },
+            select: '_id',
         });
 
         const incident = await StatusPageService.getIncident({
@@ -841,8 +848,8 @@ router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
         const { incidentId, projectId } = req.params;
 
         const incident = await IncidentService.findOneBy({
-            projectId,
-            idNumber: incidentId,
+            query: { projectId, idNumber: incidentId },
+            select: '_id',
         });
         const { skip, limit, postOnStatusPage } = req.query;
 
@@ -1035,8 +1042,10 @@ router.get('/:projectId/notes/:scheduledEventSlug', checkUser, async function(
 ) {
     const { scheduledEventSlug } = req.params;
     const { skip, limit, type } = req.query;
+
     const scheduledEventId = await ScheduledEventService.findOneBy({
-        slug: scheduledEventSlug,
+        query: { slug: scheduledEventSlug },
+        select: '_id',
     });
 
     try {
@@ -1191,8 +1200,10 @@ router.get('/:projectId/probes', checkUser, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
-        const probes = await ProbeService.findBy({}, limit, skip);
-        const count = await ProbeService.countBy({});
+        const [probes, count] = await Promise.all([
+            ProbeService.findBy({}, limit, skip),
+            ProbeService.countBy({}),
+        ]);
         return sendListResponse(req, res, probes, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1228,8 +1239,8 @@ router.get('/:projectId/timeline/:incidentId', checkUser, async function(
         const { incidentId, projectId } = req.params;
 
         const incidentData = await IncidentService.findOneBy({
-            projectId,
-            idNumber: incidentId,
+            query: { projectId, idNumber: incidentId },
+            select: '_id',
         });
         // setting limit to one
         // since the frontend only need the last content (current content)
@@ -1279,9 +1290,14 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
         const { statusPageId } = req.params;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const statusPage = await StatusPageService.findOneBy({
-            _id: statusPageId,
-        });
+        const [statusPage, count] = await Promise.all([
+            StatusPageService.findOneBy({
+                _id: statusPageId,
+            }),
+            SubscriberService.countBy({
+                monitorId: monitors,
+            }),
+        ]);
         const monitors = statusPage.monitors.map(mon => mon.monitor._id);
         const subscribers = await SubscriberService.findBy(
             {
@@ -1290,9 +1306,6 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
             skip,
             limit
         );
-        const count = await SubscriberService.countBy({
-            monitorId: monitors,
-        });
         return sendItemResponse(req, res, { subscribers, skip, limit, count });
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1433,17 +1446,19 @@ router.get(
         try {
             const { statusPageId } = req.params;
             const { skip, limit, theme } = req.query;
-            let announcementLogs = await StatusPageService.getAnnouncementLogs(
-                {
+            const [logs, count] = await Promise.all([
+                StatusPageService.getAnnouncementLogs(
+                    {
+                        statusPageId,
+                    },
+                    skip,
+                    limit
+                ),
+                StatusPageService.countAnnouncementLogs({
                     statusPageId,
-                },
-                skip,
-                limit
-            );
-
-            const count = await StatusPageService.countAnnouncementLogs({
-                statusPageId,
-            });
+                }),
+            ]);
+            let announcementLogs = logs;
 
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
                 const updatedLogs = [];
@@ -1476,13 +1491,10 @@ router.get('/:projectId/announcement/:statusPageId', checkUser, async function(
         const query = { projectId, statusPageId };
         if (show) query.hideAnnouncement = false;
 
-        const allAnnouncements = await StatusPageService.getAnnouncements(
-            query,
-            skip,
-            limit
-        );
-
-        const count = await StatusPageService.countAnnouncements(query);
+        const [allAnnouncements, count] = await Promise.all([
+            StatusPageService.getAnnouncements(query, skip, limit),
+            StatusPageService.countAnnouncements(query),
+        ]);
 
         return sendItemResponse(req, res, {
             allAnnouncements,
@@ -1625,4 +1637,352 @@ function handleMonitorList(monitors) {
     }
 }
 
+//load all status page resources
+router.get('/resources/:statusPageSlug', checkUser, ipWhitelist, async function(
+    req,
+    res
+) {
+    try {
+        const { statusPageSlug } = req.params;
+        const response = {};
+        //get status pages
+        const statusPage = await getStatusPage(req, statusPageSlug);
+        if (statusPage.error) {
+            return sendErrorResponse(req, res, statusPage.data);
+        }
+        response.statusPages = statusPage;
+
+        const { _id: statusPageId, monitors, projectId } = statusPage;
+
+        //get all resources.
+        const [
+            ongoingEvents,
+            futureEvents,
+            pastEvents,
+            probes,
+            monitorLogs,
+            announcement,
+            monitorStatus,
+            timelines,
+            statusPageNote,
+            announcementLogs,
+        ] = await Promise.allSettled([
+            //get ongoing events.
+            getOngoingScheduledEvents(req, statusPageSlug),
+
+            //get future events
+            getFutureEvents(req, statusPageSlug),
+
+            //get past events.
+            getPastEvents(req, statusPageSlug),
+
+            //get probes.
+            getProbes(req),
+
+            getMonitorLogs(req, monitors),
+
+            getAnnouncements(req, statusPageId, projectId),
+
+            getMonitorStatuses(req, monitors),
+
+            getMonitorTimelines(statusPageSlug),
+
+            getStatusPageNote(req, statusPageSlug, statusPage.theme),
+
+            getAnnouncementLogs(statusPage),
+        ]);
+
+        response.ongoingEvents = ongoingEvents.value || {};
+
+        response.futureEvents = futureEvents.value || {};
+
+        response.pastEvents = pastEvents.value || {};
+
+        response.probes = probes.value || {};
+
+        response.monitorLogs = monitorLogs.value || {};
+
+        response.announcement = announcement.value || {};
+
+        response.monitorStatus = monitorStatus.value || {};
+
+        response.timelines = timelines.value || {};
+
+        response.statusPageNote = statusPageNote.value || {};
+
+        response.announcementLogs = announcementLogs.value || {};
+
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+async function getStatusPage(req, statusPageSlug) {
+    const url = req.query.url;
+    const user = req.user;
+    let statusPage = {};
+    // Call the StatusPageService.
+    if (url && url !== 'null') {
+        statusPage = await StatusPageService.getStatusPage(
+            { domains: { $elemMatch: { domain: url } } },
+            user
+        );
+    } else if ((!url || url === 'null') && statusPageSlug) {
+        statusPage = await StatusPageService.getStatusPage(
+            { slug: statusPageSlug },
+            user
+        );
+    } else {
+        return {
+            error: true,
+            data: {
+                code: 400,
+                message: 'StatusPage Slug or Url required',
+            },
+        };
+    }
+
+    if (statusPage.isPrivate && !req.user) {
+        return {
+            error: true,
+            data: {
+                code: 401,
+                message: 'You are unauthorized to access the page.',
+            },
+        };
+    } else {
+        return statusPage;
+    }
+}
+
+async function getOngoingScheduledEvents(req, statusPageSlug) {
+    const { skip = 0, limit = 5, theme = false } = req.query;
+    // Call the StatusPageService.
+    const response = await StatusPageService.getEvents(
+        { slug: statusPageSlug },
+        skip,
+        limit,
+        theme
+    );
+
+    let events = response.events;
+    const count = response.count;
+    if ((theme && typeof theme === 'boolean') || theme === 'true') {
+        const results = await fetchNotes(events, limit);
+        events = results;
+    }
+    return { events, count };
+}
+async function getFutureEvents(req, statusPageSlug) {
+    const { skip = 0, limit = 5, theme = false } = req.query;
+    const response = await StatusPageService.getFutureEvents(
+        { slug: statusPageSlug },
+        skip,
+        limit
+    );
+    if ((theme && typeof theme === 'boolean') || theme === 'true') {
+        const results = await fetchNotes(response.events, limit);
+        response.events = results;
+    }
+    return response;
+}
+async function getPastEvents(req, statusPageSlug) {
+    const { skip = 0, limit = 5, theme = false } = req.query;
+
+    const response = await StatusPageService.getPastEvents(
+        { slug: statusPageSlug },
+        skip,
+        limit
+    );
+    if ((theme && typeof theme === 'boolean') || theme === 'true') {
+        const results = await fetchNotes(response.events, limit);
+        response.events = results;
+    }
+
+    return response;
+}
+async function getProbes(req) {
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 0;
+    const probes = await ProbeService.findBy({}, limit, skip);
+    const count = await ProbeService.countBy({});
+    return { probes, count };
+}
+async function getMonitorLogs(req, monitors) {
+    const logs = [];
+    await Promise.all(
+        monitors.map(async monitor => {
+            const endDate = moment(Date.now());
+            const startDate = moment(endDate).subtract(90, 'days');
+            const {
+                memory,
+                cpu,
+                storage,
+                responseTime,
+                temperature,
+                monitor: monitorId,
+            } = monitor;
+            const filter = {
+                ...(!memory && {
+                    maxMemoryUsed: 0,
+                    memoryUsed: 0,
+                }),
+                ...(!cpu && {
+                    maxCpuLoad: 0,
+                    cpuLoad: 0,
+                }),
+                ...(!storage && {
+                    maxStorageUsed: 0,
+                    storageUsed: 0,
+                }),
+                ...(!responseTime && {
+                    maxResponseTime: 0,
+                    responseTime: 0,
+                }),
+                ...(!temperature && {
+                    maxMainTemp: 0,
+                    mainTemp: 0,
+                }),
+            };
+
+            const monitorLogs = await MonitorService.getMonitorLogsByDay(
+                monitorId._id,
+                startDate,
+                endDate,
+                filter
+            );
+            logs.push({
+                logs: monitorLogs,
+                monitorId: monitorId._id,
+                count: monitorLogs.length,
+            });
+        })
+    );
+    return logs;
+}
+
+async function getAnnouncements(req, statusPageId, projectId) {
+    const { skip, limit, show = true } = req.query;
+    const query = { projectId, statusPageId };
+    if (show) query.hideAnnouncement = false;
+
+    const allAnnouncements = await StatusPageService.getAnnouncements(
+        query,
+        skip,
+        limit
+    );
+
+    const count = await StatusPageService.countAnnouncements(query);
+
+    return {
+        allAnnouncements,
+        skip,
+        limit,
+        count,
+    };
+}
+//get monitor status
+async function getMonitorStatuses(req, monitors) {
+    const status = [];
+    const endDate = moment(Date.now());
+    const startDate = moment(Date.now()).subtract(90, 'days');
+    await Promise.all(
+        monitors.map(async monitor => {
+            const monitorId = monitor._id;
+            const monitorStatuses = await MonitorService.getMonitorStatuses(
+                monitorId,
+                startDate,
+                endDate
+            );
+            return status.push({ [monitorId]: monitorStatuses });
+        })
+    );
+
+    return status;
+}
+//get timelines
+async function getMonitorTimelines(statusPageSlug) {
+    const incidents = await StatusPageService.getNotes({
+        slug: statusPageSlug,
+    });
+    const response = await IncidentTimelineService.getIncidentLastTimelines(
+        incidents.notes
+    );
+    return response;
+}
+//get status page notes
+async function getStatusPageNote(req, statusPageSlug, theme) {
+    let result;
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 10;
+    const days = req.query.days || 14;
+    const newTheme = theme === 'Clean Theme';
+    // Call the StatusPageService.
+    const response = await StatusPageService.getNotes(
+        { slug: statusPageSlug },
+        skip,
+        limit
+    );
+    const notes = response.notes;
+    const count = response.count;
+    const updatedNotes = [];
+    if (newTheme) {
+        if (notes.length > 0) {
+            for (const note of notes) {
+                const statusPageNote = await StatusPageService.getIncidentNotes(
+                    { incidentId: note._id, postOnStatusPage: true },
+                    skip,
+                    limit
+                );
+
+                const sortMsg = statusPageNote.message.reverse();
+
+                updatedNotes.push({
+                    ...note,
+                    message: sortMsg,
+                });
+            }
+        }
+        result = formatNotes(updatedNotes, days);
+        result = checkDuplicateDates(result);
+    } else {
+        result = notes;
+    }
+    return { result, count };
+}
+//get announcement logs
+async function getAnnouncementLogs(statusPage, limit = 5, skip = 0) {
+    const theme = statusPage.theme === 'Clean Theme';
+    if (theme) {
+        limit = statusPage.announcementLogsHistory || 14;
+    }
+    let announcementLogs = await StatusPageService.getAnnouncementLogs(
+        {
+            statusPageId: statusPage._id,
+        },
+        skip,
+        limit
+    );
+
+    const count = await StatusPageService.countAnnouncementLogs({
+        statusPageId: statusPage._id,
+    });
+
+    if ((theme && typeof theme === 'boolean') || theme === 'true') {
+        const updatedLogs = [];
+        for (const log of announcementLogs) {
+            updatedLogs.push({ ...log });
+        }
+        announcementLogs = formatNotes(updatedLogs, 20);
+        announcementLogs = checkDuplicateDates(announcementLogs);
+    }
+
+    return {
+        announcementLogs,
+        skip,
+        limit,
+        count,
+    };
+}
 module.exports = router;

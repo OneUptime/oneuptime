@@ -19,14 +19,6 @@ class EventsMain extends Component {
         this.more = this.more.bind(this);
     }
 
-    componentDidMount() {
-        this.props.fetchFutureEvents(
-            this.props.projectId,
-            this.props.statusPageSlug,
-            0
-        );
-    }
-
     getAll = () => {
         this.props.showEventCard(true);
         this.props.fetchFutureEvents(

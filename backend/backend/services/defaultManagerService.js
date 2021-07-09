@@ -57,25 +57,26 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            let defaultManager = await DefaultManagerModel.findOneAndUpdate(
-                query,
-                {
-                    $set: data,
-                },
-                { new: true }
-            );
-
-            await DefaultManagerModel.findOneAndUpdate(
-                {
-                    subscriberEmail: { $ne: data.subscriberEmail },
-                },
-                {
-                    $set: {
-                        deleted: true,
-                        deletedAt: Date.now(),
+            let [defaultManager] = await Promise.all([
+                DefaultManagerModel.findOneAndUpdate(
+                    query,
+                    {
+                        $set: data,
                     },
-                }
-            );
+                    { new: true }
+                ),
+                DefaultManagerModel.findOneAndUpdate(
+                    {
+                        subscriberEmail: { $ne: data.subscriberEmail },
+                    },
+                    {
+                        $set: {
+                            deleted: true,
+                            deletedAt: Date.now(),
+                        },
+                    }
+                ),
+            ]);
 
             if (!defaultManager) {
                 defaultManager = await _this.create(data);

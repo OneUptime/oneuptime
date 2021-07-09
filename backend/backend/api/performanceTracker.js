@@ -51,7 +51,7 @@ router.post(
                 data
             );
 
-            await NotificationService.create(
+            NotificationService.create(
                 performanceTracker.componentId.projectId._id,
                 `A New Performance Tracker was Created with name ${performanceTracker.name} by ${performanceTracker.createdById.name}`,
                 performanceTracker.createdById._id,
@@ -81,12 +81,14 @@ router.get('/:projectId/:componentId', getUser, isAuthorized, async function(
                 message: "Component ID can't be null",
             });
         }
-        const performanceTracker = await PerformanceTrackerService.getPerformanceTrackerByComponentId(
-            componentId,
-            limit || 0,
-            skip || 0
-        );
-        const count = await PerformanceTrackerService.countBy({ componentId });
+        const [performanceTracker, count] = await Promise.all([
+            PerformanceTrackerService.getPerformanceTrackerByComponentId(
+                componentId,
+                limit || 0,
+                skip || 0
+            ),
+            PerformanceTrackerService.countBy({ componentId }),
+        ]);
         return sendListResponse(req, res, performanceTracker, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

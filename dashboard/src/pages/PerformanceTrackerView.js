@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import Dashboard from '../components/Dashboard';
 import getParentRoute from '../utils/getParentRoute';
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
@@ -153,170 +152,168 @@ class PerformanceTrackerView extends Component {
         } = this.props;
         const componentName = component ? component.name : '';
         return (
-            <Dashboard>
-                <Fade>
-                    <>
-                        <BreadCrumbItem
-                            route={getParentRoute(
-                                pathname,
-                                null,
-                                'component-tracker'
-                            )}
-                            name={componentName}
-                        />
-                        <BreadCrumbItem
-                            route={getParentRoute(
-                                pathname,
-                                null,
-                                'performance-tracker'
-                            )}
-                            name="Performance Tracker"
-                        />
-                        <BreadCrumbItem
-                            route={pathname}
-                            name={performanceTracker && performanceTracker.name}
-                            pageTitle="Performance Tracker"
-                        />
-                        {!trackerObj.requesting &&
-                            performanceTracker &&
-                            performanceTracker.showQuickStart &&
-                            this.state.showQuickStart && (
-                                <QuickStart
-                                    appId={performanceTracker._id}
-                                    appKey={
-                                        (resetTrackerObj.performanceTracker &&
-                                            resetTrackerObj.performanceTracker
-                                                .key) ||
-                                        performanceTracker.key
-                                    }
-                                    close={() =>
-                                        removeQuickStart({
-                                            projectId: currentProject._id,
-                                            performanceTrackerId:
-                                                performanceTracker._id,
-                                        }).then(() =>
-                                            this.setState({
-                                                showQuickStart: false,
-                                            })
-                                        )
-                                    }
-                                />
-                            )}
-                        {!trackerObj.requesting &&
-                            performanceTracker &&
-                            component && (
-                                <PerformanceTrackerHeader
-                                    performanceTracker={performanceTracker}
-                                    componentSlug={component.slug}
-                                    project={currentProject}
-                                    component={component}
-                                />
-                            )}
-                        <Tabs
-                            selectedTabClassName={'custom-tab-selected'}
-                            onSelect={tabIndex => this.tabSelected(tabIndex)}
-                            selectedIndex={this.state.tabIndex}
-                        >
-                            <div className="Flex-flex Flex-direction--columnReverse">
-                                <TabList
-                                    id="customTabList"
-                                    className={'custom-tab-list'}
-                                >
-                                    <Tab className={'custom-tab custom-tab-2'}>
-                                        Overview
-                                    </Tab>
-                                    <Tab className={'custom-tab custom-tab-2'}>
-                                        Details
-                                    </Tab>
-                                    <div
-                                        id="tab-slider"
-                                        className="custom-tab-2"
-                                    ></div>
-                                </TabList>
-                            </div>
-                            <ShouldRender if={trackerObj.requesting}>
-                                <LoadingState />
-                            </ShouldRender>
-                            <TabPanel>
-                                <Fade>
-                                    {!trackerObj.requesting && (
-                                        <div className="Box-root Margin-bottom--12">
+            <Fade>
+                <>
+                    <BreadCrumbItem
+                        route={getParentRoute(
+                            pathname,
+                            null,
+                            'component-tracker'
+                        )}
+                        name={componentName}
+                    />
+                    <BreadCrumbItem
+                        route={getParentRoute(
+                            pathname,
+                            null,
+                            'performance-tracker'
+                        )}
+                        name="Performance Tracker"
+                    />
+                    <BreadCrumbItem
+                        route={pathname}
+                        name={performanceTracker && performanceTracker.name}
+                        pageTitle="Performance Tracker"
+                    />
+                    {!trackerObj.requesting &&
+                        performanceTracker &&
+                        performanceTracker.showQuickStart &&
+                        this.state.showQuickStart && (
+                            <QuickStart
+                                appId={performanceTracker._id}
+                                appKey={
+                                    (resetTrackerObj.performanceTracker &&
+                                        resetTrackerObj.performanceTracker
+                                            .key) ||
+                                    performanceTracker.key
+                                }
+                                close={() =>
+                                    removeQuickStart({
+                                        projectId: currentProject._id,
+                                        performanceTrackerId:
+                                            performanceTracker._id,
+                                    }).then(() =>
+                                        this.setState({
+                                            showQuickStart: false,
+                                        })
+                                    )
+                                }
+                            />
+                        )}
+                    {!trackerObj.requesting &&
+                        performanceTracker &&
+                        component && (
+                            <PerformanceTrackerHeader
+                                performanceTracker={performanceTracker}
+                                componentSlug={component.slug}
+                                project={currentProject}
+                                component={component}
+                            />
+                        )}
+                    <Tabs
+                        selectedTabClassName={'custom-tab-selected'}
+                        onSelect={tabIndex => this.tabSelected(tabIndex)}
+                        selectedIndex={this.state.tabIndex}
+                    >
+                        <div className="Flex-flex Flex-direction--columnReverse">
+                            <TabList
+                                id="customTabList"
+                                className={'custom-tab-list'}
+                            >
+                                <Tab className={'custom-tab custom-tab-2'}>
+                                    Overview
+                                </Tab>
+                                <Tab className={'custom-tab custom-tab-2'}>
+                                    Details
+                                </Tab>
+                                <div
+                                    id="tab-slider"
+                                    className="custom-tab-2"
+                                ></div>
+                            </TabList>
+                        </div>
+                        <ShouldRender if={trackerObj.requesting}>
+                            <LoadingState />
+                        </ShouldRender>
+                        <TabPanel>
+                            <Fade>
+                                {!trackerObj.requesting && (
+                                    <div className="Box-root Margin-bottom--12">
+                                        <div>
                                             <div>
-                                                <div>
-                                                    {/* <PerformanceView /> */}
-                                                </div>
+                                                {/* <PerformanceView /> */}
                                             </div>
+                                        </div>
+                                        <div>
                                             <div>
-                                                <div>
-                                                    <WebTransactionsChart
-                                                        heading="Web Transactions Time"
-                                                        title={[]}
-                                                        subHeading="Average Response time of your HTTP Requests."
-                                                        type="transactionTime"
-                                                    />
-                                                </div>
+                                                <WebTransactionsChart
+                                                    heading="Web Transactions Time"
+                                                    title={[]}
+                                                    subHeading="Average Response time of your HTTP Requests."
+                                                    type="transactionTime"
+                                                />
                                             </div>
+                                        </div>
+                                        <div>
                                             <div>
-                                                <div>
-                                                    <WebTransactionsChart
-                                                        heading="Throughput"
-                                                        title={[]}
-                                                        subHeading="Number of HTTP requests per minute your app serves."
-                                                        type="throughput"
-                                                    />
-                                                </div>
+                                                <WebTransactionsChart
+                                                    heading="Throughput"
+                                                    title={[]}
+                                                    subHeading="Number of HTTP requests per minute your app serves."
+                                                    type="throughput"
+                                                />
                                             </div>
+                                        </div>
+                                        <div>
                                             <div>
-                                                <div>
-                                                    <WebTransactionsChart
-                                                        heading="Error Rate"
-                                                        title={[]}
-                                                        subHeading="Number of HTTP Error responses per minute served by your app."
-                                                        type="errorRate"
-                                                    />
-                                                </div>
+                                                <WebTransactionsChart
+                                                    heading="Error Rate"
+                                                    title={[]}
+                                                    subHeading="Number of HTTP Error responses per minute served by your app."
+                                                    type="errorRate"
+                                                />
                                             </div>
+                                        </div>
+                                        <div>
                                             <div>
-                                                <div>
-                                                    {/* <WebTransactionsChart
+                                                {/* <WebTransactionsChart
                                                         heading="Apdex Score"
                                                         title={[]}
                                                         subHeading="shows graph of satisfied requests against total requests"
                                                     /> */}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </Fade>
-                            </TabPanel>
-                            <TabPanel>
-                                <Fade>
-                                    <div className="Box-root Margin-bottom--12">
-                                        <div>
-                                            <div>
-                                                <TransactionMetricsTable
-                                                    heading="Incoming HTTP Requests"
-                                                    subHeading="Shows list of all incoming HTTP requests received by your app."
-                                                    type="incoming"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div>
-                                                <TransactionMetricsTable
-                                                    heading="Outgoing HTTP Requests"
-                                                    subHeading="Shows a list of all the HTTP requests your app made."
-                                                    type="outgoing"
-                                                />
                                             </div>
                                         </div>
                                     </div>
-                                </Fade>
-                            </TabPanel>
-                        </Tabs>
-                    </>
-                </Fade>
-            </Dashboard>
+                                )}
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <div className="Box-root Margin-bottom--12">
+                                    <div>
+                                        <div>
+                                            <TransactionMetricsTable
+                                                heading="Incoming HTTP Requests"
+                                                subHeading="Shows list of all incoming HTTP requests received by your app."
+                                                type="incoming"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div>
+                                            <TransactionMetricsTable
+                                                heading="Outgoing HTTP Requests"
+                                                subHeading="Shows a list of all the HTTP requests your app made."
+                                                type="outgoing"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </Fade>
+                        </TabPanel>
+                    </Tabs>
+                </>
+            </Fade>
         );
     }
 }

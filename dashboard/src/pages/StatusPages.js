@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import StatusPagesTable from '../components/statusPage/StatusPagesTable';
 import PropTypes from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
@@ -25,19 +24,17 @@ class StatusPage extends Component {
         } = this.props;
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem route={pathname} name="Status Pages" />
-                    <ShouldRender if={this.props.tutorialStat.statusPage.show}>
-                        <TutorialBox
-                            type="status-page"
-                            currentProjectId={projectId}
-                        />
-                    </ShouldRender>
+            <Fade>
+                <BreadCrumbItem route={pathname} name="Status Pages" />
+                <ShouldRender if={this.props.tutorialStat.statusPage.show}>
+                    <TutorialBox
+                        type="status-page"
+                        currentProjectId={projectId}
+                    />
+                </ShouldRender>
 
-                    <StatusPagesTable projectId={projectId} />
-                </Fade>
-            </Dashboard>
+                <StatusPagesTable projectId={projectId} />
+            </Fade>
         );
     }
 }

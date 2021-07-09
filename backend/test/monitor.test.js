@@ -1,30 +1,29 @@
-/* eslint-disable */
 process.env.PORT = 3020;
 process.env.IS_SAAS_SERVICE = true;
-let expect = require('chai').expect;
-let userData = require('./data/user');
-let chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
-let app = require('../server');
-let GlobalConfig = require('./utils/globalConfig');
-let request = chai.request.agent(app);
-let { createUser } = require('./utils/userSignUp');
-let UserService = require('../backend/services/userService');
-let ProjectService = require('../backend/services/projectService');
-let MonitorService = require('../backend/services/monitorService');
-let ResourceCategoryService = require('../backend/services/resourceCategoryService');
-let NotificationService = require('../backend/services/notificationService');
-let AirtableService = require('../backend/services/airtableService');
+const app = require('../server');
+const GlobalConfig = require('./utils/globalConfig');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const MonitorService = require('../backend/services/monitorService');
+const ResourceCategoryService = require('../backend/services/resourceCategoryService');
+const NotificationService = require('../backend/services/notificationService');
+const AirtableService = require('../backend/services/airtableService');
 const uuid = require('uuid');
 
-let VerificationTokenModel = require('../backend/models/verificationToken');
-let ComponentModel = require('../backend/models/component');
+const VerificationTokenModel = require('../backend/models/verificationToken');
+const ComponentModel = require('../backend/models/component');
 
 let token, userId, projectId, monitorId, resourceCategoryId, monitor2Id;
 const httpMonitorId = uuid.v4();
 const httpMonitor2Id = uuid.v4();
-let resourceCategory = {
+const resourceCategory = {
     resourceCategoryName: 'New Monitor Category',
 };
 
@@ -76,7 +75,7 @@ describe('Monitor API', function() {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err, res) {
-                let project = res.body.project;
+                const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
@@ -142,7 +141,7 @@ describe('Monitor API', function() {
     });
 
     it('should not create a monitor when the `name` field is null', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -159,7 +158,7 @@ describe('Monitor API', function() {
     });
 
     it('should not create a monitor when the `type` field is null', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -176,7 +175,7 @@ describe('Monitor API', function() {
     });
 
     it('should not create a monitor when the `data` field is not valid', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -193,7 +192,7 @@ describe('Monitor API', function() {
     });
 
     it('should not create an agentless server monitor when identityFile authentication is selected and the `identityFile` field is not valid', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -212,7 +211,7 @@ describe('Monitor API', function() {
     });
 
     it('should create a new monitor when the correct data is given by an authenticated user', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -231,7 +230,7 @@ describe('Monitor API', function() {
     });
 
     it('should add a new site url to a monitor', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}/siteUrl/${monitorId}`)
             .set('Authorization', authorization)
@@ -247,7 +246,7 @@ describe('Monitor API', function() {
     });
 
     it('should remove a site url from a monitor', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .delete(`/monitor/${projectId}/siteUrl/${monitorId}`)
             .set('Authorization', authorization)
@@ -263,8 +262,8 @@ describe('Monitor API', function() {
     });
 
     it('should not create a new monitor with invalid call schedule', function(done) {
-        let scheduleId = 20;
-        let authorization = `Basic ${token}`;
+        const scheduleId = 20;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -283,7 +282,7 @@ describe('Monitor API', function() {
 
     it('should create a new monitor with valid call schedule', function(done) {
         let scheduleId;
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${projectId}`)
             .set('Authorization', authorization)
@@ -324,7 +323,7 @@ describe('Monitor API', function() {
 
     it('should create two new monitors and add them to one call schedule', function(done) {
         let scheduleId;
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/schedule/${projectId}`)
             .set('Authorization', authorization)
@@ -382,7 +381,7 @@ describe('Monitor API', function() {
     });
 
     it('should update a monitor when the correct data is given by an authenticated user', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .put(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
@@ -401,7 +400,7 @@ describe('Monitor API', function() {
     });
 
     it('should get monitors for an authenticated user by ProjectId', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .get(`/monitor/${projectId}/monitor`)
             .set('Authorization', authorization)
@@ -415,7 +414,7 @@ describe('Monitor API', function() {
     });
 
     it('should get a monitor for an authenticated user with valid monitorId', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .get(`/monitor/${projectId}/monitor/${monitorId}`)
             .set('Authorization', authorization)
@@ -428,7 +427,7 @@ describe('Monitor API', function() {
     });
 
     it('should delete a monitor when monitorId is valid', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .delete(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
@@ -450,7 +449,7 @@ describe('API Monitor API', function() {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err, res) {
-                let project = res.body.project;
+                const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
@@ -509,7 +508,7 @@ describe('API Monitor API', function() {
     });
 
     it('should not add API monitor with invalid website url', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -530,7 +529,7 @@ describe('API Monitor API', function() {
     });
 
     it('should not add API monitor with invalid url', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -548,7 +547,7 @@ describe('API Monitor API', function() {
     });
 
     it('should not add API monitor with empty or invalid header', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -567,7 +566,7 @@ describe('API Monitor API', function() {
     });
 
     it('should not add API monitor with empty body', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -587,7 +586,7 @@ describe('API Monitor API', function() {
     });
 
     it('should not add API monitor with invalid body', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -609,7 +608,7 @@ describe('API Monitor API', function() {
     });
 
     it('should add API monitor with valid url', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -629,7 +628,7 @@ describe('API Monitor API', function() {
     });
 
     it('should not edit API monitor with invalid url', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .put(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
@@ -657,7 +656,7 @@ describe('IncomingHttpRequest Monitor', function() {
         this.timeout(30000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err, res) {
-                let project = res.body.project;
+                const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
@@ -705,7 +704,7 @@ describe('IncomingHttpRequest Monitor', function() {
     });
 
     it('should create a new IncomingHttpRequest monitor', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -771,7 +770,7 @@ describe('IncomingHttpRequest Monitor', function() {
     });
 
     it('should create a new IncomingHttpRequest monitor with query params and request headers', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         const criteria = { ...httpMonitorCriteria };
         criteria.up.and.push({
             responseType: 'queryString',
@@ -836,7 +835,7 @@ describe('Monitor API with resource Category', function() {
         this.timeout(40000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err, res) {
-                let project = res.body.project;
+                const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
                 VerificationTokenModel.findOne({ userId }, function(
@@ -855,7 +854,7 @@ describe('Monitor API with resource Category', function() {
                                 })
                                 .end(function(err, res) {
                                     token = res.body.tokens.jwtAccessToken;
-                                    let authorization = `Basic ${token}`;
+                                    const authorization = `Basic ${token}`;
                                     request
                                         .post(`/resourceCategory/${projectId}`)
                                         .set('Authorization', authorization)
@@ -879,7 +878,7 @@ describe('Monitor API with resource Category', function() {
     });
 
     it('should create a new monitor when the resource Category is provided by an authenticated user', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -909,7 +908,7 @@ describe('Monitor API with Sub-Projects', function() {
     this.timeout(30000);
     before(function(done) {
         GlobalConfig.initTestConfig().then(function() {
-            let authorization = `Basic ${token}`;
+            const authorization = `Basic ${token}`;
             // create a subproject for parent project
             request
                 .post(`/project/${projectId}/subProject`)
@@ -939,7 +938,7 @@ describe('Monitor API with Sub-Projects', function() {
                                         .end(function(err, res) {
                                             newUserToken =
                                                 res.body.tokens.jwtAccessToken;
-                                            let authorization = `Basic ${token}`;
+                                            const authorization = `Basic ${token}`;
                                             // add second user to subproject
                                             request
                                                 .post(`/team/${subProjectId}`)
@@ -987,7 +986,7 @@ describe('Monitor API with Sub-Projects', function() {
                                 password: userData.anotherUser.password,
                             })
                             .end(function(err, res) {
-                                let authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                                const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                                 request
                                     .post(`/monitor/${projectId}`)
                                     .set('Authorization', authorization)
@@ -1011,7 +1010,7 @@ describe('Monitor API with Sub-Projects', function() {
     });
 
     it('should not create a monitor for user that is not `admin` in project.', function(done) {
-        let authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request
             .post(`/monitor/${subProjectId}`)
             .set('Authorization', authorization)
@@ -1031,7 +1030,7 @@ describe('Monitor API with Sub-Projects', function() {
     });
 
     it('should create a monitor in parent project by valid admin.', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -1050,7 +1049,7 @@ describe('Monitor API with Sub-Projects', function() {
     });
 
     it('should create a monitor in sub-project.', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${subProjectId}`)
             .set('Authorization', authorization)
@@ -1069,7 +1068,7 @@ describe('Monitor API with Sub-Projects', function() {
     });
 
     it("should get only sub-project's monitors for valid sub-project user", function(done) {
-        let authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request
             .get(`/monitor/${subProjectId}/monitor`)
             .set('Authorization', authorization)
@@ -1085,7 +1084,7 @@ describe('Monitor API with Sub-Projects', function() {
     });
 
     it('should get both project and sub-project monitors for valid parent project user.', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .get(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -1101,7 +1100,7 @@ describe('Monitor API with Sub-Projects', function() {
     });
 
     it('should not delete a monitor for user that is not `admin` in sub-project.', function(done) {
-        let authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request
             .delete(`/monitor/${subProjectId}/${subProjectMonitorId}`)
             .set('Authorization', authorization)
@@ -1115,7 +1114,7 @@ describe('Monitor API with Sub-Projects', function() {
     });
 
     it('should delete sub-project monitor', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .delete(`/monitor/${subProjectId}/${subProjectMonitorId}`)
             .set('Authorization', authorization)
@@ -1126,7 +1125,7 @@ describe('Monitor API with Sub-Projects', function() {
     });
 
     it('should delete project monitor', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .delete(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization)
@@ -1140,7 +1139,7 @@ describe('Monitor API with Sub-Projects', function() {
 describe('Monitor API - Tests Project Seats With SubProjects', function() {
     this.timeout(30000);
 
-    let monitorDataArray = [
+    const monitorDataArray = [
         {
             name: 'New Monitor1',
             type: 'url',
@@ -1196,7 +1195,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
     before(async function() {
         this.timeout(30000);
         await GlobalConfig.initTestConfig();
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
 
         await MonitorService.hardDeleteBy({ projectId });
 
@@ -1228,7 +1227,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
     });
 
     it('should not create a new monitor because the monitor count limit is reached (Startup Plan -> 5 monitors/user).', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
 
         request
             .post(`/monitor/${projectId}`)
@@ -1249,7 +1248,7 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
     });
 
     it('should be able to create more monitor on upgrade of project to Growth plan.', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         const growthPlan = 'plan_GoWKgxRnPPBJWy';
 
         const project = ProjectService.changePlan(
@@ -1298,8 +1297,8 @@ describe('Monitor API - Tests Project Seats With SubProjects', function() {
     });*/
 
     it('should delete a monitor', async () => {
-        let authorization = `Basic ${token}`;
-        let res = await request
+        const authorization = `Basic ${token}`;
+        const res = await request
             .delete(`/monitor/${projectId}/${monitorId}`)
             .set('Authorization', authorization);
         expect(res).to.have.status(200);

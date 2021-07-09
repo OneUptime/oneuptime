@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 const userData = require('./data/user');
@@ -173,7 +171,10 @@ describe('Incident Settings API', function() {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         incidentId = res.body._id;
-        const incident = await IncidentService.findOneBy({ _id: incidentId });
+        const incident = await IncidentService.findOneBy({
+            query: { _id: incidentId },
+            select: 'description',
+        });
         expect(incident.description).to.eql('TEST: online');
     });
 });

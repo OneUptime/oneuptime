@@ -303,12 +303,10 @@ router.get('/:projectId', async function(req, res) {
         const projectId = req.params.projectId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const subscribers = await SubscriberService.findBy(
-            { projectId: projectId },
-            skip,
-            limit
-        );
-        const count = await SubscriberService.countBy({ projectId: projectId });
+        const [subscribers, count] = await Promise.all([
+            SubscriberService.findBy({ projectId: projectId }, skip, limit),
+            SubscriberService.countBy({ projectId: projectId }),
+        ]);
         return sendListResponse(req, res, subscribers, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -323,12 +321,14 @@ router.get('/:projectId/monitor/:monitorId', async function(req, res) {
         const monitorId = req.params.monitorId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const subscribers = await SubscriberService.findBy(
-            { monitorId: monitorId, subscribed: true },
-            skip,
-            limit
-        );
-        const count = await SubscriberService.countBy({ monitorId: monitorId });
+        const [subscribers, count] = await Promise.all([
+            SubscriberService.findBy(
+                { monitorId: monitorId, subscribed: true },
+                skip,
+                limit
+            ),
+            SubscriberService.countBy({ monitorId: monitorId }),
+        ]);
         return sendListResponse(req, res, subscribers, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -356,8 +356,8 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
         );
 
         const subscriberMonitors = await MonitorService.findBy({
-            _id: { $in: monitorIds },
-            deleted: false,
+            query: { _id: { $in: monitorIds }, deleted: false },
+            select: '_id',
         });
 
         const filteredSubscriptions = [];
