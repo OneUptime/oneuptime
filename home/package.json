@@ -22,7 +22,8 @@
         "ejs": "^2.6.2",
         "express": "^4.17.1",
         "minify": "^5.1.1",
-        "try-to-catch": "^3.0.0"
+        "try-to-catch": "^3.0.0",
+        "xmlbuilder2": "^2.4.1"
     },
     "resolutions": {},
     "devDependencies": {
