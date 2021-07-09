@@ -359,7 +359,7 @@ module.exports = {
             scheduledEventQuery = handleSelect(select, scheduledEventQuery);
             scheduledEventQuery = handlePopulate(populate, scheduledEventQuery);
 
-            let scheduledEvent = await scheduledEventQuery;
+            const scheduledEvent = await scheduledEventQuery;
 
             if (scheduledEvent) {
                 if (scheduledEvent.createdById === 'API') {

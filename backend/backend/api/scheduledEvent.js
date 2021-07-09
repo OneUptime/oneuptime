@@ -619,7 +619,7 @@ router.get(
             const select =
                 'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
 
-            query = {
+            const query = {
                 projectId,
                 monitorId,
                 showEventOnStatusPage: true,
