@@ -150,7 +150,8 @@ module.exports = {
             ).populate('deletedById', 'name');
             if (issue) {
                 const component = await ComponentService.findOneBy({
-                    _id: componentId,
+                    query: { _id: componentId },
+                    select: 'projectId',
                 });
                 NotificationService.create(
                     component.projectId,

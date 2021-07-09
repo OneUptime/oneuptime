@@ -1637,9 +1637,18 @@ module.exports = {
             const monitors = incident.monitors.map(
                 monitor => monitor.monitorId
             );
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
             for (const monitor of monitors) {
                 const component = await componentService.findOneBy({
-                    _id: monitor.componentId,
+                    query: { _id: monitor.componentId },
+                    select: selectComponent,
+                    populate: populateComponent,
                 });
 
                 let incidentStatus;
@@ -2562,11 +2571,22 @@ module.exports = {
             ]);
             monitor = mon;
             // get the component
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
             const component = await ComponentService.findOneBy({
-                _id:
-                    monitor.componentId && monitor.componentId._id
-                        ? monitor.componentId._id
-                        : monitor.componentId,
+                query: {
+                    _id:
+                        monitor.componentId && monitor.componentId._id
+                            ? monitor.componentId._id
+                            : monitor.componentId,
+                },
+                select: selectComponent,
+                populate: populateComponent,
             });
             const statusUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/incidents/${incident.idNumber}`;
 
