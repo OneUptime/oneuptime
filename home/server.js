@@ -26,6 +26,7 @@ const minify = require('minify');
 const tryToCatch = require('try-to-catch');
 const productCompare = require('./config/product-compare');
 const axios = require('axios');
+const builder = require('xmlbuilder2');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -710,6 +711,47 @@ app.get('/css/comparision.css', async function(req, res) {
         './public/css/comparision.css'
     );
     res.send(data);
+});
+
+// generate sitemap
+app.get('/sitemap.xml', async (req, res) => {
+    const siteUrls = [
+        'https://fyipe.com/',
+        'https://fyipe.com/pricing',
+        'https://fyipe.com/support',
+    ];
+
+    // build xml
+    const urlsetAttr = [
+        { xmlns: 'http://www.sitemaps.org/schemas/sitemap/0.9' },
+        { 'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance' },
+        {
+            'xsi:schemaLocation':
+                'http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd',
+        },
+    ];
+
+    const timestamp = new Date().toISOString();
+
+    const urlset = builder.create().ele('urlset');
+
+    // apply attributes to root element
+    urlsetAttr.forEach(attr => {
+        urlset.att(attr);
+    });
+
+    //append urls to root element
+    siteUrls.forEach(url => {
+        const urlElement = urlset.ele('url');
+        urlElement.ele('loc').txt(url);
+        urlElement.ele('lastmod').txt(timestamp);
+    });
+
+    // generate xml file
+    const xml = urlset.end({ prettyPrint: true });
+
+    res.setHeader('Content-Type', 'text/xml');
+    res.send(xml);
 });
 
 // cache policy for static contents
