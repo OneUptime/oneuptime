@@ -212,7 +212,7 @@ app.use(
     require('./backend/api/applicationScanner')
 );
 app.use(
-    ['/container', '/api/container'], 
+    ['/container', '/api/container'],
     require('./backend/api/containerScanner')
 );
 app.use(

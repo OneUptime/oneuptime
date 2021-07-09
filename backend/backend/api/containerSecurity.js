@@ -4,7 +4,6 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ContainerSecurityService = require('../services/containerSecurityService');
-const ProbeService = require('../services/probeService');
 const RealTimeService = require('../services/realTimeService');
 const ResourceCategoryService = require('../services/resourceCategoryService');
 
@@ -294,7 +293,7 @@ router.post(
     async (req, res) => {
         try {
             const { containerSecurityId } = req.params;
-            let containerSecurity = await ContainerSecurityService.findOneBy({
+            const containerSecurity = await ContainerSecurityService.findOneBy({
                 _id: containerSecurityId,
             });
 
@@ -311,7 +310,10 @@ router.post(
                 { scanned: false }
             ); //This helps the container scanner to pull the container
 
-            global.io.emit(`security_${containerSecurity._id}`, updatedContainerSecurity);
+            global.io.emit(
+                `security_${containerSecurity._id}`,
+                updatedContainerSecurity
+            );
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

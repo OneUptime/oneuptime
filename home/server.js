@@ -26,6 +26,7 @@ const minify = require('minify');
 const tryToCatch = require('try-to-catch');
 const productCompare = require('./config/product-compare');
 const axios = require('axios');
+const builder = require('xmlbuilder2');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -710,6 +711,97 @@ app.get('/css/comparision.css', async function(req, res) {
         './public/css/comparision.css'
     );
     res.send(data);
+});
+
+// generate sitemap
+app.get('/sitemap.xml', async (req, res) => {
+    const siteUrls = [
+        'https://fyipe.com/',
+        'https://fyipe.com/pricing',
+        'https://fyipe.com/support',
+        'https://fyipe.com/product/public-status-page',
+        'https://fyipe.com/product/private-status-page',
+        'https://fyipe.com/product/uptime-monitoring',
+        'https://fyipe.com/product/incident-management',
+        'https://fyipe.com/product/app-security',
+        'https://fyipe.com/product/api-monitoring',
+        'https://fyipe.com/product/server-monitoring',
+        'https://fyipe.com/product/logs-management',
+        'https://fyipe.com/product/docker-container-security',
+        'https://fyipe.com/product/oncall-management',
+        'https://fyipe.com/customers',
+        'https://fyipe.com/enterprise/overview',
+        'https://fyipe.com/enterprise/demo',
+        'https://fyipe.com/enterprise/resources',
+        'https://fyipe.com/legal/terms',
+        'https://fyipe.com/legal/privacy',
+        'https://fyipe.com/legal/gdpr',
+        'https://fyipe.com/legal/ccpa',
+        'https://fyipe.com/legal',
+        'https://fyipe.com/compare/pagerduty',
+        'https://fyipe.com/compare/pingdom',
+        'https://fyipe.com/compare/statuspage.io',
+        'https://fyipe.com/table/pagerduty',
+        'https://fyipe.com/table/pingdom',
+        'https://fyipe.com/table/statuspage.io',
+        'https://fyipe.com/legal/soc-2',
+        'https://fyipe.com/legal/soc-3',
+        'https://fyipe.com/legal/iso-27017',
+        'https://fyipe.com/legal/iso-27018',
+        'https://fyipe.com/legal/hipaa',
+        'https://fyipe.com/legal/pci',
+        'https://fyipe.com/enterprise/download-resource/website-monitoring',
+        'https://fyipe.com/enterprise/download-resource/speed-equals-revenue',
+        'https://fyipe.com/enterprise/download-resource/best-practices',
+        'https://fyipe.com/enterprise/download-resource/planning-for-peak-performance',
+        'https://fyipe.com/legal/sla',
+        'https://fyipe.com/legal/iso-27001',
+        'https://fyipe.com/legal/data-residency',
+        'https://fyipe.com/legal/dmca',
+        'https://fyipe.com/legal/subprocessors',
+        'https://fyipe.com/legal/contact',
+        'https://fyipe.com/files/soc-3.pdf',
+        'https://fyipe.com/files/iso-27017.pdf',
+        'https://fyipe.com/files/iso-27018.pdf',
+        'https://fyipe.com/files/pci.pdf',
+        'https://fyipe.com/files/iso-27001.pdf',
+    ];
+
+    // build xml
+    const urlsetAttr = [
+        { xmlns: 'http://www.sitemaps.org/schemas/sitemap/0.9' },
+        { 'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance' },
+        {
+            'xsi:schemaLocation':
+                'http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd',
+        },
+    ];
+
+    // get previous day's date/timestamp
+    const today = new Date();
+    today.setDate(today.getDate() - 1);
+
+    const timestamp = today.toISOString();
+
+    const urlset = builder.create().ele('urlset');
+
+    // apply attributes to root element
+    urlsetAttr.forEach(attr => {
+        urlset.att(attr);
+    });
+
+    //append urls to root element
+    siteUrls.forEach(url => {
+        const urlElement = urlset.ele('url');
+        urlElement.ele('loc').txt(url);
+        urlElement.ele('lastmod').txt(timestamp);
+    });
+
+    // generate xml file
+    const xml = urlset.end({ prettyPrint: true });
+
+    res.setHeader('Content-Type', 'text/xml');
+    res.send(xml);
 });
 
 // cache policy for static contents

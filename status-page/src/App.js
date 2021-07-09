@@ -16,7 +16,6 @@ import { removeQuery } from './store/store';
 const SingleAnnouncement = lazy(() =>
     import('./components/SingleAnnouncement')
 );
-import { LoadingState } from './components/basic/Loader';
 
 const userId = queryString.parse(window.location.search).userId;
 const accessToken = queryString.parse(window.location.search).accessToken;
@@ -27,11 +26,44 @@ if (userId && accessToken) {
     removeQuery();
 }
 
+const AppLoader = () => (
+    <div
+        id="app-loading"
+        style={{
+            position: 'fixed',
+            top: '0',
+            bottom: '0',
+            left: '0',
+            right: '0',
+            zIndex: '999',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+        }}
+    >
+        <div style={{ transform: 'scale(2)' }}>
+            <svg
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+                className="bs-Spinner-svg"
+            >
+                <ellipse
+                    cx="12"
+                    cy="12"
+                    rx="10"
+                    ry="10"
+                    className="bs-Spinner-ellipse"
+                ></ellipse>
+            </svg>
+        </div>
+    </div>
+);
+
 const App = () => (
     <>
         <Socket />
         <Router>
-            <Suspense fallback={<LoadingState />}>
+            <Suspense fallback={<AppLoader />}>
                 <Switch>
                     <Route exact path="/" component={Main} />
                     <Route exact path="/status-page" component={Main} />

@@ -6408,39 +6408,6 @@ const formatBytes = (a, b, c, d, e) => {
     );
 };
 
-function createDir(dirPath) {
-    return new Promise((resolve, reject) => {
-        const workPath = Path.resolve(process.cwd(), dirPath);
-        if (fs.existsSync(workPath)) {
-            resolve(workPath);
-        }
-
-        fs.mkdir(workPath, error => {
-            if (error) reject(error);
-            resolve(workPath);
-        });
-    });
-}
-
-async function deleteFile(file) {
-    if (fs.existsSync(file)) {
-        await unlink(file);
-    }
-}
-
-function readFileContent(filePath) {
-    return new Promise((resolve, reject) => {
-        if (fs.existsSync(filePath)) {
-            fs.readFile(filePath, { encoding: 'utf8' }, function(error, data) {
-                if (error) {
-                    reject(error);
-                }
-                resolve(data);
-            });
-        }
-    });
-}
-
 const ProbeModel = require('../models/probe');
 const RealTimeService = require('./realTimeService');
 const ErrorService = require('./errorService');
@@ -6452,14 +6419,6 @@ const LighthouseLogService = require('./lighthouseLogService');
 const IncidentService = require('./incidentService');
 const IncidentTimelineService = require('./incidentTimelineService');
 const moment = require('moment');
-const fs = require('fs');
-const { spawn } = require('child_process');
-const Path = require('path');
-const ContainerSecurityService = require('./containerSecurityService');
-const ContainerSecurityLogService = require('./containerSecurityLogService');
-const flattenArray = require('../utils/flattenArray');
-const { promisify } = require('util');
-const unlink = promisify(fs.unlink);
 const { some, forEach } = require('p-iteration');
 const vm = require('vm');
 const AutomatedScriptService = require('./automatedScriptService');
