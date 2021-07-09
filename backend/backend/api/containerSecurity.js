@@ -306,17 +306,12 @@ router.post(
                 return sendErrorResponse(req, res, error);
             }
 
-            // decrypt password
-            containerSecurity = await ContainerSecurityService.decryptPassword(
-                containerSecurity
-            );
+            const updatedContainerSecurity = await ContainerSecurityService.updateOneBy(
+                { _id: containerSecurityId },
+                { scanned: false }
+            ); //This helps the container scanner to pull the container
 
-            const securityLog = await ProbeService.scanContainerSecurity(
-                containerSecurity
-            );
-
-            global.io.emit(`securityLog_${containerSecurity._id}`, securityLog);
-            return sendItemResponse(req, res, securityLog);
+            global.io.emit(`security_${containerSecurity._id}`, updatedContainerSecurity);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

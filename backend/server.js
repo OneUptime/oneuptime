@@ -212,6 +212,10 @@ app.use(
     require('./backend/api/applicationScanner')
 );
 app.use(
+    ['/container', '/api/container'], 
+    require('./backend/api/containerScanner')
+);
+app.use(
     ['/lighthouse', '/api/lighthouse'],
     require('./backend/api/lighthouse')
 );

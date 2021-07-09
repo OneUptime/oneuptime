@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { Fragment } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -35,11 +36,19 @@ const SecurityInfo = ({
     activeContainerSecurity,
     slug,
     scannedStatus,
+    containerScannedStatus,
 }) => {
     let currentScannedStatus = true;
     scannedStatus.forEach(scan => {
         if (applicationSecurityId === scan._id) {
             currentScannedStatus = scan.scanned;
+        }
+    });
+
+    let currentContainerScannedStatus = true;
+    containerScannedStatus.forEach(scan => {
+        if (containerSecurityId === scan._id) {
+            currentContainerScannedStatus = scan.scanned;
         }
     });
 
@@ -237,7 +246,8 @@ const SecurityInfo = ({
                                     String(activeContainerSecurity)) ||
                             security.scanning ||
                             !security.lastScan ||
-                            currentScannedStatus === false ? (
+                            currentScannedStatus === false || 
+                            currentContainerScannedStatus === false ? (
                                 <button
                                     className="bs-Button bs-DeprecatedButton"
                                     disabled={
@@ -247,7 +257,8 @@ const SecurityInfo = ({
                                             scanningContainer) ||
                                         security.scanning ||
                                         !security.lastScan ||
-                                        currentScannedStatus === false
+                                        currentScannedStatus === false || 
+                                        currentContainerScannedStatus === false
                                     }
                                     id={
                                         (applicationSecurityId &&
@@ -411,6 +422,7 @@ const mapStateToProps = state => {
         activeContainerSecurity: state.security.activeContainerSecurity,
         slug: state.project.currentProject && state.project.currentProject.slug,
         scannedStatus: state.security.applicationSecurities,
+        containerScannedStatus: state.security.containerSecurities,
     };
 };
 
