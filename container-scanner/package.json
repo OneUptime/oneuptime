@@ -6,7 +6,7 @@
     "scripts": {
         "start": "node --max-old-space-size=4096 --max-http-header-size=80000 index.js",
         "test": "echo \"Error: no test specified\" && exit 1",
-        "dev": "node --max-old-space-size=4096 --max-http-header-size=80000 index.js"
+        "dev": "node --inspect=0.0.0.0 --max-http-header-size=80000  index.js"
     },
     "author": "David Adewole",
     "license": "MIT",
