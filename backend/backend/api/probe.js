@@ -9,7 +9,6 @@ const ProbeService = require('../services/probeService');
 const MonitorService = require('../services/monitorService');
 const ProjectService = require('../services/projectService');
 const LighthouseLogService = require('../services/lighthouseLogService');
-const ContainerSecurityService = require('../services/containerSecurityService');
 const router = express.Router();
 const isAuthorizedAdmin = require('../middlewares/clusterAuthorization')
     .isAuthorizedAdmin;
@@ -717,30 +716,6 @@ router.get('/:projectId/probes', getUser, isAuthorized, async function(
             ProbeService.countBy({}),
         ]);
         return sendListResponse(req, res, probe, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.get('/containerSecurities', isAuthorizedProbe, async function(req, res) {
-    try {
-        const response = await ContainerSecurityService.getSecuritiesToScan();
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.post('/scan/docker', isAuthorizedProbe, async function(req, res) {
-    try {
-        let { security } = req.body;
-
-        security = JSON.parse(security); // always parse the JSON
-        security = await ContainerSecurityService.decryptPassword(security);
-
-        const securityLog = await ProbeService.scanContainerSecurity(security);
-        global.io.emit(`securityLog_${security._id}`, securityLog);
-        return sendItemResponse(req, res, securityLog);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

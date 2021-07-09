@@ -212,10 +212,9 @@ export const scanContainerSecurity = ({
     dispatch(setActiveContainerSecurity(containerSecurityId));
 
     try {
-        const response = await postApi(
+        await postApi(
             `security/${projectId}/container/scan/${containerSecurityId}`
         );
-        dispatch(scanContainerSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
             error.response && error.response.data

@@ -1,0 +1,1678 @@
+[
+    {
+        "Target": "adeoluwadavid/docker101tutorial:latest (alpine 3.11.6)",
+        "Type": "alpine",
+        "Vulnerabilities": [
+            {
+                "VulnerabilityID": "CVE-2021-30139",
+                "PkgName": "apk-tools",
+                "InstalledVersion": "2.10.5-r0",
+                "FixedVersion": "2.10.6-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-30139",
+                "Description": "In Alpine Linux apk-tools before 2.12.5, the tarball parser allows a buffer overflow and crash.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-125"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    }
+                },
+                "References": [
+                    "https://gitlab.alpinelinux.org/alpine/apk-tools/-/issues/10741",
+                    "https://gitlab.alpinelinux.org/alpine/aports/-/issues/12606"
+                ],
+                "PublishedDate": "2021-04-21T16:15:00Z",
+                "LastModifiedDate": "2021-04-22T18:21:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-28831",
+                "PkgName": "busybox",
+                "InstalledVersion": "1.31.1-r9",
+                "FixedVersion": "1.31.1-r10",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-28831",
+                "Title": "busybox: invalid free or segmentation fault via malformed gzip data",
+                "Description": "decompress_gunzip.c in BusyBox through 1.32.1 mishandles the error bit on the huft_build result pointer, with a resultant invalid free or segmentation fault, via malformed gzip data.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-755"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V3Score": 7.5
+                    }
+                },
+                "References": [
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-28831",
+                    "https://git.busybox.net/busybox/commit/?id=f25d254dfd4243698c31a4f3153d4ac72aa9e9bd",
+                    "https://lists.debian.org/debian-lts-announce/2021/04/msg00001.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/3UDQGJRECXFS5EZVDH2OI45FMO436AC4/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/Z7ZIFKPRR32ZYA3WAA2NXFA3QHHOU6FJ/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ZASBW7QRRLY5V2R44MQ4QQM4CZIDHM2U/",
+                    "https://security.gentoo.org/glsa/202105-09"
+                ],
+                "PublishedDate": "2021-03-19T05:15:00Z",
+                "LastModifiedDate": "2021-05-26T10:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-8169",
+                "PkgName": "curl",
+                "InstalledVersion": "7.67.0-r0",
+                "FixedVersion": "7.67.0-r1",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-8169",
+                "Title": "libcurl: partial password leak over DNS on HTTP redirect",
+                "Description": "curl 7.62.0 through 7.70.0 is vulnerable to an information disclosure vulnerability that can lead to a partial password being leaked over the network and to the DNS server(s).",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-200"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:P/I:N/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+                        "V3Score": 5.9
+                    }
+                },
+                "References": [
+                    "https://cert-portal.siemens.com/productcert/pdf/ssa-200951.pdf",
+                    "https://curl.haxx.se/docs/CVE-2020-8169.html",
+                    "https://curl.se/docs/CVE-2020-8169.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-8169",
+                    "https://hackerone.com/reports/874778",
+                    "https://ubuntu.com/security/notices/USN-4402-1",
+                    "https://www.debian.org/security/2021/dsa-4881"
+                ],
+                "PublishedDate": "2020-12-14T20:15:00Z",
+                "LastModifiedDate": "2021-06-08T20:00:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-8177",
+                "PkgName": "curl",
+                "InstalledVersion": "7.67.0-r0",
+                "FixedVersion": "7.67.0-r1",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-8177",
+                "Title": "curl: Incorrect argument check can allow remote servers to overwrite local files",
+                "Description": "curl 7.20.0 through 7.70.0 is vulnerable to improper restriction of names for files and other resources that can lead too overwriting a local file when the -J flag is used.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-74"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:L/AC:L/Au:N/C:P/I:P/A:P",
+                        "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:H",
+                        "V2Score": 4.6,
+                        "V3Score": 7.1
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:N/I:H/A:L",
+                        "V3Score": 5.4
+                    }
+                },
+                "References": [
+                    "https://curl.haxx.se/docs/CVE-2020-8177.html",
+                    "https://curl.se/docs/CVE-2020-8177.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-8177",
+                    "https://hackerone.com/reports/887462",
+                    "https://linux.oracle.com/cve/CVE-2020-8177.html",
+                    "https://linux.oracle.com/errata/ELSA-2020-5002.html",
+                    "https://ubuntu.com/security/notices/USN-4402-1",
+                    "https://www.debian.org/security/2021/dsa-4881"
+                ],
+                "PublishedDate": "2020-12-14T20:15:00Z",
+                "LastModifiedDate": "2021-04-01T00:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-8231",
+                "PkgName": "curl",
+                "InstalledVersion": "7.67.0-r0",
+                "FixedVersion": "7.67.0-r2",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-8231",
+                "Title": "curl: Expired pointer dereference via multi API with CURLOPT_CONNECT_ONLY option set",
+                "Description": "Due to use of a dangling pointer, libcurl 7.29.0 through 7.71.1 can use the wrong connection when sending data.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-416"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:P/I:N/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N",
+                        "V3Score": 3.7
+                    }
+                },
+                "References": [
+                    "https://curl.haxx.se/docs/CVE-2020-8231.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-8231",
+                    "https://hackerone.com/reports/948876",
+                    "https://linux.oracle.com/cve/CVE-2020-8231.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-1610.html",
+                    "https://lists.apache.org/thread.html/r58af02e294bd07f487e2c64ffc0a29b837db5600e33b6e698b9d696b@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://lists.apache.org/thread.html/rf4c02775860db415b4955778a131c2795223f61cb8c6a450893651e4@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://security.gentoo.org/glsa/202012-14",
+                    "https://ubuntu.com/security/notices/USN-4466-1",
+                    "https://ubuntu.com/security/notices/USN-4466-2",
+                    "https://ubuntu.com/security/notices/USN-4665-1",
+                    "https://www.debian.org/security/2021/dsa-4881"
+                ],
+                "PublishedDate": "2020-12-14T20:15:00Z",
+                "LastModifiedDate": "2021-06-29T15:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-8285",
+                "PkgName": "curl",
+                "InstalledVersion": "7.67.0-r0",
+                "FixedVersion": "7.67.0-r3",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-8285",
+                "Title": "curl: Malicious FTP server can trigger stack overflow when CURLOPT_CHUNK_BGN_FUNCTION is used",
+                "Description": "curl 7.21.0 to and including 7.73.0 is vulnerable to uncontrolled recursion due to a stack overflow issue in FTP wildcard match parsing.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-787", "CWE-674"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H",
+                        "V3Score": 6.5
+                    }
+                },
+                "References": [
+                    "http://seclists.org/fulldisclosure/2021/Apr/51",
+                    "https://curl.se/docs/CVE-2020-8285.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-8285",
+                    "https://github.com/curl/curl/issues/6255",
+                    "https://hackerone.com/reports/1045844",
+                    "https://linux.oracle.com/cve/CVE-2020-8285.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-1610.html",
+                    "https://lists.apache.org/thread.html/r58af02e294bd07f487e2c64ffc0a29b837db5600e33b6e698b9d696b@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://lists.apache.org/thread.html/rf4c02775860db415b4955778a131c2795223f61cb8c6a450893651e4@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://lists.debian.org/debian-lts-announce/2020/12/msg00029.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/DAEHE2S2QLO4AO4MEEYL75NB7SAH5PSL/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/NZUVSQHN2ESHMJXNQ2Z7T2EELBB5HJXG/",
+                    "https://security.gentoo.org/glsa/202012-14",
+                    "https://security.netapp.com/advisory/ntap-20210122-0007/",
+                    "https://support.apple.com/kb/HT212325",
+                    "https://support.apple.com/kb/HT212326",
+                    "https://support.apple.com/kb/HT212327",
+                    "https://ubuntu.com/security/notices/USN-4665-1",
+                    "https://ubuntu.com/security/notices/USN-4665-2",
+                    "https://www.debian.org/security/2021/dsa-4881",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html"
+                ],
+                "PublishedDate": "2020-12-14T20:15:00Z",
+                "LastModifiedDate": "2021-06-29T15:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-8286",
+                "PkgName": "curl",
+                "InstalledVersion": "7.67.0-r0",
+                "FixedVersion": "7.67.0-r3",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-8286",
+                "Title": "curl: Inferior OCSP verification",
+                "Description": "curl 7.41.0 through 7.73.0 is vulnerable to an improper check for certificate revocation due to insufficient verification of the OCSP response.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-295"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:N/I:P/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+                        "V3Score": 7.4
+                    }
+                },
+                "References": [
+                    "http://seclists.org/fulldisclosure/2021/Apr/50",
+                    "http://seclists.org/fulldisclosure/2021/Apr/51",
+                    "http://seclists.org/fulldisclosure/2021/Apr/54",
+                    "https://cert-portal.siemens.com/productcert/pdf/ssa-200951.pdf",
+                    "https://curl.se/docs/CVE-2020-8286.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-8286",
+                    "https://hackerone.com/reports/1048457",
+                    "https://linux.oracle.com/cve/CVE-2020-8286.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-1610.html",
+                    "https://lists.debian.org/debian-lts-announce/2020/12/msg00029.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/DAEHE2S2QLO4AO4MEEYL75NB7SAH5PSL/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/NZUVSQHN2ESHMJXNQ2Z7T2EELBB5HJXG/",
+                    "https://security.gentoo.org/glsa/202012-14",
+                    "https://security.netapp.com/advisory/ntap-20210122-0007/",
+                    "https://support.apple.com/kb/HT212325",
+                    "https://support.apple.com/kb/HT212326",
+                    "https://support.apple.com/kb/HT212327",
+                    "https://ubuntu.com/security/notices/USN-4665-1",
+                    "https://www.debian.org/security/2021/dsa-4881",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html"
+                ],
+                "PublishedDate": "2020-12-14T20:15:00Z",
+                "LastModifiedDate": "2021-06-14T18:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-22898",
+                "PkgName": "curl",
+                "InstalledVersion": "7.67.0-r0",
+                "FixedVersion": "7.67.0-r4",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-22898",
+                "Title": "curl: TELNET stack contents disclosure",
+                "Description": "curl 7.7 through 7.76.1 suffers from an information disclosure when the `-t` command line option, known as `CURLOPT_TELNETOPTIONS` in libcurl, is used to send variable=content pairs to TELNET servers. Due to a flaw in the option parser for sending NEW_ENV variables, libcurl could be made to pass on uninitialized data from a stack based buffer to the server, resulting in potentially revealing sensitive internal information to the server using a clear-text network protocol.",
+                "Severity": "LOW",
+                "CweIDs": ["CWE-909"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:H/Au:N/C:P/I:N/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:N/A:N",
+                        "V2Score": 2.6,
+                        "V3Score": 3.1
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:N/A:N",
+                        "V3Score": 3.1
+                    }
+                },
+                "References": [
+                    "https://curl.se/docs/CVE-2021-22898.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-22898",
+                    "https://github.com/curl/curl/commit/39ce47f219b09c380b81f89fe54ac586c8db6bde",
+                    "https://hackerone.com/reports/1176461",
+                    "https://lists.apache.org/thread.html/rc713534b10f9daeee2e0990239fa407e2118e4aa9e88a7041177497c@%3Cissues.guacamole.apache.org%3E"
+                ],
+                "PublishedDate": "2021-06-11T16:15:00Z",
+                "LastModifiedDate": "2021-07-01T15:16:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-15999",
+                "PkgName": "freetype",
+                "InstalledVersion": "2.10.1-r0",
+                "FixedVersion": "2.10.1-r1",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-15999",
+                "Title": "freetype: Heap-based buffer overflow due to integer truncation in Load_SBit_Png",
+                "Description": "Heap buffer overflow in Freetype in Google Chrome prior to 86.0.4240.111 allowed a remote attacker to potentially exploit heap corruption via a crafted HTML page.",
+                "Severity": "MEDIUM",
+                "CweIDs": ["CWE-787"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H",
+                        "V2Score": 4.3,
+                        "V3Score": 6.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:H",
+                        "V3Score": 8.6
+                    }
+                },
+                "References": [
+                    "http://lists.opensuse.org/opensuse-security-announce/2020-11/msg00016.html",
+                    "http://seclists.org/fulldisclosure/2020/Nov/33",
+                    "https://bugs.chromium.org/p/project-zero/issues/detail?id=2103",
+                    "https://chromereleases.googleblog.com/2020/10/stable-channel-update-for-desktop_20.html",
+                    "https://crbug.com/1139963",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-15999",
+                    "https://github.com/advisories/GHSA-pv36-h7jh-qm62",
+                    "https://github.com/cefsharp/CefSharp/security/advisories/GHSA-pv36-h7jh-qm62",
+                    "https://googleprojectzero.blogspot.com/p/rca-cve-2020-15999.html",
+                    "https://linux.oracle.com/cve/CVE-2020-15999.html",
+                    "https://linux.oracle.com/errata/ELSA-2020-4952.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/J3QVIGAAJ4D62YEJAJJWMCCBCOQ6TVL7/",
+                    "https://nvd.nist.gov/vuln/detail/CVE-2020-15999",
+                    "https://security.gentoo.org/glsa/202011-12",
+                    "https://security.gentoo.org/glsa/202012-04",
+                    "https://ubuntu.com/security/notices/USN-4593-1",
+                    "https://ubuntu.com/security/notices/USN-4593-2",
+                    "https://www.debian.org/security/2021/dsa-4824",
+                    "https://www.mozilla.org/en-US/security/advisories/mfsa2020-52/#CVE-2020-15999"
+                ],
+                "PublishedDate": "2020-11-03T03:15:00Z",
+                "LastModifiedDate": "2021-02-11T19:50:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-23840",
+                "PkgName": "libcrypto1.1",
+                "InstalledVersion": "1.1.1g-r0",
+                "FixedVersion": "1.1.1j-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-23840",
+                "Title": "openssl: integer overflow in CipherUpdate",
+                "Description": "Calls to EVP_CipherUpdate, EVP_EncryptUpdate and EVP_DecryptUpdate may overflow the output length argument in some cases where the input length is close to the maximum permissable length for an integer on the platform. In such cases the return value from the function call will be 1 (indicating success), but the output length value will be negative. This could cause applications to behave incorrectly or crash. OpenSSL versions 1.1.1i and below are affected by this issue. Users of these versions should upgrade to OpenSSL 1.1.1j. OpenSSL versions 1.0.2x and below are affected by this issue. However OpenSSL 1.0.2 is out of support and no longer receiving public updates. Premium support customers of OpenSSL 1.0.2 should upgrade to 1.0.2y. Other users should upgrade to 1.1.1j. Fixed in OpenSSL 1.1.1j (Affected 1.1.1-1.1.1i). Fixed in OpenSSL 1.0.2y (Affected 1.0.2-1.0.2x).",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-190"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V3Score": 7.5
+                    }
+                },
+                "References": [
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-23840",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=6a51b9e1d0cf0bf8515f7201b68fb0a3482b3dc1",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=9b1129239f3ebb1d1c98ce9ed41d5c9476c47cb2",
+                    "https://lists.apache.org/thread.html/r58af02e294bd07f487e2c64ffc0a29b837db5600e33b6e698b9d696b@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://lists.apache.org/thread.html/rf4c02775860db415b4955778a131c2795223f61cb8c6a450893651e4@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://security.gentoo.org/glsa/202103-03",
+                    "https://security.netapp.com/advisory/ntap-20210219-0009/",
+                    "https://ubuntu.com/security/notices/USN-4738-1",
+                    "https://www.debian.org/security/2021/dsa-4855",
+                    "https://www.openssl.org/news/secadv/20210216.txt",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html",
+                    "https://www.tenable.com/security/tns-2021-03",
+                    "https://www.tenable.com/security/tns-2021-09",
+                    "https://www.tenable.com/security/tns-2021-10"
+                ],
+                "PublishedDate": "2021-02-16T17:15:00Z",
+                "LastModifiedDate": "2021-06-29T15:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-3450",
+                "PkgName": "libcrypto1.1",
+                "InstalledVersion": "1.1.1g-r0",
+                "FixedVersion": "1.1.1k-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-3450",
+                "Title": "openssl: CA certificate check bypass with X509_V_FLAG_X509_STRICT",
+                "Description": "The X509_V_FLAG_X509_STRICT flag enables additional security checks of the certificates present in a certificate chain. It is not set by default. Starting from OpenSSL version 1.1.1h a check to disallow certificates in the chain that have explicitly encoded elliptic curve parameters was added as an additional strict check. An error in the implementation of this check meant that the result of a previous check to confirm that certificates in the chain are valid CA certificates was overwritten. This effectively bypasses the check that non-CA certificates must not be able to issue other certificates. If a \"purpose\" has been configured then there is a subsequent opportunity for checks that the certificate is a valid CA. All of the named \"purpose\" values implemented in libcrypto perform this check. Therefore, where a purpose is set the certificate chain will still be rejected even when the strict flag has been used. A purpose is set by default in libssl client and server certificate verification routines, but it can be overridden or removed by an application. In order to be affected, an application must explicitly set the X509_V_FLAG_X509_STRICT verification flag and either not set a purpose for the certificate verification or, in the case of TLS client or server applications, override the default purpose. OpenSSL versions 1.1.1h and newer are affected by this issue. Users of these versions should upgrade to OpenSSL 1.1.1k. OpenSSL 1.0.2 is not impacted by this issue. Fixed in OpenSSL 1.1.1k (Affected 1.1.1h-1.1.1j).",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-295"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:P/I:P/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+                        "V2Score": 5.8,
+                        "V3Score": 7.4
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+                        "V3Score": 7.4
+                    }
+                },
+                "References": [
+                    "http://www.openwall.com/lists/oss-security/2021/03/27/1",
+                    "http://www.openwall.com/lists/oss-security/2021/03/27/2",
+                    "http://www.openwall.com/lists/oss-security/2021/03/28/3",
+                    "http://www.openwall.com/lists/oss-security/2021/03/28/4",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=2a40b7bc7b94dd7de897a74571e7024f0cf0d63b",
+                    "https://kc.mcafee.com/corporate/index?page=content\u0026id=SB10356",
+                    "https://linux.oracle.com/cve/CVE-2021-3450.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-9151.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/CCBFLLVQVILIVGZMBJL3IXZGKWQISYNP/",
+                    "https://mta.openssl.org/pipermail/openssl-announce/2021-March/000198.html",
+                    "https://security.FreeBSD.org/advisories/FreeBSD-SA-21:07.openssl.asc",
+                    "https://security.gentoo.org/glsa/202103-03",
+                    "https://security.netapp.com/advisory/ntap-20210326-0006/",
+                    "https://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-openssl-2021-GHY28dJd",
+                    "https://www.openssl.org/news/secadv/20210325.txt",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html",
+                    "https://www.tenable.com/security/tns-2021-05",
+                    "https://www.tenable.com/security/tns-2021-08",
+                    "https://www.tenable.com/security/tns-2021-09"
+                ],
+                "PublishedDate": "2021-03-25T15:15:00Z",
+                "LastModifiedDate": "2021-06-17T16:59:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-1971",
+                "PkgName": "libcrypto1.1",
+                "InstalledVersion": "1.1.1g-r0",
+                "FixedVersion": "1.1.1i-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-1971",
+                "Title": "openssl: EDIPARTYNAME NULL pointer de-reference",
+                "Description": "The X.509 GeneralName type is a generic type for representing different types of names. One of those name types is known as EDIPartyName. OpenSSL provides a function GENERAL_NAME_cmp which compares different instances of a GENERAL_NAME to see if they are equal or not. This function behaves incorrectly when both GENERAL_NAMEs contain an EDIPARTYNAME. A NULL pointer dereference and a crash may occur leading to a possible denial of service attack. OpenSSL itself uses the GENERAL_NAME_cmp function for two purposes: 1) Comparing CRL distribution point names between an available CRL and a CRL distribution point embedded in an X509 certificate 2) When verifying that a timestamp response token signer matches the timestamp authority name (exposed via the API functions TS_RESP_verify_response and TS_RESP_verify_token) If an attacker can control both items being compared then that attacker could trigger a crash. For example if the attacker can trick a client or server into checking a malicious certificate against a malicious CRL then this may occur. Note that some applications automatically download CRLs based on a URL embedded in a certificate. This checking happens prior to the signatures on the certificate and CRL being verified. OpenSSL's s_server, s_client and verify tools have support for the \"-crl_download\" option which implements automatic CRL downloading and this attack has been demonstrated to work against those tools. Note that an unrelated bug means that affected versions of OpenSSL cannot parse or construct correct encodings of EDIPARTYNAME. However it is possible to construct a malformed EDIPARTYNAME that OpenSSL's parser will accept and hence trigger this attack. All OpenSSL 1.1.1 and 1.0.2 versions are affected by this issue. Other OpenSSL releases are out of support and have not been checked. Fixed in OpenSSL 1.1.1i (Affected 1.1.1-1.1.1h). Fixed in OpenSSL 1.0.2x (Affected 1.0.2-1.0.2w).",
+                "Severity": "MEDIUM",
+                "CweIDs": ["CWE-476"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 4.3,
+                        "V3Score": 5.9
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V3Score": 5.9
+                    }
+                },
+                "References": [
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-1971",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=2154ab83e14ede338d2ede9bbe5cdfce5d5a6c9e",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=f960d81215ebf3f65e03d4d5d857fb9b666d6920",
+                    "https://kb.pulsesecure.net/articles/Pulse_Security_Advisories/SA44676",
+                    "https://linux.oracle.com/cve/CVE-2020-1971.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-9150.html",
+                    "https://lists.apache.org/thread.html/r63c6f2dd363d9b514d0a4bcf624580616a679898cc14c109a49b750c@%3Cdev.tomcat.apache.org%3E",
+                    "https://lists.apache.org/thread.html/rbb769f771711fb274e0a4acb1b5911c8aab544a6ac5e8c12d40c5143@%3Ccommits.pulsar.apache.org%3E",
+                    "https://lists.debian.org/debian-lts-announce/2020/12/msg00020.html",
+                    "https://lists.debian.org/debian-lts-announce/2020/12/msg00021.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/DGSI34Y5LQ5RYXN4M2I5ZQT65LFVDOUU/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/PWPSSZNZOBJU2YR6Z4TGHXKYW3YP5QG7/",
+                    "https://security.FreeBSD.org/advisories/FreeBSD-SA-20:33.openssl.asc",
+                    "https://security.gentoo.org/glsa/202012-13",
+                    "https://security.netapp.com/advisory/ntap-20201218-0005/",
+                    "https://security.netapp.com/advisory/ntap-20210513-0002/",
+                    "https://ubuntu.com/security/notices/USN-4662-1",
+                    "https://ubuntu.com/security/notices/USN-4745-1",
+                    "https://www.debian.org/security/2020/dsa-4807",
+                    "https://www.openssl.org/news/secadv/20201208.txt",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html",
+                    "https://www.oracle.com/security-alerts/cpujan2021.html",
+                    "https://www.tenable.com/security/tns-2020-11",
+                    "https://www.tenable.com/security/tns-2021-09",
+                    "https://www.tenable.com/security/tns-2021-10"
+                ],
+                "PublishedDate": "2020-12-08T16:15:00Z",
+                "LastModifiedDate": "2021-06-14T18:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-23841",
+                "PkgName": "libcrypto1.1",
+                "InstalledVersion": "1.1.1g-r0",
+                "FixedVersion": "1.1.1j-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-23841",
+                "Title": "openssl: NULL pointer dereference in X509_issuer_and_serial_hash()",
+                "Description": "The OpenSSL public API function X509_issuer_and_serial_hash() attempts to create a unique hash value based on the issuer and serial number data contained within an X509 certificate. However it fails to correctly handle any errors that may occur while parsing the issuer field (which might occur if the issuer field is maliciously constructed). This may subsequently result in a NULL pointer deref and a crash leading to a potential denial of service attack. The function X509_issuer_and_serial_hash() is never directly called by OpenSSL itself so applications are only vulnerable if they use this function directly and they use it on certificates that may have been obtained from untrusted sources. OpenSSL versions 1.1.1i and below are affected by this issue. Users of these versions should upgrade to OpenSSL 1.1.1j. OpenSSL versions 1.0.2x and below are affected by this issue. However OpenSSL 1.0.2 is out of support and no longer receiving public updates. Premium support customers of OpenSSL 1.0.2 should upgrade to 1.0.2y. Other users should upgrade to 1.1.1j. Fixed in OpenSSL 1.1.1j (Affected 1.1.1-1.1.1i). Fixed in OpenSSL 1.0.2y (Affected 1.0.2-1.0.2x).",
+                "Severity": "MEDIUM",
+                "CweIDs": ["CWE-190"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 4.3,
+                        "V3Score": 5.9
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V3Score": 5.9
+                    }
+                },
+                "References": [
+                    "http://seclists.org/fulldisclosure/2021/May/67",
+                    "http://seclists.org/fulldisclosure/2021/May/68",
+                    "http://seclists.org/fulldisclosure/2021/May/70",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-23841",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=122a19ab48091c657f7cb1fb3af9fc07bd557bbf",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=8252ee4d90f3f2004d3d0aeeed003ad49c9a7807",
+                    "https://security.gentoo.org/glsa/202103-03",
+                    "https://security.netapp.com/advisory/ntap-20210219-0009/",
+                    "https://security.netapp.com/advisory/ntap-20210513-0002/",
+                    "https://support.apple.com/kb/HT212528",
+                    "https://support.apple.com/kb/HT212529",
+                    "https://support.apple.com/kb/HT212534",
+                    "https://ubuntu.com/security/notices/USN-4738-1",
+                    "https://ubuntu.com/security/notices/USN-4745-1",
+                    "https://www.debian.org/security/2021/dsa-4855",
+                    "https://www.openssl.org/news/secadv/20210216.txt",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html",
+                    "https://www.tenable.com/security/tns-2021-03",
+                    "https://www.tenable.com/security/tns-2021-09"
+                ],
+                "PublishedDate": "2021-02-16T17:15:00Z",
+                "LastModifiedDate": "2021-06-17T17:09:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-3449",
+                "PkgName": "libcrypto1.1",
+                "InstalledVersion": "1.1.1g-r0",
+                "FixedVersion": "1.1.1k-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-3449",
+                "Title": "openssl: NULL pointer dereference in signature_algorithms processing",
+                "Description": "An OpenSSL TLS server may crash if sent a maliciously crafted renegotiation ClientHello message from a client. If a TLSv1.2 renegotiation ClientHello omits the signature_algorithms extension (where it was present in the initial ClientHello), but includes a signature_algorithms_cert extension then a NULL pointer dereference will result, leading to a crash and a denial of service attack. A server is only vulnerable if it has TLSv1.2 and renegotiation enabled (which is the default configuration). OpenSSL TLS clients are not impacted by this issue. All OpenSSL 1.1.1 versions are affected by this issue. Users of these versions should upgrade to OpenSSL 1.1.1k. OpenSSL 1.0.2 is not impacted by this issue. Fixed in OpenSSL 1.1.1k (Affected 1.1.1-1.1.1j).",
+                "Severity": "MEDIUM",
+                "CweIDs": ["CWE-476"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 4.3,
+                        "V3Score": 5.9
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V3Score": 5.9
+                    }
+                },
+                "References": [
+                    "http://www.openwall.com/lists/oss-security/2021/03/27/1",
+                    "http://www.openwall.com/lists/oss-security/2021/03/27/2",
+                    "http://www.openwall.com/lists/oss-security/2021/03/28/3",
+                    "http://www.openwall.com/lists/oss-security/2021/03/28/4",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-3449",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=fb9fa6b51defd48157eeb207f52181f735d96148",
+                    "https://kc.mcafee.com/corporate/index?page=content\u0026id=SB10356",
+                    "https://linux.oracle.com/cve/CVE-2021-3449.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-9151.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/CCBFLLVQVILIVGZMBJL3IXZGKWQISYNP/",
+                    "https://security.FreeBSD.org/advisories/FreeBSD-SA-21:07.openssl.asc",
+                    "https://security.gentoo.org/glsa/202103-03",
+                    "https://security.netapp.com/advisory/ntap-20210326-0006/",
+                    "https://security.netapp.com/advisory/ntap-20210513-0002/",
+                    "https://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-openssl-2021-GHY28dJd",
+                    "https://ubuntu.com/security/notices/USN-4891-1",
+                    "https://www.debian.org/security/2021/dsa-4875",
+                    "https://www.openssl.org/news/secadv/20210325.txt",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html",
+                    "https://www.tenable.com/security/tns-2021-05",
+                    "https://www.tenable.com/security/tns-2021-06",
+                    "https://www.tenable.com/security/tns-2021-09",
+                    "https://www.tenable.com/security/tns-2021-10"
+                ],
+                "PublishedDate": "2021-03-25T15:15:00Z",
+                "LastModifiedDate": "2021-06-17T17:04:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-23839",
+                "PkgName": "libcrypto1.1",
+                "InstalledVersion": "1.1.1g-r0",
+                "FixedVersion": "1.1.1j-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-23839",
+                "Title": "openssl: incorrect SSLv2 rollback protection",
+                "Description": "OpenSSL 1.0.2 supports SSLv2. If a client attempts to negotiate SSLv2 with a server that is configured to support both SSLv2 and more recent SSL and TLS versions then a check is made for a version rollback attack when unpadding an RSA signature. Clients that support SSL or TLS versions greater than SSLv2 are supposed to use a special form of padding. A server that supports greater than SSLv2 is supposed to reject connection attempts from a client where this special form of padding is present, because this indicates that a version rollback has occurred (i.e. both client and server support greater than SSLv2, and yet this is the version that is being requested). The implementation of this padding check inverted the logic so that the connection attempt is accepted if the padding is present, and rejected if it is absent. This means that such as server will accept a connection if a version rollback attack has occurred. Further the server will erroneously reject a connection if a normal SSLv2 connection attempt is made. Only OpenSSL 1.0.2 servers from version 1.0.2s to 1.0.2x are affected by this issue. In order to be vulnerable a 1.0.2 server must: 1) have configured SSLv2 support at compile time (this is off by default), 2) have configured SSLv2 support at runtime (this is off by default), 3) have configured SSLv2 ciphersuites (these are not in the default ciphersuite list) OpenSSL 1.1.1 does not have SSLv2 support and therefore is not vulnerable to this issue. The underlying error is in the implementation of the RSA_padding_check_SSLv23() function. This also affects the RSA_SSLV23_PADDING padding mode used by various other functions. Although 1.1.1 does not support SSLv2 the RSA_padding_check_SSLv23() function still exists, as does the RSA_SSLV23_PADDING padding mode. Applications that directly call that function or use that padding mode will encounter this issue. However since there is no support for the SSLv2 protocol in 1.1.1 this is considered a bug and not a security issue in that version. OpenSSL 1.0.2 is out of support and no longer receiving public updates. Premium support customers of OpenSSL 1.0.2 should upgrade to 1.0.2y. Other users should upgrade to 1.1.1j. Fixed in OpenSSL 1.0.2y (Affected 1.0.2s-1.0.2x).",
+                "Severity": "LOW",
+                "CweIDs": ["CWE-326"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:N/I:P/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:N",
+                        "V2Score": 4.3,
+                        "V3Score": 3.7
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:N",
+                        "V3Score": 3.7
+                    }
+                },
+                "References": [
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-23839",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=30919ab80a478f2d81f2e9acdcca3fa4740cd547",
+                    "https://security.netapp.com/advisory/ntap-20210219-0009/",
+                    "https://www.openssl.org/news/secadv/20210216.txt",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html"
+                ],
+                "PublishedDate": "2021-02-16T17:15:00Z",
+                "LastModifiedDate": "2021-06-17T17:13:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-8169",
+                "PkgName": "libcurl",
+                "InstalledVersion": "7.67.0-r0",
+                "FixedVersion": "7.67.0-r1",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-8169",
+                "Title": "libcurl: partial password leak over DNS on HTTP redirect",
+                "Description": "curl 7.62.0 through 7.70.0 is vulnerable to an information disclosure vulnerability that can lead to a partial password being leaked over the network and to the DNS server(s).",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-200"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:P/I:N/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+                        "V3Score": 5.9
+                    }
+                },
+                "References": [
+                    "https://cert-portal.siemens.com/productcert/pdf/ssa-200951.pdf",
+                    "https://curl.haxx.se/docs/CVE-2020-8169.html",
+                    "https://curl.se/docs/CVE-2020-8169.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-8169",
+                    "https://hackerone.com/reports/874778",
+                    "https://ubuntu.com/security/notices/USN-4402-1",
+                    "https://www.debian.org/security/2021/dsa-4881"
+                ],
+                "PublishedDate": "2020-12-14T20:15:00Z",
+                "LastModifiedDate": "2021-06-08T20:00:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-8177",
+                "PkgName": "libcurl",
+                "InstalledVersion": "7.67.0-r0",
+                "FixedVersion": "7.67.0-r1",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-8177",
+                "Title": "curl: Incorrect argument check can allow remote servers to overwrite local files",
+                "Description": "curl 7.20.0 through 7.70.0 is vulnerable to improper restriction of names for files and other resources that can lead too overwriting a local file when the -J flag is used.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-74"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:L/AC:L/Au:N/C:P/I:P/A:P",
+                        "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:H",
+                        "V2Score": 4.6,
+                        "V3Score": 7.1
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:N/I:H/A:L",
+                        "V3Score": 5.4
+                    }
+                },
+                "References": [
+                    "https://curl.haxx.se/docs/CVE-2020-8177.html",
+                    "https://curl.se/docs/CVE-2020-8177.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-8177",
+                    "https://hackerone.com/reports/887462",
+                    "https://linux.oracle.com/cve/CVE-2020-8177.html",
+                    "https://linux.oracle.com/errata/ELSA-2020-5002.html",
+                    "https://ubuntu.com/security/notices/USN-4402-1",
+                    "https://www.debian.org/security/2021/dsa-4881"
+                ],
+                "PublishedDate": "2020-12-14T20:15:00Z",
+                "LastModifiedDate": "2021-04-01T00:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-8231",
+                "PkgName": "libcurl",
+                "InstalledVersion": "7.67.0-r0",
+                "FixedVersion": "7.67.0-r2",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-8231",
+                "Title": "curl: Expired pointer dereference via multi API with CURLOPT_CONNECT_ONLY option set",
+                "Description": "Due to use of a dangling pointer, libcurl 7.29.0 through 7.71.1 can use the wrong connection when sending data.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-416"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:P/I:N/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N",
+                        "V3Score": 3.7
+                    }
+                },
+                "References": [
+                    "https://curl.haxx.se/docs/CVE-2020-8231.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-8231",
+                    "https://hackerone.com/reports/948876",
+                    "https://linux.oracle.com/cve/CVE-2020-8231.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-1610.html",
+                    "https://lists.apache.org/thread.html/r58af02e294bd07f487e2c64ffc0a29b837db5600e33b6e698b9d696b@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://lists.apache.org/thread.html/rf4c02775860db415b4955778a131c2795223f61cb8c6a450893651e4@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://security.gentoo.org/glsa/202012-14",
+                    "https://ubuntu.com/security/notices/USN-4466-1",
+                    "https://ubuntu.com/security/notices/USN-4466-2",
+                    "https://ubuntu.com/security/notices/USN-4665-1",
+                    "https://www.debian.org/security/2021/dsa-4881"
+                ],
+                "PublishedDate": "2020-12-14T20:15:00Z",
+                "LastModifiedDate": "2021-06-29T15:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-8285",
+                "PkgName": "libcurl",
+                "InstalledVersion": "7.67.0-r0",
+                "FixedVersion": "7.67.0-r3",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-8285",
+                "Title": "curl: Malicious FTP server can trigger stack overflow when CURLOPT_CHUNK_BGN_FUNCTION is used",
+                "Description": "curl 7.21.0 to and including 7.73.0 is vulnerable to uncontrolled recursion due to a stack overflow issue in FTP wildcard match parsing.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-787", "CWE-674"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H",
+                        "V3Score": 6.5
+                    }
+                },
+                "References": [
+                    "http://seclists.org/fulldisclosure/2021/Apr/51",
+                    "https://curl.se/docs/CVE-2020-8285.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-8285",
+                    "https://github.com/curl/curl/issues/6255",
+                    "https://hackerone.com/reports/1045844",
+                    "https://linux.oracle.com/cve/CVE-2020-8285.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-1610.html",
+                    "https://lists.apache.org/thread.html/r58af02e294bd07f487e2c64ffc0a29b837db5600e33b6e698b9d696b@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://lists.apache.org/thread.html/rf4c02775860db415b4955778a131c2795223f61cb8c6a450893651e4@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://lists.debian.org/debian-lts-announce/2020/12/msg00029.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/DAEHE2S2QLO4AO4MEEYL75NB7SAH5PSL/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/NZUVSQHN2ESHMJXNQ2Z7T2EELBB5HJXG/",
+                    "https://security.gentoo.org/glsa/202012-14",
+                    "https://security.netapp.com/advisory/ntap-20210122-0007/",
+                    "https://support.apple.com/kb/HT212325",
+                    "https://support.apple.com/kb/HT212326",
+                    "https://support.apple.com/kb/HT212327",
+                    "https://ubuntu.com/security/notices/USN-4665-1",
+                    "https://ubuntu.com/security/notices/USN-4665-2",
+                    "https://www.debian.org/security/2021/dsa-4881",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html"
+                ],
+                "PublishedDate": "2020-12-14T20:15:00Z",
+                "LastModifiedDate": "2021-06-29T15:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-8286",
+                "PkgName": "libcurl",
+                "InstalledVersion": "7.67.0-r0",
+                "FixedVersion": "7.67.0-r3",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-8286",
+                "Title": "curl: Inferior OCSP verification",
+                "Description": "curl 7.41.0 through 7.73.0 is vulnerable to an improper check for certificate revocation due to insufficient verification of the OCSP response.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-295"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:N/I:P/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+                        "V3Score": 7.4
+                    }
+                },
+                "References": [
+                    "http://seclists.org/fulldisclosure/2021/Apr/50",
+                    "http://seclists.org/fulldisclosure/2021/Apr/51",
+                    "http://seclists.org/fulldisclosure/2021/Apr/54",
+                    "https://cert-portal.siemens.com/productcert/pdf/ssa-200951.pdf",
+                    "https://curl.se/docs/CVE-2020-8286.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-8286",
+                    "https://hackerone.com/reports/1048457",
+                    "https://linux.oracle.com/cve/CVE-2020-8286.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-1610.html",
+                    "https://lists.debian.org/debian-lts-announce/2020/12/msg00029.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/DAEHE2S2QLO4AO4MEEYL75NB7SAH5PSL/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/NZUVSQHN2ESHMJXNQ2Z7T2EELBB5HJXG/",
+                    "https://security.gentoo.org/glsa/202012-14",
+                    "https://security.netapp.com/advisory/ntap-20210122-0007/",
+                    "https://support.apple.com/kb/HT212325",
+                    "https://support.apple.com/kb/HT212326",
+                    "https://support.apple.com/kb/HT212327",
+                    "https://ubuntu.com/security/notices/USN-4665-1",
+                    "https://www.debian.org/security/2021/dsa-4881",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html"
+                ],
+                "PublishedDate": "2020-12-14T20:15:00Z",
+                "LastModifiedDate": "2021-06-14T18:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-22898",
+                "PkgName": "libcurl",
+                "InstalledVersion": "7.67.0-r0",
+                "FixedVersion": "7.67.0-r4",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-22898",
+                "Title": "curl: TELNET stack contents disclosure",
+                "Description": "curl 7.7 through 7.76.1 suffers from an information disclosure when the `-t` command line option, known as `CURLOPT_TELNETOPTIONS` in libcurl, is used to send variable=content pairs to TELNET servers. Due to a flaw in the option parser for sending NEW_ENV variables, libcurl could be made to pass on uninitialized data from a stack based buffer to the server, resulting in potentially revealing sensitive internal information to the server using a clear-text network protocol.",
+                "Severity": "LOW",
+                "CweIDs": ["CWE-909"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:H/Au:N/C:P/I:N/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:N/A:N",
+                        "V2Score": 2.6,
+                        "V3Score": 3.1
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:N/A:N",
+                        "V3Score": 3.1
+                    }
+                },
+                "References": [
+                    "https://curl.se/docs/CVE-2021-22898.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-22898",
+                    "https://github.com/curl/curl/commit/39ce47f219b09c380b81f89fe54ac586c8db6bde",
+                    "https://hackerone.com/reports/1176461",
+                    "https://lists.apache.org/thread.html/rc713534b10f9daeee2e0990239fa407e2118e4aa9e88a7041177497c@%3Cissues.guacamole.apache.org%3E"
+                ],
+                "PublishedDate": "2021-06-11T16:15:00Z",
+                "LastModifiedDate": "2021-07-01T15:16:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-33560",
+                "PkgName": "libgcrypt",
+                "InstalledVersion": "1.8.5-r0",
+                "FixedVersion": "1.8.8-r0",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-33560",
+                "Title": "libgcrypt: mishandles ElGamal encryption because it lacks exponent blinding to address a side-channel attack against mpi_powm",
+                "Description": "Libgcrypt before 1.8.8 and 1.9.x before 1.9.3 mishandles ElGamal encryption because it lacks exponent blinding to address a side-channel attack against mpi_powm, and the window size is not chosen appropriately. (There is also an interoperability problem because the selection of the k integer value does not properly consider the differences between basic ElGamal encryption and generalized ElGamal encryption.) This, for example, affects use of ElGamal in OpenPGP.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-203"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:P/I:N/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+                        "V3Score": 7.5
+                    }
+                },
+                "References": [
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-33560",
+                    "https://dev.gnupg.org/T5305",
+                    "https://dev.gnupg.org/T5328",
+                    "https://dev.gnupg.org/T5466",
+                    "https://dev.gnupg.org/rCe8b7f10be275bcedb5fc05ed4837a89bfd605c61",
+                    "https://lists.debian.org/debian-lts-announce/2021/06/msg00021.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/R7OAPCUGPF3VLA7QAJUQSL255D4ITVTL/"
+                ],
+                "PublishedDate": "2021-06-08T11:15:00Z",
+                "LastModifiedDate": "2021-07-01T06:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-13790",
+                "PkgName": "libjpeg-turbo",
+                "InstalledVersion": "2.0.4-r0",
+                "FixedVersion": "2.0.4-r1",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-13790",
+                "Title": "libjpeg-turbo: heap-based buffer over-read in get_rgb_row() in rdppm.c",
+                "Description": "libjpeg-turbo 2.0.4, and mozjpeg 4.0.0, has a heap-based buffer over-read in get_rgb_row() in rdppm.c via a malformed PPM input file.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-125"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:P/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:H",
+                        "V2Score": 5.8,
+                        "V3Score": 8.1
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:H",
+                        "V3Score": 8.1
+                    }
+                },
+                "References": [
+                    "http://lists.opensuse.org/opensuse-security-announce/2020-09/msg00031.html",
+                    "http://lists.opensuse.org/opensuse-security-announce/2020-09/msg00062.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-13790",
+                    "https://github.com/libjpeg-turbo/libjpeg-turbo/commit/3de15e0c344d11d4b90f4a47136467053eb2d09a",
+                    "https://github.com/libjpeg-turbo/libjpeg-turbo/issues/433",
+                    "https://lists.debian.org/debian-lts-announce/2020/07/msg00033.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/P4D6KNUY7YANSPH7SVQ44PJKSABFKAUB/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/U6563YHSVZK24MPJXGJVK3CQG7JVWZGK/",
+                    "https://security.gentoo.org/glsa/202010-03",
+                    "https://ubuntu.com/security/notices/USN-4386-1",
+                    "https://usn.ubuntu.com/4386-1/"
+                ],
+                "PublishedDate": "2020-06-03T19:15:00Z",
+                "LastModifiedDate": "2020-10-20T13:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-23840",
+                "PkgName": "libssl1.1",
+                "InstalledVersion": "1.1.1g-r0",
+                "FixedVersion": "1.1.1j-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-23840",
+                "Title": "openssl: integer overflow in CipherUpdate",
+                "Description": "Calls to EVP_CipherUpdate, EVP_EncryptUpdate and EVP_DecryptUpdate may overflow the output length argument in some cases where the input length is close to the maximum permissable length for an integer on the platform. In such cases the return value from the function call will be 1 (indicating success), but the output length value will be negative. This could cause applications to behave incorrectly or crash. OpenSSL versions 1.1.1i and below are affected by this issue. Users of these versions should upgrade to OpenSSL 1.1.1j. OpenSSL versions 1.0.2x and below are affected by this issue. However OpenSSL 1.0.2 is out of support and no longer receiving public updates. Premium support customers of OpenSSL 1.0.2 should upgrade to 1.0.2y. Other users should upgrade to 1.1.1j. Fixed in OpenSSL 1.1.1j (Affected 1.1.1-1.1.1i). Fixed in OpenSSL 1.0.2y (Affected 1.0.2-1.0.2x).",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-190"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V3Score": 7.5
+                    }
+                },
+                "References": [
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-23840",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=6a51b9e1d0cf0bf8515f7201b68fb0a3482b3dc1",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=9b1129239f3ebb1d1c98ce9ed41d5c9476c47cb2",
+                    "https://lists.apache.org/thread.html/r58af02e294bd07f487e2c64ffc0a29b837db5600e33b6e698b9d696b@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://lists.apache.org/thread.html/rf4c02775860db415b4955778a131c2795223f61cb8c6a450893651e4@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://security.gentoo.org/glsa/202103-03",
+                    "https://security.netapp.com/advisory/ntap-20210219-0009/",
+                    "https://ubuntu.com/security/notices/USN-4738-1",
+                    "https://www.debian.org/security/2021/dsa-4855",
+                    "https://www.openssl.org/news/secadv/20210216.txt",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html",
+                    "https://www.tenable.com/security/tns-2021-03",
+                    "https://www.tenable.com/security/tns-2021-09",
+                    "https://www.tenable.com/security/tns-2021-10"
+                ],
+                "PublishedDate": "2021-02-16T17:15:00Z",
+                "LastModifiedDate": "2021-06-29T15:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-3450",
+                "PkgName": "libssl1.1",
+                "InstalledVersion": "1.1.1g-r0",
+                "FixedVersion": "1.1.1k-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-3450",
+                "Title": "openssl: CA certificate check bypass with X509_V_FLAG_X509_STRICT",
+                "Description": "The X509_V_FLAG_X509_STRICT flag enables additional security checks of the certificates present in a certificate chain. It is not set by default. Starting from OpenSSL version 1.1.1h a check to disallow certificates in the chain that have explicitly encoded elliptic curve parameters was added as an additional strict check. An error in the implementation of this check meant that the result of a previous check to confirm that certificates in the chain are valid CA certificates was overwritten. This effectively bypasses the check that non-CA certificates must not be able to issue other certificates. If a \"purpose\" has been configured then there is a subsequent opportunity for checks that the certificate is a valid CA. All of the named \"purpose\" values implemented in libcrypto perform this check. Therefore, where a purpose is set the certificate chain will still be rejected even when the strict flag has been used. A purpose is set by default in libssl client and server certificate verification routines, but it can be overridden or removed by an application. In order to be affected, an application must explicitly set the X509_V_FLAG_X509_STRICT verification flag and either not set a purpose for the certificate verification or, in the case of TLS client or server applications, override the default purpose. OpenSSL versions 1.1.1h and newer are affected by this issue. Users of these versions should upgrade to OpenSSL 1.1.1k. OpenSSL 1.0.2 is not impacted by this issue. Fixed in OpenSSL 1.1.1k (Affected 1.1.1h-1.1.1j).",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-295"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:P/I:P/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+                        "V2Score": 5.8,
+                        "V3Score": 7.4
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+                        "V3Score": 7.4
+                    }
+                },
+                "References": [
+                    "http://www.openwall.com/lists/oss-security/2021/03/27/1",
+                    "http://www.openwall.com/lists/oss-security/2021/03/27/2",
+                    "http://www.openwall.com/lists/oss-security/2021/03/28/3",
+                    "http://www.openwall.com/lists/oss-security/2021/03/28/4",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=2a40b7bc7b94dd7de897a74571e7024f0cf0d63b",
+                    "https://kc.mcafee.com/corporate/index?page=content\u0026id=SB10356",
+                    "https://linux.oracle.com/cve/CVE-2021-3450.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-9151.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/CCBFLLVQVILIVGZMBJL3IXZGKWQISYNP/",
+                    "https://mta.openssl.org/pipermail/openssl-announce/2021-March/000198.html",
+                    "https://security.FreeBSD.org/advisories/FreeBSD-SA-21:07.openssl.asc",
+                    "https://security.gentoo.org/glsa/202103-03",
+                    "https://security.netapp.com/advisory/ntap-20210326-0006/",
+                    "https://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-openssl-2021-GHY28dJd",
+                    "https://www.openssl.org/news/secadv/20210325.txt",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html",
+                    "https://www.tenable.com/security/tns-2021-05",
+                    "https://www.tenable.com/security/tns-2021-08",
+                    "https://www.tenable.com/security/tns-2021-09"
+                ],
+                "PublishedDate": "2021-03-25T15:15:00Z",
+                "LastModifiedDate": "2021-06-17T16:59:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-1971",
+                "PkgName": "libssl1.1",
+                "InstalledVersion": "1.1.1g-r0",
+                "FixedVersion": "1.1.1i-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-1971",
+                "Title": "openssl: EDIPARTYNAME NULL pointer de-reference",
+                "Description": "The X.509 GeneralName type is a generic type for representing different types of names. One of those name types is known as EDIPartyName. OpenSSL provides a function GENERAL_NAME_cmp which compares different instances of a GENERAL_NAME to see if they are equal or not. This function behaves incorrectly when both GENERAL_NAMEs contain an EDIPARTYNAME. A NULL pointer dereference and a crash may occur leading to a possible denial of service attack. OpenSSL itself uses the GENERAL_NAME_cmp function for two purposes: 1) Comparing CRL distribution point names between an available CRL and a CRL distribution point embedded in an X509 certificate 2) When verifying that a timestamp response token signer matches the timestamp authority name (exposed via the API functions TS_RESP_verify_response and TS_RESP_verify_token) If an attacker can control both items being compared then that attacker could trigger a crash. For example if the attacker can trick a client or server into checking a malicious certificate against a malicious CRL then this may occur. Note that some applications automatically download CRLs based on a URL embedded in a certificate. This checking happens prior to the signatures on the certificate and CRL being verified. OpenSSL's s_server, s_client and verify tools have support for the \"-crl_download\" option which implements automatic CRL downloading and this attack has been demonstrated to work against those tools. Note that an unrelated bug means that affected versions of OpenSSL cannot parse or construct correct encodings of EDIPARTYNAME. However it is possible to construct a malformed EDIPARTYNAME that OpenSSL's parser will accept and hence trigger this attack. All OpenSSL 1.1.1 and 1.0.2 versions are affected by this issue. Other OpenSSL releases are out of support and have not been checked. Fixed in OpenSSL 1.1.1i (Affected 1.1.1-1.1.1h). Fixed in OpenSSL 1.0.2x (Affected 1.0.2-1.0.2w).",
+                "Severity": "MEDIUM",
+                "CweIDs": ["CWE-476"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 4.3,
+                        "V3Score": 5.9
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V3Score": 5.9
+                    }
+                },
+                "References": [
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-1971",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=2154ab83e14ede338d2ede9bbe5cdfce5d5a6c9e",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=f960d81215ebf3f65e03d4d5d857fb9b666d6920",
+                    "https://kb.pulsesecure.net/articles/Pulse_Security_Advisories/SA44676",
+                    "https://linux.oracle.com/cve/CVE-2020-1971.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-9150.html",
+                    "https://lists.apache.org/thread.html/r63c6f2dd363d9b514d0a4bcf624580616a679898cc14c109a49b750c@%3Cdev.tomcat.apache.org%3E",
+                    "https://lists.apache.org/thread.html/rbb769f771711fb274e0a4acb1b5911c8aab544a6ac5e8c12d40c5143@%3Ccommits.pulsar.apache.org%3E",
+                    "https://lists.debian.org/debian-lts-announce/2020/12/msg00020.html",
+                    "https://lists.debian.org/debian-lts-announce/2020/12/msg00021.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/DGSI34Y5LQ5RYXN4M2I5ZQT65LFVDOUU/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/PWPSSZNZOBJU2YR6Z4TGHXKYW3YP5QG7/",
+                    "https://security.FreeBSD.org/advisories/FreeBSD-SA-20:33.openssl.asc",
+                    "https://security.gentoo.org/glsa/202012-13",
+                    "https://security.netapp.com/advisory/ntap-20201218-0005/",
+                    "https://security.netapp.com/advisory/ntap-20210513-0002/",
+                    "https://ubuntu.com/security/notices/USN-4662-1",
+                    "https://ubuntu.com/security/notices/USN-4745-1",
+                    "https://www.debian.org/security/2020/dsa-4807",
+                    "https://www.openssl.org/news/secadv/20201208.txt",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html",
+                    "https://www.oracle.com/security-alerts/cpujan2021.html",
+                    "https://www.tenable.com/security/tns-2020-11",
+                    "https://www.tenable.com/security/tns-2021-09",
+                    "https://www.tenable.com/security/tns-2021-10"
+                ],
+                "PublishedDate": "2020-12-08T16:15:00Z",
+                "LastModifiedDate": "2021-06-14T18:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-23841",
+                "PkgName": "libssl1.1",
+                "InstalledVersion": "1.1.1g-r0",
+                "FixedVersion": "1.1.1j-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-23841",
+                "Title": "openssl: NULL pointer dereference in X509_issuer_and_serial_hash()",
+                "Description": "The OpenSSL public API function X509_issuer_and_serial_hash() attempts to create a unique hash value based on the issuer and serial number data contained within an X509 certificate. However it fails to correctly handle any errors that may occur while parsing the issuer field (which might occur if the issuer field is maliciously constructed). This may subsequently result in a NULL pointer deref and a crash leading to a potential denial of service attack. The function X509_issuer_and_serial_hash() is never directly called by OpenSSL itself so applications are only vulnerable if they use this function directly and they use it on certificates that may have been obtained from untrusted sources. OpenSSL versions 1.1.1i and below are affected by this issue. Users of these versions should upgrade to OpenSSL 1.1.1j. OpenSSL versions 1.0.2x and below are affected by this issue. However OpenSSL 1.0.2 is out of support and no longer receiving public updates. Premium support customers of OpenSSL 1.0.2 should upgrade to 1.0.2y. Other users should upgrade to 1.1.1j. Fixed in OpenSSL 1.1.1j (Affected 1.1.1-1.1.1i). Fixed in OpenSSL 1.0.2y (Affected 1.0.2-1.0.2x).",
+                "Severity": "MEDIUM",
+                "CweIDs": ["CWE-190"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 4.3,
+                        "V3Score": 5.9
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V3Score": 5.9
+                    }
+                },
+                "References": [
+                    "http://seclists.org/fulldisclosure/2021/May/67",
+                    "http://seclists.org/fulldisclosure/2021/May/68",
+                    "http://seclists.org/fulldisclosure/2021/May/70",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-23841",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=122a19ab48091c657f7cb1fb3af9fc07bd557bbf",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=8252ee4d90f3f2004d3d0aeeed003ad49c9a7807",
+                    "https://security.gentoo.org/glsa/202103-03",
+                    "https://security.netapp.com/advisory/ntap-20210219-0009/",
+                    "https://security.netapp.com/advisory/ntap-20210513-0002/",
+                    "https://support.apple.com/kb/HT212528",
+                    "https://support.apple.com/kb/HT212529",
+                    "https://support.apple.com/kb/HT212534",
+                    "https://ubuntu.com/security/notices/USN-4738-1",
+                    "https://ubuntu.com/security/notices/USN-4745-1",
+                    "https://www.debian.org/security/2021/dsa-4855",
+                    "https://www.openssl.org/news/secadv/20210216.txt",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html",
+                    "https://www.tenable.com/security/tns-2021-03",
+                    "https://www.tenable.com/security/tns-2021-09"
+                ],
+                "PublishedDate": "2021-02-16T17:15:00Z",
+                "LastModifiedDate": "2021-06-17T17:09:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-3449",
+                "PkgName": "libssl1.1",
+                "InstalledVersion": "1.1.1g-r0",
+                "FixedVersion": "1.1.1k-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-3449",
+                "Title": "openssl: NULL pointer dereference in signature_algorithms processing",
+                "Description": "An OpenSSL TLS server may crash if sent a maliciously crafted renegotiation ClientHello message from a client. If a TLSv1.2 renegotiation ClientHello omits the signature_algorithms extension (where it was present in the initial ClientHello), but includes a signature_algorithms_cert extension then a NULL pointer dereference will result, leading to a crash and a denial of service attack. A server is only vulnerable if it has TLSv1.2 and renegotiation enabled (which is the default configuration). OpenSSL TLS clients are not impacted by this issue. All OpenSSL 1.1.1 versions are affected by this issue. Users of these versions should upgrade to OpenSSL 1.1.1k. OpenSSL 1.0.2 is not impacted by this issue. Fixed in OpenSSL 1.1.1k (Affected 1.1.1-1.1.1j).",
+                "Severity": "MEDIUM",
+                "CweIDs": ["CWE-476"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 4.3,
+                        "V3Score": 5.9
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V3Score": 5.9
+                    }
+                },
+                "References": [
+                    "http://www.openwall.com/lists/oss-security/2021/03/27/1",
+                    "http://www.openwall.com/lists/oss-security/2021/03/27/2",
+                    "http://www.openwall.com/lists/oss-security/2021/03/28/3",
+                    "http://www.openwall.com/lists/oss-security/2021/03/28/4",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-3449",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=fb9fa6b51defd48157eeb207f52181f735d96148",
+                    "https://kc.mcafee.com/corporate/index?page=content\u0026id=SB10356",
+                    "https://linux.oracle.com/cve/CVE-2021-3449.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-9151.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/CCBFLLVQVILIVGZMBJL3IXZGKWQISYNP/",
+                    "https://security.FreeBSD.org/advisories/FreeBSD-SA-21:07.openssl.asc",
+                    "https://security.gentoo.org/glsa/202103-03",
+                    "https://security.netapp.com/advisory/ntap-20210326-0006/",
+                    "https://security.netapp.com/advisory/ntap-20210513-0002/",
+                    "https://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-openssl-2021-GHY28dJd",
+                    "https://ubuntu.com/security/notices/USN-4891-1",
+                    "https://www.debian.org/security/2021/dsa-4875",
+                    "https://www.openssl.org/news/secadv/20210325.txt",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html",
+                    "https://www.tenable.com/security/tns-2021-05",
+                    "https://www.tenable.com/security/tns-2021-06",
+                    "https://www.tenable.com/security/tns-2021-09",
+                    "https://www.tenable.com/security/tns-2021-10"
+                ],
+                "PublishedDate": "2021-03-25T15:15:00Z",
+                "LastModifiedDate": "2021-06-17T17:04:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-23839",
+                "PkgName": "libssl1.1",
+                "InstalledVersion": "1.1.1g-r0",
+                "FixedVersion": "1.1.1j-r0",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-23839",
+                "Title": "openssl: incorrect SSLv2 rollback protection",
+                "Description": "OpenSSL 1.0.2 supports SSLv2. If a client attempts to negotiate SSLv2 with a server that is configured to support both SSLv2 and more recent SSL and TLS versions then a check is made for a version rollback attack when unpadding an RSA signature. Clients that support SSL or TLS versions greater than SSLv2 are supposed to use a special form of padding. A server that supports greater than SSLv2 is supposed to reject connection attempts from a client where this special form of padding is present, because this indicates that a version rollback has occurred (i.e. both client and server support greater than SSLv2, and yet this is the version that is being requested). The implementation of this padding check inverted the logic so that the connection attempt is accepted if the padding is present, and rejected if it is absent. This means that such as server will accept a connection if a version rollback attack has occurred. Further the server will erroneously reject a connection if a normal SSLv2 connection attempt is made. Only OpenSSL 1.0.2 servers from version 1.0.2s to 1.0.2x are affected by this issue. In order to be vulnerable a 1.0.2 server must: 1) have configured SSLv2 support at compile time (this is off by default), 2) have configured SSLv2 support at runtime (this is off by default), 3) have configured SSLv2 ciphersuites (these are not in the default ciphersuite list) OpenSSL 1.1.1 does not have SSLv2 support and therefore is not vulnerable to this issue. The underlying error is in the implementation of the RSA_padding_check_SSLv23() function. This also affects the RSA_SSLV23_PADDING padding mode used by various other functions. Although 1.1.1 does not support SSLv2 the RSA_padding_check_SSLv23() function still exists, as does the RSA_SSLV23_PADDING padding mode. Applications that directly call that function or use that padding mode will encounter this issue. However since there is no support for the SSLv2 protocol in 1.1.1 this is considered a bug and not a security issue in that version. OpenSSL 1.0.2 is out of support and no longer receiving public updates. Premium support customers of OpenSSL 1.0.2 should upgrade to 1.0.2y. Other users should upgrade to 1.1.1j. Fixed in OpenSSL 1.0.2y (Affected 1.0.2s-1.0.2x).",
+                "Severity": "LOW",
+                "CweIDs": ["CWE-326"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:N/I:P/A:N",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:N",
+                        "V2Score": 4.3,
+                        "V3Score": 3.7
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:N",
+                        "V3Score": 3.7
+                    }
+                },
+                "References": [
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-23839",
+                    "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=30919ab80a478f2d81f2e9acdcca3fa4740cd547",
+                    "https://security.netapp.com/advisory/ntap-20210219-0009/",
+                    "https://www.openssl.org/news/secadv/20210216.txt",
+                    "https://www.oracle.com/security-alerts/cpuApr2021.html"
+                ],
+                "PublishedDate": "2021-02-16T17:15:00Z",
+                "LastModifiedDate": "2021-06-17T17:13:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-3517",
+                "PkgName": "libxml2",
+                "InstalledVersion": "2.9.10-r3",
+                "FixedVersion": "2.9.10-r5",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-3517",
+                "Title": "libxml2: Heap-based buffer overflow in xmlEncodeEntitiesInternal() in entities.c",
+                "Description": "There is a flaw in the xml entity encoding functionality of libxml2 in versions before 2.9.11. An attacker who is able to supply a crafted file to be processed by an application linked with the affected functionality of libxml2 could trigger an out-of-bounds read. The most likely impact of this flaw is to application availability, with some potential impact to confidentiality and integrity if an attacker is able to use memory information to further exploit the application.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-119"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:P/I:P/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:H",
+                        "V2Score": 7.5,
+                        "V3Score": 8.6
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:H",
+                        "V3Score": 8.6
+                    }
+                },
+                "References": [
+                    "https://bugzilla.redhat.com/show_bug.cgi?id=1954232",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-3517",
+                    "https://gitlab.gnome.org/GNOME/libxml2/-/commit/bf22713507fe1fc3a2c4b525cf0a88c2dc87a3a2",
+                    "https://gitlab.gnome.org/GNOME/libxml2/-/issues/235",
+                    "https://linux.oracle.com/cve/CVE-2021-3517.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-2569.html",
+                    "https://lists.apache.org/thread.html/r58af02e294bd07f487e2c64ffc0a29b837db5600e33b6e698b9d696b@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://lists.apache.org/thread.html/rf4c02775860db415b4955778a131c2795223f61cb8c6a450893651e4@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://lists.debian.org/debian-lts-announce/2021/05/msg00008.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/BZOMV5J4PMZAORVT64BKLV6YIZAFDGX6/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/QVM4UJ3376I6ZVOYMHBNX4GY3NIV52WV/",
+                    "https://security.gentoo.org/glsa/202107-05",
+                    "https://security.netapp.com/advisory/ntap-20210625-0002/",
+                    "https://ubuntu.com/security/notices/USN-4991-1"
+                ],
+                "PublishedDate": "2021-05-19T14:15:00Z",
+                "LastModifiedDate": "2021-07-08T11:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-3518",
+                "PkgName": "libxml2",
+                "InstalledVersion": "2.9.10-r3",
+                "FixedVersion": "2.9.10-r5",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-3518",
+                "Title": "libxml2: Use-after-free in xmlXIncludeDoProcess() in xinclude.c",
+                "Description": "There's a flaw in libxml2 in versions before 2.9.11. An attacker who is able to submit a crafted file to be processed by an application linked with libxml2 could trigger a use-after-free. The greatest impact from this flaw is to confidentiality, integrity, and availability.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-416"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:P/I:P/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+                        "V2Score": 6.8,
+                        "V3Score": 8.8
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:H",
+                        "V3Score": 8.6
+                    }
+                },
+                "References": [
+                    "https://bugzilla.redhat.com/show_bug.cgi?id=1954242",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-3518",
+                    "https://gitlab.gnome.org/GNOME/libxml2/-/commit/1098c30a040e72a4654968547f415be4e4c40fe7",
+                    "https://gitlab.gnome.org/GNOME/libxml2/-/issues/237",
+                    "https://linux.oracle.com/cve/CVE-2021-3518.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-2569.html",
+                    "https://lists.apache.org/thread.html/r58af02e294bd07f487e2c64ffc0a29b837db5600e33b6e698b9d696b@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://lists.apache.org/thread.html/rf4c02775860db415b4955778a131c2795223f61cb8c6a450893651e4@%3Cissues.bookkeeper.apache.org%3E",
+                    "https://lists.debian.org/debian-lts-announce/2021/05/msg00008.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/BZOMV5J4PMZAORVT64BKLV6YIZAFDGX6/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/QVM4UJ3376I6ZVOYMHBNX4GY3NIV52WV/",
+                    "https://security.netapp.com/advisory/ntap-20210625-0002/",
+                    "https://ubuntu.com/security/notices/USN-4991-1"
+                ],
+                "PublishedDate": "2021-05-18T12:15:00Z",
+                "LastModifiedDate": "2021-07-06T06:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-24977",
+                "PkgName": "libxml2",
+                "InstalledVersion": "2.9.10-r3",
+                "FixedVersion": "2.9.10-r4",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-24977",
+                "Title": "libxml2: Buffer overflow vulnerability in xmlEncodeEntitiesInternal() in entities.c",
+                "Description": "GNOME project libxml2 v2.9.10 has a global buffer over-read vulnerability in xmlEncodeEntitiesInternal at libxml2/entities.c. The issue has been fixed in commit 50f06b3e.",
+                "Severity": "MEDIUM",
+                "CweIDs": ["CWE-125"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:P/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:L",
+                        "V2Score": 6.4,
+                        "V3Score": 6.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:L",
+                        "V3Score": 6.5
+                    }
+                },
+                "References": [
+                    "http://lists.opensuse.org/opensuse-security-announce/2020-09/msg00036.html",
+                    "http://lists.opensuse.org/opensuse-security-announce/2020-09/msg00061.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-24977",
+                    "https://gitlab.gnome.org/GNOME/libxml2/-/commit/50f06b3efb638efb0abd95dc62dca05ae67882c2",
+                    "https://gitlab.gnome.org/GNOME/libxml2/-/issues/178",
+                    "https://linux.oracle.com/cve/CVE-2020-24977.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-1597.html",
+                    "https://lists.apache.org/thread.html/rf9fa47ab66495c78bb4120b0754dd9531ca2ff0430f6685ac9b07772@%3Cdev.mina.apache.org%3E",
+                    "https://lists.debian.org/debian-lts-announce/2020/09/msg00009.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/2NQ5GTDYOVH26PBCPYXXMGW5ZZXWMGZC/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/5KTUAGDLEHTH6HU66HBFAFTSQ3OKRAN3/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/674LQPJO2P2XTBTREFR5LOZMBTZ4PZAY/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/7KQXOHIE3MNY3VQXEN7LDQUJNIHOVHAW/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ENEHQIBMSI6TZVS35Y6I4FCTYUQDLJVP/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/H3IQ7OQXBKWD3YP7HO6KCNOMLE5ZO2IR/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/J3ICASXZI2UQYFJAOQWHSTNWGED3VXOE/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/JCHXIWR5DHYO3RSO7RAHEC6VJKXD2EH2/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/O7MEWYKIKMV2SKMGH4IDWVU3ZGJXBCPQ/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/RIQAMBA2IJUTQG5VOP5LZVIZRNCKXHEQ/",
+                    "https://security.netapp.com/advisory/ntap-20200924-0001/",
+                    "https://ubuntu.com/security/notices/USN-4991-1"
+                ],
+                "PublishedDate": "2020-09-04T00:15:00Z",
+                "LastModifiedDate": "2021-07-06T06:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-3537",
+                "PkgName": "libxml2",
+                "InstalledVersion": "2.9.10-r3",
+                "FixedVersion": "2.9.10-r5",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-3537",
+                "Title": "libxml2: NULL pointer dereference when post-validating mixed content parsed in recovery mode",
+                "Description": "A vulnerability found in libxml2 in versions before 2.9.11 shows that it did not propagate errors while parsing XML mixed content, causing a NULL dereference. If an untrusted XML document was parsed in recovery mode and post-validated, the flaw could be used to crash the application. The highest threat from this vulnerability is to system availability.",
+                "Severity": "MEDIUM",
+                "CweIDs": ["CWE-476"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:M/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 4.3,
+                        "V3Score": 5.9
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V3Score": 7.5
+                    }
+                },
+                "References": [
+                    "https://bugzilla.redhat.com/show_bug.cgi?id=1956522",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-3537",
+                    "https://gitlab.gnome.org/GNOME/libxml2/-/commit/babe75030c7f64a37826bb3342317134568bef61",
+                    "https://gitlab.gnome.org/GNOME/libxml2/-/issues/243",
+                    "https://gitlab.gnome.org/GNOME/libxml2/-/issues/244",
+                    "https://gitlab.gnome.org/GNOME/libxml2/-/issues/245",
+                    "https://linux.oracle.com/cve/CVE-2021-3537.html",
+                    "https://linux.oracle.com/errata/ELSA-2021-2569.html",
+                    "https://lists.debian.org/debian-lts-announce/2021/05/msg00008.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/BZOMV5J4PMZAORVT64BKLV6YIZAFDGX6/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/QVM4UJ3376I6ZVOYMHBNX4GY3NIV52WV/",
+                    "https://security.netapp.com/advisory/ntap-20210625-0002/",
+                    "https://ubuntu.com/security/notices/USN-4991-1"
+                ],
+                "PublishedDate": "2021-05-14T20:15:00Z",
+                "LastModifiedDate": "2021-07-06T06:15:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-28928",
+                "PkgName": "musl",
+                "InstalledVersion": "1.1.24-r2",
+                "FixedVersion": "1.1.24-r3",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-28928",
+                "Description": "In musl libc through 1.2.1, wcsnrtombs mishandles particular combinations of destination buffer size and source character limit, as demonstrated by an invalid write access (buffer overflow).",
+                "Severity": "MEDIUM",
+                "CweIDs": ["CWE-787"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:L/AC:L/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 2.1,
+                        "V3Score": 5.5
+                    }
+                },
+                "References": [
+                    "http://www.openwall.com/lists/oss-security/2020/11/20/4",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-28928",
+                    "https://lists.apache.org/thread.html/r2134abfe847bea7795f0e53756d10a47e6643f35ab8169df8b8a9eb1@%3Cnotifications.apisix.apache.org%3E",
+                    "https://lists.apache.org/thread.html/r90b60cf49348e515257b4950900c1bd3ab95a960cf2469d919c7264e@%3Cnotifications.apisix.apache.org%3E",
+                    "https://lists.apache.org/thread.html/ra63e8dc5137d952afc55dbbfa63be83304ecf842d1eab1ff3ebb29e2@%3Cnotifications.apisix.apache.org%3E",
+                    "https://lists.debian.org/debian-lts-announce/2020/11/msg00050.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/LKQ3RVSMVZNZNO4D65W2CZZ4DMYFZN2Q/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/UW27QVY7ERPTSGKS4KAWE5TU7EJWHKVQ/",
+                    "https://musl.libc.org/releases.html"
+                ],
+                "PublishedDate": "2020-11-24T18:15:00Z",
+                "LastModifiedDate": "2021-06-08T19:22:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-28928",
+                "PkgName": "musl-utils",
+                "InstalledVersion": "1.1.24-r2",
+                "FixedVersion": "1.1.24-r3",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-28928",
+                "Description": "In musl libc through 1.2.1, wcsnrtombs mishandles particular combinations of destination buffer size and source character limit, as demonstrated by an invalid write access (buffer overflow).",
+                "Severity": "MEDIUM",
+                "CweIDs": ["CWE-787"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:L/AC:L/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 2.1,
+                        "V3Score": 5.5
+                    }
+                },
+                "References": [
+                    "http://www.openwall.com/lists/oss-security/2020/11/20/4",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-28928",
+                    "https://lists.apache.org/thread.html/r2134abfe847bea7795f0e53756d10a47e6643f35ab8169df8b8a9eb1@%3Cnotifications.apisix.apache.org%3E",
+                    "https://lists.apache.org/thread.html/r90b60cf49348e515257b4950900c1bd3ab95a960cf2469d919c7264e@%3Cnotifications.apisix.apache.org%3E",
+                    "https://lists.apache.org/thread.html/ra63e8dc5137d952afc55dbbfa63be83304ecf842d1eab1ff3ebb29e2@%3Cnotifications.apisix.apache.org%3E",
+                    "https://lists.debian.org/debian-lts-announce/2020/11/msg00050.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/LKQ3RVSMVZNZNO4D65W2CZZ4DMYFZN2Q/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/UW27QVY7ERPTSGKS4KAWE5TU7EJWHKVQ/",
+                    "https://musl.libc.org/releases.html"
+                ],
+                "PublishedDate": "2020-11-24T18:15:00Z",
+                "LastModifiedDate": "2021-06-08T19:22:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2020-11080",
+                "PkgName": "nghttp2-libs",
+                "InstalledVersion": "1.40.0-r0",
+                "FixedVersion": "1.40.0-r1",
+                "Layer": {
+                    "Digest": "sha256:10c113fb0c778963cb3069e94e8148a3770122f6763c94373e22f5342b503ab0",
+                    "DiffID": "sha256:7bb2a9d373374aee9939eff4c7a7883e74c22fd4ad9499497a1a03fa987befd4"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-11080",
+                "Title": "nghttp2: overly large SETTINGS frames can lead to DoS",
+                "Description": "In nghttp2 before version 1.41.0, the overly large HTTP/2 SETTINGS frame payload causes denial of service. The proof of concept attack involves a malicious client constructing a SETTINGS frame with a length of 14,400 bytes (2400 individual settings entries) over and over again. The attack causes the CPU to spike at 100%. nghttp2 v1.41.0 fixes this vulnerability. There is a workaround to this vulnerability. Implement nghttp2_on_frame_recv_callback callback, and if received frame is SETTINGS frame and the number of settings entries are large (e.g., \u003e 32), then drop the connection.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-400", "CWE-707"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V3Score": 7.5
+                    }
+                },
+                "References": [
+                    "http://lists.opensuse.org/opensuse-security-announce/2020-06/msg00024.html",
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-11080",
+                    "https://github.com/nghttp2/nghttp2/commit/336a98feb0d56b9ac54e12736b18785c27f75090",
+                    "https://github.com/nghttp2/nghttp2/commit/f8da73bd042f810f34d19f9eae02b46d870af394",
+                    "https://github.com/nghttp2/nghttp2/security/advisories/GHSA-q5wr-xfw9-q7xr",
+                    "https://linux.oracle.com/cve/CVE-2020-11080.html",
+                    "https://linux.oracle.com/errata/ELSA-2020-5765.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/4OOYAMJVLLCLXDTHW3V5UXNULZBBK4O6/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/AAC2AA36OTRHKSVM5OV7TTVB3CZIGEFL/",
+                    "https://www.debian.org/security/2020/dsa-4696",
+                    "https://www.oracle.com/security-alerts/cpujan2021.html",
+                    "https://www.oracle.com/security-alerts/cpujul2020.html",
+                    "https://www.oracle.com/security-alerts/cpuoct2020.html"
+                ],
+                "PublishedDate": "2020-06-03T23:15:00Z",
+                "LastModifiedDate": "2021-03-15T22:11:00Z"
+            },
+            {
+                "VulnerabilityID": "CVE-2021-28831",
+                "PkgName": "ssl_client",
+                "InstalledVersion": "1.31.1-r9",
+                "FixedVersion": "1.31.1-r10",
+                "Layer": {
+                    "Digest": "sha256:cbdbe7a5bc2a134ca8ec91be58565ec07d037386d1f1d8385412d224deafca08",
+                    "DiffID": "sha256:3e207b409db364b595ba862cdc12be96dcdad8e36c59a03b7b3b61c946a5741a"
+                },
+                "SeveritySource": "nvd",
+                "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-28831",
+                "Title": "busybox: invalid free or segmentation fault via malformed gzip data",
+                "Description": "decompress_gunzip.c in BusyBox through 1.32.1 mishandles the error bit on the huft_build result pointer, with a resultant invalid free or segmentation fault, via malformed gzip data.",
+                "Severity": "HIGH",
+                "CweIDs": ["CWE-755"],
+                "CVSS": {
+                    "nvd": {
+                        "V2Vector": "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V2Score": 5,
+                        "V3Score": 7.5
+                    },
+                    "redhat": {
+                        "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "V3Score": 7.5
+                    }
+                },
+                "References": [
+                    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-28831",
+                    "https://git.busybox.net/busybox/commit/?id=f25d254dfd4243698c31a4f3153d4ac72aa9e9bd",
+                    "https://lists.debian.org/debian-lts-announce/2021/04/msg00001.html",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/3UDQGJRECXFS5EZVDH2OI45FMO436AC4/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/Z7ZIFKPRR32ZYA3WAA2NXFA3QHHOU6FJ/",
+                    "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ZASBW7QRRLY5V2R44MQ4QQM4CZIDHM2U/",
+                    "https://security.gentoo.org/glsa/202105-09"
+                ],
+                "PublishedDate": "2021-03-19T05:15:00Z",
+                "LastModifiedDate": "2021-05-26T10:15:00Z"
+            }
+        ]
+    }
+]

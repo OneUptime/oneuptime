@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -25,6 +26,7 @@ const ContainerSecurityView = ({
     containerSecurity,
     scanError,
     activeContainerSecurity,
+    scannedStatus
 }) => {
     const handleSubmit = ({ projectId, containerSecurityId }) => {
         openModal({
@@ -39,7 +41,7 @@ const ContainerSecurityView = ({
             ],
         });
     };
-
+       
     const handleEdit = ({
         projectId,
         componentId,
@@ -174,7 +176,8 @@ const ContainerSecurityView = ({
                                                     activeContainerSecurity
                                                 )) ||
                                         containerSecurity.scanning ||
-                                        !containerSecurity.lastScan
+                                        !containerSecurity.lastScan ||
+                                        scannedStatus === false
                                     }
                                 >
                                     <button
@@ -182,7 +185,8 @@ const ContainerSecurityView = ({
                                         disabled={
                                             scanning ||
                                             containerSecurity.scanning ||
-                                            !containerSecurity.lastScan
+                                            !containerSecurity.lastScan || 
+                                            scannedStatus === false
                                         }
                                         id={`scanning_${containerSecurity.name}`}
                                     >
@@ -200,7 +204,8 @@ const ContainerSecurityView = ({
                                                     activeContainerSecurity
                                                 )) &&
                                         !containerSecurity.scanning &&
-                                        containerSecurity.lastScan
+                                        containerSecurity.lastScan && 
+                                        scannedStatus === true
                                     }
                                 >
                                     <button
@@ -300,6 +305,7 @@ ContainerSecurityView.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     activeContainerSecurity: PropTypes.string,
+    scannedStatus: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -316,6 +322,7 @@ const mapStateToProps = state => {
         securityLog: state.security.containerSecurityLog || {},
         scanError: state.security.scanContainerSecurity.error,
         activeContainerSecurity: state.security.activeContainerSecurity,
+        scannedStatus: state.security.containerSecurity.scanned,
     };
 };
 
