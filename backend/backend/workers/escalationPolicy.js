@@ -116,15 +116,41 @@ module.exports = {
                         continue;
                     }
                 }
+                const populateSchedule = [
+                    { path: 'userIds', select: 'name' },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'monitorIds', select: 'name' },
+                    {
+                        path: 'projectId',
+                        select: '_id name slug',
+                    },
+                    {
+                        path: 'escalationIds',
+                        select: 'teamMember',
+                        populate: {
+                            path: 'teamMember.userId',
+                            select: 'name',
+                        },
+                    },
+                ];
+
+                const selectSchedule =
+                    '_id userIds name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
                 let schedule = await ScheduleService.findOneBy({
-                    _id: notAcknowledgedCallScheduleStatus.schedule,
+                    query: { _id: notAcknowledgedCallScheduleStatus.schedule },
+                    populate: populateSchedule,
+                    select: selectSchedule,
                 });
                 if (!schedule) {
                     schedule = await ScheduleService.findOneBy({
-                        isDefault: true,
-                        projectId:
-                            notAcknowledgedCallScheduleStatus.project._id ||
-                            notAcknowledgedCallScheduleStatus.project,
+                        query: {
+                            isDefault: true,
+                            projectId:
+                                notAcknowledgedCallScheduleStatus.project._id ||
+                                notAcknowledgedCallScheduleStatus.project,
+                        },
+                        populate: populateSchedule,
+                        select: selectSchedule,
                     });
                 }
                 //and the rest happens here.

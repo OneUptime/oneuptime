@@ -123,6 +123,26 @@ module.exports = {
                         project.stripeSubscriptionId
                     );
                 }
+                const populate = [
+                    { path: 'userIds', select: 'name' },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'monitorIds', select: 'name' },
+                    {
+                        path: 'projectId',
+                        select: '_id name slug',
+                    },
+                    {
+                        path: 'escalationIds',
+                        select: 'teams',
+                        populate: {
+                            path: 'teams.teamMembers.userId',
+                            select: 'name email',
+                        },
+                    },
+                ];
+
+                const select =
+                    '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
 
                 const [
                     monitors,
@@ -137,7 +157,9 @@ module.exports = {
                         select: '_id',
                     }),
                     ScheduleService.findBy({
-                        projectId: project._id,
+                        query: { projectId: project._id },
+                        select,
+                        populate,
                     }),
                     DomainVerificationService.findBy({
                         projectId: project._id,

@@ -22,6 +22,26 @@ module.exports = {
                 select: 'lastMatchedCriterion',
             });
             let schedules = [];
+            const populate = [
+                { path: 'userIds', select: 'name' },
+                { path: 'createdById', select: 'name' },
+                { path: 'monitorIds', select: 'name' },
+                {
+                    path: 'projectId',
+                    select: '_id name slug',
+                },
+                {
+                    path: 'escalationIds',
+                    select: 'teams',
+                    populate: {
+                        path: 'teams.teamMembers.userId',
+                        select: 'name email',
+                    },
+                },
+            ];
+
+            const select =
+                '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
 
             // first, try to find schedules associated with the matched criterion of the monitor
             if (
@@ -30,18 +50,23 @@ module.exports = {
                 matchedCriterion.scheduleIds.length
             ) {
                 schedules = await ScheduleService.findBy({
-                    _id: { $in: matchedCriterion.scheduleIds },
+                    query: { _id: { $in: matchedCriterion.scheduleIds } },
+                    select,
+                    populate,
                 });
             } else {
                 // then, try to find schedules in the monitor
                 schedules = await ScheduleService.findBy({
-                    monitorIds: monitorId,
+                    query: { monitorIds: monitorId },
+                    select,
+                    populate,
                 });
                 // lastly, find default schedules for the project
                 if (schedules.length === 0) {
                     schedules = await ScheduleService.findBy({
-                        isDefault: true,
-                        projectId,
+                        query: { isDefault: true, projectId },
+                        select,
+                        populate,
                     });
                 }
             }

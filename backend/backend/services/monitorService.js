@@ -581,11 +581,33 @@ module.exports = {
                         })
                     );
 
+                    const populateSchedule = [
+                        { path: 'userIds', select: 'name' },
+                        { path: 'createdById', select: 'name' },
+                        { path: 'monitorIds', select: 'name' },
+                        {
+                            path: 'projectId',
+                            select: '_id name slug',
+                        },
+                        {
+                            path: 'escalationIds',
+                            select: 'teams',
+                            populate: {
+                                path: 'teams.teamMembers.userId',
+                                select: 'name email',
+                            },
+                        },
+                    ];
+
+                    const selectSchedule =
+                        '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
                     const monitorsWithSchedules = await Promise.all(
                         monitorsWithStatus.map(async monitor => {
                             const monitorSchedules = await ScheduleService.findBy(
                                 {
-                                    monitorIds: monitor._id,
+                                    query: { monitorIds: monitor._id },
+                                    select: selectSchedule,
+                                    populate: populateSchedule,
                                 }
                             );
                             return {
