@@ -1128,7 +1128,12 @@ module.exports = {
             MonitorService.findBy({
                 query: { _id: { $in: monitors } },
                 select: 'incidentCommunicationSla',
-                populate: [{ path: 'incidentCommunicationSla' }],
+                populate: [
+                    {
+                        path: 'incidentCommunicationSla',
+                        select: '_id duration',
+                    },
+                ],
             }),
             // refetch the incident
             _this.findOneBy({
