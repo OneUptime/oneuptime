@@ -35,14 +35,17 @@ class LogList extends Component {
     };
 
     displayTags = tags => {
-        return tags.map(tag => {
-            return (
-                <span className="tag" key={tag}>
-                    {' '}
-                    {tag}{' '}
-                </span>
-            );
-        });
+        return (
+            tags &&
+            tags.map(tag => {
+                return (
+                    <span className="tag" key={tag}>
+                        {' '}
+                        {tag}{' '}
+                    </span>
+                );
+            })
+        );
     };
 
     openModalFunc = content => {
