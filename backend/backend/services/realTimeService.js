@@ -36,7 +36,8 @@ module.exports = {
                     : project._id
                 : timeline.projectId;
             const { idNumber } = await IncidentService.findOneBy({
-                _id: timeline.incidentId,
+                query: { _id: timeline.incidentId },
+                select: 'idNumber',
             });
 
             const data = {
@@ -103,7 +104,8 @@ module.exports = {
                 return;
             }
             const incident = await IncidentService.findOneBy({
-                _id: incidentNote.incidentId._id,
+                query: { _id: incidentNote.incidentId._id },
+                select: 'projectId _id',
             });
             const project = await ProjectService.findOneBy({
                 _id: incident.projectId._id || incident.projectId,
@@ -127,7 +129,8 @@ module.exports = {
                 return;
             }
             const incident = await IncidentService.findOneBy({
-                _id: incidentNote.incidentId._id,
+                query: { _id: incidentNote.incidentId._id },
+                select: 'projectId',
             });
             const project = await ProjectService.findOneBy({
                 _id: incident.projectId._id || incident.projectId,
@@ -197,7 +200,8 @@ module.exports = {
                 return;
             }
             const incident = await IncidentService.findOneBy({
-                _id: incidentNote.incidentId._id,
+                query: { _id: incidentNote.incidentId._id },
+                select: 'projectId',
             });
             const project = await ProjectService.findOneBy({
                 _id: incident.projectId._id || incident.projectId,

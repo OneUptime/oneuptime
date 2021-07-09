@@ -170,12 +170,39 @@ router.post(
                 };
             }
 
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
             const [incidents, count] = await Promise.all([
-                IncidentService.findBy(
+                IncidentService.findBy({
                     query,
-                    req.body.limit || 3,
-                    req.body.skip || 0
-                ),
+                    limit: req.body.limit || 3,
+                    skip: req.body.skip || 0,
+                    select,
+                    populate,
+                }),
                 IncidentService.countBy(query),
             ]);
             return sendListResponse(req, res, incidents, count);
@@ -255,12 +282,39 @@ router.get('/:projectId/incident', getUser, isAuthorized, async function(
 ) {
     try {
         const projectId = req.params.projectId;
+        const populate = [
+            {
+                path: 'monitors.monitorId',
+                select: 'name slug componentId projectId type',
+                populate: [
+                    { path: 'componentId', select: 'name slug' },
+                    { path: 'projectId', select: 'name slug' },
+                ],
+            },
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'acknowledgedBy', select: 'name' },
+            { path: 'incidentPriority', select: 'name color' },
+            {
+                path: 'acknowledgedByIncomingHttpRequest',
+                select: 'name',
+            },
+            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+            { path: 'createdByIncomingHttpRequest', select: 'name' },
+            { path: 'probes.probeId', select: 'name _id' },
+        ];
+        const select =
+            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
         const [incident, count] = await Promise.all([
-            IncidentService.findBy(
-                { projectId },
-                req.query.limit || 10,
-                req.query.skip || 0
-            ),
+            IncidentService.findBy({
+                query: { projectId },
+                limit: req.query.limit || 10,
+                skip: req.query.skip || 0,
+                select,
+                populate,
+            }),
             IncidentService.countBy({ projectId }),
         ]);
         return sendListResponse(req, res, incident, count); // frontend expects sendListResponse
@@ -283,9 +337,35 @@ router.get(
 
         try {
             const { projectId, incidentId } = req.params;
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
             const incident = await IncidentService.findOneBy({
-                projectId,
-                idNumber: incidentId,
+                query: { projectId, idNumber: incidentId },
+                select,
+                populate,
             });
             return sendItemResponse(req, res, incident);
         } catch (error) {
@@ -307,9 +387,38 @@ router.get(
         // Call the IncidentService.
 
         try {
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
             const incident = await IncidentService.findOneBy({
-                projectId: req.params.projectId,
-                idNumber: req.params.incidentIdNumber,
+                query: {
+                    projectId: req.params.projectId,
+                    idNumber: req.params.incidentIdNumber,
+                },
+                select,
+                populate,
             });
             return sendItemResponse(req, res, incident);
         } catch (error) {
@@ -603,8 +712,34 @@ router.post(
             const data = req.body;
             const incidentId = req.params.incidentId;
             const projectId = req.params.projectId;
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
             const incident = await IncidentService.findOneBy({
-                _id: incidentId,
+                query: { _id: incidentId },
+                select,
+                populate,
             });
             const idNumber = incident.idNumber;
 
@@ -867,8 +1002,8 @@ router.get(
             const { projectId, incidentId } = req.params;
 
             const incident = await IncidentService.findOneBy({
-                projectId,
-                idNumber: incidentId,
+                query: { projectId, idNumber: incidentId },
+                select: '_id',
             });
             if (incident) {
                 const {
@@ -898,7 +1033,8 @@ router.delete(
             const { incidentId, incidentMessageId, projectId } = req.params;
             const [incident, checkMsg, incidentMessage] = await Promise.all([
                 IncidentService.findOneBy({
-                    _id: incidentId,
+                    query: { _id: incidentId },
+                    select: 'idNumber',
                 }),
                 IncidentMessageService.findOneBy({
                     _id: incidentMessageId,
@@ -1019,8 +1155,8 @@ router.get(
             const idNumber = req.params.incidentId;
             const projectId = req.params.projectId;
             let incidentId = await IncidentService.findOneBy({
-                projectId,
-                idNumber,
+                query: { projectId, idNumber },
+                select: '_id',
             });
             if (incidentId) {
                 incidentId = incidentId._id;
@@ -1167,8 +1303,9 @@ router.get(
 
             const [incident] = await Promise.all([
                 IncidentService.findOneBy({
-                    projectId,
-                    _id: incidentId,
+                    query: { projectId, _id: incidentId },
+                    select: 'idNumber projectId',
+                    populate: [{ path: 'projectId', select: 'slug' }],
                 }),
                 IncidentService.resolve(req.params.incidentId, userId),
             ]);
@@ -1208,8 +1345,9 @@ router.get(
 
             const [incident] = await Promise.all([
                 IncidentService.findOneBy({
-                    projectId,
-                    _id: incidentId,
+                    query: { projectId, _id: incidentId },
+                    select: 'idNumber projectId',
+                    populate: [{ path: 'projectId', select: 'slug' }],
                 }),
                 IncidentService.acknowledge(
                     req.params.incidentId,

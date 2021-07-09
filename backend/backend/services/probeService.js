@@ -283,9 +283,12 @@ module.exports = {
                 }
 
                 const incidents = await IncidentService.findBy({
-                    'monitors.monitorId': data.monitorId,
-                    incidentType: data.status,
-                    resolved: false,
+                    query: {
+                        'monitors.monitorId': data.monitorId,
+                        incidentType: data.status,
+                        resolved: false,
+                    },
+                    select: '_id',
                 });
 
                 const incidentIds = incidents.map(incident => incident._id);
@@ -321,16 +324,45 @@ module.exports = {
 
     incidentCreateOrUpdate: async function(data) {
         try {
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
             const [monitor, incidents] = await Promise.all([
                 MonitorService.findOneBy({
                     query: { _id: data.monitorId },
                     select: 'type',
                 }),
                 IncidentService.findBy({
-                    'monitors.monitorId': data.monitorId,
-                    incidentType: data.status,
-                    resolved: false,
-                    manuallyCreated: false,
+                    query: {
+                        'monitors.monitorId': data.monitorId,
+                        incidentType: data.status,
+                        resolved: false,
+                        manuallyCreated: false,
+                    },
+                    select,
+                    populate,
                 }),
             ]);
             const { matchedCriterion } = data;
@@ -589,10 +621,22 @@ module.exports = {
 
     incidentResolveOrAcknowledge: async function(data, allCriteria) {
         try {
+            const populate = [
+                {
+                    path: 'probes.probeId',
+                    select: '_id probeId updatedAt status reportedStatus',
+                },
+            ];
+            const select = '_id acknowledged criterionCause probes';
+
             const incidents = await IncidentService.findBy({
-                'monitors.monitorId': data.monitorId,
-                resolved: false,
-                manuallyCreated: false,
+                query: {
+                    'monitors.monitorId': data.monitorId,
+                    resolved: false,
+                    manuallyCreated: false,
+                },
+                select,
+                populate,
             });
 
             const monitor = await MonitorService.findOneBy({

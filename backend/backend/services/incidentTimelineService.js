@@ -23,7 +23,8 @@ module.exports = {
                     _id: incidentTimeline._id,
                 }),
                 IncidentService.findOneBy({
-                    _id: data.incidentId,
+                    query: { _id: data.incidentId },
+                    select: 'projectId',
                 }),
             ]);
             incidentTimeline = timeline;

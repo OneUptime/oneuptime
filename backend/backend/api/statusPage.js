@@ -827,8 +827,8 @@ router.get('/:projectId/incident/:incidentId', checkUser, async function(
         const { incidentId, projectId } = req.params;
 
         const incidentData = await IncidentService.findOneBy({
-            projectId,
-            idNumber: incidentId,
+            query: { projectId, idNumber: incidentId },
+            select: '_id',
         });
 
         const incident = await StatusPageService.getIncident({
@@ -848,8 +848,8 @@ router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
         const { incidentId, projectId } = req.params;
 
         const incident = await IncidentService.findOneBy({
-            projectId,
-            idNumber: incidentId,
+            query: { projectId, idNumber: incidentId },
+            select: '_id',
         });
         const { skip, limit, postOnStatusPage } = req.query;
 
@@ -1237,8 +1237,8 @@ router.get('/:projectId/timeline/:incidentId', checkUser, async function(
         const { incidentId, projectId } = req.params;
 
         const incidentData = await IncidentService.findOneBy({
-            projectId,
-            idNumber: incidentId,
+            query: { projectId, idNumber: incidentId },
+            select: '_id',
         });
         // setting limit to one
         // since the frontend only need the last content (current content)

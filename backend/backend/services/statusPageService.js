@@ -590,16 +590,40 @@ module.exports = {
                 ? statuspage.monitors.map(m => m.monitor._id)
                 : [];
             if (monitorIds && monitorIds.length) {
+                const populate = [
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name slug componentId projectId type',
+                        populate: { path: 'componentId', select: 'name slug' },
+                    },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'acknowledgedBy', select: 'name' },
+                    { path: 'incidentPriority', select: 'name color' },
+                    {
+                        path: 'acknowledgedByIncomingHttpRequest',
+                        select: 'name',
+                    },
+                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                    { path: 'createdByIncomingHttpRequest', select: 'name' },
+                    { path: 'probes.probeId', select: 'name _id' },
+                ];
+                const select =
+                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
                 const [notes, count] = await Promise.all([
-                    IncidentService.findBy(
-                        {
+                    IncidentService.findBy({
+                        query: {
                             'monitors.monitorId': { $in: monitorIds },
                             hideIncident: false,
                             ...option,
                         },
                         limit,
-                        skip
-                    ),
+                        skip,
+                        populate,
+                        select,
+                    }),
                     IncidentService.countBy({
                         'monitors.monitorId': { $in: monitorIds },
                         hideIncident: false,
@@ -622,7 +646,33 @@ module.exports = {
 
     getIncident: async function(query) {
         try {
-            const incident = await IncidentService.findOneBy(query);
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: { path: 'componentId', select: 'name slug' },
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+            const incident = await IncidentService.findOneBy({
+                query,
+                select,
+                populate,
+            });
 
             return incident;
         } catch (error) {
@@ -658,8 +708,36 @@ module.exports = {
 
     getNotesByDate: async function(query, skip, limit) {
         try {
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: { path: 'componentId', select: 'name slug' },
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
             const [incidents, count] = await Promise.all([
-                IncidentService.findBy(query, limit, skip),
+                IncidentService.findBy({
+                    query,
+                    limit,
+                    skip,
+                    populate,
+                    select,
+                }),
                 IncidentService.countBy(query),
             ]);
 
@@ -1078,9 +1156,33 @@ module.exports = {
             const monitorIds =
                 statuspage && statuspage.monitors.map(m => m.monitor._id);
             if (monitorIds && monitorIds.length) {
+                const populate = [
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name slug componentId projectId type',
+                        populate: { path: 'componentId', select: 'name slug' },
+                    },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'acknowledgedBy', select: 'name' },
+                    { path: 'incidentPriority', select: 'name color' },
+                    {
+                        path: 'acknowledgedByIncomingHttpRequest',
+                        select: 'name',
+                    },
+                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                    { path: 'createdByIncomingHttpRequest', select: 'name' },
+                    { path: 'probes.probeId', select: 'name _id' },
+                ];
+                const select =
+                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
                 const [incidents, count] = await Promise.all([
                     IncidentService.findBy({
-                        'monitors.monitorId': { $in: monitorIds },
+                        query: { 'monitors.monitorId': { $in: monitorIds } },
+                        select,
+                        populate,
                     }),
                     IncidentService.countBy({
                         'monitors.monitorId': { $in: monitorIds },
