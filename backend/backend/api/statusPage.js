@@ -1644,13 +1644,13 @@ router.get('/resources/:statusPageSlug', checkUser, ipWhitelist, async function(
 ) {
     try {
         const { statusPageSlug } = req.params;
+        const { range } = req.query;
         const response = {};
         //get status pages
         const statusPage = await getStatusPage(req, statusPageSlug);
         if (statusPage.error) {
             return sendErrorResponse(req, res, statusPage.data);
         }
-        response.statusPages = statusPage;
 
         const { _id: statusPageId, monitors, projectId } = statusPage;
 
@@ -1704,7 +1704,7 @@ router.get('/resources/:statusPageSlug', checkUser, ipWhitelist, async function(
 
         response.announcement = announcement.value || {};
 
-        response.monitorStatus = monitorStatus.value || {};
+        response.monitorStatus = monitorStatus.value || [];
 
         response.timelines = timelines.value || {};
 
@@ -1712,6 +1712,21 @@ router.get('/resources/:statusPageSlug', checkUser, ipWhitelist, async function(
 
         response.announcementLogs = announcementLogs.value || {};
 
+        statusPage.monitorsData.map(data => {
+            const statusData = response.monitorStatus.find(
+                status => status[data._id]
+            );
+            data.statuses = statusData[data._id];
+            return data;
+        });
+        response.statusPages = statusPage;
+        const time = await calculateTime(
+            statusPage,
+            monitorStatus.value,
+            probes.value,
+            range
+        );
+        response.time = time || {};
         return sendItemResponse(req, res, response);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1888,8 +1903,8 @@ async function getMonitorStatuses(req, monitors) {
     const endDate = moment(Date.now());
     const startDate = moment(Date.now()).subtract(90, 'days');
     await Promise.all(
-        monitors.map(async monitor => {
-            const monitorId = monitor._id;
+        monitors.map(async data => {
+            const monitorId = data.monitor._id;
             const monitorStatuses = await MonitorService.getMonitorStatuses(
                 monitorId,
                 startDate,
@@ -1985,4 +2000,61 @@ async function getAnnouncementLogs(statusPage, limit = 5, skip = 0) {
         count,
     };
 }
+//calculate time
+
+async function calculateTime(statusPage, monitorStatus, probeData, range) {
+    const result = {};
+    const start = Date.now();
+    const theme = statusPage.theme === 'Clean Theme';
+    if (!theme) {
+        range = 90;
+    }
+
+    await Promise.all(
+        statusPage.monitors.map(async data => {
+            const monitorId = data.monitor._id;
+
+            const monitorData = statusPage.monitorsData.find(
+                a => String(a._id) === String(monitorId)
+            );
+            const probe = probeData?.probes.filter(
+                probe =>
+                    String(probe._id) === String(monitorData.statuses[0]._id)
+            );
+            const statuses = filterProbeData(
+                monitorData,
+                probe[0],
+                monitorStatus[monitorId]
+            );
+
+            const time = await MonitorService.calcTime(statuses, start, range);
+            result[monitorId] = time;
+        })
+    );
+    return result;
+}
+
+const filterProbeData = (monitor, probe, backupStatus) => {
+    const monitorStatuses = monitor.statuses || backupStatus;
+    const probesStatus =
+        monitorStatuses && monitorStatuses.length > 0
+            ? probe
+                ? monitorStatuses.filter(probeStatuses => {
+                      return (
+                          probeStatuses._id === null ||
+                          String(probeStatuses._id) === String(probe._id)
+                      );
+                  })
+                : monitorStatuses
+            : [];
+    const statuses =
+        probesStatus &&
+        probesStatus[0] &&
+        probesStatus[0].statuses &&
+        probesStatus[0].statuses.length > 0
+            ? probesStatus[0].statuses
+            : [];
+
+    return statuses;
+};
 module.exports = router;

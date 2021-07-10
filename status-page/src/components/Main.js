@@ -76,6 +76,7 @@ class Main extends Component {
         this.state = {
             now: Date.now(),
             nowHandler: null,
+            windowSize: window.innerWidth,
         };
     }
 
@@ -139,15 +140,28 @@ class Main extends Component {
             statusPageSlug = 'null';
             url = window.location.host;
         }
-        this.props.getAllStatusPageResource(statusPageSlug, url).catch(err => {
-            if (err.message === 'Request failed with status code 401') {
-                const { loginRequired } = this.props.login;
-                if (loginRequired) {
-                    window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
+        let range;
+        const { windowSize } = this.state;
+        if (windowSize <= 600) {
+            range = 30;
+        }
+        if (windowSize > 600 && windowSize < 1000) {
+            range = 60;
+        }
+        if (windowSize >= 1000) {
+            range = 90;
+        }
+        this.props
+            .getAllStatusPageResource(statusPageSlug, url, range)
+            .catch(err => {
+                if (err.message === 'Request failed with status code 401') {
+                    const { loginRequired } = this.props.login;
+                    if (loginRequired) {
+                        window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
+                    }
+                    this.selectbutton(this.props.activeProbe);
                 }
-                this.selectbutton(this.props.activeProbe);
-            }
-        });
+            });
         this.setLastAlive();
     }
 
