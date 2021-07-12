@@ -78,11 +78,4 @@ cron.schedule('*/2 * * * *', () => {
     }, cronMinuteStartTime * 1000);
 });
 
-// Run this cron at 6 AM once a day.
-cron.schedule('0 6 * * *', () => {
-    setTimeout(() => {
-        Main.runContainerScan();
-    }, cronContainerSecurityStartTime * 1000);
-});
-
 module.exports = app;

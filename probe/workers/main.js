@@ -43,24 +43,5 @@ module.exports = {
         } catch (error) {
             ErrorService.log('getApi', error);
         }
-    },
-
-    runContainerScan: async function() {
-        try {
-            const securities = await getApi('probe/containerSecurities');
-            if (securities && securities.length > 0) {
-                await Promise.all(
-                    securities.map(security => {
-                        // send a stringified json over the network
-                        // fix issue with iv key on the collection (obj.toObject is not a function)
-                        return ContainerSecurity.scan(JSON.stringify(security));
-                    })
-                );
-            }
-
-            return;
-        } catch (error) {
-            ErrorService.log('runContainerScan.getApi', error);
-        }
-    },
+    }
 };

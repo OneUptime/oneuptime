@@ -16,17 +16,15 @@ module.exports = {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {
-                    const [headers, body] = await Promise.all([
-                        ApiService.headers(monitor.headers, monitor.bodyType),
-                        ApiService.body(
-                            monitor && monitor.text && monitor.text.length
-                                ? monitor.text
-                                : monitor.formData,
-                            monitor && monitor.text && monitor.text.length
-                                ? 'text'
-                                : 'formData'
-                        ),
-                    ]);
+                    const headers = ApiService.headers(monitor.headers, monitor.bodyType);
+                    const body = ApiService.body(
+                        monitor && monitor.text && monitor.text.length
+                            ? monitor.text
+                            : monitor.formData,
+                        monitor && monitor.text && monitor.text.length
+                            ? 'text'
+                            : 'formData'
+                    );
 
                     let retry = true;
                     let retryCount = 0;
@@ -167,8 +165,8 @@ const pingfetch = async (url, method, body, headers) => {
                 response && response.status
                     ? response.status
                     : resp && resp.status
-                    ? resp.status
-                    : null,
+                        ? resp.status
+                        : null,
             statusText:
                 response && response.statusText ? response.statusText : null,
             headers:
