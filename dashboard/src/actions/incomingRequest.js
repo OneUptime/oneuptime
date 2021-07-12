@@ -30,10 +30,10 @@ export const createIncomingRequest = (projectId, data) => async dispatch => {
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
+                    ? error.data
+                    : error.message
+                        ? error.message
+                        : 'Network Error';
         dispatch(createIncomingRequestFailure(errorMsg));
     }
 };
@@ -70,10 +70,10 @@ export const editIncomingRequest = (
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
+                    ? error.data
+                    : error.message
+                        ? error.message
+                        : 'Network Error';
         dispatch(editIncomingRequestFailure(errorMsg));
     }
 };
@@ -108,10 +108,10 @@ export const deleteIncomingRequest = (
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
+                    ? error.data
+                    : error.message
+                        ? error.message
+                        : 'Network Error';
         dispatch(deleteIncomingRequestFailure(errorMsg));
     }
 };
@@ -147,10 +147,10 @@ export const fetchAllIncomingRequest = (
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
+                    ? error.data
+                    : error.message
+                        ? error.message
+                        : 'Network Error';
         dispatch(fetchAllIncomingRequestFailure(errorMsg));
     }
 };
@@ -160,40 +160,27 @@ export const setActiveIncomingRequest = requestId => ({
     payload: requestId,
 });
 
-export const incomingRequestEnabledRequest = () => ({
-    type: types.INCOMING_REQUEST_ENABLED_REQUEST,
-});
-
-export const incomingRequestEnabledSuccess = payload => ({
-    type: types.INCOMING_REQUEST_ENABLED_SUCCESS,
-    payload,
-});
-
-export const incomingRequestEnabledFailure = error => ({
-    type: types.INCOMING_REQUEST_ENABLED_FAILURE,
-    payload: error,
-});
-
-export const incomingRequestEnabled = (
+export const incomingRequestToggle = (
     projectId,
-    requestId
+    requestId,
+    enabled
 ) => async dispatch => {
     try {
-        dispatch(incomingRequestEnabledRequest());
-
+        dispatch(editIncomingRequestRequest());
         const response = await postApi(
-            `incoming-request/${projectId}/remove/${requestId}`
+            `incoming-request/${projectId}/toggle/${requestId}`, enabled
         );
-        dispatch(incomingRequestEnabledSuccess(response.data));
+
+        dispatch(editIncomingRequestSuccess(response.data));
     } catch (error) {
         const errorMsg =
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                ? error.data
-                : error.message
-                ? error.message
-                : 'Network Error';
-        dispatch(incomingRequestEnabledFailure(errorMsg));
+                    ? error.data
+                    : error.message
+                        ? error.message
+                        : 'Network Error';
+        dispatch(editIncomingRequestFailure(errorMsg));
     }
 };

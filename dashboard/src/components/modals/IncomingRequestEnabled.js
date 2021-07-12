@@ -5,11 +5,10 @@ import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 import ClickOutside from 'react-click-outside';
 import { bindActionCreators } from 'redux';
-import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
-import { deleteIncomingRequest } from '../../actions/incomingRequest';
+import { incomingRequestToggle } from '../../actions/incomingRequest';
 
-class DeleteIncomingRequest extends Component {
+class IncomingRequestEnabledToggle extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -23,7 +22,7 @@ class DeleteIncomingRequest extends Component {
             case 'Escape':
                 return this.handleCloseModal();
             case 'Enter':
-                return this.handleDelete();
+                return this.handleClick();
             default:
                 return false;
         }
@@ -35,24 +34,23 @@ class DeleteIncomingRequest extends Component {
         });
     };
 
-    handleDelete = () => {
+    handleClick = () => {
+        let enabled = true; // This must not be changed as it corresponds to backend Incoming Request Schema
         const {
-            deleteError,
             closeModal,
-            deleteIncomingRequest,
             projectId,
             requestId,
+            incomingRequestToggle,
+            propArr
         } = this.props;
-        deleteIncomingRequest(projectId, requestId).then(() => {
-            if (!deleteError) {
-                closeModal({ id: projectId });
-            }
-        });
+        if (propArr.isEnabled === true) {
+            enabled = false
+        }
+        incomingRequestToggle(projectId, requestId, { enabled }).then(() => closeModal({ id: projectId }));
     };
 
     render() {
-        console.log("Props: ", this.props)
-        const { propArr, isRequesting, closeModal, deleteError, projectId } = this.props;
+        const { propArr, isRequesting, closeModal, projectId } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div
@@ -68,7 +66,7 @@ class DeleteIncomingRequest extends Component {
                                 <div className="bs-Modal-header">
                                     <div className="bs-Modal-header-copy">
                                         <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                            <span>Incoming HTTP Request Enabled</span>
+                                            <span>Incoming HTTP Request {propArr.isEnabled === true ? 'Enabled' : 'Disabled'}</span>
                                         </span>
                                     </div>
                                 </div>
@@ -79,39 +77,6 @@ class DeleteIncomingRequest extends Component {
                                     </span>
                                 </div>
                                 <div className="bs-Modal-footer">
-                                    <div
-                                        className="bs-Modal-footer-actions"
-                                        style={{ width: 280 }}
-                                    >
-                                        <ShouldRender
-                                            if={!isRequesting && deleteError}
-                                        >
-                                            <div
-                                                id="deleteError"
-                                                className="bs-Tail-copy"
-                                            >
-                                                <div
-                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                    style={{
-                                                        marginTop: '10px',
-                                                    }}
-                                                >
-                                                    <div className="Box-root Margin-right--8">
-                                                        <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                                    </div>
-                                                    <div className="Box-root">
-                                                        <span
-                                                            style={{
-                                                                color: 'red',
-                                                            }}
-                                                        >
-                                                            {deleteError}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </ShouldRender>
-                                    </div>
                                     <div className="bs-Modal-footer-actions">
                                         <button
                                             className="bs-Button bs-DeprecatedButton bs-Button--grey btn__modal"
@@ -119,7 +84,7 @@ class DeleteIncomingRequest extends Component {
                                             onClick={() =>
                                                 closeModal({ id: projectId })
                                             }
-                                            id="cancelDeleteIncomingRequest"
+                                            id="cancelIncomingRequestEnabledToggle"
                                         >
                                             <span>Cancel</span>
                                             <span className="cancel-btn__keycode">
@@ -130,7 +95,7 @@ class DeleteIncomingRequest extends Component {
                                             id="incomingRequestBtn"
                                             className="bs-Button bs-DeprecatedButton bs-Button--blue btn__modal"
                                             type="button"
-                                            onClick={this.handleDelete}
+                                            onClick={this.handleClick}
                                             disabled={isRequesting}
                                             autoFocus={true}
                                         >
@@ -155,33 +120,29 @@ class DeleteIncomingRequest extends Component {
     }
 }
 
-DeleteIncomingRequest.displayName = 'DeleteIncomingRequest';
+IncomingRequestEnabledToggle.displayName = 'IncomingRequestEnabledToggle';
 
-DeleteIncomingRequest.propTypes = {
+IncomingRequestEnabledToggle.propTypes = {
     isRequesting: PropTypes.bool,
-    deleteError: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
     closeModal: PropTypes.func,
-    deleteIncomingRequest: PropTypes.func,
+    incomingRequestToggle: PropTypes.func,
     projectId: PropTypes.string,
     requestId: PropTypes.string,
+    propArr: PropTypes.array,
 };
 
 const mapStateToProps = state => {
     return {
-        isRequesting: state.incomingRequest.deleteIncomingRequest.requesting,
-        deleteError: state.incomingRequest.deleteIncomingRequest.error,
+        isRequesting: state.incomingRequest.updateIncomingRequest.requesting,
         projectId: state.modal.modals[0].projectId,
         requestId: state.modal.modals[0].requestId,
     };
 };
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators({ closeModal, deleteIncomingRequest }, dispatch);
+    bindActionCreators({ closeModal, incomingRequestToggle }, dispatch);
 
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-)(DeleteIncomingRequest);
+)(IncomingRequestEnabledToggle);

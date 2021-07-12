@@ -557,7 +557,6 @@ module.exports = {
                     projectId: data.projectId,
                 }),
             ]);
-            console.log("Incoming Request: ", incomingRequest);
             const filterMatch = incomingRequest.filterMatch;
             const filters = incomingRequest.filters;
 
