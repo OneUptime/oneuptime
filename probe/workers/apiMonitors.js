@@ -16,7 +16,10 @@ module.exports = {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {
-                    const headers = ApiService.headers(monitor.headers, monitor.bodyType);
+                    const headers = ApiService.headers(
+                        monitor.headers,
+                        monitor.bodyType
+                    );
                     const body = ApiService.body(
                         monitor && monitor.text && monitor.text.length
                             ? monitor.text
@@ -165,8 +168,8 @@ const pingfetch = async (url, method, body, headers) => {
                 response && response.status
                     ? response.status
                     : resp && resp.status
-                        ? resp.status
-                        : null,
+                    ? resp.status
+                    : null,
             statusText:
                 response && response.statusText ? response.statusText : null,
             headers:
