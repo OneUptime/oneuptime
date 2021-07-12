@@ -1822,7 +1822,8 @@ function analyseVariable(variable, data) {
         let temp = variable.match(regex);
         if (!temp) {
             // handles the part where variable is passed without double curly braces
-            temp = variable;
+            // temp = variable;
+            return variable;
         } else {
             temp = temp[0];
         }
