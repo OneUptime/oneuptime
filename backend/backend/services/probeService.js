@@ -1233,6 +1233,7 @@ module.exports = {
             logData.stopPingTimeUpdate = true;
             logData.matchedCriterion = matchedCriterion;
             // update monitor to save the last matched criterion
+
             const [, log] = await Promise.all([
                 MonitorService.updateOneBy(
                     {
@@ -1244,6 +1245,7 @@ module.exports = {
                 ),
                 _this.saveMonitorLog(logData),
             ]);
+            
             return log;
         } catch (error) {
             ErrorService.log('monitorService.probeHttpRequest', error);

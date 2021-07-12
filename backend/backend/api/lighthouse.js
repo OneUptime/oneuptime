@@ -24,7 +24,7 @@ const {
 
 router.get('/monitors', isAuthorizedLighthouse, async function(req, res) {
     try {
-        const monitors = await MonitorService.getUrlMonitors();
+        const monitors = await MonitorService.getUrlMonitorsNotScannedByLightHouseInPastOneDay();
 
         return sendListResponse(
             req,
