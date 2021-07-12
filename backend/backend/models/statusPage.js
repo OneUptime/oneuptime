@@ -74,6 +74,10 @@ const statusSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    multipleNotifications: {
+        type: Boolean,
+        default: false,
+    },
     // show or hide resolved incident on the status page
     hideResolvedIncident: {
         type: Boolean,
