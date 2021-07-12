@@ -58,3 +58,25 @@ func LogInfo(content string, tags []string) (LoggerResponse, error) {
 	}
 	return res, err
 }
+
+func LogWarning(content string, tags []string) (LoggerResponse, error) {
+	// access fyipe Logger and send an api request
+	logger := CurrentLogger()
+	var res, err = logger.MakeApiRequest(content, "warning", tags)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return res, err
+}
+
+func LogError(content string, tags []string) (LoggerResponse, error) {
+	// access fyipe Logger and send an api request
+	logger := CurrentLogger()
+	var res, err = logger.MakeApiRequest(content, "error", tags)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return res, err
+}
