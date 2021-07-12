@@ -1,0 +1,29 @@
+{
+    "name": "container-scanner",
+    "version": "3.0.0",
+    "description": "A Container Security Scanner",
+    "main": "index.js",
+    "scripts": {
+        "start": "node --max-old-space-size=4096 --max-http-header-size=80000 index.js",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "dev": "node --inspect=0.0.0.0 --max-http-header-size=80000 index.js",
+        "audit": "npm audit --audit-level=low",
+        "dep-check": "depcheck ./ --skip-missing=true"
+    },
+    "author": "David Adewole",
+    "license": "MIT",
+    "dependencies": {
+        "axios": "^0.21.1",
+        "cors": "^2.8.5",
+        "custom-env": "^2.0.1",
+        "express": "^4.17.1",
+        "node-cron": "^3.0.0",
+        "ping": "^0.4.1",
+        "uuid": "^3.4.0",
+        "winston": "^3.3.3",
+        "winston-slack-transport": "^2.0.0"
+    },
+    "devDependencies": {
+        "depcheck": "^1.4.2"
+    }
+}

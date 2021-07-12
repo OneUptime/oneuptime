@@ -79,10 +79,23 @@ class MonitorInfo extends Component {
                 a => String(a._id) === String(monitor._id)
             );
 
-            const probe =
+            let probe =
                 probes && probes.length > 0
                     ? probes[probes.length < 2 ? 0 : activeProbe]
                     : null;
+
+            //this fixes the problem if the monitor is just created and its an api monitor
+            if (monitorData.statuses.length === 1) {
+                probe =
+                    probes && probes.length > 0
+                        ? probes.filter(
+                              probe =>
+                                  String(probe._id) ===
+                                  String(monitorData.statuses[0]._id)
+                          )[0]
+                        : null;
+            }
+
             const statuses = filterProbeData(monitorData, probe, monitorStatus);
             calculateTime(statuses, now, range, monitor._id);
         }

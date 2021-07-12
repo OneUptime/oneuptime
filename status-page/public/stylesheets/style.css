@@ -1786,7 +1786,6 @@ margin-left:10px;
 .subscribe_box {
   display: flex;
   background-color: rgba(0,0,0,1);
-  color: #fff;
   padding: 20px;
   justify-content: space-between;
   margin: auto;
@@ -2140,4 +2139,15 @@ margin-left:10px;
 .ann_desc a {
   color: #fff;
   text-decoration: underline;
+}
+
+.bs-notificationType {
+  color: #000;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.subscriber-success {
+  color: '#000' !important;
+  font-size: 14px;
 }

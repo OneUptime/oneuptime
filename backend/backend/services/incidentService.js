@@ -675,13 +675,25 @@ module.exports = {
 
                 // assuming all the monitors in the incident is from the same component
                 // which makes sense, since having multiple component will make things more complicated
+
+                const populateComponent = [
+                    { path: 'projectId', select: 'name' },
+                    { path: 'componentCategoryId', select: 'name' },
+                ];
+
+                const selectComponent =
+                    '_id createdAt name createdById projectId slug componentCategoryId';
                 const component = await ComponentService.findOneBy({
-                    _id:
-                        monitors[0] &&
-                        monitors[0].componentId &&
-                        monitors[0].componentId._id
-                            ? monitors[0].componentId._id
-                            : monitors[0].componentId,
+                    query: {
+                        _id:
+                            monitors[0] &&
+                            monitors[0].componentId &&
+                            monitors[0].componentId._id
+                                ? monitors[0].componentId._id
+                                : monitors[0].componentId,
+                    },
+                    select: selectComponent,
+                    populate: populateComponent,
                 });
 
                 // automatically create acknowledgement incident note
@@ -1116,11 +1128,22 @@ module.exports = {
     sendIncidentResolvedNotification: async function(incident, name, monitor) {
         try {
             const _this = this;
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
             const component = await ComponentService.findOneBy({
-                _id:
-                    monitor.componentId && monitor.componentId._id
-                        ? monitor.componentId._id
-                        : monitor.componentId,
+                query: {
+                    _id:
+                        monitor.componentId && monitor.componentId._id
+                            ? monitor.componentId._id
+                            : monitor.componentId,
+                },
+                select: selectComponent,
+                populate: populateComponent,
             });
             const resolvedincident = await _this.findOneBy({
                 query: { _id: incident._id },

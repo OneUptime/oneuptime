@@ -68,10 +68,14 @@ router.post(
 
             data.componentId = componentId;
 
+            const populateComponent = [{ path: 'projectId', select: 'name' }];
+            const selectComponent = ' projectId ';
             const [errorTracker, component, user] = await Promise.all([
                 ErrorTrackerService.create(data),
                 ComponentService.findOneBy({
-                    _id: componentId,
+                    query: { _id: componentId },
+                    select: selectComponent,
+                    populate: populateComponent,
                 }),
                 UserService.findOneBy({ _id: req.user.id }),
             ]);

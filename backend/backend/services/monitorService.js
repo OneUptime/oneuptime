@@ -378,10 +378,6 @@ module.exports = {
             monitorQuery = handleSelect(select, monitorQuery);
             monitorQuery = handlePopulate(populate, monitorQuery);
 
-            // monitor = await handlePopulate(
-            //     populate,
-            //     handleSelect(select, monitor)
-            // );
             const monitor = await monitorQuery;
             return monitor;
         } catch (error) {
@@ -587,11 +583,33 @@ module.exports = {
                         })
                     );
 
+                    const populateSchedule = [
+                        { path: 'userIds', select: 'name' },
+                        { path: 'createdById', select: 'name' },
+                        { path: 'monitorIds', select: 'name' },
+                        {
+                            path: 'projectId',
+                            select: '_id name slug',
+                        },
+                        {
+                            path: 'escalationIds',
+                            select: 'teams',
+                            populate: {
+                                path: 'teams.teamMembers.userId',
+                                select: 'name email',
+                            },
+                        },
+                    ];
+
+                    const selectSchedule =
+                        '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
                     const monitorsWithSchedules = await Promise.all(
                         monitorsWithStatus.map(async monitor => {
                             const monitorSchedules = await ScheduleService.findBy(
                                 {
-                                    monitorIds: monitor._id,
+                                    query: { monitorIds: monitor._id },
+                                    select: selectSchedule,
+                                    populate: populateSchedule,
                                 }
                             );
                             return {
@@ -742,36 +760,24 @@ module.exports = {
                     {
                         deleted: false,
                         disabled: false,
+                        type: 'script',
                     },
                     {
                         $or: [
                             {
-                                $and: [
-                                    {
-                                        type: {
-                                            $in: ['script'],
-                                        },
-                                    },
-                                    {
-                                        $or: [
-                                            {
-                                                // ignore scripts that are running / inProgress
-                                                scriptRunStatus: {
-                                                    $nin: ['inProgress'],
-                                                },
-                                            },
-                                            // runaway script monitors that have been running for too long (10mins)**
-                                            // or weren't completed due to a crash
-                                            {
-                                                lastPingTime: {
-                                                    $lte: moment()
-                                                        .subtract(10, 'minutes')
-                                                        .toDate(),
-                                                },
-                                            },
-                                        ],
-                                    },
-                                ],
+                                // ignore scripts that are running / inProgress
+                                scriptRunStatus: {
+                                    $nin: ['inProgress'],
+                                },
+                            },
+                            // runaway script monitors that have been running for too long (10mins)**
+                            // or weren't completed due to a crash
+                            {
+                                lastPingTime: {
+                                    $lte: moment()
+                                        .subtract(10, 'minutes')
+                                        .toDate(),
+                                },
                             },
                         ],
                     },

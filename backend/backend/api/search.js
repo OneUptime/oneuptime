@@ -89,10 +89,21 @@ router.post('/:projectId', getUser, getSubProjects, async function(req, res) {
 });
 
 const getComponents = async (projectIds, val, parentProjectId) => {
+    const populateComponent = [
+        { path: 'projectId', select: 'name' },
+        { path: 'componentCategoryId', select: 'name' },
+    ];
+
+    const selectComponent =
+        '_id createdAt name createdById projectId slug componentCategoryId';
     const components = await ComponentService.findBy({
-        projectId: { $in: projectIds },
-        deleted: false,
-        $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+        query: {
+            projectId: { $in: projectIds },
+            deleted: false,
+            $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+        },
+        select: selectComponent,
+        populate: populateComponent,
     });
     if (components.length > 0) {
         const resultObj = {
@@ -221,10 +232,34 @@ const getUsers = async (projectIds, val) => {
 };
 
 const getOnCallDuty = async (projectIds, val, parentProjectId) => {
+    const populate = [
+        { path: 'userIds', select: 'name' },
+        { path: 'createdById', select: 'name' },
+        { path: 'monitorIds', select: 'name' },
+        {
+            path: 'projectId',
+            select: '_id name slug',
+        },
+        {
+            path: 'escalationIds',
+            select: 'teams',
+            populate: {
+                path: 'teams.teamMembers.userId',
+                select: 'name email',
+            },
+        },
+    ];
+
+    const select =
+        '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
     const schedules = await ScheduleService.findBy({
-        projectId: { $in: projectIds },
-        deleted: false,
-        $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+        query: {
+            projectId: { $in: projectIds },
+            deleted: false,
+            $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+        },
+        select,
+        populate,
     });
     if (schedules.length > 0) {
         const resultObj = {
@@ -331,8 +366,8 @@ const getIncidents = async (projectIds, val, parentProjectId) => {
 
 const getErrorTrackers = async (projectIds, val, parentProjectId) => {
     const components = await ComponentService.findBy({
-        projectId: { $in: projectIds },
-        deleted: false,
+        query: { projectId: { $in: projectIds }, deleted: false },
+        select: '_id',
     });
     const componentIds = components.map(component => component._id);
     const errorTrackers = await ErrorTrackerService.findBy({
@@ -363,8 +398,8 @@ const getErrorTrackers = async (projectIds, val, parentProjectId) => {
 
 const getLogContainers = async (projectIds, val, parentProjectId) => {
     const components = await ComponentService.findBy({
-        projectId: { $in: projectIds },
-        deleted: false,
+        query: { projectId: { $in: projectIds }, deleted: false },
+        select: '_id',
     });
     const componentIds = components.map(component => component._id);
     const logContainers = await LogContainerService.findBy({
@@ -395,8 +430,8 @@ const getLogContainers = async (projectIds, val, parentProjectId) => {
 
 const getPerformanceTrackers = async (projectIds, val, parentProjectId) => {
     const components = await ComponentService.findBy({
-        projectId: { $in: projectIds },
-        deleted: false,
+        query: { projectId: { $in: projectIds }, deleted: false },
+        select: 'id',
     });
     const componentIds = components.map(component => component._id);
     const performanceTrackers = await PerformanceTracker.findBy({

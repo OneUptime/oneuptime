@@ -1,0 +1,59 @@
+# DEPLOYMENT STAGE - Container Scanner
+staging_container-scanner:
+    stage: Deploy
+    allow_failure: true
+    retry: 2
+    script:
+        - chmod +x ./ci/scripts/version-setup.sh
+        - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/deployment-setup.sh
+        - ./ci/scripts/deployment-setup.sh
+        - chmod +x ./ci/scripts/deployment-staging-setup.sh
+        - ./ci/scripts/deployment-staging-setup.sh
+        # Build and deploy container-scanner
+        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker build --build-arg PORT="3055" ./container-scanner -t fyipeproject/container-scanner:master
+        - sudo docker tag fyipeproject/container-scanner:master fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/container-scanner:master
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-cont-scan fi-cont-scan=fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
+        # Cleanup
+        - chmod +x ./ci/scripts/deployment-cleanup.sh
+        - ./ci/scripts/deployment-cleanup.sh
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - master
+            - hotfix-master
+    environment:
+        name: staging
+
+production_container-scanner:
+    stage: Deploy
+    allow_failure: true
+    retry: 2
+    script:
+        - chmod +x ./ci/scripts/version-setup.sh
+        - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/deployment-setup.sh
+        - ./ci/scripts/deployment-setup.sh
+        - chmod +x ./ci/scripts/deployment-production-setup.sh
+        - ./ci/scripts/deployment-production-setup.sh
+        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker build --build-arg PORT="3055" ./container-scanner -t fyipeproject/container-scanner:latest
+        - sudo docker tag fyipeproject/container-scanner:latest fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/container-scanner:latest
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-cont-scan fi-cont-scan=fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
+        # Cleanup
+        - chmod +x ./ci/scripts/deployment-cleanup.sh
+        - ./ci/scripts/deployment-cleanup.sh
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - release
+            - hotfix-release
+    environment:
+        name: production

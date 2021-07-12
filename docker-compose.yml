@@ -34,6 +34,7 @@ services:
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SCRIPT_RUNNER_URL=http://script-runner:3009
+            - CLUSTER_KEY=test
         depends_on:
             - mongo
             - redis
@@ -119,6 +120,7 @@ services:
             - PROBE_NAME=Probe 1
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
         depends_on:
             - backend
     probe2:
@@ -133,6 +135,7 @@ services:
             - PROBE_NAME=Probe 2
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
         depends_on:
             - backend
     api-docs:
@@ -183,6 +186,7 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SERVER_URL=http://backend:3002
+            - CLUSTER_KEY=test
     application-scanner:
         ports:
             - '3005:3005'
@@ -193,6 +197,20 @@ services:
             - PORT=3005
             - SERVER_URL=http://backend:3002
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
+        depends_on:
+            - backend
+    container-scanner:
+        ports:
+            - '3055:3055'
+        build: ./container-scanner
+        env_file:
+            - ./container-scanner/.env
+        environment:
+            - PORT=3055
+            - SERVER_URL=http://backend:3002
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
         depends_on:
             - backend
     lighthouse-runner:
@@ -205,6 +223,7 @@ services:
             - PORT=3015
             - SERVER_URL=http://backend:3002
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
         depends_on:
             - backend
 

@@ -238,7 +238,8 @@ module.exports = {
                 }
             } else if (type && type === 'Schedule') {
                 const schedules = await ScheduleService.findOneBy({
-                    _id: id,
+                    query: { _id: id },
+                    select: '_id escalationIds',
                 });
                 const escalationId =
                     schedules &&

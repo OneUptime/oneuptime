@@ -11,12 +11,12 @@ module.exports = {
     create: async function(data) {
         try {
             const _this = this;
-            // try to get the component by the ID
-            const component = await ComponentService.findOneBy({
+            // check if component exists
+            const componentCount = await ComponentService.countBy({
                 _id: data.componentId,
             });
             // send an error if the component doesnt exist
-            if (!component) {
+            if (!componentCount || componentCount === 0) {
                 const error = new Error('Component does not exist.');
                 error.code = 400;
                 ErrorService.log('performanceTrackerService.create', error);
@@ -130,12 +130,12 @@ module.exports = {
         skip
     ) {
         const _this = this;
-        // try to get the component by the ID
-        const component = await ComponentService.findOneBy({
+        // Check if component exists
+        const componentCount = await ComponentService.countBy({
             _id: componentId,
         });
         // send an error if the component doesnt exist
-        if (!component) {
+        if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
             error.code = 400;
             ErrorService.log(

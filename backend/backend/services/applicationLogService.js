@@ -2,12 +2,12 @@ module.exports = {
     create: async function(data) {
         try {
             const _this = this;
-            // try to get the component by the ID
-            const component = await ComponentService.findOneBy({
+            // check component exists
+            const componentCount = await ComponentService.countBy({
                 _id: data.componentId,
             });
             // send an error if the component doesnt exist
-            if (!component) {
+            if (!componentCount || componentCount === 0) {
                 const error = new Error('Component does not exist.');
                 error.code = 400;
                 ErrorService.log('applicationLogService.create', error);
@@ -116,12 +116,12 @@ module.exports = {
     },
 
     async getApplicationLogsByComponentId(componentId, limit, skip) {
-        // try to get the component by the ID
-        const component = await ComponentService.findOneBy({
+        // check if component exists
+        const componentCount = await ComponentService.countBy({
             _id: componentId,
         });
         // send an error if the component doesnt exist
-        if (!component) {
+        if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
             error.code = 400;
             ErrorService.log(
@@ -136,7 +136,7 @@ module.exports = {
             if (typeof skip === 'string') skip = parseInt(skip);
             const _this = this;
 
-            const populate = [
+            const populateAppLogs = [
                 {
                     path: 'componentId',
                     select: 'name slug projectId',
@@ -147,14 +147,14 @@ module.exports = {
                 },
             ];
 
-            const select =
+            const selectAppLogs =
                 'componentId name slug resourceCategory showQuickStart createdById key';
             const applicationLogs = await _this.findBy({
                 query: { componentId: componentId },
                 limit,
                 skip,
-                populate,
-                select,
+                populate: populateAppLogs,
+                select: selectAppLogs,
             });
             return applicationLogs;
         } catch (error) {
@@ -185,7 +185,8 @@ module.exports = {
             ).populate('deletedById', 'name');
             if (applicationLog) {
                 const component = ComponentService.findOneBy({
-                    _id: applicationLog.componentId._id,
+                    query: { _id: applicationLog.componentId._id },
+                    select: 'projectId',
                 });
                 NotificationService.create(
                     component.projectId,

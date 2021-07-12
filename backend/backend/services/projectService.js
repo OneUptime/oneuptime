@@ -128,6 +128,34 @@ module.exports = {
                         project.stripeSubscriptionId
                     );
                 }
+                const populateSchedule = [
+                    { path: 'userIds', select: 'name' },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'monitorIds', select: 'name' },
+                    {
+                        path: 'projectId',
+                        select: '_id name slug',
+                    },
+                    {
+                        path: 'escalationIds',
+                        select: 'teams',
+                        populate: {
+                            path: 'teams.teamMembers.userId',
+                            select: 'name email',
+                        },
+                    },
+                ];
+
+                const selectSchedule =
+                    '_id name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
+
+                const populateComponent = [
+                    { path: 'projectId', select: 'name' },
+                    { path: 'componentCategoryId', select: 'name' },
+                ];
+
+                const selectComponent =
+                    '_id createdAt name createdById projectId slug componentCategoryId';
 
                 const [
                     monitors,
@@ -142,7 +170,9 @@ module.exports = {
                         select: '_id',
                     }),
                     ScheduleService.findBy({
-                        projectId: project._id,
+                        query: { projectId: project._id },
+                        select: selectSchedule,
+                        populate: populateSchedule,
                     }),
                     DomainVerificationService.findBy({
                         projectId: project._id,
@@ -151,7 +181,9 @@ module.exports = {
                         projectId: project._id,
                     }),
                     componentService.findBy({
-                        projectId: project._id,
+                        query: { projectId: project._id },
+                        select: selectComponent,
+                        populate: populateComponent,
                     }),
                     SsoDefaultRolesService.findBy({
                         project: project._id,

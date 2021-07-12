@@ -23,6 +23,11 @@ spec:
                 name: {{ printf "%s-%s" .Release.Name "app-scan" }}
                 imagePullPolicy: {{ .Values.image.pullPolicy }}
                 env:
+                    - name: CLUSTER_KEY
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
+                            key: clusterkey
                     - name: NODE_ENV
                       value: 'production'
                     - name: PORT

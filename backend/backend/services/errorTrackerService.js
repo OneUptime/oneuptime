@@ -2,12 +2,12 @@ module.exports = {
     create: async function(data) {
         try {
             const _this = this;
-            // try to get the component by the ID
-            const component = await ComponentService.findOneBy({
+            // check if component exist
+            const componentCount = await ComponentService.countBy({
                 _id: data.componentId,
             });
             // send an error if the component doesnt exist
-            if (!component) {
+            if (!componentCount || componentCount === 0) {
                 const error = new Error('Component does not exist.');
                 error.code = 400;
                 ErrorService.log('errorTrackerService.create', error);
@@ -127,12 +127,12 @@ module.exports = {
     },
     // get all error trackers by component ID
     async getErrorTrackersByComponentId(componentId, limit, skip) {
-        // try to get the component by the ID
-        const component = await ComponentService.findOneBy({
+        // Check if component exists
+        const componentCount = await ComponentService.countBy({
             _id: componentId,
         });
         // send an error if the component doesnt exist
-        if (!component) {
+        if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
             error.code = 400;
             ErrorService.log(
@@ -181,7 +181,8 @@ module.exports = {
             ).populate('deletedById', 'name');
             if (errorTracker) {
                 const component = ComponentService.findOneBy({
-                    _id: errorTracker.componentId._id,
+                    query: { _id: errorTracker.componentId._id },
+                    select: 'projectId',
                 });
                 NotificationService.create(
                     component.projectId,
