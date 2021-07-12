@@ -175,6 +175,7 @@ module.exports = {
                 temp.countryCode = result.countryCode;
                 temp.contactWebhook = result.contactWebhook;
                 temp.webhookMethod = result.webhookMethod;
+                temp.notificationType = result.notificationType;
                 subscribersArr.push(temp);
             }
             return subscribersArr;
