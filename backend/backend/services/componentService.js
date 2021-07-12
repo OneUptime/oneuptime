@@ -10,7 +10,7 @@ module.exports = {
                 name: data.name,
                 projectId: data.projectId,
             });
-            if (!existingComponentCount || existingComponentCount === 0) {
+            if (existingComponentCount && existingComponentCount > 0) {
                 const error = new Error(
                     'Component with that name already exists.'
                 );
