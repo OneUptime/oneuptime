@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -12,13 +12,17 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-            const projects = await ProjectModel.find(query)
+
+            let projectQuery = ProjectModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('userId', 'name')
-                .populate('parentProjectId', 'name');
+                .skip(skip);
+
+            projectQuery = handleSelect(select, projectQuery);
+            projectQuery = handlePopulate(populate, projectQuery);
+
+            const projects = await projectQuery;
             return projects;
         } catch (error) {
             ErrorService.log('projectService.findBy', error);
@@ -220,17 +224,21 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            const project = await ProjectModel.findOne(query)
+
+            let projectQuery = ProjectModel.findOne(query)
                 .lean()
-                .sort([['createdAt', -1]])
-                .populate('userId', 'name')
-                .populate('parentProjectId', 'name');
+                .sort([['createdAt', -1]]);
+
+            projectQuery = handleSelect(select, projectQuery);
+            projectQuery = handlePopulate(populate, projectQuery);
+
+            const project = await projectQuery;
             return project;
         } catch (error) {
             ErrorService.log('projectService.findOneBy', error);
