@@ -23,8 +23,8 @@ module.exports = {
     test: async function(projectId, apiKey) {
         try {
             const project = await ProjectService.findOneBy({
-                apiKey: apiKey,
-                _id: projectId,
+                query: { apiKey: apiKey, _id: projectId },
+                select: 'name',
             });
             if (project)
                 return await Object.assign({}, project, {
@@ -49,13 +49,22 @@ module.exports = {
             const zapierResponseArray = [];
             const zapierResponse = {};
             const _this = this;
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'name _id',
+            });
 
             if (project) {
                 zapierResponse.projectName = project.name;
                 zapierResponse.projectId = project._id;
                 const projects = await ProjectService.findBy({
-                    $or: [{ _id: projectId }, { parentProjectId: projectId }],
+                    query: {
+                        $or: [
+                            { _id: projectId },
+                            { parentProjectId: projectId },
+                        ],
+                    },
+                    select: '_id',
                 });
                 const projectIds = projects.map(project => project._id);
                 const findquery = {
@@ -103,13 +112,22 @@ module.exports = {
             const zapierResponseArray = [];
             const zapierResponse = {};
             const _this = this;
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'name _id',
+            });
 
             if (project) {
                 zapierResponse.projectName = project.name;
                 zapierResponse.projectId = project._id;
                 const projects = await ProjectService.findBy({
-                    $or: [{ _id: projectId }, { parentProjectId: projectId }],
+                    query: {
+                        $or: [
+                            { _id: projectId },
+                            { parentProjectId: projectId },
+                        ],
+                    },
+                    select: '_id',
                 });
                 const projectIds = projects.map(project => project._id);
                 const findquery = {
@@ -204,12 +222,21 @@ module.exports = {
             const zapierResponseArray = [];
             const zapierResponse = {};
             const _this = this;
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'name _id',
+            });
             if (project) {
                 zapierResponse.projectName = project.name;
                 zapierResponse.projectId = project._id;
                 const projects = await ProjectService.findBy({
-                    $or: [{ _id: projectId }, { parentProjectId: projectId }],
+                    query: {
+                        $or: [
+                            { _id: projectId },
+                            { parentProjectId: projectId },
+                        ],
+                    },
+                    select: '_id',
                 });
                 const projectIds = projects.map(project => project._id);
                 const findquery = {
@@ -258,12 +285,21 @@ module.exports = {
             const zapierResponseArray = [];
             const zapierResponse = {};
             const _this = this;
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'name _id',
+            });
             if (project) {
                 zapierResponse.projectName = project.name;
                 zapierResponse.projectId = project._id;
                 const projects = await ProjectService.findBy({
-                    $or: [{ _id: projectId }, { parentProjectId: projectId }],
+                    query: {
+                        $or: [
+                            { _id: projectId },
+                            { parentProjectId: projectId },
+                        ],
+                    },
+                    select: '_id',
                 });
                 const projectIds = projects.map(project => project._id);
                 const findquery = {
@@ -340,11 +376,17 @@ module.exports = {
                 RealTimeService.sendCreatedIncident(incident);
 
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.project._id,
+                    query: { _id: monitorObj.project._id },
+                    select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
-                        _id: project.parentProjectId._id,
+                        query: {
+                            _id:
+                                project.parentProjectId._id ||
+                                project.parentProjectId,
+                        },
+                        select: 'name _id',
                     });
                 }
                 zapierResponse.projectName = project.name;
@@ -381,11 +423,17 @@ module.exports = {
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.projectId._id,
+                    query: { _id: monitorObj.projectId._id },
+                    select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
-                        _id: project.parentProjectId._id,
+                        query: {
+                            _id:
+                                project.parentProjectId._id ||
+                                project.parentProjectId,
+                        },
+                        select: 'name _id',
                     });
                 }
                 zapierResponse.projectName = project.name;
@@ -426,11 +474,17 @@ module.exports = {
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.projectId._id,
+                    query: { _id: monitorObj.projectId._id },
+                    select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
-                        _id: project.parentProjectId._id,
+                        query: {
+                            _id:
+                                project.parentProjectId._id ||
+                                project.parentProjectId,
+                        },
+                        select: 'name _id',
                     });
                 }
                 zapierResponse.projectName = project.name;
@@ -482,11 +536,19 @@ module.exports = {
                     populate,
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: incidentObj.projectId._id || incidentObj.projectId,
+                    query: {
+                        _id: incidentObj.projectId._id || incidentObj.projectId,
+                    },
+                    select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
-                        _id: project.parentProjectId._id,
+                        query: {
+                            _id:
+                                project.parentProjectId._id ||
+                                project.parentProjectId,
+                        },
+                        select: 'name _id',
                     });
                 }
                 zapierResponse.projectName = project.name;
@@ -543,11 +605,17 @@ module.exports = {
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.projectId._id,
+                    query: { _id: monitorObj.projectId._id },
+                    select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
-                        _id: project.parentProjectId._id,
+                        query: {
+                            _id:
+                                project.parentProjectId._id ||
+                                project.parentProjectId,
+                        },
+                        select: 'name _id',
                     });
                 }
                 zapierResponse.projectName = project.name;
@@ -608,11 +676,17 @@ module.exports = {
                     populate: [{ path: 'projectId', select: '_id' }],
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: monitorObj.projectId._id,
+                    query: { _id: monitorObj.projectId._id },
+                    select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
-                        _id: project.parentProjectId._id,
+                        query: {
+                            _id:
+                                project.parentProjectId._id ||
+                                project.parentProjectId,
+                        },
+                        select: 'name _id',
                     });
                 }
                 zapierResponse.projectName = project.name;
@@ -664,11 +738,19 @@ module.exports = {
                     populate,
                 });
                 let project = await ProjectService.findOneBy({
-                    _id: incidentObj.projectId._id || incidentObj.projectId,
+                    query: {
+                        _id: incidentObj.projectId._id || incidentObj.projectId,
+                    },
+                    select: 'parentProjectId',
                 });
                 if (project.parentProjectId) {
                     project = await ProjectService.findOneBy({
-                        _id: project.parentProjectId._id,
+                        query: {
+                            _id:
+                                project.parentProjectId._id ||
+                                project.parentProjectId,
+                        },
+                        select: 'name _id',
                     });
                 }
                 zapierResponse.projectName = project.name;
@@ -776,11 +858,19 @@ module.exports = {
         try {
             const _this = this;
             const projectId = incident.projectId._id || incident.projectId;
-            let project = await ProjectService.findOneBy({ _id: projectId });
+            let project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProjectId',
+            });
 
             if (project.parentProjectId) {
                 project = await ProjectService.findOneBy({
-                    _id: project.parentProjectId._id,
+                    query: {
+                        _id:
+                            project.parentProjectId._id ||
+                            project.parentProjectId,
+                    },
+                    select: 'name _id',
                 });
             }
             const monitorIds = incident.monitors.map(

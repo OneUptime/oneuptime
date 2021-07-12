@@ -81,9 +81,9 @@ class Monitors extends Component {
         this.props.openSubscribeMenu();
     };
     render() {
-        const multipleNotifications =
+        const multipleNotificationTypes =
             this.props.statuspage &&
-            this.props.statuspage.multipleNotifications;
+            this.props.statuspage.multipleNotificationTypes;
         return (
             <div>
                 {this.props.subscribed.success ? (
@@ -142,7 +142,7 @@ class Monitors extends Component {
                           })}
                     {this.props.subscribed.success
                         ? null
-                        : multipleNotifications &&
+                        : multipleNotificationTypes &&
                           this.state && (
                               <>
                                   <div className="bs-notificationType">

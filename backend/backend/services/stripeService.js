@@ -13,7 +13,8 @@ const Services = {
                     stripeCustomerId: customerId,
                 }),
                 ProjectService.findOneBy({
-                    stripeSubscriptionId: subscriptionId,
+                    query: { stripeSubscriptionId: subscriptionId },
+                    select: 'name',
                 }),
             ]);
 

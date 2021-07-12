@@ -6,11 +6,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: incident.projectId._id || incident.projectId,
+                query: { _id: incident.projectId._id || incident.projectId },
+                select: 'parentProjectId _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
@@ -28,11 +29,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: timeline.projectId,
+                query: { _id: timeline.projectId },
+                select: 'parentProjectId _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : timeline.projectId;
             const { idNumber } = await IncidentService.findOneBy({
@@ -60,11 +62,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: incident.projectId._id || incident.projectId,
+                query: { _id: incident.projectId._id || incident.projectId },
+                select: 'parentProjectId _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
@@ -84,11 +87,12 @@ module.exports = {
                 return;
             }
             const project = await ProjectService.findOneBy({
-                _id: incident.projectId._id || incident.projectId,
+                query: { _id: incident.projectId._id || incident.projectId },
+                select: 'parentProjectId _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : incident.projectId._id || incident.projectId;
             global.io.emit(`deleteIncident-${projectId}`, incident);
@@ -108,11 +112,12 @@ module.exports = {
                 select: 'projectId _id',
             });
             const project = await ProjectService.findOneBy({
-                _id: incident.projectId._id || incident.projectId,
+                query: { _id: incident.projectId._id || incident.projectId },
+                select: 'parentProjectId _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
@@ -133,11 +138,12 @@ module.exports = {
                 select: 'projectId',
             });
             const project = await ProjectService.findOneBy({
-                _id: incident.projectId._id || incident.projectId,
+                query: { _id: incident.projectId._id || incident.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
@@ -154,11 +160,12 @@ module.exports = {
                 return;
             }
             const project = await ProjectService.findOneBy({
-                _id: incidentTimeline.projectId,
+                query: { _id: incidentTimeline.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : incidentTimeline.projectId;
 
@@ -179,11 +186,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: incident.projectId._id || incident.projectId,
+                query: { _id: incident.projectId._id || incident.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
@@ -204,11 +212,12 @@ module.exports = {
                 select: 'projectId',
             });
             const project = await ProjectService.findOneBy({
-                _id: incident.projectId._id || incident.projectId,
+                query: { _id: incident.projectId._id || incident.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
@@ -222,11 +231,12 @@ module.exports = {
     addScheduledEvent: async event => {
         try {
             const project = await ProjectService.findOneBy({
-                _id: event.projectId,
+                query: { _id: event.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : event.projectId;
 
@@ -240,11 +250,12 @@ module.exports = {
     deleteScheduledEvent: async event => {
         try {
             const project = await ProjectService.findOneBy({
-                _id: event.projectId,
+                query: { _id: event.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : event.projectId;
 
@@ -258,11 +269,12 @@ module.exports = {
     updateScheduledEvent: async event => {
         try {
             const project = await ProjectService.findOneBy({
-                _id: event.projectId,
+                query: { _id: event.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : event.projectId;
 
@@ -276,11 +288,12 @@ module.exports = {
     resolveScheduledEvent: async event => {
         try {
             const project = await ProjectService.findOneBy({
-                _id: event.projectId._id,
+                query: { _id: event.projectId._id },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : event.projectId._id;
 
@@ -321,11 +334,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: projectId,
+                query: { _id: projectId },
+                select: 'parentProject _id',
             });
             projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : projectId;
 
@@ -378,11 +392,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: projectId,
+                query: { _id: projectId },
+                select: 'parentProject _id',
             });
             projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : projectId;
 
@@ -435,11 +450,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: projectId,
+                query: { _id: projectId },
+                select: 'parentProject _id',
             });
             projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : projectId;
 
@@ -469,11 +485,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: component.projectId._id,
+                query: { _id: component.projectId._id },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : component.projectId._id;
 
@@ -491,11 +508,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: monitor.projectId._id,
+                query: { _id: monitor.projectId._id },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : monitor.projectId._id;
 
@@ -513,11 +531,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: monitor.projectId._id,
+                query: { _id: monitor.projectId._id },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : monitor.projectId._id;
 
@@ -535,11 +554,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: component.projectId,
+                query: { _id: component.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : component.projectId;
 
@@ -557,11 +577,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: monitor.projectId,
+                query: { _id: monitor.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : monitor.projectId;
 
@@ -579,11 +600,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: incident.projectId._id || incident.projectId,
+                query: { _id: incident.projectId._id || incident.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
@@ -601,11 +623,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: incident.projectId._id || incident.projectId,
+                query: { _id: incident.projectId._id || incident.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : incident.projectId._id || incident.projectId;
 
@@ -619,11 +642,12 @@ module.exports = {
     statusPageEdit: async statusPage => {
         try {
             const project = await ProjectService.findOneBy({
-                _id: statusPage.projectId._id,
+                query: { _id: statusPage.projectId._id },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : statusPage.projectId._id;
 
@@ -641,11 +665,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: component.projectId,
+                query: { _id: component.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : component.projectId;
 
@@ -663,11 +688,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: monitor.projectId,
+                query: { _id: monitor.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : monitor.projectId;
 
@@ -684,10 +710,13 @@ module.exports = {
                 return;
             }
 
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProject _id',
+            });
             const parentProjectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : projectId;
             global.io.emit(`updateMonitorLog-${parentProjectId}`, {
@@ -708,10 +737,13 @@ module.exports = {
                 return;
             }
 
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProject _id',
+            });
             const parentProjectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : projectId;
 
@@ -732,10 +764,13 @@ module.exports = {
                 return;
             }
 
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProject _id',
+            });
             const parentProjectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : projectId;
 
@@ -756,10 +791,13 @@ module.exports = {
                 return;
             }
 
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProject _id',
+            });
             const parentProjectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : projectId;
 
@@ -790,11 +828,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: monitor.projectId,
+                query: { _id: monitor.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : monitor.projectId;
 
@@ -812,11 +851,12 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                _id: data.projectId,
+                query: { _id: data.projectId },
+                select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : data.projectId;
 
@@ -833,11 +873,14 @@ module.exports = {
                 return;
             }
 
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProject _id',
+            });
 
             projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : projectId;
             global.io.emit(`TeamMemberRoleUpdate-${projectId}`, data);
@@ -853,11 +896,14 @@ module.exports = {
                 return;
             }
 
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProject _id',
+            });
 
             projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : projectId;
             global.io.emit(`TeamMemberCreate-${projectId}`, data);
@@ -873,11 +919,14 @@ module.exports = {
                 return;
             }
 
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProject _id',
+            });
 
             projectId = project
                 ? project.parentProjectId
-                    ? project.parentProjectId._id
+                    ? project.parentProjectId._id || project.parentProjectId
                     : project._id
                 : projectId;
             global.io.emit(`TeamMemberDelete-${projectId}`, data);

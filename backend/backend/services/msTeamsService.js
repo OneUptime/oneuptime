@@ -11,9 +11,13 @@ module.exports = {
         try {
             const self = this;
             let response;
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProjectId slug name',
+            });
             if (project && project.parentProjectId) {
-                projectId = project.parentProjectId._id;
+                projectId =
+                    project.parentProjectId._id || project.parentProjectId;
             }
             let query = {
                 projectId: projectId,
@@ -203,9 +207,13 @@ module.exports = {
         try {
             const self = this;
             let response;
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProjectId slug',
+            });
             if (project && project.parentProjectId) {
-                projectId = project.parentProjectId._id;
+                projectId =
+                    project.parentProjectId._id || project.parentProjectId;
             }
 
             const query = {

@@ -165,7 +165,8 @@ module.exports = {
             );
             if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                 const project = await ProjectService.findOneBy({
-                    _id: projectId,
+                    query: { _id: projectId },
+                    select: 'users',
                 });
                 let owner = project.users.filter(user => user.role === 'Owner');
                 owner = owner && owner.length ? owner[0] : owner;
@@ -344,7 +345,8 @@ module.exports = {
                 );
                 if (IS_SAAS_SERVICE && !hasCustomTwilioSettings) {
                     const project = await ProjectService.findOneBy({
-                        _id: projectId,
+                        query: { _id: projectId },
+                        select: 'users',
                     });
                     let owner = project.users.filter(
                         user => user.role === 'Owner'
@@ -400,7 +402,8 @@ module.exports = {
             const dialCallStatus = body['DialCallStatus'] || null;
 
             const project = await ProjectService.findOneBy({
-                _id: data.projectId,
+                query: { _id: data.projectId },
+                select: 'balance alertOptions',
             });
             const balance = project.balance;
             const customThresholdAmount = project.alertOptions

@@ -81,7 +81,10 @@ module.exports = {
         projectId,
         alertPhoneNumber
     ) {
-        const project = await ProjectService.findOneBy({ _id: projectId });
+        const project = await ProjectService.findOneBy({
+            query: { _id: projectId },
+            select: 'alertOptions',
+        });
         const alertOptions = project.alertOptions;
         let countryType = getCountryType(alertPhoneNumber);
         if (countryType === 'us') {
@@ -620,7 +623,10 @@ module.exports = {
             : incident.projectId;
 
         const [project, ec] = await Promise.all([
-            ProjectService.findOneBy({ _id: projectId }),
+            ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: '_id alertEnable alertOptions slug',
+            }),
             EscalationService.findOneBy({ _id: escalation._id }),
         ]);
         escalation = ec;
@@ -1814,7 +1820,8 @@ module.exports = {
                         select: monitorSelect,
                     }),
                     ProjectService.findOneBy({
-                        _id: projectId,
+                        query: { _id: projectId },
+                        select: 'slug',
                     }),
                 ]);
                 monitor = mon;
@@ -2134,7 +2141,8 @@ module.exports = {
                         select: monitorSelect,
                     }),
                     ProjectService.findOneBy({
-                        _id: projectId,
+                        query: { _id: projectId },
+                        select: 'slug',
                     }),
                 ]);
                 monitor = mon;
@@ -2561,7 +2569,9 @@ module.exports = {
             const monitorSelect = '_id customFields componentId projectId';
             const [project, mon] = await Promise.all([
                 ProjectService.findOneBy({
-                    _id: projectId,
+                    query: { _id: projectId },
+                    select:
+                        'enableInvestigationNoteNotificationWebhook enableInvestigationNoteNotificationEmail name replyAddress sendAcknowledgedIncidentNotificationEmail sendResolvedIncidentNotificationEmail sendCreatedIncidentNotificationEmail enableInvestigationNoteNotificationSMS alertEnable users alertOptions slug sendAcknowledgedIncidentNotificationSms _id sendResolvedIncidentNotificationSms sendCreatedIncidentNotificationSms',
                 }),
                 MonitorService.findOneBy({
                     query: { _id: monitor._id },
@@ -3566,7 +3576,10 @@ module.exports = {
                 projectId: projectId,
                 createdAt: { $gte: yesterday },
             }),
-            ProjectService.findOneBy({ _id: projectId }),
+            ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'alertLimit',
+            }),
             TwilioService.getSettings(),
         ]);
         let limit =
@@ -3763,7 +3776,9 @@ module.exports = {
                             message.scheduledEventId.projectId._id;
 
                         const project = await ProjectService.findOneBy({
-                            _id: projectId,
+                            query: { _id: projectId },
+                            select:
+                                'sendNewScheduledEventInvestigationNoteNotificationEmail name alertEnable sendNewScheduledEventInvestigationNoteNotificationSms users _id alertOptions slug sendNewScheduledEventInvestigationNoteNotificationSms',
                         });
 
                         const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
@@ -4160,7 +4175,9 @@ module.exports = {
             const projectName = schedule.projectId.name;
             const projectId = schedule.projectId._id;
             const project = await ProjectService.findOneBy({
-                _id: projectId,
+                query: { _id: projectId },
+                select:
+                    'sendCreatedScheduledEventNotificationEmail sendScheduledEventResolvedNotificationEmail sendScheduledEventCancelledNotificationEmail replyAddress sendCreatedScheduledEventNotificationSms sendScheduledEventResolvedNotificationSms sendScheduledEventCancelledNotificationSms alertEnable users alertOptions slug _id name',
             });
 
             const eventType =
@@ -4650,7 +4667,9 @@ module.exports = {
                         const projectId = message.projectId;
 
                         const project = await ProjectService.findOneBy({
-                            _id: projectId,
+                            query: { _id: projectId },
+                            select:
+                                'sendAnnouncementNotificationEmail replyAddress name sendAnnouncementNotificationSms alertEnable users _id alertEnable alertOptions slug',
                         });
 
                         const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;

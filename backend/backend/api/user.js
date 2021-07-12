@@ -249,8 +249,13 @@ router.post('/signup', async function(req, res) {
                 verificationToken: user.verificationToken || null,
             };
             winston.info('A User just signed up');
+            const populate = [{ path: 'parentProjectId', select: 'name' }];
+            const select =
+                '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
             const project = await ProjectService.findOneBy({
-                'users.userId': user._id,
+                query: { 'users.userId': user._id },
+                select,
+                populate,
             });
             return sendItemResponse(
                 req,

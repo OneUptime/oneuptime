@@ -264,7 +264,10 @@ describe('Team API with Sub-Projects', async function() {
             teamMembers => teamMembers.projectId === subProjectId
         ).team;
         subProjectTeamMemberId = subProjectTeamMembers[0].userId;
-        const project = await ProjectService.findOneBy({ _id: projectId });
+        const project = await ProjectService.findOneBy({
+            query: { _id: projectId },
+            select: 'seats',
+        });
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('array');
         expect(subProjectTeamMembers[0].email).to.equal(userData.newUser.email);
@@ -287,7 +290,10 @@ describe('Team API with Sub-Projects', async function() {
             teamMembers => teamMembers.projectId === projectId
         ).team;
         projectTeamMemberId = projectTeamMembers[0].userId;
-        const project = await ProjectService.findOneBy({ _id: projectId });
+        const project = await ProjectService.findOneBy({
+            query: { _id: projectId },
+            select: 'seats',
+        });
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('array');
         expect(projectTeamMembers[0].email).to.equal(
@@ -363,7 +369,10 @@ describe('Team API with Sub-Projects', async function() {
         const subProjectTeamMembers = res.body.find(
             teamMembers => teamMembers.projectId === subProjectId
         ).team;
-        const project = await ProjectService.findOneBy({ _id: projectId });
+        const project = await ProjectService.findOneBy({
+            query: { _id: projectId },
+            select: 'seats',
+        });
         expect(res).to.have.status(200);
         expect(subProjectTeamMembers.length).to.be.equal(3);
         expect(parseInt(project.seats)).to.be.equal(4);
@@ -377,7 +386,10 @@ describe('Team API with Sub-Projects', async function() {
         const projectTeamMembers = res.body.find(
             teamMembers => teamMembers.projectId === projectId
         ).team;
-        const project = await ProjectService.findOneBy({ _id: projectId });
+        const project = await ProjectService.findOneBy({
+            query: { _id: projectId },
+            select: 'seats',
+        });
         expect(res).to.have.status(200);
         expect(projectTeamMembers.length).to.be.equal(2);
         expect(parseInt(project.seats)).to.be.equal(3);

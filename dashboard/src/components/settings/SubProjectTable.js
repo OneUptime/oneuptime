@@ -101,9 +101,9 @@ export class SubProjectTable extends Component {
                     style={{ padding: '10px' }}
                 >
                     <div className="bs-ObjectList-cell-row">
-                        {subProject.parentProjectId &&
-                        subProject.parentProjectId._id
-                            ? subProject.parentProjectId._id
+                        {subProject.parentProjectId
+                            ? subProject.parentProjectId._id ||
+                              subProject.parentProjectId
                             : ''}
                     </div>
                 </div>
