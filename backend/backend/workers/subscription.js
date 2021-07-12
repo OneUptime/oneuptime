@@ -62,7 +62,9 @@ const _this = {
                             stripeCustomerId,
                         }),
                         ProjectService.findOneBy({
-                            stripeSubscriptionId,
+                            query: { stripeSubscriptionId },
+                            select:
+                                'unpaidSubscriptionNotifications stripePlanId name slug',
                         }),
                     ]);
 

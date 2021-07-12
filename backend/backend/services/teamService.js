@@ -13,13 +13,19 @@ module.exports = {
     getTeamMembersBy: async function(query) {
         try {
             let projectMembers = [];
-            const projects = await ProjectService.findBy(query);
+            const projects = await ProjectService.findBy({
+                query,
+                select: 'users parentProjectId',
+            });
             if (projects && projects.length > 0) {
                 // check for parentProject and add parent project users
                 if (query.parentProjectId && projects[0]) {
                     const parentProject = await ProjectService.findOneBy({
-                        _id: projects[0].parentProjectId,
-                        deleted: { $ne: null },
+                        query: {
+                            _id: projects[0].parentProjectId,
+                            deleted: { $ne: null },
+                        },
+                        select: 'users',
                     });
                     projectMembers = projectMembers.concat(parentProject.users);
                 }
@@ -61,11 +67,15 @@ module.exports = {
         let subProject = null;
 
         try {
-            let project = await ProjectService.findOneBy({ _id: projectId });
+            let project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProjectId users',
+            });
             if (project.parentProjectId) {
                 subProject = project;
                 project = await ProjectService.findOneBy({
-                    _id: subProject.parentProjectId,
+                    query: { _id: subProject.parentProjectId },
+                    select: 'users',
                 });
             }
             if (subProject) {
@@ -158,11 +168,15 @@ module.exports = {
             error.code = 400;
             throw error;
         } else {
-            let project = await ProjectService.findOneBy({ _id: projectId });
+            let project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProjectId seats',
+            });
             if (project.parentProjectId) {
                 subProject = project;
                 project = await ProjectService.findOneBy({
-                    _id: subProject.parentProjectId,
+                    query: { _id: subProject.parentProjectId },
+                    select: 'seats',
                 });
             }
             const teamMembers = await _this.getTeamMembers(projectId);
@@ -209,10 +223,14 @@ module.exports = {
     //Returns: promise
     getTeamMembers: async function(projectId) {
         const _this = this;
-        const subProject = await ProjectService.findOneBy({ _id: projectId });
+        const subProject = await ProjectService.findOneBy({
+            query: { _id: projectId },
+            select: 'parentProjectId',
+        });
         if (subProject && subProject.parentProjectId) {
             const project = await ProjectService.findOneBy({
-                _id: subProject.parentProjectId,
+                query: { _id: subProject.parentProjectId },
+                select: '_id',
             });
             return await _this.getTeamMembersBy({
                 _id: project._id,
@@ -279,11 +297,16 @@ module.exports = {
             let projectUsers = [];
             const _this = this;
             let subProject = null;
-            let project = await ProjectService.findOneBy({ _id: projectId });
+            let project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select:
+                    'parentProjectId seats _id users stripeSubscriptionId name',
+            });
             if (project.parentProjectId) {
                 subProject = project;
                 project = await ProjectService.findOneBy({
-                    _id: subProject.parentProjectId,
+                    query: { _id: subProject.parentProjectId },
+                    select: 'seats _id users stripeSubscriptionId name',
                 });
             }
 
@@ -411,7 +434,8 @@ module.exports = {
                         { users: allProjectMembers }
                     ),
                     ProjectService.findBy({
-                        parentProjectId: project._id,
+                        query: { parentProjectId: project._id },
+                        select: 'users _id',
                     }),
                 ]);
                 // add user to all subProjects
@@ -469,7 +493,8 @@ module.exports = {
             };
             response.push(teamusers);
             const subProjectTeams = await ProjectService.findBy({
-                parentProjectId: project._id,
+                query: { parentProjectId: project._id },
+                select: '_id',
             });
             if (subProjectTeams.length > 0) {
                 const subProjectTeamsUsers = await Promise.all(
@@ -510,11 +535,15 @@ module.exports = {
             ErrorService.log('teamService.inviteTeamMembers', error);
             throw error;
         } else {
-            let project = await ProjectService.findOneBy({ _id: projectId });
+            let project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProjectId users _id',
+            });
             if (project.parentProjectId) {
                 subProject = project;
                 project = await ProjectService.findOneBy({
-                    _id: subProject.parentProjectId,
+                    query: { _id: subProject.parentProjectId },
+                    select: 'users _id',
                 });
             }
             if (subProject) {
@@ -561,7 +590,8 @@ module.exports = {
                     );
                     // remove user from all subProjects.
                     const subProjects = await ProjectService.findBy({
-                        parentProjectId: project._id,
+                        query: { parentProjectId: project._id },
+                        select: '_id',
                     });
                     if (subProjects.length > 0) {
                         await Promise.all(
@@ -577,7 +607,10 @@ module.exports = {
                 }
 
                 const [projectObj, user, member] = await Promise.all([
-                    ProjectService.findOneBy({ _id: project._id }),
+                    ProjectService.findOneBy({
+                        query: { _id: project._id },
+                        select: '_id name',
+                    }),
                     UserService.findOneBy({ _id: userId }),
                     UserService.findOneBy({
                         _id: teamMemberUserId,
@@ -620,7 +653,8 @@ module.exports = {
                 };
                 response.push(teamusers);
                 const subProjectTeams = await ProjectService.findBy({
-                    parentProjectId: project._id,
+                    query: { parentProjectId: project._id },
+                    select: '_id',
                 });
                 if (subProjectTeams.length > 0) {
                     const subProjectTeamsUsers = await Promise.all(
@@ -669,12 +703,17 @@ module.exports = {
             let index;
             let subProject = null;
             let subProjects = null;
-            let project = await ProjectService.findOneBy({ _id: projectId });
+            let project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select:
+                    'parentProjectId users _id name seats stripeSubscriptionId',
+            });
 
             if (project.parentProjectId) {
                 subProject = project;
                 project = await ProjectService.findOneBy({
-                    _id: subProject.parentProjectId,
+                    query: { _id: subProject.parentProjectId },
+                    select: 'users _id name seats stripeSubscriptionId',
                 });
             }
             if (subProject) {
@@ -688,7 +727,8 @@ module.exports = {
             }
 
             subProjects = await ProjectService.findBy({
-                parentProjectId: project._id,
+                query: { parentProjectId: project._id },
+                select: 'users _id',
             });
             const prevTeams = subProjects.concat(project).map(res => res.users);
             const prevFlatTeams = flatten(prevTeams);
@@ -784,7 +824,8 @@ module.exports = {
                     };
                     response.push(teamusers);
                     const subProjectTeams = await ProjectService.findBy({
-                        parentProjectId: project._id,
+                        query: { parentProjectId: project._id },
+                        select: '_id',
                     });
                     if (subProjectTeams.length > 0) {
                         const subProjectTeamsUsers = await Promise.all(

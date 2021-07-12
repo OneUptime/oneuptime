@@ -11,13 +11,17 @@ module.exports = {
     ) {
         try {
             const [project, monitorStatus] = await Promise.all([
-                ProjectService.findOneBy({ _id: projectId }),
+                ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'parentProjectId slug name _id',
+                }),
                 MonitorStatusService.findOneBy({
                     monitorId: monitor._id,
                 }),
             ]);
             if (project && project.parentProjectId) {
-                projectId = project.parentProjectId._id;
+                projectId =
+                    project.parentProjectId._id || project.parentProjectId;
             }
 
             return await this.notify(
@@ -51,9 +55,13 @@ module.exports = {
         try {
             const self = this;
             let response;
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProjectId slug name _id',
+            });
             if (project && project.parentProjectId) {
-                projectId = project.parentProjectId._id;
+                projectId =
+                    project.parentProjectId._id || project.parentProjectId;
             }
             let query = {
                 projectId: projectId,

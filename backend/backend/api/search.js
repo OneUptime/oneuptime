@@ -196,7 +196,10 @@ const getStatusPages = async (projectIds, val, parentProjectId) => {
 const getUsers = async (projectIds, val) => {
     //get project users id so as to search for only users in a project and its subproject
     const projectUsers = [];
-    const projects = await ProjectService.findBy({ _id: { $in: projectIds } });
+    const projects = await ProjectService.findBy({
+        query: { _id: { $in: projectIds } },
+        select: 'users',
+    });
     projects.forEach(project => {
         projectUsers.push(project.users);
     });

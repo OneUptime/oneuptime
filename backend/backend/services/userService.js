@@ -131,7 +131,8 @@ module.exports = {
             if ((user && !IS_SAAS_SERVICE) || user) {
                 // find user subprojects and parent projects
                 let userProjects = await ProjectService.findBy({
-                    'users.userId': user._id,
+                    query: { 'users.userId': user._id },
+                    select: 'parentProjectId',
                 });
                 let parentProjectIds = [];
                 let projectIds = [];
@@ -142,7 +143,9 @@ module.exports = {
                         )
                         .filter(subProject => subProject !== null);
                     parentProjectIds = subProjects.map(
-                        subProject => subProject.parentProjectId._id
+                        subProject =>
+                            subProject.parentProjectId._id ||
+                            subProject.parentProjectId
                     );
                     const projects = userProjects
                         .map(project =>
@@ -151,11 +154,18 @@ module.exports = {
                         .filter(project => project !== null);
                     projectIds = projects.map(project => project._id);
                 }
+                const populate = [{ path: 'parentProjectId', select: 'name' }];
+                const select =
+                    '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
                 userProjects = await ProjectService.findBy({
-                    $or: [
-                        { _id: { $in: parentProjectIds } },
-                        { _id: { $in: projectIds } },
-                    ],
+                    query: {
+                        $or: [
+                            { _id: { $in: parentProjectIds } },
+                            { _id: { $in: projectIds } },
+                        ],
+                    },
+                    select,
+                    populate,
                 });
                 return await Object.assign({}, user._doc || user, {
                     projects: userProjects,
@@ -957,7 +967,8 @@ module.exports = {
             users.map(async user => {
                 // find user subprojects and parent projects
                 let userProjects = await ProjectService.findBy({
-                    'users.userId': user._id,
+                    query: { 'users.userId': user._id },
+                    select: 'parentProjectId',
                 });
                 let parentProjectIds = [];
                 let projectIds = [];
@@ -968,7 +979,9 @@ module.exports = {
                         )
                         .filter(subProject => subProject !== null);
                     parentProjectIds = subProjects.map(
-                        subProject => subProject.parentProjectId._id
+                        subProject =>
+                            subProject.parentProjectId._id ||
+                            subProject.parentProjectId
                     );
                     const projects = userProjects
                         .map(project =>
@@ -977,11 +990,18 @@ module.exports = {
                         .filter(project => project !== null);
                     projectIds = projects.map(project => project._id);
                 }
+                const populate = [{ path: 'parentProjectId', select: 'name' }];
+                const select =
+                    '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
                 userProjects = await ProjectService.findBy({
-                    $or: [
-                        { _id: { $in: parentProjectIds } },
-                        { _id: { $in: projectIds } },
-                    ],
+                    query: {
+                        $or: [
+                            { _id: { $in: parentProjectIds } },
+                            { _id: { $in: projectIds } },
+                        ],
+                    },
+                    select,
+                    populate,
                 });
                 return await Object.assign({}, user._doc || user, {
                     projects: userProjects,
@@ -1043,7 +1063,8 @@ module.exports = {
             users.map(async user => {
                 // find user subprojects and parent projects
                 let userProjects = await ProjectService.findBy({
-                    'users.userId': user._id,
+                    query: { 'users.userId': user._id },
+                    select: 'parentProjectId',
                 });
                 let parentProjectIds = [];
                 let projectIds = [];
@@ -1054,7 +1075,9 @@ module.exports = {
                         )
                         .filter(subProject => subProject !== null);
                     parentProjectIds = subProjects.map(
-                        subProject => subProject.parentProjectId._id
+                        subProject =>
+                            subProject.parentProjectId._id ||
+                            subProject.parentProjectId
                     );
                     const projects = userProjects
                         .map(project =>
@@ -1063,11 +1086,18 @@ module.exports = {
                         .filter(project => project !== null);
                     projectIds = projects.map(project => project._id);
                 }
+                const populate = [{ path: 'parentProjectId', select: 'name' }];
+                const select =
+                    '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
                 userProjects = await ProjectService.findBy({
-                    $or: [
-                        { _id: { $in: parentProjectIds } },
-                        { _id: { $in: projectIds } },
-                    ],
+                    query: {
+                        $or: [
+                            { _id: { $in: parentProjectIds } },
+                            { _id: { $in: projectIds } },
+                        ],
+                    },
+                    select,
+                    populate,
                 });
                 return await Object.assign({}, user._doc || user, {
                     projects: userProjects,

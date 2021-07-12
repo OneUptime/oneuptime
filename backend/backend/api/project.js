@@ -178,7 +178,8 @@ router.get('/projects', getUser, async function(req, res) {
         const userId = req.user ? req.user.id : null;
         // find user subprojects and parent projects
         const userProjects = await ProjectService.findBy({
-            'users.userId': userId,
+            query: { 'users.userId': userId },
+            select: 'parentProjectId _id',
         });
         let parentProjectIds = [];
         let projectIds = [];
@@ -187,7 +188,8 @@ router.get('/projects', getUser, async function(req, res) {
                 .map(project => (project.parentProjectId ? project : null))
                 .filter(subProject => subProject !== null);
             parentProjectIds = subProjects.map(
-                subProject => subProject.parentProjectId._id
+                subProject =>
+                    subProject.parentProjectId._id || subProject.parentProjectId
             );
             const projects = userProjects
                 .map(project => (project.parentProjectId ? null : project))
@@ -203,12 +205,18 @@ router.get('/projects', getUser, async function(req, res) {
             ],
         };
 
+        const populate = [{ path: 'parentProjectId', select: 'name' }];
+        const select =
+            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+
         const [response, count] = await Promise.all([
-            ProjectService.findBy(
+            ProjectService.findBy({
                 query,
-                req.query.limit || 10,
-                req.query.skip || 0
-            ),
+                limit: req.query.limit || 10,
+                skip: req.query.skip || 0,
+                populate,
+                select,
+            }),
             ProjectService.countBy(query),
         ]);
 
@@ -607,7 +615,8 @@ router.put(
                 }
 
                 const project = await ProjectService.findOneBy({
-                    _id: projectId,
+                    query: { _id: projectId },
+                    select: 'users',
                 });
                 const owner = project.users.find(user => user.role === 'Owner');
                 const [updatedProject, user] = await Promise.all([
@@ -749,7 +758,14 @@ router.post('/:projectId/subProject', getUser, isAuthorized, async function(
         };
 
         let subProjects = await ProjectService.create(data);
-        subProjects = await ProjectService.findBy({ _id: subProjects._id });
+        const populate = [{ path: 'parentProjectId', select: 'name' }];
+        const select =
+            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+        subProjects = await ProjectService.findBy({
+            query: { _id: subProjects._id },
+            select,
+            populate,
+        });
         return sendItemResponse(req, res, subProjects);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -798,12 +814,17 @@ router.get('/:projectId/subProjects', getUser, isAuthorized, async function(
         const userId = req.user ? req.user.id : null;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
+        const populate = [{ path: 'parentProjectId', select: 'name' }];
+        const select =
+            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
         const [subProjects, count] = await Promise.all([
-            ProjectService.findBy(
-                { parentProjectId, 'users.userId': userId },
+            ProjectService.findBy({
+                query: { parentProjectId, 'users.userId': userId },
                 limit,
-                skip
-            ),
+                skip,
+                select,
+                populate,
+            }),
             ProjectService.countBy({
                 parentProjectId,
                 'users.userId': userId,
@@ -860,9 +881,13 @@ router.get('/projects/:slug', getUser, isUserMasterAdmin, async function(
 ) {
     try {
         const slug = req.params.slug;
+        const populate = [{ path: 'parentProjectId', select: 'name' }];
+        const select =
+            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
         const project = await ProjectService.findOneBy({
-            slug: slug,
-            deleted: { $ne: null },
+            query: { slug: slug, deleted: { $ne: null } },
+            select,
+            populate,
         });
 
         return sendItemResponse(req, res, project);
@@ -874,8 +899,14 @@ router.get('/projects/:slug', getUser, isUserMasterAdmin, async function(
 router.get('/project-slug/:slug', getUser, async function(req, res) {
     try {
         const { slug } = req.params;
+        const populate = [{ path: 'parentProjectId', select: 'name' }];
+        const select =
+            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+
         const project = await ProjectService.findOneBy({
-            slug,
+            query: { slug },
+            select,
+            populate,
         });
         return sendItemResponse(req, res, project);
     } catch (error) {
@@ -916,8 +947,8 @@ router.put(
                 });
             }
             const oldProject = await ProjectService.findOneBy({
-                _id: projectId,
-                deleted: false,
+                query: { _id: projectId, deleted: false },
+                select: 'alertLimit',
             });
             if (oldProject && oldProject.alertLimit) {
                 limit =

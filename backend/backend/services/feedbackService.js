@@ -22,7 +22,10 @@ module.exports = {
             feedback = feedback.toObject();
 
             const [project, user] = await Promise.all([
-                ProjectService.findOneBy({ _id: projectId }),
+                ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'name',
+                }),
                 UserService.findOneBy({ _id: createdById }),
             ]);
             feedback.project = project;
