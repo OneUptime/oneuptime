@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -16,7 +17,8 @@ import DeleteIncomingRequest from '../modals/DeleteIncomingRequest';
 import copyToClipboard from '../../utils/copyToClipboard';
 import { fetchIncidentPriorities } from '../../actions/incidentPriorities';
 import { fetchDefaultTemplate } from '../../actions/incidentBasicsSettings';
-
+import IncomingRequestEnabled from '../modals/IncomingRequestEnabled';
+import DataPathHoC from '../DataPathHoC';
 class IncomingRequestList extends React.Component {
     state = {
         copied: false,
@@ -41,7 +43,6 @@ class IncomingRequestList extends React.Component {
             fetchDefaultTemplate,
         } = this.props;
         const { projectId } = this.props;
-
         fetchAllIncomingRequest(projectId, 0, 10);
         fetchIncidentPriorities(projectId);
         fetchDefaultTemplate({ projectId });
@@ -131,6 +132,34 @@ class IncomingRequestList extends React.Component {
                                 {incomingRequest.url}
                             </div>
                         </div>
+                        <div className="bs-Fieldset-fields">
+                            <label
+                                className="Toggler-wrap"
+                                style={{
+                                    marginTop: '10px',
+                                }}
+                                onClick={()=>{
+                                    openModal({
+                                        id: projectId,
+                                        content: IncomingRequestEnabled,
+                                        projectId,
+                                        requestId: incomingRequest._id,
+                                        propArr: {isEnabled: incomingRequest.enabled},
+                                    })
+                                }}
+                            >
+                                <input
+                                    className="btn-toggler"
+                                    type="checkbox"
+                                    name="incomingHttpRequestEnabled"
+                                    id="incomingHttpRequestEnabled"
+                                    checked={
+                                        incomingRequest.enabled
+                                    }
+                                />
+                                <span className="TogglerBtn-slider round"></span>
+                            </label>
+                        </div>
                         <div
                             className="bs-ObjectList-cell bs-u-v-middle"
                             style={{ width: '25vw', whiteSpace: 'normal' }}
@@ -167,7 +196,7 @@ class IncomingRequestList extends React.Component {
                                     {String(
                                         this.props.activeIncomingRequest
                                     ) === String(incomingRequest._id) &&
-                                    this.state.copied ? (
+                                        this.state.copied ? (
                                         <span>Copied!</span>
                                     ) : (
                                         <span>Copy Url</span>
@@ -253,6 +282,9 @@ class IncomingRequestList extends React.Component {
                                 <div className="bs-ObjectList-cell">
                                     Incoming HTTP Request URL
                                 </div>
+                                <div className="bs-ObjectList-cell">
+                                    Enabled
+                                </div>
                                 <div
                                     className="bs-ObjectList-cell"
                                     style={{
@@ -301,8 +333,8 @@ class IncomingRequestList extends React.Component {
                             <span>
                                 {(!incomingRequestList ||
                                     incomingRequestList.length === 0) &&
-                                !isRequesting &&
-                                !fetchError
+                                    !isRequesting &&
+                                    !fetchError
                                     ? 'You have no incoming request'
                                     : null}
                                 {fetchError ? fetchError : null}
@@ -321,20 +353,16 @@ class IncomingRequestList extends React.Component {
                                         className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                     >
                                         {numberOfPages > 0
-                                            ? `Page ${
-                                                  this.state.page
-                                              } of ${numberOfPages} (${
-                                                  this.props.count
-                                              } Request${
-                                                  this.props.count === 1
-                                                      ? ''
-                                                      : 's'
-                                              })`
-                                            : `${this.props.count} Request${
-                                                  this.props.count === 1
-                                                      ? ''
-                                                      : 's'
-                                              }`}
+                                            ? `Page ${this.state.page
+                                            } of ${numberOfPages} (${this.props.count
+                                            } Request${this.props.count === 1
+                                                ? ''
+                                                : 's'
+                                            })`
+                                            : `${this.props.count} Request${this.props.count === 1
+                                                ? ''
+                                                : 's'
+                                            }`}
                                     </span>
                                 </span>
                             </span>
@@ -407,7 +435,6 @@ const mapStateToProps = state => {
     state.monitor.monitorsList.monitors.forEach(monitor => {
         monitors = [...monitors, ...monitor.monitors];
     });
-
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,

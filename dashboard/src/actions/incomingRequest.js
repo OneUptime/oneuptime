@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/incomingRequest';
 
@@ -158,3 +159,41 @@ export const setActiveIncomingRequest = requestId => ({
     type: types.SET_ACTIVE_INCOMING_REQUEST,
     payload: requestId,
 });
+
+export const incomingRequestEnabledRequest = () => ({
+    type: types.INCOMING_REQUEST_ENABLED_REQUEST,
+});
+
+export const incomingRequestEnabledSuccess = payload => ({
+    type: types.INCOMING_REQUEST_ENABLED_SUCCESS,
+    payload,
+});
+
+export const incomingRequestEnabledFailure = error => ({
+    type: types.INCOMING_REQUEST_ENABLED_FAILURE,
+    payload: error,
+});
+
+export const incomingRequestEnabled = (
+    projectId,
+    requestId
+) => async dispatch => {
+    try {
+        dispatch(incomingRequestEnabledRequest());
+
+        const response = await postApi(
+            `incoming-request/${projectId}/remove/${requestId}`
+        );
+        dispatch(incomingRequestEnabledSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(incomingRequestEnabledFailure(errorMsg));
+    }
+};

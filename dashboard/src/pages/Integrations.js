@@ -73,7 +73,7 @@ class Integrations extends Component {
                             </Tab>
                             <Tab
                                 className={
-                                    'custom-tab custom-tab-3 http-request-tab'
+                                    'custom-tab custom-tab-3 microsoft-slack-zapier-tab'
                                 }
                             >
                                 Microsoft, Slack and Zapier
