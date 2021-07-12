@@ -48,14 +48,13 @@ func Init(options LoggerOptions) error {
 	return nil
 }
 
-func LogInfo(content string, tags []string) {
+func LogInfo(content string, tags []string) (LoggerResponse, error) {
 	// access fyipe Logger and send an api request
 	logger := CurrentLogger()
 	var res, err = logger.MakeApiRequest(content, "info", tags)
 
 	if err != nil {
 		log.Fatalln(err)
-	} else {
-		log.Printf(res)
 	}
+	return res, err
 }
