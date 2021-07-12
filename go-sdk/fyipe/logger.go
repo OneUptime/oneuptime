@@ -3,6 +3,7 @@ package fyipe
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -13,6 +14,20 @@ var currentLogger = NewLogger(nil)
 type Logger struct {
 	stack *stack
 	mu    sync.RWMutex
+}
+type ApplicationLog struct {
+	ID   string `json:"_id"`
+	Name string
+}
+type LoggerResponse struct {
+	ID                 string `json:"_id"`
+	Deleted            bool
+	CreatedAt          string
+	Content            string
+	StringifiedContent string
+	Type               string
+	CreatedBy          string
+	AppLog             ApplicationLog `json:"applicationLogId"`
 }
 
 type stack []*layer
@@ -100,5 +115,17 @@ func (logger *Logger) MakeApiRequest(content string, tagType string, tags []stri
 
 	sb := string(body)
 	// log.Printf(sb)
+
+	// var data map[string]interface{}
+	// if err := json.Unmarshal([]byte(body), &data); err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println(data)
+
+	var loggerResponse LoggerResponse
+	if err := json.Unmarshal([]byte(body), &loggerResponse); err != nil {
+		panic(err)
+	}
+	fmt.Println(loggerResponse)
 	return sb, nil
 }
