@@ -169,10 +169,33 @@ const getMonitors = async (projectIds, val, parentProjectId) => {
 };
 
 const getStatusPages = async (projectIds, val, parentProjectId) => {
+    const populateStatusPage = [
+        {
+            path: 'projectId',
+            select: 'name parentProjectId',
+            populate: { path: 'parentProjectId', select: '_id' },
+        },
+        {
+            path: 'domains.domainVerificationToken',
+            select: 'domain verificationToken verified ',
+        },
+        {
+            path: 'monitors.monitor',
+            select: 'name',
+        },
+    ];
+
+    const selectStatusPage =
+        'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
     const statusPages = await statusPageService.findBy({
-        projectId: { $in: projectIds },
-        deleted: false,
-        $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+        query: {
+            projectId: { $in: projectIds },
+            deleted: false,
+            $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+        },
+        select: selectStatusPage,
+        populate: populateStatusPage,
     });
     if (statusPages.length > 0) {
         const resultObj = {
