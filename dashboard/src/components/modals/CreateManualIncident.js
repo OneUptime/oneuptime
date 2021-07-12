@@ -557,7 +557,7 @@ function mapStateToProps(state) {
         initialValues.title = defaultTemplate.title;
         initialValues.description = defaultTemplate.description;
         initialValues.incidentPriority =
-            defaultTemplate.incidentPriority._id ||
+            defaultTemplate.incidentPriority?._id ||
             defaultTemplate.incidentPriority;
     }
 
