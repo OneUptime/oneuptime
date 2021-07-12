@@ -140,4 +140,8 @@ include:
   - '/ci/spec/application-scanner/deploy.yaml'
 
   #  Script Runner
+  - '/ci/spec/script-runner/audit.yaml'
   - '/ci/spec/script-runner/deploy.yaml'
+
+  #  Container Scanner
+  - '/ci/spec/container-scanner/deploy.yaml'
