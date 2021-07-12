@@ -31,7 +31,7 @@ class SubscriberAdvanceOption extends React.Component {
                 smsNotification: values.smsNotification,
                 webhookNotification: values.webhookNotification,
                 selectIndividualMonitors: values.selectIndividualMonitors,
-                multipleNotifications: values.multipleNotifications,
+                multipleNotificationTypes: values.multipleNotificationTypes,
             })
             .then(() => {
                 this.props.closeModal({
@@ -503,11 +503,11 @@ class SubscriberAdvanceOption extends React.Component {
                                                                     component="input"
                                                                     type="checkbox"
                                                                     name={
-                                                                        'multipleNotifications'
+                                                                        'multipleNotificationTypes'
                                                                     }
                                                                     data-test="RetrySettings-failedPaymentsCheckbox"
                                                                     className="Checkbox-source"
-                                                                    id="statuspage_multipleNotifications"
+                                                                    id="statuspage_multipleNotificationTypes"
                                                                 />
                                                                 <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
                                                                     <div className="Checkbox-target Box-root">
@@ -675,7 +675,7 @@ const mapStateToProps = state => {
     initialValues.smsNotification = status.smsNotification;
     initialValues.webhookNotification = status.webhookNotification;
     initialValues.selectIndividualMonitors = status.selectIndividualMonitors;
-    initialValues.multipleNotifications = status.multipleNotifications;
+    initialValues.multipleNotificationTypes = status.multipleNotificationTypes;
 
     return {
         initialValues,

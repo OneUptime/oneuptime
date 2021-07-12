@@ -74,7 +74,7 @@ const statusSchema = new Schema({
         type: Boolean,
         default: false,
     },
-    multipleNotifications: {
+    multipleNotificationTypes: {
         type: Boolean,
         default: false,
     },
