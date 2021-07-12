@@ -3,7 +3,6 @@ package fyipe
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -28,6 +27,7 @@ type LoggerResponse struct {
 	Type               string
 	CreatedBy          string
 	AppLog             ApplicationLog `json:"applicationLogId"`
+	Tags               []string
 }
 
 type stack []*layer
@@ -90,13 +90,19 @@ func (logger *Logger) FyipeLogger() *FyipeLogger {
 	return top.FyipeLogger()
 }
 
-func (logger *Logger) MakeApiRequest(content string, tagType string, tags []string) (string, error) {
+func (logger *Logger) MakeApiRequest(content string, tagType string, tags []string) (LoggerResponse, error) {
 	currentFyipeLogger := logger.FyipeLogger()
 
-	postBody, _ := json.Marshal(map[string]string{
-		"content":           content,
-		"type":              tagType,
-		"applicationLogKey": currentFyipeLogger.options.ApplicationLogKey,
+	postBody, _ := json.Marshal(struct {
+		Content           string   `json:"content"`
+		Type              string   `json:"type"`
+		ApplicationLogKey string   `json:"applicationLogKey"`
+		Tags              []string `json:"tags"`
+	}{
+		Content:           content,
+		Type:              tagType,
+		ApplicationLogKey: currentFyipeLogger.options.ApplicationLogKey,
+		Tags:              tags,
 	})
 	responseBody := bytes.NewBuffer(postBody)
 
@@ -104,28 +110,18 @@ func (logger *Logger) MakeApiRequest(content string, tagType string, tags []stri
 
 	if err != nil {
 		// log.Fatalf("An Error Occured %v", err)
-		return "", err
+		return LoggerResponse{}, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		// log.Fatalln(err)
-		return "", err
+		return LoggerResponse{}, err
 	}
-
-	sb := string(body)
-	// log.Printf(sb)
-
-	// var data map[string]interface{}
-	// if err := json.Unmarshal([]byte(body), &data); err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(data)
 
 	var loggerResponse LoggerResponse
 	if err := json.Unmarshal([]byte(body), &loggerResponse); err != nil {
 		panic(err)
 	}
-	fmt.Println(loggerResponse)
-	return sb, nil
+	return loggerResponse, nil
 }
