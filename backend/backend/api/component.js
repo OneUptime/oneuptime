@@ -147,8 +147,17 @@ router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(
 ) {
     try {
         const { slug } = req.params;
+        const populateComponent = [
+            { path: 'projectId', select: 'name' },
+            { path: 'componentCategoryId', select: 'name' },
+        ];
+
+        const selectComponent =
+            '_id createdAt name createdById projectId slug componentCategoryId';
         const component = await ComponentService.findOneBy({
-            slug,
+            query: { slug },
+            select: selectComponent,
+            populate: populateComponent,
         });
 
         return sendItemResponse(req, res, component);
@@ -172,12 +181,22 @@ router.get(
                 ? { projectId: { $in: subProjectIds }, type }
                 : { projectId: { $in: subProjectIds } };
 
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
+
             const [components, count] = await Promise.all([
-                ComponentService.findBy(
+                ComponentService.findBy({
                     query,
-                    req.query.limit || 10,
-                    req.query.skip || 0
-                ),
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
+                    populate: populateComponent,
+                    select: selectComponent,
+                }),
                 ComponentService.countBy({
                     projectId: { $in: subProjectIds },
                 }),
@@ -205,7 +224,18 @@ router.get(
                 ? { _id: componentId, projectId: { $in: subProjectIds }, type }
                 : { _id: componentId, projectId: { $in: subProjectIds } };
 
-            const component = await ComponentService.findOneBy(query);
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
+            const component = await ComponentService.findOneBy({
+                query,
+                select: selectComponent,
+                populate: populateComponent,
+            });
             return sendItemResponse(req, res, component);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -227,12 +257,12 @@ router.post(
                 ? req.user.subProjects.map(project => project._id)
                 : null;
 
-            // Get that component
-            const component = await ComponentService.findOneBy({
+            // Check that component exists
+            const componentCount = await ComponentService.countBy({
                 _id: componentId,
                 projectId: { $in: subProjectIds },
             });
-            if (!component) {
+            if (!componentCount || componentCount === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
                     message: 'Component not Found',
@@ -331,7 +361,18 @@ router.get(
                 : { _id: componentId, projectId: { $in: subProjectIds } };
 
             // Get that component
-            const component = await ComponentService.findOneBy(query);
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
+            const component = await ComponentService.findOneBy({
+                query,
+                select: selectComponent,
+                populate: populateComponent,
+            });
             if (!component) {
                 return sendErrorResponse(req, res, {
                     code: 404,

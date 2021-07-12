@@ -36,7 +36,7 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            let scheduleQuery = await ScheduleModel.findOne(query)
+            let scheduleQuery = ScheduleModel.findOne(query)
                 .lean()
                 .sort([['createdAt', -1]]);
 

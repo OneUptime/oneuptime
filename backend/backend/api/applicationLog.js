@@ -63,10 +63,15 @@ router.post(
 
             data.componentId = componentId;
 
+            const populateComponent = [{ path: 'projectId', select: '_id' }];
+            const selectComponent = 'projectId ';
+
             const [applicationLog, component, user] = await Promise.all([
                 ApplicationLogService.create(data),
                 ComponentService.findOneBy({
-                    _id: componentId,
+                    query: { _id: componentId },
+                    select: selectComponent,
+                    populate: populateComponent,
                 }),
                 UserService.findOneBy({ _id: req.user.id }),
             ]);

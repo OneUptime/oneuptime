@@ -7,11 +7,11 @@ module.exports = {
         try {
             const _this = this;
             let subProject = null;
-            const existingComponent = await _this.findBy({
+            const existingComponentCount = await _this.countBy({
                 name: data.name,
                 projectId: data.projectId,
             });
-            if (existingComponent && existingComponent.length > 0) {
+            if (!existingComponentCount || existingComponentCount === 0) {
                 const error = new Error(
                     'Component with that name already exists.'
                 );
@@ -24,11 +24,14 @@ module.exports = {
             });
             if (project.parentProjectId) {
                 subProject = project;
-                const subProjectComponets = await _this.findBy({
+                const subProjectComponentsCount = await _this.countBy({
                     name: data.name,
                     projectId: subProject.parentProjectId,
                 });
-                if (subProjectComponets && subProjectComponets.length > 0) {
+                if (
+                    !subProjectComponentsCount ||
+                    subProjectComponentsCount === 0
+                ) {
                     const error = new Error(
                         'Component with that name already exists.'
                     );
@@ -87,8 +90,19 @@ module.exports = {
                         component.slug = getSlug(data.name);
                     }
                     const savedComponent = await component.save();
+
+                    const populateComponent = [
+                        { path: 'projectId', select: 'name' },
+                        { path: 'componentCategoryId', select: 'name' },
+                    ];
+
+                    const selectComponent =
+                        '_id createdAt name createdById projectId slug componentCategoryId';
+
                     component = await _this.findOneBy({
-                        _id: savedComponent._id,
+                        query: { _id: savedComponent._id },
+                        select: selectComponent,
+                        populate: populateComponent,
                     });
                     return component;
                 } else {
@@ -133,7 +147,19 @@ module.exports = {
                 );
             }
             query.deleted = false;
-            component = await this.findOneBy(query);
+
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
+            component = await this.findOneBy({
+                query,
+                select: selectComponent,
+                populate: populateComponent,
+            });
             await RealTimeService.componentEdit(component);
 
             return component;
@@ -153,7 +179,18 @@ module.exports = {
             let updatedData = await ComponentModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
+            updatedData = await this.findBy({
+                query,
+                populate: populateComponent,
+                select: selectComponent,
+            });
             return updatedData;
         } catch (error) {
             ErrorService.log('componentService.updateMany', error);
@@ -165,7 +202,7 @@ module.exports = {
     //Params:
     //Param 1: data: ComponentModal.
     //Returns: promise with component model or error.
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -184,13 +221,16 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const components = await ComponentModel.find(query)
+            let componentsQuery = ComponentModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId', 'name')
-                .populate('componentCategoryId', 'name');
+                .skip(skip);
+
+            componentsQuery = handleSelect(select, componentsQuery);
+            componentsQuery = handlePopulate(populate, componentsQuery);
+
+            const components = await componentsQuery;
             return components;
         } catch (error) {
             ErrorService.log('componentService.findBy', error);
@@ -198,17 +238,19 @@ module.exports = {
         }
     },
 
-    async findOneBy(query) {
+    async findOneBy({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const component = await ComponentModel.findOne(query)
-                .lean()
-                .populate('projectId', 'name')
-                .populate('componentCategoryId', 'name');
+            let componentQuery = ComponentModel.findOne(query).lean();
+
+            componentQuery = handleSelect(select, componentQuery);
+            componentQuery = handlePopulate(populate, componentQuery);
+
+            const component = await componentQuery;
             return component;
         } catch (error) {
             ErrorService.log('componentService.findOneBy', error);
@@ -334,13 +376,23 @@ module.exports = {
             if (typeof skip === 'string') skip = parseInt(skip);
             const _this = this;
 
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
+
             const subProjectComponents = await Promise.all(
                 subProjectIds.map(async id => {
-                    const components = await _this.findBy(
-                        { projectId: id },
+                    const components = await _this.findBy({
+                        query: { projectId: id },
                         limit,
-                        skip
-                    );
+                        skip,
+                        populate: populateComponent,
+                        select: selectComponent,
+                    });
                     const count = await _this.countBy({ projectId: id });
                     return { components, count, _id: id, skip, limit };
                 })
@@ -393,7 +445,18 @@ module.exports = {
     restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
-        let component = await _this.findBy(query);
+        const populateComponent = [
+            { path: 'projectId', select: 'name' },
+            { path: 'componentCategoryId', select: 'name' },
+        ];
+
+        const selectComponent =
+            '_id createdAt name createdById projectId slug componentCategoryId';
+        let component = await _this.findBy({
+            query,
+            populate: populateComponent,
+            select: selectComponent,
+        });
         if (component && component.length > 1) {
             const components = await Promise.all(
                 component.map(async component => {
@@ -458,3 +521,5 @@ const ErrorService = require('./errorService');
 // const _ = require('lodash');
 const { IS_SAAS_SERVICE } = require('../config/server');
 const getSlug = require('../utils/getSlug');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
