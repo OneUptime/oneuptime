@@ -241,6 +241,8 @@ host:
   scripRunnerServicePort: 80
   applicationScannerPort: 3005
   applicationScannerServicePort: 80
+  containerScannerPort: 3055
+  containerScannerServicePort: 80
   lighthouseRunnerPort: 3015
   lighthouseRunnerServicePort: 80
 

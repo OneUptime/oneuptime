@@ -6,7 +6,9 @@
     "scripts": {
         "start": "node --max-old-space-size=4096 --max-http-header-size=80000 index.js",
         "test": "echo \"Error: no test specified\" && exit 1",
-        "dev": "node --inspect=0.0.0.0 --max-http-header-size=80000 index.js"
+        "dev": "node --inspect=0.0.0.0 --max-http-header-size=80000 index.js",
+        "audit": "npm audit --audit-level=low",
+        "dep-check": "depcheck ./ --skip-missing=true"
     },
     "author": "David Adewole",
     "license": "MIT",
@@ -20,5 +22,8 @@
         "uuid": "^3.4.0",
         "winston": "^3.3.3",
         "winston-slack-transport": "^2.0.0"
+    },
+    "devDependencies": {
+        "depcheck": "^1.4.2"
     }
 }
