@@ -157,7 +157,7 @@ class SideNav extends Component {
     render() {
         const {
             location,
-            selectedComponent,
+            allIndividualComponents,
             switchToProjectViewerNav,
         } = this.props;
         const switchToComponentDetailNav =
@@ -255,6 +255,10 @@ class SideNav extends Component {
                     .filter(group => !group.visibleForProjectViewer);
             }
         }
+        const { componentSlug } = this.props.match.params;
+        const selectedComponent = allIndividualComponents.find(
+            component => component.slug === componentSlug
+        );
 
         return (
             <ClickOutside onClickOutside={this.props.closeSideNav}>
@@ -375,21 +379,17 @@ class SideNav extends Component {
 
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function(state, props) {
-    const { componentSlug } = props.match.params;
+const mapStateToProps = function(state) {
     const allIndividualComponents = state.component.componentList.components.reduce(
         (acc, curr) => acc.concat(curr.components || []),
         []
-    );
-    const selectedComponent = allIndividualComponents.find(
-        component => component.slug === componentSlug
     );
     const settings = state.profileSettings.profileSetting.data;
     const profilePic = settings ? settings.profilePic : '';
     const userName = settings ? settings.name : '';
 
     return {
-        selectedComponent,
+        allIndividualComponents,
         project: state.project,
         sidenavopen: state.page.sidenavopen,
         profilePic,
@@ -424,7 +424,7 @@ SideNav.propTypes = {
     hideForm: PropTypes.func.isRequired,
     closeSideNav: PropTypes.func,
     sidenavopen: PropTypes.bool,
-    selectedComponent: PropTypes.object,
+    allIndividualComponents: PropTypes.array,
     location: PropTypes.object,
     match: PropTypes.object,
     profilePic: PropTypes.oneOfType([
