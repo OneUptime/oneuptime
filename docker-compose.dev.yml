@@ -75,6 +75,7 @@ services:
             - PROBE_NAME=Probe 1
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
         volumes:
             - ./probe:/usr/src/app
             # Use node modules of the container and not host system.
@@ -134,6 +135,7 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SERVER_URL=http://backend:3002
+            - CLUSTER_KEY=test
         volumes:
             - ./script-runner:/usr/src/app
             # Use node modules of the container and not host system.
@@ -155,6 +157,7 @@ services:
             - REDIS_PORT=6379
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SCRIPT_RUNNER_URL=http://script-runner:3009
+            - CLUSTER_KEY=test
         depends_on:
             - mongo
             - redis
@@ -280,6 +283,7 @@ services:
             - APPLICATION_SCANNER_NAME=US
             - APPPLICATION_SCANNER_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
         volumes:
             - ./application-scanner:/usr/src/app
             # Use node modules of the container and not host system.
@@ -300,6 +304,7 @@ services:
             - CONTAINER_SCANNER_NAME=US
             - CONTAINER_SCANNER_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
         volumes:
             - ./container-scanner:/usr/src/app
             # Use node modules of the container and not host system.
@@ -318,6 +323,7 @@ services:
             - PORT=3015
             - SERVER_URL=http://backend:3002
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
         volumes:
             - ./lighthouse-runner:/usr/src/app
             # Use node modules of the container and not host system.

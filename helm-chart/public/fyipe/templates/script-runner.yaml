@@ -25,6 +25,11 @@ spec:
                   name: {{ printf "%s-%s" .Release.Name "script"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
+                      - name: CLUSTER_KEY
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
+                            key: clusterkey
                       - name: NODE_ENV
                         value: 'production'
                       - name: SERVER_URL

@@ -2,25 +2,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "container-scanner" }}
+    name: {{ printf "%s-%s" .Release.Name "cont-scan" }}
     namespace: {{ .Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "container-scanner" }}
+        app: {{ printf "%s-%s" .Release.Name "cont-scan" }}
         app.kubernetes.io/part-of: fyipe
         app.kubernetes.io/managed-by: Helm
 spec:
   selector:
       matchLabels:
-          app: {{ printf "%s-%s" .Release.Name "container-scanner" }}
+          app: {{ printf "%s-%s" .Release.Name "cont-scan" }}
   replicas: 1
   template:
       metadata:
           labels:
-              app: {{ printf "%s-%s" .Release.Name "container-scanner" }}
+              app: {{ printf "%s-%s" .Release.Name "cont-scan" }}
       spec:
           containers:
-              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "container-scanner" .Values.image.tag }}
-                name: {{ printf "%s-%s" .Release.Name "container-scanner" }}
+              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "cont-scanner" .Values.image.tag }}
+                name: {{ printf "%s-%s" .Release.Name "cont-scan" }}
                 imagePullPolicy: {{ .Values.image.pullPolicy }}
                 env:
                     - name: NODE_ENV
@@ -31,10 +31,15 @@ spec:
                       value: {{ template "fyipe.serverUrl" $ }}
                     - name: IS_SAAS_SERVICE
                       value: 'true'
+                    - name: CLUSTER_KEY
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
+                            key: clusterkey
                 ports:
                     - containerPort: {{ .Values.host.containerScannerPort }}
                       hostPort: {{ .Values.host.containerScannerPort }}
-                      name: {{ printf "%s-%s" .Release.Name "container-scanner" }}
+                      name: {{ printf "%s-%s" .Release.Name "cont-scan" }}
           restartPolicy: {{ .Values.image.restartPolicy }}
 ---
 
@@ -43,17 +48,17 @@ apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "container-scanner"  }}
+        app: {{ printf "%s-%s" .Release.Name "cont-scan"  }}
         app.kubernetes.io/part-of: fyipe
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "container-scanner"  }}
+    name: {{ printf "%s-%s" .Release.Name "cont-scan"  }}
     namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.containerScannerServicePort }}
           targetPort: {{ .Values.host.containerScannerPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "container-scanner"  }}
+        app: {{ printf "%s-%s" .Release.Name "cont-scan"  }}
     type: ClusterIP
 ---
 ###################################
@@ -63,14 +68,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" .Release.Name "container-scanner"  }}
+  name: {{ printf "%s-%s" .Release.Name "cont-scan"  }}
 spec:
   maxReplicas: {{ .Values.autoScaler.maxReplicas }}
   minReplicas: {{ .Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" .Release.Name "container-scanner"  }}
+    name: {{ printf "%s-%s" .Release.Name "cont-scan"  }}
   targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}
