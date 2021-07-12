@@ -38,7 +38,8 @@ module.exports = {
                 }
                 // Calls the ProjectService
                 const project = await ProjectService.findOneBy({
-                    _id: projectId,
+                    query: { _id: projectId },
+                    select: '_id users',
                 });
 
                 let isUserPresentInProject = false;
@@ -56,7 +57,8 @@ module.exports = {
                     // if not in project, look at subprojects.
 
                     const subProjects = await ProjectService.findBy({
-                        parentProjectId: project._id,
+                        query: { parentProjectId: project._id },
+                        select: 'users _id',
                     });
 
                     if (subProjects && subProjects.length > 0) {
@@ -129,8 +131,11 @@ module.exports = {
             } else {
                 const userId = req.user ? req.user.id : null;
                 const project = await ProjectService.findOneBy({
-                    'users.userId': userId,
-                    _id: req.params.projectId,
+                    query: {
+                        'users.userId': userId,
+                        _id: req.params.projectId,
+                    },
+                    select: 'users',
                 });
                 if (project) {
                     let role;
@@ -173,8 +178,11 @@ module.exports = {
             } else {
                 const UserId = req.user ? req.user.id : null;
                 const project = await ProjectService.findOneBy({
-                    'users.userId': UserId,
-                    _id: req.params.projectId,
+                    query: {
+                        'users.userId': UserId,
+                        _id: req.params.projectId,
+                    },
+                    select: 'users',
                 });
                 if (project) {
                     let role;

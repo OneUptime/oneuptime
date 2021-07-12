@@ -73,7 +73,8 @@ module.exports = {
                 const { matchedCriterion } = data;
 
                 const project = await ProjectService.findOneBy({
-                    _id: data.projectId,
+                    query: { _id: data.projectId },
+                    select: 'users parentProjectId',
                 });
                 const users =
                     project && project.users && project.users.length

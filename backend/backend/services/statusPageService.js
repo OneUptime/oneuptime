@@ -1210,7 +1210,13 @@ module.exports = {
                 );
                 const projectId = statusPage.projectId._id;
                 const subProjects = await ProjectService.findBy({
-                    $or: [{ parentProjectId: projectId }, { _id: projectId }],
+                    query: {
+                        $or: [
+                            { parentProjectId: projectId },
+                            { _id: projectId },
+                        ],
+                    },
+                    select: '_id',
                 });
                 const subProjectIds = subProjects
                     ? subProjects.map(project => project._id)
@@ -1309,7 +1315,8 @@ module.exports = {
                 if (statusPage.isPrivate) {
                     if (userId) {
                         const project = await ProjectService.findOneBy({
-                            _id: statusPage.projectId._id,
+                            query: { _id: statusPage.projectId._id },
+                            select: '_id users',
                         });
                         if (project && project._id) {
                             if (

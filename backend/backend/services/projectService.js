@@ -36,7 +36,8 @@ module.exports = {
             const projectModel = new ProjectModel();
             if (data.parentProjectId) {
                 const parentProject = await _this.findOneBy({
-                    _id: data.parentProjectId,
+                    query: { _id: data.parentProjectId },
+                    select: 'users',
                 });
                 projectModel.users = parentProject.users;
             } else {
@@ -252,9 +253,10 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            const oldProject = await _this.findOneBy(
-                Object.assign({}, query, { deleted: { $ne: null } })
-            );
+            const oldProject = await _this.findOneBy({
+                query: Object.assign({}, query, { deleted: { $ne: null } }),
+                select: 'apiKey',
+            });
             if (!data.apiKey && !oldProject.apiKey) {
                 data.apiKey = uuidv1();
             }
@@ -272,9 +274,14 @@ module.exports = {
                     new: true,
                 }
             );
-            updatedProject = await _this.findOneBy(
-                Object.assign({}, query, { deleted: { $ne: null } })
-            );
+            const populate = [{ path: 'parentProjectId', select: 'name' }];
+            const select =
+                '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+            updatedProject = await _this.findOneBy({
+                query: Object.assign({}, query, { deleted: { $ne: null } }),
+                select,
+                populate,
+            });
             return updatedProject;
         } catch (error) {
             ErrorService.log('projectService.updateOneBy', error);
@@ -292,7 +299,12 @@ module.exports = {
             let updatedData = await ProjectModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+
+            const populate = [{ path: 'parentProjectId', select: 'name' }];
+            const select =
+                '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+
+            updatedData = await this.findBy({ query, select, populate });
             return updatedData;
         } catch (error) {
             ErrorService.log('projectService.updateMany', error);
@@ -378,7 +390,7 @@ module.exports = {
     getProjectIdsBy: async function(query) {
         try {
             const _this = this;
-            const projects = await _this.findBy(query);
+            const projects = await _this.findBy({ query, select: '_id' });
             const projectsId = [];
 
             for (let i = 0; i < projects.length; i++) {
@@ -417,7 +429,10 @@ module.exports = {
     upgradeToEnterprise: async function(projectId) {
         const data = { stripePlanId: 'enterprise', stripeSubscriptionId: null };
         try {
-            const project = await this.findOneBy({ _id: projectId });
+            const project = await this.findOneBy({
+                query: { _id: projectId },
+                select: 'stripeSubscriptionId',
+            });
             if (data.stripeSubscriptionId !== null) {
                 await PaymentService.removeSubscription(
                     project.stripeSubscriptionId
@@ -481,7 +496,8 @@ module.exports = {
         try {
             const _this = this;
             const subProject = await _this.findBy({
-                parentProjectId: projectId,
+                query: { parentProjectId: projectId },
+                select: '_id',
             });
             const subProjectId = subProject.map(sub => String(sub._id));
             const projectIdArr = [projectId, ...subProjectId];
@@ -534,7 +550,8 @@ module.exports = {
             const _this = this;
             let teamMember = {};
             const userProjects = await _this.findOneBy({
-                _id: projectId,
+                query: { _id: projectId },
+                select: 'users',
             });
             teamMember = userProjects.users.find(
                 user => String(user.userId) === String(userId)
@@ -542,17 +559,19 @@ module.exports = {
             let subProject = null;
             let subProjects = null;
             let project = await _this.findOneBy({
-                _id: projectId,
-                'users.userId': userId,
+                query: { _id: projectId, 'users.userId': userId },
+                select: 'parentProjectId users _id seats stripeSubscriptionId',
             });
             if (project?.parentProjectId) {
                 subProject = project;
                 project = await _this.findOneBy({
-                    _id: subProject.parentProjectId,
+                    query: { _id: subProject.parentProjectId },
+                    select: '_id users seats stripeSubscriptionId',
                 });
             }
             subProjects = await _this.findBy({
-                parentProjectId: project?._id,
+                query: { parentProjectId: project?._id },
+                select: 'users _id seats',
             });
             const allMembers = subProjects.concat(project);
             let subMembers = subProjects.map(user => user.users);
@@ -598,8 +617,11 @@ module.exports = {
                     ),
                 ]);
                 const countUserInSubProjects = await _this.findBy({
-                    parentProjectId: project._id,
-                    'users.userId': userId,
+                    query: {
+                        parentProjectId: project._id,
+                        'users.userId': userId,
+                    },
+                    select: '_id',
                 });
                 if (!saveUserSeat) {
                     let projectSeats = project.seats;
@@ -693,11 +715,17 @@ module.exports = {
 
     getAllProjects: async function(skip, limit) {
         const _this = this;
-        let projects = await _this.findBy(
-            { parentProjectId: null, deleted: { $ne: null } },
+        const populate = [{ path: 'parentProjectId', select: 'name' }];
+        const select =
+            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+
+        let projects = await _this.findBy({
+            query: { parentProjectId: null, deleted: { $ne: null } },
             limit,
-            skip
-        );
+            skip,
+            populate,
+            select,
+        });
 
         projects = await Promise.all(
             projects.map(async project => {
@@ -723,8 +751,8 @@ module.exports = {
         const _this = this;
         // find user subprojects and parent projects
         const userProjects = await _this.findBy({
-            'users.userId': userId,
-            deleted: { $ne: null },
+            query: { 'users.userId': userId, deleted: { $ne: null } },
+            select: 'parentProjectId',
         });
         let parentProjectIds = [];
         let projectIds = [];
@@ -733,7 +761,8 @@ module.exports = {
                 .map(project => (project.parentProjectId ? project : null))
                 .filter(subProject => subProject !== null);
             parentProjectIds = subProjects.map(
-                subProject => subProject.parentProjectId._id
+                subProject =>
+                    subProject.parentProjectId._id || subProject.parentProjectId
             );
             const projects = userProjects
                 .map(project => (project.parentProjectId ? null : project))
@@ -749,8 +778,18 @@ module.exports = {
             ],
             deleted: { $ne: null },
         };
+        const populate = [{ path: 'parentProjectId', select: 'name' }];
+        const select =
+            '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+
         const [allProjects, count] = await Promise.all([
-            _this.findBy(query, limit || 10, skip || 0),
+            _this.findBy({
+                query,
+                limit: limit || 10,
+                skip: skip || 0,
+                select,
+                populate,
+            }),
             _this.countBy(query),
         ]);
 
@@ -761,7 +800,9 @@ module.exports = {
                 let users = [];
                 if (project.parentProjectId) {
                     users = await TeamService.getTeamMembersBy({
-                        parentProjectId: project.parentProjectId,
+                        parentProjectId:
+                            project.parentProjectId._id ||
+                            project.parentProjectId,
                     });
                     project.users = users;
                 } else {
@@ -788,7 +829,10 @@ module.exports = {
         const _this = this;
         query.deleted = true;
 
-        let project = await _this.findOneBy(query);
+        let project = await _this.findOneBy({
+            query,
+            select: '_id users stripeCustomerId',
+        });
 
         if (!project) {
             const error = new Error('Project not found or no longer exist');
@@ -872,7 +916,7 @@ module.exports = {
 
     searchProjects: async function(query, skip, limit) {
         const _this = this;
-        let projects = await _this.findBy(query, limit, skip);
+        let projects = await _this.findBy({ query, limit, skip });
 
         projects = await Promise.all(
             projects.map(async project => {
@@ -916,3 +960,5 @@ const SsoDefaultRolesService = require('./ssoDefaultRolesService');
 const getSlug = require('../utils/getSlug');
 const flattenArray = require('../utils/flattenArray');
 const IncidentSettingsService = require('./incidentSettingsService');
+const handlePopulate = require('../utils/populate');
+const handleSelect = require('../utils/select');

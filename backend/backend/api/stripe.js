@@ -222,7 +222,10 @@ router.post(
                 });
             }
 
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'stripeSubscriptionId',
+            });
 
             const trialDetails = await StripeService.fetchTrialInformation(
                 project.stripeSubscriptionId

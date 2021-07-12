@@ -102,7 +102,10 @@ module.exports = {
             throw error;
         }
 
-        const projectObj = await ProjectService.findOneBy({ _id: project });
+        const projectObj = await ProjectService.findOneBy({
+            query: { _id: project },
+            select: 'users _id',
+        });
         if (!projectObj) {
             const error = new Error("Project doesn't exist.");
             error.code = 400;
@@ -275,7 +278,8 @@ module.exports = {
             const { project, role } = ssoDefaultRole;
             const { _id: projectId } = project;
             const projectObj = await ProjectService.findOneBy({
-                _id: projectId,
+                query: { _id: projectId },
+                select: 'users',
             });
             if (!projectObj) continue;
 

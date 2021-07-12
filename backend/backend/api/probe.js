@@ -84,11 +84,12 @@ router.get('/monitors', isAuthorizedProbe, async function(req, res) {
             const projectIds = {};
             for (const monitor of monitors) {
                 const project = await ProjectService.findOneBy({
-                    _id: monitor.projectId,
+                    query: { _id: monitor.projectId },
+                    select: 'parentProjectId _id',
                 });
                 const projectId = project
                     ? project.parentProjectId
-                        ? project.parentProjectId._id
+                        ? project.parentProjectId._id || project.parentProjectId
                         : project._id
                     : monitor.projectId;
                 projectIds[projectId] = true;

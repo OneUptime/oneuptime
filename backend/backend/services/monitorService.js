@@ -28,18 +28,21 @@ module.exports = {
                 throw error;
             }
             let project = await ProjectService.findOneBy({
-                _id: data.projectId,
+                query: { _id: data.projectId },
+                select: 'parentProjectId _id users stripePlanId',
             });
             if (project.parentProjectId) {
                 subProject = project;
                 project = await ProjectService.findOneBy({
-                    _id: subProject.parentProjectId,
+                    query: { _id: subProject.parentProjectId },
+                    select: '_id users stripePlanId',
                 });
             }
             let subProjectIds = [];
             const [subProjects, count, resourceCategory] = await Promise.all([
                 ProjectService.findBy({
-                    parentProjectId: project._id,
+                    query: { parentProjectId: project._id },
+                    select: '_id',
                 }),
                 _this.countBy({
                     projectId: { $in: subProjectIds },
@@ -424,20 +427,23 @@ module.exports = {
             if (monitor) {
                 let subProject = null;
                 let project = await ProjectService.findOneBy({
-                    _id: monitor.projectId._id || monitor.projectId,
+                    query: { _id: monitor.projectId._id || monitor.projectId },
+                    select: 'parentProjectId _id seats stripeSubscriptionId',
                 });
 
                 if (project) {
                     if (project.parentProjectId) {
                         subProject = project;
                         project = await ProjectService.findOneBy({
-                            _id: subProject.parentProjectId,
+                            query: { _id: subProject.parentProjectId },
+                            select: '_id seats stripeSubscriptionId',
                         });
                     }
 
                     let subProjectIds = [];
                     const subProjects = await ProjectService.findBy({
-                        parentProjectId: project._id,
+                        query: { parentProjectId: project._id },
+                        select: '_id',
                     });
                     if (subProjects && subProjects.length > 0) {
                         subProjectIds = subProjects.map(project => project._id);
@@ -1068,7 +1074,10 @@ module.exports = {
 
     addSeat: async function(query) {
         try {
-            const project = await ProjectService.findOneBy(query);
+            const project = await ProjectService.findOneBy({
+                query,
+                select: 'seats stripeSubscriptionId _id',
+            });
             let projectSeats = project.seats;
             if (typeof projectSeats === 'string') {
                 projectSeats = parseInt(projectSeats);

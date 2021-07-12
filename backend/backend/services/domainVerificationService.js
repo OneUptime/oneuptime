@@ -15,7 +15,8 @@ module.exports = {
 
         // all domain should be tied to parentProject only
         const project = await ProjectService.findOneBy({
-            _id: projectId,
+            query: { _id: projectId },
+            select: 'parentProjectId',
         });
         if (!project) {
             const error = new Error('Project not found or does not exist');
@@ -83,7 +84,8 @@ module.exports = {
             // fetch subproject
             if (query.projectId) {
                 let subProjects = await ProjectService.findBy({
-                    parentProjectId: query.projectId,
+                    query: { parentProjectId: query.projectId },
+                    select: '_id',
                 });
                 subProjects = subProjects.map(project => project._id); // grab just the project ids
                 const totalProjects = [query.projectId, ...subProjects];
@@ -188,19 +190,29 @@ module.exports = {
         // ensure that a particular domain is available to all project and subProject
         // domain added to a project should be available for both project and subProjects
         // domain added to a subProject should be available to other subProjects and project
-        const project = await ProjectService.findOneBy({ _id: projectId });
+        const project = await ProjectService.findOneBy({
+            query: { _id: projectId },
+            select: '_id parentProjectId',
+        });
         let projectList = [project._id];
         let subProjects = [];
         if (project.parentProjectId) {
-            projectList.push(project.parentProjectId._id);
+            projectList.push(
+                project.parentProjectId._id || project.parentProjectId
+            );
 
             // find all the subProjects attached to this parent project
             subProjects = await ProjectService.findBy({
-                parentProjectId: project.parentProjectId._id,
+                query: {
+                    parentProjectId:
+                        project.parentProjectId._id || project.parentProjectId,
+                },
+                select: '_id',
             });
         } else {
             subProjects = await ProjectService.findBy({
-                parentProjectId: project._id,
+                query: { parentProjectId: project._id },
+                select: '_id',
             });
         }
         subProjects = subProjects.map(project => project._id); // grab just the project ids
@@ -318,7 +330,8 @@ module.exports = {
             // fetch subproject
             if (query.projectId) {
                 let subProjects = await ProjectService.findBy({
-                    parentProjectId: query.projectId,
+                    query: { parentProjectId: query.projectId },
+                    select: '_id',
                 });
                 subProjects = subProjects.map(project => project._id); // grab just the project ids
                 const totalProjects = [query.projectId, ...subProjects];

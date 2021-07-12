@@ -113,7 +113,10 @@ class ScheduledEventBox extends Component {
                                 error={error}
                                 requesting={requesting}
                                 fetchingMonitors={fetchingMonitors}
-                                parentProjectId={subProject.parentProjectId._id}
+                                parentProjectId={
+                                    subProject.parentProjectId._id ||
+                                    subProject.parentProjectId
+                                }
                                 modalList={modalList}
                                 allScheduleEventLength={
                                     subProjectScheduledEvents.length
