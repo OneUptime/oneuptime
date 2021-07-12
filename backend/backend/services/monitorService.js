@@ -647,6 +647,7 @@ module.exports = {
                     {
                         $or: [
                             {
+                                // This block only applies to server-monitors. 
                                 $and: [
                                     {
                                         type: {
