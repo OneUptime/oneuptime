@@ -226,6 +226,8 @@ const INITIAL_STATE = {
 };
 
 export default (state = INITIAL_STATE, action) => {
+    let monitorTimeRequest;
+    let monitorTimeSuccess;
     switch (action.type) {
         case FETCH_ANNOUNCEMEMTLOGS_REQUEST:
             return Object.assign({}, state, {
@@ -1229,6 +1231,14 @@ export default (state = INITIAL_STATE, action) => {
                 requestingstatuses: false,
             });
         case FETCH_ALL_RESOURCES_SUCCESS:
+            monitorTimeRequest = {};
+            monitorTimeSuccess = {};
+
+            Object.keys(action.payload.time).map(id => {
+                monitorTimeRequest[id] = false;
+                monitorTimeSuccess[id] = true;
+                return id;
+            });
             return Object.assign({}, state, {
                 statusPage: action.payload.statusPages,
                 announcements: {
@@ -1302,6 +1312,12 @@ export default (state = INITIAL_STATE, action) => {
                 individualEvents: {
                     // reset individualEvents state
                     ...INITIAL_STATE.individualEvents,
+                },
+                monitorInfo: {
+                    requesting: monitorTimeRequest,
+                    success: monitorTimeSuccess,
+                    error: null,
+                    info: action.payload.time,
                 },
             });
         case FETCH_MONITOR_LOGS_REQUEST:

@@ -64,10 +64,10 @@ export const getStatusPage = (statusPageSlug, url) => {
 };
 
 // Calls the API to get all status page resources
-export const getAllStatusPageResource = (statusPageSlug, url) => {
+export const getAllStatusPageResource = (statusPageSlug, url, range) => {
     return function(dispatch) {
         const promise = getApi(
-            `statusPage/resources/${statusPageSlug}?url=${url}`
+            `statusPage/resources/${statusPageSlug}?url=${url}&range=${range}`
         );
         dispatch(statusPageRequest());
         dispatch(getAnnouncementsRequest());
