@@ -186,4 +186,39 @@ router.get('/:projectId/request/:requestId', async function(req, res) {
     }
 });
 
+router.post(
+    '/:projectId/toggle/:requestId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId, requestId } = req.params;
+            const data = req.body;
+
+            let incomingRequest = await IncomingRequestService.findOneBy({
+                name: data.name,
+                projectId,
+            });
+            if (
+                incomingRequest &&
+                String(incomingRequest._id) !== String(requestId)
+            ) {
+                const error = new Error(
+                    'Incoming request with this name already exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            incomingRequest = await IncomingRequestService.updateOneBy(
+                { requestId, projectId },
+                data
+            );
+            return sendItemResponse(req, res, incomingRequest);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 module.exports = router;

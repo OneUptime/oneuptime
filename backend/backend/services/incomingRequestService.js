@@ -117,6 +117,7 @@ module.exports = {
                             : DOMPurify.sanitize(field.fieldValue),
                 }));
             }
+            data.enabled = true;
 
             let incomingRequest = await IncomingRequestModel.create({
                 ...data,
@@ -557,11 +558,16 @@ module.exports = {
                     projectId: data.projectId,
                 }),
             ]);
-
             const filterMatch = incomingRequest.filterMatch;
             const filters = incomingRequest.filters;
 
-            if (incomingRequest && incomingRequest.createIncident) {
+            if(incomingRequest && incomingRequest.enabled === false){
+                return{
+                    status: 'disabled'
+                }
+            }
+
+            if (incomingRequest && incomingRequest.createIncident && incomingRequest.enabled) {
                 const incidentResponse = [],
                     monitorsWithIncident = [];
 
@@ -925,7 +931,7 @@ module.exports = {
             }
 
             if (
-                incomingRequest &&
+                incomingRequest && incomingRequest.enabled &&
                 (incomingRequest.updateIncidentNote ||
                     incomingRequest.updateInternalNote)
             ) {
@@ -1401,7 +1407,7 @@ module.exports = {
             }
 
             if (
-                incomingRequest &&
+                incomingRequest && incomingRequest.enabled &&
                 (incomingRequest.acknowledgeIncident ||
                     incomingRequest.resolveIncident)
             ) {

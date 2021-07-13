@@ -99,7 +99,7 @@ module.exports = {
         }
         return false;
     },
-    findBy: async function({ query, skip, limit, sort }) {
+    findBy: async function({ query, skip, limit, sort, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -120,14 +120,15 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const alerts = await AlertModel.find(query)
+            let alertsQuery = AlertModel.find(query)
                 .lean()
                 .sort(sort)
                 .limit(limit)
-                .skip(skip)
-                .populate('userId', 'name')
-                .populate('monitorId', 'name')
-                .populate('projectId', 'name');
+                .skip(skip);
+
+            alertsQuery = handleSelect(select, alertsQuery);
+            alertsQuery = handlePopulate(populate, alertsQuery);
+            const alerts = await alertsQuery;
             return alerts;
         } catch (error) {
             ErrorService.log('alertService.findBy`  ', error);
@@ -195,11 +196,24 @@ module.exports = {
                 path: 'incidentId',
                 select: 'idNumber name',
             },
-            { path: 'createdById', select: 'name' },
+            {
+                path: 'createdById',
+                select: 'name',
+            },
         ];
 
         const selectIncidentMessage =
             '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
+        const populateAlert = [
+            { path: 'userId', select: 'name' },
+            { path: 'monitorId', select: 'name' },
+            { path: 'projectId', select: 'name' },
+        ];
+
+        const selectAlert =
+            '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+
         const [
             incidentMsgs,
             timeline,
@@ -207,7 +221,10 @@ module.exports = {
             subscriberAlerts,
         ] = await Promise.all([
             IncidentMessageService.findBy({
-                query: { incidentId, type: 'internal' },
+                query: {
+                    incidentId,
+                    type: 'internal',
+                },
                 select: selectIncidentMessage,
                 populate: populateIncidentMessage,
             }),
@@ -215,7 +232,11 @@ module.exports = {
                 incidentId,
             }),
             _this.findBy({
-                query: { incidentId },
+                query: {
+                    incidentId,
+                },
+                select: selectAlert,
+                populate: populateAlert,
             }),
             SubscriberAlertService.findBy({
                 incidentId,
@@ -226,7 +247,9 @@ module.exports = {
         const [subAlerts, callStatus] = await Promise.all([
             Services.deduplicate(subscriberAlerts),
             OnCallScheduleStatusService.findBy({
-                query: { incident: incidentId },
+                query: {
+                    incident: incidentId,
+                },
             }),
         ]);
         const callScheduleStatus = await Services.checkCallSchedule(callStatus);
@@ -309,7 +332,20 @@ module.exports = {
             let updatedData = await AlertModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const populateAlert = [
+                { path: 'userId', select: 'name' },
+                { path: 'monitorId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+            ];
+
+            const selectAlert =
+                'projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress ';
+
+            updatedData = await this.findBy({
+                query,
+                populate: populateAlert,
+                select: selectAlert,
+            });
             return updatedData;
         } catch (error) {
             ErrorService.log('alertService.updateMany', error);
@@ -3490,12 +3526,23 @@ module.exports = {
 
     getSubProjectAlerts: async function(subProjectIds) {
         const _this = this;
+        const populateAlert = [
+            { path: 'userId', select: 'name' },
+            { path: 'monitorId', select: 'name' },
+            { path: 'projectId', select: 'name' },
+        ];
+
+        const selectAlert =
+            '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+
         const subProjectAlerts = await Promise.all(
             subProjectIds.map(async id => {
                 const alerts = await _this.findBy({
                     query: { projectId: id },
                     skip: 0,
                     limit: 10,
+                    select: selectAlert,
+                    populate: populateAlert,
                 });
                 const count = await _this.countBy({ projectId: id });
                 return { alerts, count, _id: id, skip: 0, limit: 10 };
@@ -3517,7 +3564,7 @@ module.exports = {
     restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
-        let alert = await _this.findBy({ query });
+        let alert = await _this.findBy({ query, select: '_id' });
         if (alert && alert.length > 1) {
             const alerts = await Promise.all(
                 alert.map(async alert => {
@@ -5130,3 +5177,5 @@ const IncidentMessageService = require('./incidentMessageService');
 const IncidentTimelineService = require('./incidentTimelineService');
 const Services = require('../utils/services');
 const RealTimeService = require('./realTimeService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
