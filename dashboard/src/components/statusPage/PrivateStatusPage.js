@@ -56,6 +56,9 @@ export class PrivateStatusPage extends Component {
                 scheduleHistoryDays: values.scheduleHistoryDays,
                 incidentHistoryDays: values.incidentHistoryDays,
                 announcementLogsHistory: values.announcementLogsHistory,
+                offlineText: values.offlineText,
+                onlineText: values.onlineText,
+                degradedText: values.degradedText,
             })
             .then(() => {
                 this.props.fetchProjectStatusPage(
@@ -1114,6 +1117,237 @@ export class PrivateStatusPage extends Component {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            paddingTop: '0',
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div
+                                                                style={{
+                                                                    width:
+                                                                        '100%',
+                                                                }}
+                                                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart"
+                                                            >
+                                                                <div
+                                                                    className="Box-root"
+                                                                    style={{
+                                                                        paddingLeft:
+                                                                            '5px',
+                                                                    }}
+                                                                >
+                                                                    <span>
+                                                                        Status
+                                                                        Text
+                                                                    </span>
+                                                                    <label className="bs-Fieldset-explanation">
+                                                                        <span
+                                                                            style={{
+                                                                                display:
+                                                                                    'block',
+                                                                                marginBottom: 10,
+                                                                            }}
+                                                                        >
+                                                                            Custom
+                                                                            text
+                                                                            to
+                                                                            show
+                                                                            the
+                                                                            status
+                                                                            of
+                                                                            resources
+                                                                            on
+                                                                            the
+                                                                            status
+                                                                            page
+                                                                        </span>
+                                                                        <fieldset className="Margin-bottom--16">
+                                                                            <div className="bs-Fieldset-rows">
+                                                                                <div
+                                                                                    className="bs-Fieldset-row"
+                                                                                    style={{
+                                                                                        padding: 0,
+                                                                                    }}
+                                                                                >
+                                                                                    <label
+                                                                                        className="bs-Fieldset-label Text-align--left"
+                                                                                        htmlFor="onlineText"
+                                                                                        style={{
+                                                                                            flexBasis:
+                                                                                                '20%',
+                                                                                        }}
+                                                                                    >
+                                                                                        <span>
+                                                                                            Online
+                                                                                        </span>
+                                                                                    </label>
+                                                                                    <div
+                                                                                        className="bs-Fieldset-fields"
+                                                                                        style={{
+                                                                                            flexBasis:
+                                                                                                '80%',
+                                                                                            maxWidth:
+                                                                                                '80%',
+                                                                                        }}
+                                                                                    >
+                                                                                        <div
+                                                                                            className="bs-Fieldset-field"
+                                                                                            style={{
+                                                                                                width:
+                                                                                                    '100%',
+                                                                                            }}
+                                                                                        >
+                                                                                            <Field
+                                                                                                className="db-BusinessSettings-input-300 TextInput bs-TextInput"
+                                                                                                component={
+                                                                                                    RenderField
+                                                                                                }
+                                                                                                type="text"
+                                                                                                name="onlineText"
+                                                                                                id="onlineText"
+                                                                                                placeholder="Enter a custom status"
+                                                                                                style={{
+                                                                                                    width:
+                                                                                                        '100%',
+                                                                                                }}
+                                                                                            />
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </fieldset>
+                                                                        <fieldset className="Margin-bottom--16">
+                                                                            <div className="bs-Fieldset-rows">
+                                                                                <div
+                                                                                    className="bs-Fieldset-row"
+                                                                                    style={{
+                                                                                        padding: 0,
+                                                                                    }}
+                                                                                >
+                                                                                    <label
+                                                                                        className="bs-Fieldset-label Text-align--left"
+                                                                                        htmlFor="degradedText"
+                                                                                        style={{
+                                                                                            flexBasis:
+                                                                                                '20%',
+                                                                                        }}
+                                                                                    >
+                                                                                        <span>
+                                                                                            Degraded
+                                                                                        </span>
+                                                                                    </label>
+                                                                                    <div
+                                                                                        className="bs-Fieldset-fields"
+                                                                                        style={{
+                                                                                            flexBasis:
+                                                                                                '80%',
+                                                                                            maxWidth:
+                                                                                                '80%',
+                                                                                        }}
+                                                                                    >
+                                                                                        <div
+                                                                                            className="bs-Fieldset-field"
+                                                                                            style={{
+                                                                                                width:
+                                                                                                    '100%',
+                                                                                            }}
+                                                                                        >
+                                                                                            <Field
+                                                                                                className="db-BusinessSettings-input-300 TextInput bs-TextInput"
+                                                                                                component={
+                                                                                                    RenderField
+                                                                                                }
+                                                                                                type="text"
+                                                                                                name="degradedText"
+                                                                                                id="degradedText"
+                                                                                                placeholder="Enter a custom status"
+                                                                                                style={{
+                                                                                                    width:
+                                                                                                        '100%',
+                                                                                                }}
+                                                                                            />
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </fieldset>
+                                                                        <fieldset className="Margin-bottom--16">
+                                                                            <div className="bs-Fieldset-rows">
+                                                                                <div
+                                                                                    className="bs-Fieldset-row"
+                                                                                    style={{
+                                                                                        padding: 0,
+                                                                                    }}
+                                                                                >
+                                                                                    <label
+                                                                                        className="bs-Fieldset-label Text-align--left"
+                                                                                        htmlFor="offlineText"
+                                                                                        style={{
+                                                                                            flexBasis:
+                                                                                                '20%',
+                                                                                        }}
+                                                                                    >
+                                                                                        <span>
+                                                                                            Offline
+                                                                                        </span>
+                                                                                    </label>
+                                                                                    <div
+                                                                                        className="bs-Fieldset-fields"
+                                                                                        style={{
+                                                                                            flexBasis:
+                                                                                                '80%',
+                                                                                            maxWidth:
+                                                                                                '80%',
+                                                                                        }}
+                                                                                    >
+                                                                                        <div
+                                                                                            className="bs-Fieldset-field"
+                                                                                            style={{
+                                                                                                width:
+                                                                                                    '100%',
+                                                                                            }}
+                                                                                        >
+                                                                                            <Field
+                                                                                                className="db-BusinessSettings-input-300 TextInput bs-TextInput"
+                                                                                                component={
+                                                                                                    RenderField
+                                                                                                }
+                                                                                                type="text"
+                                                                                                name="offlineText"
+                                                                                                id="offlineText"
+                                                                                                placeholder="Enter a custom status"
+                                                                                                style={{
+                                                                                                    width:
+                                                                                                        '100%',
+                                                                                                }}
+                                                                                            />
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </fieldset>
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </>
                                             )}
                                         </div>
@@ -1224,6 +1458,9 @@ const mapStateToProps = state => {
         initialValues.incidentHistoryDays = status.incidentHistoryDays;
         initialValues.scheduleHistoryDays = status.scheduleHistoryDays;
         initialValues.announcementLogsHistory = status.announcementLogsHistory;
+        initialValues.onlineText = status.onlineText || 'Operational';
+        initialValues.offlineText = status.offlineText || 'Offline';
+        initialValues.degradedText = status.degradedText || 'Degraded';
     }
     initialValues.showIpWhitelistInput = true;
 
