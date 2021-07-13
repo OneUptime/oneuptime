@@ -1434,16 +1434,12 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
             { path: 'monitors.monitor', select: '_id' },
         ];
 
-        const [statusPage, count] = await Promise.all([
-            StatusPageService.findOneBy({
-                query: { _id: statusPageId },
-                select: 'monitors',
-                populate: populateStatusPage,
-            }),
-            SubscriberService.countBy({
-                _id: statusPageId,
-            }),
-        ]);
+        const statusPage = await StatusPageService.findOneBy({
+            query: { _id: statusPageId },
+            select: 'monitors',
+            populate: populateStatusPage,
+        });
+
         const monitors = statusPage.monitors.map(mon => mon.monitor._id);
         const subscribers = await SubscriberService.findBy(
             {
@@ -1452,6 +1448,9 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
             skip,
             limit
         );
+        const count = await SubscriberService.countBy({
+            monitorId: monitors,
+        });
         return sendItemResponse(req, res, { subscribers, skip, limit, count });
     } catch (error) {
         return sendErrorResponse(req, res, error);

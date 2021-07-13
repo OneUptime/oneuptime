@@ -14,6 +14,7 @@ import CreateManualIncident from '../modals/CreateManualIncident';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
+import '@trendmicro/react-dropdown/dist/react-dropdown.css';
 
 export class MonitorViewIncidentBox extends Component {
     constructor(props) {

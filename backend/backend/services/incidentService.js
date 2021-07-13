@@ -928,7 +928,7 @@ module.exports = {
         const _this = this;
         let incidentsUnresolved = await _this.findBy({
             query: { projectId: { $in: subProjectIds }, resolved: false },
-            select: '_id',
+            select: '_id notClosedBy',
         });
         incidentsUnresolved = incidentsUnresolved.map(incident => {
             if (incident.notClosedBy.indexOf(userId) < 0) {
