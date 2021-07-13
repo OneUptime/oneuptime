@@ -699,6 +699,7 @@ module.exports = {
             const scheduledEventList = await this.findBy({
                 query: {
                     startDate: { $lte: currentTime },
+                    endDate: { $gte: currentTime },
                     deleted: false,
                     cancelled: false,
                 },
@@ -707,7 +708,6 @@ module.exports = {
                 select: '_id',
             });
 
-            //fetch event notes without started note and create
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
 
@@ -752,8 +752,6 @@ module.exports = {
                 skip: 0,
                 select: '_id',
             });
-
-            //fetch event notes without started note and create
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
 
