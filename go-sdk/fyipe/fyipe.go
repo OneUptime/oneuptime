@@ -48,6 +48,8 @@ func Init(options LoggerOptions) error {
 	return nil
 }
 
+// TODO convert content string to {}interface
+// TODO use https://github.com/bxcodec/faker/blob/7460bf3a84de3afbfe7297c488c711d29f09c5d2/faker.go#L334 function for reference
 func LogInfo(content string, tags []string) (LoggerResponse, error) {
 	// access fyipe Logger and send an api request
 	logger := CurrentLogger()
