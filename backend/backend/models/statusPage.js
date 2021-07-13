@@ -122,6 +122,9 @@ const statusSchema = new Schema({
     incidentHistoryDays: { type: Number, default: 14 },
     scheduleHistoryDays: { type: Number, default: 14 },
     announcementLogsHistory: { type: Number, default: 14 },
+    onlineText: { type: String, default: 'Operational' },
+    offlineText: { type: String, default: 'Offline' },
+    degradedText: { type: String, default: 'Degraded' },
 
     deletedAt: {
         type: Date,
