@@ -101,6 +101,11 @@ export function markAsRead(projectId, notificationIds) {
                     notification.notificaitonId._id
             );
 
+            const notifications = await putApi(
+                `notification/${projectId}/read`,
+                { notificationIds }
+            );
+
             for (const notificationId of notifications.data) {
                 dispatch(
                     notificationReadSuccess({
@@ -109,11 +114,6 @@ export function markAsRead(projectId, notificationIds) {
                     })
                 );
             }
-
-            const notifications = await putApi(
-                `notification/${projectId}/read`,
-                { notificationIds }
-            );
         } catch (error) {
             let payload;
             if (error && error.response && error.response.data)
