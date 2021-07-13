@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -18,7 +17,7 @@ import copyToClipboard from '../../utils/copyToClipboard';
 import { fetchIncidentPriorities } from '../../actions/incidentPriorities';
 import { fetchDefaultTemplate } from '../../actions/incidentBasicsSettings';
 import IncomingRequestEnabled from '../modals/IncomingRequestEnabled';
-import DataPathHoC from '../DataPathHoC';
+
 class IncomingRequestList extends React.Component {
     state = {
         copied: false,
@@ -138,14 +137,16 @@ class IncomingRequestList extends React.Component {
                                 style={{
                                     marginTop: '10px',
                                 }}
-                                onClick={()=>{
+                                onClick={() => {
                                     openModal({
                                         id: projectId,
                                         content: IncomingRequestEnabled,
                                         projectId,
                                         requestId: incomingRequest._id,
-                                        propArr: {isEnabled: incomingRequest.enabled},
-                                    })
+                                        propArr: {
+                                            isEnabled: incomingRequest.enabled,
+                                        },
+                                    });
                                 }}
                             >
                                 <input
@@ -153,9 +154,7 @@ class IncomingRequestList extends React.Component {
                                     type="checkbox"
                                     name="incomingHttpRequestEnabled"
                                     id="incomingHttpRequestEnabled"
-                                    checked={
-                                        incomingRequest.enabled
-                                    }
+                                    checked={incomingRequest.enabled}
                                 />
                                 <span className="TogglerBtn-slider round"></span>
                             </label>
@@ -196,7 +195,7 @@ class IncomingRequestList extends React.Component {
                                     {String(
                                         this.props.activeIncomingRequest
                                     ) === String(incomingRequest._id) &&
-                                        this.state.copied ? (
+                                    this.state.copied ? (
                                         <span>Copied!</span>
                                     ) : (
                                         <span>Copy Url</span>
@@ -333,8 +332,8 @@ class IncomingRequestList extends React.Component {
                             <span>
                                 {(!incomingRequestList ||
                                     incomingRequestList.length === 0) &&
-                                    !isRequesting &&
-                                    !fetchError
+                                !isRequesting &&
+                                !fetchError
                                     ? 'You have no incoming request'
                                     : null}
                                 {fetchError ? fetchError : null}
@@ -353,16 +352,20 @@ class IncomingRequestList extends React.Component {
                                         className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
                                     >
                                         {numberOfPages > 0
-                                            ? `Page ${this.state.page
-                                            } of ${numberOfPages} (${this.props.count
-                                            } Request${this.props.count === 1
-                                                ? ''
-                                                : 's'
-                                            })`
-                                            : `${this.props.count} Request${this.props.count === 1
-                                                ? ''
-                                                : 's'
-                                            }`}
+                                            ? `Page ${
+                                                  this.state.page
+                                              } of ${numberOfPages} (${
+                                                  this.props.count
+                                              } Request${
+                                                  this.props.count === 1
+                                                      ? ''
+                                                      : 's'
+                                              })`
+                                            : `${this.props.count} Request${
+                                                  this.props.count === 1
+                                                      ? ''
+                                                      : 's'
+                                              }`}
                                     </span>
                                 </span>
                             </span>
