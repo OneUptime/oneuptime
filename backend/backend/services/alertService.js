@@ -1617,7 +1617,8 @@ module.exports = {
     sendInvestigationNoteToSubscribers: async function(
         incident,
         data,
-        statusNoteStatus
+        statusNoteStatus,
+        projectId
     ) {
         try {
             const _this = this;
@@ -1626,16 +1627,24 @@ module.exports = {
             const monitors = incident.monitors.map(
                 monitor => monitor.monitorId
             );
+            const monitorIds = monitors.map(monitor => monitor._id);
+            const subscribers = await SubscriberService.subscribersForAlert({
+                subscribed: true,
+                $or: [{ monitorId: { $in: monitorIds } }, { monitorId: null }],
+                projectId,
+            });
             for (const monitor of monitors) {
                 if (incident) {
-                    const monitorId = monitor._id;
-                    const subscribers = await SubscriberService.subscribersForAlert(
-                        {
-                            monitorId: monitorId,
-                            subscribed: true,
-                        }
-                    );
                     for (const subscriber of subscribers) {
+                        let statusPageSlug = null;
+                        if (subscriber.statusPageId) {
+                            const statusPage = await StatusPageService.findOneBy(
+                                {
+                                    _id: subscriber.statusPageId,
+                                }
+                            );
+                            statusPageSlug = statusPage.slug;
+                        }
                         await _this.sendSubscriberAlert(
                             subscriber,
                             incident,
@@ -1646,6 +1655,7 @@ module.exports = {
                                 incidentState: data.incident_state,
                                 noteType: data.incident_state,
                                 statusNoteStatus,
+                                statusPageSlug,
                             },
                             subscribers.length,
                             uuid,
@@ -2442,7 +2452,13 @@ module.exports = {
         incident,
         templateType = 'Subscriber Incident Created',
         statusPage,
-        { note, incidentState, noteType, statusNoteStatus } = {},
+        {
+            note,
+            incidentState,
+            noteType,
+            statusNoteStatus,
+            statusPageSlug,
+        } = {},
         totalSubscribers,
         id,
         monitor
@@ -2469,7 +2485,6 @@ module.exports = {
                         ? monitor.componentId._id
                         : monitor.componentId,
             });
-            const statusUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/incidents/${incident.idNumber}`;
 
             let statusPageUrl;
             if (statusPage) {
@@ -2486,6 +2501,11 @@ module.exports = {
                         statusPageUrl = `${domains[0].domain}/status-page/${statusPage._id}`;
                     }
                 }
+            }
+
+            let statusUrl;
+            if (statusPageSlug) {
+                statusUrl = `${global.statusHost}/status-page/${statusPageSlug}/incident/${incident.idNumber}`;
             }
 
             const monitorCustomFields = {},
