@@ -203,6 +203,16 @@ module.exports = {
         }
     },
 
+    updateCriterion: async function(_id, lastMatchedCriterion) {
+        await MonitorModel.findOneAndUpdate(
+            { _id },
+            { $set: { lastMatchedCriterion } },
+            {
+                new: true,
+            }
+        );
+    },
+
     updateOneBy: async function(query, data, unsetData) {
         const _this = this;
 
@@ -872,13 +882,14 @@ module.exports = {
     async updateMonitorPingTime(id) {
         try {
             const newdate = new Date();
-            const thisObj = this;
-            const monitor = await thisObj.updateOneBy(
+
+            const monitor = await MonitorModel.findOneAndUpdate(
                 {
                     _id: id,
                 },
-                { lastPingTime: newdate }
+                { $set: { lastPingTime: newdate } }
             );
+
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.updateMonitorPingTime', error);
@@ -1418,12 +1429,12 @@ module.exports = {
 
                         if (Number(monitorUptime) < Number(slaUptime)) {
                             // monitor sla is breached for this monitor
-                            await MonitorModel.findOneAndUpdate(
+                            await MonitorModel.updateOne(
                                 { _id: monitor._id },
                                 { $set: { breachedMonitorSla: true } }
                             );
                         } else {
-                            await MonitorModel.findOneAndUpdate(
+                            await MonitorModel.updateOne(
                                 { _id: monitor._id },
                                 { $set: { breachedMonitorSla: false } }
                             );
