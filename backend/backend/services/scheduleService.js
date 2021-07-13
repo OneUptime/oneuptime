@@ -393,7 +393,7 @@ module.exports = {
             const escalations = await Promise.all(
                 escalationIds.map(async escalationId => {
                     return await EscalationService.findOneBy({
-                        _id: escalationId._id,
+                        _id: escalationId._id ?? escalationId,
                     });
                 })
             );
