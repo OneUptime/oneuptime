@@ -16,6 +16,7 @@ import DeleteIncomingRequest from '../modals/DeleteIncomingRequest';
 import copyToClipboard from '../../utils/copyToClipboard';
 import { fetchIncidentPriorities } from '../../actions/incidentPriorities';
 import { fetchDefaultTemplate } from '../../actions/incidentBasicsSettings';
+import IncomingRequestEnabled from '../modals/IncomingRequestEnabled';
 
 class IncomingRequestList extends React.Component {
     state = {
@@ -41,7 +42,6 @@ class IncomingRequestList extends React.Component {
             fetchDefaultTemplate,
         } = this.props;
         const { projectId } = this.props;
-
         fetchAllIncomingRequest(projectId, 0, 10);
         fetchIncidentPriorities(projectId);
         fetchDefaultTemplate({ projectId });
@@ -130,6 +130,34 @@ class IncomingRequestList extends React.Component {
                             <div className="bs-ObjectList-cell-row">
                                 {incomingRequest.url}
                             </div>
+                        </div>
+                        <div className="bs-Fieldset-fields">
+                            <label
+                                className="Toggler-wrap"
+                                style={{
+                                    marginTop: '10px',
+                                }}
+                                onClick={() => {
+                                    openModal({
+                                        id: projectId,
+                                        content: IncomingRequestEnabled,
+                                        projectId,
+                                        requestId: incomingRequest._id,
+                                        propArr: {
+                                            isEnabled: incomingRequest.enabled,
+                                        },
+                                    });
+                                }}
+                            >
+                                <input
+                                    className="btn-toggler"
+                                    type="checkbox"
+                                    name="incomingHttpRequestEnabled"
+                                    id="incomingHttpRequestEnabled"
+                                    checked={incomingRequest.enabled}
+                                />
+                                <span className="TogglerBtn-slider round"></span>
+                            </label>
                         </div>
                         <div
                             className="bs-ObjectList-cell bs-u-v-middle"
@@ -252,6 +280,9 @@ class IncomingRequestList extends React.Component {
                                 <div className="bs-ObjectList-cell">Name</div>
                                 <div className="bs-ObjectList-cell">
                                     Incoming HTTP Request URL
+                                </div>
+                                <div className="bs-ObjectList-cell">
+                                    Enabled
                                 </div>
                                 <div
                                     className="bs-ObjectList-cell"
@@ -407,7 +438,6 @@ const mapStateToProps = state => {
     state.monitor.monitorsList.monitors.forEach(monitor => {
         monitors = [...monitors, ...monitor.monitors];
     });
-
     return {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
