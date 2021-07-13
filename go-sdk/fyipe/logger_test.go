@@ -11,8 +11,10 @@ const apiUrl = "http://localhost:3002/api"
 func init() {
 	fmt.Println("set up will happen here")
 	fmt.Println(apiUrl)
-	GetUser()
-	GetTitle()
+	var sampleUser = GetUser()
+
+	MakeTestApiRequest(apiUrl+"/user/signup", sampleUser)
+
 }
 func TestHelloName(t *testing.T) {
 	name := "Gladys"
