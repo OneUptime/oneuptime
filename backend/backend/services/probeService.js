@@ -1245,7 +1245,7 @@ module.exports = {
                 ),
                 _this.saveMonitorLog(logData),
             ]);
-            
+
             return log;
         } catch (error) {
             ErrorService.log('monitorService.probeHttpRequest', error);
