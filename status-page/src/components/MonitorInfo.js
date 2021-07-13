@@ -153,6 +153,15 @@ class MonitorInfo extends Component {
         }, 400);
     }
 
+    handleMonitorStatus = status => {
+        const { onlineText, offlineText, degradedText } = this.props;
+        return status === 'online'
+            ? onlineText
+            : status === 'degraded'
+            ? degradedText
+            : offlineText;
+    };
+/* eslint-disable */
     render() {
         const {
             monitorState,
@@ -342,9 +351,7 @@ class MonitorInfo extends Component {
                                 {this.props.ongoing &&
                                 this.props.ongoing.length > 0
                                     ? 'Ongoing Scheduled Event'
-                                    : monitorStatus === 'online'
-                                    ? 'operational'
-                                    : monitorStatus}
+                                    : this.handleMonitorStatus(monitorStatus)}
                             </div>
                         </div>
                         <ShouldRender
@@ -624,6 +631,9 @@ MonitorInfo.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
+    onlineText: PropTypes.string,
+    offlineText: PropTypes.string,
+    degradedText: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);
