@@ -1747,6 +1747,20 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+
+            const populateStatusPage = [
+                { path: 'projectId', select: 'parentProjectId' },
+                { path: 'monitorIds', select: 'name' },
+                { path: 'monitors.monitor', select: 'name' },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
             if (incident) {
                 const monitorId = monitor && monitor._id;
                 const subscribers = await SubscriberService.subscribersForAlert(
@@ -1760,8 +1774,12 @@ module.exports = {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
-                                _id: subscriber.statusPageId,
-                                isSubscriberEnabled: true,
+                                query: {
+                                    _id: subscriber.statusPageId,
+                                    isSubscriberEnabled: true,
+                                },
+                                populate: populateStatusPage,
+                                select: selectStatusPage,
                             }
                         );
                         if (enabledStatusPage) {
@@ -2440,6 +2458,19 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+            const populateStatusPage = [
+                { path: 'projectId', select: 'parentProjectId' },
+                { path: 'monitorIds', select: 'name' },
+                { path: 'monitors.monitor', select: 'name' },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
             if (incident) {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
@@ -2451,8 +2482,12 @@ module.exports = {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
-                                _id: subscriber.statusPageId,
-                                isSubscriberEnabled: true,
+                                query: {
+                                    _id: subscriber.statusPageId,
+                                    isSubscriberEnabled: true,
+                                },
+                                populate: populateStatusPage,
+                                select: selectStatusPage,
                             }
                         );
                         if (enabledStatusPage) {
@@ -2494,6 +2529,19 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+            const populateStatusPage = [
+                { path: 'projectId', select: 'parentProjectId' },
+                { path: 'monitorIds', select: 'name' },
+                { path: 'monitors.monitor', select: 'name' },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
             if (incident) {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
@@ -2505,8 +2553,12 @@ module.exports = {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
-                                _id: subscriber.statusPageId,
-                                isSubscriberEnabled: true,
+                                query: {
+                                    _id: subscriber.statusPageId,
+                                    isSubscriberEnabled: true,
+                                },
+                                select: selectStatusPage,
+                                populate: populateStatusPage,
                             }
                         );
                         if (enabledStatusPage) {

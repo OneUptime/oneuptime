@@ -188,9 +188,14 @@ module.exports = {
     subscribe: async function(data, monitors) {
         try {
             const _this = this;
+            const populateStatusPage = [
+                { path: 'monitors.monitor', select: '_id' },
+            ];
             if (!monitors || (monitors && monitors.length < 1)) {
                 const statusPage = await StatusPageService.findOneBy({
-                    _id: data.statusPageId,
+                    query: { _id: data.statusPageId },
+                    select: 'monitors',
+                    populate: populateStatusPage,
                 });
                 monitors = statusPage.monitors.map(
                     monitorData => monitorData.monitor

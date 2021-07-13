@@ -515,7 +515,8 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         let statusPage;
         if (data._id) {
             statusPage = await StatusPageService.findOneBy({
-                _id: data._id,
+                query: { _id: data._id },
+                select: 'faviconPath logoPath bannerPath',
             });
             const imagesPath = {
                 faviconPath: statusPage.faviconPath,
@@ -1429,9 +1430,15 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
         const { statusPageId } = req.params;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
+        const populateStatusPage = [
+            { path: 'monitors.monitor', select: '_id' },
+        ];
+
         const [statusPage, count] = await Promise.all([
             StatusPageService.findOneBy({
-                _id: statusPageId,
+                query: { _id: statusPageId },
+                select: 'monitors',
+                populate: populateStatusPage,
             }),
             SubscriberService.countBy({
                 _id: statusPageId,
@@ -1653,7 +1660,8 @@ router.get(
         try {
             const { projectId, statusPageSlug, announcementSlug } = req.params;
             const { _id } = await StatusPageService.findOneBy({
-                slug: statusPageSlug,
+                query: { slug: statusPageSlug },
+                select: '_id',
             });
             const response = await StatusPageService.getSingleAnnouncement({
                 projectId,

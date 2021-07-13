@@ -79,8 +79,23 @@ module.exports = {
             }
 
             const statusPage = await statusPageModel.save();
+
+            const populateStatusPage = [
+                { path: 'projectId', select: 'parentProjectId' },
+                { path: 'monitorIds', select: 'name' },
+                { path: 'monitors.monitor', select: 'name' },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
             const newStatusPage = await this.findOneBy({
                 _id: statusPage._id,
+                populate: populateStatusPage,
+                select: selectStatusPage,
             });
             return newStatusPage;
         } catch (error) {
@@ -119,8 +134,18 @@ module.exports = {
                     creationData
                 );
             }
+
+            const populateStatusPage = [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+
             const statusPage = await this.findOneBy({
-                _id: statusPageId,
+                query: { _id: statusPageId },
+                populate: populateStatusPage,
+                select: 'domains',
             });
 
             if (statusPage) {
@@ -266,9 +291,17 @@ module.exports = {
                     creationData
                 );
             }
+            const populateStatusPage = [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
 
             const statusPage = await this.findOneBy({
-                _id: statusPageId,
+                query: { _id: statusPageId },
+                populate: populateStatusPage,
+                select: 'domains',
             });
 
             if (!statusPage) {
@@ -351,8 +384,16 @@ module.exports = {
 
     deleteDomain: async function(statusPageId, domainId) {
         try {
+            const populateStatusPage = [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
             const statusPage = await this.findOneBy({
-                _id: statusPageId,
+                query: { _id: statusPageId },
+                populate: populateStatusPage,
+                select: 'domain',
             });
 
             if (!statusPage) {
@@ -502,7 +543,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function({ query, populate, select }) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
@@ -561,8 +602,24 @@ module.exports = {
                     new: true,
                 }
             );
+
+            const populateStatusPage = [
+                { path: 'projectId', select: 'parentProjectId' },
+                { path: 'monitorIds', select: 'name' },
+                { path: 'monitors.monitor', select: 'name' },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
             updatedStatusPage = await this.findOneBy({
-                _id: updatedStatusPage._id,
+                query: { _id: updatedStatusPage._id },
+                populate: populateStatusPage,
+                select: selectStatusPage,
             });
             return updatedStatusPage;
         } catch (error) {
@@ -1651,11 +1708,11 @@ module.exports = {
     doesDomainExist: async function(domain) {
         const _this = this;
         try {
-            const statusPage = await _this.findOneBy({
+            const statusPage = await _this.countBy({
                 domains: { $elemMatch: { domain } },
             });
 
-            if (!statusPage) return false;
+            if (!statusPage || statusPage === 0) return false;
 
             return true;
         } catch (error) {
