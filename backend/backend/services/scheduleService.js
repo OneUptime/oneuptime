@@ -427,7 +427,7 @@ module.exports = {
                 select: '_id escalationIds',
             });
 
-            scheduleIds = scheduleIds.escalationIds.map(i => i._id.toString());
+            scheduleIds = scheduleIds.escalationIds.map(i => i.toString());
             escalationIds = escalationIds.map(i => i.toString());
 
             scheduleIds.map(async id => {
