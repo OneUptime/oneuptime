@@ -25,6 +25,7 @@ const incomingRequestSchema = new Schema(
         noteContent: String,
         incidentState: String,
         url: String,
+        enabled: { type: Boolean, default: true },
         deleted: { type: Boolean, default: false },
         deletedAt: Date,
         incidentTitle: String,
