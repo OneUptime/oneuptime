@@ -82,8 +82,6 @@ export const getAllStatusPageResource = (statusPageSlug, url, range) => {
         dispatch(pastEventsRequest());
         promise.then(
             Data => {
-                // eslint-disable-next-line no-console
-                console.log(Data.data);
                 const data = Data.data;
                 dispatch(getAllStatusPageSuccess(data));
             },
