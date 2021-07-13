@@ -1,38 +1,43 @@
 package fyipe
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 
 	"github.com/bxcodec/faker/v3"
 )
 
 type SampleUser struct {
-	Name               string `faker:"name"`
-	Password           string `faker:"oneof: 1234567890, 1234567890"`
-	ConfirmPassword    string `faker:"oneof: 1234567890, 1234567890"`
-	Email              string `faker:"email"`
-	CompanyName        string `faker:"word"`
-	JobTitle           string `faker:"word"`
-	CompanySize        int    `faker:"boundary_start=3, boundary_end=10"`
-	Card               CardStruct
-	Subscription       SubscriptionStruct
-	CardName           string `faker:"name"`
-	CardNumber         string `faker:"cc_number"`
-	Expiry             string `faker:"oneof: 04/24, 08/25"`
-	CVV                int    `faker:"boundary_start=123, boundary_end=456"`
-	City               string `faker:"word"`
-	State              string `faker:"word"`
-	ZipCode            string `faker:"oneof:3123, 8846"`
-	PlanId             string `faker:"oneof: plan_GoWIYiX2L8hwzx, plan_GoWIYiX2L8hwzx"`
-	CompanyRole        string `faker:"word"`
-	CompanyPhoneNumber string `faker:"phone_number"`
-	Reference          string `faker:"oneof: Github, Slack"`
+	Name               string             `faker:"name" json:"name"`
+	Password           string             `faker:"oneof: 1234567890, 1234567890" json:"password"`
+	ConfirmPassword    string             `faker:"oneof: 1234567890, 1234567890" json:"confirmPassword"`
+	Email              string             `faker:"email" json:"email"`
+	CompanyName        string             `faker:"word" json:"companyName"`
+	JobTitle           string             `faker:"word"  json:"jobTitle"`
+	CompanySize        int                `faker:"boundary_start=3, boundary_end=10" json:"companySize"`
+	Card               CardStruct         `json:"card"`
+	Subscription       SubscriptionStruct `json:"subscription"`
+	CardName           string             `faker:"name" json:"cardName"`
+	CardNumber         string             `faker:"cc_number" json:"cardNumber"`
+	Expiry             string             `faker:"oneof: 04/24, 08/25" json:"expiry"`
+	CVV                int                `faker:"boundary_start=123, boundary_end=456" json:"cvv"`
+	City               string             `faker:"word" json:"city"`
+	State              string             `faker:"word" json:"state"`
+	ZipCode            string             `faker:"oneof:3123, 8846" json:"zipCode"`
+	PlanId             string             `faker:"oneof: plan_GoWIYiX2L8hwzx, plan_GoWIYiX2L8hwzx" json:"planId"`
+	CompanyRole        string             `faker:"word" json:"companyRole"`
+	CompanyPhoneNumber string             `faker:"phone_number" json:"companyPhoneNumber"`
+	Reference          string             `faker:"oneof: Github, Slack" json:"reference"`
 }
 type CardStruct struct {
-	StripeToken string `faker:"oneof: tok_visa, tok_visa"`
+	StripeToken string `faker:"oneof: tok_visa, tok_visa"  json:"stripeToken"`
 }
 type SubscriptionStruct struct {
-	StripePlanId int `faker:"oneof: 0, 0"`
+	StripePlanId int `faker:"oneof: 0, 0"  json:"stripePlanId"`
 }
 
 func GetUser() SampleUser {
@@ -45,4 +50,32 @@ func GetUser() SampleUser {
 }
 func GetTitle() string {
 	return faker.Word()
+}
+func MakeTestApiRequest(apiUrl string, content interface{}) {
+
+	postBody, _ := json.Marshal(content)
+	log.Printf("Post body  %v", postBody)
+	responseBody := bytes.NewBuffer(postBody)
+	log.Printf("response body  %v", responseBody)
+
+	resp, err := http.Post(apiUrl, "application/json", responseBody)
+
+	if err != nil {
+		log.Fatalf("An Error Occured %v", err)
+		// return err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+		// return err
+	}
+
+	var response interface{}
+	if err := json.Unmarshal([]byte(body), &response); err != nil {
+		panic(err)
+	}
+	log.Printf("Success  %v", response)
+
+	// return response
 }
