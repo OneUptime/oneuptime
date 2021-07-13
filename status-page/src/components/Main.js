@@ -303,6 +303,15 @@ class Main extends Component {
                                         ? true
                                         : false
                                 }
+                                onlineText={
+                                    statusData.onlineText || 'Operational'
+                                }
+                                offlineText={
+                                    statusData.offlineText || 'Offline'
+                                }
+                                degradedText={
+                                    statusData.degradedText || 'Degraded'
+                                }
                             />
                             {this.props.monitors.some(
                                 m => monitor._id === m.monitor._id
@@ -374,6 +383,9 @@ class Main extends Component {
             footerHTML,
             customCSS,
             theme,
+            onlineText = 'operational',
+            offlineText = 'offline',
+            degradedText = 'degraded',
         } = this.props.statusData;
         const sanitizedCSS = customCSS ? customCSS.split('↵').join('') : '';
         const probes = this.props.probes;
@@ -447,36 +459,36 @@ class Main extends Component {
 
             if (serviceStatus === 'all') {
                 status = 'status-bubble status-up';
-                statusMessage = 'All services are online';
+                statusMessage = `All services are ${onlineText.toLowerCase()}`;
                 faviconurl = '/status-page/greenfavicon.ico';
-                newStatusMessage = 'All resources are operational';
+                newStatusMessage = `All resources are ${onlineText.toLowerCase()}`;
                 newbg =
                     uptimeColor.backgroundColor === 'rgba(108, 219, 86, 1)'
                         ? '#49c3b1'
                         : uptimeColor.backgroundColor;
             } else if (serviceStatus === 'some') {
                 status = 'status-bubble status-down';
-                statusMessage = 'Some services are offline';
+                statusMessage = `Some services are ${offlineText.toLowerCase()}`;
                 faviconurl = '/status-page/redfavicon.ico';
-                newStatusMessage = 'Some resources are offline';
+                newStatusMessage = `Some resources are ${offlineText.toLowerCase()}`;
                 newbg =
                     downtimeColor.backgroundColor === 'rgba(250, 109, 70, 1)'
                         ? '#FA6D46'
                         : downtimeColor.backgroundColor;
             } else if (serviceStatus === 'none') {
                 status = 'status-bubble status-down';
-                statusMessage = 'All services are offline';
+                statusMessage = `All services are ${offlineText.toLowerCase()}`;
                 faviconurl = '/status-page/redfavicon.ico';
-                newStatusMessage = 'All resources are offline';
+                newStatusMessage = `All resources are ${offlineText.toLowerCase()}`;
                 newbg =
                     downtimeColor.backgroundColor === 'rgba(250, 109, 70, 1)'
                         ? '#FA6D46'
                         : downtimeColor.backgroundColor;
             } else if (serviceStatus === 'some-degraded') {
                 status = 'status-bubble status-paused';
-                statusMessage = 'Some services are degraded';
+                statusMessage = `Some services are ${degradedText.toLowerCase()}`;
                 faviconurl = '/status-page/yellowfavicon.ico';
-                newStatusMessage = 'Some resources are degraded';
+                newStatusMessage = `Some resources are ${degradedText.toLowerCase()}`;
                 newbg =
                     degradedColor.backgroundColor === 'rgba(255, 222, 36, 1)'
                         ? '#e39f48'
@@ -751,6 +763,21 @@ class Main extends Component {
                                                         isGroupedByMonitorCategory
                                                     }
                                                     theme={'clean'}
+                                                    onlineText={
+                                                        this.props.statusData
+                                                            .onlineText ||
+                                                        'Operational'
+                                                    }
+                                                    offlineText={
+                                                        this.props.statusData
+                                                            .offlineText ||
+                                                        'Offline'
+                                                    }
+                                                    degradedText={
+                                                        this.props.statusData
+                                                            .degradedText ||
+                                                        'Degraded'
+                                                    }
                                                 />
                                                 <LineChartsContainer
                                                     monitor={
@@ -1058,6 +1085,24 @@ class Main extends Component {
                                                         id={`monitor${i}`}
                                                         isGroupedByMonitorCategory={
                                                             isGroupedByMonitorCategory
+                                                        }
+                                                        onlineText={
+                                                            this.props
+                                                                .statusData
+                                                                .onlineText ||
+                                                            'Operational'
+                                                        }
+                                                        offlineText={
+                                                            this.props
+                                                                .statusData
+                                                                .offlineText ||
+                                                            'Offline'
+                                                        }
+                                                        degradedText={
+                                                            this.props
+                                                                .statusData
+                                                                .degradedText ||
+                                                            'Degraded'
                                                         }
                                                     />
                                                     <LineChartsContainer
