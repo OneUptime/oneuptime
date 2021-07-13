@@ -631,6 +631,7 @@ module.exports = {
                     select: '_id probeId updatedAt status reportedStatus',
                 },
             ];
+
             const select = '_id acknowledged criterionCause probes';
 
             const incidents = await IncidentService.findBy({

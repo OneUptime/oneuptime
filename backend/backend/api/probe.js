@@ -586,14 +586,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             data.matchedCriterion = matchedCriterion;
             // update monitor to save the last matched criterion
 
-            await MonitorService.updateOneBy(
-                {
-                    _id: monitor._id,
-                },
-                {
-                    lastMatchedCriterion: matchedCriterion,
-                }
-            );
+            await MonitorService.updateCriterion(monitor._id, matchedCriterion);
 
             data.monitorId = req.params.monitorId || monitor._id;
             data.probeId = req.probe && req.probe.id ? req.probe.id : null;
