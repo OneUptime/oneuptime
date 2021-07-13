@@ -5,14 +5,18 @@
  */
 
 module.exports = {
-    findBy: async function(query) {
+    findBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
             query.deleted = false;
-            const zap = await ZapierModel.find(query).lean();
+            let zapierQuery = ZapierModel.find(query).lean();
 
+            zapierQuery = handleSelect(select, zapierQuery);
+            zapierQuery = handlePopulate(populate, zapierQuery);
+
+            const zap = await zapierQuery;
             return zap;
         } catch (error) {
             ErrorService.log('ZapierService.findBy', error);
@@ -877,10 +881,13 @@ module.exports = {
                 monitor => monitor.monitorId._id
             );
             const zap = await _this.findBy({
-                projectId: project._id,
-                type: type,
-                // $or: [{ monitors: incident.monitorId._id }, { monitors: [] }],
-                $or: [{ monitors: { $all: monitorIds } }, { monitors: [] }],
+                query: {
+                    projectId: project._id,
+                    type: type,
+                    // $or: [{ monitors: incident.monitorId._id }, { monitors: [] }],
+                    $or: [{ monitors: { $all: monitorIds } }, { monitors: [] }],
+                },
+                select: 'url',
             });
 
             if (zap && zap.length) {
@@ -942,3 +949,5 @@ const NotificationService = require('./notificationService');
 const RealTimeService = require('./realTimeService');
 const IncidentMessageService = require('../services/incidentMessageService');
 const IncidentMessageModel = require('../models/incidentMessage');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
