@@ -19,7 +19,7 @@ spec:
               app: {{ printf "%s-%s" .Release.Name "lighthouse" }}
       spec:
           containers:
-              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "lighthouse" .Values.image.tag }}
+              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "lighthouse-runner" .Values.image.tag }}
                 name: {{ printf "%s-%s" .Release.Name "lighthouse" }}
                 imagePullPolicy: {{ .Values.image.pullPolicy }}
                 env:
@@ -32,10 +32,10 @@ spec:
                     - name: IS_SAAS_SERVICE
                       value: 'true'
                     - name: CLUSTER_KEY
-                        valueFrom:
-                          configMapKeyRef:
-                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
-                            key: clusterkey
+                      valueFrom:
+                        configMapKeyRef:
+                          name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
+                          key: clusterkey
                 ports:
                     - containerPort: {{ .Values.host.lighthouseRunnerPort }}
                       hostPort: {{ .Values.host.lighthouseRunnerPort }}

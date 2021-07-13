@@ -78,28 +78,7 @@ router.get('/monitors', isAuthorizedProbe, async function(req, res) {
             req.probe.id,
             new Date(new Date().getTime() - 60 * 1000)
         );
-        //Update the lastAlive in the probe servers list located in the status pages.
-        if (monitors.length > 0) {
-            const projectIds = {};
-            for (const monitor of monitors) {
-                const project = await ProjectService.findOneBy({
-                    query: { _id: monitor.projectId },
-                    select: 'parentProjectId _id',
-                });
-                const projectId = project
-                    ? project.parentProjectId
-                        ? project.parentProjectId._id || project.parentProjectId
-                        : project._id
-                    : monitor.projectId;
-                projectIds[projectId] = true;
-            }
-            for (const projectId of Object.keys(projectIds)) {
-                const probe = await ProbeService.findOneBy({
-                    _id: req.probe.id,
-                });
-                global.io.emit(`updateProbe-${projectId}`, probe);
-            }
-        }
+
         return sendListResponse(
             req,
             res,

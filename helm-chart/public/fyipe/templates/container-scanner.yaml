@@ -19,7 +19,7 @@ spec:
               app: {{ printf "%s-%s" .Release.Name "cont-scan" }}
       spec:
           containers:
-              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "cont-scanner" .Values.image.tag }}
+              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "container-scanner" .Values.image.tag }}
                 name: {{ printf "%s-%s" .Release.Name "cont-scan" }}
                 imagePullPolicy: {{ .Values.image.pullPolicy }}
                 env:
@@ -32,10 +32,10 @@ spec:
                     - name: IS_SAAS_SERVICE
                       value: 'true'
                     - name: CLUSTER_KEY
-                        valueFrom:
-                          configMapKeyRef:
-                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
-                            key: clusterkey
+                      valueFrom:
+                        configMapKeyRef:
+                          name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
+                          key: clusterkey
                 ports:
                     - containerPort: {{ .Values.host.containerScannerPort }}
                       hostPort: {{ .Values.host.containerScannerPort }}

@@ -647,6 +647,7 @@ module.exports = {
                     {
                         $or: [
                             {
+                                // This block only applies to server-monitors.
                                 $and: [
                                     {
                                         type: {
@@ -717,6 +718,10 @@ module.exports = {
             });
 
             if (monitors && monitors.length) {
+                const updatePromises = [];
+                const createNewPollTimeMonitorIds = [];
+                const updatePollTimeMonitorIds = [];
+
                 for (const monitor of monitors) {
                     if (
                         monitor.pollTime.length === 0 ||
@@ -724,24 +729,39 @@ module.exports = {
                             pt => String(pt.probeId) === String(probeId)
                         )
                     ) {
-                        await MonitorModel.updateOne(
-                            { _id: monitor._id },
-                            { $push: { pollTime: { probeId, date: newdate } } }
-                        );
+                        createNewPollTimeMonitorIds.push(monitor._id);
                     } else {
-                        await MonitorModel.updateOne(
-                            {
-                                _id: monitor._id,
-                                pollTime: {
-                                    $elemMatch: {
-                                        probeId,
-                                    },
-                                },
-                            },
-                            { $set: { 'pollTime.$.date': newdate } }
-                        );
+                        updatePollTimeMonitorIds.push(monitor._id);
                     }
                 }
+
+                updatePromises.push(
+                    MonitorModel.updateMany(
+                        { _id: { $in: createNewPollTimeMonitorIds } },
+                        {
+                            $push: {
+                                pollTime: { probeId, date: newdate },
+                            },
+                        }
+                    )
+                );
+
+                updatePromises.push(
+                    MonitorModel.updateMany(
+                        {
+                            _id: { $in: updatePollTimeMonitorIds },
+                            pollTime: {
+                                $elemMatch: {
+                                    probeId,
+                                },
+                            },
+                        },
+                        { $set: { 'pollTime.$.date': newdate } }
+                    )
+                );
+
+                await Promise.all(updatePromises);
+
                 return monitors;
             } else {
                 return [];
@@ -807,7 +827,7 @@ module.exports = {
         }
     },
 
-    async getUrlMonitors() {
+    async getUrlMonitorsNotScannedByLightHouseInPastOneDay() {
         try {
             const oneDay = moment()
                 .subtract(1, 'days')
@@ -841,7 +861,7 @@ module.exports = {
 
             return monitors;
         } catch (error) {
-            ErrorService.log('monitorService.getUrlMonitors', error);
+            ErrorService.log('monitorService.getUrlMonitorsNotScannedByLightHouseInPastOneDay', error);
             throw error;
         }
     },

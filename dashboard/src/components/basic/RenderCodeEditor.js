@@ -22,10 +22,11 @@ const RenderCodeEditor = ({
     height,
     width,
     onLoad = () => {},
+    name,
 }) => (
     <AceEditor
         id={id}
-        name={id}
+        name={name || id}
         mode={mode}
         theme="github"
         value={input.value}
@@ -42,7 +43,7 @@ const RenderCodeEditor = ({
         readOnly={readOnly || false}
         wrapEnabled={wrapEnabled}
         onLoad={() => onLoad(input)}
-        onBlur={input.onBlur}
+        // onBlur={input.onBlur}
         onChange={input.onChange}
         style={style}
         placeholder={placeholder}
@@ -62,9 +63,10 @@ RenderCodeEditor.propTypes = {
     height: PropTypes.string.isRequired,
     width: PropTypes.string.isRequired,
     onLoad: PropTypes.func,
-    onBlur: PropTypes.func,
+    // onBlur: PropTypes.func,
     wrapEnabled: PropTypes.bool,
     readOnly: PropTypes.bool,
+    name: PropTypes.string,
 };
 
 export default RenderCodeEditor;

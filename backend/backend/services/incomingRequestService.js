@@ -11,6 +11,7 @@ const IncidentMessageService = require('../services/incidentMessageService');
 const IncidentPrioritiesService = require('../services/incidentPrioritiesService');
 const IncidentSettingsService = require('../services/incidentSettingsService');
 const joinNames = require('../utils/joinNames');
+const vm = require('vm');
 // const RealTimeService = require('./realTimeService');
 
 module.exports = {
@@ -609,7 +610,7 @@ module.exports = {
                             const dataConfig = {
                                 request: data.request,
                             };
-                            filter.filterText = handleVariable(
+                            filter.filterText = analyseVariable(
                                 filter.filterText,
                                 dataConfig
                             );
@@ -738,7 +739,7 @@ module.exports = {
                                                             field.fieldType,
                                                         uniqueField:
                                                             field.uniqueField,
-                                                        fieldValue: handleVariable(
+                                                        fieldValue: analyseVariable(
                                                             field.fieldValue,
                                                             dataConfig
                                                         ),
@@ -752,12 +753,12 @@ module.exports = {
                             }
                         }
 
-                        data.title = handleVariable(data.title, dataConfig);
-                        data.description = handleVariable(
+                        data.title = analyseVariable(data.title, dataConfig);
+                        data.description = analyseVariable(
                             data.description,
                             dataConfig
                         );
-                        const incidentType = handleVariable(
+                        const incidentType = analyseVariable(
                             data.incidentType,
                             dataConfig
                         ).toLowerCase();
@@ -769,7 +770,7 @@ module.exports = {
                             ? incidentType
                             : 'offline';
 
-                        const incidentPriority = handleVariable(
+                        const incidentPriority = analyseVariable(
                             data.incidentPriority,
                             dataConfig
                         ).toLowerCase();
@@ -785,7 +786,7 @@ module.exports = {
 
                         data.customFields = data.customFields.map(field => ({
                             ...field,
-                            fieldValue: handleVariable(
+                            fieldValue: analyseVariable(
                                 String(field.fieldValue),
                                 dataConfig
                             ),
@@ -848,7 +849,7 @@ module.exports = {
                                                             field.fieldType,
                                                         uniqueField:
                                                             field.uniqueField,
-                                                        fieldValue: handleVariable(
+                                                        fieldValue: analyseVariable(
                                                             field.fieldValue,
                                                             dataConfig
                                                         ),
@@ -861,12 +862,12 @@ module.exports = {
                                 }
                             }
                         }
-                        data.title = handleVariable(data.title, dataConfig);
-                        data.description = handleVariable(
+                        data.title = analyseVariable(data.title, dataConfig);
+                        data.description = analyseVariable(
                             data.description,
                             dataConfig
                         );
-                        const incidentType = handleVariable(
+                        const incidentType = analyseVariable(
                             data.incidentType,
                             dataConfig
                         ).toLowerCase();
@@ -878,7 +879,7 @@ module.exports = {
                             ? incidentType
                             : 'offline';
 
-                        const incidentPriority = handleVariable(
+                        const incidentPriority = analyseVariable(
                             data.incidentPriority,
                             dataConfig
                         ).toLowerCase();
@@ -894,7 +895,7 @@ module.exports = {
 
                         data.customFields = data.customFields.map(field => ({
                             ...field,
-                            fieldValue: handleVariable(
+                            fieldValue: analyseVariable(
                                 String(field.fieldValue),
                                 dataConfig
                             ),
@@ -976,7 +977,7 @@ module.exports = {
                             const dataConfig = {
                                 request: data.request,
                             };
-                            filter.filterText = handleVariable(
+                            filter.filterText = analyseVariable(
                                 filter.filterText,
                                 dataConfig
                             );
@@ -1461,7 +1462,7 @@ module.exports = {
                             const dataConfig = {
                                 request: data.request,
                             };
-                            filter.filterText = handleVariable(
+                            filter.filterText = analyseVariable(
                                 filter.filterText,
                                 dataConfig
                             );
@@ -1992,54 +1993,34 @@ function isArrayUnique(myArray) {
  * @param {string} variable template like string eg: {{request.body.name}}
  * @param {object} data an object containing the key-value pairs to work with
  */
-function handleVariable(variable, data) {
-    const regex = /\{\{([^}]+)\}\}/g;
 
-    if (regex.test(variable)) {
-        variable = variable.replace(regex, function(match) {
-            // Remove the wrapping curly braces
-            match = match.slice(2, -2);
+// if for example request.body.name is passed without the double curly braces,
+// it should work as expected and return the value
+function analyseVariable(variable, data) {
+    try {
+        const regex = /[^{{]+(?=}\})/;
+        let temp = variable.match(regex);
+        if (!temp) {
+            // handles the part where variable is passed without double curly braces
+            // temp = variable;
+            return variable;
+        } else {
+            temp = temp[0];
+        }
 
-            // Check if the item has sub-properties
-            const sub = match.split('.');
+        let ctx = Object.create(null); // fix against prototype vulnerability
+        ctx = { ...data };
 
-            // If the item has a sub-property, loop through until you get it
-            if (sub.length > 1) {
-                let temp = data;
-                const altSub = [];
-                sub.forEach(item => {
-                    if (item.indexOf('[') >= 0) {
-                        const key = item.slice(0, item.indexOf('['));
-                        const arrayIndex = item.slice(item.indexOf('['));
-
-                        altSub.push(key);
-                        // grab all the numeric values from the index
-                        const index = arrayIndex
-                            .replace(/[[\]]+/g, '')
-                            .split('');
-                        altSub.push(...index);
-                    } else {
-                        altSub.push(item);
-                    }
-                });
-
-                altSub.forEach(function(item) {
-                    // Make sure the item exists
-                    if (!temp[item]) {
-                        temp = '{{' + match + '}}';
-                        return;
-                    }
-
-                    // Update temp
-                    temp = temp[item];
-                });
-
-                return temp;
-            } else {
-                if (!data[match]) return '{{' + match + '}}';
-                return data[match];
-            }
-        });
+        const output = vm.runInNewContext(temp, ctx);
+        if (!output) {
+            // empty value means that the probable value(s) are not available in the data object
+            // therefore return the original variable back
+            return variable;
+        }
+        return output;
+    } catch (error) {
+        // at this point it was unable to resolve this
+        // return the variable back
+        return variable;
     }
-    return variable;
 }
