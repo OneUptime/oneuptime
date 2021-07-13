@@ -108,7 +108,8 @@ module.exports = {
                     limit: 9999,
                     skip: 0,
                     sort: { createdAt: -1 },
-                }); //sort by createdAtdescending.
+                    select: 'createdAt',
+                }); //sort by createdAt descending.
                 if (alerts && alerts.length > 0 && alerts[0]) {
                     //check when the last alert was sent.
                     const lastAlertSentAt = alerts[0].createdAt; //we take '0' index because list is reverse sorted.

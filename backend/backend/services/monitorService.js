@@ -480,8 +480,19 @@ module.exports = {
                     }
                 }
 
+                const populateAlert = [
+                    { path: 'userId', select: 'name' },
+                    { path: 'monitorId', select: 'name' },
+                    { path: 'projectId', select: 'name' },
+                ];
+
+                const selectAlert =
+                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+
                 const alerts = await AlertService.findBy({
                     query: { monitorId: monitor._id },
+                    populate: populateAlert,
+                    select: selectAlert,
                 });
 
                 await Promise.all(
@@ -861,7 +872,10 @@ module.exports = {
 
             return monitors;
         } catch (error) {
-            ErrorService.log('monitorService.getUrlMonitorsNotScannedByLightHouseInPastOneDay', error);
+            ErrorService.log(
+                'monitorService.getUrlMonitorsNotScannedByLightHouseInPastOneDay',
+                error
+            );
             throw error;
         }
     },
