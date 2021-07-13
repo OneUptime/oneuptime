@@ -190,7 +190,7 @@ router.post(
     '/:projectId/toggle/:requestId',
     getUser,
     isAuthorized,
-    async function (req, res) {
+    async function(req, res) {
         try {
             const { projectId, requestId } = req.params;
             const data = req.body;

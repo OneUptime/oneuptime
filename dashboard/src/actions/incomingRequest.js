@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/incomingRequest';
 
@@ -30,10 +29,10 @@ export const createIncomingRequest = (projectId, data) => async dispatch => {
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                    ? error.data
-                    : error.message
-                        ? error.message
-                        : 'Network Error';
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
         dispatch(createIncomingRequestFailure(errorMsg));
     }
 };
@@ -70,10 +69,10 @@ export const editIncomingRequest = (
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                    ? error.data
-                    : error.message
-                        ? error.message
-                        : 'Network Error';
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
         dispatch(editIncomingRequestFailure(errorMsg));
     }
 };
@@ -108,10 +107,10 @@ export const deleteIncomingRequest = (
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                    ? error.data
-                    : error.message
-                        ? error.message
-                        : 'Network Error';
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
         dispatch(deleteIncomingRequestFailure(errorMsg));
     }
 };
@@ -147,10 +146,10 @@ export const fetchAllIncomingRequest = (
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                    ? error.data
-                    : error.message
-                        ? error.message
-                        : 'Network Error';
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
         dispatch(fetchAllIncomingRequestFailure(errorMsg));
     }
 };
@@ -168,7 +167,8 @@ export const incomingRequestToggle = (
     try {
         dispatch(editIncomingRequestRequest());
         const response = await postApi(
-            `incoming-request/${projectId}/toggle/${requestId}`, enabled
+            `incoming-request/${projectId}/toggle/${requestId}`,
+            enabled
         );
 
         dispatch(editIncomingRequestSuccess(response.data));
@@ -177,10 +177,10 @@ export const incomingRequestToggle = (
             error.response && error.response.data
                 ? error.response.data
                 : error.data
-                    ? error.data
-                    : error.message
-                        ? error.message
-                        : 'Network Error';
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
         dispatch(editIncomingRequestFailure(errorMsg));
     }
 };
