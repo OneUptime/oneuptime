@@ -8,8 +8,10 @@ module.exports = {
             } else {
                 applicationScannerKey = uuidv1();
             }
+
             const storedApplicationScanner = await _this.findOneBy({
-                applicationScannerName: data.applicationScannerName,
+                query: { applicationScannerName: data.applicationScannerName },
+                select: 'applicationScannerName',
             });
             if (
                 storedApplicationScanner &&
@@ -57,19 +59,29 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const applicationScanner = await ApplicationScannerModel.findOne(
+            let applicationScannerQuery = ApplicationScannerModel.findOne(
                 query,
                 {
                     deleted: false,
                 }
             ).lean();
+
+            applicationScannerQuery = handleSelect(
+                select,
+                applicationScannerQuery
+            );
+            applicationScannerQuery = handlePopulate(
+                populate,
+                applicationScannerQuery
+            );
+            const applicationScanner = await applicationScannerQuery;
             return applicationScanner;
         } catch (error) {
             ErrorService.log('applicationScannerService.findOneBy', error);
@@ -104,3 +116,5 @@ module.exports = {
 const ApplicationScannerModel = require('../models/applicationScanner');
 const ErrorService = require('./errorService');
 const uuidv1 = require('uuid/v1');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
