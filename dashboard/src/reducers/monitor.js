@@ -322,7 +322,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                             );
                         const isSubProjectMonitor = monitorIndex > -1;
 
-                        if (subProject._id === newMonitor.projectId._id) {
+                        if (subProject._id === newMonitor.projectId) {
                             if (isSubProjectMonitor) {
                                 const oldMonitor = Object.assign(
                                     {},
