@@ -67,7 +67,7 @@ module.exports = {
             const securityLog = await securityLogQuery;
             return securityLog;
         } catch (error) {
-            ErrorService.log('applicationSecurityService.findOneBy', error);
+            ErrorService.log('applicationSecurityLogService.findOneBy', error);
             throw error;
         }
     },
@@ -97,7 +97,7 @@ module.exports = {
             const securityLogs = await securityLogsQuery;
             return securityLogs;
         } catch (error) {
-            ErrorService.log('applicationSecurityService.findBy', error);
+            ErrorService.log('applicationSecurityLogService.findBy', error);
             throw error;
         }
     },
