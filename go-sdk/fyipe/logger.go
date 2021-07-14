@@ -91,14 +91,14 @@ func (logger *Logger) FyipeLogger() *FyipeLogger {
 	return top.FyipeLogger()
 }
 
-func (logger *Logger) MakeApiRequest(content string, tagType string, tags []string) (LoggerResponse, error) {
+func (logger *Logger) MakeApiRequest(content interface{}, tagType string, tags []string) (LoggerResponse, error) {
 	currentFyipeLogger := logger.FyipeLogger()
 
 	postBody, _ := json.Marshal(struct {
-		Content           string   `json:"content"`
-		Type              string   `json:"type"`
-		ApplicationLogKey string   `json:"applicationLogKey"`
-		Tags              []string `json:"tags"`
+		Content           interface{} `json:"content"`
+		Type              string      `json:"type"`
+		ApplicationLogKey string      `json:"applicationLogKey"`
+		Tags              []string    `json:"tags"`
 	}{
 		Content:           content,
 		Type:              tagType,
