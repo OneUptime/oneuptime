@@ -386,6 +386,22 @@ router.get(
             const limit = 1000;
             const skip = req.query.skip || 0;
 
+            const populateApplicationSecurity = [
+                {
+                    path: 'componentId',
+                    select: '_id slug name slug',
+                },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             const [
                 monitors,
                 containerSecurity,
@@ -405,11 +421,13 @@ router.get(
                     limit,
                     skip
                 ),
-                ApplicationSecurityService.findBy(
-                    { componentId: componentId },
+                ApplicationSecurityService.findBy({
+                    query: { componentId: componentId },
                     limit,
-                    skip
-                ),
+                    skip,
+                    select: selectApplicationSecurity,
+                    populate: populateApplicationSecurity,
+                }),
                 ApplicationLogService.getApplicationLogsByComponentId(
                     componentId,
                     limit,
