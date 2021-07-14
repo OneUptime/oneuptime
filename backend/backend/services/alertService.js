@@ -756,7 +756,8 @@ module.exports = {
             }
 
             const user = await UserService.findOneBy({
-                _id: teamMember.userId,
+                query: { _id: teamMember.userId },
+                select: '_id alertPhoneNumber name email timezone',
             });
 
             if (!user) {
@@ -903,7 +904,8 @@ module.exports = {
         const _this = this;
         let pushMessage;
         const userData = await UserService.findOneBy({
-            _id: user._id,
+            query: { _id: user._id },
+            select: 'identification',
         });
 
         const identification = userData.identification;
@@ -1938,7 +1940,8 @@ module.exports = {
                             teamMember.endTime
                         );
                         const user = await UserService.findOneBy({
-                            _id: teamMember.userId,
+                            query: { _id: teamMember.userId },
+                            select: '_id timezone name email',
                         });
 
                         if (!user) {
@@ -2260,7 +2263,8 @@ module.exports = {
                                 teamMember.endTime
                             ),
                             UserService.findOneBy({
-                                _id: teamMember.userId,
+                                query: { _id: teamMember.userId },
+                                select: '_id name timezone email',
                             }),
                         ]);
 

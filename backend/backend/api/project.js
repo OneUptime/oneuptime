@@ -76,7 +76,10 @@ router.post('/create', getUser, async function(req, res) {
         });
 
         if (countProject < 1) {
-            let user = await UserService.findOneBy({ _id: userId });
+            let user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'stripeCustomerId email name',
+            });
             if (!user.stripeCustomerId && IS_SAAS_SERVICE) {
                 if (!data.paymentIntent) {
                     return sendErrorResponse(req, res, {
@@ -135,7 +138,10 @@ router.post('/create', getUser, async function(req, res) {
                         subscription.subscriptionPaymentStatus === 'canceled' ||
                         subscription.subscriptionPaymentStatus === 'unpaid'
                     ) {
-                        user = await UserService.findOneBy({ _id: userId });
+                        user = await UserService.findOneBy({
+                            query: { _id: userId },
+                            select: 'email name',
+                        });
                         MailService.sendPaymentFailedEmail(
                             projectName,
                             user.email,
@@ -150,7 +156,10 @@ router.post('/create', getUser, async function(req, res) {
 
                 const [project, foundUser] = await Promise.all([
                     ProjectService.create(data),
-                    UserService.findOneBy({ _id: userId }),
+                    UserService.findOneBy({
+                        query: { _id: userId },
+                        select: 'email',
+                    }),
                 ]);
 
                 user = foundUser;
@@ -461,7 +470,10 @@ router.delete(
 
             if (project) {
                 const projectName = project.name;
-                const user = await UserService.findOneBy({ _id: userId });
+                const user = await UserService.findOneBy({
+                    query: { _id: userId },
+                    select: 'name email',
+                });
                 // SEND MAIL IN THE BACKGROUND
                 MailService.sendDeleteProjectEmail({
                     name: user.name,
@@ -470,17 +482,18 @@ router.delete(
                 });
             }
 
-            const [user, record] = await Promise.all([
-                UserService.findOneBy({ _id: userId }),
-                AirtableService.logProjectDeletionFeedback({
-                    reason: feedback
-                        ? feedback
-                        : 'Feedback was not provided by the user',
-                    project: project.name,
-                    name: user.name,
-                    email: user.email,
-                }),
-            ]);
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'name email',
+            });
+            const record = await AirtableService.logProjectDeletionFeedback({
+                reason: feedback
+                    ? feedback
+                    : 'Feedback was not provided by the user',
+                project: project.name,
+                name: user.name,
+                email: user.email,
+            });
             project.airtableId = record.id || null;
             return sendItemResponse(req, res, project);
         } catch (error) {
@@ -543,7 +556,10 @@ router.post(
             }
             const [project, user] = await Promise.all([
                 ProjectService.changePlan(projectId, userId, planId),
-                UserService.findOneBy({ _id: userId }),
+                UserService.findOneBy({
+                    query: { _id: userId },
+                    select: 'email',
+                }),
             ]);
             const email = user.email;
             MailService.sendChangePlanMail(
@@ -621,7 +637,10 @@ router.put(
                 const owner = project.users.find(user => user.role === 'Owner');
                 const [updatedProject, user] = await Promise.all([
                     ProjectService.changePlan(projectId, owner.userId, planId),
-                    UserService.findOneBy({ _id: userId }),
+                    UserService.findOneBy({
+                        query: { _id: userId },
+                        select: 'email',
+                    }),
                 ]);
                 const email = user.email;
                 MailService.sendChangePlanMail(
@@ -674,7 +693,10 @@ router.post(
                     message: 'Old Plan must be present.',
                 });
             }
-            const user = await UserService.findOneBy({ _id: userId });
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'email',
+            });
             const email = user.email;
             MailService.sendUpgradeToEnterpriseMail(
                 projectName,

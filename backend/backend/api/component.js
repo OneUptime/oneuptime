@@ -70,7 +70,10 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         const [component, user] = await Promise.all([
             ComponentService.create(data),
-            UserService.findOneBy({ _id: req.user.id }),
+            UserService.findOneBy({
+                query: { _id: req.user.id },
+                select: 'name _id',
+            }),
         ]);
 
         NotificationService.create(

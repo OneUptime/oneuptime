@@ -60,7 +60,10 @@ describe('Invoice API', function() {
         });
         token = login.body.tokens.jwtAccessToken;
 
-        const user = await UserService.findOneBy({ _id: userId });
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: 'stripeCustomerId',
+        });
         stripeCustomerId = user.stripeCustomerId;
 
         testPlan = await stripe.plans.create({

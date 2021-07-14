@@ -492,7 +492,10 @@ module.exports = {
             if (!project.stripeSubscriptionId) {
                 //on enterprise plan stripeSubscriptionId is null
                 //downgrading from enterprise plan
-                const user = await UserService.findOneBy({ _id: userId });
+                const user = await UserService.findOneBy({
+                    query: { _id: userId },
+                    select: 'stripeCustomerId',
+                });
                 const {
                     stripeSubscriptionId,
                 } = await PaymentService.subscribePlan(
@@ -666,7 +669,8 @@ module.exports = {
                     ) {
                         let count = 0;
                         const user_member = await UserService.findOneBy({
-                            _id: userId,
+                            query: { _id: userId },
+                            select: 'email',
                         });
                         domains.domains.forEach(async domain => {
                             if (user_member.email.indexOf(domain) > -1) {
@@ -838,11 +842,16 @@ module.exports = {
                     });
                     project.users = users;
                 } else {
+                    const select =
+                        'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
                     users = await Promise.all(
                         project.users.map(async user => {
                             const foundUser = await UserService.findOneBy({
-                                _id: user.userId,
-                                deleted: { $ne: null },
+                                query: {
+                                    _id: user.userId,
+                                    deleted: { $ne: null },
+                                },
+                                select,
                             });
 
                             // append user's project role different from system role
@@ -880,7 +889,8 @@ module.exports = {
         await Promise.all(
             projectOwners.map(async projectOwner => {
                 const owner = await UserService.findOneBy({
-                    _id: projectOwner.userId,
+                    query: { _id: projectOwner.userId },
+                    select: 'stripeCustomerId',
                 });
                 if (IS_SAAS_SERVICE) {
                     subscription = await PaymentService.subscribePlan(

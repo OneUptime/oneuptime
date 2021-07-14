@@ -961,7 +961,8 @@ router.post(
                 }`;
 
                 const user = await UserService.findOneBy({
-                    _id: userId,
+                    query: { _id: userId },
+                    select: 'name',
                 });
 
                 data.created_by = user && user.name ? user.name : 'Fyipe User';

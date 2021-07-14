@@ -525,7 +525,10 @@ describe('Incident API', function() {
                 },
             },
         });
-        const user = await UserService.findOneBy({ _id: userId });
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: 'stripeCustomerId',
+        });
         const stripeCustomerId = user.stripeCustomerId;
         await UserService.updateOneBy(
             {
