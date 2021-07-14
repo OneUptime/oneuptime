@@ -95,5 +95,33 @@ func TestContentRequired(t *testing.T) {
 	} else {
 		t.Logf("TestContentRequired success expected %v, got %v", expectedResponse, actualResponse)
 	}
+}
+func TestValidApplicationLogRequired(t *testing.T) {
+	expectedResponse := "Application Log does not exist."
+	option := LoggerOptions{
+		ApplicationLogId:  "5eec6f33d7d57033b3a7d502",
+		ApplicationLogKey: appLog["key"].(string),
+		ApiUrl:            apiUrl,
+	}
 
+	setupResponse := Init(option)
+
+	if setupResponse != nil {
+		t.Errorf("TestValidApplicationLogRequired failed expected %v, got %v", expectedResponse, setupResponse)
+	}
+	var tag = []string{"testing"}
+	randomContent := "Sample Content"
+
+	logResponse, logErr := LogInfo(randomContent, tag)
+	actualResponse := logResponse.Message
+
+	if logErr != nil {
+		t.Errorf("TestValidApplicationLogRequired failed expected %v, got %v", expectedResponse, logErr)
+	}
+
+	if actualResponse != expectedResponse {
+		t.Errorf("TestValidApplicationLogRequired failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestValidApplicationLogRequired success expected %v, got %v", expectedResponse, actualResponse)
+	}
 }
