@@ -68,3 +68,32 @@ func TestApplicationLogKeyRequired(t *testing.T) {
 		t.Logf("TestApplicationLogKeyRequired success expected %v, got %v", expectedResponse, setupResponse)
 	}
 }
+func TestContentRequired(t *testing.T) {
+	expectedResponse := "Content to be logged is required."
+	option := LoggerOptions{
+		ApplicationLogId:  appLog["_id"].(string),
+		ApplicationLogKey: appLog["key"].(string),
+		ApiUrl:            apiUrl,
+	}
+
+	setupResponse := Init(option)
+
+	if setupResponse != nil {
+		t.Errorf("TestContentRequired failed expected %v, got %v", expectedResponse, setupResponse)
+	}
+	var tag = []string{"testing"}
+
+	logResponse, logErr := LogInfo("", tag)
+	actualResponse := logResponse.Message
+
+	if logErr != nil {
+		t.Errorf("TestContentRequired failed expected %v, got %v", expectedResponse, logErr)
+	}
+
+	if actualResponse != expectedResponse {
+		t.Errorf("TestContentRequired failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestContentRequired success expected %v, got %v", expectedResponse, actualResponse)
+	}
+
+}
