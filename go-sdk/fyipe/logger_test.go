@@ -37,7 +37,7 @@ func init() {
 	fmt.Println("Test setup done, Application Log created, tests will begin...")
 }
 func TestApplicationLogIDRequired(t *testing.T) {
-	expectedResponse := "Application Log ID cant be empty"
+	expectedResponse := ErrApplicationLogIDMissing
 	option := LoggerOptions{
 		ApplicationLogId:  "",
 		ApplicationLogKey: appLog["key"].(string),
@@ -53,7 +53,7 @@ func TestApplicationLogIDRequired(t *testing.T) {
 	}
 }
 func TestApplicationLogKeyRequired(t *testing.T) {
-	expectedResponse := "Application Log Key cant be empty"
+	expectedResponse := ErrApplicationLogKeyMissing
 	option := LoggerOptions{
 		ApplicationLogId:  appLog["_id"].(string),
 		ApplicationLogKey: "",
@@ -66,6 +66,29 @@ func TestApplicationLogKeyRequired(t *testing.T) {
 		t.Errorf("TestApplicationLogKeyRequired failed expected %v, got %v", expectedResponse, setupResponse)
 	} else {
 		t.Logf("TestApplicationLogKeyRequired success expected %v, got %v", expectedResponse, setupResponse)
+	}
+}
+func TestValidContentRequired(t *testing.T) {
+	expectedResponse := ErrContentMissing
+	option := LoggerOptions{
+		ApplicationLogId:  appLog["_id"].(string),
+		ApplicationLogKey: appLog["key"].(string),
+		ApiUrl:            apiUrl,
+	}
+
+	setupResponse := Init(option)
+
+	if setupResponse != nil {
+		t.Errorf("TestValidContentRequired failed expected %v, got %v", expectedResponse, setupResponse)
+	}
+	var tag = []string{"testing"}
+
+	logResponse, logErr := LogInfo(nil, tag)
+	fmt.Sprint(logResponse)
+	if fmt.Sprint(logErr) == expectedResponse {
+		t.Logf("TestValidContentRequired failed expected %v, got %v", expectedResponse, logErr)
+	} else {
+		t.Errorf("TestValidContentRequired failed expected %v, got %v", expectedResponse, logErr)
 	}
 }
 func TestContentRequired(t *testing.T) {
@@ -123,5 +146,65 @@ func TestValidApplicationLogRequired(t *testing.T) {
 		t.Errorf("TestValidApplicationLogRequired failed expected %v, got %v", expectedResponse, actualResponse)
 	} else {
 		t.Logf("TestValidApplicationLogRequired success expected %v, got %v", expectedResponse, actualResponse)
+	}
+}
+func TestContentStringIsLogged(t *testing.T) {
+	expectedResponse := ""
+	option := LoggerOptions{
+		ApplicationLogId:  appLog["_id"].(string),
+		ApplicationLogKey: appLog["key"].(string),
+		ApiUrl:            apiUrl,
+	}
+
+	setupResponse := Init(option)
+
+	if setupResponse != nil {
+		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+	}
+	var tag = []string{"testing"}
+	randomContent := "Sample Content"
+	expectedResponse = randomContent
+
+	logResponse, logErr := LogInfo(randomContent, tag)
+	actualResponse := logResponse.Content
+
+	if logErr != nil {
+		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, logErr)
+	}
+
+	if actualResponse != expectedResponse {
+		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestContentStringIsLogged success expected %v, got %v", expectedResponse, actualResponse)
+	}
+}
+func TestContentStructIsLogged(t *testing.T) {
+	expectedResponse := ""
+	option := LoggerOptions{
+		ApplicationLogId:  appLog["_id"].(string),
+		ApplicationLogKey: appLog["key"].(string),
+		ApiUrl:            apiUrl,
+	}
+
+	setupResponse := Init(option)
+
+	if setupResponse != nil {
+		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+	}
+	var tag = []string{"testing"}
+	randomContent := GetSampleLog()
+	expectedResponse = randomContent.Name
+
+	logResponse, logErr := LogInfo(randomContent, tag)
+	actualResponse := logResponse.Content.(map[string]interface{})["name"]
+
+	if logErr != nil {
+		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, logErr)
+	}
+
+	if actualResponse != expectedResponse {
+		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestContentStringIsLogged success expected %v, got %v", expectedResponse, actualResponse)
 	}
 }
