@@ -197,9 +197,9 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let applicationSecurityCount = await this.countBy(query);
+            let applicationSecurity = await this.findOneBy(query);
 
-            if (!applicationSecurityCount || applicationSecurityCount === 0) {
+            if (!applicationSecurity) {
                 const error = new Error(
                     'Application Security not found or does not exist'
                 );

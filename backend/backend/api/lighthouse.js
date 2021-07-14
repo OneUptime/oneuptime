@@ -73,10 +73,9 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                 },
                 { fetchLightHouse: true }
             );
-            await LighthouseLogService.updateAllLighthouseLogs(
-                data.monitorId,
-                { scanning: true }
-            );
+            await LighthouseLogService.updateAllLighthouseLogs(data.monitorId, {
+                scanning: true,
+            });
         } else {
             await MonitorService.updateOneBy(
                 { _id: data.monitorId },
