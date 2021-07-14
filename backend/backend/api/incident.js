@@ -600,7 +600,7 @@ router.post(
             const userId = req.user ? req.user.id : null;
             const projectId = req.params.projectId;
 
-            const incident = IncidentService.resolve(
+            const incident = await IncidentService.resolve(
                 req.params.incidentId,
                 userId
             );
