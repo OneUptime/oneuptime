@@ -162,6 +162,9 @@ class CreateIncomingRequest extends Component {
             if (values.incidentState === 'others') {
                 postObj.incidentState = values.customIncidentState;
             }
+            if (values.post_statuspage) {
+                postObj.post_statuspage = values.post_statuspage;
+            }
         }
 
         if (values.nextAction && values.nextAction === 'acknowledgeIncident') {
@@ -1881,6 +1884,66 @@ class CreateIncomingRequest extends Component {
                                                                         />
                                                                     </div>
                                                                 </div>
+                                                            </div>
+                                                        </div>
+                                                    </fieldset>
+                                                    <fieldset>
+                                                        <div className="bs-Fieldset-rows">
+                                                            <div
+                                                                className="bs-Fieldset-row"
+                                                                style={{
+                                                                    padding:
+                                                                        '0px',
+                                                                }}
+                                                            >
+                                                                <label
+                                                                    className="bs-Fieldset-label Text-align--left"
+                                                                    style={{
+                                                                        flexBasis:
+                                                                            '20%',
+                                                                    }}
+                                                                >
+                                                                    <span></span>
+                                                                </label>
+                                                                <label
+                                                                    className="bs-Fieldset-label bs-Fieldset-row Checkbox"
+                                                                    style={{
+                                                                        padding:
+                                                                            '0px',
+                                                                        marginBottom:
+                                                                            '15px',
+                                                                    }}
+                                                                >
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name={`post_statuspage`}
+                                                                        data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                        className="Checkbox-source"
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div
+                                                                        className="Checkbox-label Box-root"
+                                                                        style={{
+                                                                            width:
+                                                                                '160px',
+                                                                        }}
+                                                                    >
+                                                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                            <span>
+                                                                                Post
+                                                                                this
+                                                                                on
+                                                                                Status
+                                                                                Page
+                                                                            </span>
+                                                                        </span>
+                                                                    </div>
+                                                                </label>
                                                             </div>
                                                         </div>
                                                     </fieldset>

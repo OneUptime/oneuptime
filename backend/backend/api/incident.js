@@ -912,7 +912,8 @@ router.post(
                         AlertService.sendInvestigationNoteToSubscribers(
                             incident,
                             data,
-                            'created'
+                            'created',
+                            projectId
                         );
                     }
                 } else {
@@ -938,7 +939,8 @@ router.post(
                         AlertService.sendInvestigationNoteToSubscribers(
                             incident,
                             data,
-                            'updated'
+                            'updated',
+                            projectId
                         );
                     }
                 }
