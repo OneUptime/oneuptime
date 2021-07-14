@@ -169,8 +169,7 @@ export class ProjectList extends Component {
                                     (project, index) => {
                                         const projectOwner =
                                             project.users.find(
-                                                user =>
-                                                    user.projectRole === 'Owner'
+                                                user => user.role === 'Owner'
                                             ) || {};
                                         let usersDetail;
                                         if (project.users.length > 0) {
