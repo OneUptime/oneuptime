@@ -525,7 +525,9 @@ export class MonitorDetail extends Component {
                                             {
                                                 monitorId: monitor._id,
                                                 projectId:
-                                                    monitor.projectId._id,
+                                                    monitor.projectId._id ||
+                                                    this.props.monitor
+                                                        .projectId,
                                                 monitor,
                                             }
                                         ),
