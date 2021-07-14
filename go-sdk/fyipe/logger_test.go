@@ -2,7 +2,6 @@ package fyipe
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 )
 
@@ -11,7 +10,7 @@ const apiUrl = "http://localhost:3002/api"
 var appLog map[string]interface{}
 
 func init() {
-	fmt.Println("set up will happen here")
+	fmt.Println("setting up, please wait...")
 	var sampleUser = GetUser()
 	var token, project interface{}
 
@@ -37,11 +36,20 @@ func init() {
 	appLog = localAppLog
 	fmt.Println("Test setup done, Application Log created, tests will begin...")
 }
-func TestHelloName(t *testing.T) {
-	name := "Gladys"
-	want := regexp.MustCompile(`\b` + name + `\b`)
-	if !want.MatchString(name) {
-		t.Fatalf(`Hello("Gladys") = %q,  want match for %#q, nil`, name, want)
+func TestApplicationLogIDRequired(t *testing.T) {
+	expectedResponse := "Application Log ID cant be empty"
+	option := LoggerOptions{
+		ApplicationLogId:  "",
+		ApplicationLogKey: appLog["key"].(string),
+		ApiUrl:            apiUrl,
+	}
+
+	setupResponse := Init(option)
+
+	if fmt.Sprint(setupResponse) != expectedResponse {
+		t.Errorf("TestApplicationLogIDRequired failed expected %v, got %v", expectedResponse, setupResponse)
+	} else {
+		t.Logf("TestApplicationLogIDRequired success expected %v, got %v", expectedResponse, setupResponse)
 	}
 }
 func TestApplicationLogKeyRequired(t *testing.T) {
@@ -59,5 +67,4 @@ func TestApplicationLogKeyRequired(t *testing.T) {
 	} else {
 		t.Logf("TestApplicationLogKeyRequired success expected %v, got %v", expectedResponse, setupResponse)
 	}
-
 }
