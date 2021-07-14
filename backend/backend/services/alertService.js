@@ -440,7 +440,7 @@ module.exports = {
 
         const monitorPopulate = [{ path: 'componentId', select: 'name' }];
         const monitorSelect = '_id name data method componentId';
-        const [monitor, callScheduleStatuses, escalation] = await Promise.all([
+        const [monitor, callScheduleStatuses] = await Promise.all([
             MonitorService.findOneBy({
                 query: { _id: monitorId },
                 populate: monitorPopulate,
@@ -448,9 +448,6 @@ module.exports = {
             }),
             OnCallScheduleStatusService.findBy({
                 query: { incident: incident._id, schedule: schedule },
-            }),
-            EscalationService.findOneBy({
-                _id: escalationId,
             }),
         ]);
 
@@ -490,6 +487,9 @@ module.exports = {
                 ];
             escalationId = currentEscalationStatus.escalation._id;
         }
+        const escalation = await EscalationService.findOneBy({
+            _id: escalationId,
+        });
 
         let shouldSendSMSReminder = false;
         let shouldSendCallReminder = false;
