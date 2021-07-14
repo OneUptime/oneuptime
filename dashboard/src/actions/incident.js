@@ -559,7 +559,7 @@ export function acknowledgeIncident(projectId, incidentId, userId, multiple) {
 
 // calls the api to store the resolve status to the database
 export function resolveIncident(projectId, incidentId, userId, multiple) {
-    //This fucntion will switch to incidentId of the params beig passed.
+    //This function will switch to incidentId of the params being passed.
     return function(dispatch) {
         let promise = null;
         const data = {
