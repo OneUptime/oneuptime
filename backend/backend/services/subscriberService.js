@@ -115,8 +115,10 @@ module.exports = {
                 temp._id = result._id;
                 temp.projectId = result.projectId._id;
                 temp.projectName = result.projectId.name;
-                temp.monitorId = result.monitorId._id;
-                temp.monitorName = result.monitorId.name;
+                temp.monitorId = result.monitorId ? result.monitorId._id : null;
+                temp.monitorName = result.monitorId
+                    ? result.monitorId.name
+                    : null;
                 temp.statusPageId = result.statusPageId
                     ? result.statusPageId._id
                     : null;
