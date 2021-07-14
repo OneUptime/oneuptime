@@ -173,7 +173,8 @@ module.exports = {
             }
 
             const securityLog = await ApplicationSecurityLogService.findOneBy({
-                securityId: applicationSecurity._id,
+                query: { securityId: applicationSecurity._id },
+                select: '_id',
             });
 
             // delete log associated with this application security
