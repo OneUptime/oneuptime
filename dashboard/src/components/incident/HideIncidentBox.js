@@ -8,7 +8,7 @@ class HideIncidentBox extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            checked: this.props.incident.hideIncident,
+            checked: props.incident.hideIncident,
         };
     }
     handleChange = e => {
