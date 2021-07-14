@@ -15,15 +15,23 @@ type FyipeLogger struct {
 	options LoggerOptions
 }
 
+// Generic Error Messages
+var (
+	ErrApplicationLogIDMissing  = "Application Log ID cant be empty"
+	ErrApplicationLogKeyMissing = "Application Log Key cant be empty"
+	ErrApiURLMissing            = "API URL cant be empty"
+	ErrContentMissing           = "Content cant be empty"
+)
+
 func NewFyipeLogger(options LoggerOptions) (*FyipeLogger, error) {
 	if options.ApplicationLogId == "" {
-		return nil, errors.New("Application Log ID cant be empty")
+		return nil, errors.New(ErrApplicationLogIDMissing)
 	}
 	if options.ApplicationLogKey == "" {
-		return nil, errors.New("Application Log Key cant be empty")
+		return nil, errors.New(ErrApplicationLogKeyMissing)
 	}
 	if options.ApiUrl == "" {
-		return nil, errors.New("API URL cant be empty")
+		return nil, errors.New(ErrApiURLMissing)
 	}
 	// set up API URL
 	options.ApiUrl = options.ApiUrl + "/application-log/" + options.ApplicationLogId + "/log"
@@ -48,9 +56,12 @@ func Init(options LoggerOptions) error {
 	return nil
 }
 
-// TODO convert content string to {}interface
-// TODO use https://github.com/bxcodec/faker/blob/7460bf3a84de3afbfe7297c488c711d29f09c5d2/faker.go#L334 function for reference
-func LogInfo(content string, tags []string) (LoggerResponse, error) {
+func LogInfo(content interface{}, tags []string) (LoggerResponse, error) {
+
+	if content == nil {
+		return LoggerResponse{}, errors.New(ErrContentMissing)
+	}
+
 	// access fyipe Logger and send an api request
 	logger := CurrentLogger()
 	var res, err = logger.MakeApiRequest(content, "info", tags)
@@ -61,7 +72,12 @@ func LogInfo(content string, tags []string) (LoggerResponse, error) {
 	return res, err
 }
 
-func LogWarning(content string, tags []string) (LoggerResponse, error) {
+func LogWarning(content interface{}, tags []string) (LoggerResponse, error) {
+
+	if content == nil {
+		return LoggerResponse{}, errors.New(ErrContentMissing)
+	}
+
 	// access fyipe Logger and send an api request
 	logger := CurrentLogger()
 	var res, err = logger.MakeApiRequest(content, "warning", tags)
@@ -71,8 +87,12 @@ func LogWarning(content string, tags []string) (LoggerResponse, error) {
 	}
 	return res, err
 }
+func LogError(content interface{}, tags []string) (LoggerResponse, error) {
 
-func LogError(content string, tags []string) (LoggerResponse, error) {
+	if content == nil {
+		return LoggerResponse{}, errors.New(ErrContentMissing)
+	}
+
 	// access fyipe Logger and send an api request
 	logger := CurrentLogger()
 	var res, err = logger.MakeApiRequest(content, "error", tags)
