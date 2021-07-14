@@ -62,6 +62,7 @@ const incomingRequestSchema = new Schema(
             },
         ],
         createSeparateIncident: { type: Boolean, default: false },
+        post_statuspage: { type: Boolean, default: false },
     },
     { timestamps: true }
 );

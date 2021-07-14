@@ -1643,7 +1643,9 @@ module.exports = {
                                     _id: subscriber.statusPageId,
                                 }
                             );
-                            statusPageSlug = statusPage.slug;
+                            statusPageSlug = statusPage
+                                ? statusPage.slug
+                                : null;
                         }
                         await _this.sendSubscriberAlert(
                             subscriber,
