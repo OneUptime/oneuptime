@@ -203,8 +203,12 @@ module.exports = {
         }
     },
 
+    markMonitorsAsShouldNotMonitor: async function(monitorIds){
+
+    },
+
     updateCriterion: async function(_id, lastMatchedCriterion) {
-        await MonitorModel.updateMany(
+        await MonitorModel.updateOne(
             { _id },
             { $set: { lastMatchedCriterion } },
             {
@@ -225,7 +229,7 @@ module.exports = {
             updateData.lighthouseScannedBy = lighthouseScannedBy;
         }
 
-        await MonitorModel.updateMany(
+        await MonitorModel.updateOne(
             { _id },
             {
                 $set: {
@@ -241,7 +245,7 @@ module.exports = {
     },
 
     updateScriptStatus: async function(_id, scriptRunStatus, scriptRunBy) {
-        await MonitorModel.updateMany(
+        await MonitorModel.updateOne(
             { _id },
             {
                 $set: {
@@ -307,7 +311,7 @@ module.exports = {
                 if (data.name) {
                     data.slug = getSlug(data.name);
                 }
-                await MonitorModel.updateMany(
+                await MonitorModel.updateOne(
                     query,
                     { $set: data },
                     {
@@ -317,7 +321,7 @@ module.exports = {
             }
 
             if (unsetData) {
-                await MonitorModel.updateMany(
+                await MonitorModel.updateOne(
                     query,
                     { $unset: unsetData },
                     {
