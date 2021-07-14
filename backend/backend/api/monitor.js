@@ -397,6 +397,7 @@ router.put(
             if (!data.resourceCategory || data.resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
             }
+
             const monitor = await MonitorService.updateOneBy(
                 { _id: req.params.monitorId },
                 data,
@@ -934,12 +935,8 @@ router.post(
 
             const disabled = monitor.disabled ? false : true;
             const [newMonitor] = await Promise.all([
-                MonitorService.updateOneBy(
-                    {
-                        _id: monitorId,
-                    },
-                    { disabled: disabled }
-                ),
+                MonitorService.disableMonitor(monitorId),
+
                 ProbeService.createMonitorDisabledStatus({
                     monitorId,
                     manuallyCreated: true,

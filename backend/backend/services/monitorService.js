@@ -203,8 +203,51 @@ module.exports = {
         }
     },
 
-    markMonitorsAsShouldNotMonitor: async function(monitorIds){
+    markMonitorsAsShouldNotMonitor: async function(monitorIds) {
+        await MonitorModel.updateMany(
+            {
+                _id: { $in: monitorIds },
+            },
+            {
+                $set: { shouldNotMonitor: true },
+            }
+        );
+    },
 
+    markMonitorsAsShouldMonitor: async function(monitorIds) {
+        await MonitorModel.updateMany(
+            {
+                _id: { $in: monitorIds },
+            },
+            {
+                $set: { shouldNotMonitor: false },
+            }
+        );
+    },
+
+    unsetColumnsOfManyMonitors: async function(monitorIds, columns) {
+        await MonitorModel.updateMany(
+            {
+                _id: { $in: monitorIds },
+            },
+            {
+                $unset: { ...columns },
+            }
+        );
+    },
+
+    updateManyIncidentCommunicationSla: async function(
+        monitorIds,
+        incidentCommunicationSlaId
+    ) {
+        await MonitorModel.updateMany(
+            {
+                _id: { $in: monitorIds },
+            },
+            {
+                $set: { incidentCommunicationSla: incidentCommunicationSlaId },
+            }
+        );
     },
 
     updateCriterion: async function(_id, lastMatchedCriterion) {
@@ -227,6 +270,8 @@ module.exports = {
         if (lighthouseScanStatus !== 'scanning') {
             updateData.lighthouseScannedAt = Date.now();
             updateData.lighthouseScannedBy = lighthouseScannedBy;
+        } else {
+            updateData.fetchLightHouse = null;
         }
 
         await MonitorModel.updateOne(
@@ -234,12 +279,22 @@ module.exports = {
             {
                 $set: {
                     lighthouseScanStatus,
-                    fetchLightHouse: null,
                     ...updateData,
                 },
             },
             {
                 new: true,
+            }
+        );
+    },
+
+    disableMonitor: async function(_id) {
+        await MonitorModel.updateOne(
+            { _id },
+            {
+                $set: {
+                    disabled: true,
+                },
             }
         );
     },
