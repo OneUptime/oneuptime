@@ -108,7 +108,7 @@ router.get(
             if (incidentId) {
                 incidentId = incidentId._id;
                 const populateAlert = [
-                    { path: 'userId', select: 'name' },
+                    { path: 'userId', select: 'name email' },
                     { path: 'monitorId', select: 'name' },
                     { path: 'projectId', select: 'name' },
                 ];
