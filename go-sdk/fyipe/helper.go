@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 
 	"github.com/bxcodec/faker/v3"
@@ -40,6 +39,10 @@ type SubscriptionStruct struct {
 	StripePlanId int `faker:"oneof: 0, 0"  json:"stripePlanId"`
 }
 
+type NameStruct struct {
+	Name string `faker:"name" json:"name"`
+}
+
 func GetUser() SampleUser {
 	a := SampleUser{}
 	err := faker.FakeData(&a)
@@ -48,34 +51,49 @@ func GetUser() SampleUser {
 	}
 	return a
 }
-func GetTitle() string {
-	return faker.Word()
+func GetNameComponent() NameStruct {
+	a := NameStruct{}
+	err := faker.FakeData(&a)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return a
 }
-func MakeTestApiRequest(apiUrl string, content interface{}) {
-
+func MakeTestApiRequest(apiUrl string, content interface{}, token string) (map[string]interface{}, error) {
 	postBody, _ := json.Marshal(content)
-	log.Printf("Post body  %v", postBody)
-	responseBody := bytes.NewBuffer(postBody)
-	log.Printf("response body  %v", responseBody)
+	requestBody := bytes.NewBuffer(postBody)
 
-	resp, err := http.Post(apiUrl, "application/json", responseBody)
+	req, err := http.NewRequest("POST", apiUrl, requestBody)
+	if err != nil {
+		// log.Fatalf("An Error Occured %v", err)
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	if token != "" {
+		req.Header.Set("Authorization", "Basic "+token)
+	}
+
+	client := &http.Client{}
+
+	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Fatalf("An Error Occured %v", err)
-		// return err
+		// log.Fatalf("An Error Occured %v", err)
+		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalln(err)
-		// return err
+		// log.Fatalln(err)
+		return nil, err
 	}
 
-	var response interface{}
+	var response map[string]interface{}
 	if err := json.Unmarshal([]byte(body), &response); err != nil {
-		panic(err)
+		// panic(err)
+		return nil, err
 	}
-	log.Printf("Success  %v", response)
 
-	// return response
+	return response, nil
 }
