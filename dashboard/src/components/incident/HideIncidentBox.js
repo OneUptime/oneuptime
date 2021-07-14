@@ -5,20 +5,25 @@ import { hideIncident } from '../../actions/incident';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 class HideIncidentBox extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            checked: this.props.incident.hideIncident,
+        };
+    }
     handleChange = e => {
         const { incident, currentProject, hideIncident } = this.props;
+        const checked = e.target.checked;
+        this.setState({ checked });
         const data = {
-            hideIncident: e.target.checked,
+            hideIncident: checked,
             incidentId: incident._id,
             projectId: currentProject._id,
         };
         hideIncident(data);
     };
     render() {
-        const {
-            incident: { hideIncident },
-            hideIncidentError,
-        } = this.props;
+        const { hideIncidentError } = this.props;
         return (
             <div className="Box-root Margin-bottom--12">
                 <div className="bs-ContentSection Card-root Card-shadow--medium">
@@ -49,7 +54,7 @@ class HideIncidentBox extends Component {
                                             onChange={this.handleChange}
                                             name="hideIncident"
                                             id="hideIncident"
-                                            checked={hideIncident}
+                                            checked={this.state.checked}
                                         />
                                         <span className="TogglerBtn-slider round"></span>
                                     </label>
