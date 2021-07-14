@@ -28,6 +28,7 @@ type LoggerResponse struct {
 	CreatedBy          string
 	AppLog             ApplicationLog `json:"applicationLogId"`
 	Tags               []string
+	Message            string
 }
 
 type stack []*layer
