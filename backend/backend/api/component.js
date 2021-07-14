@@ -473,10 +473,29 @@ router.get(
             await Promise.all(
                 applicationSecurity.map(async elem => {
                     // get the security log
+
+                    const populateApplicationSecurityLog = [
+                        {
+                            path: 'componentId',
+                            select: '_id slug name slug',
+                        },
+                        {
+                            path: 'securityId',
+                            select:
+                                '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
+                        },
+                    ];
+
+                    const selectApplicationSecurityLog =
+                        '_id securityId componentId data';
                     const securityLog = await ApplicationSecurityLogService.findOneBy(
                         {
-                            securityId: elem._id,
-                            componentId,
+                            query: {
+                                securityId: elem._id,
+                                componentId,
+                            },
+                            select: selectApplicationSecurityLog,
+                            populate: populateApplicationSecurityLog,
                         }
                     );
                     const newElement = {

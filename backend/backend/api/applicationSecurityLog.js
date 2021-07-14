@@ -19,9 +19,22 @@ router.get(
         try {
             const { applicationSecurityId, componentId } = req.params;
 
+            const populateApplicationSecurityLog = [
+                { path: 'componentId', select: '_id slug name slug' },
+                {
+                    path: 'securityId',
+                    select:
+                        '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
+                },
+            ];
+
+            const selectApplicationSecurityLog =
+                '_id securityId componentId data';
+
             const securityLog = await ApplicationSecurityLogService.findOneBy({
-                securityId: applicationSecurityId,
-                componentId,
+                query: { securityId: applicationSecurityId, componentId },
+                select: selectApplicationSecurityLog,
+                populate: populateApplicationSecurityLog,
             });
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
@@ -42,9 +55,22 @@ router.get(
         try {
             const { applicationSecuritySlug, componentId } = req.params;
 
+            const populateApplicationSecurityLog = [
+                { path: 'componentId', select: '_id slug name slug' },
+                {
+                    path: 'securityId',
+                    select:
+                        '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
+                },
+            ];
+
+            const selectApplicationSecurityLog =
+                '_id securityId componentId data';
+
             const securityLog = await ApplicationSecurityLogService.findOneBy({
-                slug: applicationSecuritySlug,
-                componentId,
+                query: { slug: applicationSecuritySlug, componentId },
+                select: selectApplicationSecurityLog,
+                populate: populateApplicationSecurityLog,
             });
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
@@ -64,8 +90,21 @@ router.get(
     async (req, res) => {
         try {
             const { componentId } = req.params;
+            const populateApplicationSecurityLog = [
+                { path: 'componentId', select: '_id slug name slug' },
+                {
+                    path: 'securityId',
+                    select:
+                        '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
+                },
+            ];
+
+            const selectApplicationSecurityLog =
+                '_id securityId componentId data';
             const securityLogs = await ApplicationSecurityLogService.findBy({
-                componentId,
+                query: { componentId },
+                select: selectApplicationSecurityLog,
+                populate: populateApplicationSecurityLog,
             });
             return sendItemResponse(req, res, securityLogs);
         } catch (error) {
