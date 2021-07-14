@@ -83,7 +83,10 @@ const _this = {
                 }
             }
             req.user = decoded;
-            const user = await UserService.findOneBy({ _id: req.user.id });
+            const user = await UserService.findOneBy({
+                query: { _id: req.user.id },
+                select: 'role',
+            });
             if (!user) {
                 if (res) {
                     return sendErrorResponse(req, res, {

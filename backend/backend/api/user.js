@@ -47,7 +47,10 @@ router.post('/signup', async function(req, res) {
             //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
             delete data.role;
         } else {
-            const users = await UserService.findBy({});
+            const users = await UserService.findBy({
+                query: {},
+                select: '_id',
+            });
 
             if (!users || users.length === 0) {
                 data.role = 'master-admin';
@@ -126,7 +129,10 @@ router.post('/signup', async function(req, res) {
             });
         }
         const [userData, token] = await Promise.all([
-            UserService.findOneBy({ email: data.email }),
+            UserService.findOneBy({
+                query: { email: data.email },
+                select: '_id password',
+            }),
             VerificationTokenModel.findOne({
                 token: req.query.token,
             }),
@@ -138,7 +144,10 @@ router.post('/signup', async function(req, res) {
                 _id: token.userId,
             });
             if (!user) {
-                user = await UserService.findOneBy({ email: data.email });
+                user = await UserService.findOneBy({
+                    query: { email: data.email },
+                    select: '_id password',
+                });
                 verified = false;
             }
         } else {
@@ -270,7 +279,10 @@ router.post('/signup', async function(req, res) {
 
 router.get('/masterAdminExists', async function(req, res) {
     try {
-        const masterAdmin = await UserService.findBy({ role: 'master-admin' });
+        const masterAdmin = await UserService.findBy({
+            query: { role: 'master-admin' },
+            select: '_id',
+        });
 
         if (masterAdmin && masterAdmin.length > 0) {
             return sendItemResponse(req, res, { result: true });
@@ -416,7 +428,10 @@ router.post('/sso/callback', async function(req, res) {
                 message: 'SSO is disabled for the domain.',
             });
 
-        let user = await UserService.findOneBy({ email });
+        let user = await UserService.findOneBy({
+            query: { email },
+            select: '_id name email stripeCustomerId jwtRefreshToken role',
+        });
 
         if (!user) {
             // User is not create yet
@@ -575,7 +590,8 @@ router.post('/totp/verifyToken', async function(req, res) {
         let userId = data.userId;
         if (data.email && !data.userId) {
             const foundUser = await UserService.findOneBy({
-                email: data.email,
+                query: { email: data.email },
+                select: '_id',
             });
             userId = foundUser._id;
         }
@@ -638,7 +654,10 @@ router.post('/verify/backupCode', async function(req, res) {
         const data = req.body;
         // Call the UserService
         let user;
-        user = await UserService.findOneBy({ email: data.email });
+        user = await UserService.findOneBy({
+            query: { email: data.email },
+            select: 'backupCodes',
+        });
         if (!user) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -716,7 +735,10 @@ router.post('/verify/backupCode', async function(req, res) {
 // Return: return the new list of backup codes.
 router.post('/generate/backupCode', getUser, async function(req, res) {
     const userId = req.user.id || null;
-    const user = await UserService.findOneBy({ _id: userId });
+    const user = await UserService.findOneBy({
+        query: { _id: userId },
+        select: 'twoFactorAuthEnabled twoFactorSecretCode backupCodes',
+    });
     if (!user) {
         return sendErrorResponse(req, res, {
             code: 400,
@@ -765,7 +787,10 @@ router.post('/generate/backupCode', getUser, async function(req, res) {
 router.post('/totp/token/:userId', async function(req, res) {
     try {
         const userId = req.params.userId;
-        const user = await UserService.findOneBy({ _id: userId });
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: '_id otpauth_url',
+        });
         if (!userId || !user._id) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -894,7 +919,10 @@ router.post('/isInvited', async function(req, res) {
             });
         }
         // Call the UserService
-        const user = await UserService.findOneBy({ email: data.email });
+        const user = await UserService.findOneBy({
+            query: { email: data.email },
+            select: '_id',
+        });
         if (user) {
             return sendItemResponse(req, res, true);
         } else {
@@ -940,7 +968,10 @@ router.put('/profile', getUser, async function(req, res) {
             ) {
                 data.profilePic = req.files.profilePic[0].filename;
             }
-            const userData = await UserService.findOneBy({ _id: userId });
+            const userData = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'email tempEmail alertPhoneNumber isVerified name _id',
+            });
             if (data.email !== userData.email) {
                 if (data.email === userData.tempEmail) delete data.email;
                 else {
@@ -984,7 +1015,10 @@ router.put('/:userId/2fa', isUserMasterAdmin, async function(req, res) {
     try {
         const { userId } = req.params;
         const data = req.body;
-        const userData = await UserService.findOneBy({ _id: userId });
+        const userData = await UserService.findOneBy({
+            query: { _id: userId },
+            select: 'email',
+        });
         if (userData.email !== data.email) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -1145,7 +1179,12 @@ router.get('/profile', getUser, async function(req, res) {
             });
         }
         // Call the UserService
-        const user = await UserService.findOneBy({ _id: userId });
+        const select =
+            'name email isVerified jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber profilePic twoFactorAuthEnabled timeZone role alertPhoneNumber tempAlertPhoneNumber identification';
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select,
+        });
         const userObj = {
             id: user._id,
             name: user.name ? user.name : '',
@@ -1310,9 +1349,11 @@ router.get('/users/:userId', getUser, isUserMasterAdmin, async function(
 ) {
     try {
         const userId = req.params.userId;
+        const select =
+            'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
         const user = await UserService.findOneBy({
-            _id: userId,
-            deleted: { $ne: null },
+            query: { _id: userId, deleted: { $ne: null } },
+            select,
         });
 
         return sendItemResponse(req, res, user);
@@ -1572,7 +1613,10 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
             });
         }
         const userId = req.user.id;
-        const user = await UserService.findOneBy({ _id: userId });
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: 'projects',
+        });
         if (!user) {
             return sendErrorResponse(req, res, {
                 code: 400,

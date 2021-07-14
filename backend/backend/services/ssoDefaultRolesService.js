@@ -133,7 +133,10 @@ module.exports = {
             const savedSso = await ssoDefaultRole.save();
             //Add existing users to the project.
             const { _id: ssoId } = sso;
-            const existingSsoUsers = await UserService.findBy({ sso: ssoId });
+            const existingSsoUsers = await UserService.findBy({
+                query: { sso: ssoId },
+                select: '_id',
+            });
             for (const ssoUser of existingSsoUsers) {
                 const { users, _id: projectId } = projectObj;
                 if (

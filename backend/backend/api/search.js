@@ -205,16 +205,19 @@ const getUsers = async (projectIds, val) => {
     });
     const userIds = projectUsers.flat().map(user => user.userId);
     const users = await UserService.findBy({
-        _id: { $in: userIds },
-        deleted: false,
-        $or: [
-            {
-                name: {
-                    $regex: new RegExp(val),
-                    $options: 'i',
+        query: {
+            _id: { $in: userIds },
+            deleted: false,
+            $or: [
+                {
+                    name: {
+                        $regex: new RegExp(val),
+                        $options: 'i',
+                    },
                 },
-            },
-        ],
+            ],
+        },
+        select: 'name _id',
     });
     if (users.length > 0) {
         const resultObj = {

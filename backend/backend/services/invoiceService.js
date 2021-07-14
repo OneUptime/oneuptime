@@ -14,7 +14,10 @@ module.exports = {
     //Returns : promise
     get: async function(userId, startingAfter, endingBefore) {
         try {
-            const user = await UserService.findOneBy({ _id: userId });
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'stripeCustomerId',
+            });
             if (!user) {
                 const error = new Error('User not found.');
                 error.code = 400;

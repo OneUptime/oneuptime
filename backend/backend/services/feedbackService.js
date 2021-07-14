@@ -26,7 +26,10 @@ module.exports = {
                     query: { _id: projectId },
                     select: 'name',
                 }),
-                UserService.findOneBy({ _id: createdById }),
+                UserService.findOneBy({
+                    query: { _id: createdById },
+                    select: 'name email companyPhoneNumber',
+                }),
             ]);
             feedback.project = project;
 

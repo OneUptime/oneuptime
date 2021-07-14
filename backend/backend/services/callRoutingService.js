@@ -170,7 +170,10 @@ module.exports = {
                 });
                 let owner = project.users.filter(user => user.role === 'Owner');
                 owner = owner && owner.length ? owner[0] : owner;
-                const user = await UserService.findOneBy({ _id: owner.userId });
+                const user = await UserService.findOneBy({
+                    query: { _id: owner.userId },
+                    select: 'stripeCustomerId',
+                });
                 const stripeCustomerId = user.stripeCustomerId;
                 const stripeSubscription = await PaymentService.createSubscription(
                     stripeCustomerId,
@@ -217,7 +220,10 @@ module.exports = {
         try {
             let user;
             if (type && type === 'TeamMember') {
-                user = await UserService.findOneBy({ _id: id });
+                user = await UserService.findOneBy({
+                    query: { _id: id },
+                    select: 'alertPhoneNumber _id',
+                });
                 if (
                     user &&
                     user.alertPhoneNumber &&
@@ -269,7 +275,8 @@ module.exports = {
                                 teamMember.endTime
                             ),
                             UserService.findOneBy({
-                                _id: teamMember.userId,
+                                query: { _id: teamMember.userId },
+                                select: 'alertPhoneNumber _id',
                             }),
                         ]);
                         if (!user || !isOnDuty) {
@@ -290,7 +297,8 @@ module.exports = {
                     }
                     if (dutyCheck <= 0) {
                         const user = await UserService.findOneBy({
-                            _id: activeTeam.teamMembers[0].userId,
+                            query: { _id: activeTeam.teamMembers[0].userId },
+                            select: '_id alertPhoneNumber',
                         });
                         if (
                             user &&

@@ -59,7 +59,8 @@ const _this = {
 
                     const [user, project] = await Promise.all([
                         UserService.findOneBy({
-                            stripeCustomerId,
+                            query: { stripeCustomerId },
+                            select: 'name email',
                         }),
                         ProjectService.findOneBy({
                             query: { stripeSubscriptionId },

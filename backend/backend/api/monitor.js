@@ -238,7 +238,10 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         const [monitor, user] = await Promise.all([
             MonitorService.create(data),
-            UserService.findOneBy({ _id: req.user.id }),
+            UserService.findOneBy({
+                query: { _id: req.user.id },
+                select: 'name _id',
+            }),
         ]);
 
         if (data.callScheduleIds && data.callScheduleIds.length) {

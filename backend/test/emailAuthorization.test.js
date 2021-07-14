@@ -71,7 +71,10 @@ describe('Email verification API', function() {
             await request.get(`/user/confirmation/${token.token}`).redirects(0);
         } catch (error) {
             expect(error).to.have.status(302);
-            const user = await UserService.findOneBy({ _id: userId });
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'isVerified',
+            });
             expect(user.isVerified).to.be.equal(true);
         }
     });

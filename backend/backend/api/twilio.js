@@ -151,12 +151,15 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
         }
         const tempAlertPhoneNumber = to.startsWith('+') ? to : `+${to}`;
         const user = await UserService.findOneBy({
-            _id: userId,
-            tempAlertPhoneNumber,
-            alertPhoneVerificationCode: code,
-            alertPhoneVerificationCodeRequestTime: {
-                $gte: new Date(new Date().getTime() - 5 * 60 * 1000),
+            query: {
+                _id: userId,
+                tempAlertPhoneNumber,
+                alertPhoneVerificationCode: code,
+                alertPhoneVerificationCodeRequestTime: {
+                    $gte: new Date(new Date().getTime() - 5 * 60 * 1000),
+                },
             },
+            select: '_id',
         });
         if (!user) {
             throw new Error('Invalid code !');

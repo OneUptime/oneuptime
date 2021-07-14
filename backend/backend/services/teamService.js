@@ -39,7 +39,10 @@ module.exports = {
 
             const users = [];
             for (const id of usersId) {
-                const user = await UserService.findOneBy({ _id: id });
+                const user = await UserService.findOneBy({
+                    query: { _id: id },
+                    select: '_id email name lastActive',
+                });
                 users.push(user);
             }
 
@@ -104,8 +107,11 @@ module.exports = {
                 ErrorService.log('teamService.getTeamMemberBy', error);
                 throw error;
             } else {
+                const select =
+                    'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
                 const user = await UserService.findOneBy({
-                    _id: teamMemberUserId,
+                    query: { _id: teamMemberUserId },
+                    select,
                 });
                 return user;
             }
@@ -120,7 +126,8 @@ module.exports = {
             let seats = members.filter(async user => {
                 let count = 0;
                 const user_member = await UserService.findOneBy({
-                    _id: user.userId,
+                    query: { _id: user.userId },
+                    select: 'email',
                 });
                 domains.domains.forEach(domain => {
                     if (user_member.email.indexOf(domain) > -1) {
@@ -149,7 +156,10 @@ module.exports = {
     //Param 3: role: Role set by Admin.
     //Returns: promise
     inviteTeamMembers: async function(addedByUserId, projectId, emails, role) {
-        const addedBy = await UserService.findOneBy({ _id: addedByUserId });
+        const addedBy = await UserService.findOneBy({
+            query: { _id: addedByUserId },
+            select: 'name _id',
+        });
         emails = emails.toLowerCase().split(',');
         const _this = this;
         let subProject = null;
@@ -262,7 +272,8 @@ module.exports = {
 
         for (let i = 0; i < teamMembers.length; i++) {
             const user = await UserService.findOneBy({
-                _id: teamMembers[i].userId,
+                query: { _id: teamMembers[i].userId },
+                select: 'email',
             });
             teamMembersEmail.push(user.email);
         }
@@ -316,7 +327,10 @@ module.exports = {
                     continue;
                 }
                 // Finds registered users and new users that will be added as team members.
-                const user = await UserService.findOneBy({ email });
+                const user = await UserService.findOneBy({
+                    query: { email },
+                    select: 'name email _id',
+                });
 
                 if (user) {
                     invitedTeamMembers.push(user);
@@ -611,9 +625,13 @@ module.exports = {
                         query: { _id: project._id },
                         select: '_id name',
                     }),
-                    UserService.findOneBy({ _id: userId }),
                     UserService.findOneBy({
-                        _id: teamMemberUserId,
+                        query: { _id: userId },
+                        select: 'name',
+                    }),
+                    UserService.findOneBy({
+                        query: { _id: teamMemberUserId },
+                        select: 'email',
                     }),
                 ]);
                 project = projectObj;
@@ -792,9 +810,13 @@ module.exports = {
                         );
                     }
                     const [user, member] = await Promise.all([
-                        UserService.findOneBy({ _id: userId }),
                         UserService.findOneBy({
-                            _id: teamMemberUserId,
+                            query: { _id: userId },
+                            select: 'name',
+                        }),
+                        UserService.findOneBy({
+                            query: { _id: teamMemberUserId },
+                            select: 'email',
                         }),
                     ]);
                     if (subProject) {

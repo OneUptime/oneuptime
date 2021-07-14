@@ -73,7 +73,10 @@ router.post(
                     select: selectComponent,
                     populate: populateComponent,
                 }),
-                UserService.findOneBy({ _id: req.user.id }),
+                UserService.findOneBy({
+                    query: { _id: req.user.id },
+                    select: 'name _id',
+                }),
             ]);
 
             component.projectId._id,
