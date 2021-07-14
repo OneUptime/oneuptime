@@ -42,6 +42,10 @@ type SubscriptionStruct struct {
 type NameStruct struct {
 	Name string `faker:"name" json:"name"`
 }
+type SampleLog struct {
+	Name     string `faker:"name" json:"name"`
+	Location string `faker:"word" json:"state"`
+}
 
 func GetUser() SampleUser {
 	a := SampleUser{}
@@ -59,6 +63,16 @@ func GetNameComponent() NameStruct {
 	}
 	return a
 }
+
+func GetSampleLog() SampleLog {
+	a := SampleLog{}
+	err := faker.FakeData(&a)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return a
+}
+
 func MakeTestApiRequest(apiUrl string, content interface{}, token string) (map[string]interface{}, error) {
 	postBody, _ := json.Marshal(content)
 	requestBody := bytes.NewBuffer(postBody)
