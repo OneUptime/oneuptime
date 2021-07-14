@@ -3,7 +3,7 @@ module.exports = {
     //Params:
     //Param 1: data: MonitorModal.
     //Returns: promise with monitor model or error.
-    create: async function(data) {
+    create: async function (data) {
         try {
             const _this = this;
             let subProject = null;
@@ -84,8 +84,8 @@ module.exports = {
                     plan.category === 'Startup'
                         ? 5
                         : plan.category === 'Growth'
-                        ? 10
-                        : 0;
+                            ? 10
+                            : 0;
                 if (
                     count < userCount * monitorCount ||
                     !IS_SAAS_SERVICE ||
@@ -203,8 +203,8 @@ module.exports = {
         }
     },
 
-    updateCriterion: async function(_id, lastMatchedCriterion) {
-        await MonitorModel.findOneAndUpdate(
+    updateCriterion: async function (_id, lastMatchedCriterion) {
+        await MonitorModel.updateMany(
             { _id },
             { $set: { lastMatchedCriterion } },
             {
@@ -213,7 +213,50 @@ module.exports = {
         );
     },
 
-    updateOneBy: async function(query, data, unsetData) {
+    updateLighthouseScanStatus: async function (_id, lighthouseScanStatus, lighthouseScannedBy) {
+
+        const updateData = {
+
+        }
+
+        if (lighthouseScanStatus !== 'scanning') {
+            updateData.lighthouseScannedAt = Date.now();
+            updateData.lighthouseScannedBy = lighthouseScannedBy;
+        }
+
+        await MonitorModel.updateMany(
+            { _id },
+            {
+                $set: {
+                    lighthouseScanStatus,
+                    fetchLightHouse: null,
+                    ...updateData
+                }
+            },
+            {
+                new: true,
+            }
+        );
+    },
+
+
+    updateScriptStatus: async function (_id, scriptRunStatus, scriptRunBy) {
+
+        await MonitorModel.updateMany(
+            { _id },
+            {
+                $set: {
+                    scriptRunStatus,
+                    scriptRunBy
+                }
+            },
+            {
+                new: true,
+            }
+        );
+    },
+
+    updateOneBy: async function (query, data, unsetData) {
         const _this = this;
 
         try {
@@ -265,7 +308,7 @@ module.exports = {
                 if (data.name) {
                     data.slug = getSlug(data.name);
                 }
-                await MonitorModel.findOneAndUpdate(
+                await MonitorModel.updateMany(
                     query,
                     { $set: data },
                     {
@@ -275,7 +318,7 @@ module.exports = {
             }
 
             if (unsetData) {
-                await MonitorModel.findOneAndUpdate(
+                await MonitorModel.updateMany(
                     query,
                     { $unset: unsetData },
                     {
@@ -306,7 +349,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -411,7 +454,7 @@ module.exports = {
         }
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function (query, userId) {
         try {
             if (!query) {
                 query = {};
@@ -1112,7 +1155,7 @@ module.exports = {
         }
     },
 
-    addSeat: async function(query) {
+    addSeat: async function (query) {
         try {
             const project = await ProjectService.findOneBy({
                 query,
@@ -1140,7 +1183,7 @@ module.exports = {
         }
     },
 
-    addSiteUrl: async function(query, data) {
+    addSiteUrl: async function (query, data) {
         try {
             let monitor = await this.findOneBy({ query, select: 'siteUrls' });
 
@@ -1166,7 +1209,7 @@ module.exports = {
         }
     },
 
-    removeSiteUrl: async function(query, data) {
+    removeSiteUrl: async function (query, data) {
         try {
             let monitor = await this.findOneBy({ query, select: 'siteUrls' });
             const siteUrlIndex =
@@ -1195,7 +1238,7 @@ module.exports = {
         }
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function (query) {
         try {
             await MonitorModel.deleteMany(query);
             return 'Monitor(s) removed successfully!';
@@ -1265,14 +1308,14 @@ module.exports = {
                     status = incidents.some(inc =>
                         inc.resolvedAt
                             ? moment(inc.resolvedAt)
-                                  .utc()
-                                  .startOf('day')
-                                  .diff(
-                                      moment(temp.date)
-                                          .utc()
-                                          .startOf('day'),
-                                      'days'
-                                  ) > 0
+                                .utc()
+                                .startOf('day')
+                                .diff(
+                                    moment(temp.date)
+                                        .utc()
+                                        .startOf('day'),
+                                    'days'
+                                ) > 0
                             : true
                     )
                         ? 'offline'
@@ -1290,23 +1333,23 @@ module.exports = {
                             );
                         const resolveddiff = inc.resolvedAt
                             ? moment(temp.date)
-                                  .utc()
-                                  .startOf('day')
-                                  .diff(
-                                      moment(inc.resolvedAt)
-                                          .utc()
-                                          .startOf('day'),
-                                      'days'
-                                  )
+                                .utc()
+                                .startOf('day')
+                                .diff(
+                                    moment(inc.resolvedAt)
+                                        .utc()
+                                        .startOf('day'),
+                                    'days'
+                                )
                             : moment(temp.date)
-                                  .utc()
-                                  .startOf('day')
-                                  .diff(
-                                      moment()
-                                          .utc()
-                                          .startOf('day'),
-                                      'days'
-                                  );
+                                .utc()
+                                .startOf('day')
+                                .diff(
+                                    moment()
+                                        .utc()
+                                        .startOf('day'),
+                                    'days'
+                                );
                         if (creatediff > 0 && resolveddiff < 0) {
                             return 1440;
                         } else if (creatediff === 0 && resolveddiff !== 0) {
@@ -1345,7 +1388,7 @@ module.exports = {
         }
     },
 
-    restoreBy: async function(query) {
+    restoreBy: async function (query) {
         const _this = this;
         query.deleted = true;
         const select = '_id';
@@ -1378,7 +1421,7 @@ module.exports = {
 
     // checks if the monitor uptime stat is within the defined uptime on monitor sla
     // then update the monitor => breachedMonitorSla
-    updateMonitorSlaStat: async function(query) {
+    updateMonitorSlaStat: async function (query) {
         try {
             const _this = this;
             const currentDate = moment().format();
@@ -1458,7 +1501,7 @@ module.exports = {
         }
     },
 
-    calculateTime: async function(statuses, start, range) {
+    calculateTime: async function (statuses, start, range) {
         const timeBlock = [];
         let totalUptime = 0;
         let totalTime = 0;
@@ -1525,8 +1568,8 @@ module.exports = {
                 moment(a.start).isSame(b.start)
                     ? 0
                     : moment(a.start).isAfter(b.start)
-                    ? 1
-                    : -1
+                        ? 1
+                        : -1
             );
             //Third step
             for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
@@ -1662,7 +1705,7 @@ module.exports = {
         return { timeBlock, uptimePercent: (totalUptime / totalTime) * 100 };
     },
 
-    closeBreachedMonitorSla: async function(projectId, monitorId, userId) {
+    closeBreachedMonitorSla: async function (projectId, monitorId, userId) {
         try {
             const monitor = await MonitorModel.findOneAndUpdate(
                 {
@@ -1684,7 +1727,7 @@ module.exports = {
         }
     },
 
-    changeMonitorComponent: async function(projectId, monitorId, componentId) {
+    changeMonitorComponent: async function (projectId, monitorId, componentId) {
         const [monitor, component] = await Promise.all([
             this.findOneBy({ query: { _id: monitorId }, select: 'projectId' }),
             componentService.findOneBy({
@@ -1710,7 +1753,7 @@ module.exports = {
         return updatedMonitor;
     },
 
-    calcTime: async function(statuses, start, range) {
+    calcTime: async function (statuses, start, range) {
         const timeBlock = [];
         let totalUptime = 0;
         let totalTime = 0;
@@ -1801,8 +1844,8 @@ module.exports = {
                 moment(a.start).isSame(b.start)
                     ? 0
                     : moment(a.start).isAfter(b.start)
-                    ? 1
-                    : -1
+                        ? 1
+                        : -1
             );
             //Third step
             for (let i = 0; i < incidentsHappenedDuringTheDay.length - 1; i++) {
