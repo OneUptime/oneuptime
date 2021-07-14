@@ -250,6 +250,17 @@ module.exports = {
         );
     },
 
+    updateManyMonitorSla: async function(monitorIds, monitorSlaId) {
+        await MonitorModel.updateMany(
+            {
+                _id: { $in: monitorIds },
+            },
+            {
+                $set: { monitorSla: monitorSlaId },
+            }
+        );
+    },
+
     updateCriterion: async function(_id, lastMatchedCriterion) {
         await MonitorModel.updateOne(
             { _id },
