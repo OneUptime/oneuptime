@@ -22,7 +22,7 @@ type LoggerResponse struct {
 	ID                 string `json:"_id"`
 	Deleted            bool
 	CreatedAt          string
-	Content            string
+	Content            interface{}
 	StringifiedContent string
 	Type               string
 	CreatedBy          string
