@@ -208,16 +208,19 @@ module.exports = {
     saveMonitorLog: async function(data) {
         try {
             const _this = this;
+
             const monitorStatus = await MonitorStatusService.findOneBy({
                 monitorId: data.monitorId,
                 probeId: data.probeId,
             });
+
             const lastStatus =
                 monitorStatus && monitorStatus.status
                     ? monitorStatus.status
                     : null;
 
             let log = await MonitorLogService.create(data);
+
             if (!data.stopPingTimeUpdate) {
                 await MonitorService.updateMonitorPingTime(data.monitorId);
             }
@@ -346,6 +349,7 @@ module.exports = {
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
                 { path: 'probes.probeId', select: 'name _id' },
             ];
+
             const select =
                 'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
@@ -627,6 +631,7 @@ module.exports = {
                     select: '_id probeId updatedAt status reportedStatus',
                 },
             ];
+
             const select = '_id acknowledged criterionCause probes';
 
             const incidents = await IncidentService.findBy({
@@ -1232,20 +1237,14 @@ module.exports = {
             logData.response = null;
             logData.stopPingTimeUpdate = true;
             logData.matchedCriterion = matchedCriterion;
-            // update monitor to save the last matched criterion
 
+            // update monitor to save the last matched criterion
             const [, log] = await Promise.all([
-                MonitorService.updateOneBy(
-                    {
-                        _id: monitor._id,
-                    },
-                    {
-                        lastMatchedCriterion: matchedCriterion,
-                    }
-                ),
+                MonitorService.updateCriterion(monitor._id, matchedCriterion),
+
                 _this.saveMonitorLog(logData),
             ]);
-            
+
             return log;
         } catch (error) {
             ErrorService.log('monitorService.probeHttpRequest', error);

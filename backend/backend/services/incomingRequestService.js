@@ -561,13 +561,17 @@ module.exports = {
             const filterMatch = incomingRequest.filterMatch;
             const filters = incomingRequest.filters;
 
-            if(incomingRequest && incomingRequest.enabled === false){
-                return{
-                    status: 'disabled'
-                }
+            if (incomingRequest && incomingRequest.enabled === false) {
+                return {
+                    status: 'disabled',
+                };
             }
 
-            if (incomingRequest && incomingRequest.createIncident && incomingRequest.enabled) {
+            if (
+                incomingRequest &&
+                incomingRequest.createIncident &&
+                incomingRequest.enabled
+            ) {
                 const incidentResponse = [],
                     monitorsWithIncident = [];
 
@@ -931,7 +935,8 @@ module.exports = {
             }
 
             if (
-                incomingRequest && incomingRequest.enabled &&
+                incomingRequest &&
+                incomingRequest.enabled &&
                 (incomingRequest.updateIncidentNote ||
                     incomingRequest.updateInternalNote)
             ) {
@@ -1407,7 +1412,8 @@ module.exports = {
             }
 
             if (
-                incomingRequest && incomingRequest.enabled &&
+                incomingRequest &&
+                incomingRequest.enabled &&
                 (incomingRequest.acknowledgeIncident ||
                     incomingRequest.resolveIncident)
             ) {

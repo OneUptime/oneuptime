@@ -22,7 +22,7 @@ const monitorLogByWeekSchema = new Schema({
         type: Date,
         default: Date.now,
     },
-    intervalDate: String, // date of aggregate data (week)
+    intervalDate: { type: String, index: true }, // date of aggregate data (week)
     maxResponseTime: Number,
     maxCpuLoad: Number,
     maxMemoryUsed: Number,

@@ -393,7 +393,7 @@ module.exports = {
             const escalations = await Promise.all(
                 escalationIds.map(async escalationId => {
                     return await EscalationService.findOneBy({
-                        _id: escalationId._id,
+                        _id: escalationId,
                     });
                 })
             );
@@ -427,7 +427,7 @@ module.exports = {
                 select: '_id escalationIds',
             });
 
-            scheduleIds = scheduleIds.escalationIds.map(i => i._id.toString());
+            scheduleIds = scheduleIds.escalationIds.map(i => i.toString());
             escalationIds = escalationIds.map(i => i.toString());
 
             scheduleIds.map(async id => {
