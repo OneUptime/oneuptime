@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -12,12 +12,16 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-            const users = await UserModel.find(query)
+            let userQuery = UserModel.find(query)
                 .lean()
-                .select('-password')
-                .sort([['lastActive', -1]])
                 .limit(limit)
-                .skip(skip);
+                .skip(skip)
+                .sort([['lastActive', -1]]);
+
+            userQuery = handleSelect(select, userQuery);
+            userQuery = handlePopulate(populate, userQuery);
+
+            const users = await userQuery;
             return users;
         } catch (error) {
             ErrorService.log('userService.findBy', error);
@@ -119,15 +123,21 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            const user = await UserModel.findOne(query)
+            let userQuery = UserModel.findOne(query)
                 .lean()
                 .sort([['createdAt', -1]]);
+
+            userQuery = handleSelect(select, userQuery);
+            userQuery = handlePopulate(populate, userQuery);
+
+            const user = await userQuery;
+
             if ((user && !IS_SAAS_SERVICE) || user) {
                 // find user subprojects and parent projects
                 let userProjects = await ProjectService.findBy({
