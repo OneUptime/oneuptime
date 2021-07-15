@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -13,7 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const ssos = await SsoModel.find(query, {
+            let ssosQuery = SsoModel.find(query, {
                 _id: 1,
                 domain: 1,
                 createdAt: 1,
@@ -22,6 +22,11 @@ module.exports = {
                 .sort([['createdAt', -1]])
                 .skip(skip)
                 .limit(limit);
+
+            ssosQuery = handleSelect(select, ssosQuery);
+            ssosQuery = handlePopulate(populate, ssosQuery);
+
+            const ssos = await ssosQuery;
             return ssos;
         } catch (error) {
             ErrorService.log('ssoService.findBy', error);
@@ -105,7 +110,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
@@ -114,7 +119,13 @@ module.exports = {
             if (!query.deleted) {
                 query.deleted = false;
             }
-            const sso = await SsoModel.findOne(query).lean();
+            let ssoQuery = await SsoModel.findOne(query).lean();
+
+            ssoQuery = handleSelect(select, ssoQuery);
+            ssoQuery = handlePopulate(populate, ssoQuery);
+
+            const sso = await ssoQuery;
+
             return sso;
         } catch (error) {
             ErrorService.log('ssoService.findOneBy', error);
@@ -135,7 +146,10 @@ module.exports = {
             await SsoModel.updateMany(query, {
                 $set: data,
             });
-            const sso = await this.findBy(query);
+
+            const selectSso =
+                '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById';
+            const sso = await this.findBy({ query, select: selectSso });
             return sso;
         } catch (error) {
             ErrorService.log('ssoService.updateBy', error);
@@ -178,3 +192,5 @@ module.exports = {
 const SsoModel = require('../models/sso');
 const SsoDefaultRolesService = require('./ssoDefaultRolesService');
 const ErrorService = require('./errorService');
+const handlePopulate = require('../utils/populate');
+const handleSelect = require('../utils/select');

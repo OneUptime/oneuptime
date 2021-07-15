@@ -94,7 +94,10 @@ module.exports = {
         const { domain, project } = data;
         const query = { domain, project };
 
-        const sso = await SsoService.findOneBy({ _id: domain });
+        const sso = await SsoService.findOneBy({
+            query: { _id: domain },
+            select: '_id',
+        });
         if (!sso) {
             const error = new Error("Domain doesn't exist.");
             error.code = 400;
