@@ -84,7 +84,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
             if (!limit) limit = 10;
@@ -101,14 +101,17 @@ module.exports = {
             }
 
             query.deleted = false;
-            const subscribers = await SubscriberModel.find(query)
+
+            let subscriberQuery = SubscriberModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId')
-                .populate('monitorId', 'name')
-                .populate('statusPageId');
+                .skip(skip);
+
+            subscriberQuery = handleSelect(select, subscriberQuery);
+            subscriberQuery = handlePopulate(populate, subscriberQuery);
+
+            const subscribers = await subscriberQuery;
 
             const subscribersArr = [];
             for (const result of subscribers) {
@@ -298,18 +301,21 @@ module.exports = {
         return existingSubscriber !== null;
     },
 
-    findByOne: async function(query) {
+    findByOne: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
             query.deleted = false;
-            const subscriber = await SubscriberModel.findOne(query)
-                .lean()
-                .sort([['createdAt', -1]])
-                .populate('projectId', 'name')
-                .populate('monitorId', 'name');
 
+            let subscriberQuery = SubscriberModel.findOne(query)
+                .lean()
+                .sort([['createdAt', -1]]);
+
+            subscriberQuery = handleSelect(select, subscriberQuery);
+            subscriberQuery = handlePopulate(populate, subscriberQuery);
+
+            const subscriber = await subscriberQuery;
             return subscriber;
         } catch (error) {
             ErrorService.log('SubscriberService.findByOne', error);
