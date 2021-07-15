@@ -5,7 +5,7 @@
  */
 
 module.exports = {
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -18,14 +18,16 @@ module.exports = {
             if (!query) query = {};
 
             query.deleted = false;
-            const statusPages = await StatusPageModel.find(query)
+            let statusPagesQuery = StatusPageModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('projectId')
-                .populate('domains.domainVerificationToken')
-                .populate('monitors.monitor', 'name')
                 .lean();
+
+            statusPagesQuery = handleSelect(select, statusPagesQuery);
+            statusPagesQuery = handlePopulate(populate, statusPagesQuery);
+
+            const statusPages = await statusPagesQuery;
             return statusPages;
         } catch (error) {
             ErrorService.log('statusPageService.findBy', error);
@@ -36,13 +38,14 @@ module.exports = {
     create: async function(data) {
         try {
             let existingStatusPage = null;
+
             if (data.name) {
-                existingStatusPage = await this.findBy({
+                existingStatusPage = await this.countBy({
                     name: data.name,
                     projectId: data.projectId,
                 });
             }
-            if (existingStatusPage && existingStatusPage.length > 0) {
+            if (existingStatusPage && existingStatusPage > 0) {
                 const error = new Error(
                     'StatusPage with that name already exists.'
                 );
@@ -76,8 +79,23 @@ module.exports = {
             }
 
             const statusPage = await statusPageModel.save();
+
+            const populateStatusPage = [
+                { path: 'projectId', select: 'parentProjectId' },
+                { path: 'monitorIds', select: 'name' },
+                { path: 'monitors.monitor', select: 'name' },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
             const newStatusPage = await this.findOneBy({
                 _id: statusPage._id,
+                populate: populateStatusPage,
+                select: selectStatusPage,
             });
             return newStatusPage;
         } catch (error) {
@@ -116,8 +134,18 @@ module.exports = {
                     creationData
                 );
             }
+
+            const populateStatusPage = [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+
             const statusPage = await this.findOneBy({
-                _id: statusPageId,
+                query: { _id: statusPageId },
+                populate: populateStatusPage,
+                select: 'domains',
             });
 
             if (statusPage) {
@@ -192,10 +220,21 @@ module.exports = {
     updateCustomDomain: async function(domainId, newDomain, oldDomain) {
         const _this = this;
         try {
-            const statusPages = await _this.findBy({
-                domains: {
-                    $elemMatch: { domainVerificationToken: domainId },
+            const populateStatusPage = [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
                 },
+            ];
+
+            const statusPages = await _this.findBy({
+                query: {
+                    domains: {
+                        $elemMatch: { domainVerificationToken: domainId },
+                    },
+                },
+                populate: populateStatusPage,
+                select: '_id domains',
             });
 
             for (const statusPage of statusPages) {
@@ -252,9 +291,17 @@ module.exports = {
                     creationData
                 );
             }
+            const populateStatusPage = [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
 
             const statusPage = await this.findOneBy({
-                _id: statusPageId,
+                query: { _id: statusPageId },
+                populate: populateStatusPage,
+                select: 'domains',
             });
 
             if (!statusPage) {
@@ -337,8 +384,16 @@ module.exports = {
 
     deleteDomain: async function(statusPageId, domainId) {
         try {
+            const populateStatusPage = [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
             const statusPage = await this.findOneBy({
-                _id: statusPageId,
+                query: { _id: statusPageId },
+                populate: populateStatusPage,
+                select: 'domain',
             });
 
             if (!statusPage) {
@@ -453,8 +508,19 @@ module.exports = {
 
     removeMonitor: async function(monitorId) {
         try {
+            const populateStatusPage = [
+                {
+                    path: 'monitors.monitor',
+                    select: '_id name',
+                },
+            ];
+
+            const selectStatusPage = 'monitors';
+
             const statusPages = await this.findBy({
-                'monitors.monitor': monitorId,
+                query: { 'monitors.monitor': monitorId },
+                select: selectStatusPage,
+                populate: populateStatusPage,
             });
             for (const statusPage of statusPages) {
                 const monitors = statusPage.monitors.filter(
@@ -477,20 +543,21 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const statusPage = await StatusPageModel.findOne(query)
+            let statusPageQuery = StatusPageModel.findOne(query)
                 .lean()
-                .sort([['createdAt', -1]])
-                .populate('projectId')
-                .populate('monitorIds', 'name')
-                .populate('domains.domainVerificationToken')
-                .populate('monitors.monitor', 'name');
+                .sort([['createdAt', -1]]);
+
+            statusPageQuery = handleSelect(select, statusPageQuery);
+            statusPageQuery = handlePopulate(populate, statusPageQuery);
+
+            const statusPage = await statusPageQuery;
             return statusPage;
         } catch (error) {
             ErrorService.log('statusPageService.findOneBy', error);
@@ -501,9 +568,12 @@ module.exports = {
     updateOneBy: async function(query, data) {
         try {
             const existingStatusPage = await this.findBy({
-                name: data.name,
-                projectId: data.projectId,
-                _id: { $not: { $eq: data._id } },
+                query: {
+                    name: data.name,
+                    projectId: data.projectId,
+                    _id: { $not: { $eq: data._id } },
+                },
+                select: 'slug',
             });
             if (existingStatusPage && existingStatusPage.length > 0) {
                 const error = new Error(
@@ -532,8 +602,24 @@ module.exports = {
                     new: true,
                 }
             );
+
+            const populateStatusPage = [
+                { path: 'projectId', select: 'parentProjectId' },
+                { path: 'monitorIds', select: 'name' },
+                { path: 'monitors.monitor', select: 'name' },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
             updatedStatusPage = await this.findOneBy({
-                _id: updatedStatusPage._id,
+                query: { _id: updatedStatusPage._id },
+                populate: populateStatusPage,
+                select: selectStatusPage,
             });
             return updatedStatusPage;
         } catch (error) {
@@ -552,7 +638,31 @@ module.exports = {
             let updatedData = await StatusPageModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+
+            const populateStatusPage = [
+                {
+                    path: 'projectId',
+                    select: 'name parentProjectId',
+                    populate: { path: 'parentProjectId', select: '_id' },
+                },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+            ];
+
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
+            updatedData = await this.findBy({
+                query,
+                populate: populateStatusPage,
+                select: selectStatusPage,
+            });
             return updatedData;
         } catch (error) {
             ErrorService.log('statusPageService.updateMany', error);
@@ -573,7 +683,19 @@ module.exports = {
             if (typeof limit === 'string') limit = parseInt(limit);
 
             if (!query) query = {};
-            const statuspages = await _this.findBy(query, 0, limit);
+
+            const statuspages = await _this.findBy({
+                query,
+                skip: 0,
+                limit,
+                select: 'hideResolvedIncident monitors',
+                populate: [
+                    {
+                        path: 'monitors.monitor',
+                        select: 'name',
+                    },
+                ],
+            });
             const checkHideResolved = statuspages[0].hideResolvedIncident;
             let option = {};
             if (checkHideResolved) {
@@ -784,7 +906,18 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
-            const statuspages = await _this.findBy(query, 0, limit);
+            const statuspages = await _this.findBy({
+                query,
+                skip: 0,
+                limit,
+                select: 'monitors',
+                populate: [
+                    {
+                        path: 'monitors.monitor',
+                        select: 'name',
+                    },
+                ],
+            });
 
             const withMonitors = statuspages.filter(
                 statusPage => statusPage.monitors.length
@@ -880,7 +1013,18 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
-            const statuspages = await _this.findBy(query, 0, limit);
+            const statuspages = await _this.findBy({
+                query,
+                skip: 0,
+                limit,
+                select: 'monitors',
+                populate: [
+                    {
+                        path: 'monitors.monitor',
+                        select: 'name',
+                    },
+                ],
+            });
 
             const withMonitors = statuspages.filter(
                 statusPage => statusPage.monitors.length
@@ -973,7 +1117,18 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
-            const statuspages = await _this.findBy(query, 0, limit);
+            const statuspages = await _this.findBy({
+                query,
+                skip: 0,
+                limit,
+                select: 'monitors',
+                populate: [
+                    {
+                        path: 'monitors.monitor',
+                        select: '_id name',
+                    },
+                ],
+            });
 
             const withMonitors = statuspages.filter(
                 statusPage => statusPage.monitors.length
@@ -1162,7 +1317,7 @@ module.exports = {
         }
     },
 
-    getStatusPage: async function(query, userId) {
+    getStatusPage: async function({ query, userId, populate, select }) {
         try {
             const thisObj = this;
             if (!query) {
@@ -1171,13 +1326,14 @@ module.exports = {
 
             query.deleted = false;
 
-            const statusPages = await StatusPageModel.find(query)
+            let statusPagesQuery = StatusPageModel.find(query)
                 .sort([['createdAt', -1]])
-                .populate('projectId')
-                .populate('monitorIds', 'name')
-                .populate('domains.domainVerificationToken')
-                .populate('monitors.monitor', 'name')
                 .lean();
+
+            statusPagesQuery = handleSelect(select, statusPagesQuery);
+            statusPagesQuery = handlePopulate(populate, statusPagesQuery);
+
+            const statusPages = await statusPagesQuery;
 
             let statusPage = null;
 
@@ -1274,7 +1430,17 @@ module.exports = {
             const _this = this;
 
             if (!query) query = {};
-            const statuspages = await _this.findBy(query);
+
+            const statuspages = await _this.findBy({
+                query,
+                select: 'monitors',
+                populate: [
+                    {
+                        path: 'monitors.monitor',
+                        select: 'name',
+                    },
+                ],
+            });
 
             const withMonitors = statuspages.filter(
                 statusPage => statusPage.monitors.length
@@ -1364,13 +1530,35 @@ module.exports = {
 
     getSubProjectStatusPages: async function(subProjectIds) {
         const _this = this;
+
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
         const subProjectStatusPages = await Promise.all(
             subProjectIds.map(async id => {
-                const statusPages = await _this.findBy(
-                    { projectId: id },
-                    0,
-                    10
-                );
+                const statusPages = await _this.findBy({
+                    query: { projectId: id },
+                    skip: 0,
+                    limit: 10,
+                    select: selectStatusPage,
+                    populate: populateStatusPage,
+                });
                 const count = await _this.countBy({ projectId: id });
                 return { statusPages, count, _id: id, skip: 0, limit: 10 };
             })
@@ -1391,7 +1579,31 @@ module.exports = {
     restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
-        const statusPage = await _this.findBy(query);
+
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
+        const statusPage = await _this.findBy({
+            query,
+            populate: populateStatusPage,
+            select: selectStatusPage,
+        });
         if (statusPage && statusPage.length > 1) {
             const statusPages = await Promise.all(
                 statusPage.map(async statusPage => {
@@ -1496,11 +1708,11 @@ module.exports = {
     doesDomainExist: async function(domain) {
         const _this = this;
         try {
-            const statusPage = await _this.findOneBy({
+            const statusPage = await _this.countBy({
                 domains: { $elemMatch: { domain } },
             });
 
-            if (!statusPage) return false;
+            if (!statusPage || statusPage === 0) return false;
 
             return true;
         } catch (error) {
@@ -1894,3 +2106,6 @@ const CertificateStoreService = require('./certificateStoreService');
 const AnnouncementModel = require('../models/announcements');
 const getSlug = require('../utils/getSlug');
 const AnnouncementLogModel = require('../models/announcementLogs');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
+const select = require('../utils/select');
