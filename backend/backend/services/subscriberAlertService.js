@@ -86,7 +86,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -105,17 +105,20 @@ module.exports = {
             }
 
             query.deleted = false;
-            const subscriberAlerts = await SubscriberAlertModel.find(query)
+
+            let subscriberAlertQuery = SubscriberAlertModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId', 'name')
-                .populate(
-                    'subscriberId',
-                    'name contactEmail contactPhone contactWebhook countryCode'
-                )
-                .populate('incidentId', 'name');
+                .skip(skip);
+
+            subscriberAlertQuery = handleSelect(select, subscriberAlertQuery);
+            subscriberAlertQuery = handlePopulate(
+                populate,
+                subscriberAlertQuery
+            );
+
+            const subscriberAlerts = await subscriberAlertQuery;
             return subscriberAlerts;
         } catch (error) {
             ErrorService.log('SubscriberAlertService.findBy', error);
@@ -123,19 +126,25 @@ module.exports = {
         }
     },
 
-    findByOne: async function(query) {
+    findByOne: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const subscriberAlert = await SubscriberAlertModel.find(query)
+
+            let subscriberAlertQuery = SubscriberAlertModel.find(query)
                 .lean()
-                .sort([['createdAt', -1]])
-                .populate('projectId', 'name')
-                .populate('subscriberId', 'name')
-                .populate('incidentId', 'name');
+                .sort([['createdAt', -1]]);
+
+            subscriberAlertQuery = handleSelect(select, subscriberAlertQuery);
+            subscriberAlertQuery = handlePopulate(
+                populate,
+                subscriberAlertQuery
+            );
+
+            const subscriberAlert = await subscriberAlertQuery;
             return subscriberAlert;
         } catch (error) {
             ErrorService.log('SubscriberAlertService.findByOne', error);
