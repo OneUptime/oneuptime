@@ -1283,6 +1283,39 @@ module.exports = {
 
                 if (incidents && incidents.length > 0) {
                     for (const incident of incidents) {
+                        const monitors = incident.monitors.map(
+                            monitorObj => monitorObj.monitorId
+                        );
+                        const monitorNames = monitors.map(
+                            monitor => monitor.name
+                        );
+                        const componentNames = [];
+                        monitors.forEach(monitor => {
+                            if (
+                                !componentNames.includes(
+                                    monitor.componentId.name
+                                )
+                            ) {
+                                componentNames.push(monitor.componentId.name);
+                            }
+                        });
+                        const dataConfig = {
+                            monitorName: joinNames(monitorNames),
+                            projectName: incomingRequest.projectId.name,
+                            componentName: joinNames(componentNames),
+                            request: data.request,
+                        };
+
+                        // update the data with actual values (only for templates)
+                        data.content = analyseVariable(
+                            data.content,
+                            dataConfig
+                        );
+                        data.incident_state = analyseVariable(
+                            data.incident_state,
+                            dataConfig
+                        );
+
                         data.incidentId = incident._id;
                         if (!incidentsWithNote.includes(String(incident._id))) {
                             data.monitors = incident.monitors.map(
@@ -1840,26 +1873,41 @@ function isArrayUnique(myArray) {
 // it should work as expected and return the value
 function analyseVariable(variable, data) {
     try {
-        const regex = /[^{{]+(?=}\})/;
-        let temp = variable.match(regex);
-        if (!temp) {
+        const matchRegex = /[^{{]+(?=}\})/g;
+        const replaceRegex = /\{\{([^}]+)\}\}/g;
+
+        const matched = variable.match(matchRegex);
+        if (!matched || matched.length === 0) {
             // handles the part where variable is passed without double curly braces
-            // temp = variable;
             return variable;
-        } else {
-            temp = temp[0];
         }
 
         let ctx = Object.create(null); // fix against prototype vulnerability
         ctx = { ...data };
 
-        const output = vm.runInNewContext(temp, ctx);
-        if (!output) {
+        const processedValues = matched.map(item =>
+            vm.runInNewContext(item, ctx)
+        );
+
+        if (!processedValues || processedValues.length === 0) {
             // empty value means that the probable value(s) are not available in the data object
             // therefore return the original variable back
             return variable;
         }
-        return output;
+
+        // remove any double currly braces from variable
+        variable = variable.replace(replaceRegex, function(match) {
+            match = match.slice(2, -2);
+            return match;
+        });
+
+        // replace variable with processedValues
+        let currentValue = variable;
+        matched.forEach((item, index) => {
+            currentValue = currentValue.replace(item, processedValues[index]);
+        });
+
+        return currentValue;
     } catch (error) {
         // at this point it was unable to resolve this
         // return the variable back
