@@ -1283,6 +1283,39 @@ module.exports = {
 
                 if (incidents && incidents.length > 0) {
                     for (const incident of incidents) {
+                        const monitors = incident.monitors.map(
+                            monitorObj => monitorObj.monitorId
+                        );
+                        const monitorNames = monitors.map(
+                            monitor => monitor.name
+                        );
+                        const componentNames = [];
+                        monitors.forEach(monitor => {
+                            if (
+                                !componentNames.includes(
+                                    monitor.componentId.name
+                                )
+                            ) {
+                                componentNames.push(monitor.componentId.name);
+                            }
+                        });
+                        const dataConfig = {
+                            monitorName: joinNames(monitorNames),
+                            projectName: incomingRequest.projectId.name,
+                            componentName: joinNames(componentNames),
+                            request: data.request,
+                        };
+
+                        // update the data with actual values (only for templates)
+                        data.content = analyseVariable(
+                            data.content,
+                            dataConfig
+                        );
+                        data.incident_state = analyseVariable(
+                            data.incident_state,
+                            dataConfig
+                        );
+
                         data.incidentId = incident._id;
                         if (!incidentsWithNote.includes(String(incident._id))) {
                             data.monitors = incident.monitors.map(
