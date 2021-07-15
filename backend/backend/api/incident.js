@@ -612,7 +612,7 @@ router.post(
             const userId = req.user ? req.user.id : null;
             const projectId = req.params.projectId;
 
-            const incident = IncidentService.resolve(
+            const incident = await IncidentService.resolve(
                 req.params.incidentId,
                 userId
             );
@@ -937,7 +937,8 @@ router.post(
                         AlertService.sendInvestigationNoteToSubscribers(
                             incident,
                             data,
-                            'created'
+                            'created',
+                            projectId
                         );
                     }
                 } else {
@@ -963,7 +964,8 @@ router.post(
                         AlertService.sendInvestigationNoteToSubscribers(
                             incident,
                             data,
-                            'updated'
+                            'updated',
+                            projectId
                         );
                     }
                 }

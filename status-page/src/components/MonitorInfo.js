@@ -160,7 +160,7 @@ class MonitorInfo extends Component {
             ? degradedText
             : offlineText;
     };
-/* eslint-disable */
+
     render() {
         const {
             monitorState,

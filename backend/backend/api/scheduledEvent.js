@@ -298,16 +298,11 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
         }
 
         if (fetchEvent && !fetchEvent.monitorDuringEvent) {
-            for (const monitor of fetchEvent.monitors) {
-                await MonitorService.updateOneBy(
-                    {
-                        _id: monitor.monitorId._id || monitor.monitorId,
-                    },
-                    {
-                        shouldNotMonitor: false,
-                    }
-                );
-            }
+            await MonitorService.markMonitorsAsShouldMonitor(
+                fetchEvent.monitors.map(monitor => {
+                    return monitor.monitorId._id || monitor.monitorId;
+                })
+            );
         }
 
         const event = await ScheduledEventService.updateBy(

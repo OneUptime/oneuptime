@@ -429,7 +429,11 @@ function AlertTableRows({ alerts }) {
                   className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink"
               >
                   <TD1
-                      text={alert.userId ? alert.userId.name : null}
+                      text={
+                          alert.userId
+                              ? alert.userId.name || alert.userId.email
+                              : null
+                      }
                       alertId={
                           alert.userId && alert.userId._id
                               ? alert.userId._id

@@ -141,9 +141,27 @@ router.get(
     async (req, res) => {
         try {
             const { applicationSecurityId } = req.params;
+
+            const populateApplicationSecurity = [
+                { path: 'componentId', select: '_id slug name slug' },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             const applicationSecurity = await ApplicationSecurityService.findOneBy(
                 {
-                    _id: applicationSecurityId,
+                    query: {
+                        _id: applicationSecurityId,
+                    },
+                    select: selectApplicationSecurity,
+                    populate: populateApplicationSecurity,
                 }
             );
 
@@ -172,9 +190,27 @@ router.get(
     async (req, res) => {
         try {
             const { applicationSecuritySlug } = req.params;
+
+            const populateApplicationSecurity = [
+                { path: 'componentId', select: '_id slug name slug' },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             const applicationSecurity = await ApplicationSecurityService.findOneBy(
                 {
-                    slug: applicationSecuritySlug,
+                    query: {
+                        slug: applicationSecuritySlug,
+                    },
+                    select: selectApplicationSecurity,
+                    populate: populateApplicationSecurity,
                 }
             );
 
@@ -203,9 +239,26 @@ router.get(
     async (req, res) => {
         try {
             const { componentId } = req.params;
+            const populateApplicationSecurity = [
+                { path: 'componentId', select: '_id slug name slug' },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             const applicationSecurities = await ApplicationSecurityService.findBy(
                 {
-                    componentId,
+                    query: {
+                        componentId,
+                    },
+                    select: selectApplicationSecurity,
+                    populate: populateApplicationSecurity,
                 }
             );
 
@@ -271,8 +324,26 @@ router.get(
     async (req, res) => {
         try {
             const { credentialId } = req.params;
+            const populateApplicationSecurity = [
+                {
+                    path: 'componentId',
+                    select: '_id slug name slug',
+                },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             const response = await ApplicationSecurityService.findBy({
-                gitCredential: credentialId,
+                query: { gitCredential: credentialId },
+                select: selectApplicationSecurity,
+                populate: populateApplicationSecurity,
             });
 
             return sendItemResponse(req, res, response);
@@ -294,7 +365,7 @@ router.post(
         try {
             const { applicationSecurityId } = req.params;
             const applicationSecurity = await ApplicationSecurityService.findOneBy(
-                { _id: applicationSecurityId }
+                { query: { _id: applicationSecurityId }, select: '_id' }
             );
             if (!applicationSecurity) {
                 const error = new Error(

@@ -203,10 +203,122 @@ module.exports = {
         }
     },
 
+    markMonitorsAsShouldNotMonitor: async function(monitorIds) {
+        await MonitorModel.updateMany(
+            {
+                _id: { $in: monitorIds },
+            },
+            {
+                $set: { shouldNotMonitor: true },
+            }
+        );
+    },
+
+    markMonitorsAsShouldMonitor: async function(monitorIds) {
+        await MonitorModel.updateMany(
+            {
+                _id: { $in: monitorIds },
+            },
+            {
+                $set: { shouldNotMonitor: false },
+            }
+        );
+    },
+
+    unsetColumnsOfManyMonitors: async function(monitorIds, columns) {
+        await MonitorModel.updateMany(
+            {
+                _id: { $in: monitorIds },
+            },
+            {
+                $unset: { ...columns },
+            }
+        );
+    },
+
+    updateManyIncidentCommunicationSla: async function(
+        monitorIds,
+        incidentCommunicationSlaId
+    ) {
+        await MonitorModel.updateMany(
+            {
+                _id: { $in: monitorIds },
+            },
+            {
+                $set: { incidentCommunicationSla: incidentCommunicationSlaId },
+            }
+        );
+    },
+
+    updateManyMonitorSla: async function(monitorIds, monitorSlaId) {
+        await MonitorModel.updateMany(
+            {
+                _id: { $in: monitorIds },
+            },
+            {
+                $set: { monitorSla: monitorSlaId },
+            }
+        );
+    },
+
     updateCriterion: async function(_id, lastMatchedCriterion) {
-        await MonitorModel.findOneAndUpdate(
+        await MonitorModel.updateOne(
             { _id },
             { $set: { lastMatchedCriterion } },
+            {
+                new: true,
+            }
+        );
+    },
+
+    updateLighthouseScanStatus: async function(
+        _id,
+        lighthouseScanStatus,
+        lighthouseScannedBy
+    ) {
+        const updateData = {};
+
+        if (lighthouseScanStatus !== 'scanning') {
+            updateData.lighthouseScannedAt = Date.now();
+            updateData.lighthouseScannedBy = lighthouseScannedBy;
+        } else {
+            updateData.fetchLightHouse = null;
+        }
+
+        await MonitorModel.updateOne(
+            { _id },
+            {
+                $set: {
+                    lighthouseScanStatus,
+                    ...updateData,
+                },
+            },
+            {
+                new: true,
+            }
+        );
+    },
+
+    disableMonitor: async function(_id) {
+        await MonitorModel.updateOne(
+            { _id },
+            {
+                $set: {
+                    disabled: true,
+                },
+            }
+        );
+    },
+
+    updateScriptStatus: async function(_id, scriptRunStatus, scriptRunBy) {
+        await MonitorModel.updateOne(
+            { _id },
+            {
+                $set: {
+                    scriptRunStatus,
+                    scriptRunBy,
+                },
+            },
             {
                 new: true,
             }
@@ -265,7 +377,7 @@ module.exports = {
                 if (data.name) {
                     data.slug = getSlug(data.name);
                 }
-                await MonitorModel.findOneAndUpdate(
+                await MonitorModel.updateOne(
                     query,
                     { $set: data },
                     {
@@ -275,7 +387,7 @@ module.exports = {
             }
 
             if (unsetData) {
-                await MonitorModel.findOneAndUpdate(
+                await MonitorModel.updateOne(
                     query,
                     { $unset: unsetData },
                     {

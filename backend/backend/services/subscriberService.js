@@ -116,8 +116,10 @@ module.exports = {
                 temp._id = result._id;
                 temp.projectId = result.projectId._id;
                 temp.projectName = result.projectId.name;
-                temp.monitorId = result.monitorId._id;
-                temp.monitorName = result.monitorId.name;
+                temp.monitorId = result.monitorId ? result.monitorId._id : null;
+                temp.monitorName = result.monitorId
+                    ? result.monitorId.name
+                    : null;
                 temp.statusPageId = result.statusPageId
                     ? result.statusPageId._id
                     : null;
@@ -160,8 +162,10 @@ module.exports = {
                 temp._id = result._id;
                 temp.projectId = result.projectId._id;
                 temp.projectName = result.projectId.name;
-                temp.monitorId = result.monitorId._id;
-                temp.monitorName = result.monitorId.name;
+                temp.monitorId = result.monitorId ? result.monitorId._id : null;
+                temp.monitorName = result.monitorId
+                    ? result.monitorId.name
+                    : null;
                 temp.statusPageId = result.statusPageId
                     ? result.statusPageId._id
                     : null;
@@ -188,9 +192,14 @@ module.exports = {
     subscribe: async function(data, monitors) {
         try {
             const _this = this;
+            const populateStatusPage = [
+                { path: 'monitors.monitor', select: '_id' },
+            ];
             if (!monitors || (monitors && monitors.length < 1)) {
                 const statusPage = await StatusPageService.findOneBy({
-                    _id: data.statusPageId,
+                    query: { _id: data.statusPageId },
+                    select: 'monitors',
+                    populate: populateStatusPage,
                 });
                 monitors = statusPage.monitors.map(
                     monitorData => monitorData.monitor

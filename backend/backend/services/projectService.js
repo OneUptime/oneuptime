@@ -157,6 +157,25 @@ module.exports = {
                 const selectComponent =
                     '_id createdAt name createdById projectId slug componentCategoryId';
 
+                const populateStatusPage = [
+                    {
+                        path: 'projectId',
+                        select: 'name parentProjectId',
+                        populate: { path: 'parentProjectId', select: '_id' },
+                    },
+                    {
+                        path: 'domains.domainVerificationToken',
+                        select: 'domain verificationToken verified ',
+                    },
+                    {
+                        path: 'monitors.monitor',
+                        select: 'name',
+                    },
+                ];
+
+                const selectStatusPage =
+                    ' projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
                 const [
                     monitors,
                     schedules,
@@ -178,7 +197,9 @@ module.exports = {
                         projectId: project._id,
                     }),
                     StatusPageService.findBy({
-                        projectId: project._id,
+                        query: { projectId: project._id },
+                        select: selectStatusPage,
+                        populate: populateStatusPage,
                     }),
                     componentService.findBy({
                         query: { projectId: project._id },
@@ -307,8 +328,15 @@ module.exports = {
                 }
             );
             const populate = [{ path: 'parentProjectId', select: 'name' }];
-            const select =
-                '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+            const select = `_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes
+            sendCreatedIncidentNotificationSms sendAcknowledgedIncidentNotificationSms sendResolvedIncidentNotificationSms
+            sendCreatedIncidentNotificationEmail sendAcknowledgedIncidentNotificationEmail sendResolvedIncidentNotificationEmail
+            sendCreatedIncidentNotificationEmail sendAcknowledgedIncidentNotificationEmail sendResolvedIncidentNotificationEmail
+            enableInvestigationNoteNotificationSMS enableInvestigationNoteNotificationEmail sendAnnouncementNotificationSms
+            sendAnnouncementNotificationEmail sendCreatedScheduledEventNotificationSms sendCreatedScheduledEventNotificationEmail
+            sendScheduledEventResolvedNotificationSms sendScheduledEventResolvedNotificationEmail sendNewScheduledEventInvestigationNoteNotificationSms
+            sendNewScheduledEventInvestigationNoteNotificationEmail sendScheduledEventCancelledNotificationSms sendScheduledEventCancelledNotificationEmail
+            enableInvestigationNoteNotificationWebhook unpaidSubscriptionNotifications`; // All these are needed during state update
             updatedProject = await _this.findOneBy({
                 query: Object.assign({}, query, { deleted: { $ne: null } }),
                 select,

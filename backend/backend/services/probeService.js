@@ -1126,15 +1126,9 @@ module.exports = {
             logData.matchedDegradedCriterion =
                 monitor && monitor.criteria && monitor.criteria.degraded;
             // update monitor to save the last matched criterion
+
             const [, log] = await Promise.all([
-                MonitorService.updateOneBy(
-                    {
-                        _id: monitor._id,
-                    },
-                    {
-                        lastMatchedCriterion: matchedCriterion,
-                    }
-                ),
+                MonitorService.updateCriterion(monitor._id, matchedCriterion),
                 _this.saveMonitorLog(logData),
                 MonitorService.updateMonitorPingTime(monitor._id),
             ]);

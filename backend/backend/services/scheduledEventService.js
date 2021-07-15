@@ -33,17 +33,14 @@ module.exports = {
                 monitorId: monitor,
             }));
 
-            if (!data.monitorDuringEvent) {
-                for (const monitor of data.monitors) {
-                    await MonitorService.updateOneBy(
-                        {
-                            _id: monitor.monitorId,
-                        },
-                        {
-                            shouldNotMonitor: true,
-                        }
-                    );
-                }
+            if (
+                !data.monitorDuringEvent &&
+                data.monitors &&
+                data.monitors.length > 0
+            ) {
+                await MonitorService.markMonitorsAsShouldNotMonitor(
+                    data.monitors.map(i => i.monitorId)
+                );
             }
 
             data.projectId = projectId;
@@ -155,27 +152,13 @@ module.exports = {
             }));
 
             if (!data.monitorDuringEvent) {
-                for (const monitor of data.monitors) {
-                    await MonitorService.updateOneBy(
-                        {
-                            _id: monitor.monitorId,
-                        },
-                        {
-                            shouldNotMonitor: true,
-                        }
-                    );
-                }
+                await MonitorService.markMonitorsAsShouldNotMonitor(
+                    data.monitors.map(i => i.monitorId)
+                );
             } else {
-                for (const monitor of data.monitors) {
-                    await MonitorService.updateOneBy(
-                        {
-                            _id: monitor.monitorId,
-                        },
-                        {
-                            shouldNotMonitor: false,
-                        }
-                    );
-                }
+                await MonitorService.markMonitorsAsShouldMonitor(
+                    data.monitors.map(i => i.monitorId)
+                );
             }
 
             if (data && data.name) {
@@ -280,16 +263,11 @@ module.exports = {
             );
 
             if (scheduledEvent && !scheduledEvent.monitorDuringEvent) {
-                for (const monitor of scheduledEvent.monitors) {
-                    await MonitorService.updateOneBy(
-                        {
-                            _id: monitor.monitorId._id || monitor.monitorId,
-                        },
-                        {
-                            shouldNotMonitor: false,
-                        }
-                    );
-                }
+                await MonitorService.markMonitorsAsShouldMonitor(
+                    scheduledEvent.monitors.map(
+                        i => i.monitorId._id || i.monitorId
+                    )
+                );
             }
 
             if (!scheduledEvent) {
@@ -584,16 +562,11 @@ module.exports = {
                 resolvedScheduledEvent &&
                 !resolvedScheduledEvent.monitorDuringEvent
             ) {
-                for (const monitor of resolvedScheduledEvent.monitors) {
-                    await MonitorService.updateOneBy(
-                        {
-                            _id: monitor.monitorId._id || monitor.monitorId,
-                        },
-                        {
-                            shouldNotMonitor: false,
-                        }
-                    );
-                }
+                await MonitorService.markMonitorsAsShouldMonitor(
+                    resolvedScheduledEvent.monitors.map(monitor => {
+                        return monitor.monitorId._id || monitor.monitorId;
+                    })
+                );
             }
 
             if (resolvedScheduledEvent.recurring) {

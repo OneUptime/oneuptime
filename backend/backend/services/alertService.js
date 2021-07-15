@@ -453,7 +453,7 @@ module.exports = {
 
         const monitorPopulate = [{ path: 'componentId', select: 'name' }];
         const monitorSelect = '_id name data method componentId';
-        const [monitor, callScheduleStatuses, escalation] = await Promise.all([
+        const [monitor, callScheduleStatuses] = await Promise.all([
             MonitorService.findOneBy({
                 query: { _id: monitorId },
                 populate: monitorPopulate,
@@ -461,9 +461,6 @@ module.exports = {
             }),
             OnCallScheduleStatusService.findBy({
                 query: { incident: incident._id, schedule: schedule },
-            }),
-            EscalationService.findOneBy({
-                _id: escalationId,
             }),
         ]);
 
@@ -503,6 +500,9 @@ module.exports = {
                 ];
             escalationId = currentEscalationStatus.escalation._id;
         }
+        const escalation = await EscalationService.findOneBy({
+            _id: escalationId,
+        });
 
         let shouldSendSMSReminder = false;
         let shouldSendCallReminder = false;
@@ -1751,7 +1751,8 @@ module.exports = {
     sendInvestigationNoteToSubscribers: async function(
         incident,
         data,
-        statusNoteStatus
+        statusNoteStatus,
+        projectId
     ) {
         try {
             const _this = this;
@@ -1760,16 +1761,26 @@ module.exports = {
             const monitors = incident.monitors.map(
                 monitor => monitor.monitorId
             );
+            const monitorIds = monitors.map(monitor => monitor._id);
+            const subscribers = await SubscriberService.subscribersForAlert({
+                subscribed: true,
+                $or: [{ monitorId: { $in: monitorIds } }, { monitorId: null }],
+                projectId,
+            });
             for (const monitor of monitors) {
                 if (incident) {
-                    const monitorId = monitor._id;
-                    const subscribers = await SubscriberService.subscribersForAlert(
-                        {
-                            monitorId: monitorId,
-                            subscribed: true,
-                        }
-                    );
                     for (const subscriber of subscribers) {
+                        let statusPageSlug = null;
+                        if (subscriber.statusPageId) {
+                            const statusPage = await StatusPageService.findOneBy(
+                                {
+                                    _id: subscriber.statusPageId,
+                                }
+                            );
+                            statusPageSlug = statusPage
+                                ? statusPage.slug
+                                : null;
+                        }
                         await _this.sendSubscriberAlert(
                             subscriber,
                             incident,
@@ -1780,6 +1791,7 @@ module.exports = {
                                 incidentState: data.incident_state,
                                 noteType: data.incident_state,
                                 statusNoteStatus,
+                                statusPageSlug,
                             },
                             subscribers.length,
                             uuid,
@@ -1798,6 +1810,20 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+
+            const populateStatusPage = [
+                { path: 'projectId', select: 'parentProjectId' },
+                { path: 'monitorIds', select: 'name' },
+                { path: 'monitors.monitor', select: 'name' },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
             if (incident) {
                 const monitorId = monitor && monitor._id;
                 const subscribers = await SubscriberService.subscribersForAlert(
@@ -1811,8 +1837,12 @@ module.exports = {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
-                                _id: subscriber.statusPageId,
-                                isSubscriberEnabled: true,
+                                query: {
+                                    _id: subscriber.statusPageId,
+                                    isSubscriberEnabled: true,
+                                },
+                                populate: populateStatusPage,
+                                select: selectStatusPage,
                             }
                         );
                         if (enabledStatusPage) {
@@ -2493,6 +2523,19 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+            const populateStatusPage = [
+                { path: 'projectId', select: 'parentProjectId' },
+                { path: 'monitorIds', select: 'name' },
+                { path: 'monitors.monitor', select: 'name' },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
             if (incident) {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
@@ -2504,8 +2547,12 @@ module.exports = {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
-                                _id: subscriber.statusPageId,
-                                isSubscriberEnabled: true,
+                                query: {
+                                    _id: subscriber.statusPageId,
+                                    isSubscriberEnabled: true,
+                                },
+                                populate: populateStatusPage,
+                                select: selectStatusPage,
                             }
                         );
                         if (enabledStatusPage) {
@@ -2547,6 +2594,19 @@ module.exports = {
         try {
             const _this = this;
             const uuid = new Date().getTime();
+            const populateStatusPage = [
+                { path: 'projectId', select: 'parentProjectId' },
+                { path: 'monitorIds', select: 'name' },
+                { path: 'monitors.monitor', select: 'name' },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
             if (incident) {
                 const subscribers = await SubscriberService.subscribersForAlert(
                     {
@@ -2558,8 +2618,12 @@ module.exports = {
                     if (subscriber.statusPageId) {
                         const enabledStatusPage = await StatusPageService.findOneBy(
                             {
-                                _id: subscriber.statusPageId,
-                                isSubscriberEnabled: true,
+                                query: {
+                                    _id: subscriber.statusPageId,
+                                    isSubscriberEnabled: true,
+                                },
+                                select: selectStatusPage,
+                                populate: populateStatusPage,
                             }
                         );
                         if (enabledStatusPage) {
@@ -2602,7 +2666,13 @@ module.exports = {
         incident,
         templateType = 'Subscriber Incident Created',
         statusPage,
-        { note, incidentState, noteType, statusNoteStatus } = {},
+        {
+            note,
+            incidentState,
+            noteType,
+            statusNoteStatus,
+            statusPageSlug,
+        } = {},
         totalSubscribers,
         id,
         monitor
@@ -2651,7 +2721,6 @@ module.exports = {
                 select: selectComponent,
                 populate: populateComponent,
             });
-            const statusUrl = `${global.dashboardHost}/project/${monitor.projectId.slug}/incidents/${incident.idNumber}`;
 
             let statusPageUrl;
             if (statusPage) {
@@ -2668,6 +2737,11 @@ module.exports = {
                         statusPageUrl = `${domains[0].domain}/status-page/${statusPage._id}`;
                     }
                 }
+            }
+
+            let statusUrl;
+            if (statusPageSlug) {
+                statusUrl = `${global.statusHost}/status-page/${statusPageSlug}/incident/${incident.idNumber}`;
             }
 
             const monitorCustomFields = {},

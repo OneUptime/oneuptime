@@ -610,27 +610,21 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             if (data.lighthouseScanStatus) {
                 if (data.lighthouseScanStatus === 'scanning') {
                     await Promise.all([
-                        MonitorService.updateOneBy(
-                            { _id: data.monitorId },
-                            {
-                                lighthouseScanStatus: data.lighthouseScanStatus,
-                            },
-                            { fetchLightHouse: true }
+                        MonitorService.updateLighthouseScanStatus(
+                            data.monitorId,
+                            'scanning'
                         ),
                         LighthouseLogService.updateAllLighthouseLogs(
-                            data.monitor.projectId,
                             data.monitorId,
                             { scanning: true }
                         ),
                     ]);
                 } else {
-                    await MonitorService.updateOneBy(
-                        { _id: data.monitorId },
-                        {
-                            lighthouseScannedAt: Date.now(),
-                            lighthouseScanStatus: data.lighthouseScanStatus, // scanned || failed
-                            lighthouseScannedBy: data.probeId,
-                        }
+                    // when this is scanned success or failed.
+                    await MonitorService.updateLighthouseScanStatus(
+                        data.monitorId,
+                        data.lighthouseScanStatus,
+                        data.probeId
                     );
                 }
             } else {
@@ -650,12 +644,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     log = await ProbeService.saveMonitorLog(data);
 
                     if (type === 'script') {
-                        await MonitorService.updateBy(
-                            { _id: req.params.monitorId },
-                            {
-                                scriptRunStatus: 'completed',
-                                scriptRunBy: req.probe.id,
-                            }
+                        await MonitorService.updateScriptStatus(
+                            req.params.monitorId,
+                            'completed',
+                            req.probe.id
                         );
                     }
                 }

@@ -66,27 +66,21 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
         data.probeId = probeId ? probeId[0]._id : null;
 
         if (data.lighthouseScanStatus === 'scanning') {
-            await MonitorService.updateOneBy(
-                { _id: data.monitorId },
-                {
-                    lighthouseScanStatus: data.lighthouseScanStatus,
-                },
-                { fetchLightHouse: true }
-            );
-            await LighthouseLogService.updateAllLighthouseLogs(
-                data.monitor.projectId,
+            await MonitorService.updateLighthouseScanStatus(
                 data.monitorId,
-                { scanning: true }
+                data.lighthouseScanStatus
             );
+
+            await LighthouseLogService.updateAllLighthouseLogs(data.monitorId, {
+                scanning: true,
+            });
         } else {
-            await MonitorService.updateOneBy(
-                { _id: data.monitorId },
-                {
-                    lighthouseScannedAt: Date.now(),
-                    lighthouseScanStatus: data.lighthouseScanStatus, // scanned || failed
-                    lighthouseScannedBy: data.probeId,
-                }
+            await MonitorService.updateLighthouseScanStatus(
+                data.monitorId,
+                data.lighthouseScanStatus,
+                data.probeId
             );
+
             if (data.lighthouseData) {
                 // The scanned results are published
                 data.scanning = false;
