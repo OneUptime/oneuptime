@@ -321,7 +321,12 @@ router.get('/sso/login', async function(req, res) {
     const domain = matchedTokens[1];
 
     try {
-        const sso = await SsoService.findOneBy({ domain });
+        const selectSso = '_id saml-enabled remoteLoginUrl entityId';
+
+        const sso = await SsoService.findOneBy({
+            query: { domain },
+            select: selectSso,
+        });
         if (!sso) {
             return sendErrorResponse(req, res, {
                 code: 404,
@@ -376,7 +381,11 @@ router.post('/sso/callback', async function(req, res) {
     }
 
     const domain = matchedTokens[1];
-    const sso = await SsoService.findOneBy({ domain });
+
+    const sso = await SsoService.findOneBy({
+        query: { domain },
+        select: '_id samlSsoUrl entityId',
+    });
     if (!sso) {
         return sendErrorResponse(req, res, {
             code: 404,
@@ -389,7 +398,7 @@ router.post('/sso/callback', async function(req, res) {
     });
 
     const idp = new saml2.IdentityProvider({
-        sso_login_url: sso.amlSsoUrl,
+        sso_login_url: sso.samlSsoUrl,
     });
 
     sp.post_assert(idp, options, async function(err, saml_response) {
@@ -414,14 +423,18 @@ router.post('/sso/callback', async function(req, res) {
         }
 
         const domain = matchedTokens[1];
-        const sso = await SsoService.findOneBy({ domain });
+
+        const sso = await SsoService.findOneBy({
+            query: { domain },
+            select: '_id domain saml-enabled',
+        });
 
         if (!sso)
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'SSO not defined for the domain.',
             });
-
+        x;
         if (!sso['saml-enabled'])
             return sendErrorResponse(req, res, {
                 code: 401,
