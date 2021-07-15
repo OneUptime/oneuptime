@@ -14,7 +14,18 @@ module.exports = {
         subscriberModel.webhookMethod = data.webhookMethod || 'post';
         try {
             const subscriber = await subscriberModel.save();
-            return await _this.findByOne({ _id: subscriber._id });
+            const populate = [
+                { path: 'projectId', select: 'name _id' },
+                { path: 'monitorId', select: 'name _id' },
+                { path: 'statusPageId', select: 'name _id' },
+            ];
+            const select =
+                '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
+            return await _this.findByOne({
+                query: { _id: subscriber._id },
+                select,
+                populate,
+            });
         } catch (error) {
             ErrorService.log('subscriberService.create', error);
             throw error;
@@ -54,7 +65,15 @@ module.exports = {
             let updatedData = await SubscriberModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+
+            const populate = [
+                { path: 'projectId', select: 'name _id' },
+                { path: 'monitorId', select: 'name _id' },
+                { path: 'statusPageId', select: 'name _id' },
+            ];
+            const select =
+                '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
+            updatedData = await this.findBy({ query, select, populate });
             return updatedData;
         } catch (error) {
             ErrorService.log('subscriberService.updateMany', error);
@@ -226,9 +245,12 @@ module.exports = {
                 } else {
                     if (newSubscriber.alertVia === 'email') {
                         const subscriberExist = await _this.findByOne({
-                            monitorId: newSubscriber.monitorId,
-                            contactEmail: newSubscriber.contactEmail,
-                            subscribed: false,
+                            query: {
+                                monitorId: newSubscriber.monitorId,
+                                contactEmail: newSubscriber.contactEmail,
+                                subscribed: false,
+                            },
+                            select: '_id',
                         });
                         if (subscriberExist) {
                             return await _this.updateOneBy(
@@ -281,22 +303,25 @@ module.exports = {
     subscriberCheck: async function(subscriber) {
         const _this = this;
         const existingSubscriber = await _this.findByOne({
-            monitorId: subscriber.monitorId,
-            subscribed: true,
-            ...(subscriber.statusPageId && {
-                statusPageId: subscriber.statusPageId,
-            }),
-            ...(subscriber.alertVia === 'sms' && {
-                contactPhone: subscriber.contactPhone,
-                countryCode: subscriber.countryCode,
-            }),
-            ...(subscriber.alertVia === 'email' && {
-                contactEmail: subscriber.contactEmail,
-            }),
-            ...(subscriber.alertVia === 'webhook' && {
-                contactWebhook: subscriber.contactWebhook,
-                contactEmail: subscriber.contactEmail,
-            }),
+            query: {
+                monitorId: subscriber.monitorId,
+                subscribed: true,
+                ...(subscriber.statusPageId && {
+                    statusPageId: subscriber.statusPageId,
+                }),
+                ...(subscriber.alertVia === 'sms' && {
+                    contactPhone: subscriber.contactPhone,
+                    countryCode: subscriber.countryCode,
+                }),
+                ...(subscriber.alertVia === 'email' && {
+                    contactEmail: subscriber.contactEmail,
+                }),
+                ...(subscriber.alertVia === 'webhook' && {
+                    contactWebhook: subscriber.contactWebhook,
+                    contactEmail: subscriber.contactEmail,
+                }),
+            },
+            select: '_id',
         });
         return existingSubscriber !== null;
     },
@@ -361,7 +386,7 @@ module.exports = {
     restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
-        let subscriber = await _this.findBy(query);
+        let subscriber = await _this.findBy({ query, select: '_id' });
         if (subscriber && subscriber.length > 1) {
             const subscribers = await Promise.all(
                 subscriber.map(async subscriber => {
@@ -399,3 +424,5 @@ module.exports = {
 const SubscriberModel = require('../models/subscriber');
 const ErrorService = require('./errorService');
 const StatusPageService = require('./statusPageService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
