@@ -20,11 +20,12 @@ module.exports = {
 
             for (const monitor of monitors) {
                 try {
-                    if (monitor.type === 'api') {
-                        await ApiMonitors.ping(monitor);
-                    } else if (monitor.type === 'url') {
-                        await UrlMonitors.ping(monitor);
-                    } else if (monitor.type === 'ip') {
+                    // if (monitor.type === 'api') {
+                    //     await ApiMonitors.ping(monitor);
+                    // } else if (monitor.type === 'url') {
+                    //     await UrlMonitors.ping(monitor);
+                    // } else 
+                    if (monitor.type === 'ip') {
                         await IPMonitors.ping(monitor);
                     } else if (
                         monitor.type === 'server-monitor' &&
