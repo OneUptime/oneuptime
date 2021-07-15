@@ -238,7 +238,10 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         const [monitor, user] = await Promise.all([
             MonitorService.create(data),
-            UserService.findOneBy({ _id: req.user.id }),
+            UserService.findOneBy({
+                query: { _id: req.user.id },
+                select: 'name _id',
+            }),
         ]);
 
         if (data.callScheduleIds && data.callScheduleIds.length) {
@@ -394,6 +397,7 @@ router.put(
             if (!data.resourceCategory || data.resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
             }
+
             const monitor = await MonitorService.updateOneBy(
                 { _id: req.params.monitorId },
                 data,
@@ -931,12 +935,8 @@ router.post(
 
             const disabled = monitor.disabled ? false : true;
             const [newMonitor] = await Promise.all([
-                MonitorService.updateOneBy(
-                    {
-                        _id: monitorId,
-                    },
-                    { disabled: disabled }
-                ),
+                MonitorService.disableMonitor(monitorId),
+
                 ProbeService.createMonitorDisabledStatus({
                     monitorId,
                     manuallyCreated: true,

@@ -76,7 +76,8 @@ module.exports = {
             );
             for (const member of filterMembers) {
                 const response = await UserService.findOneBy({
-                    _id: member._id,
+                    query: { _id: member._id },
+                    select: 'name',
                 });
 
                 const result = {

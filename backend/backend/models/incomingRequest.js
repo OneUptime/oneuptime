@@ -25,6 +25,7 @@ const incomingRequestSchema = new Schema(
         noteContent: String,
         incidentState: String,
         url: String,
+        enabled: { type: Boolean, default: true },
         deleted: { type: Boolean, default: false },
         deletedAt: Date,
         incidentTitle: String,
@@ -62,6 +63,7 @@ const incomingRequestSchema = new Schema(
             },
         ],
         createSeparateIncident: { type: Boolean, default: false },
+        post_statuspage: { type: Boolean, default: false },
     },
     { timestamps: true }
 );

@@ -1,6 +1,7 @@
 const IncomingRequestModel = require('../models/incomingRequest');
 const IncidentService = require('../services/incidentService');
 const MonitorService = require('../services/monitorService');
+const AlertService = require('../services/alertService');
 const ErrorService = require('../services/errorService');
 const createDOMPurify = require('dompurify');
 const jsdom = require('jsdom').jsdom;
@@ -117,6 +118,7 @@ module.exports = {
                             : DOMPurify.sanitize(field.fieldValue),
                 }));
             }
+            data.enabled = true;
 
             let incomingRequest = await IncomingRequestModel.create({
                 ...data,
@@ -558,10 +560,24 @@ module.exports = {
                 }),
             ]);
 
+            // grab value for posting to status page
+            data.post_statuspage = incomingRequest.post_statuspage
+                ? true
+                : false;
             const filterMatch = incomingRequest.filterMatch;
             const filters = incomingRequest.filters;
 
-            if (incomingRequest && incomingRequest.createIncident) {
+            if (incomingRequest && incomingRequest.enabled === false) {
+                return {
+                    status: 'disabled',
+                };
+            }
+
+            if (
+                incomingRequest &&
+                incomingRequest.createIncident &&
+                incomingRequest.enabled
+            ) {
                 const incidentResponse = [],
                     monitorsWithIncident = [];
 
@@ -926,6 +942,7 @@ module.exports = {
 
             if (
                 incomingRequest &&
+                incomingRequest.enabled &&
                 (incomingRequest.updateIncidentNote ||
                     incomingRequest.updateInternalNote)
             ) {
@@ -1382,6 +1399,14 @@ module.exports = {
                                 monitor => monitor.monitorId
                             );
                             await IncidentMessageService.create(data);
+                            if (data.post_statuspage) {
+                                AlertService.sendInvestigationNoteToSubscribers(
+                                    incident,
+                                    data,
+                                    'created',
+                                    data.projectId
+                                );
+                            }
                             noteResponse.push(incident);
                             incidentsWithNote.push(String(incident._id));
                         } else {
@@ -1389,6 +1414,14 @@ module.exports = {
                                 monitor => monitor.monitorId
                             );
                             await IncidentMessageService.create(data);
+                            if (data.post_statuspage) {
+                                AlertService.sendInvestigationNoteToSubscribers(
+                                    incident,
+                                    data,
+                                    'created',
+                                    data.projectId
+                                );
+                            }
                             noteResponse.push(incident);
                         }
                     }
@@ -1402,6 +1435,7 @@ module.exports = {
 
             if (
                 incomingRequest &&
+                incomingRequest.enabled &&
                 (incomingRequest.acknowledgeIncident ||
                     incomingRequest.resolveIncident)
             ) {

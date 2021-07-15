@@ -79,9 +79,22 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
             data: security.data,
         });
 
-        const findLog = await ApplicationSecurityLogService.findOneBy(
-            securityLog._id
-        );
+        const populateApplicationSecurityLog = [
+            { path: 'componentId', select: '_id slug name slug' },
+            {
+                path: 'securityId',
+                select:
+                    '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
+            },
+        ];
+
+        const selectApplicationSecurityLog = '_id securityId componentId data';
+
+        const findLog = await ApplicationSecurityLogService.findOneBy({
+            query: { _id: securityLog._id },
+            populate: populateApplicationSecurityLog,
+            select: selectApplicationSecurityLog,
+        });
 
         global.io.emit(`securityLog_${securityLog.securityId}`, findLog);
         return sendItemResponse(req, res, securityLog);

@@ -107,14 +107,7 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
         }
 
         // update monitor to save the last matched criterion
-        await MonitorService.updateOneBy(
-            {
-                _id: monitor._id,
-            },
-            {
-                lastMatchedCriterion: matchedCriterion,
-            }
-        );
+        await MonitorService.updateCriterion(monitor._id, matchedCriterion);
 
         // aggregate data for logging
         data = req.body;

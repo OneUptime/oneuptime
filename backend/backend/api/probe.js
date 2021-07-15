@@ -7,7 +7,6 @@
 const express = require('express');
 const ProbeService = require('../services/probeService');
 const MonitorService = require('../services/monitorService');
-const ProjectService = require('../services/projectService');
 const LighthouseLogService = require('../services/lighthouseLogService');
 const router = express.Router();
 const isAuthorizedAdmin = require('../middlewares/clusterAuthorization')
@@ -117,6 +116,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 query: { _id: monitor._id },
                 select: 'lastPingTime _id criteria',
             });
+
             const probeId = req.probe && req.probe.id ? req.probe.id : null;
             log = await ProbeService.probeHttpRequest(newMonitor, probeId);
         } else {
@@ -284,36 +284,52 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     successReasons: upSuccessReasons,
                     failedReasons: upFailedReasons,
                     matchedCriterion: matchedUpCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.up
-                    ? ProbeService.scriptConditions(resp, monitor.criteria.up)
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.up
+                        ? ProbeService.scriptConditions(
+                              resp,
+                              monitor.criteria.up
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
 
                 const {
                     stat: validDown,
                     successReasons: downSuccessReasons,
                     failedReasons: downFailedReasons,
                     matchedCriterion: matchedDownCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.down
-                    ? ProbeService.scriptConditions(resp, [
-                          ...monitor.criteria.down.filter(
-                              criterion => criterion.default !== true
-                          ),
-                      ])
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.down
+                        ? ProbeService.scriptConditions(resp, [
+                              ...monitor.criteria.down.filter(
+                                  criterion => criterion.default !== true
+                              ),
+                          ])
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
 
                 const {
                     stat: validDegraded,
                     successReasons: degradedSuccessReasons,
                     failedReasons: degradedFailedReasons,
                     matchedCriterion: matchedDegradedCriterion,
-                } = await (monitor &&
-                monitor.criteria &&
-                monitor.criteria.degraded
-                    ? ProbeService.scriptConditions(
-                          resp,
-                          monitor.criteria.degraded
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.degraded
+                        ? ProbeService.scriptConditions(
+                              resp,
+                              monitor.criteria.degraded
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
 
                 if (validUp) {
                     status = 'online';
@@ -569,14 +585,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
             data.matchedCriterion = matchedCriterion;
             // update monitor to save the last matched criterion
-            await MonitorService.updateOneBy(
-                {
-                    _id: monitor._id,
-                },
-                {
-                    lastMatchedCriterion: matchedCriterion,
-                }
-            );
+
+            await MonitorService.updateCriterion(monitor._id, matchedCriterion);
+
             data.monitorId = req.params.monitorId || monitor._id;
             data.probeId = req.probe && req.probe.id ? req.probe.id : null;
             data.reason =
@@ -599,27 +610,21 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             if (data.lighthouseScanStatus) {
                 if (data.lighthouseScanStatus === 'scanning') {
                     await Promise.all([
-                        MonitorService.updateOneBy(
-                            { _id: data.monitorId },
-                            {
-                                lighthouseScanStatus: data.lighthouseScanStatus,
-                            },
-                            { fetchLightHouse: true }
+                        MonitorService.updateLighthouseScanStatus(
+                            data.monitorId,
+                            'scanning'
                         ),
                         LighthouseLogService.updateAllLighthouseLogs(
-                            data.monitor.projectId,
                             data.monitorId,
                             { scanning: true }
                         ),
                     ]);
                 } else {
-                    await MonitorService.updateOneBy(
-                        { _id: data.monitorId },
-                        {
-                            lighthouseScannedAt: Date.now(),
-                            lighthouseScanStatus: data.lighthouseScanStatus, // scanned || failed
-                            lighthouseScannedBy: data.probeId,
-                        }
+                    // when this is scanned success or failed.
+                    await MonitorService.updateLighthouseScanStatus(
+                        data.monitorId,
+                        data.lighthouseScanStatus,
+                        data.probeId
                     );
                 }
             } else {
@@ -639,12 +644,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     log = await ProbeService.saveMonitorLog(data);
 
                     if (type === 'script') {
-                        await MonitorService.updateBy(
-                            { _id: req.params.monitorId },
-                            {
-                                scriptRunStatus: 'completed',
-                                scriptRunBy: req.probe.id,
-                            }
+                        await MonitorService.updateScriptStatus(
+                            req.params.monitorId,
+                            'completed',
+                            req.probe.id
                         );
                     }
                 }
@@ -653,10 +656,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
         return sendItemResponse(req, response, log);
     } catch (error) {
         return sendErrorResponse(req, response, error);
-    } finally {
-        // if (release) {
-        //     release();
-        // }
     }
 });
 

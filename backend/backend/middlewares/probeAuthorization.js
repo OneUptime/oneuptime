@@ -7,6 +7,19 @@ const ProbeService = require('../services/probeService');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ErrorService = require('../services/errorService');
 const CLUSTER_KEY = process.env.CLUSTER_KEY;
+
+// TODO: Make sure this is stored in redis.
+// Structure:
+/**
+ *
+ *  {
+ *
+ *      <probeName>: {_id, probeKey}
+ *
+ *  }
+ */
+global.probes = {};
+
 module.exports = {
     isAuthorizedProbe: async function(req, res, next) {
         try {
@@ -68,34 +81,66 @@ module.exports = {
                 probeVersion = req.body.probeVersion;
             }
 
-            let probe = null;
+            let probeId = null;
 
             if (clusterKey && clusterKey === CLUSTER_KEY) {
                 // if cluster key matches then just query by probe name,
                 // because if the probe key does not match, we can update probe key later
                 // without updating mognodb database manually.
-                probe = await ProbeService.findOneBy({ probeName });
+
+                if (global.probes[probeName]) {
+                    probeId = global.probes[probeName]._id;
+                } else {
+                    const probe = await ProbeService.findOneBy({ probeName });
+                    probeId = probe._id;
+
+                    global.probes[probeName] = {
+                        _id: probe._id,
+                        probeKey: probe.probeKey,
+                        version: probe.version,
+                    };
+                }
             } else {
-                probe = await ProbeService.findOneBy({ probeKey, probeName });
+                if (global.probes[probeName]) {
+                    probeId = global.probes[probeName]._id;
+                } else {
+                    const probe = await ProbeService.findOneBy({
+                        probeKey,
+                        probeName,
+                    });
+                    probeId = probe._id;
+
+                    global.probes[probeName] = {
+                        _id: probe._id,
+                        probeKey: probe.probeKey,
+                        version: probe.version,
+                    };
+                }
             }
 
-            if (!probe && (!clusterKey || clusterKey !== CLUSTER_KEY)) {
+            if (!probeId && (!clusterKey || clusterKey !== CLUSTER_KEY)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Probe key and probe name do not match.',
                 });
             }
 
-            if (!probe) {
+            if (!probeId) {
                 //create a new probe.
-                probe = await ProbeService.create({
+                const probe = await ProbeService.create({
                     probeKey,
                     probeName,
                     probeVersion,
                 });
+
+                global.probes[probeName] = {
+                    _id: probe._id,
+                    probeKey: probe.probeKey,
+                    version: probe.version,
+                };
             }
 
-            if (probe.probeKey !== probeKey) {
+            if (global.probes[probeName].probeKey !== probeKey) {
                 //update probe key becasue it does not match.
                 await ProbeService.updateOneBy(
                     {
@@ -103,19 +148,31 @@ module.exports = {
                     },
                     { probeKey }
                 );
-            }
-            req.probe = {};
-            req.probe.id = probe._id;
 
-            const [probeValue] = await Promise.all([
-                ProbeService.findOneBy({
+                const probe = await ProbeService.findOneBy({
                     probeKey,
                     probeName,
-                }),
-                ProbeService.updateProbeStatus(probe._id),
-            ]);
+                });
 
-            if (!probeValue.version || probeValue.version !== probeVersion) {
+                probeId = probe._id;
+
+                global.probes[probeName] = {
+                    _id: probe._id,
+                    probeKey: probe.probeKey,
+                    version: probe.version,
+                };
+            }
+            req.probe = {};
+            req.probe.id = probeId;
+
+            // run in background.
+            ProbeService.updateProbeStatus(probeId);
+
+            if (
+                probeVersion &&
+                (!global.probes[probeName].version ||
+                    global.probes[probeName].version !== probeVersion)
+            ) {
                 await ProbeService.updateOneBy(
                     {
                         probeName,

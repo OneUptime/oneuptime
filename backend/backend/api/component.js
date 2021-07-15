@@ -70,7 +70,10 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         const [component, user] = await Promise.all([
             ComponentService.create(data),
-            UserService.findOneBy({ _id: req.user.id }),
+            UserService.findOneBy({
+                query: { _id: req.user.id },
+                select: 'name _id',
+            }),
         ]);
 
         NotificationService.create(
@@ -383,6 +386,22 @@ router.get(
             const limit = 1000;
             const skip = req.query.skip || 0;
 
+            const populateApplicationSecurity = [
+                {
+                    path: 'componentId',
+                    select: '_id slug name slug',
+                },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             const [
                 monitors,
                 containerSecurity,
@@ -402,11 +421,13 @@ router.get(
                     limit,
                     skip
                 ),
-                ApplicationSecurityService.findBy(
-                    { componentId: componentId },
+                ApplicationSecurityService.findBy({
+                    query: { componentId: componentId },
                     limit,
-                    skip
-                ),
+                    skip,
+                    select: selectApplicationSecurity,
+                    populate: populateApplicationSecurity,
+                }),
                 ApplicationLogService.getApplicationLogsByComponentId(
                     componentId,
                     limit,
@@ -473,10 +494,29 @@ router.get(
             await Promise.all(
                 applicationSecurity.map(async elem => {
                     // get the security log
+
+                    const populateApplicationSecurityLog = [
+                        {
+                            path: 'componentId',
+                            select: '_id slug name slug',
+                        },
+                        {
+                            path: 'securityId',
+                            select:
+                                '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
+                        },
+                    ];
+
+                    const selectApplicationSecurityLog =
+                        '_id securityId componentId data';
                     const securityLog = await ApplicationSecurityLogService.findOneBy(
                         {
-                            securityId: elem._id,
-                            componentId,
+                            query: {
+                                securityId: elem._id,
+                                componentId,
+                            },
+                            select: selectApplicationSecurityLog,
+                            populate: populateApplicationSecurityLog,
                         }
                     );
                     const newElement = {
