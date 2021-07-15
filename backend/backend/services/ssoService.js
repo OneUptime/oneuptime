@@ -119,7 +119,7 @@ module.exports = {
             if (!query.deleted) {
                 query.deleted = false;
             }
-            let ssoQuery = await SsoModel.findOne(query).lean();
+            let ssoQuery = SsoModel.findOne(query).lean();
 
             ssoQuery = handleSelect(select, ssoQuery);
             ssoQuery = handlePopulate(populate, ssoQuery);
