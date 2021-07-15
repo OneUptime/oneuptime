@@ -81,7 +81,7 @@ func TestValidContentRequired(t *testing.T) {
 	if setupResponse != nil {
 		t.Errorf("TestValidContentRequired failed expected %v, got %v", expectedResponse, setupResponse)
 	}
-	var tag = []string{"testing"}
+	var tag = []string{}
 
 	logResponse, logErr := LogInfo(nil, tag)
 	fmt.Sprint(logResponse)
@@ -104,7 +104,7 @@ func TestContentRequired(t *testing.T) {
 	if setupResponse != nil {
 		t.Errorf("TestContentRequired failed expected %v, got %v", expectedResponse, setupResponse)
 	}
-	var tag = []string{"testing"}
+	var tag = []string{}
 
 	logResponse, logErr := LogInfo("", tag)
 	actualResponse := logResponse.Message
@@ -132,7 +132,7 @@ func TestValidApplicationLogRequired(t *testing.T) {
 	if setupResponse != nil {
 		t.Errorf("TestValidApplicationLogRequired failed expected %v, got %v", expectedResponse, setupResponse)
 	}
-	var tag = []string{"testing"}
+	var tag = []string{}
 	randomContent := "Sample Content"
 
 	logResponse, logErr := LogInfo(randomContent, tag)
@@ -161,7 +161,7 @@ func TestContentStringIsLogged(t *testing.T) {
 	if setupResponse != nil {
 		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
 	}
-	var tag = []string{"testing"}
+	var tag = []string{}
 	randomContent := "Sample Content"
 	expectedResponse = randomContent
 
@@ -191,7 +191,7 @@ func TestContentStructIsLogged(t *testing.T) {
 	if setupResponse != nil {
 		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
 	}
-	var tag = []string{"testing"}
+	var tag = []string{}
 	randomContent := GetSampleLog()
 	expectedResponse = randomContent.Name
 
@@ -222,7 +222,7 @@ func TestContentOfTypeWarningIsLogged(t *testing.T) {
 	if setupResponse != nil {
 		t.Errorf("TestContentOfTypeWarningIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
 	}
-	var tag = []string{"testing"}
+	var tag = []string{}
 	randomContent := "Sample Content"
 
 	logResponse, logErr := LogWarning(randomContent, tag)
@@ -252,7 +252,7 @@ func TestContentOfTypeErrorIsLogged(t *testing.T) {
 	if setupResponse != nil {
 		t.Errorf("TestContentOfTypeErrorIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
 	}
-	var tag = []string{"testing"}
+	var tag = []string{}
 	randomContent := GetSampleLog()
 
 	logResponse, logErr := LogError(randomContent, tag)
@@ -266,5 +266,99 @@ func TestContentOfTypeErrorIsLogged(t *testing.T) {
 		t.Errorf("TestContentOfTypeErrorIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
 	} else {
 		t.Logf("TestContentOfTypeErrorIsLogged success expected %v, got %v", expectedResponse, actualResponse)
+	}
+}
+func TestContentWithNoTagIsLogged(t *testing.T) {
+	expectedResponse := 0
+	option := LoggerOptions{
+		ApplicationLogId:  appLog["_id"].(string),
+		ApplicationLogKey: appLog["key"].(string),
+		ApiUrl:            apiUrl,
+	}
+
+	setupResponse := Init(option)
+
+	if setupResponse != nil {
+		t.Errorf("TestContentWithNoTagIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+	}
+	var tag = []string{}
+	randomContent := GetSampleLog()
+
+	logResponse, logErr := LogError(randomContent, tag)
+	actualResponse := len(logResponse.Tags)
+
+	if logErr != nil {
+		t.Errorf("TestContentWithNoTagIsLogged failed expected %v, got %v", expectedResponse, logErr)
+	}
+
+	if actualResponse != expectedResponse {
+		t.Errorf("TestContentWithNoTagIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestContentWithNoTagIsLogged success expected %v, got %v", expectedResponse, actualResponse)
+	}
+}
+func TestContentWithOneTagIsLogged(t *testing.T) {
+	expectedResponse := 1
+	option := LoggerOptions{
+		ApplicationLogId:  appLog["_id"].(string),
+		ApplicationLogKey: appLog["key"].(string),
+		ApiUrl:            apiUrl,
+	}
+
+	setupResponse := Init(option)
+
+	if setupResponse != nil {
+		t.Errorf("TestContentWithOneTagIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+	}
+	var tag = []string{"randon tag"}
+	randomContent := GetSampleLog()
+
+	logResponse, logErr := LogError(randomContent, tag)
+	actualResponse := len(logResponse.Tags)
+
+	if logErr != nil {
+		t.Errorf("TestContentWithOneTagIsLogged failed expected %v, got %v", expectedResponse, logErr)
+	}
+
+	if actualResponse != expectedResponse {
+		t.Errorf("TestContentWithOneTagIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestContentWithOneTagIsLogged success expected %v, got %v", expectedResponse, actualResponse)
+	}
+}
+func TestContentWithFourTagIsLogged(t *testing.T) {
+	expectedResponse := 4
+	expectedTypeResponse := "warning"
+	option := LoggerOptions{
+		ApplicationLogId:  appLog["_id"].(string),
+		ApplicationLogKey: appLog["key"].(string),
+		ApiUrl:            apiUrl,
+	}
+
+	setupResponse := Init(option)
+
+	if setupResponse != nil {
+		t.Errorf("TestContentWithFourTagIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+	}
+	var tag = []string{"testing", "rubylansh", "trial", "correct"}
+	randomContent := GetSampleLog()
+
+	logResponse, logErr := LogWarning(randomContent, tag)
+	actualResponse := len(logResponse.Tags)
+	actualTypeResponse := logResponse.Type
+
+	if logErr != nil {
+		t.Errorf("TestContentWithFourTagIsLogged failed expected %v, got %v", expectedResponse, logErr)
+	}
+
+	if actualResponse != expectedResponse {
+		t.Errorf("TestContentWithFourTagIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestContentWithFourTagIsLogged success expected %v, got %v", expectedResponse, actualResponse)
+	}
+	if actualTypeResponse != expectedTypeResponse {
+		t.Errorf("TestContentWithFourTagIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestContentWithFourTagIsLogged success expected %v, got %v", expectedResponse, actualResponse)
 	}
 }
