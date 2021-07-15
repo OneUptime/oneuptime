@@ -14,7 +14,6 @@ audit_go-sdk:
         - sudo apt install -y golang
         - go version
         - cd go-sdk/fyipe
-        - go mod download
         - cd ..
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
