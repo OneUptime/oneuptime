@@ -25,6 +25,18 @@ function getMongoClient() {
     });
 }
 
+// setup mongodb connection
+const client = getMongoClient();
+(async function() {
+    try {
+        console.log('connecting to db');
+        await client.connect();
+        console.log('connected to db');
+    } catch (error) {
+        console.log('connection error: ', error);
+    }
+})();
+
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /statuspage/.env
     require('dotenv').config();
@@ -133,14 +145,8 @@ app.use('/', async function(req, res, next) {
         return next();
     }
 
-    // setup mongodb connection
-    const client = getMongoClient();
-    await client.connect();
     try {
         const response = await handleCustomDomain(client, 'statuspages', host);
-
-        // close mongodb connection
-        await client.close();
 
         const { enableHttps } = response;
         if (enableHttps) {
@@ -274,17 +280,11 @@ function createDir(dirPath) {
                 path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
             ),
             SNICallback: async function(domain, cb) {
-                const client = getMongoClient();
-                await client.connect();
-
                 const res = await handleCustomDomain(
                     client,
                     'statuspages',
                     domain
                 );
-
-                // close mongodb connection
-                await client.close();
 
                 let certPath, privateKeyPath;
                 if (res) {
