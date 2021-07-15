@@ -56,7 +56,18 @@ module.exports = {
             let updatedData = await SubscriberAlertModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const populate = [
+                { path: 'incidentId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'subscriberId',
+                    select:
+                        'name contactEmail contactPhone contactWebhook countryCode',
+                },
+            ];
+            const select =
+                'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+            updatedData = await this.findBy({ query, select, populate });
             return updatedData;
         } catch (error) {
             ErrorService.log('SubscriberAlertService.updateMany', error);
@@ -180,3 +191,5 @@ module.exports = {
 
 const SubscriberAlertModel = require('../models/subscriberAlert');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

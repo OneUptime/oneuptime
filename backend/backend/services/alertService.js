@@ -214,6 +214,18 @@ module.exports = {
         const selectAlert =
             '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
+        const populate = [
+            { path: 'incidentId', select: 'name' },
+            { path: 'projectId', select: 'name' },
+            {
+                path: 'subscriberId',
+                select:
+                    'name contactEmail contactPhone contactWebhook countryCode',
+            },
+        ];
+        const select =
+            'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+
         const [
             incidentMsgs,
             timeline,
@@ -239,8 +251,9 @@ module.exports = {
                 populate: populateAlert,
             }),
             SubscriberAlertService.findBy({
-                incidentId,
-                projectId,
+                query: { incidentId, projectId },
+                select,
+                populate,
             }),
         ]);
         let incidentMessages = incidentMsgs;
