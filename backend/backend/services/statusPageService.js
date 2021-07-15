@@ -1125,7 +1125,7 @@ module.exports = {
                 populate: [
                     {
                         path: 'monitors.monitor',
-                        select: 'name',
+                        select: '_id name',
                     },
                 ],
             });
