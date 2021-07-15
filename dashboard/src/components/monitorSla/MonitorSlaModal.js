@@ -5,6 +5,7 @@ import { bindActionCreators } from 'redux';
 import { reduxForm, Field, FieldArray } from 'redux-form';
 import ClickOutside from 'react-click-outside';
 import { createMonitorSla, fetchMonitorSlas } from '../../actions/monitorSla';
+import { fetchMonitors } from '../../actions/monitor';
 import { closeModal } from '../../actions/modal';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader } from '../basic/Loader';
@@ -58,7 +59,10 @@ class MonitorSlaModal extends React.Component {
             closeModal,
             createMonitorSlaModalId,
             createMonitorSla,
+
             fetchMonitorSlas,
+            // eslint-disable-next-line no-unused-vars
+            fetchMonitors,
             data,
         } = this.props;
         const { setCustomFrequency, setCustomMonitorUptime } = this.state;
@@ -102,6 +106,7 @@ class MonitorSlaModal extends React.Component {
 
         createMonitorSla(projectId, postObj).then(() => {
             if (!this.props.slaError) {
+                fetchMonitors(projectId);
                 fetchMonitorSlas(projectId, 0, 10);
                 closeModal({
                     id: createMonitorSlaModalId,
@@ -704,6 +709,7 @@ MonitorSlaModal.propTypes = {
     createMonitorSlaModalId: PropTypes.string,
     monitors: PropTypes.array,
     formValues: PropTypes.object,
+    fetchMonitors: PropTypes.func,
 };
 
 const MonitorSlaForm = reduxForm({
@@ -719,6 +725,7 @@ const mapDispatchToProps = dispatch =>
             closeModal,
             createMonitorSla,
             fetchMonitorSlas,
+            fetchMonitors,
         },
         dispatch
     );
