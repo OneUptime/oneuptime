@@ -513,6 +513,17 @@ router.post(
             const selectAlert =
                 '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
+            const populate = [
+                { path: 'incidentId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'subscriberId',
+                    select:
+                        'name contactEmail contactPhone contactWebhook countryCode',
+                },
+            ];
+            const select =
+                'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
             /* eslint-disable prefer-const */
             let [
                 incidentMessages,
@@ -538,8 +549,9 @@ router.post(
                     select: selectAlert,
                 }),
                 subscriberAlertService.findBy({
-                    incidentId: req.params.incidentId,
-                    projectId,
+                    query: { incidentId: req.params.incidentId, projectId },
+                    select,
+                    populate,
                 }),
                 onCallScheduleStatusService.findBy({
                     query: { incident: req.params.incidentId },
@@ -624,6 +636,18 @@ router.post(
             const selectAlert =
                 '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
+            const populate = [
+                { path: 'incidentId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'subscriberId',
+                    select:
+                        'name contactEmail contactPhone contactWebhook countryCode',
+                },
+            ];
+            const select =
+                'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+
             /* eslint-disable prefer-const */
             let [
                 incidentMessages,
@@ -649,8 +673,9 @@ router.post(
                     populate: populateAlert,
                 }),
                 subscriberAlertService.findBy({
-                    incidentId: req.params.incidentId,
-                    projectId,
+                    query: { incidentId: req.params.incidentId, projectId },
+                    select,
+                    populate,
                 }),
                 onCallScheduleStatusService.findBy({
                     query: { incident: req.params.incidentId },
@@ -978,6 +1003,18 @@ router.post(
                 const selectAlert =
                     '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
+                const populate = [
+                    { path: 'incidentId', select: 'name' },
+                    { path: 'projectId', select: 'name' },
+                    {
+                        path: 'subscriberId',
+                        select:
+                            'name contactEmail contactPhone contactWebhook countryCode',
+                    },
+                ];
+                const select =
+                    'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+
                 const [alerts, subscriberAlerts] = await Promise.all([
                     AlertService.findBy({
                         query: { incidentId: incident._id },
@@ -985,8 +1022,12 @@ router.post(
                         populate: populateAlert,
                     }),
                     subscriberAlertService.findBy({
-                        incidentId: incident._id,
-                        projectId: req.params.projectId,
+                        query: {
+                            incidentId: incident._id,
+                            projectId: req.params.projectId,
+                        },
+                        select,
+                        populate,
                     }),
                     IncidentTimelineService.create({
                         incidentId: incident._id,
@@ -1163,6 +1204,18 @@ router.delete(
                 const selectAlert =
                     '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
+                const populate = [
+                    { path: 'incidentId', select: 'name' },
+                    { path: 'projectId', select: 'name' },
+                    {
+                        path: 'subscriberId',
+                        select:
+                            'name contactEmail contactPhone contactWebhook countryCode',
+                    },
+                ];
+                const select =
+                    'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+
                 let [
                     alerts,
                     subscriberAlerts,
@@ -1174,8 +1227,9 @@ router.delete(
                         populate: populateAlert,
                     }),
                     subscriberAlertService.findBy({
-                        incidentId: incidentId,
-                        projectId,
+                        query: { incidentId: incidentId, projectId },
+                        select,
+                        populate,
                     }),
                     onCallScheduleStatusService.findBy({
                         query: { incident: incidentId },
@@ -1296,6 +1350,18 @@ router.get(
                 const selectAlert =
                     '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
+                const populate = [
+                    { path: 'incidentId', select: 'name' },
+                    { path: 'projectId', select: 'name' },
+                    {
+                        path: 'subscriberId',
+                        select:
+                            'name contactEmail contactPhone contactWebhook countryCode',
+                    },
+                ];
+                const select =
+                    'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+
                 const [
                     timeline,
                     alerts,
@@ -1312,8 +1378,9 @@ router.get(
                         populate: populateAlert,
                     }),
                     subscriberAlertService.findBy({
-                        incidentId: incidentId,
-                        projectId,
+                        query: { incidentId: incidentId, projectId },
+                        select,
+                        populate,
                     }),
                     IncidentMessageService.countBy({
                         incidentId,
