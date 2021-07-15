@@ -176,6 +176,13 @@ module.exports = {
                 const selectStatusPage =
                     ' projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
 
+                const populateDefaultRoleSso = [
+                    { path: 'domain', select: '_id domain' },
+                    { path: 'project', select: '_id name' },
+                ];
+
+                const selectDefaultRoleSso =
+                    '_id domain project role createdAt deleted deletedAt deletedById';
                 const [
                     monitors,
                     schedules,
@@ -207,7 +214,9 @@ module.exports = {
                         populate: populateComponent,
                     }),
                     SsoDefaultRolesService.findBy({
-                        project: project._id,
+                        query: { project: project._id },
+                        select: selectDefaultRoleSso,
+                        populate: populateDefaultRoleSso,
                     }),
                     integrationService.deleteBy(
                         { projectId: project._id },

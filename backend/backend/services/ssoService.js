@@ -48,7 +48,8 @@ module.exports = {
             if (sso) {
                 const { _id: domain } = sso;
                 const ssoDefaultRoles = await SsoDefaultRolesService.findBy({
-                    domain,
+                    query: { domain },
+                    select: '_id',
                 });
                 for (const ssoDefaultRole of ssoDefaultRoles) {
                     const { _id } = ssoDefaultRole;
