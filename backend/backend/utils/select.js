@@ -25,7 +25,7 @@ module.exports = (select, query) => {
         }
 
         // Validate to make sure it does not have "-" negated columns.
-        const regex = /[-]/g;
+        const regex = /((\s|'|")-(\w|\W))/g;
         if (regex.test(select)) {
             const error = new Error(
                 'Negated columns are not allowed, only select the fields you need'
