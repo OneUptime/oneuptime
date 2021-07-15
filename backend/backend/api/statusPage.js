@@ -75,10 +75,31 @@ router.put(
                 { projectId, _id: statusPageId },
                 { statusBubbleId: newStatusBubbleId }
             );
-            const updatedStatusPage = await StatusPageService.getStatusPage(
-                { _id: statusPage._id },
-                req.user.id
-            );
+            const populateStatusPage = [
+                {
+                    path: 'projectId',
+                    select: 'name parentProjectId',
+                    populate: { path: 'parentProjectId', select: '_id' },
+                },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+            ];
+
+            const selectStatusPage =
+                'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
+            const updatedStatusPage = await StatusPageService.getStatusPage({
+                query: { _id: statusPage._id },
+                userId: req.user.id,
+                populate: populateStatusPage,
+                select: selectStatusPage,
+            });
             // run in the background
             RealTimeService.statusPageEdit(updatedStatusPage);
             return sendItemResponse(req, res, updatedStatusPage);
@@ -96,10 +117,31 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
             { projectId, _id: statusPageId },
             { theme }
         );
-        const updatedStatusPage = await StatusPageService.getStatusPage(
-            { _id: statusPageId },
-            req.user.id
-        );
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
+        const updatedStatusPage = await StatusPageService.getStatusPage({
+            query: { _id: statusPage._id },
+            userId: req.user.id,
+            populate: populateStatusPage,
+            select: selectStatusPage,
+        });
         // run in the background
         RealTimeService.statusPageEdit(updatedStatusPage);
         return sendItemResponse(req, res, statusPage);
@@ -324,10 +366,17 @@ router.get('/tlsCredential', async function(req, res) {
             });
         }
 
-        const statusPage = await StatusPageService.getStatusPage(
-            { domains: { $elemMatch: { domain } } },
-            user
-        );
+        const statusPage = await StatusPageService.getStatusPage({
+            query: { domains: { $elemMatch: { domain } } },
+            userId: user,
+            select: 'domains',
+            populate: [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain',
+                },
+            ],
+        });
 
         let domainObj = {};
         statusPage &&
@@ -466,7 +515,8 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         let statusPage;
         if (data._id) {
             statusPage = await StatusPageService.findOneBy({
-                _id: data._id,
+                query: { _id: data._id },
+                select: 'faviconPath logoPath bannerPath',
             });
             const imagesPath = {
                 faviconPath: statusPage.faviconPath,
@@ -512,10 +562,31 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 data
             );
 
-            const updatedStatusPage = await StatusPageService.getStatusPage(
-                { _id: statusPage._id },
-                req.user.id
-            );
+            const populateStatusPage = [
+                {
+                    path: 'projectId',
+                    select: 'name parentProjectId',
+                    populate: { path: 'parentProjectId', select: '_id' },
+                },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+            ];
+
+            const selectStatusPage =
+                'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
+            const updatedStatusPage = await StatusPageService.getStatusPage({
+                query: { _id: statusPage._id },
+                userId: req.user.id,
+                populate: populateStatusPage,
+                select: selectStatusPage,
+            });
             // run in the background
             RealTimeService.statusPageEdit(updatedStatusPage);
 
@@ -543,11 +614,11 @@ router.get('/statusBubble', async function(req, res) {
                 message: 'StatusBubble Id is required',
             });
         }
-        const statusPages = await StatusPageService.findBy({
+        const statusPagesCount = await StatusPageService.countBy({
             _id: statusPageId,
             statusBubbleId,
         });
-        if (!(statusPages && statusPages.length)) {
+        if (!statusPagesCount || statusPagesCount === 0) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'There are no statuspages attached to this Id',
@@ -577,12 +648,33 @@ router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
     const projectId = req.params.projectId;
     try {
         // Call the StatusPageService.
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
         const [statusPages, count] = await Promise.all([
-            StatusPageService.findBy(
-                { projectId: projectId },
-                req.query.skip || 0,
-                req.query.limit || 10
-            ),
+            StatusPageService.findBy({
+                query: { projectId: projectId },
+                skip: req.query.skip || 0,
+                limit: req.query.limit || 10,
+                select: selectStatusPage,
+                populate: populateStatusPage,
+            }),
             StatusPageService.countBy({ projectId: projectId }),
         ]);
         return sendListResponse(req, res, statusPages, count);
@@ -616,13 +708,35 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
     res
 ) {
     const projectId = req.params.projectId;
+
     try {
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
         const [statusPage, count] = await Promise.all([
-            StatusPageService.findBy(
-                { projectId },
-                req.query.skip || 0,
-                req.query.limit || 10
-            ),
+            StatusPageService.findBy({
+                query: { projectId },
+                skip: req.query.skip || 0,
+                limit: req.query.limit || 10,
+                select: selectStatusPage,
+                populate: populateStatusPage,
+            }),
             StatusPageService.countBy({ projectId }),
         ]);
         return sendListResponse(req, res, statusPage, count); // frontend expects sendListResponse
@@ -640,18 +754,41 @@ router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
     const url = req.query.url;
     const user = req.user;
     let statusPage = {};
+    const populateStatusPage = [
+        {
+            path: 'projectId',
+            select: 'name parentProjectId',
+            populate: { path: 'parentProjectId', select: '_id' },
+        },
+        {
+            path: 'domains.domainVerificationToken',
+            select: 'domain verificationToken verified ',
+        },
+        {
+            path: 'monitors.monitor',
+            select: 'name',
+        },
+    ];
+
+    const selectStatusPage =
+        'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
     try {
         // Call the StatusPageService.
         if (url && url !== 'null') {
-            statusPage = await StatusPageService.getStatusPage(
-                { domains: { $elemMatch: { domain: url } } },
-                user
-            );
+            statusPage = await StatusPageService.getStatusPage({
+                query: { domains: { $elemMatch: { domain: url } } },
+                userId: user,
+                populate: populateStatusPage,
+                select: selectStatusPage,
+            });
         } else if ((!url || url === 'null') && statusPageSlug) {
-            statusPage = await StatusPageService.getStatusPage(
-                { slug: statusPageSlug },
-                user
-            );
+            statusPage = await StatusPageService.getStatusPage({
+                query: { slug: statusPageSlug },
+                userId: user,
+                populate: populateStatusPage,
+                select: selectStatusPage,
+            });
         } else {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -677,18 +814,21 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
     const url = req.query.url;
     const user = req.user;
     let statusPage = {};
+
     try {
         // Call the StatusPageService.
         if (url && url !== 'null') {
-            statusPage = await StatusPageService.getStatusPage(
-                { domains: { $elemMatch: { domain: url } } },
-                user
-            );
+            statusPage = await StatusPageService.getStatusPage({
+                query: { domains: { $elemMatch: { domain: url } } },
+                userId: user,
+                select: 'name isPrivate',
+            });
         } else if ((!url || url === 'null') && statusPageId) {
-            statusPage = await StatusPageService.getStatusPage(
-                { _id: statusPageId },
-                user
-            );
+            statusPage = await StatusPageService.getStatusPage({
+                query: { _id: statusPageId },
+                userId: user,
+                select: 'name isPrivate',
+            });
         } else {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -1290,9 +1430,16 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
         const { statusPageId } = req.params;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
+        const populateStatusPage = [
+            { path: 'monitors.monitor', select: '_id' },
+        ];
+
         const statusPage = await StatusPageService.findOneBy({
-            _id: statusPageId,
+            query: { _id: statusPageId },
+            select: 'monitors',
+            populate: populateStatusPage,
         });
+
         const monitors = statusPage.monitors.map(mon => mon.monitor._id);
         const subscribers = await SubscriberService.findBy(
             {
@@ -1512,7 +1659,8 @@ router.get(
         try {
             const { projectId, statusPageSlug, announcementSlug } = req.params;
             const { _id } = await StatusPageService.findOneBy({
-                slug: statusPageSlug,
+                query: { slug: statusPageSlug },
+                select: '_id',
             });
             const response = await StatusPageService.getSingleAnnouncement({
                 projectId,
@@ -1735,17 +1883,40 @@ async function getStatusPage(req, statusPageSlug) {
     const url = req.query.url;
     const user = req.user;
     let statusPage = {};
+    const populateStatusPage = [
+        {
+            path: 'projectId',
+            select: 'name parentProjectId',
+            populate: { path: 'parentProjectId', select: '_id' },
+        },
+        {
+            path: 'domains.domainVerificationToken',
+            select: 'domain verificationToken verified ',
+        },
+        {
+            path: 'monitors.monitor',
+            select: 'name',
+        },
+    ];
+
+    const selectStatusPage =
+        'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
     // Call the StatusPageService.
     if (url && url !== 'null') {
-        statusPage = await StatusPageService.getStatusPage(
-            { domains: { $elemMatch: { domain: url } } },
-            user
-        );
+        statusPage = await StatusPageService.getStatusPage({
+            query: { domains: { $elemMatch: { domain: url } } },
+            userId: user,
+            populate: populateStatusPage,
+            select: selectStatusPage,
+        });
     } else if ((!url || url === 'null') && statusPageSlug) {
-        statusPage = await StatusPageService.getStatusPage(
-            { slug: statusPageSlug },
-            user
-        );
+        statusPage = await StatusPageService.getStatusPage({
+            query: { slug: statusPageSlug },
+            userId: user,
+            populate: populateStatusPage,
+            select: selectStatusPage,
+        });
     } else {
         return {
             error: true,

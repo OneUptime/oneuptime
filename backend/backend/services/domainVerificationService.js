@@ -269,9 +269,12 @@ module.exports = {
             });
 
             const statusPages = await StatusPageService.findBy({
-                domains: {
-                    $elemMatch: { domainVerificationToken: domain._id },
+                query: {
+                    domains: {
+                        $elemMatch: { domainVerificationToken: domain._id },
+                    },
                 },
+                select: '_id domains',
             });
 
             // making this synchronous is intentional
