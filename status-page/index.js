@@ -285,6 +285,7 @@ function createDir(dirPath) {
                     'statuspages',
                     domain
                 );
+                console.log('**** CUSTOM DOMAIN RESPONSE ****', res);
 
                 let certPath, privateKeyPath;
                 if (res) {
@@ -302,7 +303,12 @@ function createDir(dirPath) {
                     // store it to a file on disk
                     if (enableHttps && autoProvisioning) {
                         const url = `${apiHost}/certificate/store/cert/${domain}`;
+                        console.log('*** URL ***', url);
                         const response = await axios.get(url);
+                        console.log(
+                            '*** CERTIFICATE RESPONSE ***',
+                            response.data
+                        );
                         const certificate = response.data;
                         if (response && certificate) {
                             certPath = path.resolve(
