@@ -134,6 +134,16 @@ async function handleCustomDomain(client, collection, domain) {
     };
 }
 
+// fetch certificate for a particular domain
+async function handleCertificate(client, collection, domain) {
+    const certificate = await client
+        .db('fyipedb')
+        .collection(collection)
+        .findOne({ id: domain });
+
+    return certificate;
+}
+
 app.use('/', async function(req, res, next) {
     const host = req.hostname;
     if (
@@ -302,15 +312,16 @@ function createDir(dirPath) {
                     // cert and private key is a string
                     // store it to a file on disk
                     if (enableHttps && autoProvisioning) {
-                        const url = `${apiHost}/certificate/store/cert/${domain}`;
-                        console.log('*** URL ***', url);
-                        const response = await axios.get(url);
+                        const certificate = await handleCertificate(
+                            client,
+                            'certificates',
+                            domain
+                        );
                         console.log(
                             '*** CERTIFICATE RESPONSE ***',
-                            response.data
+                            certificate
                         );
-                        const certificate = response.data;
-                        if (response && certificate) {
+                        if (certificate) {
                             certPath = path.resolve(
                                 process.cwd(),
                                 'src',
