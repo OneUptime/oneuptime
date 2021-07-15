@@ -208,3 +208,63 @@ func TestContentStructIsLogged(t *testing.T) {
 		t.Logf("TestContentStringIsLogged success expected %v, got %v", expectedResponse, actualResponse)
 	}
 }
+
+func TestContentOfTypeWarningIsLogged(t *testing.T) {
+	expectedResponse := "warning"
+	option := LoggerOptions{
+		ApplicationLogId:  appLog["_id"].(string),
+		ApplicationLogKey: appLog["key"].(string),
+		ApiUrl:            apiUrl,
+	}
+
+	setupResponse := Init(option)
+
+	if setupResponse != nil {
+		t.Errorf("TestContentOfTypeWarningIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+	}
+	var tag = []string{"testing"}
+	randomContent := "Sample Content"
+
+	logResponse, logErr := LogWarning(randomContent, tag)
+	actualResponse := logResponse.Type
+
+	if logErr != nil {
+		t.Errorf("TestContentOfTypeWarningIsLogged failed expected %v, got %v", expectedResponse, logErr)
+	}
+
+	if actualResponse != expectedResponse {
+		t.Errorf("TestContentOfTypeWarningIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestContentOfTypeWarningIsLogged success expected %v, got %v", expectedResponse, actualResponse)
+	}
+}
+
+func TestContentOfTypeErrorIsLogged(t *testing.T) {
+	expectedResponse := "error"
+	option := LoggerOptions{
+		ApplicationLogId:  appLog["_id"].(string),
+		ApplicationLogKey: appLog["key"].(string),
+		ApiUrl:            apiUrl,
+	}
+
+	setupResponse := Init(option)
+
+	if setupResponse != nil {
+		t.Errorf("TestContentOfTypeErrorIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+	}
+	var tag = []string{"testing"}
+	randomContent := GetSampleLog()
+
+	logResponse, logErr := LogError(randomContent, tag)
+	actualResponse := logResponse.Type
+
+	if logErr != nil {
+		t.Errorf("TestContentOfTypeErrorIsLogged failed expected %v, got %v", expectedResponse, logErr)
+	}
+
+	if actualResponse != expectedResponse {
+		t.Errorf("TestContentOfTypeErrorIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestContentOfTypeErrorIsLogged success expected %v, got %v", expectedResponse, actualResponse)
+	}
+}
