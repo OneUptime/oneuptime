@@ -67,10 +67,7 @@ module.exports = {
 
             query.deleted = false;
             let applicationScannerQuery = ApplicationScannerModel.findOne(
-                query,
-                {
-                    deleted: false,
-                }
+                query
             ).lean();
 
             applicationScannerQuery = handleSelect(
