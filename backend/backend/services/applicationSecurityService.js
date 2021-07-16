@@ -197,7 +197,7 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let applicationSecurity = await this.findOneBy(query);
+            let applicationSecurity = await this.countBy(query);
 
             if (!applicationSecurity) {
                 const error = new Error(
