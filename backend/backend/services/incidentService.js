@@ -69,6 +69,13 @@ module.exports = {
                 .map(monitor => ({
                     monitorId: monitor._id,
                 }));
+            if (monitors.length === 0) {
+                const error = new Error(
+                    'You need at least one monitor not undergoing scheduled maintenance'
+                );
+                error.code = 400;
+                throw error;
+            }
             if (monitors && monitors.length > 0) {
                 const { matchedCriterion } = data;
 
