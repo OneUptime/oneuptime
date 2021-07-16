@@ -1,5 +1,7 @@
 const AccountModel = require('../models/account');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
     create: async function(data) {
@@ -11,20 +13,25 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const account = await AccountModel.findOne(query).lean();
+            let accountQuery = AccountModel.findOne(query).lean();
+
+            accountQuery = handleSelect(select, accountQuery);
+            accountQuery = handlePopulate(populate, accountQuery);
+
+            const account = await accountQuery;
             return account;
         } catch (error) {
             ErrorService.log('accountStoreService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -38,12 +45,16 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const accounts = await AccountModel.find(query)
+            let accountQuery = AccountModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
 
+            accountQuery = handleSelect(select, accountQuery);
+            accountQuery = handlePopulate(populate, accountQuery);
+
+            const accounts = await accountQuery;
             return accounts;
         } catch (error) {
             ErrorService.log('accountStoreService.findBy', error);

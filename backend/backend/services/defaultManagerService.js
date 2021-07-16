@@ -1,5 +1,7 @@
 const DefaultManagerModel = require('../models/defaultManager');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
     create: async function(data) {
@@ -11,20 +13,25 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const defaultManager = await DefaultManagerModel.findOne(query);
+            let defaultManagerQuery = DefaultManagerModel.findOne(query);
+
+            defaultManagerQuery = handleSelect(select, defaultManagerQuery);
+            defaultManagerQuery = handlePopulate(populate, defaultManagerQuery);
+
+            const defaultManager = await defaultManagerQuery;
             return defaultManager;
         } catch (error) {
             ErrorService.log('defaultManagerService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -38,12 +45,16 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const defaultManagers = await DefaultManagerModel.find(query)
+            let defaultManagerQuery = DefaultManagerModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
 
+            defaultManagerQuery = handleSelect(select, defaultManagerQuery);
+            defaultManagerQuery = handlePopulate(populate, defaultManagerQuery);
+
+            const defaultManagers = await defaultManagerQuery;
             return defaultManagers;
         } catch (error) {
             ErrorService.log('defaultManagerService.findBy', error);

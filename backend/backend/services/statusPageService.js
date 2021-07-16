@@ -170,7 +170,8 @@ module.exports = {
                     // if there's none, add the domain to the flow
                     const certificate = await CertificateStoreService.findOneBy(
                         {
-                            subject: subDomain,
+                            query: { subject: subDomain },
+                            select: 'id',
                         }
                     );
 
@@ -342,7 +343,8 @@ module.exports = {
                         // if there's none, add the domain to the flow
                         const certificate = await CertificateStoreService.findOneBy(
                             {
-                                subject: eachDomain.domain,
+                                query: { subject: eachDomain.domain },
+                                select: 'id',
                             }
                         );
 

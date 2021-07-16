@@ -15,15 +15,23 @@ const SmsCountService = require('./smsCountService');
 const CallLogsService = require('./callLogsService');
 const AlertService = require('./alertService');
 const { IS_TESTING } = require('../config/server');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 const _this = {
-    findByOne: async function(query) {
+    findByOne: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
             query.deleted = false;
-            const twilioSettings = await SmsSmtpService.findOneBy(query);
+
+            let twilioQuery = SmsSmtpService.findOneBy(query).lean();
+
+            twilioQuery = handleSelect(select, twilioQuery);
+            twilioQuery = handlePopulate(populate, twilioQuery);
+
+            const twilioSettings = await twilioQuery;
             return twilioSettings;
         } catch (error) {
             ErrorService.log('SubscriberService.findByOne', error);
@@ -78,8 +86,8 @@ const _this = {
             };
             smsBody = options.body;
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'phoneNumber accountSid authToken',
             });
             if (customTwilioSettings) {
                 options.from = customTwilioSettings.phoneNumber;
@@ -207,8 +215,8 @@ const _this = {
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'phoneNumber accountSid authToken',
             });
 
             if (customTwilioSettings) {
@@ -337,8 +345,8 @@ const _this = {
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'phoneNumber accountSid authToken',
             });
 
             if (customTwilioSettings) {
@@ -468,8 +476,8 @@ const _this = {
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'phoneNumber accountSid authToken',
             });
 
             if (customTwilioSettings) {
@@ -597,8 +605,8 @@ const _this = {
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'phoneNumber accountSid authToken',
             });
             if (customTwilioSettings) {
                 const options = {
@@ -756,8 +764,8 @@ const _this = {
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'phoneNumber accountSid authToken',
             });
 
             if (customTwilioSettings) {
@@ -877,8 +885,8 @@ const _this = {
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'phoneNumber authToken accountSid',
             });
 
             if (customTwilioSettings) {
@@ -995,8 +1003,8 @@ const _this = {
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'phoneNumber accountSid authToken',
             });
 
             if (customTwilioSettings) {
@@ -1112,8 +1120,8 @@ const _this = {
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'phoneNumber accountSid authToken',
             });
 
             if (customTwilioSettings) {
@@ -1231,8 +1239,8 @@ const _this = {
             template = template(data);
             smsBody = template;
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'phoneNumber accountSid authToken',
             });
 
             if (customTwilioSettings) {
@@ -1361,8 +1369,8 @@ const _this = {
                 to: number,
             };
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'phoneNumber accountSid authToken',
             });
 
             if (customTwilioSettings) {
@@ -1510,8 +1518,8 @@ const _this = {
         let smsBody;
         try {
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'phoneNumber accountSid authToken',
             });
             if (!to.startsWith('+')) {
                 to = '+' + to;
@@ -1635,8 +1643,8 @@ const _this = {
         };
         try {
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'accountSid authToken',
             });
             if (customTwilioSettings) {
                 accountSid = customTwilioSettings.accountSid;
@@ -1716,8 +1724,8 @@ const _this = {
         let authToken = null;
         try {
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'accountSid authToken',
             });
             if (customTwilioSettings) {
                 accountSid = customTwilioSettings.accountSid;
@@ -1748,8 +1756,8 @@ const _this = {
         let authToken = null;
         try {
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'accountSid authToken',
             });
             if (customTwilioSettings) {
                 accountSid = customTwilioSettings.accountSid;
@@ -1776,8 +1784,8 @@ const _this = {
         let authToken = null;
         try {
             const customTwilioSettings = await _this.findByOne({
-                projectId,
-                enabled: true,
+                query: { projectId, enabled: true },
+                select: 'accountSid authToken',
             });
             if (customTwilioSettings) {
                 accountSid = customTwilioSettings.accountSid;
@@ -1811,8 +1819,8 @@ const _this = {
 
     hasCustomSettings: async function(projectId) {
         return await _this.findByOne({
-            projectId,
-            enabled: true,
+            query: { projectId, enabled: true },
+            select: '_id',
         });
     },
 };
