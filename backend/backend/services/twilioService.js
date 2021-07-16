@@ -15,8 +15,6 @@ const SmsCountService = require('./smsCountService');
 const CallLogsService = require('./callLogsService');
 const AlertService = require('./alertService');
 const { IS_TESTING } = require('../config/server');
-const handleSelect = require('../utils/select');
-const handlePopulate = require('../utils/populate');
 
 const _this = {
     findByOne: async function({ query, select, populate }) {
@@ -26,12 +24,11 @@ const _this = {
             }
             query.deleted = false;
 
-            let twilioQuery = SmsSmtpService.findOneBy(query).lean();
-
-            twilioQuery = handleSelect(select, twilioQuery);
-            twilioQuery = handlePopulate(populate, twilioQuery);
-
-            const twilioSettings = await twilioQuery;
+            const twilioSettings = await SmsSmtpService.findOneBy({
+                query,
+                select,
+                populate,
+            });
             return twilioSettings;
         } catch (error) {
             ErrorService.log('SubscriberService.findByOne', error);
