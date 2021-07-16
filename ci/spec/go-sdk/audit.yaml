@@ -14,7 +14,7 @@ audit_go-sdk:
         - sudo apt install -y golang
         - go version
         - cd go-sdk/fyipe
-        - go list -m all
+        # - go list -m all
         - go mod tidy
         - go build
         # - while read l; do go get -v "$l"; done < <(go list -f '{{ join .Imports "\n" }}')
