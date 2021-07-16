@@ -16,9 +16,10 @@ audit_go-sdk:
         - cd go-sdk/fyipe
         # - go list -m all
         # - go mod tidy
+        - export GOPATH=~/go
+        - while read l; do go get -v "$l"; done < <(go list -f '{{ join .Imports "\n" }}')
         - go build
         - go test
-        # - while read l; do go get -v "$l"; done < <(go list -f '{{ join .Imports "\n" }}')
         - cd ..
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
