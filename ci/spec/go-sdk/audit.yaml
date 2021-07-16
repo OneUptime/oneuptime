@@ -15,8 +15,9 @@ audit_go-sdk:
         - go version
         - cd go-sdk/fyipe
         # - go list -m all
-        - go mod tidy
+        # - go mod tidy
         - go build
+        - go test
         # - while read l; do go get -v "$l"; done < <(go list -f '{{ join .Imports "\n" }}')
         - cd ..
         - cd ..
