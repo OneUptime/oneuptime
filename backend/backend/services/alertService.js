@@ -3618,7 +3618,7 @@ module.exports = {
     getSubProjectAlerts: async function(subProjectIds) {
         const _this = this;
         const populateAlert = [
-            { path: 'userId', select: 'name' },
+            { path: 'userId', select: 'name email' },
             { path: 'monitorId', select: 'name' },
             { path: 'projectId', select: 'name' },
         ];
