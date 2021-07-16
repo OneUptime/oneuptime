@@ -26,7 +26,8 @@ async function handleFetchingDomains() {
                 domain.autoProvisioning
             ) {
                 const cert = await CertificateStoreService.findOneBy({
-                    subject: domain.domain,
+                    query: { subject: domain.domain },
+                    select: 'id',
                 });
                 if (!cert) {
                     domainsWithoutCert.push(domain.domain);
