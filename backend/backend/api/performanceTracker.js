@@ -105,13 +105,27 @@ router.get(
         const { slug } = req.query;
         try {
             let performanceTracker = null;
+            const select =
+                'componentId name slug key showQuickStart createdById';
+            const populate = [
+                { path: 'createdById', select: 'name email' },
+                {
+                    path: 'componentId',
+                    select: 'name slug',
+                    populate: { path: 'projectId', select: 'name slug' },
+                },
+            ];
             if (performanceTrackerId && performanceTrackerId !== 'undefined') {
                 performanceTracker = await PerformanceTrackerService.findOneBy({
-                    _id: performanceTrackerId,
+                    query: { _id: performanceTrackerId },
+                    select,
+                    populate,
                 });
             } else if (slug && slug !== 'undefined') {
                 performanceTracker = await PerformanceTrackerService.findOneBy({
-                    slug,
+                    query: { slug },
+                    select,
+                    populate,
                 });
             } else {
                 const error = new Error(
@@ -165,9 +179,20 @@ router.put(
     async function(req, res) {
         const { performanceTrackerId } = req.params;
 
+        const select = 'componentId name slug key showQuickStart createdById';
+        const populate = [
+            { path: 'createdById', select: 'name email' },
+            {
+                path: 'componentId',
+                select: 'name slug',
+                populate: { path: 'projectId', select: 'name slug' },
+            },
+        ];
         const currentPerformanceTracker = await PerformanceTrackerService.findOneBy(
             {
-                _id: performanceTrackerId,
+                query: { _id: performanceTrackerId },
+                select,
+                populate,
             }
         );
         if (!currentPerformanceTracker) {
@@ -203,7 +228,8 @@ router.put(
 
         const currentPerformanceTracker = await PerformanceTrackerService.findOneBy(
             {
-                _id: performanceTrackerId,
+                query: { _id: performanceTrackerId },
+                select: '_id',
             }
         );
         if (!currentPerformanceTracker) {
@@ -255,7 +281,8 @@ router.put(
 
         const currentPerformanceTracker = await PerformanceTrackerService.findOneBy(
             {
-                _id: performanceTrackerId,
+                query: { _id: performanceTrackerId },
+                select: '_id',
             }
         );
         if (!currentPerformanceTracker) {
@@ -268,8 +295,8 @@ router.put(
         // try to find in the performance tracker if the name already exist for that component
         const existingPerformanceTracker = await PerformanceTrackerService.findBy(
             {
-                name: data.name,
-                componentId: { $ne: componentId },
+                query: { name: data.name, componentId: { $ne: componentId } },
+                select: '_id',
             }
         );
 

@@ -6,6 +6,8 @@ const slugify = require('slugify');
 // const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
 const uuid = require('uuid');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
     create: async function(data) {
@@ -24,8 +26,8 @@ module.exports = {
             }
             // check if a performance tracker already exist with the same name for a particular component
             const existingPerformanceTracker = await _this.findBy({
-                name: data.name,
-                componentId: data.componentId,
+                query: { name: data.name, componentId: data.componentId },
+                select: '_id',
             });
             if (
                 existingPerformanceTracker &&
@@ -47,8 +49,21 @@ module.exports = {
             data.slug = name.toLowerCase();
 
             let performanceTracker = await PerformanceTrackerModel.create(data);
+
+            const select =
+                'componentId name slug key showQuickStart createdById';
+            const populate = [
+                { path: 'createdById', select: 'name email' },
+                {
+                    path: 'componentId',
+                    select: 'name slug',
+                    populate: { path: 'projectId', select: 'name slug' },
+                },
+            ];
             performanceTracker = await _this.findOneBy({
-                _id: performanceTracker._id,
+                query: { _id: performanceTracker._id },
+                select,
+                populate,
             });
             return performanceTracker;
         } catch (error) {
@@ -57,7 +72,7 @@ module.exports = {
         }
     },
     //Description: Gets all application logs by component.
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -76,20 +91,31 @@ module.exports = {
             }
             if (!query.deleted) query.deleted = false;
 
-            const performanceTracker = await PerformanceTrackerModel.find(query)
+            // .populate({
+            //     path: 'componentId',
+            //     select: 'name slug',
+            //     populate: {
+            //         path: 'projectId',
+            //         select: 'name slug',
+            //     },
+            // })
+            // .populate('createdById', 'name email');
+
+            let performanceTrackerQuery = PerformanceTrackerModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
-                .limit(limit)
                 .skip(skip)
-                .populate({
-                    path: 'componentId',
-                    select: 'name slug',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name slug',
-                    },
-                })
-                .populate('createdById', 'name email');
+                .limit(limit);
+            performanceTrackerQuery = handleSelect(
+                select,
+                performanceTrackerQuery
+            );
+            performanceTrackerQuery = handlePopulate(
+                populate,
+                performanceTrackerQuery
+            );
+
+            const performanceTracker = await performanceTrackerQuery;
             return performanceTracker;
         } catch (error) {
             ErrorService.log('performanceTrackerService.findBy', error);
@@ -97,26 +123,37 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
 
-            const performanceTracker = await PerformanceTrackerModel.findOne(
+            // .populate({
+            //     path: 'componentId',
+            //     select: 'name slug',
+            //     populate: {
+            //         path: 'projectId',
+            //         select: 'name slug',
+            //     },
+            // })
+            // .populate('createdById', 'name email');
+
+            let performanceTrackerQuery = PerformanceTrackerModel.findOne(
                 query
-            )
-                .lean()
-                .populate({
-                    path: 'componentId',
-                    select: 'name slug',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name slug',
-                    },
-                })
-                .populate('createdById', 'name email');
+            ).lean();
+
+            performanceTrackerQuery = handleSelect(
+                select,
+                performanceTrackerQuery
+            );
+            performanceTrackerQuery = handlePopulate(
+                populate,
+                performanceTrackerQuery
+            );
+
+            const performanceTracker = await performanceTrackerQuery;
             return performanceTracker;
         } catch (error) {
             ErrorService.log('performanceTrackerService.findOneBy', error);
@@ -149,11 +186,23 @@ module.exports = {
             if (typeof limit === 'string') limit = parseInt(limit);
             if (typeof skip === 'string') skip = parseInt(skip);
 
-            const performanceTracker = await _this.findBy(
-                { componentId },
+            const select =
+                'componentId name slug key showQuickStart createdById';
+            const populate = [
+                { path: 'createdById', select: 'name email' },
+                {
+                    path: 'componentId',
+                    select: 'name slug',
+                    populate: { path: 'projectId', select: 'name slug' },
+                },
+            ];
+            const performanceTracker = await _this.findBy({
+                query: { componentId },
                 limit,
-                skip
-            );
+                skip,
+                select,
+                populate,
+            });
             return performanceTracker;
         } catch (error) {
             ErrorService.log(
@@ -240,7 +289,21 @@ module.exports = {
                 );
             }
 
-            performanceTracker = await this.findOneBy(query);
+            const select =
+                'componentId name slug key showQuickStart createdById';
+            const populate = [
+                { path: 'createdById', select: 'name email' },
+                {
+                    path: 'componentId',
+                    select: 'name slug',
+                    populate: { path: 'projectId', select: 'name slug' },
+                },
+            ];
+            performanceTracker = await this.findOneBy({
+                query,
+                select,
+                populate,
+            });
 
             // await RealTimeService.performanceTrackerKeyReset(
             //     performanceTracker
