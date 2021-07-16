@@ -10,9 +10,12 @@ const SsoService = require('../services/ssoService');
 router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 10;
+
+    const selectSso =
+        '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl';
     try {
         const [ssos, count] = await Promise.all([
-            SsoService.findBy({}, limit, skip),
+            SsoService.findBy({ query: {}, limit, skip, select: selectSso }),
             SsoService.countBy(),
         ]);
 
@@ -43,7 +46,13 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
 
 router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     try {
-        const sso = await SsoService.findOneBy({ _id: req.params.id });
+        const selectSso =
+            '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl';
+
+        const sso = await SsoService.findOneBy({
+            query: { _id: req.params.id },
+            select: selectSso,
+        });
         return sendItemResponse(req, res, sso);
     } catch (error) {
         return sendErrorResponse(req, res, error);

@@ -156,7 +156,8 @@ describe('SSO API', function() {
                     expect(res.body).to.have.property('remoteLogoutUrl');
 
                     const sso = await SsoService.findOneBy({
-                        _id: res.body._id,
+                        query: { _id: res.body._id },
+                        select: ' _id domain samlUrl remoteLogoutUrl',
                     });
                     expect(sso).to.be.an('object');
                     expect(sso).to.have.property('_id');
@@ -231,8 +232,8 @@ describe('SSO API', function() {
                         expect(res.body).to.have.property('samlSsoUrl');
                         expect(res.body).to.have.property('remoteLogoutUrl');
                         const deletedSso = await SsoService.findOneBy({
-                            _id: res.body._id,
-                            deleted: true,
+                            query: { _id: res.body._id, deleted: true },
+                            select: 'deleted',
                         });
 
                         expect(deletedSso).to.be.an('object');
@@ -266,7 +267,10 @@ describe('SSO API', function() {
                             updatedSsoObject.domain
                         );
 
-                        const sso = await SsoService.findOneBy({ _id: ssoId });
+                        const sso = await SsoService.findOneBy({
+                            query: { _id: ssoId },
+                            select: 'domain samlSsoUrl remoteLogoutUrl ',
+                        });
                         expect(sso.domain).to.equal(updatedSsoObject.domain);
                         expect(sso.samlSsoUrl).to.equal(
                             updatedSsoObject.samlSsoUrl
@@ -282,3 +286,6 @@ describe('SSO API', function() {
         });
     });
 });
+
+const selectSso =
+    '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl';
