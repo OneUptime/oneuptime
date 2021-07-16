@@ -14,7 +14,7 @@ audit_go-sdk:
         - sudo apt install -y golang
         - go version
         - cd go-sdk/fyipe
-        - go get -d ./...
+        - while read l; do go get -v "$l"; done < <(go list -f '{{ join .Imports "\n" }}')
         - cd ..
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
