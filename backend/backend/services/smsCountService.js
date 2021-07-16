@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -13,13 +13,15 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const SmsCount = await SmsCountModel.find(query)
-                .lean()
+            let smsCountQuery = SmsCountModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('userId', 'name')
-                .populate('projectId', 'name');
+                .skip(skip);
+
+            smsCountQuery = handleSelect(select, smsCountQuery);
+            smsCountQuery = handlePopulate(populate, smsCountQuery);
+
+            const SmsCount = await smsCountQuery;
             return SmsCount;
         } catch (error) {
             ErrorService.log('smsCountService.findBy', error);
@@ -27,18 +29,22 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const SmsCount = await SmsCountModel.findOne(query)
+
+            let smsCountQuery = SmsCountModel.findOne(query)
                 .lean()
-                .sort([['createdAt', -1]])
-                .populate('userId', 'name')
-                .populate('projectId', 'name');
+                .sort([['createdAt', -1]]);
+
+            smsCountQuery = handleSelect(select, smsCountQuery);
+            smsCountQuery = handlePopulate(populate, smsCountQuery);
+
+            const SmsCount = await smsCountQuery;
             return SmsCount;
         } catch (error) {
             ErrorService.log('smsCountService.findOneBy', error);
