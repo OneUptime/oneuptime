@@ -48,7 +48,9 @@ router.put('/default', async (req, res) => {
 router.get('/default', async (req, res) => {
     try {
         const defaultManager = await DefaultManagerService.findOneBy({
-            deleted: false,
+            query: { deleted: false },
+            select:
+                'store challenges renewOffset renewStagger accountKeyType serverKeyType subscriberEmail agreeToTerms deleted deletedAt',
         });
 
         return sendItemResponse(req, res, defaultManager);
