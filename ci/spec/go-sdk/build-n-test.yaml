@@ -17,6 +17,7 @@ test_go-sdk:
         - sudo docker ps
         - sudo apt install -y golang
         - cd go-sdk/fyipe
+        - go get -d ./...
         - go test
         - cd ..
         - cd ..
