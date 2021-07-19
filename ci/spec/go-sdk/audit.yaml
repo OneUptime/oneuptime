@@ -16,18 +16,13 @@ audit_go-sdk:
         - sudo tar -xvf go1.16.4.linux-amd64.tar.gz
         - sudo mv go /usr/local
         - export GOROOT=/usr/local/go
-        - pwd
         - export GOPATH=$HOME/go-sdk/fyipe
         - export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
         - go version
         - cd go-sdk/fyipe
-        # - go list -m all
-        # - go mod tidy
-        - export GOPATH=~/go
         - go mod download github.com/bxcodec/faker/v3
-        - while read l; do go get -v "$l"; done < <(go list -f '{{ join .Imports "\n" }}')
+        # - while read l; do go get -v "$l"; done < <(go list -f '{{ join .Imports "\n" }}')
         - go build
-        - go test
         - cd ..
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
