@@ -26,16 +26,18 @@ module.exports = {
                 ErrorService.log('errorTrackerService.create', error);
                 throw error;
             }
-            const resourceCategory = await ResourceCategoryService.findBy({
-                _id: data.resourceCategory,
-            });
+            const resourceCategoryCount = await ResourceCategoryService.countBy(
+                {
+                    _id: data.resourceCategory,
+                }
+            );
             // prepare error tracker model
             let errorTracker = new ErrorTrackerModel();
             errorTracker.name = data.name;
             errorTracker.key = uuid.v4(); // generate random string here
             errorTracker.componentId = data.componentId;
             errorTracker.createdById = data.createdById;
-            if (resourceCategory) {
+            if (resourceCategoryCount && resourceCategoryCount > 0) {
                 errorTracker.resourceCategory = data.resourceCategory;
             }
             if (data && data.name) {

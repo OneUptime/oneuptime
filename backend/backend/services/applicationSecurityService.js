@@ -56,10 +56,12 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
-            const resourceCategory = await ResourceCategoryService.findBy({
-                _id: data.resourceCategory,
-            });
-            if (!resourceCategory) {
+            const resourceCategoryCount = await ResourceCategoryService.countBy(
+                {
+                    _id: data.resourceCategory,
+                }
+            );
+            if (!resourceCategoryCount || resourceCategoryCount === 0) {
                 delete data.resourceCategory;
             }
             data.slug = getSlug(data.name);
