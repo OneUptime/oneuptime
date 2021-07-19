@@ -116,7 +116,7 @@ module.exports = {
                 { new: true }
             );
             dockerCredential = await this.findOneBy({
-                _id: dockerCredential._id, deleted: dockerCredential.deleted // This is need for proper query. It considers deleted and non-deleted docker credentials
+                _id: dockerCredential._id, deleted: dockerCredential.deleted // This is needed for proper query. It considers deleted and non-deleted docker credentials
             });
 
             if (!dockerCredential) {
