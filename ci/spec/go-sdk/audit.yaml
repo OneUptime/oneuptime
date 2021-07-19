@@ -11,7 +11,6 @@ audit_go-sdk:
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
-        # - sudo apt install -y golang
         - wget https://dl.google.com/go/go1.16.4.linux-amd64.tar.gz
         - sudo tar -xvf go1.16.4.linux-amd64.tar.gz
         - sudo mv go /usr/local
@@ -20,8 +19,6 @@ audit_go-sdk:
         - export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
         - go version
         - cd go-sdk/fyipe
-        - go mod download github.com/bxcodec/faker/v3
-        # - while read l; do go get -v "$l"; done < <(go list -f '{{ join .Imports "\n" }}')
         - go build
         - cd ..
         - cd ..
