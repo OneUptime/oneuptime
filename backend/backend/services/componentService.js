@@ -6,11 +6,13 @@ module.exports = {
     create: async function(data) {
         try {
             const _this = this;
+
             const existingComponentCount = await _this.countBy({
                 name: data.name,
                 projectId: data.projectId,
             });
-            if (existingComponentCount || existingComponentCount > 0) {
+
+            if (existingComponentCount && existingComponentCount > 0) {
                 const error = new Error(
                     'Component with that name already exists.'
                 );
@@ -28,8 +30,8 @@ module.exports = {
                     projectId: project.parentProjectId,
                 });
                 if (
-                    !subProjectComponentsCount ||
-                    subProjectComponentsCount === 0
+                    subProjectComponentsCount &&
+                    subProjectComponentsCount > 0
                 ) {
                     const error = new Error(
                         'Component with that name already exists.'

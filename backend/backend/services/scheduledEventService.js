@@ -11,7 +11,7 @@ const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
 
 module.exports = {
-    create: async function({ projectId }, data, recurring) {
+    create: async function ({ projectId }, data, recurring) {
         try {
             if (!data.monitors || data.monitors.length === 0) {
                 const error = new Error(
@@ -32,16 +32,6 @@ module.exports = {
             data.monitors = data.monitors.map(monitor => ({
                 monitorId: monitor,
             }));
-
-            if (
-                !data.monitorDuringEvent &&
-                data.monitors &&
-                data.monitors.length > 0
-            ) {
-                await MonitorService.markMonitorsAsShouldNotMonitor(
-                    data.monitors.map(i => i.monitorId)
-                );
-            }
 
             data.projectId = projectId;
             if (data && data.name) {
@@ -86,6 +76,27 @@ module.exports = {
             const currentTime = moment();
             const startTime = moment(scheduledEvent.startDate);
             if (startTime <= currentTime) {
+                //set monitoring state of the monitor
+                if (!data.monitorDuringEvent) {
+                    if (
+                        data.monitors &&
+                        data.monitors.length > 0
+                    ) {
+                        await MonitorService.markMonitorsAsShouldNotMonitor(
+                            data.monitors.map(i => i.monitorId)
+                        );
+                    }
+                } else {
+                    if (
+                        data.monitors &&
+                        data.monitors.length > 0
+                    ) {
+                        await MonitorService.markMonitorsAsShouldMonitor(
+                            data.monitors.map(i => i.monitorId)
+                        );
+                    }
+                }
+
                 await ScheduledEventNoteService.create({
                     content: 'This scheduled event has started',
                     scheduledEventId: scheduledEvent._id,
@@ -97,6 +108,21 @@ module.exports = {
             //Create event end note immediately if end time equal to create time
             const endTime = moment(scheduledEvent.endDate);
             if (endTime <= currentTime) {
+                // revert monitor to monitoring state
+                if (!data.monitorDuringEvent) {
+                    for (const monitor of data.monitors) {
+                        // handle this in the background
+                        MonitorService.updateOneBy(
+                            {
+                                _id: monitor.monitorId,
+                            },
+                            {
+                                shouldNotMonitor: false,
+                            }
+                        );
+                    }
+                }
+
                 await ScheduledEventNoteService.create({
                     content: 'This scheduled event has ended',
                     scheduledEventId: scheduledEvent._id,
@@ -122,7 +148,7 @@ module.exports = {
         }
     },
 
-    updateOneBy: async function(query, data) {
+    updateOneBy: async function (query, data) {
         if (!query) {
             query = {};
         }
@@ -212,7 +238,7 @@ module.exports = {
         }
     },
 
-    updateBy: async function(query, data) {
+    updateBy: async function (query, data) {
         try {
             if (!query) {
                 query = {};
@@ -248,7 +274,7 @@ module.exports = {
         }
     },
 
-    deleteBy: async function(query, userId) {
+    deleteBy: async function (query, userId) {
         try {
             const scheduledEvent = await ScheduledEventModel.findOneAndUpdate(
                 query,
@@ -288,7 +314,7 @@ module.exports = {
         }
     },
 
-    findBy: async function({ query, limit, skip, populate, select }) {
+    findBy: async function ({ query, limit, skip, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -325,7 +351,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function({ query, select, populate }) {
+    findOneBy: async function ({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
@@ -364,7 +390,7 @@ module.exports = {
         }
     },
 
-    getSubProjectScheduledEvents: async function(subProjectIds) {
+    getSubProjectScheduledEvents: async function (subProjectIds) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -400,7 +426,7 @@ module.exports = {
         return subProjectScheduledEvents;
     },
 
-    getSubProjectOngoingScheduledEvents: async function(subProjectIds, query) {
+    getSubProjectOngoingScheduledEvents: async function (subProjectIds, query) {
         const populate = [
             { path: 'resolvedBy', select: 'name' },
             { path: 'projectId', select: 'name slug' },
@@ -436,7 +462,7 @@ module.exports = {
         return subProjectOngoingScheduledEvents;
     },
 
-    countBy: async function(query) {
+    countBy: async function (query) {
         try {
             if (!query) {
                 query = {};
@@ -450,7 +476,7 @@ module.exports = {
         }
     },
 
-    hardDeleteBy: async function(query) {
+    hardDeleteBy: async function (query) {
         try {
             await ScheduledEventModel.deleteMany(query);
             return 'Event(s) removed successfully!';
@@ -466,7 +492,7 @@ module.exports = {
      * @param {string} monitorId the id of the monitor
      * @param {string} userId the id of the user
      */
-    removeMonitor: async function(monitorId, userId) {
+    removeMonitor: async function (monitorId, userId) {
         try {
             const populate = [
                 { path: 'resolvedBy', select: 'name' },
@@ -548,7 +574,7 @@ module.exports = {
      * @param {object} query query parameter to use for db manipulation
      * @param {object} data data to be used to update the schedule
      */
-    resolveScheduledEvent: async function(query, data) {
+    resolveScheduledEvent: async function (query, data) {
         try {
             const _this = this;
             data.resolved = true;
@@ -664,7 +690,7 @@ module.exports = {
     /**
      * @description Create Started note for all schedule events
      */
-    createScheduledEventStartedNote: async function() {
+    createScheduledEventStartedNote: async function () {
         try {
             const currentTime = moment();
 
@@ -683,6 +709,22 @@ module.exports = {
 
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
+
+                // set monitoring status of the monitor
+                if (!scheduledEvent.monitorDuringEvent) {
+                    if(scheduledEvent.monitors && scheduledEvent.monitors.length > 0){
+                        await MonitorService.markMonitorsAsShouldNotMonitor(
+                            scheduledEvent.monitors.map(i => i.monitorId._id || i.monitorId,)
+                        );
+                    }
+                    
+                } else {
+                    if(scheduledEvent.monitors && scheduledEvent.monitors.length > 0){
+                        await MonitorService.markMonitorsAsShouldMonitor(
+                            scheduledEvent.monitors.map(i => i.monitorId._id || i.monitorId,)
+                        );
+                    }
+                }
 
                 const scheduledEventNoteCount = await ScheduledEventNoteService.countBy(
                     {
@@ -710,7 +752,7 @@ module.exports = {
 
     /**
      * @description Create Ended note for all schedule events
-     */ createScheduledEventEndedNote: async function() {
+     */ createScheduledEventEndedNote: async function () {
         try {
             const currentTime = moment();
 
@@ -727,6 +769,15 @@ module.exports = {
             });
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
+
+                // revert monitor back to monitoring state
+                if (scheduledEvent && !scheduledEvent.monitorDuringEvent) {
+                    if(scheduledEvent.monitors && scheduledEvent.monitors.length > 0){
+                        await MonitorService.markMonitorsAsShouldMonitor(
+                            scheduledEvent.monitors.map(i => i.monitorId._id || i.monitorId,)
+                        );
+                    }
+                }
 
                 const scheduledEventNoteListCount = await ScheduledEventNoteService.countBy(
                     {

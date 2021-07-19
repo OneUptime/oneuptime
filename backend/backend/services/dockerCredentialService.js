@@ -139,7 +139,10 @@ module.exports = {
             const select =
                 'dockerRegistryUrl dockerUsername dockerPassword iv projectId';
             dockerCredential = await this.findOneBy({
-                query: { _id: dockerCredential._id },
+                query: {
+                    _id: dockerCredential._id,
+                    deleted: dockerCredential.deleted,
+                },
                 select,
                 populate,
             });

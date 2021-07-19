@@ -147,6 +147,11 @@ module.exports = {
                 return integration;
             } else {
                 query.deleted = false;
+                data.monitors =
+                    data.monitors &&
+                    data.monitors.map(monitor => ({
+                        monitorId: monitor,
+                    }));
                 let updatedIntegration = await IntegrationModel.findOneAndUpdate(
                     query,
                     {

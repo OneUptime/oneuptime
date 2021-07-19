@@ -374,59 +374,6 @@ router.get(
     }
 );
 
-// Route
-// Description: Getting incident
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {incidentIdNumber}
-// Returns: 200: incidents, 400: Error; 500: Server Error.
-router.get(
-    '/:projectId/incidentNumber/:incidentIdNumber',
-    getUser,
-    isAuthorized,
-    async function(req, res) {
-        // Call the IncidentService.
-
-        try {
-            const populate = [
-                {
-                    path: 'monitors.monitorId',
-                    select: 'name slug componentId projectId type',
-                    populate: [
-                        { path: 'componentId', select: 'name slug' },
-                        { path: 'projectId', select: 'name slug' },
-                    ],
-                },
-                { path: 'createdById', select: 'name' },
-                { path: 'projectId', select: 'name slug' },
-                { path: 'resolvedBy', select: 'name' },
-                { path: 'acknowledgedBy', select: 'name' },
-                { path: 'incidentPriority', select: 'name color' },
-                {
-                    path: 'acknowledgedByIncomingHttpRequest',
-                    select: 'name',
-                },
-                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
-                { path: 'createdByIncomingHttpRequest', select: 'name' },
-                { path: 'probes.probeId', select: 'name _id' },
-            ];
-            const select =
-                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
-
-            const incident = await IncidentService.findOneBy({
-                query: {
-                    projectId: req.params.projectId,
-                    idNumber: req.params.incidentIdNumber,
-                },
-                select,
-                populate,
-            });
-            return sendItemResponse(req, res, incident);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
-    }
-);
-
 router.get(
     '/:projectId/timeline/:incidentId',
     getUser,
