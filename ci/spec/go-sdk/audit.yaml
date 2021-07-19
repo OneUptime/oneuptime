@@ -15,6 +15,10 @@ audit_go-sdk:
         - wget https://dl.google.com/go/go1.16.4.linux-amd64.tar.gz
         - sudo tar -xvf go1.16.4.linux-amd64.tar.gz
         - sudo mv go /usr/local
+        - export GOROOT=/usr/local/go
+        - pwd
+        - export GOPATH=$HOME/go-sdk/fyipe
+        - export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
         - go version
         - cd go-sdk/fyipe
         # - go list -m all
