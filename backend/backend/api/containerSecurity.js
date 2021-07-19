@@ -147,8 +147,21 @@ router.get(
     async (req, res) => {
         try {
             const { componentId } = req.params;
+            const populate = [
+                { path: 'componentId', select: 'name slug _id' },
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'dockerCredential',
+                    select:
+                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                },
+            ];
+            const select =
+                'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
             const containerSecurities = await ContainerSecurityService.findBy({
-                componentId,
+                query: { componentId },
+                select,
+                populate,
             });
 
             return sendItemResponse(req, res, containerSecurities);
@@ -169,8 +182,21 @@ router.get(
     async (req, res) => {
         try {
             const { containerSecurityId } = req.params;
+            const populate = [
+                { path: 'componentId', select: 'name slug _id' },
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'dockerCredential',
+                    select:
+                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                },
+            ];
+            const select =
+                'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
             const containerSecurity = await ContainerSecurityService.findOneBy({
-                _id: containerSecurityId,
+                query: { _id: containerSecurityId },
+                select,
+                populate,
             });
 
             if (!containerSecurity) {
@@ -198,8 +224,21 @@ router.get(
     async (req, res) => {
         try {
             const { containerSecuritySlug } = req.params;
+            const populate = [
+                { path: 'componentId', select: 'name slug _id' },
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'dockerCredential',
+                    select:
+                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                },
+            ];
+            const select =
+                'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
             const containerSecurity = await ContainerSecurityService.findOneBy({
-                slug: containerSecuritySlug,
+                query: { slug: containerSecuritySlug },
+                select,
+                populate,
             });
 
             if (!containerSecurity) {
@@ -271,8 +310,21 @@ router.get(
     async (req, res) => {
         try {
             const { credentialId } = req.params;
+            const populate = [
+                { path: 'componentId', select: 'name slug _id' },
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'dockerCredential',
+                    select:
+                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                },
+            ];
+            const select =
+                'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
             const response = await ContainerSecurityService.findBy({
-                dockerCredential: credentialId,
+                query: { dockerCredential: credentialId },
+                select,
+                populate,
             });
 
             return sendItemResponse(req, res, response);
@@ -294,7 +346,8 @@ router.post(
         try {
             const { containerSecurityId } = req.params;
             const containerSecurity = await ContainerSecurityService.findOneBy({
-                _id: containerSecurityId,
+                query: { _id: containerSecurityId },
+                select: '_id',
             });
 
             if (!containerSecurity) {

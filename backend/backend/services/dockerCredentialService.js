@@ -3,9 +3,11 @@ const DockerCredentialModel = require('../models/dockerCredential');
 const ErrorService = require('./errorService');
 const { encrypt, decrypt } = require('../config/encryptDecrypt');
 const axios = require('axios');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -19,27 +21,39 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const dockerCredentials = await DockerCredentialModel.find(query)
+            let dockerCredentialQuery = DockerCredentialModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId');
+                .skip(skip);
+            dockerCredentialQuery = handleSelect(select, dockerCredentialQuery);
+            dockerCredentialQuery = handlePopulate(
+                populate,
+                dockerCredentialQuery
+            );
 
+            const dockerCredentials = await dockerCredentialQuery;
             return dockerCredentials;
         } catch (error) {
             ErrorService.log('dockerCredentialService.findBy', error);
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;
 
-            const dockerCredential = await DockerCredentialModel.findOne(query)
-                .lean()
-                .populate('projectId');
+            let dockerCredentialQuery = DockerCredentialModel.findOne(
+                query
+            ).lean();
+            dockerCredentialQuery = handleSelect(select, dockerCredentialQuery);
+            dockerCredentialQuery = handlePopulate(
+                populate,
+                dockerCredentialQuery
+            );
+
+            const dockerCredential = await dockerCredentialQuery;
             return dockerCredential;
         } catch (error) {
             ErrorService.log('dockerCredentialService.findOneBy', error);
@@ -50,9 +64,12 @@ module.exports = {
         try {
             // no more than one docker credential with the same details in a project
             const dockerCredential = await this.findOneBy({
-                dockerRegistryUrl: data.dockerRegistryUrl,
-                projectId: data.projectId,
-                dockerUsername: data.dockerUsername,
+                query: {
+                    dockerRegistryUrl: data.dockerRegistryUrl,
+                    projectId: data.projectId,
+                    dockerUsername: data.dockerUsername,
+                },
+                select: '_id',
             });
 
             if (dockerCredential) {
@@ -81,7 +98,10 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            let dockerCredential = await this.findOneBy(query);
+            let dockerCredential = await this.findOneBy({
+                query,
+                select: 'dockerPassword iv',
+            });
 
             if (!data.deleted && !data.deletedAt) {
                 // validate docker username and password before update
@@ -115,8 +135,16 @@ module.exports = {
                 },
                 { new: true }
             );
+            const populate = [{ path: 'projectId', select: 'name slug _id' }];
+            const select =
+                'dockerRegistryUrl dockerUsername dockerPassword iv projectId';
             dockerCredential = await this.findOneBy({
-                _id: dockerCredential._id, deleted: dockerCredential.deleted // This is needed for proper query. It considers deleted and non-deleted docker credentials
+                query: {
+                    _id: dockerCredential._id,
+                    deleted: dockerCredential.deleted,
+                },
+                select,
+                populate,
             });
 
             if (!dockerCredential) {
@@ -135,7 +163,10 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let dockerCredential = await this.findOneBy(query);
+            let dockerCredential = await this.findOneBy({
+                query,
+                select: '_id',
+            });
 
             if (!dockerCredential) {
                 const error = new Error(
