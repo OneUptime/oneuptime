@@ -1,0 +1,456 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>fyipe: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">hackerbay/fyipe/fyipe.go (83.3%)</option>
+				
+				<option value="file1">hackerbay/fyipe/helper.go (79.4%)</option>
+				
+				<option value="file2">hackerbay/fyipe/logger.go (90.6%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package fyipe
+
+import (
+        "errors"
+        "log"
+)
+
+type LoggerOptions struct {
+        ApplicationLogId  string
+        ApplicationLogKey string
+        ApiUrl            string
+}
+
+type FyipeLogger struct {
+        options LoggerOptions
+}
+
+// Generic Error Messages
+var (
+        ErrApplicationLogIDMissing  = "Application Log ID cant be empty"
+        ErrApplicationLogKeyMissing = "Application Log Key cant be empty"
+        ErrApiURLMissing            = "API URL cant be empty"
+        ErrContentMissing           = "Content cant be empty"
+)
+
+func NewFyipeLogger(options LoggerOptions) (*FyipeLogger, error) <span class="cov8" title="1">{
+        if options.ApplicationLogId == "" </span><span class="cov8" title="1">{
+                return nil, errors.New(ErrApplicationLogIDMissing)
+        }</span>
+        <span class="cov8" title="1">if options.ApplicationLogKey == "" </span><span class="cov8" title="1">{
+                return nil, errors.New(ErrApplicationLogKeyMissing)
+        }</span>
+        <span class="cov8" title="1">if options.ApiUrl == "" </span><span class="cov0" title="0">{
+                return nil, errors.New(ErrApiURLMissing)
+        }</span>
+        // set up API URL
+        <span class="cov8" title="1">options.ApiUrl = options.ApiUrl + "/application-log/" + options.ApplicationLogId + "/log"
+
+        fyipeLogger := FyipeLogger{
+                options: options,
+        }
+        return &amp;fyipeLogger, nil</span>
+}
+
+// Init initializes the SDK with loggerOptions.
+// it returns the error if any of the options are invalid
+func Init(options LoggerOptions) error <span class="cov8" title="1">{
+        currentFyipeLogger, err := NewFyipeLogger(options)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        // confirm Logger is ready to be used by binding user's fyipeLogger
+        <span class="cov8" title="1">logger := CurrentLogger()
+        logger.BindFyipeLogger(currentFyipeLogger)
+
+        return nil</span>
+}
+
+func LogInfo(content interface{}, tags []string) (LoggerResponse, error) <span class="cov8" title="1">{
+
+        if content == nil </span><span class="cov8" title="1">{
+                return LoggerResponse{}, errors.New(ErrContentMissing)
+        }</span>
+
+        // access fyipe Logger and send an api request
+        <span class="cov8" title="1">logger := CurrentLogger()
+        var res, err = logger.MakeApiRequest(content, "info", tags)
+
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalln(err)
+        }</span>
+        <span class="cov8" title="1">return res, err</span>
+}
+
+func LogWarning(content interface{}, tags []string) (LoggerResponse, error) <span class="cov8" title="1">{
+
+        if content == nil </span><span class="cov0" title="0">{
+                return LoggerResponse{}, errors.New(ErrContentMissing)
+        }</span>
+
+        // access fyipe Logger and send an api request
+        <span class="cov8" title="1">logger := CurrentLogger()
+        var res, err = logger.MakeApiRequest(content, "warning", tags)
+
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalln(err)
+        }</span>
+        <span class="cov8" title="1">return res, err</span>
+}
+func LogError(content interface{}, tags []string) (LoggerResponse, error) <span class="cov8" title="1">{
+
+        if content == nil </span><span class="cov0" title="0">{
+                return LoggerResponse{}, errors.New(ErrContentMissing)
+        }</span>
+
+        // access fyipe Logger and send an api request
+        <span class="cov8" title="1">logger := CurrentLogger()
+        var res, err = logger.MakeApiRequest(content, "error", tags)
+
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalln(err)
+        }</span>
+        <span class="cov8" title="1">return res, err</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package fyipe
+
+import (
+        "bytes"
+        "encoding/json"
+        "fmt"
+        "io/ioutil"
+        "net/http"
+
+        "github.com/bxcodec/faker/v3"
+)
+
+type SampleUser struct {
+        Name               string             `faker:"name" json:"name"`
+        Password           string             `faker:"oneof: 1234567890, 1234567890" json:"password"`
+        ConfirmPassword    string             `faker:"oneof: 1234567890, 1234567890" json:"confirmPassword"`
+        Email              string             `faker:"email" json:"email"`
+        CompanyName        string             `faker:"word" json:"companyName"`
+        JobTitle           string             `faker:"word"  json:"jobTitle"`
+        CompanySize        int                `faker:"boundary_start=3, boundary_end=10" json:"companySize"`
+        Card               CardStruct         `json:"card"`
+        Subscription       SubscriptionStruct `json:"subscription"`
+        CardName           string             `faker:"name" json:"cardName"`
+        CardNumber         string             `faker:"cc_number" json:"cardNumber"`
+        Expiry             string             `faker:"oneof: 04/24, 08/25" json:"expiry"`
+        CVV                int                `faker:"boundary_start=123, boundary_end=456" json:"cvv"`
+        City               string             `faker:"word" json:"city"`
+        State              string             `faker:"word" json:"state"`
+        ZipCode            string             `faker:"oneof:3123, 8846" json:"zipCode"`
+        PlanId             string             `faker:"oneof: plan_GoWIYiX2L8hwzx, plan_GoWIYiX2L8hwzx" json:"planId"`
+        CompanyRole        string             `faker:"word" json:"companyRole"`
+        CompanyPhoneNumber string             `faker:"phone_number" json:"companyPhoneNumber"`
+        Reference          string             `faker:"oneof: Github, Slack" json:"reference"`
+}
+type CardStruct struct {
+        StripeToken string `faker:"oneof: tok_visa, tok_visa"  json:"stripeToken"`
+}
+type SubscriptionStruct struct {
+        StripePlanId int `faker:"oneof: 0, 0"  json:"stripePlanId"`
+}
+
+type NameStruct struct {
+        Name string `faker:"name" json:"name"`
+}
+type SampleLog struct {
+        Name     string `faker:"name" json:"name"`
+        Location string `faker:"word" json:"state"`
+}
+
+func GetUser() SampleUser <span class="cov8" title="1">{
+        a := SampleUser{}
+        err := faker.FakeData(&amp;a)
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Println(err)
+        }</span>
+        <span class="cov8" title="1">return a</span>
+}
+func GetNameComponent() NameStruct <span class="cov8" title="1">{
+        a := NameStruct{}
+        err := faker.FakeData(&amp;a)
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Println(err)
+        }</span>
+        <span class="cov8" title="1">return a</span>
+}
+
+func GetSampleLog() SampleLog <span class="cov8" title="1">{
+        a := SampleLog{}
+        err := faker.FakeData(&amp;a)
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Println(err)
+        }</span>
+        <span class="cov8" title="1">return a</span>
+}
+
+func MakeTestApiRequest(apiUrl string, content interface{}, token string) (map[string]interface{}, error) <span class="cov8" title="1">{
+        postBody, _ := json.Marshal(content)
+        requestBody := bytes.NewBuffer(postBody)
+
+        req, err := http.NewRequest("POST", apiUrl, requestBody)
+        if err != nil </span><span class="cov0" title="0">{
+                // log.Fatalf("An Error Occured %v", err)
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">req.Header.Set("Content-Type", "application/json")
+
+        if token != "" </span><span class="cov8" title="1">{
+                req.Header.Set("Authorization", "Basic "+token)
+        }</span>
+
+        <span class="cov8" title="1">client := &amp;http.Client{}
+
+        resp, err := client.Do(req)
+
+        if err != nil </span><span class="cov0" title="0">{
+                // log.Fatalf("An Error Occured %v", err)
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">body, err := ioutil.ReadAll(resp.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                // log.Fatalln(err)
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">var response map[string]interface{}
+        if err := json.Unmarshal([]byte(body), &amp;response); err != nil </span><span class="cov0" title="0">{
+                // panic(err)
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return response, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package fyipe
+
+import (
+        "bytes"
+        "encoding/json"
+        "io/ioutil"
+        "net/http"
+        "sync"
+)
+
+var currentLogger = NewLogger(nil)
+
+type Logger struct {
+        stack *stack
+        mu    sync.RWMutex
+}
+type ApplicationLog struct {
+        ID   string `json:"_id"`
+        Name string
+}
+type LoggerResponse struct {
+        ID                 string `json:"_id"`
+        Deleted            bool
+        CreatedAt          string
+        Content            interface{}
+        StringifiedContent string
+        Type               string
+        CreatedBy          string
+        AppLog             ApplicationLog `json:"applicationLogId"`
+        Tags               []string
+        Message            string
+}
+
+type stack []*layer
+
+type layer struct {
+        // mu protects concurrent reads and writes to fyipeLogger.
+        mu          sync.RWMutex
+        fyipeLogger *FyipeLogger
+}
+
+// return stored fyipeLogger
+func (l *layer) FyipeLogger() *FyipeLogger <span class="cov8" title="1">{
+        l.mu.RLock()
+        defer l.mu.RUnlock()
+        return l.fyipeLogger
+}</span>
+
+// set the current fyipeLogger
+func (l *layer) SetFyipeLogger(f *FyipeLogger) <span class="cov8" title="1">{
+        l.mu.Lock()
+        defer l.mu.Unlock()
+        l.fyipeLogger = f
+}</span>
+
+// constructor for default fyipeLogger
+func NewLogger(fyipeLogger *FyipeLogger) *Logger <span class="cov8" title="1">{
+        logger := Logger{
+                stack: &amp;stack{{
+                        fyipeLogger: fyipeLogger,
+                }},
+        }
+        return &amp;logger
+}</span>
+
+// returns an instance of previously initialized Logger.
+func CurrentLogger() *Logger <span class="cov8" title="1">{
+        return currentLogger
+}</span>
+
+// set the current fyipeLogger being used by the user
+func (logger *Logger) BindFyipeLogger(fyipeLogger *FyipeLogger) <span class="cov8" title="1">{
+        top := logger.stackTop()
+        top.SetFyipeLogger(fyipeLogger)
+}</span>
+
+// always return the topof the stack which contains one fyipeLogger
+func (logger *Logger) stackTop() *layer <span class="cov8" title="1">{
+        logger.mu.RLock()
+        defer logger.mu.RUnlock()
+
+        stack := logger.stack
+        stackLen := len(*stack)
+        top := (*stack)[stackLen-1]
+        return top
+}</span>
+
+// get the current fyipeLogger for usage
+func (logger *Logger) FyipeLogger() *FyipeLogger <span class="cov8" title="1">{
+        top := logger.stackTop()
+        return top.FyipeLogger()
+}</span>
+
+func (logger *Logger) MakeApiRequest(content interface{}, tagType string, tags []string) (LoggerResponse, error) <span class="cov8" title="1">{
+        currentFyipeLogger := logger.FyipeLogger()
+
+        postBody, _ := json.Marshal(struct {
+                Content           interface{} `json:"content"`
+                Type              string      `json:"type"`
+                ApplicationLogKey string      `json:"applicationLogKey"`
+                Tags              []string    `json:"tags"`
+        }{
+                Content:           content,
+                Type:              tagType,
+                ApplicationLogKey: currentFyipeLogger.options.ApplicationLogKey,
+                Tags:              tags,
+        })
+        responseBody := bytes.NewBuffer(postBody)
+
+        resp, err := http.Post(currentFyipeLogger.options.ApiUrl, "application/json", responseBody)
+
+        if err != nil </span><span class="cov0" title="0">{
+                // log.Fatalf("An Error Occured %v", err)
+                return LoggerResponse{}, err
+        }</span>
+
+        <span class="cov8" title="1">body, err := ioutil.ReadAll(resp.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                // log.Fatalln(err)
+                return LoggerResponse{}, err
+        }</span>
+
+        <span class="cov8" title="1">var loggerResponse LoggerResponse
+        if err := json.Unmarshal([]byte(body), &amp;loggerResponse); err != nil </span><span class="cov0" title="0">{
+                panic(err)</span>
+        }
+        <span class="cov8" title="1">return loggerResponse, nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

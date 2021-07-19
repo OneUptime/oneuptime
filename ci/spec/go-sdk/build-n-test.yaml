@@ -25,7 +25,8 @@ test_go-sdk:
         - cd go-sdk/fyipe
         - go get -d ./...
         - go test -v
-        - go test -cover
+        # - go test -coverprofile=cover.txt
+        # - go tool cover -html=cover.txt -o cover.html
         - cd ..
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
