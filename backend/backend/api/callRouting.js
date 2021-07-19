@@ -21,8 +21,11 @@ const callForward = async (req, res) => {
     try {
         const body = req.body;
         const to = body['To'];
+        const select =
+            'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
         const data = await CallRoutingService.findOneBy({
-            phoneNumber: to,
+            query: { phoneNumber: to },
+            select,
         });
         const response = await CallRoutingService.getCallResponse(
             data,
@@ -41,8 +44,11 @@ const backupCallForward = async (req, res) => {
     try {
         const body = req.body;
         const to = body['To'];
+        const select =
+            'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
         const data = await CallRoutingService.findOneBy({
-            phoneNumber: to,
+            query: { phoneNumber: to },
+            select,
         });
         const response = await CallRoutingService.getCallResponse(
             data,
@@ -61,8 +67,11 @@ const callStatus = async (req, res) => {
     try {
         const body = req.body;
         const to = body['To'];
+        const select =
+            'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
         const data = await CallRoutingService.findOneBy({
-            phoneNumber: to,
+            query: { phoneNumber: to },
+            select,
         });
         const response = await CallRoutingService.chargeRoutedCall(
             data.projectId,
@@ -93,8 +102,17 @@ router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
         if (typeof skip === 'string') skip = parseInt(skip);
         if (typeof limit === 'string') limit = parseInt(limit);
 
+        const populate = [{ path: 'projectId', select: 'name slug _id' }];
+        const select =
+            'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
         const [numbers, count] = await Promise.all([
-            CallRoutingService.findBy({ projectId }, skip, limit),
+            CallRoutingService.findBy({
+                query: { projectId },
+                skip,
+                limit,
+                select,
+                populate,
+            }),
             CallRoutingService.countBy({ projectId }),
         ]);
 
@@ -261,7 +279,8 @@ router.delete(
                 });
             }
             let routingSchema = await CallRoutingService.findOneBy({
-                _id: callRoutingId,
+                query: { _id: callRoutingId },
+                select: 'routingSchema',
             });
             routingSchema = routingSchema.routingSchema;
             const query = {};

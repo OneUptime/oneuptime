@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -12,12 +12,16 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-            const callRouting = await CallRoutingModel.find(query)
+
+            let callRoutingQuery = CallRoutingModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId');
+                .skip(skip);
+            callRoutingQuery = handleSelect(select, callRoutingQuery);
+            callRoutingQuery = handlePopulate(populate, callRoutingQuery);
+
+            const callRouting = await callRoutingQuery;
             return callRouting;
         } catch (error) {
             ErrorService.log('callRoutingService.findBy', error);
@@ -99,15 +103,20 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            const callRouting = await CallRoutingModel.findOne(query)
+
+            let callRoutingQuery = CallRoutingModel.findOne(query)
                 .lean()
                 .sort([['createdAt', -1]]);
+            callRoutingQuery = handleSelect(select, callRoutingQuery);
+            callRoutingQuery = handlePopulate(populate, callRoutingQuery);
+
+            const callRouting = await callRoutingQuery;
             return callRouting;
         } catch (error) {
             ErrorService.log('callRoutingService.findOneBy', error);
@@ -149,7 +158,10 @@ module.exports = {
             let updatedData = await CallRoutingModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const populate = [{ path: 'projectId', select: 'name slug _id' }];
+            const select =
+                'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
+            updatedData = await this.findBy({ query, populate, select });
             return updatedData;
         } catch (error) {
             ErrorService.log('callRoutingService.updateMany', error);
@@ -617,7 +629,8 @@ module.exports = {
     updateRoutingSchema: async function(data) {
         try {
             const currentCallRouting = await this.findOneBy({
-                _id: data.callRoutingId,
+                query: { _id: data.callRoutingId },
+                select: 'routingSchema',
             });
             const routingSchema =
                 currentCallRouting && currentCallRouting.routingSchema
@@ -674,7 +687,8 @@ module.exports = {
     updateRoutingSchemaAudio: async function(data) {
         try {
             const currentCallRouting = await this.findOneBy({
-                _id: data.callRoutingId,
+                query: { _id: data.callRoutingId },
+                select: 'routingSchema',
             });
             const routingSchema =
                 currentCallRouting && currentCallRouting.routingSchema
@@ -739,7 +753,10 @@ module.exports = {
     getCallRoutingLogs: async function(projectId) {
         try {
             let logs = [];
-            const callRouting = await this.findBy({ projectId });
+            const callRouting = await this.findBy({
+                query: { projectId },
+                select: '_id',
+            });
             if (callRouting && callRouting.length) {
                 for (let i = 0; i < callRouting.length; i++) {
                     const callRoutingId = callRouting[i]._id;
@@ -782,3 +799,5 @@ const { IS_SAAS_SERVICE } = require('../config/server');
 const ErrorService = require('./errorService');
 const ProjectService = require('./projectService');
 const FileService = require('./fileService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
