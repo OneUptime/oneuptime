@@ -648,6 +648,22 @@ module.exports = {
             //fetch event notes without started note and create
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
+
+                // revert monitor back to monitoring state
+                if (scheduledEvent && !scheduledEvent.monitorDuringEvent) {
+                    for (const monitor of scheduledEvent.monitors) {
+                        // run this in the background
+                        MonitorService.updateOneBy(
+                            {
+                                _id: monitor.monitorId._id || monitor.monitorId,
+                            },
+                            {
+                                shouldNotMonitor: false,
+                            }
+                        );
+                    }
+                }
+
                 const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
                     {
                         scheduledEventId,
