@@ -355,7 +355,7 @@ export default function incident(state = initialState, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    incident: action.payload,
+                    incident: action.payload || null,
                 },
             });
         }
@@ -385,7 +385,7 @@ export default function incident(state = initialState, action) {
                     incident: {
                         ...state.incident,
                         requesting: false,
-                        error: action.payload.error,
+                        error: action.payload,
                         success: false,
                     },
                 });
@@ -611,7 +611,7 @@ export default function incident(state = initialState, action) {
                 return Object.assign({}, state, {
                     incident: {
                         ...state.incident,
-                        requesting: true,
+                        requesting: false,
                         success: false,
                         error: null,
                         resolving: false,

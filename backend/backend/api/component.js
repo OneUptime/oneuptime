@@ -588,9 +588,14 @@ router.get(
                 performanceTrackers.map(async performanceTracker => {
                     let trackerStatus = 'Not monitoring performance';
                     const metrics = await PerformanceTrackerMetricService.findBy(
-                        { performanceTrackerId: performanceTracker._id },
-                        1,
-                        0
+                        {
+                            query: {
+                                performanceTrackerId: performanceTracker._id,
+                            },
+                            limit: 1,
+                            skip: 0,
+                            select: '_id',
+                        }
                     );
                     if (metrics.length > 0) {
                         trackerStatus = 'Monitoring performance';

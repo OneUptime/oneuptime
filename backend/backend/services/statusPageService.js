@@ -170,7 +170,8 @@ module.exports = {
                     // if there's none, add the domain to the flow
                     const certificate = await CertificateStoreService.findOneBy(
                         {
-                            subject: subDomain,
+                            query: { subject: subDomain },
+                            select: 'id',
                         }
                     );
 
@@ -342,7 +343,8 @@ module.exports = {
                         // if there's none, add the domain to the flow
                         const certificate = await CertificateStoreService.findOneBy(
                             {
-                                subject: eachDomain.domain,
+                                query: { subject: eachDomain.domain },
+                                select: 'id',
                             }
                         );
 
@@ -472,13 +474,14 @@ module.exports = {
 
             if (statusPage) {
                 const subscribers = await SubscriberService.findBy({
-                    statusPageId: statusPage._id,
+                    query: { statusPageId: statusPage._id },
+                    select: '_id',
                 });
 
                 await Promise.all(
                     subscribers.map(async subscriber => {
                         await SubscriberService.deleteBy(
-                            { _id: subscriber },
+                            { _id: subscriber._id },
                             userId
                         );
                     })
@@ -2108,4 +2111,3 @@ const getSlug = require('../utils/getSlug');
 const AnnouncementLogModel = require('../models/announcementLogs');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
-const select = require('../utils/select');

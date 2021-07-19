@@ -39,6 +39,7 @@ module.exports = {
                 });
             }
             let subProjectIds = [];
+            const selectResourceCat = 'projectId name createdById createdAt';
             const [subProjects, count, resourceCategory] = await Promise.all([
                 ProjectService.findBy({
                     query: { parentProjectId: project._id },
@@ -48,7 +49,8 @@ module.exports = {
                     projectId: { $in: subProjectIds },
                 }),
                 ResourceCategoryService.findBy({
-                    _id: data.resourceCategory,
+                    query: { _id: data.resourceCategory },
+                    select: selectResourceCat,
                 }),
             ]);
             let userCount = 0;

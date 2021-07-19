@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -13,13 +13,15 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const SmsCount = await SmsCountModel.find(query)
-                .lean()
+            let smsCountQuery = SmsCountModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('userId', 'name')
-                .populate('projectId', 'name');
+                .skip(skip);
+
+            smsCountQuery = handleSelect(select, smsCountQuery);
+            smsCountQuery = handlePopulate(populate, smsCountQuery);
+
+            const SmsCount = await smsCountQuery;
             return SmsCount;
         } catch (error) {
             ErrorService.log('smsCountService.findBy', error);
@@ -27,18 +29,22 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const SmsCount = await SmsCountModel.findOne(query)
+
+            let smsCountQuery = SmsCountModel.findOne(query)
                 .lean()
-                .sort([['createdAt', -1]])
-                .populate('userId', 'name')
-                .populate('projectId', 'name');
+                .sort([['createdAt', -1]]);
+
+            smsCountQuery = handleSelect(select, smsCountQuery);
+            smsCountQuery = handlePopulate(populate, smsCountQuery);
+
+            const SmsCount = await smsCountQuery;
             return SmsCount;
         } catch (error) {
             ErrorService.log('smsCountService.findOneBy', error);
@@ -84,8 +90,14 @@ module.exports = {
             sendTo: { $regex: new RegExp(filter), $options: 'i' },
         };
 
+        const populate = [
+            { path: 'projectId', select: 'name' },
+            { path: 'userId', select: 'name' },
+        ];
+        const select =
+            'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedById content status error';
         const [searchedSmsLogs, totalSearchCount] = await Promise.all([
-            _this.findBy(query, skip, limit),
+            _this.findBy({ query, skip, limit, select, populate }),
             _this.countBy({ query }),
         ]);
 
@@ -96,16 +108,18 @@ module.exports = {
         try {
             const _this = this;
             let problem = '';
-            const smsCount = await _this.findBy(
-                {
+            const select = 'createdAt';
+            const smsCount = await _this.findBy({
+                query: {
                     userId: userId,
                     createdAt: {
                         $gt: new Date(Date.now() - 24 * 60 * 60 * 1000),
                     },
                 },
-                4,
-                0
-            );
+                limit: 4,
+                skip: 0,
+                select,
+            });
             if (smsCount.length > 3) {
                 let time = moment(smsCount[3].createdAt).add(1, 'days');
                 time = time.diff(moment(Date.now()), 'minutes');
@@ -159,3 +173,5 @@ module.exports = {
 const SmsCountModel = require('../models/smsCount');
 const moment = require('moment');
 const ErrorService = require('../services/errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
