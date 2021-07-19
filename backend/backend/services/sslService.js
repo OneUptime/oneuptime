@@ -1,5 +1,7 @@
 const SslModel = require('../models/ssl');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
     create: async function(data) {
@@ -11,20 +13,25 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const sslChallenge = await SslModel.findOne(query).lean();
+            let sslChallengeQuery = SslModel.findOne(query).lean();
+
+            sslChallengeQuery = handleSelect(select, sslChallengeQuery);
+            sslChallengeQuery = handlePopulate(populate, sslChallengeQuery);
+
+            const sslChallenge = await sslChallengeQuery;
             return sslChallenge;
         } catch (error) {
             ErrorService.log('sslService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -38,12 +45,16 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const sslChallenges = await SslModel.find(query)
+            let sslChallengeQuery = SslModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
 
+            sslChallengeQuery = handleSelect(select, sslChallengeQuery);
+            sslChallengeQuery = handlePopulate(populate, sslChallengeQuery);
+
+            const sslChallenges = await sslChallengeQuery;
             return sslChallenges;
         } catch (error) {
             ErrorService.log('sslService.findBy', error);

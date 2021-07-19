@@ -3318,8 +3318,8 @@ module.exports = {
 
                         let sendResult;
                         const smsTemplate = await SmsTemplateService.findOneBy({
-                            projectId,
-                            smsType: templateType,
+                            query: { projectId, smsType: templateType },
+                            select: 'body',
                         });
                         let eventType;
                         if (isStatusPageNoteAlert) {
@@ -4182,8 +4182,11 @@ module.exports = {
                                 let sendResult;
                                 const smsTemplate = await SmsTemplateService.findOneBy(
                                     {
-                                        projectId,
-                                        smsType: templateType,
+                                        query: {
+                                            projectId,
+                                            smsType: templateType,
+                                        },
+                                        select: 'body',
                                     }
                                 );
                                 const subscriberAlert = await SubscriberAlertService.create(
@@ -4611,8 +4614,7 @@ module.exports = {
 
                         let sendResult;
                         const smsTemplate = await SmsTemplateService.findOneBy({
-                            projectId,
-                            smsType: templateType,
+                            query: { projectId, smsType: templateType },
                         });
                         const subscriberAlert = await SubscriberAlertService.create(
                             {
@@ -5078,8 +5080,10 @@ module.exports = {
                                     let sendResult;
                                     const smsTemplate = await SmsTemplateService.findOneBy(
                                         {
-                                            projectId,
-                                            smsType: templateType,
+                                            query: {
+                                                projectId,
+                                                smsType: templateType,
+                                            },
                                         }
                                     );
                                     const subscriberAlert = await SubscriberAlertService.create(
