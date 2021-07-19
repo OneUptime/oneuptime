@@ -42,6 +42,17 @@ module.exports = {
                         }
                     );
                 }
+            } else {
+                for (const monitor of data.monitors) {
+                    await MonitorService.updateOneBy(
+                        {
+                            _id: monitor.monitorId,
+                        },
+                        {
+                            shouldNotMonitor: false,
+                        }
+                    );
+                }
             }
 
             data.projectId = projectId;
