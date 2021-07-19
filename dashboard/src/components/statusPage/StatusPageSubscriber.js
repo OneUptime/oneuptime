@@ -8,7 +8,7 @@ import { RenderIfSubProjectAdmin } from '../basic/RenderIfSubProjectAdmin';
 import ShouldRender from '../basic/ShouldRender';
 import { FormLoader2, ListLoader } from '../basic/Loader';
 import { v4 as uuidv4 } from 'uuid';
-import DeleteSubscriber from '../../components/modals/DeleteComponent';
+import DeleteSubscriber from '../../components/modals/DeleteSubscriber';
 import DataPathHoC from '../DataPathHoC';
 import { openModal, closeModal } from '../../actions/modal';
 import { deleteSubscriber } from '../../actions/subscriber';
