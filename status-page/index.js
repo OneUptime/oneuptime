@@ -10,7 +10,31 @@ const fetch = require('node-fetch');
 const { spawn } = require('child_process');
 const axios = require('axios');
 
+// mongodb
+const MongoClient = require('mongodb').MongoClient;
+const mongoUrl =
+    process.env['MONGO_URL'] || 'mongodb://localhost:27017/fyipedb';
+
 const { NODE_ENV } = process.env;
+
+function getMongoClient() {
+    return new MongoClient(mongoUrl, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+}
+
+// setup mongodb connection
+const client = getMongoClient();
+(async function() {
+    try {
+        console.log('connecting to db');
+        await client.connect();
+        console.log('connected to db');
+    } catch (error) {
+        console.log('connection error: ', error);
+    }
+})();
 
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /statuspage/.env
@@ -82,6 +106,33 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
     res.send(response.data);
 });
 
+// fetch details about a domain from the db
+async function handleCustomDomain(client, collection, domain) {
+    const statusPage = await client
+        .db('fyipedb')
+        .collection(collection)
+        .findOne({
+            domains: { $elemMatch: { domain } },
+        });
+
+    let domainObj = {};
+    statusPage &&
+        statusPage.domains &&
+        statusPage.domains.forEach(eachDomain => {
+            if (eachDomain.domain === domain) {
+                domainObj = eachDomain;
+            }
+        });
+
+    return {
+        cert: domainObj.cert,
+        privateKey: domainObj.privateKey,
+        autoProvisioning: domainObj.autoProvisioning,
+        enableHttps: domainObj.enableHttps,
+        domain: domainObj.domain,
+    };
+}
+
 app.use('/', async function(req, res, next) {
     const host = req.hostname;
     if (
@@ -94,20 +145,22 @@ app.use('/', async function(req, res, next) {
     }
 
     try {
-        const response = await fetch(
-            `${apiHost}/statusPage/tlsCredential?domain=${host}`
-        ).then(res => res.json());
+        const response = await handleCustomDomain(client, 'statuspages', host);
 
         const { enableHttps } = response;
         if (enableHttps) {
             if (!req.secure) {
-                res.writeHead(301, { Location: `https://${host}${req.url}` });
+                res.writeHead(301, {
+                    Location: `https://${host}${req.url}`,
+                });
                 return res.end();
             }
             return next();
         } else {
             if (req.secure) {
-                res.writeHead(301, { Location: `http://${host}${req.url}` });
+                res.writeHead(301, {
+                    Location: `http://${host}${req.url}`,
+                });
                 return res.end();
             }
             return next();
@@ -228,9 +281,11 @@ function createDir(dirPath) {
                 path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
             ),
             SNICallback: async function(domain, cb) {
-                const res = await fetch(
-                    `${apiHost}/statusPage/tlsCredential?domain=${domain}`
-                ).then(res => res.json());
+                const res = await handleCustomDomain(
+                    client,
+                    'statuspages',
+                    domain
+                );
 
                 let certPath, privateKeyPath;
                 if (res) {
