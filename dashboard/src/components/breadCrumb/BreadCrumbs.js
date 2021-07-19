@@ -18,7 +18,6 @@ function BreadCrumbs({
     const [loading, setLoading] = useState(true);
 
     const close = async () => {
-        const incidents = incidents;
         const projectId = currentProjectId;
         for (const incident of incidents) {
             if (incident.resolved) {
