@@ -614,11 +614,32 @@ router.get('/statusBubble', async function(req, res) {
                 message: 'StatusBubble Id is required',
             });
         }
-        const statusPagesCount = await StatusPageService.countBy({
-            _id: statusPageId,
-            statusBubbleId,
+
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
+        const statusPages = await StatusPageService.findBy({
+            query: { _id: statusPageId, statusBubbleId },
+            populate: populateStatusPage,
+            select: selectStatusPage,
         });
-        if (!statusPagesCount || statusPagesCount === 0) {
+        if (!(statusPages && statusPages.length)) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'There are no statuspages attached to this Id',
