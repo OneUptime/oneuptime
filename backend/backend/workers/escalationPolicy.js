@@ -22,6 +22,20 @@ module.exports = {
 
             //#1
 
+            const selectOnCallScheduleStatus =
+                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+            const populateOnCallScheduleStatus = [
+                { path: 'incidentId', select: 'name slug' },
+                { path: 'project', select: 'name slug' },
+                { path: 'scheduleId', select: 'name slug' },
+                { path: 'schedule', select: '_id name slug' },
+                {
+                    path: 'activeEscalationId',
+                    select: 'projectId teams scheduleId',
+                },
+            ];
+
             const notAcknowledgedCallScheduleStatuses = await OnCallScheduleStatusService.findBy(
                 {
                     query: {
@@ -30,6 +44,8 @@ module.exports = {
                     },
                     limit: 9999999,
                     skip: 0,
+                    select: selectOnCallScheduleStatus,
+                    populate: populateOnCallScheduleStatus,
                 }
             );
 
