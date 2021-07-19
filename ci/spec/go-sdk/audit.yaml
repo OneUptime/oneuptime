@@ -17,6 +17,7 @@ audit_go-sdk:
         # - go list -m all
         # - go mod tidy
         - export GOPATH=~/go
+        - go mod download github.com/bxcodec/faker/v3
         - while read l; do go get -v "$l"; done < <(go list -f '{{ join .Imports "\n" }}')
         - go build
         - go test
