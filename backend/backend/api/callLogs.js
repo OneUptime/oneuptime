@@ -20,8 +20,10 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
         const query = {};
         const skip = req.query.skip;
         const limit = req.query.limit;
+        const populate = [{ path: 'projectId', select: 'name' }];
+        const select = 'from to projectId content status error';
         const [callLogs, count] = await Promise.all([
-            CallLogsService.findBy(query, limit, skip),
+            CallLogsService.findBy({ query, limit, skip, select, populate }),
             CallLogsService.countBy(query),
         ]);
         return sendListResponse(req, res, callLogs, count);
