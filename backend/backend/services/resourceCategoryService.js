@@ -1,14 +1,11 @@
 module.exports = {
     create: async function(data) {
         try {
-            const existingResourceCategory = await this.findBy({
+            const existingResourceCategory = await this.countBy({
                 name: data.name,
                 projectId: data.projectId,
             });
-            if (
-                existingResourceCategory &&
-                existingResourceCategory.length > 0
-            ) {
+            if (existingResourceCategory && existingResourceCategory > 0) {
                 const error = new Error(
                     'A resource category with that name already exists.'
                 );
@@ -92,7 +89,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -111,11 +108,23 @@ module.exports = {
             }
 
             query.deleted = false;
-            let resourceCategories = await ResourceCategoryModel.find(query)
+            let resourceCategoriesQuery = ResourceCategoryModel.find(query)
                 .lean()
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 });
+
+            resourceCategoriesQuery = handleSelect(
+                select,
+                resourceCategoriesQuery
+            );
+            resourceCategoriesQuery = handlePopulate(
+                populate,
+                resourceCategoriesQuery
+            );
+
+            let resourceCategories = await resourceCategoriesQuery;
+
             resourceCategories = resourceCategories.map(resourceCategory => ({
                 name: resourceCategory.name,
                 _id: resourceCategory._id,
@@ -130,15 +139,12 @@ module.exports = {
 
     updateOneBy: async function(query, data) {
         try {
-            const existingResourceCategory = await this.findBy({
+            const existingResourceCategory = await this.countBy({
                 name: data.name,
                 projectId: data.projectId,
                 _id: { $not: { $eq: data._id } },
             });
-            if (
-                existingResourceCategory &&
-                existingResourceCategory.length > 0
-            ) {
+            if (existingResourceCategory && existingResourceCategory > 0) {
                 const error = new Error(
                     'A resource category with that name already exists.'
                 );
@@ -176,7 +182,8 @@ module.exports = {
             let updatedData = await ResourceCategoryModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const select = 'projectId name createdById createdAt';
+            updatedData = await this.findBy({ query, select });
             return updatedData;
         } catch (error) {
             ErrorService.log('resourceCategoryService.updateMany', error);
@@ -216,3 +223,5 @@ const ApplicationLogModel = require('../models/applicationLog');
 const ErrorTrackerModel = require('../models/errorTracker');
 const ApplicationSecurityModel = require('../models/applicationSecurity');
 const ContainerSecurityModel = require('../models/containerSecurity');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
