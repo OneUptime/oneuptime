@@ -354,7 +354,7 @@ func TestContentWithFourTagIsLogged(t *testing.T) {
 	if actualResponse != expectedResponse {
 		t.Errorf("TestContentWithFourTagIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
 	} else {
-		t.Logf("TestContentWithFourTagIsLogged success expected %v, got %v", expectedResponse, actualResponse)
+		t.Logf("TestContentWithFourTagIsLogged  success expected %v, got %v", expectedResponse, actualResponse)
 	}
 	if actualTypeResponse != expectedTypeResponse {
 		t.Errorf("TestContentWithFourTagIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
