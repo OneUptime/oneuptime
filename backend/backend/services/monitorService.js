@@ -43,7 +43,7 @@ module.exports = {
             const [subProjects, count, resourceCategory] = await Promise.all([
                 ProjectService.findBy({
                     query: { parentProjectId: project._id },
-                    select: '_id',
+                    select: '_id users',
                 }),
                 _this.countBy({
                     projectId: { $in: subProjectIds },
