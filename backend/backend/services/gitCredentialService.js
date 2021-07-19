@@ -97,7 +97,7 @@ module.exports = {
                 },
                 { new: true }
             );
-            gitCredential = await this.findOneBy({ _id: gitCredential._id });
+            gitCredential = await this.findOneBy({ _id: gitCredential._id, deleted: gitCredential.deleted }); // This is need for proper query. It considers deleted and non-deleted git credentials
 
             if (!gitCredential) {
                 const error = new Error(
