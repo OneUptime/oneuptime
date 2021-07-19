@@ -225,7 +225,19 @@ module.exports = {
         ];
         const select =
             'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+        const selectOnCallScheduleStatus =
+            'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
+        const populateOnCallScheduleStatus = [
+            { path: 'incidentId', select: 'name slug' },
+            { path: 'project', select: 'name slug' },
+            { path: 'scheduleId', select: 'name slug' },
+            { path: 'schedule', select: '_id name slug' },
+            {
+                path: 'activeEscalationId',
+                select: 'projectId teams scheduleId',
+            },
+        ];
         const [
             incidentMsgs,
             timeline,
@@ -263,6 +275,8 @@ module.exports = {
                 query: {
                     incident: incidentId,
                 },
+                select: selectOnCallScheduleStatus,
+                populate: populateOnCallScheduleStatus,
             }),
         ]);
         const callScheduleStatus = await Services.checkCallSchedule(callStatus);
@@ -453,6 +467,19 @@ module.exports = {
 
         const monitorPopulate = [{ path: 'componentId', select: 'name' }];
         const monitorSelect = '_id name data method componentId';
+        const selectOnCallScheduleStatus =
+            'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+        const populateOnCallScheduleStatus = [
+            { path: 'incidentId', select: 'name slug' },
+            { path: 'project', select: 'name slug' },
+            { path: 'scheduleId', select: 'name slug' },
+            { path: 'schedule', select: '_id name slug' },
+            {
+                path: 'activeEscalationId',
+                select: 'projectId teams scheduleId',
+            },
+        ];
         const [monitor, callScheduleStatuses] = await Promise.all([
             MonitorService.findOneBy({
                 query: { _id: monitorId },
@@ -461,6 +488,8 @@ module.exports = {
             }),
             OnCallScheduleStatusService.findBy({
                 query: { incident: incident._id, schedule: schedule },
+                select: selectOnCallScheduleStatus,
+                populate: populateOnCallScheduleStatus,
             }),
         ]);
 
@@ -585,8 +614,23 @@ module.exports = {
 
     escalate: async function({ schedule, incident, alertProgress, monitor }) {
         const _this = this;
+        const selectOnCallScheduleStatus =
+            'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+        const populateOnCallScheduleStatus = [
+            { path: 'incidentId', select: 'name slug' },
+            { path: 'project', select: 'name slug' },
+            { path: 'scheduleId', select: 'name slug' },
+            { path: 'schedule', select: '_id name slug' },
+            {
+                path: 'activeEscalationId',
+                select: 'projectId teams scheduleId',
+            },
+        ];
         const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
             query: { incident: incident._id, schedule: schedule._id },
+            select: selectOnCallScheduleStatus,
+            populate: populateOnCallScheduleStatus,
         });
 
         if (callScheduleStatuses.length === 0) {
@@ -1893,6 +1937,20 @@ module.exports = {
                 ];
                 const monitorSelect = '_id name data method componentId';
 
+                const selectOnCallScheduleStatus =
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+                const populateOnCallScheduleStatus = [
+                    { path: 'incidentId', select: 'name slug' },
+                    { path: 'project', select: 'name slug' },
+                    { path: 'scheduleId', select: 'name slug' },
+                    { path: 'schedule', select: '_id name slug' },
+                    {
+                        path: 'activeEscalationId',
+                        select: 'projectId teams scheduleId',
+                    },
+                ];
+
                 const [schedules, mon, project] = await Promise.all([
                     this.getSchedulesForAlerts(incident, monitor),
                     MonitorService.findOneBy({
@@ -1926,6 +1984,8 @@ module.exports = {
                                 incident: incident._id,
                                 schedule: schedule,
                             },
+                            select: selectOnCallScheduleStatus,
+                            populate: populateOnCallScheduleStatus,
                         }
                     );
                     let onCallScheduleStatus = null;
@@ -2214,6 +2274,19 @@ module.exports = {
                     { path: 'componentId', select: 'name' },
                 ];
                 const monitorSelect = '_id name data method componentId';
+                const selectOnCallScheduleStatus =
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+                const populateOnCallScheduleStatus = [
+                    { path: 'incidentId', select: 'name slug' },
+                    { path: 'project', select: 'name slug' },
+                    { path: 'scheduleId', select: 'name slug' },
+                    { path: 'schedule', select: '_id name slug' },
+                    {
+                        path: 'activeEscalationId',
+                        select: 'projectId teams scheduleId',
+                    },
+                ];
 
                 const [schedules, mon, project] = await Promise.all([
                     this.getSchedulesForAlerts(incident, monitor),
@@ -2248,6 +2321,8 @@ module.exports = {
                                 incident: incident._id,
                                 schedule: schedule,
                             },
+                            select: selectOnCallScheduleStatus,
+                            populate: populateOnCallScheduleStatus,
                         }
                     );
                     let onCallScheduleStatus = null;
