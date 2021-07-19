@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, limit, skip, sort) {
+    findBy: async function({ query, limit, skip, sort, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -18,12 +18,22 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const items = await CallLogsModel.find(query)
+            // const items = await CallLogsModel.find(query)
+            //     .lean()
+            //     .limit(limit)
+            //     .skip(skip)
+            //     .sort(sort)
+            //     .populate('projectId', 'name');
+
+            let itemQuery = CallLogsModel.find(query)
                 .lean()
                 .limit(limit)
                 .skip(skip)
-                .sort(sort)
-                .populate('projectId', 'name');
+                .sort(sort);
+            itemQuery = handleSelect(select, itemQuery);
+            itemQuery = handlePopulate(populate, itemQuery);
+
+            const items = await itemQuery;
             return items;
         } catch (error) {
             ErrorService.log('callLogsService.findBy', error);
@@ -101,8 +111,10 @@ module.exports = {
             to: { $regex: new RegExp(filter), $options: 'i' },
         };
 
+        const populate = [{ path: 'projectId', select: 'name' }];
+        const select = 'from to projectId content status error';
         const [searchedCallLogs, totalSearchCount] = await Promise.all([
-            _this.findBy({ query, skip, limit }),
+            _this.findBy({ query, skip, limit, select, populate }),
             _this.countBy({ query }),
         ]);
 
@@ -112,3 +124,5 @@ module.exports = {
 
 const CallLogsModel = require('../models/callLogs');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
