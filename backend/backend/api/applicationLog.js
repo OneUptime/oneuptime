@@ -381,10 +381,12 @@ router.put(
         if (!data.resourceCategory || data.resourceCategory === '') {
             unsetData = { resourceCategory: '' };
         } else {
-            const resourceCategoryModel = await ResourceCategoryService.findBy({
-                _id: data.resourceCategory,
-            });
-            if (resourceCategoryModel) {
+            const resourceCategoryCount = await ResourceCategoryService.countBy(
+                {
+                    _id: data.resourceCategory,
+                }
+            );
+            if (resourceCategoryCount && resourceCategoryCount > 0) {
                 applicationLogUpdate.resourceCategory = data.resourceCategory;
             } else {
                 unsetData = { resourceCategory: '' };

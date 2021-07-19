@@ -416,11 +416,12 @@ router.get(
                     skip,
                     select: '_id name slug type createdAt',
                 }),
-                ContainerSecurityService.findBy(
-                    { componentId: componentId },
+                ContainerSecurityService.findBy({
+                    query: { componentId: componentId },
                     limit,
-                    skip
-                ),
+                    skip,
+                    select: '_id name createdAt slug',
+                }),
                 ApplicationSecurityService.findBy({
                     query: { componentId: componentId },
                     limit,

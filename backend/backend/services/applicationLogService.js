@@ -26,16 +26,18 @@ module.exports = {
                 ErrorService.log('applicationLogService.create', error);
                 throw error;
             }
-            const resourceCategory = await ResourceCategoryService.findBy({
-                _id: data.resourceCategory,
-            });
+            const resourceCategoryCount = await ResourceCategoryService.countBy(
+                {
+                    _id: data.resourceCategory,
+                }
+            );
             // prepare application log model
             let applicationLog = new ApplicationLogModel();
             applicationLog.name = data.name;
             applicationLog.key = uuid.v4(); // generate random string here
             applicationLog.componentId = data.componentId;
             applicationLog.createdById = data.createdById;
-            if (resourceCategory) {
+            if (resourceCategoryCount && resourceCategoryCount > 0) {
                 applicationLog.resourceCategory = data.resourceCategory;
             }
             applicationLog.slug = getSlug(data.name);

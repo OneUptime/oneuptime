@@ -29,6 +29,8 @@ spec:
                       value: 'production'
                     - name: BACKEND_URL
                       value: {{ template "fyipe.backendHost" . }}
+                    - name: MONGO_URL
+                      value: {{ template "fyipe.mongodbConnectionString" . }}
                     {{- if .Values.saas.isSaasService }}
                     - name: IS_SAAS_SERVICE
                       value: 'true'
