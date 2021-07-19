@@ -23,11 +23,9 @@ test_go-sdk:
         - export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
         - go version
         - cd go-sdk/fyipe
-        # - go mod download github.com/bxcodec/faker/v3
-        # - while read l; do go get -v "$l"; done < <(go list -f '{{ join .Imports "\n" }}')
-        # - go build
         - go get -d ./...
         - go test -v
+        - go test -cover
         - cd ..
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
