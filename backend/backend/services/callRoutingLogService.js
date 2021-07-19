@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -12,12 +12,16 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-            const callRoutingLog = await CallRoutingLogModel.find(query)
+
+            let callRoutingLogQuery = CallRoutingLogModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('userId');
+                .skip(skip);
+            callRoutingLogQuery = handleSelect(select, callRoutingLogQuery);
+            callRoutingLogQuery = handlePopulate(populate, callRoutingLogQuery);
+
+            const callRoutingLog = await callRoutingLogQuery;
             return callRoutingLog;
         } catch (error) {
             ErrorService.log('callRoutingLogService.findBy', error);
@@ -84,17 +88,21 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
-            const logs = await CallRoutingLogModel.findOne(query)
+
+            let logQuery = CallRoutingLogModel.findOne(query)
                 .lean()
-                .sort([['createdAt', -1]])
-                .populate('userId');
-            return logs;
+                .sort([['createdAt', -1]]);
+            logQuery = handleSelect(select, logQuery);
+            logQuery = handlePopulate(populate, logQuery);
+
+            const log = await logQuery;
+            return log;
         } catch (error) {
             ErrorService.log('callRoutingLogService.findOneBy', error);
             throw error;
@@ -135,7 +143,9 @@ module.exports = {
             let updatedData = await CallRoutingLogModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const select =
+                'callRoutingId callSid price calledFrom calledTo duration dialTo';
+            updatedData = await this.findBy({ query, select });
             return updatedData;
         } catch (error) {
             ErrorService.log('callRoutingLogService.updateMany', error);
@@ -156,3 +166,5 @@ module.exports = {
 
 const CallRoutingLogModel = require('../models/callRoutingLog');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

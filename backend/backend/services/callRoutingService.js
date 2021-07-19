@@ -379,7 +379,8 @@ module.exports = {
                     );
                 }
                 const callRoutingLog = await CallRoutingLogService.findOneBy({
-                    callSid,
+                    query: { callSid },
+                    select: 'callSid dialTo _id',
                 });
                 if (callRoutingLog && callRoutingLog.callSid) {
                     let dialTo =
@@ -572,7 +573,8 @@ module.exports = {
                 response.say(error);
             }
             const callRoutingLog = await CallRoutingLogService.findOneBy({
-                callSid,
+                query: { callSid },
+                select: '_id dialTo callSid',
             });
             if (callRoutingLog && callRoutingLog.callSid) {
                 let dialTo =
@@ -758,10 +760,13 @@ module.exports = {
                 select: '_id',
             });
             if (callRouting && callRouting.length) {
+                const select =
+                    'callRoutingId callSid price calledFrom calledTo duration dialTo';
                 for (let i = 0; i < callRouting.length; i++) {
                     const callRoutingId = callRouting[i]._id;
                     const callLogs = await CallRoutingLogService.findBy({
-                        callRoutingId,
+                        query: { callRoutingId },
+                        select,
                     });
                     if (callLogs && callLogs.length) {
                         logs = logs.concat(callLogs);
