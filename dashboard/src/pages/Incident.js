@@ -8,7 +8,6 @@ import {
     incidentSuccess,
     resetIncident,
     getIncident,
-    getIncidentByIdNumber,
     getIncidentTimeline,
     fetchIncidentMessages,
 } from '../actions/incident';
@@ -40,6 +39,7 @@ import HideIncidentBox from '../components/incident/HideIncidentBox';
 import flat from '../utils/flattenArray';
 import joinNames from '../utils/joinNames';
 import { fetchProjectSlug } from '../actions/project';
+import ShouldRender from '../components/basic/ShouldRender';
 
 class Incident extends React.Component {
     constructor(props) {
@@ -69,10 +69,7 @@ class Incident extends React.Component {
                 (this.props.incident && this.props.incident._id) ||
             prevProps.componentSlug !== this.props.componentSlug
         ) {
-            this.props.getIncidentByIdNumber(
-                this.props.projectId,
-                this.props.incidentId
-            );
+            // this.props.getIncident(this.props.projectId, this.props.incidentId);
             this.fetchAllIncidentData();
         }
 
@@ -222,8 +219,19 @@ class Incident extends React.Component {
         this.setState({
             tabIndex: index,
         });
-        if (index === 2 || index === 0) {
-            this.fetchAllIncidentData();
+        if (index === 2) {
+            this.props.fetchIncidentAlert(
+                this.props.projectId,
+                this.props.incidentId,
+                0,
+                10
+            );
+            this.props.fetchSubscriberAlert(
+                this.props.projectId,
+                this.props.incidentId,
+                0,
+                10
+            );
         }
     };
 
@@ -324,6 +332,40 @@ class Incident extends React.Component {
         }
     };
 
+    loader = () => (
+        <div
+            id="app-loading"
+            style={{
+                position: 'fixed',
+                top: '0',
+                bottom: '0',
+                left: '0',
+                right: '0',
+                backgroundColor: '#fdfdfd',
+                zIndex: '999',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+            }}
+        >
+            <div style={{ transform: 'scale(2)' }}>
+                <svg
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="bs-Spinner-svg"
+                >
+                    <ellipse
+                        cx="12"
+                        cy="12"
+                        rx="10"
+                        ry="10"
+                        className="bs-Spinner-ellipse"
+                    ></ellipse>
+                </svg>
+            </div>
+        </div>
+    );
+
     render() {
         let variable = null;
         const {
@@ -412,46 +454,52 @@ class Incident extends React.Component {
                         onSelect={tabIndex => this.tabSelected(tabIndex)}
                         selectedIndex={this.state.tabIndex}
                     >
-                        <div className="Flex-flex Flex-direction--columnReverse">
-                            <TabList
-                                id="customTabList"
-                                className={'custom-tab-list'}
-                            >
-                                <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab basic-tab'
-                                    }
+                        <ShouldRender
+                            if={
+                                this.props.incident && !this.props.errorIncident
+                            }
+                        >
+                            <div className="Flex-flex Flex-direction--columnReverse">
+                                <TabList
+                                    id="customTabList"
+                                    className={'custom-tab-list'}
                                 >
-                                    Basic
-                                </Tab>
-                                <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab monitor-tab'
-                                    }
-                                >
-                                    Monitor Logs
-                                </Tab>
-                                <Tab
-                                    className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab alert-tab'
-                                    }
-                                >
-                                    Alert Logs
-                                </Tab>
-                                <Tab
-                                    id="tab-advance"
-                                    className={
-                                        'custom-tab custom-tab-6 bs-custom-incident-tab advanced-tab'
-                                    }
-                                >
-                                    Advanced Options
-                                </Tab>
-                                <div
-                                    id="tab-slider"
-                                    className="custom-tab-6 bs-custom-incident-slider"
-                                ></div>
-                            </TabList>
-                        </div>
+                                    <Tab
+                                        className={
+                                            'custom-tab custom-tab-6 bs-custom-incident-tab basic-tab'
+                                        }
+                                    >
+                                        Basic
+                                    </Tab>
+                                    <Tab
+                                        className={
+                                            'custom-tab custom-tab-6 bs-custom-incident-tab monitor-tab'
+                                        }
+                                    >
+                                        Monitor Logs
+                                    </Tab>
+                                    <Tab
+                                        className={
+                                            'custom-tab custom-tab-6 bs-custom-incident-tab alert-tab'
+                                        }
+                                    >
+                                        Alert Logs
+                                    </Tab>
+                                    <Tab
+                                        id="tab-advance"
+                                        className={
+                                            'custom-tab custom-tab-6 bs-custom-incident-tab advanced-tab'
+                                        }
+                                    >
+                                        Advanced Options
+                                    </Tab>
+                                    <div
+                                        id="tab-slider"
+                                        className="custom-tab-6 bs-custom-incident-slider"
+                                    ></div>
+                                </TabList>
+                            </div>
+                        </ShouldRender>
                         <div>{scheduleAlert}</div>
                         {this.props.incident &&
                             this.props.incident.countDown &&
@@ -523,15 +571,22 @@ class Incident extends React.Component {
                             )}
                         <TabPanel>
                             <Fade>
-                                <IncidentStatus
-                                    incident={this.props.incident}
-                                    count={0}
-                                    route={pathname}
-                                    editable={true}
-                                />
-                                <IncidentInternal
-                                    incident={this.props.incident}
-                                />
+                                <ShouldRender
+                                    if={
+                                        !this.props.errorIncident &&
+                                        this.props.incident
+                                    }
+                                >
+                                    <IncidentStatus
+                                        incident={this.props.incident}
+                                        count={0}
+                                        route={pathname}
+                                        editable={true}
+                                    />
+                                    <IncidentInternal
+                                        incident={this.props.incident}
+                                    />
+                                </ShouldRender>
                             </Fade>
                         </TabPanel>
                         <TabPanel>
@@ -632,37 +687,22 @@ class Incident extends React.Component {
             );
         } else {
             variable = (
-                <div
-                    id="app-loading"
-                    style={{
-                        position: 'fixed',
-                        top: '0',
-                        bottom: '0',
-                        left: '0',
-                        right: '0',
-                        backgroundColor: '#fdfdfd',
-                        zIndex: '999',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                    }}
+                <ShouldRender
+                    if={this.props.errorIncident || !this.props.incident}
                 >
-                    <div style={{ transform: 'scale(2)' }}>
-                        <svg
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="bs-Spinner-svg"
-                        >
-                            <ellipse
-                                cx="12"
-                                cy="12"
-                                rx="10"
-                                ry="10"
-                                className="bs-Spinner-ellipse"
-                            ></ellipse>
-                        </svg>
-                    </div>
-                </div>
+                    <ShouldRender if={this.props.errorIncident}>
+                        <div className="bs-ContentSection Card-root Card-shadow--medium Padding-horizontal--20 Padding-vertical--16 bs-u-center">
+                            {this.props.errorIncident}
+                        </div>
+                    </ShouldRender>
+                    <ShouldRender
+                        if={this.props.successIncident && !this.props.incident}
+                    >
+                        <div className="bs-ContentSection Card-root Card-shadow--medium Padding-horizontal--20 Padding-vertical--16 bs-u-center">
+                            This incident does not exists
+                        </div>
+                    </ShouldRender>
+                </ShouldRender>
             );
         }
         const componentName = component ? component.name : '';
@@ -712,7 +752,11 @@ class Incident extends React.Component {
                             <div className="react-settings-view react-view">
                                 <span>
                                     <div>
-                                        <div>{variable}</div>
+                                        <div>
+                                            {this.props.requestingIncident
+                                                ? this.loader()
+                                                : variable}
+                                        </div>
                                     </div>
                                 </span>
                             </div>
@@ -766,6 +810,9 @@ const mapStateToProps = (state, props) => {
         scheduleWarning,
         currentProject: state.project.currentProject,
         incident: state.incident.incident.incident,
+        requestingIncident: state.incident.incident.requesting,
+        errorIncident: state.incident.incident.error,
+        successIncident: state.incident.incident.success,
         incidentId: incidentId,
         projectId,
         incidentTimeline: state.incident.incident,
@@ -803,7 +850,6 @@ const mapDispatchToProps = dispatch => {
             incidentError,
             incidentSuccess,
             resetIncident,
-            getIncidentByIdNumber,
             getIncident,
             getIncidentTimeline,
             fetchIncidentMessages,
@@ -825,7 +871,6 @@ Incident.propTypes = {
     fetchIncidentAlert: PropTypes.func,
     fetchSubscriberAlert: PropTypes.func,
     getIncident: PropTypes.func,
-    getIncidentByIdNumber: PropTypes.func,
     getIncidentTimeline: PropTypes.func,
     getMonitorLogs: PropTypes.func,
     incident: PropTypes.object,
@@ -865,6 +910,9 @@ Incident.propTypes = {
     projectSlug: PropTypes.string,
     fetchProjectSlug: PropTypes.func,
     fetchDefaultTemplate: PropTypes.func,
+    requestingIncident: PropTypes.bool,
+    errorIncident: PropTypes.bool,
+    successIncident: PropTypes.bool,
 };
 
 Incident.displayName = 'Incident';
