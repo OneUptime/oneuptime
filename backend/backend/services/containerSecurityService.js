@@ -29,7 +29,8 @@ module.exports = {
                     select: '_id',
                 }),
                 DockerCredentialService.findOneBy({
-                    _id: data.dockerCredential,
+                    query: { _id: data.dockerCredential },
+                    select: '_id',
                 }),
             ]);
 

@@ -67,8 +67,13 @@ router.get(
         try {
             const { projectId } = req.params;
 
+            const populate = [{ path: 'projectId', select: 'name slug _id' }];
+            const select =
+                'dockerRegistryUrl dockerUsername dockerPassword iv projectId';
             const dockerCredentials = await DockerCredentialService.findBy({
-                projectId,
+                query: { projectId },
+                select,
+                populate,
             });
             return sendItemResponse(req, res, dockerCredentials);
         } catch (error) {
