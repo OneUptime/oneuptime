@@ -27,14 +27,8 @@ export class OnCall extends Component {
     }
 
     ready() {
-        const {
-            subProjectSchedules,
-            fetchSubProjectSchedules,
-            currentProjectId,
-        } = this.props;
-        if (subProjectSchedules.length === 0 && currentProjectId) {
-            fetchSubProjectSchedules(currentProjectId);
-        }
+        const { fetchSubProjectSchedules, currentProjectId } = this.props;
+        fetchSubProjectSchedules(currentProjectId);
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > CALL SCHEDULE LIST');
         }
