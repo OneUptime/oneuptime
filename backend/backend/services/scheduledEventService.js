@@ -31,19 +31,6 @@ module.exports = {
                 monitorId: monitor,
             }));
 
-            if (!data.monitorDuringEvent) {
-                for (const monitor of data.monitors) {
-                    await MonitorService.updateOneBy(
-                        {
-                            _id: monitor.monitorId,
-                        },
-                        {
-                            shouldNotMonitor: true,
-                        }
-                    );
-                }
-            }
-
             data.projectId = projectId;
             if (data && data.name) {
                 data.slug = getSlug(data.name);
@@ -67,6 +54,33 @@ module.exports = {
             const currentTime = moment();
             const startTime = moment(scheduledEvent.startDate);
             if (startTime <= currentTime) {
+                //set monitoring state of the monitor
+                if (!data.monitorDuringEvent) {
+                    for (const monitor of data.monitors) {
+                        // handle this in the background
+                        MonitorService.updateOneBy(
+                            {
+                                _id: monitor.monitorId,
+                            },
+                            {
+                                shouldNotMonitor: true,
+                            }
+                        );
+                    }
+                } else {
+                    for (const monitor of data.monitors) {
+                        // handle this in the background
+                        MonitorService.updateOneBy(
+                            {
+                                _id: monitor.monitorId,
+                            },
+                            {
+                                shouldNotMonitor: false,
+                            }
+                        );
+                    }
+                }
+
                 await ScheduledEventNoteService.create({
                     content: 'This scheduled event has started',
                     scheduledEventId: scheduledEvent._id,
@@ -78,6 +92,21 @@ module.exports = {
             //Create event end note immediately if end time equal to create time
             const endTime = moment(scheduledEvent.endDate);
             if (endTime <= currentTime) {
+                // revert monitor to monitoring state
+                if (!data.monitorDuringEvent) {
+                    for (const monitor of data.monitors) {
+                        // handle this in the background
+                        MonitorService.updateOneBy(
+                            {
+                                _id: monitor.monitorId,
+                            },
+                            {
+                                shouldNotMonitor: false,
+                            }
+                        );
+                    }
+                }
+
                 await ScheduledEventNoteService.create({
                     content: 'This scheduled event has ended',
                     scheduledEventId: scheduledEvent._id,
@@ -590,6 +619,34 @@ module.exports = {
             //fetch event notes without started note and create
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
+
+                // set monitoring status of the monitor
+                if (!scheduledEvent.monitorDuringEvent) {
+                    for (const monitor of scheduledEvent.monitors) {
+                        // run this in the background
+                        MonitorService.updateOneBy(
+                            {
+                                _id: monitor.monitorId._id || monitor.monitorId,
+                            },
+                            {
+                                shouldNotMonitor: true,
+                            }
+                        );
+                    }
+                } else {
+                    for (const monitor of scheduledEvent.monitors) {
+                        // run this in the background
+                        MonitorService.updateOneBy(
+                            {
+                                _id: monitor.monitorId._id || monitor.monitorId,
+                            },
+                            {
+                                shouldNotMonitor: false,
+                            }
+                        );
+                    }
+                }
+
                 const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
                     {
                         scheduledEventId,
@@ -637,6 +694,22 @@ module.exports = {
             //fetch event notes without started note and create
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
+
+                // revert monitor back to monitoring state
+                if (scheduledEvent && !scheduledEvent.monitorDuringEvent) {
+                    for (const monitor of scheduledEvent.monitors) {
+                        // run this in the background
+                        MonitorService.updateOneBy(
+                            {
+                                _id: monitor.monitorId._id || monitor.monitorId,
+                            },
+                            {
+                                shouldNotMonitor: false,
+                            }
+                        );
+                    }
+                }
+
                 const scheduledEventNoteList = await ScheduledEventNoteService.findBy(
                     {
                         scheduledEventId,
