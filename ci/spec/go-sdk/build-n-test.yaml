@@ -27,7 +27,7 @@ test_go-sdk:
         # - while read l; do go get -v "$l"; done < <(go list -f '{{ join .Imports "\n" }}')
         # - go build
         - go get -d ./...
-        - go test
+        - go test -v
         - cd ..
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
