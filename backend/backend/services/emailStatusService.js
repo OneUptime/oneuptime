@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function({ query, limit, skip, sort }) {
+    findBy: async function({ query, limit, skip, sort, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -18,11 +18,17 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const items = await EmailStatusModel.find(query)
+            let itemsQuery = EmailStatusModel.find(query)
                 .lean()
                 .limit(limit)
                 .skip(skip)
                 .sort(sort);
+
+            itemsQuery = handleSelect(select, itemsQuery);
+            itemsQuery = handlePopulate(populate, itemsQuery);
+
+            const items = await itemsQuery;
+
             return items;
         } catch (error) {
             ErrorService.log('emailStatusService.findBy', error);
@@ -117,14 +123,19 @@ module.exports = {
     // Params:
     // Param 1: monitorId: monitor Id
     // Returns: promise with item or error.
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, populate, select }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const item = await EmailStatusModel.findOne(query).lean();
+            let itemQuery = EmailStatusModel.findOne(query).lean();
+
+            itemQuery = handleSelect(select, itemQuery);
+            itemQuery = handlePopulate(populate, itemQuery);
+            const item = await itemQuery;
+
             return item;
         } catch (error) {
             ErrorService.log('emailStatusService.findOne', error);
@@ -164,7 +175,13 @@ module.exports = {
             let updatedData = await EmailStatusModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const selectEmailStatus =
+                'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
+
+            updatedData = await this.findBy({
+                query,
+                select: selectEmailStatus,
+            });
             return updatedData;
         } catch (error) {
             ErrorService.log('emailStatusService.updateMany', error);
@@ -178,8 +195,11 @@ module.exports = {
             to: { $regex: new RegExp(filter), $options: 'i' },
         };
 
+        const selectEmailStatus =
+            'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
+
         const [searchedEmailLogs, totalSearchCount] = await Promise.all([
-            _this.findBy({ query, skip, limit }),
+            _this.findBy({ query, skip, limit, select: selectEmailStatus }),
             _this.countBy({ query }),
         ]);
 
@@ -190,3 +210,5 @@ module.exports = {
 const EmailStatusModel = require('../models/emailStatus');
 const ErrorService = require('./errorService');
 const GlobalConfigService = require('./globalConfigService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
