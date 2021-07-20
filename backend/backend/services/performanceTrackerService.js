@@ -91,16 +91,6 @@ module.exports = {
             }
             if (!query.deleted) query.deleted = false;
 
-            // .populate({
-            //     path: 'componentId',
-            //     select: 'name slug',
-            //     populate: {
-            //         path: 'projectId',
-            //         select: 'name slug',
-            //     },
-            // })
-            // .populate('createdById', 'name email');
-
             let performanceTrackerQuery = PerformanceTrackerModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])

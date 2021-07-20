@@ -1,19 +1,23 @@
 const CustomFieldModel = require('../models/customField');
 const ErrorService = require('../services/errorService');
 const IncomingRequestService = require('../services/incomingRequestService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const customField = await CustomFieldModel.findOne(query)
-                .populate('projectId', 'name')
-                .lean();
+            let customFieldQuery = CustomFieldModel.findOne(query).lean();
 
+            customFieldQuery = handleSelect(select, customFieldQuery);
+            customFieldQuery = handlePopulate(populate, customFieldQuery);
+
+            const customField = await customFieldQuery;
             return customField;
         } catch (error) {
             ErrorService.log('customFieldService.findOneBy', error);
@@ -27,8 +31,13 @@ module.exports = {
                 ...data,
             });
 
+            const populateCustomField = [{ path: 'projectId', select: 'name' }];
+            const selectCustomField =
+                'fieldName fieldType projectId uniqueField';
             customField = await this.findOneBy({
-                _id: customField._id,
+                query: { _id: customField._id },
+                populate: populateCustomField,
+                select: selectCustomField,
             });
 
             return customField;
@@ -57,8 +66,16 @@ module.exports = {
 
             // fetch all the corresponding incoming request
             // and update the custom fields
+
+            const populateCustomField = [{ path: 'projectId', select: 'name' }];
+            const selectCustomField =
+                'fieldName fieldType projectId uniqueField';
             const [customField, incomingRequests] = await Promise.all([
-                _this.findOneBy(query),
+                _this.findOneBy({
+                    query,
+                    select: selectCustomField,
+                    populate: populateCustomField,
+                }),
                 IncomingRequestService.findBy({
                     projectId: query.projectId,
                 }),
@@ -100,7 +117,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, populate, select }) {
         try {
             if (!skip || isNaN(skip)) skip = 0;
 
@@ -119,12 +136,16 @@ module.exports = {
             }
 
             query.deleted = false;
-            const customFields = await CustomFieldModel.find(query)
+            let customFieldsQuery = CustomFieldModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
-                .populate('projectId', 'name')
                 .lean();
+
+            customFieldsQuery = handleSelect(select, customFieldsQuery);
+            customFieldsQuery = handlePopulate(populate, customFieldsQuery);
+
+            const customFields = await customFieldsQuery;
 
             return customFields;
         } catch (error) {
@@ -208,7 +229,15 @@ module.exports = {
             let updatedCustomField = await CustomFieldModel.updateMany(query, {
                 $set: data,
             });
-            updatedCustomField = await this.findBy(query);
+
+            const populateCustomField = [{ path: 'projectId', select: 'name' }];
+            const selectCustomField =
+                'fieldName fieldType projectId uniqueField';
+            updatedCustomField = await this.findBy({
+                query,
+                select: selectCustomField,
+                populate: populateCustomField,
+            });
             return updatedCustomField;
         } catch (error) {
             ErrorService.log('customFieldService.updateMany', error);

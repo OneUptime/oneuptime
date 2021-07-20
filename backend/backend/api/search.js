@@ -306,21 +306,27 @@ const getOnCallDuty = async (projectIds, val, parentProjectId) => {
 };
 
 const getSchedultEvent = async (projectIds, val, parentProjectId) => {
-    const select = '_id name slug projectId monitors';
-    const populate = [
+    const populateScheduledEvent = [
+        { path: 'resolvedBy', select: 'name' },
+        { path: 'projectId', select: 'name slug' },
+        { path: 'createdById', select: 'name' },
         {
-            path: 'projectId',
-            select: '_id name slug',
+            path: 'monitors.monitorId',
+            select: 'name',
+            populate: { path: 'componentId', select: 'name slug' },
         },
     ];
+    const selectScheduledEvent =
+        'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
     const scheduleEvents = await ScheduleEventService.findBy({
         query: {
             projectId: { $in: projectIds },
             deleted: false,
             $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
         },
-        select: select,
-        populate,
+        populate: populateScheduledEvent,
+        select: selectScheduledEvent,
     });
     if (scheduleEvents.length > 0) {
         const resultObj = {
@@ -438,26 +444,27 @@ const getLogContainers = async (projectIds, val, parentProjectId) => {
         select: '_id',
     });
     const componentIds = components.map(component => component._id);
-    const select = '_id name slug projectId monitors';
-    const populate = [
-        {
-            path: 'projectId',
-            select: '_id name slug',
-        },
+    const populateAppLogs = [
         {
             path: 'componentId',
-            select: '_id name slug',
-            populate: [{ path: 'projectId', select: '_id name slug' }],
+            select: 'name slug projectId',
+            populate: {
+                path: 'projectId',
+                select: 'name slug',
+            },
         },
     ];
+
+    const selectAppLogs =
+        'componentId name slug resourceCategory showQuickStart createdById key';
     const logContainers = await LogContainerService.findBy({
         query: {
             componentId: { $in: componentIds },
             deleted: false,
             $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
         },
-        select,
-        populate,
+        select: selectAppLogs,
+        populate: populateAppLogs,
     });
 
     if (logContainers.length > 0) {
@@ -488,16 +495,15 @@ const getPerformanceTrackers = async (projectIds, val, parentProjectId) => {
     });
 
     const componentIds = components.map(component => component._id);
-    const select = '_id name slug projectId monitors';
-    const populate = [
-        {
-            path: 'projectId',
-            select: '_id name slug',
-        },
+    const selectPerfTracker =
+        'componentId name slug key showQuickStart createdById';
+
+    const populatePerfTracker = [
+        { path: 'createdById', select: 'name email' },
         {
             path: 'componentId',
-            select: '_id name slug',
-            populate: [{ path: 'projectId', select: '_id name slug' }],
+            select: 'name slug',
+            populate: { path: 'projectId', select: 'name slug' },
         },
     ];
     const performanceTrackers = await PerformanceTracker.findBy({
@@ -506,8 +512,8 @@ const getPerformanceTrackers = async (projectIds, val, parentProjectId) => {
             deleted: false,
             $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
         },
-        select,
-        populate,
+        select: selectPerfTracker,
+        populate: populatePerfTracker,
     });
     if (performanceTrackers.length > 0) {
         const resultObj = {

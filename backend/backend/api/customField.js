@@ -27,9 +27,12 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             throw error;
         }
 
+        const populateCustomField = [{ path: 'projectId', select: 'name' }];
+        const selectCustomField = 'fieldName fieldType projectId uniqueField';
         let customField = await CustomFieldService.findOneBy({
-            projectId,
-            fieldName,
+            query: { projectId, fieldName },
+            populate: populateCustomField,
+            select: selectCustomField,
         });
         if (customField) {
             const error = new Error(
@@ -55,14 +58,18 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
         const { limit, skip } = req.query;
+        const populateCustomField = [{ path: 'projectId', select: 'name' }];
+        const selectCustomField = 'fieldName fieldType projectId uniqueField';
         const [customFields, count] = await Promise.all([
-            CustomFieldService.findBy(
-                {
+            CustomFieldService.findBy({
+                query: {
                     projectId,
                 },
                 limit,
-                skip
-            ),
+                skip,
+                populate: populateCustomField,
+                select: selectCustomField,
+            }),
             CustomFieldService.countBy({
                 projectId,
             }),
@@ -94,9 +101,12 @@ router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function(
             throw error;
         }
 
+        const populateCustomField = [{ path: 'projectId', select: 'name' }];
+        const selectCustomField = 'fieldName fieldType projectId uniqueField';
         let customField = await CustomFieldService.findOneBy({
-            projectId,
-            fieldName,
+            query: { projectId, fieldName },
+            select: selectCustomField,
+            populate: populateCustomField,
         });
         if (customField && String(customField._id) !== String(customFieldId)) {
             const error = new Error(
