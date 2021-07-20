@@ -1,0 +1,23 @@
+{
+    "name": "data-ingestor",
+    "version": "3.0.0",
+    "description": "A project to handle all probe related processing",
+    "main": "index.js",
+    "scripts": {
+        "start": "node --max-old-space-size=4096 index.js",
+        "dev": "cross-env NODE_ENV=development nodemon index.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "cors": "^2.8.5",
+        "cross-env": "^7.0.3",
+        "custom-env": "^2.0.1",
+        "express": "^4.17.1",
+        "mongodb": "^4.0.0"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.12"
+    }
+}
