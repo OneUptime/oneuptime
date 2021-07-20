@@ -1499,13 +1499,16 @@ router.put('/:projectId/:incidentId', getUser, async function(req, res) {
     try {
         const { projectId, incidentId } = req.params;
         const { hideIncident } = req.body;
-        const incident = await IncidentService.updateOneBy(
+        const result = await IncidentService.updateOneBy(
             {
                 projectId,
                 _id: incidentId,
             },
             { hideIncident }
         );
+        const incident = {
+            hideIncident: result.hideIncident,
+        };
         return sendItemResponse(req, res, incident);
     } catch (error) {
         return sendErrorResponse(req, res, error);
