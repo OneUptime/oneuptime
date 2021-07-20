@@ -320,7 +320,7 @@ module.exports = {
             let projectId;
             for (const pId of projectArr) {
                 const populateDomainVerify = [
-                    { path: 'projectId', path: '_id' },
+                    { path: 'projectId', select: '_id' },
                 ];
                 const check = await _this.findOneBy({
                     query: { _id: domainId, projectId: pId },

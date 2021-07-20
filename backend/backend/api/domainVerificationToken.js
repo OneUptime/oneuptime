@@ -100,7 +100,7 @@ router.get('/:projectId/domains', getUser, isAuthorized, async (req, res) => {
     const { skip, limit } = req.query;
     const selectDomainVerify =
         'domain createdAt verificationToken verifiedAt updatedAt projectId';
-    const populateDomainVerify = [{ path: 'projectId', path: 'name slug' }];
+    const populateDomainVerify = [{ path: 'projectId', select: 'name slug' }];
     try {
         // a unique case where we have to consider the subProject as well
         const [domains, count] = await Promise.all([

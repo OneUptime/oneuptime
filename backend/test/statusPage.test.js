@@ -555,7 +555,9 @@ describe('Status API', function() {
         const domain = 'binoehty1234hgyt.com';
         const selectDomainVerify =
             'domain createdAt verificationToken verifiedAt updatedAt projectId';
-        const populateDomainVerify = [{ path: 'projectId', path: 'name slug' }];
+        const populateDomainVerify = [
+            { path: 'projectId', select: 'name slug' },
+        ];
         StatusService.createDomain(domain, projectId, statusPageId).then(
             function() {
                 DomainVerificationService.findOneBy({
