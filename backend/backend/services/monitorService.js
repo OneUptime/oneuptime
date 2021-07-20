@@ -606,6 +606,7 @@ module.exports = {
 
                 const alerts = await AlertService.findBy({
                     query: { monitorId: monitor._id },
+                    select: '_id userId',
                 });
 
                 await Promise.all(
