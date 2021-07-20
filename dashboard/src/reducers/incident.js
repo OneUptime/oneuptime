@@ -143,6 +143,13 @@ export default function incident(state = initialState, action) {
                     success: true,
                     requesting: false,
                 },
+                incident: {
+                    ...state.incident,
+                    incident: {
+                        ...state.incident.incident,
+                        ...action.payload,
+                    },
+                },
             };
         }
 
