@@ -134,8 +134,8 @@ module.exports = {
 
             itemQuery = handleSelect(select, itemQuery);
             itemQuery = handlePopulate(populate, itemQuery);
-            const item = await itemQuery;
 
+            const item = await itemQuery;
             return item;
         } catch (error) {
             ErrorService.log('emailStatusService.findOne', error);
