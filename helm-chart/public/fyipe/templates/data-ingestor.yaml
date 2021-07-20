@@ -1,0 +1,64 @@
+########-DATA-INGESTOR-#################
+#data-ingestor service and deployement
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+    namespace: {{ .Release.Namespace }}
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: Helm
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+    replicas: {{ .Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "data-ingestor" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  env:
+                      - name: SERVER_URL
+                        value: {{ template "fyipe.serverUrl" $ }}
+                      - name: PORT
+                        value: {{ .Values.host.dataIngestorPort | quote }}
+                      - name: MONGO_URL
+                        value: {{ template "fyipe.mongodbConnectionString" . }}
+                      - name: CLUSTER_KEY
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" .Release.Name "configmap"  }}
+                            key: clusterkey
+                      - name: NODE_ENV
+                        value: 'production'
+                  ports:
+                      - containerPort: {{ .Values.host.dataIngestorPort }}
+                        hostPort: {{ .Values.host.dataIngestorPort }}
+                        name: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+            restartPolicy: {{ .Values.image.restartPolicy }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+        app.kubernetes.io/part-of: fyipe
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+    namespace: {{ .Release.Namespace }}
+spec:
+    ports:
+        - port: {{ .Values.host.dataIngestorServicePort }}
+          targetPort: {{ .Values.host.dataIngestorPort }}
+    selector:
+        app: {{ printf "%s-%s" .Release.Name "data-ingestor" }}
+    type: ClusterIP
+---
+###########################
