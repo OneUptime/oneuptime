@@ -17,6 +17,9 @@ const sleep = waitTimeInMs =>
 
 let userId, projectId;
 
+const selectEmailStatus =
+    'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
+
 describe('Email verification API', function() {
     this.timeout(20000);
 
@@ -49,7 +52,11 @@ describe('Email verification API', function() {
 
     it('should send email verification', async function() {
         await sleep(10000);
-        const emailStatuses = await EmailStatusService.findBy({});
+
+        const emailStatuses = await EmailStatusService.findBy({
+            query: {},
+            select: selectEmailStatus,
+        });
         expect(emailStatuses[0].subject).to.equal('Welcome to Fyipe.');
         expect(emailStatuses[0].status).to.equal('Email not enabled.');
     });

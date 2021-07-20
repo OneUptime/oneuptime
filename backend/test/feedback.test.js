@@ -13,6 +13,8 @@ const ProjectService = require('../backend/services/projectService');
 const VerificationTokenModel = require('../backend/models/verificationToken');
 const AirtableService = require('../backend/services/airtableService');
 const GlobalConfig = require('./utils/globalConfig');
+const selectEmailStatus =
+    'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
 let token, projectId, userId;
 
@@ -80,7 +82,10 @@ describe('Feedback API', function() {
                 expect(res).to.have.status(200);
                 FeedbackService.hardDeleteBy({ _id: res.body._id });
                 AirtableService.deleteFeedback(res.body.airtableId);
-                const emailStatuses = await EmailStatusService.findBy({});
+                const emailStatuses = await EmailStatusService.findBy({
+                    query: {},
+                    select: selectEmailStatus,
+                });
                 if (emailStatuses[0].subject.includes('Thank you')) {
                     expect(emailStatuses[0].subject).to.equal(
                         'Thank you for your feedback!'

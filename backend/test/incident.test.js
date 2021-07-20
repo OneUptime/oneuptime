@@ -36,6 +36,9 @@ const {
     markSubprojectIncidentAsAcknowledged,
     markSubprojectIncidentAsResolved,
 } = require('./utils/test-utils');
+const selectEmailStatus =
+    'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
+
 const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
@@ -298,8 +301,11 @@ describe('Incident API', function() {
             incidentId,
         });
         const emailStatus = await EmailStatusService.findBy({
-            template: 'incident_acknowledged',
-            createdAt: { $gt: date },
+            query: {
+                template: 'incident_acknowledged',
+                createdAt: { $gt: date },
+            },
+            select: selectEmailStatus,
         });
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
@@ -317,8 +323,8 @@ describe('Incident API', function() {
             incidentId,
         });
         const emailStatus = await EmailStatusService.findBy({
-            template: 'incident_resolved',
-            createdAt: { $gt: date },
+            query: { template: 'incident_resolved', createdAt: { $gt: date } },
+            select: selectEmailStatus,
         });
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
