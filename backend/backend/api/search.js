@@ -394,7 +394,6 @@ const getIncidents = async (projectIds, val, parentProjectId) => {
                         parentProject:
                             parentProjectId === String(incident.projectId._id),
                         projectName: incident.projectId.name,
-                        componentId: incident.monitorId.componentId.slug,
                         notifications: incident.notifications,
                         incident: incident,
                     };
@@ -467,6 +466,7 @@ const getLogContainers = async (projectIds, val, parentProjectId) => {
         select: selectAppLogs,
         populate: populateAppLogs,
     });
+
     if (logContainers.length > 0) {
         const resultObj = {
             title: 'Log Containers',
@@ -493,6 +493,7 @@ const getPerformanceTrackers = async (projectIds, val, parentProjectId) => {
         query: { projectId: { $in: projectIds }, deleted: false },
         select: 'id',
     });
+
     const componentIds = components.map(component => component._id);
     const selectPerfTracker =
         'componentId name slug key showQuickStart createdById';
