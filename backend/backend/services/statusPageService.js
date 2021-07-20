@@ -120,7 +120,10 @@ module.exports = {
             // only one domain in the db is allowed
             const existingBaseDomain = await DomainVerificationService.findOneBy(
                 {
-                    domain: subDomain,
+                    query: {
+                        domain: subDomain,
+                    },
+                    select: '_id',
                 }
             );
 
@@ -279,7 +282,7 @@ module.exports = {
 
         try {
             const existingBaseDomain = await DomainVerificationService.findOneBy(
-                { domain: newDomain }
+                { query: { domain: newDomain }, select: '_id' }
             );
 
             if (!existingBaseDomain) {

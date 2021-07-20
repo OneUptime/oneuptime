@@ -7,6 +7,8 @@ const randomChar = require('../utils/randomChar');
 const StatusPageService = require('../services/statusPageService');
 const ProjectService = require('../services/projectService');
 const dnsPromises = dns.promises;
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
     create: async function({ domain, projectId }) {
@@ -37,7 +39,7 @@ module.exports = {
 
         return await DomainVerificationTokenModel.create(creationData);
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
@@ -49,15 +51,21 @@ module.exports = {
                 query.domain = parsed.domain;
             }
 
-            return await DomainVerificationTokenModel.findOne(query)
-                .lean()
-                .populate('projectId');
+            let domainQuery = DomainVerificationTokenModel.findOne(
+                query
+            ).lean();
+
+            domainQuery = handleSelect(select, domainQuery);
+            domainQuery = handlePopulate(populate, domainQuery);
+
+            const domain = await domainQuery;
+            return domain;
         } catch (error) {
             ErrorService.log('domainVerificationService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -93,12 +101,16 @@ module.exports = {
                 query = { ...query, projectId: { $in: totalProjects } };
             }
 
-            return await DomainVerificationTokenModel.find(query)
+            let domainsQuery = DomainVerificationTokenModel.find(query)
                 .lean()
                 .sort({ createdAt: -1 })
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId');
+                .skip(skip);
+            domainsQuery = handleSelect(select, domainsQuery);
+            domainsQuery = handlePopulate(populate, domainsQuery);
+
+            const domains = await domainsQuery;
+            return domains;
         } catch (error) {
             ErrorService.log('domainVerificationService.findOneBy', error);
             throw error;
@@ -255,9 +267,9 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let domain = await this.findOneBy(query);
+            let domainCount = await this.countBy(query);
 
-            if (!domain) {
+            if (!domainCount || domainCount === 0) {
                 const error = new Error('Domain not found or does not exist');
                 error.code = 400;
                 throw error;
@@ -307,9 +319,13 @@ module.exports = {
             const _this = this;
             let projectId;
             for (const pId of projectArr) {
+                const populateDomainVerify = [
+                    { path: 'projectId', path: '_id' },
+                ];
                 const check = await _this.findOneBy({
-                    _id: domainId,
-                    projectId: pId,
+                    query: { _id: domainId, projectId: pId },
+                    select: 'projectId',
+                    populate: populateDomainVerify,
                 });
                 if (check) {
                     projectId = check.projectId._id;

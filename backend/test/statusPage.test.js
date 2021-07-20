@@ -553,13 +553,16 @@ describe('Status API', function() {
     it('should not verify a domain that does not exist on the web', function(done) {
         const authorization = `Basic ${token}`;
         const domain = 'binoehty1234hgyt.com';
+        const selectDomainVerify =
+            'domain createdAt verificationToken verifiedAt updatedAt projectId';
+        const populateDomainVerify = [{ path: 'projectId', path: 'name slug' }];
         StatusService.createDomain(domain, projectId, statusPageId).then(
             function() {
-                DomainVerificationService.findOneBy({ domain }).then(function({
-                    domain,
-                    verificationToken,
-                    _id: domainId,
-                }) {
+                DomainVerificationService.findOneBy({
+                    query: { domain },
+                    select: selectDomainVerify,
+                    populate: populateDomainVerify,
+                }).then(function({ domain, verificationToken, _id: domainId }) {
                     request
                         .put(
                             `/domainVerificationToken/${projectId}/verify/${domainId}`
