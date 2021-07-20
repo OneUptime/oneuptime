@@ -1,8 +1,5 @@
 import React, { Suspense, lazy } from 'react';
 import './App.css';
-const Main = lazy(() => import('./components/Main'));
-const ScheduledEvent = lazy(() => import('./components/ScheduledEvent'));
-const Incident = lazy(() => import('./components/Incident'));
 import Socket from './components/basic/Socket';
 import {
     BrowserRouter as Router,
@@ -13,6 +10,9 @@ import {
 import { User } from './config';
 import queryString from 'query-string';
 import { removeQuery } from './store/store';
+const Main = lazy(() => import('./components/Main'));
+const ScheduledEvent = lazy(() => import('./components/ScheduledEvent'));
+const Incident = lazy(() => import('./components/Incident'));
 const SingleAnnouncement = lazy(() =>
     import('./components/SingleAnnouncement')
 );
