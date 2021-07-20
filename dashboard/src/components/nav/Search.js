@@ -208,8 +208,6 @@ class Search extends Component {
             history.push(
                 '/dashboard/project/' +
                     currentProject.slug +
-                    '/component/' +
-                    searchObj.componentId +
                     '/incidents/' +
                     searchObj.idNumber
             );
