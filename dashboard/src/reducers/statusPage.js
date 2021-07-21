@@ -1601,15 +1601,30 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
-        case UPDATE_STATUS_PAGE_LAYOUT_SUCCESS:
+
+        case UPDATE_STATUS_PAGE_LAYOUT_SUCCESS: {
+            const monitors = action.payload.monitors.map(mon => {
+                return {
+                    ...mon,
+                    _id: mon._id,
+                    monitor: mon.monitor._id,
+                    description: mon.description,
+                };
+            });
+            const monitorNames = action.payload.monitors.map(
+                ({ monitor }) => monitor.name
+            );
+            const statuspage = { ...action.payload, monitorNames, monitors };
             return Object.assign({}, state, {
                 updateLayout: {
                     requesting: false,
                     error: null,
                     success: true,
                 },
-                status: action.payload,
+                status: statuspage,
             });
+        }
+
         case UPDATE_STATUS_PAGE_LAYOUT_REQUEST:
             return Object.assign({}, state, {
                 updateLayout: {
