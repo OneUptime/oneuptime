@@ -74,7 +74,12 @@ let RenderMember = ({
     };
     const renderKey =
         'team-group' + teamIndex.toString() + nameIndex.toString();
-    const renderType = formValues[renderKey] || 'team';
+
+    const renderType =
+        formValues[renderKey] ||
+        form[policyIndex].teams[teamIndex].teamMembers[nameIndex].groupId
+            ? 'group'
+            : 'team';
     return (
         <li key={nameIndex}>
             <ShouldRender if={projectGroups && projectGroups.count > 0}>
