@@ -135,8 +135,12 @@ describe('Incident Settings API', function() {
     it('should update the default incident settings.', async () => {
         const authorization = `Basic ${token}`;
         const incidentPriorityObject = await IncidentPrioritiesService.findOne({
-            projectId,
-            name: 'High',
+            query: {
+                projectId,
+                name: 'High',
+            },
+            select:
+                'projectId name color createdAt deletedAt deleted deletedById',
         });
         expect(incidentPriorityObject).to.not.equal(null);
         const { _id: incidentPriority } = incidentPriorityObject;

@@ -1,16 +1,28 @@
 module.exports = {
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, populate, select }) {
         try {
             if (typeof limit === 'string') limit = parseInt(limit);
             if (typeof skip === 'string') skip = parseInt(skip);
             if (!query) query = {};
             if (!query.deleted) query.deleted = false;
 
-            const incidentPriorities = await incidentPriorityModel
+            let incidentPrioritiesQuery = incidentPriorityModel
                 .find(query)
                 .lean()
                 .limit(limit)
                 .skip(skip);
+
+            incidentPrioritiesQuery = handleSelect(
+                select,
+                incidentPrioritiesQuery
+            );
+
+            incidentPrioritiesQuery = handlePopulate(
+                populate,
+                incidentPrioritiesQuery
+            );
+
+            const incidentPriorities = await incidentPrioritiesQuery;
 
             return incidentPriorities;
         } catch (error) {
@@ -18,15 +30,28 @@ module.exports = {
             throw error;
         }
     },
-    findOne: async function(query) {
+    findOne: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
             query.deleted = false;
-            const incidentPriorities = await incidentPriorityModel
+            let incidentPrioritiesQuery = incidentPriorityModel
                 .findOne(query)
                 .lean();
+
+            incidentPrioritiesQuery = handleSelect(
+                select,
+                incidentPrioritiesQuery
+            );
+
+            incidentPrioritiesQuery = handlePopulate(
+                populate,
+                incidentPrioritiesQuery
+            );
+
+            const incidentPriorities = await incidentPriorities;
+
             return incidentPriorities;
         } catch (error) {
             ErrorService.log('IncidentPrioritiesService.findOne', error);
@@ -140,3 +165,5 @@ const ErrorService = require('./errorService');
 const IncidentSettingsService = require('./incidentSettingsService');
 const IncidentService = require('./incidentService');
 const incidentPriorityModel = require('../models/incidentPriority');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

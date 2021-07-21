@@ -17,8 +17,14 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
         });
     }
     try {
+        const selectIncPriority =
+            'projectId name color createdAt deletedAt deleted deletedById';
         const [IncidentPriorities, count] = await Promise.all([
-            IncidentPrioritiesService.findBy({ projectId }, limit, skip),
+            IncidentPrioritiesService.findBy(
+                { query: { projectId }, select: selectIncPriority },
+                limit,
+                skip
+            ),
             IncidentPrioritiesService.countBy({ projectId }),
         ]);
         return sendListResponse(req, res, IncidentPriorities, count);
