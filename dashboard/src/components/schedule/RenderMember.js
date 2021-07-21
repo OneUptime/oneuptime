@@ -24,6 +24,7 @@ let RenderMember = ({
     change,
     form,
     projectGroups,
+    formValues,
 }) => {
     const [timeVisible, setTimeVisible] = useState(false);
     const [forcedTimeHide, forceTimeHide] = useState(false);
@@ -71,7 +72,9 @@ let RenderMember = ({
             change('OnCallAlertBox', `${inputarray}.userId`, '');
         }
     };
-
+    const renderKey =
+        'team-group' + teamIndex.toString() + nameIndex.toString();
+    const renderType = formValues[renderKey] || 'team';
     return (
         <li key={nameIndex}>
             <ShouldRender if={projectGroups && projectGroups.count > 0}>
@@ -127,10 +130,7 @@ let RenderMember = ({
             </ShouldRender>
             <div className="bs-Fieldset-row">
                 <label className="bs-Fieldset-label">
-                    {type[[teamIndex.toString() + nameIndex.toString()]] ===
-                    'group'
-                        ? 'Group'
-                        : 'Team Member'}
+                    {renderType === 'group' ? 'Group' : 'Team Member'}
                 </label>
                 <div className="bs-Fieldset-fields">
                     <span className="flex">
@@ -139,25 +139,14 @@ let RenderMember = ({
                             className="db-BusinessSettings-input TextInput bs-TextInput"
                             type="text"
                             name={`${inputarray}.${
-                                type[
-                                    [
-                                        teamIndex.toString() +
-                                            nameIndex.toString(),
-                                    ]
-                                ] === 'group'
-                                    ? 'groupId'
-                                    : 'userId'
+                                renderType === 'group' ? 'groupId' : 'userId'
                             }`}
                             component={TeamMemberSelector}
                             placeholder="Nawaz"
                             subProjectId={subProjectId}
                             policyIndex={policyIndex}
                             teamIndex={teamIndex}
-                            renderType={
-                                type[
-                                    teamIndex.toString() + nameIndex.toString()
-                                ]
-                            }
+                            renderType={renderType}
                         />
                         <Tooltip title="Call Reminders">
                             <div>
@@ -330,10 +319,12 @@ const mapDispatchToProps = dispatch => {
 function mapStateToProps(state) {
     const selector = formValueSelector('OnCallAlertBox');
     const form = selector(state, 'OnCallAlertBox');
+    const formValues = state.form.OnCallAlertBox?.values;
 
     return {
         form,
         projectGroups: state.groups.oncallDuty,
+        formValues,
     };
 }
 RenderMember.propTypes = {
@@ -347,6 +338,7 @@ RenderMember.propTypes = {
     change: PropTypes.func,
     form: PropTypes.object,
     projectGroups: PropTypes.array,
+    formValues: PropTypes.object,
 };
 
 RenderMember = connect(mapStateToProps, mapDispatchToProps)(RenderMember);
