@@ -109,12 +109,16 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
 
 // fetch details about a domain from the db
 async function handleCustomDomain(client, collection, domain) {
+    console.log('** DOMAIN SENT **', domain);
+    console.log('** collection **', collection);
     const statusPage = await client
         .db('fyipedb')
         .collection(collection)
         .findOne({
             domains: { $elemMatch: { domain } },
         });
+
+    console.log('** status page **', statusPage);
 
     let domainObj = {};
     statusPage &&
