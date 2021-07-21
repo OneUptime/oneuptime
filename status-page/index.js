@@ -134,6 +134,16 @@ async function handleCustomDomain(client, collection, domain) {
     };
 }
 
+// fetch certificate for a particular domain
+async function handleCertificate(client, collection, domain) {
+    const certificate = await client
+        .db('fyipedb')
+        .collection(collection)
+        .findOne({ id: domain });
+
+    return certificate;
+}
+
 app.use('/', async function(req, res, next) {
     const host = req.hostname;
     if (
@@ -285,6 +295,7 @@ function createDir(dirPath) {
                     'statuspages',
                     domain
                 );
+                console.log('**** CUSTOM DOMAIN RESPONSE ****', res);
 
                 let certPath, privateKeyPath;
                 if (res) {
@@ -301,10 +312,16 @@ function createDir(dirPath) {
                     // cert and private key is a string
                     // store it to a file on disk
                     if (enableHttps && autoProvisioning) {
-                        const url = `${apiHost}/certificate/store/cert/${domain}`;
-                        const response = await axios.get(url);
-                        const certificate = response.data;
-                        if (response && certificate) {
+                        const certificate = await handleCertificate(
+                            client,
+                            'certificates',
+                            domain
+                        );
+                        console.log(
+                            '*** CERTIFICATE RESPONSE ***',
+                            certificate
+                        );
+                        if (certificate) {
                             certPath = path.resolve(
                                 process.cwd(),
                                 'src',
