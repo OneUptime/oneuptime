@@ -146,6 +146,7 @@ module.exports = {
             if (schedule && schedule._id) {
                 const escalations = await EscalationService.findBy({
                     query: { scheduleId: schedule._id },
+                    select: '_id',
                 });
                 await escalations.map(({ _id }) =>
                     EscalationService.deleteBy({ _id: _id }, userId)
@@ -388,12 +389,39 @@ module.exports = {
                 query: { _id: scheduleId },
                 select: '_id escalationIds',
             });
+            const selectEscalation =
+                'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+
+            const populateEscalation = [
+                {
+                    path: 'projectId',
+                    select: '_id name slug',
+                },
+                {
+                    path: 'scheduleId',
+                    select: 'name isDefault slug',
+                    populate: {
+                        path: 'monitorIds',
+                        select: 'name',
+                    },
+                },
+                {
+                    path: 'teams.teamMembers.user',
+                    select: 'name email',
+                },
+                {
+                    path: 'teams.teamMembers.groups',
+                    select: 'teams name',
+                },
+            ];
 
             const escalationIds = schedule.escalationIds;
             const escalations = await Promise.all(
                 escalationIds.map(async escalationId => {
                     return await EscalationService.findOneBy({
-                        _id: escalationId,
+                        query: { _id: escalationId },
+                        select: selectEscalation,
+                        populate: populateEscalation,
                     });
                 })
             );
@@ -406,11 +434,28 @@ module.exports = {
 
     getUserEscalations: async function(subProjectIds, userId) {
         try {
+            const selectEscalation =
+                'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+
+            const populateEscalation = [
+                { path: 'projectId', select: '_id name slug' },
+                {
+                    path: 'scheduleId',
+                    select: 'name isDefault slug',
+                    populate: { path: 'monitorIds', select: 'name' },
+                },
+                {
+                    path: 'teams.teamMembers.user',
+                    select: 'name email',
+                },
+            ];
             const escalations = await EscalationService.findBy({
                 query: {
                     projectId: { $in: subProjectIds },
                     'teams.teamMembers': { $elemMatch: { userId } },
                 },
+                select: selectEscalation,
+                populate: populateEscalation,
             });
             return escalations;
         } catch (error) {
