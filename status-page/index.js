@@ -109,16 +109,13 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
 
 // fetch details about a domain from the db
 async function handleCustomDomain(client, collection, domain) {
-    console.log('** DOMAIN SENT **', domain);
-    console.log('** collection **', collection);
     const statusPage = await client
         .db('fyipedb')
         .collection(collection)
         .findOne({
             domains: { $elemMatch: { domain } },
+            deleted: false,
         });
-
-    console.log('** status page **', statusPage);
 
     let domainObj = {};
     statusPage &&
@@ -299,7 +296,6 @@ function createDir(dirPath) {
                     'statuspages',
                     domain
                 );
-                console.log('**** CUSTOM DOMAIN RESPONSE ****', res);
 
                 let certPath, privateKeyPath;
                 if (res) {
@@ -320,10 +316,6 @@ function createDir(dirPath) {
                             client,
                             'certificates',
                             domain
-                        );
-                        console.log(
-                            '*** CERTIFICATE RESPONSE ***',
-                            certificate
                         );
                         if (certificate) {
                             certPath = path.resolve(
