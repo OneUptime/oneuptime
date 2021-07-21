@@ -529,8 +529,30 @@ module.exports = {
                 ];
             escalationId = currentEscalationStatus.escalation._id;
         }
+
+        const selectEscalation =
+            'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+
+        const populateEscalation = [
+            { path: 'projectId', select: '_id name slug' },
+            {
+                path: 'scheduleId',
+                select: 'name isDefault slug',
+                populate: { path: 'monitorIds', select: 'name' },
+            },
+            {
+                path: 'teams.teamMembers.user',
+                select: 'name email',
+            },
+            {
+                path: 'teams.teamMembers.groups',
+                select: 'teams name',
+            },
+        ];
         const escalation = await EscalationService.findOneBy({
-            _id: escalationId,
+            query: { _id: escalationId },
+            select: selectEscalation,
+            populate: populateEscalation,
         });
 
         let shouldSendSMSReminder = false;
@@ -715,12 +737,39 @@ module.exports = {
             ? incident.projectId._id
             : incident.projectId;
 
+        const selectEscalation =
+            'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+
+        const populateEscalation = [
+            { path: 'projectId', select: '_id name slug' },
+            {
+                path: 'scheduleId',
+                select: 'name isDefault slug',
+                populate: {
+                    path: 'monitorIds',
+                    select: 'name',
+                },
+            },
+            {
+                path: 'teams.teamMembers.user',
+                select: 'name email',
+            },
+            {
+                path: 'teams.teamMembers.groups',
+                select: 'teams name',
+            },
+        ];
+
         const [project, ec] = await Promise.all([
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: '_id alertEnable alertOptions slug',
             }),
-            EscalationService.findOneBy({ _id: escalation._id }),
+            EscalationService.findOneBy({
+                query: { _id: escalation._id },
+                select: selectEscalation,
+                populate: populateEscalation,
+            }),
         ]);
         escalation = ec;
 
@@ -2023,8 +2072,35 @@ module.exports = {
                                 callScheduleStatuses[0].escalations.length - 1
                             ].escalation._id;
                     }
+                    const selectEscalation =
+                        'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+
+                    const populateEscalation = [
+                        {
+                            path: 'projectId',
+                            select: '_id name slug',
+                        },
+                        {
+                            path: 'scheduleId',
+                            select: 'name isDefault slug',
+                            populate: {
+                                path: 'monitorIds',
+                                select: 'name',
+                            },
+                        },
+                        {
+                            path: 'teams.teamMembers.user',
+                            select: 'name email',
+                        },
+                        {
+                            path: 'teams.teamMembers.groups',
+                            select: 'teams name',
+                        },
+                    ];
                     const escalation = await EscalationService.findOneBy({
-                        _id: escalationId,
+                        query: { _id: escalationId },
+                        select: selectEscalation,
+                        populate: populateEscalation,
                     });
 
                     if (!escalation) {
@@ -2360,8 +2436,36 @@ module.exports = {
                                 callScheduleStatuses[0].escalations.length - 1
                             ].escalation._id;
                     }
+
+                    const selectEscalation =
+                        'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+
+                    const populateEscalation = [
+                        {
+                            path: 'projectId',
+                            select: '_id name slug',
+                        },
+                        {
+                            path: 'scheduleId',
+                            select: 'name isDefault slug',
+                            populate: {
+                                path: 'monitorIds',
+                                select: 'name',
+                            },
+                        },
+                        {
+                            path: 'teams.teamMembers.user',
+                            select: 'name email',
+                        },
+                        {
+                            path: 'teams.teamMembers.groups',
+                            select: 'teams name',
+                        },
+                    ];
                     const escalation = await EscalationService.findOneBy({
-                        _id: escalationId,
+                        query: { _id: escalationId },
+                        select: selectEscalation,
+                        populate: populateEscalation,
                     });
 
                     if (!escalation) {
