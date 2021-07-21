@@ -1608,6 +1608,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: null,
                     success: true,
                 },
+                status: action.payload,
             });
         case UPDATE_STATUS_PAGE_LAYOUT_REQUEST:
             return Object.assign({}, state, {
