@@ -542,13 +542,16 @@ module.exports = {
     handleIncomingRequestAction: async function(data) {
         const _this = this;
         try {
+            const selectIncPriority =
+                'projectId name color createdAt deletedAt deleted deletedById';
             const [
                 incidentPriorities,
                 incidentSettings,
                 incomingRequest,
             ] = await Promise.all([
                 IncidentPrioritiesService.findBy({
-                    projectId: data.projectId,
+                    query: { projectId: data.projectId },
+                    select: selectIncPriority,
                 }),
                 IncidentSettingsService.findOne({
                     projectId: data.projectId,

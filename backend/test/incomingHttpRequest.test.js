@@ -137,9 +137,10 @@ describe('Incoming HTTP Request API', function() {
     });
 
     it('should create an incoming http request (Create Incident)', function(done) {
-        IncidentPrioritiesService.findOne({ projectId }).then(function(
-            priority
-        ) {
+        IncidentPrioritiesService.findOne({
+            query: { projectId },
+            select: '_id',
+        }).then(function(priority) {
             // fetch one of the priorities
             incidentPriorityId = priority._id;
             incidentRequest.incidentPriority = incidentPriorityId;
