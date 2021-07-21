@@ -1193,7 +1193,7 @@ router.get('/profile', getUser, async function(req, res) {
         }
         // Call the UserService
         const select =
-            'name email isVerified jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber profilePic twoFactorAuthEnabled timeZone role alertPhoneNumber tempAlertPhoneNumber identification, timezone';
+            'name email isVerified jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber profilePic twoFactorAuthEnabled timezone role alertPhoneNumber tempAlertPhoneNumber identification';
         const user = await UserService.findOneBy({
             query: { _id: userId },
             select,
