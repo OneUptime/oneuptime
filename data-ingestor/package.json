@@ -11,11 +11,18 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
+        "axios": "^0.21.1",
         "cors": "^2.8.5",
         "cross-env": "^7.0.3",
         "custom-env": "^2.0.1",
         "express": "^4.17.1",
-        "mongodb": "^4.0.0"
+        "lodash": "^4.17.21",
+        "moment": "^2.29.1",
+        "mongodb": "^4.0.0",
+        "p-iteration": "^1.1.8",
+        "uuid": "^8.3.2",
+        "winston": "^3.3.3",
+        "winston-slack-webhook-transport": "^2.0.1"
     },
     "devDependencies": {
         "nodemon": "^2.0.12"

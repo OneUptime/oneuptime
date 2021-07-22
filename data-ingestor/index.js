@@ -75,6 +75,8 @@ app.use(function(req, res, next) {
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.json({ limit: '10mb' }));
 
+app.use(['/probe', '/api/probe'], require('./api/probe'));
+
 app.set('port', process.env.PORT || 3200);
 
 http.listen(app.get('port'), function() {
