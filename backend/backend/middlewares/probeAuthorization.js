@@ -87,6 +87,7 @@ module.exports = {
                 // if cluster key matches then just query by probe name,
                 // because if the probe key does not match, we can update probe key later
                 // without updating mognodb database manually.
+                
                 if (global.probes[probeName]) {
                     // If probeName could not be found DB, the else statement is called.
                     probeId = global.probes[probeName]._id;
@@ -131,7 +132,7 @@ module.exports = {
                     message: 'Probe key and probe name do not match.',
                 });
             }
-            
+
             if (!probeId) {
                 //create a new probe.
                 const probe = await ProbeService.create({
