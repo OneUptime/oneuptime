@@ -30,6 +30,8 @@ spec:
                         value: {{ .Values.host.dataIngestorPort | quote }}
                       - name: MONGO_URL
                         value: {{ template "fyipe.mongodbConnectionString" . }}
+                      - name: SCRIPT_RUNNER_URL
+                        value: {{ template "fyipe.scriptRunnerUrl" $ }}
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:

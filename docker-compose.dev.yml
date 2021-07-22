@@ -71,6 +71,12 @@ services:
         environment:
             - SERVER_URL=http://backend:3002
             - CLUSTER_KEY=test
+            - SCRIPT_RUNNER_URL=http://script-runner:3009
+            - MONGO_URL=mongodb://mongo:27017/fyipedb
+        depends_on:
+            - mongo
+            - script-runner
+            - backend
         volumes:
             - ./data-ingestor:/user/src/app
             # Use node modules of the container and not host system.
@@ -90,6 +96,7 @@ services:
         environment:
             - PORT=3008
             - SERVER_URL=http://backend:3002
+            - DATA_INGESTOR_URL=http://data-ingestor:3200
             - PROBE_NAME=Probe 1
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}

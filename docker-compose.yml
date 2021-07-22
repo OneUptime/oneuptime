@@ -117,7 +117,11 @@ services:
         environment:
             - SERVER_URL=http://backend:3002
             - CLUSTER_KEY=test
+            - SCRIPT_RUNNER_URL=http://script-runner:3009
+            - MONGO_URL=mongodb://mongo:27017/fyipedb
         depends_on:
+            - mongo
+            - script-runner
             - backend
     probe1:
         ports:
@@ -132,8 +136,10 @@ services:
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
+            - DATA_INGESTOR_URL=http://data-ingestor:3200
         depends_on:
             - backend
+            - data-ingestor
     probe2:
         ports:
             - '3025:3025'
@@ -147,8 +153,10 @@ services:
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - CLUSTER_KEY=test
+            - DATA_INGESTOR_URL=http://data-ingestor:3200
         depends_on:
             - backend
+            - data-ingestor
     api-docs:
         ports:
             - '1445:1445'
