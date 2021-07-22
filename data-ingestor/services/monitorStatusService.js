@@ -3,6 +3,7 @@ const { ObjectId } = require('mongodb');
 const ErrorService = require('../services/errorService');
 const { postApi } = require('../utils/api');
 const MonitorService = require('./monitorService');
+const moment = require('moment');
 
 module.exports = {
     create: async function(data) {
@@ -36,17 +37,20 @@ module.exports = {
                             _id: ObjectId(previousMonitorStatus._id),
                         },
                         {
-                            endTime: Date.now(),
+                            endTime: new Date(moment().format()),
                         }
                     );
                 }
 
+                const now = new Date(moment().format());
                 const monitorStatusData = {
                     monitorId: data.monitorId,
                     probeId: data.probeId || null,
                     incidentId: data.incidentId || null,
                     manuallyCreated: data.manuallyCreated || false,
                     status: data.status,
+                    createdAt: now,
+                    startTime: now,
                 };
                 if (data.lastStatus) {
                     monitorStatusData.lastStatus = data.lastStatus;
@@ -105,7 +109,7 @@ module.exports = {
     async sendMonitorStatus(data) {
         try {
             const monitor = await MonitorService.findOneBy({
-                query: { _id: data.monitorId },
+                query: { _id: ObjectId(data.monitorId) },
                 // select: 'projectId',
                 // populate: [{ path: 'projectId', select: '_id' }],
             });

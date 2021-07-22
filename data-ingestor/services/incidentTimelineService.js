@@ -3,6 +3,7 @@ const ErrorService = require('./errorService');
 const incidentTimelineCollection = global.db.collection('incidenttimelines');
 const { ObjectId } = require('mongodb');
 const { postApi } = require('../utils/api');
+const moment = require('moment');
 
 module.exports = {
     create: async function(data) {
@@ -21,6 +22,7 @@ module.exports = {
             }
             incidentTimeline.createdByZapier = data.createdByZapier || false;
             incidentTimeline.status = data.status;
+            incidentTimeline.createdAt = new Date(moment().format());
 
             const result = await incidentTimelineCollection.insertOne(
                 incidentTimeline
@@ -31,8 +33,8 @@ module.exports = {
                     _id: ObjectId(result.insertedId),
                 }),
                 IncidentService.findOneBy({
-                    query: { _id: data.incidentId },
-                    select: 'projectId',
+                    query: { _id: ObjectId(data.incidentId) },
+                    // select: 'projectId',
                 }),
             ]);
             incidentTimeline = timeline;

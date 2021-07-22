@@ -28,7 +28,7 @@ module.exports = {
 
             resourceCategories = resourceCategories.map(resourceCategory => ({
                 name: resourceCategory.name,
-                _id: resourceCategory._id,
+                _id: ObjectId(resourceCategory._id),
                 createdAt: resourceCategory.createdAt,
             }));
             return resourceCategories;
@@ -40,4 +40,5 @@ module.exports = {
 };
 
 const resourceCategoryCollection = global.db.collection('resourcecategories');
+const { ObjectId } = require('mongodb');
 const ErrorService = require('./errorService');

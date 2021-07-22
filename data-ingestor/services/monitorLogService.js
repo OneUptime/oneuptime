@@ -94,7 +94,7 @@ module.exports = {
 
         if (logByHour) {
             await MonitorLogByHourService.updateOneBy(
-                { _id: logByHour._id },
+                { _id: ObjectId(logByHour._id) },
                 {
                     ...data,
                     createdAt: new Date(moment().format()),
@@ -128,7 +128,7 @@ module.exports = {
         }
         if (logByDay) {
             await MonitorLogByDayService.updateOneBy(
-                { _id: logByDay._id },
+                { _id: ObjectId(logByDay._id) },
                 {
                     ...data,
                     createdAt: new Date(moment().format()),
@@ -162,7 +162,7 @@ module.exports = {
         }
         if (logByWeek) {
             await MonitorLogByWeekService.updateOneBy(
-                { _id: logByWeek._id },
+                { _id: ObjectId(logByWeek._id) },
                 {
                     ...data,
                     createdAt: new Date(moment().format()),

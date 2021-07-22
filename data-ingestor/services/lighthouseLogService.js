@@ -4,6 +4,7 @@ const ErrorService = require('./errorService');
 const { ObjectId } = require('mongodb');
 const MonitorService = require('./monitorService');
 const { postApi } = require('../utils/api');
+const moment = require('moment');
 
 module.exports = {
     create: async function(data) {
@@ -19,6 +20,7 @@ module.exports = {
                 seo: data.seo,
                 pwa: data.pwa,
                 scanning: data.scanning,
+                createdAt: new Date(moment().format()),
             });
             const savedLog = await lighthouseLogCollection.findOne({
                 _id: ObjectId(result.insertedId),

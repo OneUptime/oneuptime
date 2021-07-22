@@ -22,6 +22,10 @@ module.exports = {
                 probe.probeName = data.probeName;
                 probe.version = data.probeVersion;
 
+                const now = new Date(moment().format());
+                probe.createdAt = now;
+                probe.lastAlive = now;
+
                 const result = await probeCollection.insertOne(probe);
                 const savedProbe = await probeCollection.findOne({
                     _id: ObjectId(result.insertedId),
@@ -596,7 +600,7 @@ module.exports = {
             });
 
             const monitor = await MonitorService.findOneBy({
-                query: { _id: data.monitorId },
+                query: { _id: ObjectId(data.monitorId) },
                 // select: 'type',
             });
 
@@ -676,7 +680,7 @@ module.exports = {
                                     ...initialProbes,
                                     {
                                         probeId: data.probeId,
-                                        updatedAt: Date.now(),
+                                        updatedAt: new Date(moment().format()),
                                         status: false,
                                         reportedStatus: data.status,
                                     },

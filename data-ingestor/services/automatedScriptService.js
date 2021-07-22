@@ -24,6 +24,7 @@ module.exports = {
             scriptLog.executionTime = data.executionTime || null;
             scriptLog.consoleLogs = data.consoleLogs || null;
             scriptLog.error = data.error || null;
+            scriptLog.createdAt = new Date(moment().format());
 
             const result = await scriptLogCollection.insertOne(scriptLog);
             const newScriptLog = await scriptLogCollection.findOne({
@@ -212,7 +213,7 @@ module.exports = {
                 data
             );
             await _this.updateOne(
-                { _id: automatedScriptId },
+                { _id: ObjectId(automatedScriptId) },
                 { updatedAt: new Date(moment().format()) }
             );
             return automatedScriptLog;
