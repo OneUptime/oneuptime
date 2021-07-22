@@ -21,7 +21,7 @@ const CLUSTER_KEY = process.env.CLUSTER_KEY;
 global.probes = {};
 
 module.exports = {
-    isAuthorizedProbe: async function (req, res, next) {
+    isAuthorizedProbe: async function(req, res, next) {
         try {
             let probeKey, probeName, clusterKey, probeVersion;
 
@@ -109,6 +109,7 @@ module.exports = {
                     }
                 }
             } else {
+                //This executes if clusterKey && CLUSTER_KEY is false
                 if (global.probes[probeName]) {
                     probeId = global.probes[probeName]._id;
                 } else {
@@ -125,7 +126,6 @@ module.exports = {
                             version: probe.version,
                         };
                     }
-
                 }
             }
 
@@ -135,7 +135,7 @@ module.exports = {
                     message: 'Probe key and probe name do not match.',
                 });
             }
-
+            //This executes if clusterKey && CLUSTER_KEY is false and Probes could not be found in DB. Hence, probe is created.
             if (!probeId) {
                 //create a new probe.
                 const probe = await ProbeService.create({
