@@ -27,10 +27,106 @@ const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 const subscriberAlertService = require('../services/subscriberAlertService');
 const onCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 const Services = require('../utils/services');
 const joinNames = require('../utils/joinNames');
+const { isAuthorizedService } = require('../middlewares/serviceAuthorization');
+
+// data-ingestor will consume this api
+// create an incident and return the created incident
+router.post(
+    '/data-ingestor/create-incident',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const data = req.body;
+
+            // Call the IncidentService
+            const incident = await IncidentService.create(data);
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// data-ingestor will consume this api
+// acknowledge an incident
+router.post(
+    '/data-ingestor/acknowledge-incident',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const { incidentId, name, probeId } = req.body;
+
+            const incident = await IncidentService.acknowledge(
+                incidentId,
+                null,
+                name,
+                probeId
+            );
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// data-ingestor will consume this api
+// resolve an incident
+router.post(
+    '/data-ingestor/resolve-incident',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const { incidentId, name, probeId } = req.body;
+
+            const incident = await IncidentService.resolve(
+                incidentId,
+                null,
+                name,
+                probeId
+            );
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// data-ingestor will consume this api
+// realtime: update incident
+router.post(
+    '/data-ingestor/realtime/update-incident',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const data = req.body;
+            await RealTimeService.updateIncident(data);
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// data-ingestor will consume this api
+// realtime: update incident timeline
+router.post(
+    '/data-ingestor/realtime/update-incident-timeline',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const data = req.body;
+            await RealTimeService.updateIncidentTimeline(data);
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 // Route
 // Description: Creating incident.

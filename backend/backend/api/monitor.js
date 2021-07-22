@@ -30,6 +30,40 @@ const https = require('https');
 const httpsAgent = new https.Agent({
     rejectUnauthorized: false,
 });
+const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
+const { isAuthorizedService } = require('../middlewares/serviceAuthorization');
+
+// api to be consumed by data-ingestor
+// realtime: update monitor log
+router.post(
+    '/data-ingestor/realtime/update-monitor-log',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const { data, logData, projectId } = req.body;
+            await RealTimeService.updateMonitorLog(data, logData, projectId);
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// api to be consumed by data-ingestor
+// realtime: update monitor status
+router.post(
+    '/data-ingestor/realtime/update-monitor-status',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const { data, projectId } = req.body;
+            await RealTimeService.updateMonitorStatus(data, projectId);
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 // Route
 // Description: Adding / Updating a new monitor to the project.

@@ -15,6 +15,9 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const {
     isAuthorizedLighthouse,
 } = require('../middlewares/lighthouseAuthorization');
+const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
+const { isAuthorizedService } = require('../middlewares/serviceAuthorization');
+const RealTimeService = require('../services/realTimeService');
 
 // Route
 // Description: Updating profile setting.
@@ -92,5 +95,21 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
         return sendErrorResponse(req, response, error);
     }
 });
+
+// data-ingestor will consume this endpoint
+// realtime: update lighthouse log
+router.post(
+    '/data-ingestor/realtime/update-lighthouse-log',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const { data, projectId } = req.body;
+            await RealTimeService.updateLighthouseLog(data, projectId);
+            return sendEmptyResponse(req, res);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 module.exports = router;
