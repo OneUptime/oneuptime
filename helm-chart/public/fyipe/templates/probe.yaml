@@ -27,6 +27,8 @@ spec:
                   env:
                       - name: SERVER_URL
                         value: {{ template "fyipe.serverUrl" $ }}
+                      - name: DATA_INGESTOR_URL
+                        value: {{ template "fyipe.dataIngestorUrl" $ }}
                       - name: PORT
                         value: {{ $value.port | quote }}
                       - name: PROBE_NAME
