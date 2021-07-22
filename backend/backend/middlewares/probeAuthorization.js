@@ -131,6 +131,7 @@ module.exports = {
                     message: 'Probe key and probe name do not match.',
                 });
             }
+            
             if (!probeId) {
                 //create a new probe.
                 const probe = await ProbeService.create({
