@@ -395,6 +395,12 @@ export function updateSubscriberOption(projectId, values) {
     };
 }
 // Update status page branding
+export function updateStatusSuccess(data) {
+    return {
+        type: types.UPDATE_STATUSPAGE_SUCCESS,
+        payload: data,
+    };
+}
 
 export function updateStatusPageBrandingRequest() {
     return {
@@ -520,6 +526,7 @@ export function updateTheme(projectId, data) {
             function(response) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageThemeSuccess(statusPage));
+                dispatch(updateStatusSuccess(statusPage));
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -1252,6 +1259,7 @@ export function updateStatusPageLayout(projectId, data) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageLayoutSuccess(statusPage));
                 dispatch(fetchProjectStatusPage(projectId, true));
+                dispatch(updateStatusSuccess(statusPage));
             },
             function(error) {
                 if (error && error.response && error.response.data)
