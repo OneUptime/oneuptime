@@ -52,7 +52,7 @@ module.exports = {
             Log.scriptMetadata = data.scriptMetadata;
 
             const result = await monitorLogCollection.insertOne(Log);
-            const savedLog = await monitorLogCollection.findOne({
+            const savedLog = await this.findOneBy({
                 _id: ObjectId(result.insertedId),
             });
 
@@ -220,7 +220,26 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLog = await monitorLogCollection.findOne(query);
+            // const monitorLog = await monitorLogCollection.findOne(query);
+
+            let monitorLog = await monitorLogCollection
+                .aggregate([
+                    { $match: query },
+                    { $addFields: { probeId: { $toObjectId: '$probeId' } } },
+                    {
+                        $lookup: {
+                            from: 'probes',
+                            localField: 'probeId',
+                            foreignField: '_id',
+                            as: 'probeId',
+                        },
+                    },
+                ])
+                .toArray();
+            monitorLog = monitorLog[0]; // we are only concerned with the first item
+            if (monitorLog.probeId && Array.isArray(monitorLog.probeId)) {
+                monitorLog.probeId = monitorLog.probeId[0];
+            }
 
             return monitorLog;
         } catch (error) {
