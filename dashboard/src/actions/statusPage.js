@@ -327,6 +327,7 @@ export function updatePrivateStatusPage(projectId, values) {
             function(response) {
                 const statusPage = response.data;
                 dispatch(updatePrivateStatusPageSuccess(statusPage));
+                dispatch(updateStatusSuccess(statusPage));
             },
             function(error) {
                 if (error && error.response && error.response.data)
@@ -1106,6 +1107,7 @@ export function updateStatusPageEmbeddedCss(projectId, data) {
                 const statusPage = response.data;
                 dispatch(updateStatusPageEmbeddedCssSuccess(statusPage));
                 dispatch(fetchProjectStatusPage(projectId, true));
+                dispatch(updateStatusSuccess(statusPage));
             },
             function(error) {
                 if (error && error.response && error.response.data)
