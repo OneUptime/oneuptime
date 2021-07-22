@@ -241,9 +241,17 @@ router.delete(
     isAuthorized,
     async function(req, res) {
         try {
-            const { automatedSlug } = req.params;
-            const { _id } = await AutomatedScriptService.findOneBy({
+            const { projectId, automatedSlug } = req.params;
+            const query = {
                 slug: automatedSlug,
+            };
+            const populate = [{ path: 'createdById', select: 'name' }];
+            const select =
+                'name script scriptType slug projectId successEvent failureEvent';
+            const { _id } = await AutomatedScriptService.findOneBy({
+                query,
+                select,
+                populate,
             });
             const userId = req.user ? req.user.id : null;
             const response = await AutomatedScriptService.deleteBy(
@@ -252,7 +260,10 @@ router.delete(
                 },
                 userId
             );
-            await AutomatedScriptService.removeScriptFromEvent(_id);
+            await AutomatedScriptService.removeScriptFromEvent({
+                projectId,
+                id: _id,
+            });
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
