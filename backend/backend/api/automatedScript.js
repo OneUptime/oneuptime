@@ -18,8 +18,15 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
         const { skip, limit } = req.query;
+        const selectScript =
+            'name script scriptType slug projectId successEvent failureEvent';
         const [scripts, count] = await Promise.all([
-            AutomatedScriptService.findBy({ projectId }, skip, limit),
+            AutomatedScriptService.findBy({
+                query: { projectId },
+                skip,
+                limit,
+                select: selectScript,
+            }),
             AutomatedScriptService.countBy({ projectId }),
         ]);
         return sendListResponse(req, res, scripts, count);
@@ -36,8 +43,14 @@ router.get(
         try {
             const { automatedSlug } = req.params;
             const { skip, limit } = req.query;
+
+            const selectScript =
+                'name script scriptType slug projectId successEvent failureEvent';
+            const populateScript = [{ path: 'createdById', select: 'name' }];
             const details = await AutomatedScriptService.findOneBy({
-                slug: automatedSlug,
+                query: { slug: automatedSlug },
+                select: selectScript,
+                populate: populateScript,
             });
 
             if (details.successEvent.length > 0) {
@@ -108,8 +121,9 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
 
         // check if name already exists
         const uniqueName = await AutomatedScriptService.findOneBy({
-            projectId: data.projectId,
-            name: data.name,
+            query: { projectId: data.projectId, name: data.name },
+            select: selectScript,
+            populate: populateScript,
         });
 
         if (uniqueName) {
@@ -172,13 +186,13 @@ router.put(
             }
 
             // check if name already exist
-            const script = await AutomatedScriptService.findOneBy({
+            const scriptCount = await AutomatedScriptService.countBy({
                 projectId: data.projectId,
                 name: data.name,
                 _id: { $ne: automatedScriptId },
             });
 
-            if (script) {
+            if (scriptCount && scriptCount > 0) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Script name already exists',
