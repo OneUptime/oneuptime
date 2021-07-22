@@ -108,6 +108,7 @@ import {
     FETCH_ANNOUNCEMEMTLOGS_REQUEST,
     FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
     FETCH_ANNOUNCEMEMTLOGS_FAILURE,
+    UPDATE_STATUSPAGE_SUCCESS,
 } from '../constants/statusPage';
 
 import {
@@ -1045,6 +1046,24 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 status,
             });
 
+        case UPDATE_STATUSPAGE_SUCCESS: {
+            const monitors = action.payload.monitors.map(mon => {
+                return {
+                    ...mon,
+                    _id: mon._id,
+                    monitor: mon.monitor._id,
+                    description: mon.description,
+                };
+            });
+            const monitorNames = action.payload.monitors.map(
+                ({ monitor }) => monitor.name
+            );
+            const status = { ...action.payload, monitorNames, monitors };
+            return Object.assign({}, state, {
+                status,
+            });
+        }
+
         case UPDATE_STATUSPAGE_THEME_FAILURE:
             return Object.assign({}, state, {
                 theme: {
@@ -1602,28 +1621,14 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 },
             });
 
-        case UPDATE_STATUS_PAGE_LAYOUT_SUCCESS: {
-            const monitors = action.payload.monitors.map(mon => {
-                return {
-                    ...mon,
-                    _id: mon._id,
-                    monitor: mon.monitor._id,
-                    description: mon.description,
-                };
-            });
-            const monitorNames = action.payload.monitors.map(
-                ({ monitor }) => monitor.name
-            );
-            const statuspage = { ...action.payload, monitorNames, monitors };
+        case UPDATE_STATUS_PAGE_LAYOUT_SUCCESS:
             return Object.assign({}, state, {
                 updateLayout: {
                     requesting: false,
                     error: null,
                     success: true,
                 },
-                status: statuspage,
             });
-        }
 
         case UPDATE_STATUS_PAGE_LAYOUT_REQUEST:
             return Object.assign({}, state, {
