@@ -382,16 +382,23 @@ router.get(
         try {
             const { incidentId } = req.params;
 
-            // const incident = await IncidentService.findOneBy({
-            //     projectId,
-            //     idNumber: incidentId,
-            // });
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
             const [timeline, count] = await Promise.all([
-                IncidentTimelineService.findBy(
-                    { incidentId },
-                    req.query.skip || 0,
-                    req.query.limit || 10
-                ),
+                IncidentTimelineService.findBy({
+                    query: { incidentId },
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
+                    populate: populateIncTimeline,
+                    select: selectIncTimeline,
+                }),
                 IncidentTimelineService.countBy({ incidentId }),
             ]);
             return sendListResponse(req, res, timeline, count); // frontend expects sendListResponse
@@ -484,6 +491,16 @@ router.post(
                     select: 'projectId teams scheduleId',
                 },
             ];
+
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
             /* eslint-disable prefer-const */
             let [
                 incidentMessages,
@@ -501,7 +518,9 @@ router.post(
                     select: selectIncidentMessage,
                 }),
                 IncidentTimelineService.findBy({
-                    incidentId: req.params.incidentId,
+                    query: { incidentId: req.params.incidentId },
+                    select: selectIncTimeline,
+                    populate: populateIncTimeline,
                 }),
                 AlertService.findBy({
                     query: { incidentId: req.params.incidentId },
@@ -623,6 +642,15 @@ router.post(
                     select: 'projectId teams scheduleId',
                 },
             ];
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
             /* eslint-disable prefer-const */
             let [
                 incidentMessages,
@@ -640,7 +668,9 @@ router.post(
                     select: selectIncidentMessage,
                 }),
                 IncidentTimelineService.findBy({
-                    incidentId: req.params.incidentId,
+                    query: { incidentId: req.params.incidentId },
+                    select: selectIncTimeline,
+                    populate: populateIncTimeline,
                 }),
                 AlertService.findBy({
                     query: { incidentId: req.params.incidentId },
@@ -1004,6 +1034,16 @@ router.post(
                         select: 'projectId teams scheduleId',
                     },
                 ];
+
+                const populateIncTimeline = [
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'probeId',
+                        select: 'probeName probeImage',
+                    },
+                ];
+                const selectIncTimeline =
+                    'incidentId createdById probeId createdByZapier createdAt status incident_state';
                 const [alerts, subscriberAlerts] = await Promise.all([
                     AlertService.findBy({
                         query: { incidentId: incident._id },
@@ -1052,7 +1092,9 @@ router.post(
                             populate: populateIncidentMessage,
                         }),
                         IncidentTimelineService.findBy({
-                            incidentId: incident._id,
+                            query: { incidentId: incident._id },
+                            select: selectIncTimeline,
+                            populate: populateIncTimeline,
                         }),
                         Services.deduplicate(subscriberAlerts),
                         onCallScheduleStatusService.findBy({
@@ -1223,6 +1265,16 @@ router.delete(
                         select: 'projectId teams scheduleId',
                     },
                 ];
+
+                const populateIncTimeline = [
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'probeId',
+                        select: 'probeName probeImage',
+                    },
+                ];
+                const selectIncTimeline =
+                    'incidentId createdById probeId createdByZapier createdAt status incident_state';
                 let [
                     alerts,
                     subscriberAlerts,
@@ -1267,7 +1319,9 @@ router.delete(
                             select: selectIncidentMessage,
                         }),
                         IncidentTimelineService.findBy({
-                            incidentId,
+                            query: { incidentId },
+                            select: selectIncTimeline,
+                            populate: populateIncTimeline,
                         }),
                         Services.deduplicate(subscriberAlerts),
                     ]);
@@ -1387,6 +1441,16 @@ router.get(
                         select: 'projectId teams scheduleId',
                     },
                 ];
+
+                const populateIncTimeline = [
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'probeId',
+                        select: 'probeName probeImage',
+                    },
+                ];
+                const selectIncTimeline =
+                    'incidentId createdById probeId createdByZapier createdAt status incident_state';
                 const [
                     timeline,
                     alerts,
@@ -1395,7 +1459,9 @@ router.get(
                     incMessages,
                 ] = await Promise.all([
                     IncidentTimelineService.findBy({
-                        incidentId,
+                        query: { incidentId },
+                        select: selectIncTimeline,
+                        populate: populateIncTimeline,
                     }),
                     AlertService.findBy({
                         query: { incidentId: incidentId },

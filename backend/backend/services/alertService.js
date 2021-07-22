@@ -238,6 +238,15 @@ module.exports = {
                 select: 'projectId teams scheduleId',
             },
         ];
+        const populateIncTimeline = [
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'probeId',
+                select: 'probeName probeImage',
+            },
+        ];
+        const selectIncTimeline =
+            'incidentId createdById probeId createdByZapier createdAt status incident_state';
         const [
             incidentMsgs,
             timeline,
@@ -253,7 +262,9 @@ module.exports = {
                 populate: populateIncidentMessage,
             }),
             IncidentTimelineService.findBy({
-                incidentId,
+                query: { incidentId },
+                select: selectIncTimeline,
+                populate: populateIncTimeline,
             }),
             _this.findBy({
                 query: {

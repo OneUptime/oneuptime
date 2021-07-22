@@ -1407,12 +1407,22 @@ router.get('/:projectId/timeline/:incidentId', checkUser, async function(
         // since the frontend only need the last content (current content)
         // of incident timeline
         const { skip = 0, limit = 1 } = req.query;
-
-        const timeline = await IncidentTimelineService.findBy(
-            { incidentId: incidentData._id },
+        const populateIncTimeline = [
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'probeId',
+                select: 'probeName probeImage',
+            },
+        ];
+        const selectIncTimeline =
+            'incidentId createdById probeId createdByZapier createdAt status incident_state';
+        const timeline = await IncidentTimelineService.findBy({
+            query: { incidentId: incidentData._id },
             skip,
-            limit
-        );
+            limit,
+            populate: populateIncTimeline,
+            select: selectIncTimeline,
+        });
         return sendItemResponse(req, res, timeline);
     } catch (error) {
         return sendErrorResponse(req, res, error);
