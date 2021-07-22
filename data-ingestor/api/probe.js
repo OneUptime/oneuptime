@@ -128,15 +128,21 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                               failedReasons: [],
                           };
 
-                if (validUp) {
+                const [up, degraded, down] = await Promise.all([
+                    validUp,
+                    validDegraded,
+                    validDown,
+                ]);
+
+                if (up) {
                     status = 'online';
                     reason = upSuccessReasons;
                     matchedCriterion = matchedUpCriterion;
-                } else if (validDegraded) {
+                } else if (degraded) {
                     status = 'degraded';
                     reason = [...degradedSuccessReasons, ...upFailedReasons];
                     matchedCriterion = matchedDegradedCriterion;
-                } else if (validDown) {
+                } else if (down) {
                     matchedCriterion = matchedDownCriterion;
                     status = 'offline';
                     reason = [
@@ -530,7 +536,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
             data.matchedCriterion = matchedCriterion;
             // update monitor to save the last matched criterion
-
             await MonitorService.updateCriterion(monitor._id, matchedCriterion);
 
             data.monitorId = req.params.monitorId || monitor._id;
