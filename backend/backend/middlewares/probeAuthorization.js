@@ -132,7 +132,7 @@ module.exports = {
                 });
             }
             if (!probeId) {
-                //create a new probe if it is not present or more is needed.
+                //create a new probe.
                 const probe = await ProbeService.create({
                     probeKey,
                     probeName,
