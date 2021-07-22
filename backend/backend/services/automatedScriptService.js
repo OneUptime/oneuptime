@@ -353,10 +353,10 @@ module.exports = {
         }
     },
 
-    removeScriptFromEvent: async function(id) {
+    removeScriptFromEvent: async function({ projectId, id }) {
         try {
             const _this = this;
-            const scripts = await ScriptModel.find().lean();
+            const scripts = await ScriptModel.find({ projectId }).lean();
             await Promise.all(
                 scripts.map(async script => {
                     const successEvent = script.successEvent.filter(
