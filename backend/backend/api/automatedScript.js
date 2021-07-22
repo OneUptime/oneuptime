@@ -120,13 +120,12 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
         }
 
         // check if name already exists
-        const uniqueName = await AutomatedScriptService.findOneBy({
-            query: { projectId: data.projectId, name: data.name },
-            select: selectScript,
-            populate: populateScript,
+        const uniqueName = await AutomatedScriptService.countBy({
+            projectId: data.projectId,
+            name: data.name,
         });
 
-        if (uniqueName) {
+        if (uniqueName && uniqueName > 0) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Script name already exists',
