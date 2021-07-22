@@ -89,7 +89,7 @@ module.exports = {
                 // without updating mognodb database manually.
 
                 if (global.probes[probeName]) {
-                    // If probeName could not be found DB, the else statement is called.
+                    // If probeName could not be found, the else statement is called.
                     probeId = global.probes[probeName]._id;
                 } else {
                     const probe = await ProbeService.findOneBy({ probeName });
