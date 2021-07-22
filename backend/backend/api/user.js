@@ -434,7 +434,7 @@ router.post('/sso/callback', async function(req, res) {
                 code: 400,
                 message: 'SSO not defined for the domain.',
             });
-        x;
+
         if (!sso['saml-enabled'])
             return sendErrorResponse(req, res, {
                 code: 401,

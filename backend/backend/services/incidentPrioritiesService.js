@@ -50,7 +50,7 @@ module.exports = {
                 incidentPrioritiesQuery
             );
 
-            const incidentPriorities = await incidentPriorities;
+            const incidentPriorities = await incidentPrioritiesQuery;
 
             return incidentPriorities;
         } catch (error) {

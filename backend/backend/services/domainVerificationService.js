@@ -267,7 +267,7 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let domainCount = await this.countBy(query);
+            const domainCount = await this.countBy(query);
 
             if (!domainCount || domainCount === 0) {
                 const error = new Error('Domain not found or does not exist');
@@ -275,7 +275,7 @@ module.exports = {
                 throw error;
             }
 
-            domain = await this.updateOneBy(query, {
+            const domain = await this.updateOneBy(query, {
                 deleted: true,
                 deletedAt: Date.now(),
             });
