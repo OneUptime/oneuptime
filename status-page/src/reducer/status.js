@@ -1297,7 +1297,7 @@ export default (state = INITIAL_STATE, action) => {
                 },
                 futureEvents: {
                     ...state.futureEvents,
-                    events: action.payload.futureEvents.events,
+                    events: action.payload.futureEvents.events || [],
                     skip: 0,
                     count: action.payload.futureEvents.length,
                 },
@@ -1305,7 +1305,7 @@ export default (state = INITIAL_STATE, action) => {
                     requesting: false,
                     success: true,
                     error: null,
-                    events: action.payload.pastEvents.events,
+                    events: action.payload.pastEvents.events || [],
                     count: action.payload.pastEvents.count,
                     skip: action.payload.skip || 0,
                 },

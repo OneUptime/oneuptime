@@ -28,10 +28,13 @@ function getMongoClient() {
 const client = getMongoClient();
 (async function() {
     try {
+        // eslint-disable-next-line no-console
         console.log('connecting to db');
         await client.connect();
+        // eslint-disable-next-line no-console
         console.log('connected to db');
     } catch (error) {
+        // eslint-disable-next-line no-console
         console.log('connection error: ', error);
     }
 })();

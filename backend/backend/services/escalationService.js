@@ -3,9 +3,11 @@ const ErrorService = require('./errorService');
 const moment = require('moment');
 const DateTime = require('../utils/DateTime');
 const ScheduleService = require('./scheduleService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
-    findBy: async function({ query, limit, skip, sort }) {
+    findBy: async function({ query, limit, skip, sort, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -18,21 +20,16 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-            const escalations = await EscalationModel.find(query)
+            let escalationsQuery = EscalationModel.find(query)
                 .lean()
                 .sort(sort)
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId', ['_id', 'name', 'slug'])
-                .populate({
-                    path: 'scheduleId',
-                    select: 'name isDefault slug',
-                    populate: { path: 'monitorIds', select: 'name' },
-                })
-                .populate({
-                    path: 'teams.teamMembers.user',
-                    select: 'name email',
-                });
+                .skip(skip);
+
+            escalationsQuery = handleSelect(select, escalationsQuery);
+            escalationsQuery = handlePopulate(populate, escalationsQuery);
+
+            const escalations = await escalationsQuery;
             return escalations;
         } catch (error) {
             ErrorService.log('escalationService.findBy', error);
@@ -40,29 +37,19 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const escalation = await EscalationModel.findOne(query)
-                .populate('projectId', ['_id', 'name', 'slug'])
-                .populate({
-                    path: 'scheduleId',
-                    select: 'name isDefault slug',
-                    populate: { path: 'monitorIds', select: 'name' },
-                })
-                .populate({
-                    path: 'teams.teamMembers.groups',
-                    select: 'teams name',
-                })
-                .populate({
-                    path: 'teams.teamMembers.user',
-                    select: 'name email',
-                })
-                .lean();
+            let escalationQuery = EscalationModel.findOne(query).lean();
+
+            escalationQuery = handleSelect(select, escalationQuery);
+            escalationQuery = handlePopulate(populate, escalationQuery);
+
+            const escalation = await escalationQuery;
 
             const { activeTeam, nextActiveTeam } = computeActiveTeams(
                 escalation
@@ -177,7 +164,27 @@ module.exports = {
             let updatedData = await EscalationModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+
+            const populateEscalation = [
+                { path: 'projectId', select: '_id name slug' },
+                {
+                    path: 'scheduleId',
+                    select: 'name isDefault slug',
+                    populate: { path: 'monitorIds', select: 'name' },
+                },
+                {
+                    path: 'teams.teamMembers.user',
+                    select: 'name email',
+                },
+            ];
+            const selectEscalation =
+                'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+
+            updatedData = await this.findBy({
+                query,
+                populate: populateEscalation,
+                select: selectEscalation,
+            });
             return updatedData;
         } catch (error) {
             ErrorService.log('escalationService.updateMany', error);
@@ -188,7 +195,10 @@ module.exports = {
     deleteEscalationMember: async function(projectId, memberId, deletedById) {
         try {
             const _this = this;
-            const escalations = await _this.findBy({ qeury: { projectId } });
+            const escalations = await _this.findBy({
+                query: { projectId },
+                select: '_id teams scheduleId',
+            });
 
             if (escalations && escalations.length > 0) {
                 for (const escalation of escalations) {
@@ -204,7 +214,7 @@ module.exports = {
                             teamMembers: filtered,
                         });
                         if (filtered.length < 1) {
-                            const populate = [
+                            const populateSchedule = [
                                 { path: 'userIds', select: 'name' },
                                 { path: 'createdById', select: 'name' },
                                 { path: 'monitorIds', select: 'name' },
@@ -222,12 +232,12 @@ module.exports = {
                                 },
                             ];
 
-                            const select =
+                            const selectSchedule =
                                 '_id userIds name slug projectId createdById monitorsIds escalationIds createdAt isDefault userIds';
                             const schedule = await ScheduleService.findOneBy({
                                 query: { _id: escalation.scheduleId },
-                                select,
-                                populate,
+                                select: selectSchedule,
+                                populate: populateSchedule,
                             });
                             const rmEscalation = schedule.escalationIds.filter(
                                 escalationId =>
@@ -274,7 +284,7 @@ module.exports = {
     restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
-        let escalation = await _this.findBy({ query });
+        let escalation = await _this.findBy({ query, select: '_id' });
         if (escalation && escalation.length > 1) {
             const escalations = await Promise.all(
                 escalation.map(async escalation => {

@@ -225,7 +225,28 @@ module.exports = {
         ];
         const select =
             'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+        const selectOnCallScheduleStatus =
+            'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
+        const populateOnCallScheduleStatus = [
+            { path: 'incidentId', select: 'name slug' },
+            { path: 'project', select: 'name slug' },
+            { path: 'scheduleId', select: 'name slug' },
+            { path: 'schedule', select: '_id name slug' },
+            {
+                path: 'activeEscalationId',
+                select: 'projectId teams scheduleId',
+            },
+        ];
+        const populateIncTimeline = [
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'probeId',
+                select: 'probeName probeImage',
+            },
+        ];
+        const selectIncTimeline =
+            'incidentId createdById probeId createdByZapier createdAt status incident_state';
         const [
             incidentMsgs,
             timeline,
@@ -241,7 +262,9 @@ module.exports = {
                 populate: populateIncidentMessage,
             }),
             IncidentTimelineService.findBy({
-                incidentId,
+                query: { incidentId },
+                select: selectIncTimeline,
+                populate: populateIncTimeline,
             }),
             _this.findBy({
                 query: {
@@ -263,6 +286,8 @@ module.exports = {
                 query: {
                     incident: incidentId,
                 },
+                select: selectOnCallScheduleStatus,
+                populate: populateOnCallScheduleStatus,
             }),
         ]);
         const callScheduleStatus = await Services.checkCallSchedule(callStatus);
@@ -453,6 +478,19 @@ module.exports = {
 
         const monitorPopulate = [{ path: 'componentId', select: 'name' }];
         const monitorSelect = '_id name data method componentId';
+        const selectOnCallScheduleStatus =
+            'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+        const populateOnCallScheduleStatus = [
+            { path: 'incidentId', select: 'name slug' },
+            { path: 'project', select: 'name slug' },
+            { path: 'scheduleId', select: 'name slug' },
+            { path: 'schedule', select: '_id name slug' },
+            {
+                path: 'activeEscalationId',
+                select: 'projectId teams scheduleId',
+            },
+        ];
         const [monitor, callScheduleStatuses] = await Promise.all([
             MonitorService.findOneBy({
                 query: { _id: monitorId },
@@ -461,6 +499,8 @@ module.exports = {
             }),
             OnCallScheduleStatusService.findBy({
                 query: { incident: incident._id, schedule: schedule },
+                select: selectOnCallScheduleStatus,
+                populate: populateOnCallScheduleStatus,
             }),
         ]);
 
@@ -500,8 +540,30 @@ module.exports = {
                 ];
             escalationId = currentEscalationStatus.escalation._id;
         }
+
+        const selectEscalation =
+            'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+
+        const populateEscalation = [
+            { path: 'projectId', select: '_id name slug' },
+            {
+                path: 'scheduleId',
+                select: 'name isDefault slug',
+                populate: { path: 'monitorIds', select: 'name' },
+            },
+            {
+                path: 'teams.teamMembers.user',
+                select: 'name email',
+            },
+            {
+                path: 'teams.teamMembers.groups',
+                select: 'teams name',
+            },
+        ];
         const escalation = await EscalationService.findOneBy({
-            _id: escalationId,
+            query: { _id: escalationId },
+            select: selectEscalation,
+            populate: populateEscalation,
         });
 
         let shouldSendSMSReminder = false;
@@ -585,8 +647,23 @@ module.exports = {
 
     escalate: async function({ schedule, incident, alertProgress, monitor }) {
         const _this = this;
+        const selectOnCallScheduleStatus =
+            'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+        const populateOnCallScheduleStatus = [
+            { path: 'incidentId', select: 'name slug' },
+            { path: 'project', select: 'name slug' },
+            { path: 'scheduleId', select: 'name slug' },
+            { path: 'schedule', select: '_id name slug' },
+            {
+                path: 'activeEscalationId',
+                select: 'projectId teams scheduleId',
+            },
+        ];
         const callScheduleStatuses = await OnCallScheduleStatusService.findBy({
             query: { incident: incident._id, schedule: schedule._id },
+            select: selectOnCallScheduleStatus,
+            populate: populateOnCallScheduleStatus,
         });
 
         if (callScheduleStatuses.length === 0) {
@@ -671,12 +748,39 @@ module.exports = {
             ? incident.projectId._id
             : incident.projectId;
 
+        const selectEscalation =
+            'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+
+        const populateEscalation = [
+            { path: 'projectId', select: '_id name slug' },
+            {
+                path: 'scheduleId',
+                select: 'name isDefault slug',
+                populate: {
+                    path: 'monitorIds',
+                    select: 'name',
+                },
+            },
+            {
+                path: 'teams.teamMembers.user',
+                select: 'name email',
+            },
+            {
+                path: 'teams.teamMembers.groups',
+                select: 'teams name',
+            },
+        ];
+
         const [project, ec] = await Promise.all([
             ProjectService.findOneBy({
                 query: { _id: projectId },
                 select: '_id alertEnable alertOptions slug',
             }),
-            EscalationService.findOneBy({ _id: escalation._id }),
+            EscalationService.findOneBy({
+                query: { _id: escalation._id },
+                select: selectEscalation,
+                populate: populateEscalation,
+            }),
         ]);
         escalation = ec;
 
@@ -1893,6 +1997,20 @@ module.exports = {
                 ];
                 const monitorSelect = '_id name data method componentId';
 
+                const selectOnCallScheduleStatus =
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+                const populateOnCallScheduleStatus = [
+                    { path: 'incidentId', select: 'name slug' },
+                    { path: 'project', select: 'name slug' },
+                    { path: 'scheduleId', select: 'name slug' },
+                    { path: 'schedule', select: '_id name slug' },
+                    {
+                        path: 'activeEscalationId',
+                        select: 'projectId teams scheduleId',
+                    },
+                ];
+
                 const [schedules, mon, project] = await Promise.all([
                     this.getSchedulesForAlerts(incident, monitor),
                     MonitorService.findOneBy({
@@ -1926,6 +2044,8 @@ module.exports = {
                                 incident: incident._id,
                                 schedule: schedule,
                             },
+                            select: selectOnCallScheduleStatus,
+                            populate: populateOnCallScheduleStatus,
                         }
                     );
                     let onCallScheduleStatus = null;
@@ -1963,8 +2083,35 @@ module.exports = {
                                 callScheduleStatuses[0].escalations.length - 1
                             ].escalation._id;
                     }
+                    const selectEscalation =
+                        'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+
+                    const populateEscalation = [
+                        {
+                            path: 'projectId',
+                            select: '_id name slug',
+                        },
+                        {
+                            path: 'scheduleId',
+                            select: 'name isDefault slug',
+                            populate: {
+                                path: 'monitorIds',
+                                select: 'name',
+                            },
+                        },
+                        {
+                            path: 'teams.teamMembers.user',
+                            select: 'name email',
+                        },
+                        {
+                            path: 'teams.teamMembers.groups',
+                            select: 'teams name',
+                        },
+                    ];
                     const escalation = await EscalationService.findOneBy({
-                        _id: escalationId,
+                        query: { _id: escalationId },
+                        select: selectEscalation,
+                        populate: populateEscalation,
                     });
 
                     if (!escalation) {
@@ -2214,6 +2361,19 @@ module.exports = {
                     { path: 'componentId', select: 'name' },
                 ];
                 const monitorSelect = '_id name data method componentId';
+                const selectOnCallScheduleStatus =
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+                const populateOnCallScheduleStatus = [
+                    { path: 'incidentId', select: 'name slug' },
+                    { path: 'project', select: 'name slug' },
+                    { path: 'scheduleId', select: 'name slug' },
+                    { path: 'schedule', select: '_id name slug' },
+                    {
+                        path: 'activeEscalationId',
+                        select: 'projectId teams scheduleId',
+                    },
+                ];
 
                 const [schedules, mon, project] = await Promise.all([
                     this.getSchedulesForAlerts(incident, monitor),
@@ -2248,6 +2408,8 @@ module.exports = {
                                 incident: incident._id,
                                 schedule: schedule,
                             },
+                            select: selectOnCallScheduleStatus,
+                            populate: populateOnCallScheduleStatus,
                         }
                     );
                     let onCallScheduleStatus = null;
@@ -2285,8 +2447,36 @@ module.exports = {
                                 callScheduleStatuses[0].escalations.length - 1
                             ].escalation._id;
                     }
+
+                    const selectEscalation =
+                        'projectId callReminders emailReminders smsReminders pushReminders rotateBy rotationInterval firstRotationOn rotationTimezone call email sms push createdById scheduleId teams createdAt deleted deletedAt';
+
+                    const populateEscalation = [
+                        {
+                            path: 'projectId',
+                            select: '_id name slug',
+                        },
+                        {
+                            path: 'scheduleId',
+                            select: 'name isDefault slug',
+                            populate: {
+                                path: 'monitorIds',
+                                select: 'name',
+                            },
+                        },
+                        {
+                            path: 'teams.teamMembers.user',
+                            select: 'name email',
+                        },
+                        {
+                            path: 'teams.teamMembers.groups',
+                            select: 'teams name',
+                        },
+                    ];
                     const escalation = await EscalationService.findOneBy({
-                        _id: escalationId,
+                        query: { _id: escalationId },
+                        select: selectEscalation,
+                        populate: populateEscalation,
                     });
 
                     if (!escalation) {

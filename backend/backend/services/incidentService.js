@@ -365,8 +365,20 @@ module.exports = {
                     const { _id } = monitorStatus;
                     await MonitorStatusService.deleteBy({ _id }, userId);
                 }
+
+                const populateIncTimeline = [
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'probeId',
+                        select: 'probeName probeImage',
+                    },
+                ];
+                const selectIncTimeline =
+                    'incidentId createdById probeId createdByZapier createdAt status incident_state';
                 const incidentTimeline = await IncidentTimelineService.findBy({
-                    incidentId: incident._id,
+                    query: { incidentId: incident._id },
+                    select: selectIncTimeline,
+                    populate: populateIncTimeline,
                 });
                 for (const event of incidentTimeline) {
                     await IncidentTimelineService.deleteBy(
@@ -468,7 +480,7 @@ module.exports = {
                 { path: 'probes.probeId', select: 'name _id' },
             ];
             const select =
-                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                'notifications hideIncident acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
             updatedIncident = await _this.findOneBy({
                 query: { _id: updatedIncident._id },

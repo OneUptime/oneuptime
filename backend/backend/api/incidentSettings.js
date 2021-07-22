@@ -135,11 +135,11 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
 
     try {
         //Update should not happen if the incident priority is remove and doesn't exist.
-        const priority = await IncidentPrioritiesService.findOne({
+        const priority = await IncidentPrioritiesService.countBy({
             _id: incidentPriority,
         });
 
-        if (!priority)
+        if (!priority || priority === 0)
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: "Incident priority doesn't exist.",

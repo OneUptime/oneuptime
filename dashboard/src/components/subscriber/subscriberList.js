@@ -32,9 +32,11 @@ export class SubscriberList extends Component {
     }
 
     deleteSubscriber = async (projectId, _id, setLoading) => {
+        const { fetchMonitorsSubscribers, monitorId } = this.props;
         const result = await this.props.deleteSubscriber(projectId, _id);
         if (result.status === 200) {
             setLoading(false);
+            fetchMonitorsSubscribers(projectId, monitorId, 0, 5);
         }
     };
 

@@ -286,6 +286,3 @@ describe('SSO API', function() {
         });
     });
 });
-
-const selectSso =
-    '_id saml-enabled domain entityId remoteLoginUrl certificateFingerprint remoteLogoutUrl ipRanges createdAt deleted deletedAt deletedById samlSsoUrl';

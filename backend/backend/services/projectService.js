@@ -201,7 +201,8 @@ module.exports = {
                         populate: populateSchedule,
                     }),
                     DomainVerificationService.findBy({
-                        projectId: project._id,
+                        query: { projectId: project._id },
+                        select: '_id',
                     }),
                     StatusPageService.findBy({
                         query: { projectId: project._id },

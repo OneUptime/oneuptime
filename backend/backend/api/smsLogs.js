@@ -17,11 +17,18 @@ const { sendItemResponse } = require('../middlewares/response');
 
 router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     try {
+        const selectSmsCount =
+            'userId sentTo createdAt projectId parentProjectId deleted deletedAt deletedById content status error';
         const query = {};
         const skip = req.query.skip;
         const limit = req.query.limit;
         const [smsLogs, count] = await Promise.all([
-            SmsLogsService.findBy(query, limit, skip),
+            SmsLogsService.findBy({
+                query,
+                limit,
+                skip,
+                select: selectSmsCount,
+            }),
             SmsLogsService.countBy(query),
         ]);
         return sendListResponse(req, res, smsLogs, count);

@@ -111,8 +111,11 @@ class _CardForm extends React.Component {
                         result.paymentIntent &&
                         result.paymentIntent.status === 'succeeded'
                     ) {
-                        cardId =
-                            result.paymentIntent && result.paymentIntent.source;
+                        /**
+                        After 'stripe.handleCardPayment' is called, paymentIntent.source equalled null.
+                        However, the content of SOURCE prior to the handleCardPayment is 'card_1JFaaLIt5jR0TXkEUhiiuw5M' and this is the same as TOK.CARD.ID from token generated
+                        */
+                        cardId = tok.card && tok.card.id;
                         return getApi(`stripe/${userId}/creditCard/${cardId}`);
                     } else {
                         cardId = tok.card && tok.card.id;

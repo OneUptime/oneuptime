@@ -231,6 +231,18 @@ module.exports = {
     findTeamMember: async function(type, id) {
         try {
             let user;
+            const selectEscalation = 'teams createdAt deleted deletedAt';
+
+            const populateEscalation = [
+                {
+                    path: 'teams.teamMembers.user',
+                    select: 'name email',
+                },
+                {
+                    path: 'teams.teamMembers.groups',
+                    select: 'teams name',
+                },
+            ];
             if (type && type === 'TeamMember') {
                 user = await UserService.findOneBy({
                     query: { _id: id },
@@ -267,7 +279,9 @@ module.exports = {
                         : null;
                 const escalation = escalationId
                     ? await EscalationService.findOneBy({
-                          _id: escalationId,
+                          query: { _id: escalationId },
+                          select: selectEscalation,
+                          populate: populateEscalation,
                       })
                     : null;
                 const activeTeam =

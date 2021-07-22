@@ -434,7 +434,7 @@ router.post('/sso/callback', async function(req, res) {
                 code: 400,
                 message: 'SSO not defined for the domain.',
             });
-        x;
+
         if (!sso['saml-enabled'])
             return sendErrorResponse(req, res, {
                 code: 401,
@@ -1193,7 +1193,7 @@ router.get('/profile', getUser, async function(req, res) {
         }
         // Call the UserService
         const select =
-            'name email isVerified jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber profilePic twoFactorAuthEnabled timeZone role alertPhoneNumber tempAlertPhoneNumber identification';
+            'name email isVerified jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber profilePic twoFactorAuthEnabled timezone role alertPhoneNumber tempAlertPhoneNumber identification';
         const user = await UserService.findOneBy({
             query: { _id: userId },
             select,

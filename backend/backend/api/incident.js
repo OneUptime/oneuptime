@@ -478,16 +478,23 @@ router.get(
         try {
             const { incidentId } = req.params;
 
-            // const incident = await IncidentService.findOneBy({
-            //     projectId,
-            //     idNumber: incidentId,
-            // });
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
             const [timeline, count] = await Promise.all([
-                IncidentTimelineService.findBy(
-                    { incidentId },
-                    req.query.skip || 0,
-                    req.query.limit || 10
-                ),
+                IncidentTimelineService.findBy({
+                    query: { incidentId },
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
+                    populate: populateIncTimeline,
+                    select: selectIncTimeline,
+                }),
                 IncidentTimelineService.countBy({ incidentId }),
             ]);
             return sendListResponse(req, res, timeline, count); // frontend expects sendListResponse
@@ -567,6 +574,29 @@ router.post(
             ];
             const select =
                 'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+            const selectOnCallScheduleStatus =
+                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+            const populateOnCallScheduleStatus = [
+                { path: 'incidentId', select: 'name slug' },
+                { path: 'project', select: 'name slug' },
+                { path: 'scheduleId', select: 'name slug' },
+                { path: 'schedule', select: '_id name slug' },
+                {
+                    path: 'activeEscalationId',
+                    select: 'projectId teams scheduleId',
+                },
+            ];
+
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
             /* eslint-disable prefer-const */
             let [
                 incidentMessages,
@@ -584,7 +614,9 @@ router.post(
                     select: selectIncidentMessage,
                 }),
                 IncidentTimelineService.findBy({
-                    incidentId: req.params.incidentId,
+                    query: { incidentId: req.params.incidentId },
+                    select: selectIncTimeline,
+                    populate: populateIncTimeline,
                 }),
                 AlertService.findBy({
                     query: { incidentId: req.params.incidentId },
@@ -598,6 +630,8 @@ router.post(
                 }),
                 onCallScheduleStatusService.findBy({
                     query: { incident: req.params.incidentId },
+                    select: selectOnCallScheduleStatus,
+                    populate: populateOnCallScheduleStatus,
                 }),
             ]);
             /* eslint-enable prefer-const */
@@ -691,6 +725,28 @@ router.post(
             const select =
                 'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
 
+            const selectOnCallScheduleStatus =
+                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+            const populateOnCallScheduleStatus = [
+                { path: 'incidentId', select: 'name slug' },
+                { path: 'project', select: 'name slug' },
+                { path: 'scheduleId', select: 'name slug' },
+                { path: 'schedule', select: '_id name slug' },
+                {
+                    path: 'activeEscalationId',
+                    select: 'projectId teams scheduleId',
+                },
+            ];
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
             /* eslint-disable prefer-const */
             let [
                 incidentMessages,
@@ -708,7 +764,9 @@ router.post(
                     select: selectIncidentMessage,
                 }),
                 IncidentTimelineService.findBy({
-                    incidentId: req.params.incidentId,
+                    query: { incidentId: req.params.incidentId },
+                    select: selectIncTimeline,
+                    populate: populateIncTimeline,
                 }),
                 AlertService.findBy({
                     query: { incidentId: req.params.incidentId },
@@ -722,6 +780,8 @@ router.post(
                 }),
                 onCallScheduleStatusService.findBy({
                     query: { incident: req.params.incidentId },
+                    select: selectOnCallScheduleStatus,
+                    populate: populateOnCallScheduleStatus,
                 }),
             ]);
             /* eslint-enable prefer-const */
@@ -1057,7 +1117,29 @@ router.post(
                 ];
                 const select =
                     'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+                const selectOnCallScheduleStatus =
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
 
+                const populateOnCallScheduleStatus = [
+                    { path: 'incidentId', select: 'name slug' },
+                    { path: 'project', select: 'name slug' },
+                    { path: 'scheduleId', select: 'name slug' },
+                    { path: 'schedule', select: '_id name slug' },
+                    {
+                        path: 'activeEscalationId',
+                        select: 'projectId teams scheduleId',
+                    },
+                ];
+
+                const populateIncTimeline = [
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'probeId',
+                        select: 'probeName probeImage',
+                    },
+                ];
+                const selectIncTimeline =
+                    'incidentId createdById probeId createdByZapier createdAt status incident_state';
                 const [alerts, subscriberAlerts] = await Promise.all([
                     AlertService.findBy({
                         query: { incidentId: incident._id },
@@ -1106,11 +1188,15 @@ router.post(
                             populate: populateIncidentMessage,
                         }),
                         IncidentTimelineService.findBy({
-                            incidentId: incident._id,
+                            query: { incidentId: incident._id },
+                            select: selectIncTimeline,
+                            populate: populateIncTimeline,
                         }),
                         Services.deduplicate(subscriberAlerts),
                         onCallScheduleStatusService.findBy({
                             query: { incident: incident._id },
+                            select: selectOnCallScheduleStatus,
+                            populate: populateOnCallScheduleStatus,
                         }),
                     ]);
                     /* eslint-enable*/
@@ -1259,6 +1345,32 @@ router.delete(
                 const select =
                     'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
 
+                const selectOnCallScheduleStatus =
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+                const populateOnCallScheduleStatus = [
+                    { path: 'incidentId', select: 'name slug' },
+                    { path: 'project', select: 'name slug' },
+                    { path: 'scheduleId', select: 'name slug' },
+                    {
+                        path: 'schedule',
+                        select: '_id name slug',
+                    },
+                    {
+                        path: 'activeEscalationId',
+                        select: 'projectId teams scheduleId',
+                    },
+                ];
+
+                const populateIncTimeline = [
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'probeId',
+                        select: 'probeName probeImage',
+                    },
+                ];
+                const selectIncTimeline =
+                    'incidentId createdById probeId createdByZapier createdAt status incident_state';
                 let [
                     alerts,
                     subscriberAlerts,
@@ -1276,6 +1388,8 @@ router.delete(
                     }),
                     onCallScheduleStatusService.findBy({
                         query: { incident: incidentId },
+                        select: selectOnCallScheduleStatus,
+                        populate: populateOnCallScheduleStatus,
                     }),
                     IncidentTimelineService.create({
                         incidentId,
@@ -1301,7 +1415,9 @@ router.delete(
                             select: selectIncidentMessage,
                         }),
                         IncidentTimelineService.findBy({
-                            incidentId,
+                            query: { incidentId },
+                            select: selectIncTimeline,
+                            populate: populateIncTimeline,
                         }),
                         Services.deduplicate(subscriberAlerts),
                     ]);
@@ -1405,6 +1521,32 @@ router.get(
                 const select =
                     'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
 
+                const selectOnCallScheduleStatus =
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+                const populateOnCallScheduleStatus = [
+                    { path: 'incidentId', select: 'name slug' },
+                    { path: 'project', select: 'name slug' },
+                    { path: 'scheduleId', select: 'name slug' },
+                    {
+                        path: 'schedule',
+                        select: '_id name slug',
+                    },
+                    {
+                        path: 'activeEscalationId',
+                        select: 'projectId teams scheduleId',
+                    },
+                ];
+
+                const populateIncTimeline = [
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'probeId',
+                        select: 'probeName probeImage',
+                    },
+                ];
+                const selectIncTimeline =
+                    'incidentId createdById probeId createdByZapier createdAt status incident_state';
                 const [
                     timeline,
                     alerts,
@@ -1413,7 +1555,9 @@ router.get(
                     incMessages,
                 ] = await Promise.all([
                     IncidentTimelineService.findBy({
-                        incidentId,
+                        query: { incidentId },
+                        select: selectIncTimeline,
+                        populate: populateIncTimeline,
                     }),
                     AlertService.findBy({
                         query: { incidentId: incidentId },
@@ -1449,6 +1593,8 @@ router.get(
                         Services.deduplicate(subscriberAlerts),
                         onCallScheduleStatusService.findBy({
                             query: { incident: incidentId },
+                            select: selectOnCallScheduleStatus,
+                            populate: populateOnCallScheduleStatus,
                         }),
                     ]);
                     const callScheduleStatus = await Services.checkCallSchedule(
@@ -1515,13 +1661,16 @@ router.put('/:projectId/:incidentId', getUser, async function(req, res) {
     try {
         const { projectId, incidentId } = req.params;
         const { hideIncident } = req.body;
-        const incident = await IncidentService.updateOneBy(
+        const result = await IncidentService.updateOneBy(
             {
                 projectId,
                 _id: incidentId,
             },
             { hideIncident }
         );
+        const incident = {
+            hideIncident: result.hideIncident,
+        };
         return sendItemResponse(req, res, incident);
     } catch (error) {
         return sendErrorResponse(req, res, error);
