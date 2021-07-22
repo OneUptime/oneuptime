@@ -23,6 +23,7 @@ module.exports = {
             incidentTimeline.createdByZapier = data.createdByZapier || false;
             incidentTimeline.status = data.status;
             incidentTimeline.createdAt = new Date(moment().format());
+            incidentTimeline.deleted = false;
 
             const result = await incidentTimelineCollection.insertOne(
                 incidentTimeline
@@ -70,7 +71,12 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            query.deleted = false;
+
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             const incidentTimeline = await incidentTimelineCollection.findOne(
                 query

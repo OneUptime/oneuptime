@@ -4,7 +4,11 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            if (!query.deleted) query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             const project = await projectCollection.findOne(query);
             return project;
@@ -25,7 +29,11 @@ module.exports = {
 
             if (!query) query = {};
 
-            if (!query.deleted) query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             const projects = await projectCollection
                 .find(query)

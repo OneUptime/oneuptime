@@ -17,7 +17,11 @@ module.exports = {
                 query = {};
             }
 
-            query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             let resourceCategories = await resourceCategoryCollection
                 .find(query)

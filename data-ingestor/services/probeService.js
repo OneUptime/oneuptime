@@ -44,7 +44,12 @@ module.exports = {
                 query = {};
             }
 
-            query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
+
             const probe = await probeCollection.findOne(query);
             return probe;
         } catch (error) {
@@ -91,7 +96,10 @@ module.exports = {
 
             if (!lastStatus || (lastStatus && lastStatus !== data.status)) {
                 data.lastStatus = lastStatus ? lastStatus : null;
-                monitorStatus = await MonitorStatusService.create(data);
+                monitorStatus = await MonitorStatusService.create({
+                    ...data,
+                    deleted: false,
+                });
             }
             return monitorStatus;
         } catch (error) {
@@ -166,7 +174,7 @@ module.exports = {
                     data.incidentId = incidentIdsOrRetry[0];
                 }
 
-                await MonitorStatusService.create(data);
+                await MonitorStatusService.create({ ...data, deleted: false });
 
                 if (incidentIdsOrRetry && incidentIdsOrRetry.length) {
                     log = await MonitorLogService.updateOneBy(
@@ -354,7 +362,7 @@ module.exports = {
                             }),
                         }
                     );
-                    const incident = response.data;
+                    const incident = response;
 
                     // const incident = await IncidentService.create({
                     //     projectId: monitor.projectId,
@@ -418,7 +426,7 @@ module.exports = {
                         }
 
                         await IncidentTimelineService.create({
-                            incidentId: incident._id,
+                            incidentId: incident._id.toString(),
                             probeId: data.probeId,
                             status: data.status,
                         });
@@ -461,7 +469,7 @@ module.exports = {
                             }),
                         }
                     );
-                    const incident = response.data;
+                    const incident = response;
 
                     AutomatedScriptService.runResource({
                         triggeredId: incident._id,
@@ -512,7 +520,7 @@ module.exports = {
                         }
 
                         await IncidentTimelineService.create({
-                            incidentId: incident._id,
+                            incidentId: incident._id.toString(),
                             probeId: data.probeId,
                             status: data.status,
                         });
@@ -556,7 +564,7 @@ module.exports = {
                             }),
                         }
                     );
-                    const incident = response.data;
+                    const incident = response;
 
                     AutomatedScriptService.runResource({
                         triggeredId: incident._id,
@@ -569,8 +577,8 @@ module.exports = {
                     }
                 }
             }
-            incidentIds = incidentIds.map(i => i._id);
 
+            incidentIds = incidentIds.map(i => i._id);
             return incidentIds;
         } catch (error) {
             ErrorService.log('ProbeService.incidentCreateOrUpdate', error);
@@ -591,7 +599,7 @@ module.exports = {
 
             const incidents = await IncidentService.findBy({
                 query: {
-                    'monitors.monitorId': data.monitorId,
+                    'monitors.monitorId': ObjectId(data.monitorId),
                     resolved: false,
                     manuallyCreated: false,
                 },
@@ -690,7 +698,7 @@ module.exports = {
                         incidentsV2.push(newIncident);
 
                         await IncidentTimelineService.create({
-                            incidentId: incident._id,
+                            incidentId: incident._id.toString(),
                             probeId: data.probeId,
                             status: data.status,
                         });
@@ -703,6 +711,7 @@ module.exports = {
                     }
                 })
             );
+
             await forEach(incidentsV2, async incident => {
                 const trueArray = [];
                 const falseArray = [];
@@ -717,42 +726,27 @@ module.exports = {
                     trueArray.length === falseArray.length ||
                     monitor.type === 'incomingHttpRequest'
                 ) {
-                    // TODO
-                    // CREATE BACKEND API TO HANDLE ACK/RESOLUTION OF INCIDENT
-                    // MAKE API CALL TO THE API FROM HERE
                     if (autoAcknowledge) {
                         if (!incident.acknowledged) {
                             await postApi(
                                 'api/incident/data-ingestor/acknowledge-incident',
                                 {
-                                    incidentId: incident._id,
+                                    incidentId: incident._id.toString(),
                                     name: 'fyipe',
                                     probeId: data.probeId,
                                 }
                             );
-                            // await IncidentService.acknowledge(
-                            //     incident._id,
-                            //     null,
-                            //     'fyipe',
-                            //     data.probeId
-                            // );
                         }
                     }
                     if (autoResolve) {
                         await postApi(
                             'api/incident/data-ingestor/resolve-incident',
                             {
-                                incidentId: incident._id,
+                                incidentId: incident._id.toString(),
                                 name: 'fyipe',
                                 probeId: data.probeId,
                             }
                         );
-                        // await IncidentService.resolve(
-                        //     incident._id,
-                        //     null,
-                        //     'fyipe',
-                        //     data.probeId
-                        // );
                     }
                 }
             });
@@ -854,7 +848,7 @@ module.exports = {
         let matchedCriterion;
 
         if (con && con.length) {
-            eventOccurred = some(con, condition => {
+            for (const condition of con) {
                 let stat = true;
                 if (
                     condition &&
@@ -895,15 +889,20 @@ module.exports = {
                         headers
                     );
                 }
+
+                eventOccurred = stat;
+
                 if (stat) {
                     matchedCriterion = condition;
-                    return true;
+                    return {
+                        stat: eventOccurred,
+                        successReasons,
+                        failedReasons,
+                        matchedCriterion: condition,
+                    };
                 }
-
-                return false;
-            });
+            }
         }
-
         return {
             stat: eventOccurred,
             successReasons,
@@ -3727,7 +3726,6 @@ const checkAnd = (
             }
         }
     }
-
     return validity;
 };
 
@@ -5965,7 +5963,6 @@ const checkOr = (
             }
         }
     }
-
     return validity;
 };
 

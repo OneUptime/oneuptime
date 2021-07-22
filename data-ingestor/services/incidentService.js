@@ -18,7 +18,11 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             const incidents = await incidentCollection
                 .find(query)
@@ -44,7 +48,11 @@ module.exports = {
                 query = {};
             }
 
-            query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             const incident = await incidentCollection.findOne(query);
             return incident;
@@ -114,7 +122,7 @@ module.exports = {
             //     'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
             updatedIncident = await _this.findOneBy({
-                query: { _id: ObjectId(updatedIncident.insertedId) },
+                query,
                 // select,
                 // populate,
             });

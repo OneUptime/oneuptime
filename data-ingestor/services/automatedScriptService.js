@@ -59,7 +59,12 @@ module.exports = {
                 query = {};
             }
 
-            query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
+
             const response = await scriptCollection.findOne(query);
             return response;
         } catch (error) {

@@ -49,7 +49,11 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             const monitor = await monitorCollection.findOne(query);
             return monitor;
