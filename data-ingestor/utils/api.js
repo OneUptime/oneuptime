@@ -11,13 +11,13 @@ const _this = {
             dataIngestorVersion,
         };
     },
-    postApi: (url, data) => {
+    postApi: (url, data, withBaseUrl = false) => {
         const headers = _this.getHeaders();
 
         return new Promise((resolve, reject) => {
             axios({
                 method: 'POST',
-                url: `${serverUrl}/${url}`,
+                url: withBaseUrl ? `${url}` : `${serverUrl}/${url}`,
                 headers,
                 data,
             })
@@ -35,12 +35,12 @@ const _this = {
         });
     },
 
-    getApi: url => {
+    getApi: (url, withBaseUrl = false) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'GET',
-                url: `${serverUrl}/${url}`,
+                url: withBaseUrl ? `${url}` : `${serverUrl}/${url}`,
                 headers,
             })
                 .then(function(response) {
@@ -57,12 +57,12 @@ const _this = {
         });
     },
 
-    putApi: (url, data) => {
+    putApi: (url, data, withBaseUrl) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'PUT',
-                url: `${serverUrl}/${url}`,
+                url: withBaseUrl ? `${url}` : `${serverUrl}/${url}`,
                 headers,
                 data,
             })
@@ -80,12 +80,12 @@ const _this = {
         });
     },
 
-    deleteApi: (url, data) => {
+    deleteApi: (url, data, withBaseUrl) => {
         const headers = _this.getHeaders();
         return new Promise((resolve, reject) => {
             axios({
                 method: 'DELETE',
-                url: `${serverUrl}/${url}`,
+                url: withBaseUrl ? `${url}` : `${serverUrl}/${url}`,
                 headers,
                 data,
             })
