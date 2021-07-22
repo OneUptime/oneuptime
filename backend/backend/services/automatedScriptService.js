@@ -353,6 +353,30 @@ module.exports = {
         }
     },
 
+    removeScriptFromEvent: async function(id) {
+        try {
+            const _this = this;
+            const scripts = await ScriptModel.find().lean();
+            await Promise.all(
+                scripts.map(async script => {
+                    const successEvent = script.successEvent.filter(
+                        script => String(script.automatedScript) !== String(id)
+                    );
+                    const failureEvent = script.failureEvent.filter(
+                        script => String(script.automatedScript) !== String(id)
+                    );
+                    return await _this.updateOne(
+                        { _id: script._id },
+                        { successEvent, failureEvent }
+                    );
+                })
+            );
+        } catch (error) {
+            ErrorService.log('automatedScript.removeScriptFromEvent', error);
+            throw error;
+        }
+    },
+
     deleteBy: async function(query, userId) {
         try {
             if (!query) {

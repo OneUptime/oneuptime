@@ -243,6 +243,9 @@ router.delete(
     async function(req, res) {
         try {
             const { automatedSlug } = req.params;
+            const { _id } = await AutomatedScriptService.findOneBy({
+                slug: automatedSlug,
+            });
             const userId = req.user ? req.user.id : null;
             const response = await AutomatedScriptService.deleteBy(
                 {
@@ -250,6 +253,7 @@ router.delete(
                 },
                 userId
             );
+            await AutomatedScriptService.removeScriptFromEvent(_id);
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
