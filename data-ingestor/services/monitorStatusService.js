@@ -69,6 +69,24 @@ module.exports = {
         }
     },
 
+    updateOneBy: async function(query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+            query.deleted = false;
+
+            await monitorStatusCollection.updateOne(query, { $set: data });
+            const updatedMonitorStatus = await monitorStatusCollection.findOne(
+                query
+            );
+            return updatedMonitorStatus;
+        } catch (error) {
+            ErrorService.log('MonitorStatusService.updateOneBy', error);
+            throw error;
+        }
+    },
+
     findOneBy: async function(query) {
         try {
             if (!query) {
