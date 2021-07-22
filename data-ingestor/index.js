@@ -50,8 +50,8 @@ const client = getMongoClient();
     }
 })();
 
-// attach the client to global object
-global.client = client;
+// attach the database to global object
+global.db = client.db('fyipedb');
 
 app.use(cors());
 
