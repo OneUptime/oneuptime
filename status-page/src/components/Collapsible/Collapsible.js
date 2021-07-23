@@ -223,6 +223,7 @@ class Collapsible extends Component {
 
         return (
             <ContentContainerElement
+                style={{ cursor: 'pointer' }}
                 className={parentClassString.trim()}
                 {...this.props.containerElementProps}
             >
