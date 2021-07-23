@@ -38,7 +38,8 @@ module.exports = {
                 projectId = isValidMongoObjectId(projectId) ? projectId : null;
 
                 const auditLogStatus = await GlobalConfigService.findOneBy({
-                    name: 'auditLogMonitoringStatus',
+                    query: { name: 'auditLogMonitoringStatus' },
+                    select: 'value',
                 });
                 // check if the global config has auditLog flag and is storing logs before trying to store logs
                 const shouldStoreLogs = !(

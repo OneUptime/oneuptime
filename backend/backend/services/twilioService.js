@@ -47,7 +47,8 @@ const _this = {
 
     getSettings: async () => {
         const document = await GlobalConfigService.findOneBy({
-            name: 'twilio',
+            query: { name: 'twilio' },
+            select: 'value',
         });
         if (document && document.value) {
             return document.value;

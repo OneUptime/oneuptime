@@ -49,7 +49,8 @@ module.exports = {
     }) {
         try {
             const globalConfig = await GlobalConfigService.findOneBy({
-                name: 'emailLogMonitoringStatus',
+                query: { name: 'emailLogMonitoringStatus' },
+                select: 'value',
             });
             if (globalConfig && globalConfig.value) {
                 let item = new EmailStatusModel();
