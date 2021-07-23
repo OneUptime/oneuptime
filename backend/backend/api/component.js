@@ -402,6 +402,13 @@ router.get(
             const selectApplicationSecurity =
                 '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
 
+            const selectContainerLog =
+                'securityId componentId data deleted deleteAt';
+
+            const populateContainerLog = [
+                { path: 'securityId', select: 'name slug' },
+                { path: 'componentId', select: 'name slug' },
+            ];
             const [
                 monitors,
                 containerSecurity,
@@ -473,8 +480,12 @@ router.get(
                 containerSecurity.map(async elem => {
                     const securityLog = await ContainerSecurityLogService.findOneBy(
                         {
-                            securityId: elem._id,
-                            componentId,
+                            query: {
+                                securityId: elem._id,
+                                componentId,
+                            },
+                            select: selectContainerLog,
+                            populate: populateContainerLog,
                         }
                     );
                     const newElement = {
