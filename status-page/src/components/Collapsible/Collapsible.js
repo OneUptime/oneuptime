@@ -223,6 +223,7 @@ class Collapsible extends Component {
 
         return (
             <ContentContainerElement
+                style={{ cursor: 'pointer' }}
                 className={parentClassString.trim()}
                 {...this.props.containerElementProps}
             >
@@ -255,6 +256,11 @@ class Collapsible extends Component {
                             justifyContent: 'space-between',
                         }}
                     >
+                        <div style={this.props.statusColorStyle}></div>
+                        {trigger}
+                    </div>
+
+                    <div>
                         <div
                             className={
                                 this.state.isClosed
@@ -263,11 +269,6 @@ class Collapsible extends Component {
                             }
                             style={{ marginRight: '5px ' }}
                         />
-                        {trigger}
-                    </div>
-
-                    <div>
-                        <div style={this.props.statusColorStyle}></div>
                     </div>
                 </TriggerElement>
 
