@@ -1,5 +1,7 @@
 const ContainerSecurityLogModel = require('../models/containerSecurityLog');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
     create: async function({ securityId, componentId, data }) {
@@ -25,7 +27,10 @@ module.exports = {
                 throw error;
             }
 
-            let securityLog = await this.findOneBy({ securityId });
+            let securityLog = await this.findOneBy({
+                query: { securityId },
+                select: '_id',
+            });
 
             if (!securityLog) {
                 securityLog = await ContainerSecurityLogModel.create({
@@ -46,24 +51,27 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const securityLog = await ContainerSecurityLogModel.findOne(query)
-                .lean()
-                .populate('securityId')
-                .populate('componentId');
+            let securityLogQuery = ContainerSecurityLogModel.findOne(
+                query
+            ).lean();
 
+            securityLogQuery = handleSelect(select, securityLogQuery);
+            securityLogQuery = handlePopulate(populate, securityLogQuery);
+
+            const securityLog = await securityLogQuery;
             return securityLog;
         } catch (error) {
             ErrorService.log('containerSecurityLogService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -77,14 +85,16 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const securityLogs = await ContainerSecurityLogModel.find(query)
+            let securityLogsQuery = ContainerSecurityLogModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('componentId')
-                .populate('securityId');
+                .skip(skip);
 
+            securityLogsQuery = handleSelect(select, securityLogsQuery);
+            securityLogsQuery = handlePopulate(populate, securityLogsQuery);
+
+            const securityLogs = await securityLogsQuery;
             return securityLogs;
         } catch (error) {
             ErrorService.log('containerSecurityLogService.findBy', error);
@@ -121,7 +131,7 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let securityLog = await this.findOneBy(query);
+            let securityLog = await this.findOneBy({ query, select: '_id' });
 
             if (!securityLog) {
                 const error = new Error(
