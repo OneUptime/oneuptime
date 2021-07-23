@@ -210,8 +210,19 @@ router.post(
                 };
             }
 
+            const selectLog =
+                'applicationLogId content stringifiedContent type tags createdById createdAt';
+
+            const populateLog = [{ path: 'applicationLogId', select: 'name' }];
+
             const [logs, count, dateRange] = await Promise.all([
-                LogService.findBy(query, limit || 10, skip || 0),
+                LogService.findBy({
+                    query,
+                    limit: limit || 10,
+                    skip: skip || 0,
+                    populate: populateLog,
+                    select: selectLog,
+                }),
                 LogService.countBy(query),
                 LogService.getDateRange(query),
             ]);
