@@ -392,7 +392,7 @@ class Incident extends Component {
                             {!fetchingIncidentNotes &&
                                 incidentNotes &&
                                 incidentNotes.length > 0 &&
-                                incidentNotes.map(note => (
+                                incidentNotes.reverse().map(note => (
                                     <div
                                         key={note._id}
                                         style={{
