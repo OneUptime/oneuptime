@@ -67,7 +67,10 @@ describe('Email SMTP Api Test', function() {
 
     it('should send test smtp email to the provided email address', async () => {
         const authorization = `Basic ${jwtToken}`;
-        const { value } = await GlobalConfigService.findOneBy({ name: 'smtp' });
+        const { value } = await GlobalConfigService.findOneBy({
+            query: { name: 'smtp' },
+            select: 'value',
+        });
         const payload = {
             user: value.email,
             pass: value.password,
@@ -89,7 +92,10 @@ describe('Email SMTP Api Test', function() {
 
     it('should not send test smtp email when user or pass is not valid', async () => {
         const authorization = `Basic ${jwtToken}`;
-        const { value } = await GlobalConfigService.findOneBy({ name: 'smtp' });
+        const { value } = await GlobalConfigService.findOneBy({
+            query: { name: 'smtp' },
+            select: 'value',
+        });
 
         value.email = 'randomemail@gmail.com';
         const payload = {
@@ -111,7 +117,10 @@ describe('Email SMTP Api Test', function() {
 
     it('should not send test smtp email when host or port is invalid', async () => {
         const authorization = `Basic ${jwtToken}`;
-        const { value } = await GlobalConfigService.findOneBy({ name: 'smtp' });
+        const { value } = await GlobalConfigService.findOneBy({
+            query: { name: 'smtp' },
+            select: 'value',
+        });
 
         value['smtp-server'] = 'random.host';
         const payload = {
