@@ -123,6 +123,15 @@ services:
             - mongo
             - script-runner
             - backend
+    realtime:
+        ports:
+            - '3300:3300'
+        build: ./realtime
+        env_file:
+            - ./realtime/.env
+        environment:
+            - CLUSTER_KEY=test
+            - PORT=3300
     probe1:
         ports:
             - '3024:3024'
