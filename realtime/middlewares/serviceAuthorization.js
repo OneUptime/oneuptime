@@ -5,7 +5,7 @@
  */
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ErrorService = require('../services/errorService');
-const CLUSTER_KEY = process.env.CLUSTER_KEY;
+const { clusterKey: CLUSTER_KEY } = require('../utils/config');
 
 module.exports = {
     isAuthorizedService: async function(req, res, next) {
