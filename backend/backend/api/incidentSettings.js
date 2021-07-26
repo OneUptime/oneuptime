@@ -29,9 +29,14 @@ router.get('/:projectId/default', getUser, isAuthorized, async function(
             error.code = 400;
             throw error;
         }
+        const select =
+            'projectId title description incidentPriority isDefault name createdAt';
 
         const query = { projectId, isDefault: true };
-        const template = await IncidentSettingsService.findOne(query);
+        const template = await IncidentSettingsService.findOne({
+            query,
+            select,
+        });
 
         return sendItemResponse(req, res, template);
     } catch (error) {
@@ -52,11 +57,16 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
         }
 
         const query = { projectId };
+        const populate = [{ path: 'incidentPriority', select: 'name color' }];
+        const select =
+            'projectId title description incidentPriority isDefault name createdAt';
         const [templates, count] = await Promise.all([
             IncidentSettingsService.findBy({
                 query,
                 limit,
                 skip,
+                select,
+                populate,
             }),
             IncidentSettingsService.countBy(query),
         ]);
