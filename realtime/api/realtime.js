@@ -48,7 +48,11 @@ router.post('/send-sla-countdown', isAuthorizedService, async function(
     try {
         const { projectId, incident, countDown } = req.body;
 
-        RealtimeService.sendSlaCountDown({ projectId, incident, countDown });
+        RealtimeService.sendSlaCountDown({
+            projectId,
+            incident,
+            countDown,
+        });
         return sendEmptyResponse(req, res);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -787,6 +791,28 @@ router.post('/send-error-metrics', isAuthorizedService, async function(
         const { appId, data } = req.body;
 
         RealtimeService.sendErrorMetrics({ appId, data });
+        return sendEmptyResponse(req, res);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/handle-scanning', isAuthorizedService, async function(req, res) {
+    try {
+        const { security } = req.body;
+
+        RealtimeService.handleScanning({ security });
+        return sendEmptyResponse(req, res);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/handle-log', isAuthorizedService, async function(req, res) {
+    try {
+        const { securityId, securityLog } = req.body;
+
+        RealtimeService.handleLog({ securityId, securityLog });
         return sendEmptyResponse(req, res);
     } catch (error) {
         return sendErrorResponse(req, res, error);

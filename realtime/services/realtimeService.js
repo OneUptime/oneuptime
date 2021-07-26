@@ -785,6 +785,30 @@ module.exports = {
             throw error;
         }
     },
+    handleScanning: ({ security }) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            global.io.emit(`security_${security._id}`, security);
+        } catch (error) {
+            ErrorService.log('realtimeService.handleScanning', error);
+            throw error;
+        }
+    },
+    handleLog: ({ securityId, securityLog }) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            global.io.emit(`securityLog_${securityId}`, securityLog);
+        } catch (error) {
+            ErrorService.log('realtimeService.handleLog', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');
