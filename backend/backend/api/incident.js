@@ -27,7 +27,6 @@ const getSubProjects = require('../middlewares/subProject').getSubProjects;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
-const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 const subscriberAlertService = require('../services/subscriberAlertService');
 const onCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 const Services = require('../utils/services');
@@ -90,38 +89,6 @@ router.post(
                 probeId
             );
             return sendItemResponse(req, res, incident);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
-    }
-);
-
-// data-ingestor will consume this api
-// realtime: update incident
-router.post(
-    '/data-ingestor/realtime/update-incident',
-    isAuthorizedService,
-    async function(req, res) {
-        try {
-            const data = req.body;
-            await RealTimeService.updateIncident(data);
-            return sendEmptyResponse(req, res);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
-    }
-);
-
-// data-ingestor will consume this api
-// realtime: update incident timeline
-router.post(
-    '/data-ingestor/realtime/update-incident-timeline',
-    isAuthorizedService,
-    async function(req, res) {
-        try {
-            const data = req.body;
-            await RealTimeService.updateIncidentTimeline(data);
-            return sendEmptyResponse(req, res);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

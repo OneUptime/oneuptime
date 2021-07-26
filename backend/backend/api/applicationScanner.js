@@ -12,6 +12,7 @@ const isAuthorizedApplicationScanner = require('../middlewares/applicationScanne
     .isAuthorizedApplicationScanner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const RealtimeService = require('../services/realTimeService');
 
 // Route
 // Description: Updating profile setting.
@@ -44,10 +45,8 @@ router.post('/scanning', isAuthorizedApplicationScanner, async function(
             },
             { scanning: true }
         );
-        global.io.emit(
-            `security_${applicationSecurity._id}`,
-            applicationSecurity
-        );
+
+        RealtimeService.handleScanning({ security: applicationSecurity });
         return sendItemResponse(req, res, applicationSecurity);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -96,7 +95,10 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
             select: selectApplicationSecurityLog,
         });
 
-        global.io.emit(`securityLog_${securityLog.securityId}`, findLog);
+        RealtimeService.handleLog({
+            securityId: securityLog.securityId,
+            securityLog: findLog,
+        });
         return sendItemResponse(req, res, securityLog);
     } catch (error) {
         return sendErrorResponse(req, res, error);

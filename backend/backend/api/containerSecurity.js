@@ -363,10 +363,9 @@ router.post(
                 { scanned: false }
             ); //This helps the container scanner to pull the container
 
-            global.io.emit(
-                `security_${containerSecurity._id}`,
-                updatedContainerSecurity
-            );
+            RealTimeService.handleScanning({
+                security: updatedContainerSecurity,
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

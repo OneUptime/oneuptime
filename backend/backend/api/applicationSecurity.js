@@ -379,10 +379,9 @@ router.post(
                 { scanned: false }
             ); //This helps the application scanner to pull the application
 
-            global.io.emit(
-                `security_${applicationSecurity._id}`,
-                updatedApplicationSecurity
-            );
+            RealTimeService.handleScanning({
+                security: updatedApplicationSecurity,
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

@@ -11,6 +11,7 @@ const isAuthorizedContainerScanner = require('../middlewares/containerScannerAut
     .isAuthorizedContainerScanner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const RealTimeService = require('../services/realTimeService');
 
 router.get('/containerSecurities', isAuthorizedContainerScanner, async function(
     req,
@@ -35,7 +36,8 @@ router.post('/scanning', isAuthorizedContainerScanner, async function(
             },
             { scanning: true }
         );
-        global.io.emit(`security_${containerSecurity._id}`, containerSecurity);
+
+        RealTimeService.handleScanning({ security: containerSecurity });
         return sendItemResponse(req, res, containerSecurity);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -68,7 +70,11 @@ router.post('/log', isAuthorizedContainerScanner, async function(req, res) {
         const findLog = await ContainerSecurityLogService.findOneBy(
             securityLog._id
         );
-        global.io.emit(`securityLog_${security.securityId}`, findLog);
+
+        RealTimeService.handleLog({
+            securityId: security.securityId,
+            securityLog: findLog,
+        });
 
         return sendItemResponse(req, res, findLog);
     } catch (error) {

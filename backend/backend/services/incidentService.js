@@ -1463,7 +1463,7 @@ module.exports = {
 
                         // await was left out here because we care about the slaCountDown
                         // and also to ensure that it was delivered successfully
-                        await RealTimeService.sendSlaCountDown(
+                        RealTimeService.sendSlaCountDown(
                             currentIncident,
                             `${countDown}`
                         );
