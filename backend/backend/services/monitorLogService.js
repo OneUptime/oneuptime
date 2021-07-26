@@ -202,7 +202,7 @@ module.exports = {
         }
     },
 
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -220,13 +220,15 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLogs = await MonitorLogModel.find(query)
+            let monitorLogsQuery = MonitorLogModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('probeId');
+                .skip(skip);
+            monitorLogsQuery = handleSelect(select, monitorLogsQuery);
+            monitorLogsQuery = handlePopulate(populate, monitorLogsQuery);
 
+            const monitorLogs = await monitorLogsQuery;
             return monitorLogs;
         } catch (error) {
             ErrorService.log('monitorLogService.findBy', error);
@@ -234,16 +236,17 @@ module.exports = {
         }
     },
 
-    async findOneBy(query) {
+    async findOneBy({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
-            const monitorLog = await MonitorLogModel.findOne(query)
-                .lean()
-                .populate('probeId');
+            const monitorLogQuery = MonitorLogModel.findOne(query).lean();
+            monitorLogQuery = handleSelect(select, monitorLogQuery);
+            monitorLogQuery = handlePopulate(populate, monitorLogQuery);
 
+            const monitorLog = await monitorLogQuery;
             return monitorLog;
         } catch (error) {
             ErrorService.log('monitorLogService.findOneBy', error);
@@ -268,13 +271,28 @@ module.exports = {
 
     async sendMonitorLog(data) {
         try {
+            const selectMonitorLog =
+                'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
+
+            const populateMonitorLog = [
+                {
+                    path: 'probeId',
+                    select:
+                        'createdAt lastAlive probeKey probeName version probeImage deleted',
+                },
+            ];
             const [monitor, logData] = await Promise.all([
                 MonitorService.findOneBy({
                     query: { _id: data.monitorId },
                     select: 'projectId',
                     populate: [{ path: 'projectId', select: '_id' }],
                 }),
-                this.findOneBy({ _id: data._id }),
+
+                this.findOneBy({
+                    query: { _id: data._id },
+                    select: selectMonitorLog,
+                    populate: populateMonitorLog,
+                }),
             ]);
             if (monitor && monitor.projectId && monitor.projectId._id) {
                 // run in the background
@@ -298,4 +316,6 @@ const MonitorLogByWeekService = require('../services/monitorLogByWeekService');
 const MonitorService = require('../services/monitorService');
 const RealTimeService = require('./realTimeService');
 const ErrorService = require('../services/errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 const moment = require('moment');

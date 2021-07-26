@@ -88,7 +88,7 @@ module.exports = {
                 .limit(limit)
                 .skip(skip);
 
-            logsQuery = handlePopulate(select, logsQuery);
+            logsQuery = handleSelect(select, logsQuery);
             logsQuery = handlePopulate(populate, logsQuery);
 
             const logs = await logsQuery;

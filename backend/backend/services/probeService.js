@@ -313,10 +313,25 @@ module.exports = {
     getMonitorLog: async function(data) {
         try {
             const date = new Date();
+
+            const selectMonitorLog =
+                'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
+
+            const populateMonitorLog = [
+                {
+                    path: 'probeId',
+                    select:
+                        'createdAt lastAlive probeKey probeName version probeImage deleted',
+                },
+            ];
             const log = await MonitorLogService.findOneBy({
-                monitorId: data.monitorId,
-                probeId: data.probeId,
-                createdAt: { $lt: data.date || date },
+                query: {
+                    monitorId: data.monitorId,
+                    probeId: data.probeId,
+                    createdAt: { $lt: data.date || date },
+                },
+                select: selectMonitorLog,
+                populate: populateMonitorLog,
             });
             return log;
         } catch (error) {
