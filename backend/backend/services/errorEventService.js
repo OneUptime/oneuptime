@@ -116,11 +116,23 @@ module.exports = {
 
             if (!query.deleted) delete query.deleted;
             // get all unique hashes by error tracker Id
-            const errorTrackerIssues = await IssueService.findBy(
+
+            const populateIssue = [
+                { path: 'errorTrackerId', select: 'name' },
+                { path: 'resolvedById', select: 'name' },
+                { path: 'ignoredById', select: 'name' },
+            ];
+
+            const selectIssue =
+                'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+
+            const errorTrackerIssues = await IssueService.findBy({
                 query,
-                0, // set limit to 0 to get ALL issues related by query
-                skip
-            );
+                limit: 0, // set limit to 0 to get ALL issues related by query
+                skip,
+                select: selectIssue,
+                populate: populateIssue,
+            });
 
             const totalErrorEvents = [];
             let index = 0;
