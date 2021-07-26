@@ -1,4 +1,5 @@
 const axios = require('axios');
+const CLUSTER_KEY = process.env['CLUSTER_KEY'];
 
 module.exports = {
     headers: async (val, type) => {
@@ -35,6 +36,7 @@ module.exports = {
                 'Access-Control-Allow-Origin': '*',
                 Accept: 'application/json',
                 'Content-Type': 'application/json;charset=UTF-8',
+                clusterKey: CLUSTER_KEY,
             },
             data,
         });
