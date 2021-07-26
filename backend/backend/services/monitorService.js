@@ -1104,7 +1104,21 @@ module.exports = {
                                 query
                             );
                         } else {
-                            monitorLogs = await MonitorLogService.findBy(query);
+                            const selectMonitorLog =
+                                'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
+
+                            const populateMonitorLog = [
+                                {
+                                    path: 'probeId',
+                                    select:
+                                        'createdAt lastAlive probeKey probeName version probeImage deleted',
+                                },
+                            ];
+                            monitorLogs = await MonitorLogService.findBy({
+                                query,
+                                select: selectMonitorLog,
+                                populate: populateMonitorLog,
+                            });
                         }
                     }
 
