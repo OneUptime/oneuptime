@@ -20,14 +20,14 @@ import {
     updateErrorMetrics,
 } from '../actions/performanceTrackerMetric';
 import io from 'socket.io-client';
-import { API_URL } from '../config';
+import { REALTIME_URL } from '../config';
 import TransactionMetricsTable from '../components/performanceTracker/TransactionMetricsTable';
 import QuickStart from '../components/performanceTracker/QuickStart';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import PerformanceTrackerHeader from '../components/performanceTracker/PerformanceTrackerHeader';
 
-const socket = io.connect(API_URL.replace('/api', ''), {
+const socket = io.connect(REALTIME_URL.replace('/api', ''), {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'],
 });

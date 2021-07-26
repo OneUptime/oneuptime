@@ -18,13 +18,13 @@ import { LoadingState } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';
 import ScheduledEventNote from '../components/scheduledEvent/ScheduledEventNote';
-import { API_URL } from '../config';
+import { REALTIME_URL } from '../config';
 import io from 'socket.io-client';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import ScheduleEventDeleteBox from '../components/scheduledEvent/ScheduleEventDeleteBox';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(API_URL.replace('/api', ''), {
+const socket = io.connect(REALTIME_URL.replace('/api', ''), {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'],
 });

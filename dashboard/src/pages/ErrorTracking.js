@@ -13,12 +13,12 @@ import { bindActionCreators } from 'redux';
 import { LoadingState } from '../components/basic/Loader';
 import sortByName from '../utils/sortByName';
 import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
-import { SHOULD_LOG_ANALYTICS, API_URL } from '../config';
+import { SHOULD_LOG_ANALYTICS, REALTIME_URL } from '../config';
 import { logEvent } from '../analytics';
 import io from 'socket.io-client';
 import { history } from '../store';
 
-const socket = io.connect(API_URL.replace('/api', ''), {
+const socket = io.connect(REALTIME_URL.replace('/api', ''), {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'],
 });
