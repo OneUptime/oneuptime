@@ -103,7 +103,8 @@ describe('Twilio API', function() {
     it('should send test sms to the provided phone number', async function() {
         const authorization = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
-            name: 'twilio',
+            query: { name: 'twilio' },
+            select: 'value',
         });
         const value = configuration.value;
         const payload = {
@@ -125,7 +126,8 @@ describe('Twilio API', function() {
     it('should return status code 400 when any of the payload field is missing', async function() {
         const authorization = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
-            name: 'twilio',
+            query: { name: 'twilio' },
+            select: 'value',
         });
         const value = configuration.value;
 
@@ -145,7 +147,8 @@ describe('Twilio API', function() {
     it('should return status code 400 when accountSid is invalid', async function() {
         const authorization = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
-            name: 'twilio',
+            query: { name: 'twilio' },
+            select: 'value',
         });
         const value = configuration.value;
 
@@ -167,7 +170,8 @@ describe('Twilio API', function() {
     it('should return status code 400 when authToken is invalid', async function() {
         const authorization = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
-            name: 'twilio',
+            query: { name: 'twilio' },
+            select: 'value',
         });
         const value = configuration.value;
 

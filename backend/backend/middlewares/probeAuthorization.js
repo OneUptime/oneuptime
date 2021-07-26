@@ -89,18 +89,27 @@ module.exports = {
                 // without updating mognodb database manually.
 
                 if (global.probes[probeName]) {
+                    // If probeName could not be found, the else statement is called.
                     probeId = global.probes[probeName]._id;
                 } else {
                     const probe = await ProbeService.findOneBy({ probeName });
-                    probeId = probe._id;
+                    /**
+                     *  If probe does not exist:
+                     *  ProbeService.findOneBy({probeName}) returns null
+                     */
 
-                    global.probes[probeName] = {
-                        _id: probe._id,
-                        probeKey: probe.probeKey,
-                        version: probe.version,
-                    };
+                    if (probe && probe._id) {
+                        // This gets executed only if probe and probe_id exist. Else, the program will throw an error instead of creating a new probe.
+                        probeId = probe._id;
+                        global.probes[probeName] = {
+                            _id: probe._id,
+                            probeKey: probe.probeKey,
+                            version: probe.version,
+                        };
+                    }
                 }
             } else {
+                //This executes if clusterKey && CLUSTER_KEY is false
                 if (global.probes[probeName]) {
                     probeId = global.probes[probeName]._id;
                 } else {
@@ -108,13 +117,15 @@ module.exports = {
                         probeKey,
                         probeName,
                     });
-                    probeId = probe._id;
+                    if (probe && probe._id) {
+                        probeId = probe._id;
 
-                    global.probes[probeName] = {
-                        _id: probe._id,
-                        probeKey: probe.probeKey,
-                        version: probe.version,
-                    };
+                        global.probes[probeName] = {
+                            _id: probe._id,
+                            probeKey: probe.probeKey,
+                            version: probe.version,
+                        };
+                    }
                 }
             }
 
@@ -124,7 +135,7 @@ module.exports = {
                     message: 'Probe key and probe name do not match.',
                 });
             }
-
+            //This executes if clusterKey && CLUSTER_KEY is false and Probes could not be found in DB. Hence, probe is created.
             if (!probeId) {
                 //create a new probe.
                 const probe = await ProbeService.create({

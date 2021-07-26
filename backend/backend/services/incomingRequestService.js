@@ -544,6 +544,8 @@ module.exports = {
         try {
             const selectIncPriority =
                 'projectId name color createdAt deletedAt deleted deletedById';
+            const selectIncSettings =
+                'projectId title description incidentPriority isDefault name createdAt';
             const [
                 incidentPriorities,
                 incidentSettings,
@@ -554,8 +556,11 @@ module.exports = {
                     select: selectIncPriority,
                 }),
                 IncidentSettingsService.findOne({
-                    projectId: data.projectId,
-                    isDefault: true,
+                    query: {
+                        projectId: data.projectId,
+                        isDefault: true,
+                    },
+                    select: selectIncSettings,
                 }),
                 _this.findOneBy({
                     _id: data.requestId,

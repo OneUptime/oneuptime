@@ -402,6 +402,13 @@ router.get(
             const selectApplicationSecurity =
                 '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
 
+            const selectContainerLog =
+                'securityId componentId data deleted deleteAt';
+
+            const populateContainerLog = [
+                { path: 'securityId', select: 'name slug' },
+                { path: 'componentId', select: 'name slug' },
+            ];
             const [
                 monitors,
                 containerSecurity,
@@ -473,8 +480,12 @@ router.get(
                 containerSecurity.map(async elem => {
                     const securityLog = await ContainerSecurityLogService.findOneBy(
                         {
-                            securityId: elem._id,
-                            componentId,
+                            query: {
+                                securityId: elem._id,
+                                componentId,
+                            },
+                            select: selectContainerLog,
+                            populate: populateContainerLog,
                         }
                     );
                     const newElement = {
@@ -564,11 +575,23 @@ router.get(
             await Promise.all(
                 errorTrackers.map(async errorTracker => {
                     let errorStatus = 'No Errors yet';
-                    const issues = await IssueService.findBy(
-                        { errorTrackerId: errorTracker._id },
-                        1,
-                        0
-                    );
+
+                    const populateIssue = [
+                        { path: 'errorTrackerId', select: 'name' },
+                        { path: 'resolvedById', select: 'name' },
+                        { path: 'ignoredById', select: 'name' },
+                    ];
+
+                    const selectIssue =
+                        'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+
+                    const issues = await IssueService.findBy({
+                        query: { errorTrackerId: errorTracker._id },
+                        limit: 1,
+                        skip: 0,
+                        select: selectIssue,
+                        populate: populateIssue,
+                    });
                     if (issues.length > 0) errorStatus = 'Listening for Errors';
                     const newElement = {
                         _id: errorTracker._id,

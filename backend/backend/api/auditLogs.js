@@ -21,8 +21,20 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
         const skip = req.query.skip;
         const limit = req.query.limit;
 
+        const populateAuditLog = [
+            { path: 'userId', select: 'name' },
+            { path: 'projectId', select: 'name' },
+        ];
+
+        const selectAuditLog = 'userId projectId request response createdAt';
         const [auditLogs, count] = await Promise.all([
-            AuditLogsService.findBy({ query, skip, limit }),
+            AuditLogsService.findBy({
+                query,
+                skip,
+                limit,
+                select: selectAuditLog,
+                populate: populateAuditLog,
+            }),
             AuditLogsService.countBy({ query }),
         ]);
 

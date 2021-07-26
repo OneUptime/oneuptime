@@ -1166,7 +1166,8 @@ module.exports = {
                 hasCustomSmtpSettings,
             ] = await Promise.all([
                 GlobalConfigService.findOneBy({
-                    name: 'smtp',
+                    query: { name: 'smtp' },
+                    select: 'value',
                 }),
                 MailService.hasCustomSmtpSettings(projectId),
             ]);
@@ -1292,7 +1293,8 @@ module.exports = {
                     hasCustomSmtpSettings,
                 ] = await Promise.all([
                     GlobalConfigService.findOneBy({
-                        name: 'smtp',
+                        query: { name: 'smtp' },
+                        select: 'value',
                     }),
                     MailService.hasCustomSmtpSettings(projectId),
                 ]);
@@ -1409,7 +1411,8 @@ module.exports = {
             hasCustomTwilioSettings,
         ] = await Promise.all([
             GlobalConfigService.findOneBy({
-                name: 'twilio',
+                query: { name: 'twilio' },
+                select: 'value',
             }),
             TwilioService.hasCustomSettings(projectId),
         ]);
@@ -1614,7 +1617,8 @@ module.exports = {
             hasCustomTwilioSettings,
         ] = await Promise.all([
             GlobalConfigService.findOneBy({
-                name: 'twilio',
+                query: { name: 'twilio' },
+                select: 'value',
             }),
             TwilioService.hasCustomSettings(projectId),
         ]);
@@ -2215,7 +2219,8 @@ module.exports = {
                 hasCustomSmtpSettings,
             ] = await Promise.all([
                 GlobalConfigService.findOneBy({
-                    name: 'smtp',
+                    query: { name: 'smtp' },
+                    select: 'value',
                 }),
                 MailService.hasCustomSmtpSettings(projectId),
             ]);
@@ -2578,7 +2583,8 @@ module.exports = {
                 hasCustomSmtpSettings,
             ] = await Promise.all([
                 GlobalConfigService.findOneBy({
-                    name: 'smtp',
+                    query: { name: 'smtp' },
+                    select: 'value',
                 }),
                 MailService.hasCustomSmtpSettings(projectId),
             ]);
@@ -3059,7 +3065,8 @@ module.exports = {
                         hasCustomSmtpSettings,
                     ] = await Promise.all([
                         GlobalConfigService.findOneBy({
-                            name: 'smtp',
+                            query: { name: 'smtp' },
+                            select: 'value',
                         }),
                         MailService.hasCustomSmtpSettings(projectId),
                     ]);
@@ -3334,7 +3341,8 @@ module.exports = {
                         let owner;
                         const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
                             {
-                                name: 'twilio',
+                                query: { name: 'twilio' },
+                                select: 'value',
                             }
                         );
                         const areAlertsEnabledGlobally =
@@ -4118,7 +4126,8 @@ module.exports = {
                                 emailTemplate,
                             ] = await Promise.all([
                                 GlobalConfigService.findOneBy({
-                                    name: 'smtp',
+                                    query: { name: 'smtp' },
+                                    select: 'value',
                                 }),
                                 MailService.hasCustomSmtpSettings(projectId),
                                 EmailTemplateService.findOneBy({
@@ -4232,7 +4241,8 @@ module.exports = {
                                 let owner;
                                 const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
                                     {
-                                        name: 'twilio',
+                                        query: { name: 'twilio' },
+                                        select: 'value',
                                     }
                                 );
                                 const areAlertsEnabledGlobally =
@@ -4527,7 +4537,8 @@ module.exports = {
                         emailTemplate,
                     ] = await Promise.all([
                         GlobalConfigService.findOneBy({
-                            name: 'smtp',
+                            query: { name: 'smtp' },
+                            select: 'value',
                         }),
                         MailService.hasCustomSmtpSettings(projectId),
                         EmailTemplateService.findOneBy({
@@ -4673,7 +4684,8 @@ module.exports = {
                         let owner;
                         const hasGlobalTwilioSettings = await GlobalConfigService.findOneBy(
                             {
-                                name: 'twilio',
+                                query: { name: 'twilio' },
+                                select: 'value',
                             }
                         );
                         const areAlertsEnabledGlobally =
@@ -5012,7 +5024,8 @@ module.exports = {
                                     emailTemplate,
                                 ] = await Promise.all([
                                     GlobalConfigService.findOneBy({
-                                        name: 'smtp',
+                                        query: { name: 'smtp' },
+                                        select: 'value',
                                     }),
                                     MailService.hasCustomSmtpSettings(
                                         projectId
@@ -5121,7 +5134,8 @@ module.exports = {
                                         hasCustomTwilioSettings,
                                     ] = await Promise.all([
                                         GlobalConfigService.findOneBy({
-                                            name: 'twilio',
+                                            query: { name: 'twilio' },
+                                            select: 'value',
                                         }),
                                         TwilioService.hasCustomSettings(
                                             projectId

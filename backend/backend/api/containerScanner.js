@@ -67,9 +67,18 @@ router.post('/log', isAuthorizedContainerScanner, async function(req, res) {
             data: security.data,
         });
 
-        const findLog = await ContainerSecurityLogService.findOneBy(
-            securityLog._id
-        );
+        const selectContainerLog =
+            'securityId componentId data deleted deleteAt';
+
+        const populateContainerLog = [
+            { path: 'securityId', select: 'name slug' },
+            { path: 'componentId', select: 'name slug' },
+        ];
+        const findLog = await ContainerSecurityLogService.findOneBy({
+            query: { securityId: securityLog._id },
+            select: selectContainerLog,
+            populate: populateContainerLog,
+        });
 
         RealTimeService.handleLog({
             securityId: security.securityId,

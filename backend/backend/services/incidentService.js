@@ -184,10 +184,16 @@ module.exports = {
                 };
 
                 if (!incident.manuallyCreated) {
+                    const select =
+                        'projectId title description incidentPriority isDefault name';
+                    const query = {
+                        projectId: data.projectId,
+                        isDefault: true,
+                    };
                     const incidentSettings = await IncidentSettingsService.findOne(
                         {
-                            projectId: data.projectId,
-                            isDefault: true,
+                            query,
+                            select,
                         }
                     );
 

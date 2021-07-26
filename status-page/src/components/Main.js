@@ -278,9 +278,10 @@ class Main extends Component {
                 openIconClass="sp__icon sp__icon--up"
                 statusColorStyle={{
                     borderRadius: ' 100px',
-                    height: '8px',
-                    width: '8px',
+                    height: '10px',
+                    width: '10px',
                     backgroundColor: categoryStatusBk,
+                    marginRight: 8,
                 }}
             >
                 {monitors.map((monitor, i) => {

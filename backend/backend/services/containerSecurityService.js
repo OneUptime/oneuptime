@@ -208,7 +208,8 @@ module.exports = {
             }
 
             const securityLog = await ContainerSecurityLogService.findOneBy({
-                securityId: containerSecurity._id,
+                query: { securityId: containerSecurity._id },
+                select: '_id',
             });
 
             if (securityLog) {

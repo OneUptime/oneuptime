@@ -4,9 +4,11 @@ const { postApi } = require('../utils/api');
 const getSlug = require('../utils/getSlug');
 const ErrorService = require('./errorService');
 const scriptBaseUrl = process.env['SCRIPT_RUNNER_URL'];
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -20,10 +22,15 @@ module.exports = {
 
             query.deleted = false;
 
-            const sortDataList = await ScriptModel.find(query)
+            let sortDataListQuery = ScriptModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
+
+            sortDataListQuery = handleSelect(select, sortDataListQuery);
+            sortDataListQuery = handlePopulate(populate, sortDataListQuery);
+
+            const sortDataList = await sortDataListQuery;
             return sortDataList;
         } catch (error) {
             ErrorService.log('automatedScript.findBy', error);
@@ -148,16 +155,19 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const response = await ScriptModel.findOne(query)
-                .lean()
-                .populate('createdById', 'name');
+            let responseQuery = ScriptModel.findOne(query).lean();
+
+            responseQuery = handleSelect(select, responseQuery);
+            responseQuery = handlePopulate(populate, responseQuery);
+
+            const response = await responseQuery;
             return response;
         } catch (error) {
             ErrorService.log('automatedScript.findOneBy', error);
@@ -263,13 +273,19 @@ module.exports = {
     }) {
         try {
             const _this = this;
+            const selectScript =
+                'name script scriptType slug projectId successEvent failureEvent';
+            const populateScript = [{ path: 'createdById', select: 'name' }];
+
             const {
                 script,
                 scriptType,
                 successEvent,
                 failureEvent,
             } = await _this.findOneBy({
-                _id: automatedScriptId,
+                query: { _id: automatedScriptId },
+                select: selectScript,
+                populate: populateScript,
             });
             let data = null;
             if (scriptType === 'JavaScript') {
@@ -333,6 +349,30 @@ module.exports = {
             return automatedScriptLog;
         } catch (error) {
             ErrorService.log('automatedScript.runAutomatedScript', error);
+            throw error;
+        }
+    },
+
+    removeScriptFromEvent: async function({ projectId, id }) {
+        try {
+            const _this = this;
+            const scripts = await ScriptModel.find({ projectId }).lean();
+            await Promise.all(
+                scripts.map(async script => {
+                    const successEvent = script.successEvent.filter(
+                        script => String(script.automatedScript) !== String(id)
+                    );
+                    const failureEvent = script.failureEvent.filter(
+                        script => String(script.automatedScript) !== String(id)
+                    );
+                    return await _this.updateOne(
+                        { _id: script._id },
+                        { successEvent, failureEvent }
+                    );
+                })
+            );
+        } catch (error) {
+            ErrorService.log('automatedScript.removeScriptFromEvent', error);
             throw error;
         }
     },

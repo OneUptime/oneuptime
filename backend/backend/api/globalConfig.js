@@ -71,7 +71,11 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
                 await twilioService.test(data);
             }
 
-            let globalConfig = await GlobalConfigService.findOneBy({ name });
+            const selectConfig = 'name value createdAt';
+            let globalConfig = await GlobalConfigService.findOneBy({
+                query: { name },
+                select: selectConfig,
+            });
 
             if (globalConfig) {
                 globalConfig = await GlobalConfigService.updateOneBy(
@@ -106,8 +110,10 @@ router.post('/configs', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const names = req.body;
 
+        const selectConfig = 'name value createdAt';
         const globalConfigs = await GlobalConfigService.findBy({
-            name: { $in: names },
+            query: { name: { $in: names } },
+            select: selectConfig,
         });
 
         if (globalConfigs && globalConfigs.length > 0) {
@@ -129,10 +135,12 @@ router.post('/configs', getUser, isUserMasterAdmin, async function(req, res) {
 
 router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
     try {
+        const selectConfig = 'name value createdAt';
         let globalConfig = await GlobalConfigService.findOneBy({
-            name: req.params.name,
+            query: { name: req.params.name },
+            select: selectConfig,
         });
-        // If audit logs status was fetched and it doesnt exist, we need to create it
+        // If audit logs status was fetched and it doesn't exist, we need to create it
         if (!globalConfig && req.params.name === 'auditLogMonitoringStatus') {
             const auditLogConfig = {
                 name: 'auditLogMonitoringStatus',
@@ -141,7 +149,7 @@ router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
             await GlobalConfigService.create(auditLogConfig);
         }
 
-        // If email logs status was fetched and it doesnt exist, we need to create it
+        // If email logs status was fetched and it doesn't exist, we need to create it
         if (!globalConfig && req.params.name === 'emailLogMonitoringStatus') {
             const emailLogConfig = {
                 name: 'emailLogMonitoringStatus',
@@ -168,7 +176,8 @@ router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
             await GlobalConfigService.create(callLogConfig);
         }
         globalConfig = await GlobalConfigService.findOneBy({
-            name: req.params.name,
+            query: { name: req.params.name },
+            select: selectConfig,
         });
 
         if (globalConfig) {

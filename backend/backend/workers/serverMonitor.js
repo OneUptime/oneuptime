@@ -13,11 +13,13 @@ module.exports = {
                 query: { type: 'server-monitor' },
                 select: 'lastPingTime _id criteria',
             });
+
             if (monitors) {
                 monitors.forEach(async monitor => {
                     const d = new moment(monitor.lastPingTime);
                     const log = await MonitorLogService.findOneBy({
-                        monitorId: monitor._id,
+                        query: { monitorId: monitor._id },
+                        select: '_id',
                     });
                     const monitorStatus = await MonitorStatusService.findOneBy({
                         monitorId: monitor._id,
