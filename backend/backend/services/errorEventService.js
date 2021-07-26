@@ -124,7 +124,7 @@ module.exports = {
             ];
 
             const selectIssue =
-                'name description errorTrackerId type fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+                'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
 
             const errorTrackerIssues = await IssueService.findBy({
                 query,

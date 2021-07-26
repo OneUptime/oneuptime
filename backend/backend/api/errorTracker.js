@@ -451,7 +451,7 @@ router.post(
             ];
 
             const selectIssue =
-                'name description errorTrackerId type fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+                'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
 
             const issue = await IssueService.findOneBy({
                 query: { _id: issueId, errorTrackerId },
