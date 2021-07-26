@@ -5,6 +5,10 @@ const { ObjectId } = require('mongodb');
 const MonitorService = require('./monitorService');
 const { postApi } = require('../utils/api');
 const moment = require('moment');
+const { realtimeUrl } = require('../utils/config');
+const ProjectService = require('./projectService');
+
+const realtimeBaseUrl = `${realtimeUrl}/api/realtime`;
 
 module.exports = {
     create: async function(data) {
@@ -46,20 +50,31 @@ module.exports = {
                 // select: 'projectId',
                 // populate: [{ path: 'projectId', select: '_id' }],
             });
-            // if (monitor && monitor.projectId && monitor.projectId._id) {
-            //     // run in the background
-            //     // RealTimeService.updateLighthouseLog(
-            //     //     data,
-            //     //     monitor.projectId._id
-            //     // );
-            // }
+
             if (monitor && monitor.projectId) {
+                const project = await ProjectService.findOneBy({
+                    query: {
+                        _id: ObjectId(
+                            monitor.projectId._id || monitor.projectId
+                        ),
+                    },
+                });
+                const parentProjectId = project
+                    ? project.parentProjectId
+                        ? project.parentProjectId._id || project.parentProjectId
+                        : project._id
+                    : monitor.projectId._id || monitor.projectId;
+
+                // realtime update
                 postApi(
-                    'api/lighthouse/data-ingestor/realtime/update-lighthouse-log',
+                    `${realtimeBaseUrl}/update-lighthouse-log`,
                     {
                         data,
                         projectId: monitor.projectId._id || monitor.projectId,
-                    }
+                        monitorId: data.monitorId,
+                        parentProjectId,
+                    },
+                    true
                 );
             }
         } catch (error) {

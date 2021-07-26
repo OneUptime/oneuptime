@@ -7,6 +7,10 @@ const moment = require('moment');
 const monitorLogCollection = global.db.collection('monitorlogs');
 const { ObjectId } = require('mongodb');
 const { postApi } = require('../utils/api');
+const { realtimeUrl } = require('../utils/config');
+const ProjectService = require('./projectService');
+
+const realtimeBaseUrl = `${realtimeUrl}/api/realtime`;
 
 module.exports = {
     create: async function(data) {
@@ -250,9 +254,6 @@ module.exports = {
 
     async sendMonitorLog(data) {
         try {
-            // TODO
-            // have a backend api to handle realtime update
-            // send a post request from here to the backend for processing
             const [monitor, logData] = await Promise.all([
                 MonitorService.findOneBy({
                     query: { _id: ObjectId(data.monitorId) },
@@ -262,19 +263,30 @@ module.exports = {
                 this.findOneBy({ _id: ObjectId(data._id) }),
             ]);
             if (monitor && monitor.projectId) {
-                // run in the background
-                // RealTimeService.updateMonitorLog(
-                //     data,
-                //     logData,
-                //     monitor.projectId._id
-                // );
+                const project = await ProjectService.findOneBy({
+                    query: {
+                        _id: ObjectId(
+                            monitor.projectId._id || monitor.projectId
+                        ),
+                    },
+                });
+                const parentProjectId = project
+                    ? project.parentProjectId
+                        ? project.parentProjectId._id || project.parentProjectId
+                        : project._id
+                    : monitor.projectId._id || monitor.projectId;
+
+                // realtime update
                 postApi(
-                    'api/monitor/data-ingestor/realtime/update-monitor-log',
+                    `${realtimeBaseUrl}/update-monitor-log`,
                     {
                         data,
+                        monitorId: data.monitorId,
                         logData,
+                        parentProjectId,
                         projectId: monitor.projectId._id || monitor.projectId,
-                    }
+                    },
+                    true
                 );
             }
         } catch (error) {

@@ -4,6 +4,10 @@ const ErrorService = require('../services/errorService');
 const { postApi } = require('../utils/api');
 const MonitorService = require('./monitorService');
 const moment = require('moment');
+const ProjectService = require('./projectService');
+const { realtimeUrl } = require('../utils/config');
+
+const realtimeBaseUrl = `${realtimeUrl}/api/realtime`;
 
 module.exports = {
     create: async function(data) {
@@ -119,17 +123,29 @@ module.exports = {
                 // populate: [{ path: 'projectId', select: '_id' }],
             });
             if (monitor && monitor.projectId) {
-                // run in the background
-                // RealTimeService.updateMonitorStatus(
-                //     data,
-                //     monitor.projectId._id
-                // );
+                const project = await ProjectService.findOneBy({
+                    query: {
+                        _id: ObjectId(
+                            monitor.projectId._id || monitor.projectId
+                        ),
+                    },
+                });
+                const parentProjectId = project
+                    ? project.parentProjectId
+                        ? project.parentProjectId._id || project.parentProjectId
+                        : project._id
+                    : monitor.projectId._id || monitor.projectId;
+
+                // realtime update
                 postApi(
-                    'api/monitor/data-ingestor/realtime/update-monitor-status',
+                    `${realtimeBaseUrl}/update-monitor-status`,
                     {
                         data,
                         projectId: monitor.projectId._id || monitor.projectId,
-                    }
+                        monitorId: data.monitorId,
+                        parentProjectId,
+                    },
+                    true
                 );
             }
         } catch (error) {

@@ -2,6 +2,10 @@ const ErrorService = require('./errorService');
 const incidentCollection = global.db.collection('incidents');
 const { ObjectId } = require('mongodb');
 const { postApi } = require('../utils/api');
+const { realtimeUrl } = require('../utils/config');
+const ProjectService = require('./projectService');
+
+const realtimeBaseUrl = `${realtimeUrl}/api/realtime`;
 
 module.exports = {
     findBy: async function({ query, limit, skip }) {
@@ -126,15 +130,26 @@ module.exports = {
                 // select,
                 // populate,
             });
+            const project = await ProjectService.findOneBy({
+                query: {
+                    _id: ObjectId(
+                        updatedIncident.projectId._id ||
+                            updatedIncident.projectId
+                    ),
+                },
+            });
+            const projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id || project.parentProjectId
+                    : project._id
+                : updatedIncident.projectId._id || updatedIncident.projectId;
 
-            // TODO
-            // setup backend api to update realtime update
-            // send post request to the endpoint
+            // realtime update
             postApi(
-                'api/incident/data-ingestor/realtime/update-incident',
-                updatedIncident
+                `${realtimeBaseUrl}/update-incident`,
+                { incident: updatedIncident, projectId },
+                true
             );
-            // RealTimeService.updateIncident(updatedIncident);
 
             return updatedIncident;
         } catch (error) {

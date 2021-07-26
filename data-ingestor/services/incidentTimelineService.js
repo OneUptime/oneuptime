@@ -4,6 +4,10 @@ const incidentTimelineCollection = global.db.collection('incidenttimelines');
 const { ObjectId } = require('mongodb');
 const { postApi } = require('../utils/api');
 const moment = require('moment');
+const { realtimeUrl } = require('../utils/config');
+const ProjectService = require('./projectService');
+
+const realtimeBaseUrl = `${realtimeUrl}/api/realtime`;
 
 module.exports = {
     create: async function(data) {
@@ -49,14 +53,27 @@ module.exports = {
                     }
                 );
 
-                // TODO
-                // have an api endpoint on the backend
-                // send api request from here, and handle realtime update there
+                const project = ProjectService.findOneBy({
+                    query: {
+                        _id: ObjectId(
+                            _incidentTimeline.projectId._id ||
+                                _incidentTimeline.projectId
+                        ),
+                    },
+                });
+                const projectId = project
+                    ? project.parentProjectId
+                        ? project.parentProjectId._id || project.parentProjectId
+                        : project._id
+                    : incidentTimeline.projectId._id ||
+                      incidentTimeline.projectId;
+
+                // realtime update
                 postApi(
-                    'api/incident/data-ingestor/realtime/update-incident-timeline',
-                    _incidentTimeline
+                    `${realtimeBaseUrl}/update-incident-timeline`,
+                    { incidentTimeline: _incidentTimeline, projectId },
+                    true
                 );
-                // RealTimeService.updateIncidentTimeline(_incidentTimeline);
             }
 
             return incidentTimeline;
