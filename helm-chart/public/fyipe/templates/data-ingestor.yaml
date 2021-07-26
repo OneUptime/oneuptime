@@ -32,6 +32,8 @@ spec:
                         value: {{ template "fyipe.mongodbConnectionString" . }}
                       - name: SCRIPT_RUNNER_URL
                         value: {{ template "fyipe.scriptRunnerUrl" $ }}
+                      - name: REALTIME_URL
+                        value: {{ template "fyipe.realtimeUrl" $ }}
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:
