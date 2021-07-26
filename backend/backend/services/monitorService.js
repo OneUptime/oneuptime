@@ -286,6 +286,7 @@ module.exports = {
         } else {
             updateData.fetchLightHouse = null;
         }
+        
         await MonitorModel.updateOne(
             { _id },
             {
