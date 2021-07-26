@@ -575,11 +575,23 @@ router.get(
             await Promise.all(
                 errorTrackers.map(async errorTracker => {
                     let errorStatus = 'No Errors yet';
-                    const issues = await IssueService.findBy(
-                        { errorTrackerId: errorTracker._id },
-                        1,
-                        0
-                    );
+
+                    const populateIssue = [
+                        { path: 'errorTrackerId', select: 'name' },
+                        { path: 'resolvedById', select: 'name' },
+                        { path: 'ignoredById', select: 'name' },
+                    ];
+
+                    const selectIssue =
+                        'name description errorTrackerId type fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+
+                    const issues = await IssueService.findBy({
+                        query: { errorTrackerId: errorTracker._id },
+                        limit: 1,
+                        skip: 0,
+                        select: selectIssue,
+                        populate: populateIssue,
+                    });
                     if (issues.length > 0) errorStatus = 'Listening for Errors';
                     const newElement = {
                         _id: errorTracker._id,

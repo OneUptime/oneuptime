@@ -444,9 +444,19 @@ router.post(
             }
             const errorTrackerId = req.params.errorTrackerId;
 
+            const populateIssue = [
+                { path: 'errorTrackerId', select: 'name' },
+                { path: 'resolvedById', select: 'name' },
+                { path: 'ignoredById', select: 'name' },
+            ];
+
+            const selectIssue =
+                'name description errorTrackerId type fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+
             const issue = await IssueService.findOneBy({
-                _id: issueId,
-                errorTrackerId,
+                query: { _id: issueId, errorTrackerId },
+                select: selectIssue,
+                populate: populateIssue,
             });
             if (!issue) {
                 return sendErrorResponse(req, res, {
@@ -571,8 +581,8 @@ router.post(
                     _id: currentIssueId,
                     errorTrackerId,
                 };
-                const currentIssue = await IssueService.findOneBy(query);
-                if (currentIssue) {
+                const currentIssue = await IssueService.countBy(query);
+                if (currentIssue && currentIssue > 0) {
                     // add action to timeline for this particular issue
                     const timelineData = {
                         issueId: currentIssueId,
@@ -697,11 +707,11 @@ router.post(
                 });
             }
 
-            const currentIssue = await IssueService.findOneBy({
+            const currentIssue = await IssueService.countBy({
                 _id: issueId,
                 errorTrackerId,
             });
-            if (!currentIssue) {
+            if (!currentIssue || currentId === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
                     message: 'Issue not found',
@@ -779,11 +789,11 @@ router.post(
                 });
             }
 
-            const currentIssue = await IssueService.findOneBy({
+            const currentIssue = await IssueService.countBy({
                 _id: issueId,
                 errorTrackerId,
             });
-            if (!currentIssue) {
+            if (!currentIssue || currentIssue === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
                     message: 'Issue not found',
@@ -910,11 +920,11 @@ router.post(
                 });
             }
 
-            const currentIssue = await IssueService.findOneBy({
+            const currentIssue = await IssueService.countBy({
                 _id: issueId,
                 errorTrackerId,
             });
-            if (!currentIssue) {
+            if (!currentIssue || currentIssue === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
                     message: 'Issue not found',
