@@ -1,15 +1,17 @@
 const MonitorSlaModel = require('../models/monitorSla');
 const MonitorService = require('./monitorService');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
     create: async function(data) {
         try {
-            const monitorSla = await this.findOneBy({
+            const monitorSlaCount = await this.countBy({
                 name: data.name,
                 projectId: data.projectId,
             });
-            if (monitorSla) {
+            if (monitorSlaCount && monitorSlaCount > 0) {
                 const error = new Error(
                     'Monitor SLA with the same name already exist'
                 );
@@ -47,23 +49,25 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const monitorSla = await MonitorSlaModel.findOne(query)
-                .populate('projectId')
-                .lean();
+            let monitorSlaQuery = MonitorSlaModel.findOne(query).lean();
 
+            monitorSlaQuery = handleSelect(select, monitorSlaQuery);
+            monitorSlaQuery = handlePopulate(populate, monitorSlaQuery);
+
+            const monitorSla = await monitorSlaQuery;
             return monitorSla;
         } catch (error) {
             ErrorService.log('monitorSlaService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -77,12 +81,16 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const monitorSla = await MonitorSlaModel.find(query)
+            let monitorSlaQuery = MonitorSlaModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId');
+                .skip(skip);
+
+            monitorSlaQuery = handleSelect(select, monitorSlaQuery);
+            monitorSlaQuery = handlePopulate(populate, monitorSlaQuery);
+
+            const monitorSla = await monitorSlaQuery;
 
             return monitorSla;
         } catch (error) {
@@ -100,8 +108,8 @@ module.exports = {
             // or using update modal for editing the details
             if (!data.handleDefault) {
                 const monitorSla = await this.findOneBy({
-                    name: data.name,
-                    projectId: query.projectId,
+                    query: { name: data.name, projectId: query.projectId },
+                    select: '_id',
                 });
 
                 if (
@@ -157,8 +165,8 @@ module.exports = {
             let monitorSla;
             if (data.isDefault) {
                 monitorSla = await this.findOneBy({
-                    projectId: query.projectId,
-                    isDefault: true,
+                    query: { projectId: query.projectId, isDefault: true },
+                    select: '_id',
                 });
             }
 
@@ -185,7 +193,15 @@ module.exports = {
                 throw error;
             }
 
-            updatedMonitorSla = await this.findOneBy(query);
+            const selectMonSla =
+                'name projectId isDefault frequency monitorUptime deleted deletedAt';
+
+            const populateMonSla = [{ path: 'projectId', select: 'name slug' }];
+            updatedMonitorSla = await this.findOneBy({
+                query,
+                select: selectMonSla,
+                populate: populateMonSla,
+            });
 
             return updatedMonitorSla;
         } catch (error) {

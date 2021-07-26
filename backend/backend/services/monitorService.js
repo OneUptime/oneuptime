@@ -1512,8 +1512,11 @@ module.exports = {
 
                 if (!monitorSla) {
                     monitorSla = await MonitorSlaService.findOneBy({
-                        projectId: projectId._id || projectId,
-                        isDefault: true,
+                        query: {
+                            projectId: projectId._id || projectId,
+                            isDefault: true,
+                        },
+                        select: 'frequency monitorUptime',
                     });
                 }
 
