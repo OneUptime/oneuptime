@@ -1,18 +1,24 @@
 const MonitorCustomFieldModel = require('../models/monitorCustomField');
 const ErrorService = require('../services/errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const customField = await MonitorCustomFieldModel.findOne(query)
-                .populate('projectId', 'name')
-                .lean();
+            let customFieldQuery = MonitorCustomFieldModel.findOne(
+                query
+            ).lean();
 
+            customFieldQuery = handleSelect(select, customFieldQuery);
+            customFieldQuery = handlePopulate(populate, customFieldQuery);
+
+            const customField = await customFieldQuery;
             return customField;
         } catch (error) {
             ErrorService.log('monitorCustomFieldService.findOneBy', error);
@@ -26,8 +32,16 @@ module.exports = {
                 ...data,
             });
 
+            const selectMonCustomField =
+                'fieldName fieldType projectId uniqueField deleted';
+
+            const populateMonCustomField = [
+                { path: 'projectId', select: 'name' },
+            ];
             customField = await this.findOneBy({
-                _id: customField._id,
+                query: { _id: customField._id },
+                populate: populateMonCustomField,
+                select: selectMonCustomField,
             });
 
             return customField;
@@ -53,7 +67,17 @@ module.exports = {
                 { new: true }
             );
 
-            customField = await this.findOneBy(query);
+            const selectMonCustomField =
+                'fieldName fieldType projectId uniqueField deleted';
+
+            const populateMonCustomField = [
+                { path: 'projectId', select: 'name' },
+            ];
+            customField = await this.findOneBy({
+                query,
+                select: selectMonCustomField,
+                populate: populateMonCustomField,
+            });
 
             if (!customField) {
                 const error = new Error(
@@ -70,7 +94,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip || isNaN(skip)) skip = 0;
 
@@ -89,12 +113,16 @@ module.exports = {
             }
 
             query.deleted = false;
-            const customFields = await MonitorCustomFieldModel.find(query)
+            let customFieldsQuery = MonitorCustomFieldModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
-                .populate('projectId', 'name')
                 .lean();
+
+            customFieldsQuery = handleSelect(select, customFieldsQuery);
+            customFieldsQuery = handlePopulate(populate, customFieldsQuery);
+
+            const customFields = await customFieldsQuery;
 
             return customFields;
         } catch (error) {
@@ -158,7 +186,18 @@ module.exports = {
                     $set: data,
                 }
             );
-            updatedCustomField = await this.findBy(query);
+
+            const selectMonCustomField =
+                'fieldName fieldType projectId uniqueField deleted';
+
+            const populateMonCustomField = [
+                { path: 'projectId', select: 'name' },
+            ];
+            updatedCustomField = await this.findBy({
+                query,
+                select: selectMonCustomField,
+                populate: populateMonCustomField,
+            });
             return updatedCustomField;
         } catch (error) {
             ErrorService.log('monitorCustomFieldService.updateMany', error);
