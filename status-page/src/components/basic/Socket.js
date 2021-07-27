@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import io from 'socket.io-client';
-import { API_URL } from '../../config';
+import { REALTIME_URL } from '../../config';
 
 import {
     updatestatuspagebysocket,
@@ -29,7 +29,7 @@ import {
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
 // '/api' is set as socket io namespace, so remove
-const socket = io(API_URL.replace('/api', ''), {
+const socket = io.connect(REALTIME_URL.replace('/api', ''), {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'],
 });
