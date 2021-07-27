@@ -209,9 +209,19 @@ module.exports = {
             throw error;
         }
     },
-    async updateAllLighthouseLogs(monitorId, query) {
+    async updateAllLighthouseLogs(projectId,monitorId, query) {
         try {
             await this.updateManyBy({ monitorId: monitorId }, query);
+            const logs = await this.findLastestScan({
+                monitorId,
+                url: null,
+                limit: 5,
+                skip: 0
+            })
+            await RealTimeService.updateAllLighthouseLog(projectId,{
+                monitorId,
+                logs
+            })
         } catch (error) {
             ErrorService.log(
                 'lighthouseLogService.updateAllLighthouseLog',
