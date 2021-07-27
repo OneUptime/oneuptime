@@ -80,13 +80,6 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                 data.lighthouseScanStatus,
                 data.probeId
             );
-            // await MonitorService.updateOneBy(
-            //     {_id: data.monitorId},
-            //     {   lighthouseScannedAt: Date.now(),
-            //         lighthouseScanStatus: data.lighthouseScanStatus,
-            //         lighthouseScannedBy: data.probeId
-            //     },
-            // )
 
             if (data.lighthouseData) {
                 // The scanned results are published
