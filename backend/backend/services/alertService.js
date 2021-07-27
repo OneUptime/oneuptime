@@ -3126,9 +3126,15 @@ module.exports = {
                             id,
                         });
                     }
+                    const select =
+                        'projectId subject body emailType allowedVariables';
                     const emailTemplate = await EmailTemplateService.findOneBy({
-                        projectId,
-                        emailType: templateType,
+                        query: {
+                            projectId,
+                            emailType: templateType,
+                        },
+                        select,
+                        populate: [{ path: 'projectId', select: 'nmae' }],
                     });
 
                     if (isStatusPageNoteAlert) {
@@ -4120,6 +4126,8 @@ module.exports = {
                         const unsubscribeUrl = `${global.homeHost}/unsubscribe/${subscriber.monitorId}/${subscriber._id}`;
 
                         if (subscriber.alertVia === AlertType.Email) {
+                            const select =
+                                'projectId subject body emailType allowedVariables';
                             const [
                                 hasGlobalSmtpSettings,
                                 hasCustomSmtpSettings,
@@ -4131,9 +4139,15 @@ module.exports = {
                                 }),
                                 MailService.hasCustomSmtpSettings(projectId),
                                 EmailTemplateService.findOneBy({
-                                    projectId,
-                                    emailType:
-                                        'Scheduled Maintenance Event Note',
+                                    query: {
+                                        projectId,
+                                        emailType:
+                                            'Scheduled Maintenance Event Note',
+                                    },
+                                    select,
+                                    populate: [
+                                        { path: 'projectId', select: 'nmae' },
+                                    ],
                                 }),
                             ]);
 
@@ -4542,8 +4556,13 @@ module.exports = {
                         }),
                         MailService.hasCustomSmtpSettings(projectId),
                         EmailTemplateService.findOneBy({
-                            projectId,
-                            emailType: templateType,
+                            query: {
+                                projectId,
+                                emailType: templateType,
+                            },
+                            select:
+                                'projectId subject body emailType allowedVariables',
+                            populate: [{ path: 'projectId', select: 'nmae' }],
                         }),
                     ]);
                     const areEmailAlertsEnabledInGlobalSettings =
@@ -5031,9 +5050,19 @@ module.exports = {
                                         projectId
                                     ),
                                     EmailTemplateService.findOneBy({
-                                        projectId,
-                                        emailType:
-                                            'Subscriber Announcement Notification Created',
+                                        query: {
+                                            projectId,
+                                            emailType:
+                                                'Subscriber Announcement Notification Created',
+                                        },
+                                        select:
+                                            'projectId subject body emailType allowedVariables',
+                                        populate: [
+                                            {
+                                                path: 'projectId',
+                                                select: 'nmae',
+                                            },
+                                        ],
                                     }),
                                 ]);
 
