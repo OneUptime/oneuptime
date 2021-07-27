@@ -73,10 +73,12 @@ services:
             - CLUSTER_KEY=test
             - SCRIPT_RUNNER_URL=http://script-runner:3009
             - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
             - script-runner
             - backend
+            - realtime
         volumes:
             - ./data-ingestor:/usr/src/app
             # Use node modules of the container and not host system.
