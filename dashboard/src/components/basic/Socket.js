@@ -86,7 +86,7 @@ class SocketApp extends Component {
                 socket.removeListener(
                     `updateAllLighthouseLog-${this.props.project._id}`
                 );
-                socket.removeListener(`updateProbe-${this.props.project._id}`);
+                socket.removeListener(`updateProbe`);
                 socket.removeListener(
                     `NewNotification-${this.props.project._id}`
                 );
@@ -456,7 +456,7 @@ class SocketApp extends Component {
                     }
                 }
             );
-            socket.on(`updateProbe-${this.props.project._id}`, function(data) {
+            socket.on(`updateProbe`, function(data) {
                 const isUserInProject = thisObj.props.project
                     ? thisObj.props.project.users.some(
                           user => user.userId === loggedInUser

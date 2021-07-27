@@ -762,13 +762,17 @@ module.exports = {
 
     updateProbeStatus: async function(probeId) {
         try {
+            const now = new Date(moment().format());
             await probeCollection.updateOne(
                 { _id: ObjectId(probeId) },
-                { $set: { lastAlive: new Date(moment().format()) } }
+                { $set: { lastAlive: now } }
             );
-            const probe = await probeCollection.findOne({
+            const probe = await this.findOneBy({
                 _id: ObjectId(probeId),
             });
+
+            // realtime update for probe
+            postApi(`${realtimeBaseUrl}/update-probe`, { data: probe }, true);
             return probe;
         } catch (error) {
             ErrorService.log('probeService.updateProbeStatus', error);
@@ -6244,3 +6248,5 @@ const { ObjectId } = require('mongodb');
 const probeCollection = global.db.collection('probes');
 const { v1: uuidv1 } = require('uuid');
 const { postApi } = require('../utils/api');
+const { realtimeUrl } = require('../utils/config');
+const realtimeBaseUrl = `${realtimeUrl}/api/realtime`;

@@ -114,7 +114,7 @@ class SocketApp extends Component {
                             : this.props.project._id
                     }`
                 );
-                socket.removeListener(`updateProbe-${this.props.project._id}`);
+                socket.removeListener(`updateProbe`);
                 socket.removeListener(
                     `incidentCreated-${
                         this.props.project.parentProjectId
@@ -279,7 +279,7 @@ class SocketApp extends Component {
                     thisObj.props.updateeventnotebysocket(data);
                 }
             );
-            socket.on(`updateProbe-${this.props.project._id}`, function(data) {
+            socket.on(`updateProbe`, function(data) {
                 thisObj.props.updateprobebysocket(data);
             });
             socket.on(

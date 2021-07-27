@@ -513,13 +513,13 @@ module.exports = {
         }
     },
 
-    updateProbe: ({ data, projectId }) => {
+    updateProbe: ({ data }) => {
         try {
             if (!global || !global.io) {
                 return;
             }
 
-            global.io.emit(`updateProbe-${projectId}`, data);
+            global.io.emit(`updateProbe`, data);
         } catch (error) {
             ErrorService.log('realtimeService.updateProbe', error);
             throw error;
