@@ -598,8 +598,18 @@ router.post(
 
                     // get the timeline attahced to this issue annd add it to the issue
 
+                    const populateIssueTimeline = [
+                        { path: 'issueId', select: 'name' },
+                        { path: 'createdById', select: 'name' },
+                    ];
+
+                    const selectIssueTimeline =
+                        'issueId createdById createdAt status deleted';
+
                     issue.timeline = await IssueTimelineService.findBy({
-                        issueId: currentIssueId,
+                        query: { issueId: currentIssueId },
+                        select: selectIssueTimeline,
+                        populate: populateIssueTimeline,
                     });
                     issues.push(issue);
 

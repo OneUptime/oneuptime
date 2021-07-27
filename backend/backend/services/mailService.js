@@ -52,9 +52,13 @@ const _this = {
             internalSmtp,
             customSmtp,
             backupConfig;
+        const select =
+            'projectId user pass host port from name iv secure enabled createdAt';
+
         const smtpDb = await EmailSmtpService.findOneBy({
-            projectId,
-            enabled: true,
+            query: { projectId, enabled: true },
+            select,
+            populate: [{ path: 'projectId', select: 'name' }],
         });
         if (
             smtpDb &&
@@ -6019,9 +6023,12 @@ const _this = {
         }
     },
     hasCustomSmtpSettings: async projectId => {
+        const select =
+            'projectId user pass host port from name iv secure enabled createdAt';
         const smtpConfigurations = await EmailSmtpService.findOneBy({
-            projectId,
-            enabled: true,
+            query: { projectId, enabled: true },
+            select,
+            populate: [{ path: 'projectId', select: 'name' }],
         });
         return Object.keys(smtpConfigurations).length
             ? smtpConfigurations

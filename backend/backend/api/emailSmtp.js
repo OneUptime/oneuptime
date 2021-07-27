@@ -150,7 +150,13 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const projectId = req.params.projectId;
-        const emailSmtp = await EmailSmtpService.findOneBy({ projectId });
+        const select =
+            'projectId user pass host port from name iv secure enabled createdAt';
+        const emailSmtp = await EmailSmtpService.findOneBy({
+            query: { projectId },
+            select,
+            populate: [{ path: 'projectId', select: 'name' }],
+        });
         return sendItemResponse(req, res, emailSmtp);
     } catch (error) {
         return sendErrorResponse(req, res, error);

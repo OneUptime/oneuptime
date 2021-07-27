@@ -1,5 +1,5 @@
-########-DATA-INGESTOR-#################
-#data-ingestor service and deployement
+########-ingestor-#################
+#ingestor service and deployement
 apiVersion: apps/v1
 kind: Deployment
 metadata:
