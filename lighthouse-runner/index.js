@@ -64,7 +64,7 @@ app.get(['/lighthouse/version', '/version'], function(req, res) {
 });
 
 // This cron runs every 30 minutes.
-cron.schedule('*/30 * * * *', () => {
+cron.schedule('*/2 * * * *', () => {
     setTimeout(() => {
         Main.runJob();
     }, cronMinuteStartTime * 1000);
