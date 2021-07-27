@@ -27,7 +27,7 @@ module.exports = {
             scriptLog.createdAt = new Date(moment().format());
 
             const result = await scriptLogCollection.insertOne(scriptLog);
-            const newScriptLog = await scriptLogCollection.findOne({
+            const newScriptLog = await this.findOneBy({
                 _id: ObjectId(result.insertedId),
             });
 
@@ -43,7 +43,12 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
+
             await scriptCollection.updateOne(query, { $set: data });
             const response = await scriptCollection.findOne(query);
             return response;

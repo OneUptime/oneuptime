@@ -72,11 +72,15 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted) query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
+
             const _this = this;
             const oldIncident = await _this.findOneBy({
                 query: { _id: ObjectId(query._id), deleted: { $ne: null } },
-                // select: 'notClosedBy manuallyCreated',
             });
 
             const notClosedBy = oldIncident && oldIncident.notClosedBy;
@@ -100,35 +104,8 @@ module.exports = {
                 $set: data,
             });
 
-            // const populate = [
-            //     {
-            //         path: 'monitors.monitorId',
-            //         select: 'name slug componentId projectId type',
-            //         populate: [
-            //             { path: 'componentId', select: 'name slug' },
-            //             { path: 'projectId', select: 'name slug' },
-            //         ],
-            //     },
-            //     { path: 'createdById', select: 'name' },
-            //     { path: 'projectId', select: 'name slug' },
-            //     { path: 'resolvedBy', select: 'name' },
-            //     { path: 'acknowledgedBy', select: 'name' },
-            //     { path: 'incidentPriority', select: 'name color' },
-            //     {
-            //         path: 'acknowledgedByIncomingHttpRequest',
-            //         select: 'name',
-            //     },
-            //     { path: 'resolvedByIncomingHttpRequest', select: 'name' },
-            //     { path: 'createdByIncomingHttpRequest', select: 'name' },
-            //     { path: 'probes.probeId', select: 'name _id' },
-            // ];
-            // const select =
-            //     'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
-
             updatedIncident = await _this.findOneBy({
                 query,
-                // select,
-                // populate,
             });
             const project = await ProjectService.findOneBy({
                 query: {

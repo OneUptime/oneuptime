@@ -209,7 +209,7 @@ module.exports = {
             await monitorLogCollection.updateOne(query, {
                 $set: data,
             });
-            const monitorLog = await monitorLogCollection.findOne(query);
+            const monitorLog = await this.findOneBy(query);
 
             return monitorLog;
         } catch (error) {
@@ -224,7 +224,11 @@ module.exports = {
                 query = {};
             }
 
-            // const monitorLog = await monitorLogCollection.findOne(query);
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             let monitorLog = await monitorLogCollection
                 .aggregate([

@@ -39,7 +39,6 @@ module.exports = {
                 }),
                 IncidentService.findOneBy({
                     query: { _id: ObjectId(data.incidentId) },
-                    // select: 'projectId',
                 }),
             ]);
             incidentTimeline = timeline;
@@ -98,9 +97,6 @@ module.exports = {
             const incidentTimeline = await incidentTimelineCollection.findOne(
                 query
             );
-            // .lean()
-            // .populate('createdById', 'name')
-            // .populate('probeId', 'probeName');
 
             return incidentTimeline;
         } catch (error) {

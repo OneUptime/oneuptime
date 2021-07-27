@@ -29,7 +29,7 @@ module.exports = {
             LogHour.createdAt = new Date(moment().format());
 
             const result = await monitorLogByHourCollection.insertOne(LogHour);
-            const savedLogHour = await monitorLogByHourCollection.findOne({
+            const savedLogHour = await this.findOneBy({
                 _id: ObjectId(result.insertedId),
             });
 
@@ -45,6 +45,12 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             await monitorLogByHourCollection.updateOne(query, { $set: data });
             const monitorLogByHour = await monitorLogByHourCollection.findOne(
@@ -63,6 +69,12 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             const monitorLog = await monitorLogByHourCollection.findOne(query);
 

@@ -1,7 +1,10 @@
 module.exports = {
     updateCriterion: async function(_id, lastMatchedCriterion) {
         await monitorCollection.updateOne(
-            { _id: ObjectId(_id) },
+            {
+                _id: ObjectId(_id),
+                $or: [{ deleted: false }, { deleted: { $exists: false } }],
+            },
             { $set: { lastMatchedCriterion } }
         );
     },
@@ -21,7 +24,10 @@ module.exports = {
         }
 
         await monitorCollection.updateOne(
-            { _id: ObjectId(_id) },
+            {
+                _id: ObjectId(_id),
+                $or: [{ deleted: false }, { deleted: { $exists: false } }],
+            },
             {
                 $set: {
                     lighthouseScanStatus,
@@ -33,7 +39,10 @@ module.exports = {
 
     updateScriptStatus: async function(_id, scriptRunStatus, scriptRunBy) {
         await monitorCollection.updateOne(
-            { _id: ObjectId(_id) },
+            {
+                _id: ObjectId(_id),
+                $or: [{ deleted: false }, { deleted: { $exists: false } }],
+            },
             {
                 $set: {
                     scriptRunStatus,
@@ -207,11 +216,13 @@ module.exports = {
             await monitorCollection.updateOne(
                 {
                     _id: ObjectId(id),
+                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
                 },
                 { $set: { lastPingTime: new Date(moment().format()) } }
             );
             const monitor = await monitorCollection.findOne({
                 _id: ObjectId(id),
+                $or: [{ deleted: false }, { deleted: { $exists: false } }],
             });
 
             return monitor;

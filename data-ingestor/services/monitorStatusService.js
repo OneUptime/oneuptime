@@ -16,9 +16,7 @@ module.exports = {
             if (data.monitorId) query.monitorId = data.monitorId;
             if (data.probeId) query.probeId = data.probeId;
 
-            const previousMonitorStatus = await monitorStatusCollection.findOne(
-                query
-            );
+            const previousMonitorStatus = await this.findOneBy(query);
 
             if (
                 !previousMonitorStatus ||
@@ -63,9 +61,9 @@ module.exports = {
                 const result = await monitorStatusCollection.insertOne(
                     monitorStatusData
                 );
-                const savedMonitorStatus = await monitorStatusCollection.findOne(
-                    { _id: ObjectId(result.insertedId) }
-                );
+                const savedMonitorStatus = await this.findOneBy({
+                    _id: ObjectId(result.insertedId),
+                });
 
                 await this.sendMonitorStatus(savedMonitorStatus);
 
@@ -82,7 +80,12 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            query.deleted = false;
+
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             await monitorStatusCollection.updateOne(query, { $set: data });
             const updatedMonitorStatus = await monitorStatusCollection.findOne(

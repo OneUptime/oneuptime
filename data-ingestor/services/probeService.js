@@ -27,7 +27,7 @@ module.exports = {
                 probe.lastAlive = now;
 
                 const result = await probeCollection.insertOne(probe);
-                const savedProbe = await probeCollection.findOne({
+                const savedProbe = await _this.findOneBy({
                     _id: ObjectId(result.insertedId),
                 });
                 return savedProbe;
@@ -64,7 +64,12 @@ module.exports = {
                 query = {};
             }
 
-            query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
+
             await probeCollection.updateOne(query, { $set: data });
             const probe = await this.findOneBy(query);
             return probe;
@@ -194,7 +199,6 @@ module.exports = {
                         incidentType: data.status,
                         resolved: false,
                     },
-                    // select: '_id',
                 });
 
                 const incidentIds = incidents.map(incident => incident._id);
@@ -230,36 +234,9 @@ module.exports = {
 
     incidentCreateOrUpdate: async function(data) {
         try {
-            // const populate = [
-            //     {
-            //         path: 'monitors.monitorId',
-            //         select: 'name slug componentId projectId type',
-            //         populate: [
-            //             { path: 'componentId', select: 'name slug' },
-            //             { path: 'projectId', select: 'name slug' },
-            //         ],
-            //     },
-            //     { path: 'createdById', select: 'name' },
-            //     { path: 'projectId', select: 'name slug' },
-            //     { path: 'resolvedBy', select: 'name' },
-            //     { path: 'acknowledgedBy', select: 'name' },
-            //     { path: 'incidentPriority', select: 'name color' },
-            //     {
-            //         path: 'acknowledgedByIncomingHttpRequest',
-            //         select: 'name',
-            //     },
-            //     { path: 'resolvedByIncomingHttpRequest', select: 'name' },
-            //     { path: 'createdByIncomingHttpRequest', select: 'name' },
-            //     { path: 'probes.probeId', select: 'name _id' },
-            // ];
-
-            // const select =
-            //     'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
-
             const [monitor, incidents] = await Promise.all([
                 MonitorService.findOneBy({
                     query: { _id: ObjectId(data.monitorId) },
-                    // select: 'type',
                 }),
                 IncidentService.findBy({
                     query: {
@@ -268,8 +245,6 @@ module.exports = {
                         resolved: false,
                         manuallyCreated: false,
                     },
-                    // select,
-                    // populate,
                 }),
             ]);
             const { matchedCriterion } = data;
@@ -344,9 +319,6 @@ module.exports = {
                     )
                         return { retry: true, retryCount: data.retryCount };
 
-                    // TODO
-                    // incident creation should be handled on the backend
-                    // have a backend api and communicate with it here
                     const response = await postApi(
                         'api/incident/data-ingestor/create-incident',
                         {
@@ -363,19 +335,6 @@ module.exports = {
                         }
                     );
                     const incident = response;
-
-                    // const incident = await IncidentService.create({
-                    //     projectId: monitor.projectId,
-                    //     monitors: [data.monitorId],
-                    //     createdById: null,
-                    //     incidentType: 'online',
-                    //     probeId: data.probeId,
-                    //     reason: data.reason,
-                    //     response: data.response,
-                    //     ...(matchedCriterion && {
-                    //         matchedCriterion,
-                    //     }),
-                    // });
 
                     AutomatedScriptService.runResource({
                         triggeredId: incident._id,
@@ -441,18 +400,6 @@ module.exports = {
                         data.retryCount < 3
                     )
                         return { retry: true, retryCount: data.retryCount };
-                    // const incident = await IncidentService.create({
-                    //     projectId: ObjectId(monitor.projectId),
-                    //     monitors: [ObjectId(data.monitorId)],
-                    //     createdById: null,
-                    //     incidentType: 'degraded',
-                    //     probeId: data.probeId,
-                    //     reason: data.reason,
-                    //     response: data.response,
-                    //     ...(matchedCriterion && {
-                    //         matchedCriterion,
-                    //     }),
-                    // });
 
                     const response = await postApi(
                         'api/incident/data-ingestor/create-incident',
@@ -536,19 +483,6 @@ module.exports = {
                     )
                         return { retry: true, retryCount: data.retryCount };
 
-                    // const incident = await IncidentService.create({
-                    //     projectId: ObjectId(monitor.projectId),
-                    //     monitors: [ObjectId(data.monitorId)],
-                    //     createdById: null,
-                    //     incidentType: 'offline',
-                    //     probeId: data.probeId,
-                    //     reason: data.reason,
-                    //     response: data.response,
-                    //     ...(matchedCriterion && {
-                    //         matchedCriterion,
-                    //     }),
-                    // });
-
                     const response = await postApi(
                         'api/incident/data-ingestor/create-incident',
                         {
@@ -588,15 +522,6 @@ module.exports = {
 
     incidentResolveOrAcknowledge: async function(data, allCriteria) {
         try {
-            // const populate = [
-            //     {
-            //         path: 'probes.probeId',
-            //         select: '_id probeId updatedAt status reportedStatus',
-            //     },
-            // ];
-
-            // const select = '_id acknowledged criterionCause probes';
-
             const incidents = await IncidentService.findBy({
                 query: {
                     'monitors.monitorId': ObjectId(data.monitorId),
@@ -609,7 +534,6 @@ module.exports = {
 
             const monitor = await MonitorService.findOneBy({
                 query: { _id: ObjectId(data.monitorId) },
-                // select: 'type',
             });
 
             // should grab all the criterion for the monitor and put them into one array
@@ -764,7 +688,10 @@ module.exports = {
         try {
             const now = new Date(moment().format());
             await probeCollection.updateOne(
-                { _id: ObjectId(probeId) },
+                {
+                    _id: ObjectId(probeId),
+                    $or: [{ deleted: false }, { deleted: { $exists: false } }],
+                },
                 { $set: { lastAlive: now } }
             );
             const probe = await this.findOneBy({

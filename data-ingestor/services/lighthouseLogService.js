@@ -26,7 +26,7 @@ module.exports = {
                 scanning: data.scanning,
                 createdAt: new Date(moment().format()),
             });
-            const savedLog = await lighthouseLogCollection.findOne({
+            const savedLog = await this.findOneBy({
                 _id: ObjectId(result.insertedId),
             });
 
@@ -43,12 +43,31 @@ module.exports = {
         }
     },
 
+    findOneBy: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
+
+            const log = await lighthouseLogCollection.findOne(query);
+
+            return log;
+        } catch (error) {
+            ErrorService.log('lighthouseLogService.findOneBy', error);
+            throw error;
+        }
+    },
+
     async sendLighthouseLog(data) {
         try {
             const monitor = await MonitorService.findOneBy({
                 query: { _id: ObjectId(data.monitorId) },
-                // select: 'projectId',
-                // populate: [{ path: 'projectId', select: '_id' }],
             });
 
             if (monitor && monitor.projectId) {

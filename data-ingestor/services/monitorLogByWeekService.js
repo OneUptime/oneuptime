@@ -29,7 +29,7 @@ module.exports = {
             LogWeek.createdAt = new Date(moment().format());
 
             const result = await monitorLogByWeekCollection.insertOne(LogWeek);
-            const savedLogWeek = await monitorLogByWeekCollection.findOne({
+            const savedLogWeek = await this.findOneBy({
                 _id: ObjectId(result.insertedId),
             });
 
@@ -45,6 +45,12 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             await monitorLogByWeekCollection.updateOne(query, { $set: data });
             const monitorLogByWeek = await monitorLogByWeekCollection.findOne(
@@ -63,6 +69,12 @@ module.exports = {
             if (!query) {
                 query = {};
             }
+
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             const monitorLog = await monitorLogByWeekCollection.findOne(query);
 
