@@ -3,21 +3,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+    name: {{ printf "%s-%s" .Release.Name "ingestor"  }}
     namespace: {{ .Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+        app: {{ printf "%s-%s" .Release.Name "ingestor"  }}
         app.kubernetes.io/part-of: fyipe
         app.kubernetes.io/managed-by: Helm
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+            app: {{ printf "%s-%s" .Release.Name "ingestor"  }}
     replicas: {{ .Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+                app: {{ printf "%s-%s" .Release.Name "ingestor"  }}
         spec:
             containers:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "data-ingestor" .Values.image.tag }}
@@ -44,7 +44,7 @@ spec:
                   ports:
                       - containerPort: {{ .Values.host.dataIngestorPort }}
                         hostPort: {{ .Values.host.dataIngestorPort }}
-                        name: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+                        name: {{ printf "%s-%s" .Release.Name "ingestor"  }}
             restartPolicy: {{ .Values.image.restartPolicy }}
 
 ---
@@ -52,17 +52,17 @@ apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+        app: {{ printf "%s-%s" .Release.Name "ingestor"  }}
         app.kubernetes.io/part-of: fyipe
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+    name: {{ printf "%s-%s" .Release.Name "ingestor"  }}
     namespace: {{ .Release.Namespace }}
 spec:
     ports:
         - port: {{ .Values.host.dataIngestorServicePort }}
           targetPort: {{ .Values.host.dataIngestorPort }}
     selector:
-        app: {{ printf "%s-%s" .Release.Name "data-ingestor" }}
+        app: {{ printf "%s-%s" .Release.Name "ingestor" }}
     type: ClusterIP
 ---
 ###########################
