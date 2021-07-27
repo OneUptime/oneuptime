@@ -8,16 +8,6 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const ErrorService = require('../services/errorService');
 const { clusterKey: CLUSTER_KEY } = require('../utils/config');
 
-// TODO: Make sure this is stored in redis.
-// Structure:
-/**
- *
- *  {
- *
- *      <probeName>: {_id, probeKey}
- *
- *  }
- */
 global.probes = {};
 
 module.exports = {
