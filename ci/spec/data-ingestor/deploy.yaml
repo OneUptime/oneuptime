@@ -10,11 +10,11 @@ production_data-ingestor:
         - chmod +x ./ci/scripts/deployment-production-setup.sh
         - ./ci/scripts/deployment-production-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/data-ingestor:latest ./data-ingestor
-        - sudo docker tag fyipeproject/data-ingestor:latest fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/data-ingestor:latest
-        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-ingestor fi-ingestor=fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
+        - sudo docker build -t fyipeproject/ingestor:latest ./ingestor
+        - sudo docker tag fyipeproject/ingestor:latest fyipeproject/ingestor:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/ingestor:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/ingestor:latest
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-ingestor fi-ingestor=fyipeproject/ingestor:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -41,11 +41,11 @@ staging_data-ingestor:
         - ./ci/scripts/deployment-staging-setup.sh
         # Build and deploy data-ingestor.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/data-ingestor:master ./data-ingestor
-        - sudo docker tag fyipeproject/data-ingestor:master fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/data-ingestor:master
-        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-ingestor fi-ingestor=fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
+        - sudo docker build -t fyipeproject/ingestor:master ./data-ingestor
+        - sudo docker tag fyipeproject/ingestor:master fyipeproject/ingestor:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/ingestor:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/ingestor:master
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-ingestor fi-ingestor=fyipeproject/ingestor:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
