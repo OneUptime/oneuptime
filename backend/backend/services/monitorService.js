@@ -1085,6 +1085,17 @@ module.exports = {
                 const selectMonitorLogBy =
                     'monitorId probeId status responseTime responseStatus cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp createdAt intervalDate maxResponseTime maxCpuLoad maxMemoryUsed maxStorageUsed maxMainTemp sslCertificate kubernetesLog';
 
+                const selectMonitorLog =
+                    'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
+
+                const populateMonitorLog = [
+                    {
+                        path: 'probeId',
+                        select:
+                            'createdAt lastAlive probeKey probeName version probeImage deleted',
+                    },
+                ];
+
                 for (const probe of probes) {
                     const query = {
                         monitorId,
@@ -1118,16 +1129,6 @@ module.exports = {
                                 select: selectMonitorLogBy,
                             });
                         } else {
-                            const selectMonitorLog =
-                                'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
-
-                            const populateMonitorLog = [
-                                {
-                                    path: 'probeId',
-                                    select:
-                                        'createdAt lastAlive probeKey probeName version probeImage deleted',
-                                },
-                            ];
                             monitorLogs = await MonitorLogService.findBy({
                                 query,
                                 select: selectMonitorLog,
