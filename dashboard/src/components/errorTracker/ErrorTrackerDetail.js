@@ -24,11 +24,11 @@ import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { logEvent } from 'amplitude-js';
 import moment from 'moment';
 import ErrorEventUtil from '../../utils/ErrorEventUtil';
-import { API_URL } from '../../config';
+import { REALTIME_URL } from '../../config';
 import io from 'socket.io-client';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(API_URL.replace('/api', ''), {
+const socket = io.connect(REALTIME_URL.replace('/api', ''), {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'],
 });

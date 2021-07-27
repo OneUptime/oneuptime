@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import io from 'socket.io-client';
 import RemovedFromSubProjectModal from '../modals/RemovedFromSubProject';
 import RemovedFromProjectModal from '../modals/RemovedFromProject';
-import { User, API_URL } from '../../config';
+import { User, REALTIME_URL } from '../../config';
 import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import {
@@ -41,7 +41,7 @@ import {
 } from '../../actions/scheduledEvent';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(API_URL.replace('/api', ''), {
+const socket = io.connect(REALTIME_URL.replace('/api', ''), {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'],
 });
@@ -86,7 +86,7 @@ class SocketApp extends Component {
                 socket.removeListener(
                     `updateAllLighthouseLog-${this.props.project._id}`
                 );
-                socket.removeListener(`updateProbe-${this.props.project._id}`);
+                socket.removeListener(`updateProbe`);
                 socket.removeListener(
                     `NewNotification-${this.props.project._id}`
                 );
@@ -456,7 +456,7 @@ class SocketApp extends Component {
                     }
                 }
             );
-            socket.on(`updateProbe-${this.props.project._id}`, function(data) {
+            socket.on(`updateProbe`, function(data) {
                 const isUserInProject = thisObj.props.project
                     ? thisObj.props.project.users.some(
                           user => user.userId === loggedInUser

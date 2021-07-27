@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import io from 'socket.io-client';
-import { API_URL } from '../../config';
+import { REALTIME_URL } from '../../config';
 
 import {
     updatestatuspagebysocket,
@@ -29,7 +29,7 @@ import {
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
 // '/api' is set as socket io namespace, so remove
-const socket = io(API_URL.replace('/api', ''), {
+const socket = io.connect(REALTIME_URL.replace('/api', ''), {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'],
 });
@@ -114,7 +114,7 @@ class SocketApp extends Component {
                             : this.props.project._id
                     }`
                 );
-                socket.removeListener(`updateProbe-${this.props.project._id}`);
+                socket.removeListener(`updateProbe`);
                 socket.removeListener(
                     `incidentCreated-${
                         this.props.project.parentProjectId
@@ -279,7 +279,7 @@ class SocketApp extends Component {
                     thisObj.props.updateeventnotebysocket(data);
                 }
             );
-            socket.on(`updateProbe-${this.props.project._id}`, function(data) {
+            socket.on(`updateProbe`, function(data) {
                 thisObj.props.updateprobebysocket(data);
             });
             socket.on(

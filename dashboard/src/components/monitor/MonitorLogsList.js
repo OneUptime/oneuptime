@@ -1244,7 +1244,10 @@ function mapStateToProps(state, props) {
 
     if (monitorLogs && monitorLogs.logs) {
         monitorLogs.logs = monitorLogs.logs.map(log => {
-            if (log.kubernetesLog) {
+            if (
+                log.kubernetesLog &&
+                Object.keys(log.kubernetesLog).length > 0
+            ) {
                 const initialData = { ...log.kubernetesLog };
                 const newData = {};
                 newData.podData = {

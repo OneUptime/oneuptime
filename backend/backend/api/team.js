@@ -188,7 +188,8 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 message: 'Something went wrong. Please try again.',
             });
         } else {
-            await RealTimeService.createTeamMember(req.params.projectId, {
+            // run in the background
+            RealTimeService.createTeamMember(req.params.projectId, {
                 users,
                 userId: userId.id,
             });

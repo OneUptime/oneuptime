@@ -6,7 +6,7 @@ import Fade from 'react-reveal/Fade';
 import ContainerSecurityForm from '../components/security/ContainerSecurityForm';
 import ContainerSecurity from '../components/security/ContainerSecurity';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, API_URL } from '../config';
+import { SHOULD_LOG_ANALYTICS, REALTIME_URL } from '../config';
 import {
     getContainerSecurities,
     getContainerSecurityLogs,
@@ -23,7 +23,7 @@ import sortByName from '../utils/sortByName';
 import { history } from '../store';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(API_URL.replace('/api', ''), {
+const socket = io.connect(REALTIME_URL.replace('/api', ''), {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'],
 });

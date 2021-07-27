@@ -43,4 +43,5 @@ module.exports = {
     probeKey: process.env['PROBE_KEY'],
     clusterKey: process.env['CLUSTER_KEY'],
     probeVersion: packageJson.version,
+    dataIngestorUrl: process.env['DATA_INGESTOR_URL'],
 };

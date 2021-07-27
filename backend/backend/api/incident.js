@@ -31,6 +31,69 @@ const subscriberAlertService = require('../services/subscriberAlertService');
 const onCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 const Services = require('../utils/services');
 const joinNames = require('../utils/joinNames');
+const { isAuthorizedService } = require('../middlewares/serviceAuthorization');
+
+// data-ingestor will consume this api
+// create an incident and return the created incident
+router.post(
+    '/data-ingestor/create-incident',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const data = req.body;
+
+            // Call the IncidentService
+            const incident = await IncidentService.create(data);
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// data-ingestor will consume this api
+// acknowledge an incident
+router.post(
+    '/data-ingestor/acknowledge-incident',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const { incidentId, name, probeId } = req.body;
+
+            const incident = await IncidentService.acknowledge(
+                incidentId,
+                null,
+                name,
+                probeId
+            );
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// data-ingestor will consume this api
+// resolve an incident
+router.post(
+    '/data-ingestor/resolve-incident',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const { incidentId, name, probeId } = req.body;
+
+            const incident = await IncidentService.resolve(
+                incidentId,
+                null,
+                name,
+                probeId
+            );
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 // Route
 // Description: Creating incident.
@@ -190,10 +253,10 @@ router.post(
                 },
                 { path: 'resolvedByIncomingHttpRequest', select: 'name' },
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
-                { path: 'probes.probeId', select: 'name _id' },
+                { path: 'probes.probeId', select: 'probeName _id' },
             ];
             const select =
-                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                'createdAt reason notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
             const [incidents, count] = await Promise.all([
                 IncidentService.findBy({
@@ -302,10 +365,10 @@ router.get('/:projectId/incident', getUser, isAuthorized, async function(
             },
             { path: 'resolvedByIncomingHttpRequest', select: 'name' },
             { path: 'createdByIncomingHttpRequest', select: 'name' },
-            { path: 'probes.probeId', select: 'name _id' },
+            { path: 'probes.probeId', select: 'probeName _id' },
         ];
         const select =
-            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+            'createdAt reason notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
         const [incident, count] = await Promise.all([
             IncidentService.findBy({
@@ -357,10 +420,10 @@ router.get(
                 },
                 { path: 'resolvedByIncomingHttpRequest', select: 'name' },
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
-                { path: 'probes.probeId', select: 'name _id' },
+                { path: 'probes.probeId', select: 'probeName _id' },
             ];
             const select =
-                'notifications hideIncident acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                'createdAt reason notifications hideIncident acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
             const incident = await IncidentService.findOneBy({
                 query: { projectId, idNumber: incidentId },
@@ -816,10 +879,10 @@ router.post(
                 },
                 { path: 'resolvedByIncomingHttpRequest', select: 'name' },
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
-                { path: 'probes.probeId', select: 'name _id' },
+                { path: 'probes.probeId', select: 'probeName _id' },
             ];
             const select =
-                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                'createdAt reason notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
             const populateIncidentMessage = [
                 {

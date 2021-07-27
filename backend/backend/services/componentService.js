@@ -163,7 +163,9 @@ module.exports = {
                 select: selectComponent,
                 populate: populateComponent,
             });
-            await RealTimeService.componentEdit(component);
+
+            // run in the background
+            RealTimeService.componentEdit(component);
 
             return component;
         } catch (error) {

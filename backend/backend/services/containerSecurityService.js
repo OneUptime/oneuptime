@@ -8,6 +8,7 @@ const ResourceCategoryService = require('./resourceCategoryService');
 const getSlug = require('../utils/getSlug');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
+const RealTimeService = require('./realTimeService');
 
 module.exports = {
     create: async function(data) {
@@ -298,10 +299,8 @@ module.exports = {
                 scanned: true,
                 scanning: false,
             });
-            global.io.emit(
-                `security_${containerSecurity._id}`,
-                containerSecurity
-            );
+
+            RealTimeService.handleScanning({ security: containerSecurity });
             return containerSecurity;
         } catch (error) {
             ErrorService.log('containerSecurityService.updateScanTime', error);
