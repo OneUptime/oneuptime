@@ -145,3 +145,13 @@ include:
 
   #  Container Scanner
   - '/ci/spec/container-scanner/deploy.yaml'
+
+  # realtime
+  - '/ci/spec/realtime/audit.yaml'
+  - '/ci/spec/realtime/deploy.yaml'
+  - '/ci/spec/realtime/rollback.yaml'
+
+  # data-ingestor
+  - '/ci/spec/data-ingestor/audit.yaml'
+  - '/ci/spec/data-ingestor/deploy.yaml'
+  - '/ci/spec/data-ingestor/rollback.yaml'
