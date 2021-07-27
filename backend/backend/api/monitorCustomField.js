@@ -26,10 +26,15 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
             error.code = 400;
             throw error;
         }
+        const selectMonCustomField =
+            'fieldName fieldType projectId uniqueField deleted';
+
+        const populateMonCustomField = [{ path: 'projectId', select: 'name' }];
 
         let customField = await MonitorCustomFieldService.findOneBy({
-            projectId,
-            fieldName,
+            query: { projectId, fieldName },
+            select: selectMonCustomField,
+            populate: populateMonCustomField,
         });
         if (customField) {
             const error = new Error(
@@ -55,14 +60,20 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
         const { limit, skip } = req.query;
+        const selectMonCustomField =
+            'fieldName fieldType projectId uniqueField deleted';
+
+        const populateMonCustomField = [{ path: 'projectId', select: 'name' }];
         const [customFields, count] = await Promise.all([
-            MonitorCustomFieldService.findBy(
-                {
+            MonitorCustomFieldService.findBy({
+                query: {
                     projectId,
                 },
                 limit,
-                skip
-            ),
+                skip,
+                select: selectMonCustomField,
+                populate: populateMonCustomField,
+            }),
             MonitorCustomFieldService.countBy({
                 projectId,
             }),
@@ -95,8 +106,8 @@ router.put('/:projectId/:customFieldId', getUser, isAuthorized, async function(
         }
 
         let customField = await MonitorCustomFieldService.findOneBy({
-            projectId,
-            fieldName,
+            query: { projectId, fieldName },
+            select: '_id',
         });
         if (customField && String(customField._id) !== String(customFieldId)) {
             const error = new Error(

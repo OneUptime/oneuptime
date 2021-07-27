@@ -38,6 +38,10 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "accounts"  }}
               servicePort: 80
+          - path: /data-ingestor
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+              servicePort: 80
           - path: /dashboard
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "dashboard"  }}

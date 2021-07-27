@@ -126,6 +126,14 @@ module.exports = {
             const selectIssue =
                 'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
 
+            const populateIssueTimeline = [
+                { path: 'issueId', select: 'name' },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIssueTimeline =
+                'issueId createdById createdAt status deleted';
+
             const errorTrackerIssues = await IssueService.findBy({
                 query,
                 limit: 0, // set limit to 0 to get ALL issues related by query
@@ -179,6 +187,8 @@ module.exports = {
                             // we get the timeline to attach to this issue
                             IssueTimelineService.findBy({
                                 issueId: issue._id,
+                                populate: populateIssueTimeline,
+                                select: selectIssueTimeline,
                             }),
                         ]);
 
@@ -257,9 +267,19 @@ module.exports = {
                 errorTrackerId: errorTrackerId,
             });
 
+            const populateIssueTimeline = [
+                { path: 'issueId', select: 'name' },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIssueTimeline =
+                'issueId createdById createdAt status deleted';
+
             // add issue timeline to this error event
             const issueTimeline = await IssueTimelineService.findBy({
-                issueId: errorEvent.issueId._id,
+                query: { issueId: errorEvent.issueId._id },
+                select: selectIssueTimeline,
+                populate: populateIssueTimeline,
             });
 
             errorEvent = JSON.parse(JSON.stringify(errorEvent));

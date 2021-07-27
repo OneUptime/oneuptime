@@ -108,7 +108,7 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build: ./licensing
-    data-ingestor:
+    ingestor:
         ports:
             - '3200:3200'
         build: ./data-ingestor

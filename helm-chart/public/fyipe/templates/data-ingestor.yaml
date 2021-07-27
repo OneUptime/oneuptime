@@ -1,5 +1,5 @@
-########-DATA-INGESTOR-#################
-#data-ingestor service and deployement
+########-ingestor-#################
+#ingestor service and deployement
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,8 +20,8 @@ spec:
                 app: {{ printf "%s-%s" .Release.Name "ingestor"  }}
         spec:
             containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "data-ingestor" .Values.image.tag }}
-                  name: {{ printf "%s-%s" .Release.Name "data-ingestor"  }}
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "ingestor" .Values.image.tag }}
+                  name: {{ printf "%s-%s" .Release.Name "ingestor"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   env:
                       - name: SERVER_URL
