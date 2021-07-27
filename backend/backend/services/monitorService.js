@@ -299,6 +299,15 @@ module.exports = {
                 new: true,
             }
         );
+        
+        const select =
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+        const query = {_id};
+        
+        const monitor = await this.findOneBy({ query, select });
+        RealTimeService.monitorEdit(monitor);
+        return monitor;
+       
     },
 
     disableMonitor: async function(_id) {

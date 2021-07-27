@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -12,23 +12,16 @@ module.exports = {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
-            const integrations = await IntegrationModel.find(query)
+            let integrationQuery = IntegrationModel.find(query)
                 .lean()
                 .sort([['createdAt, -1']])
                 .limit(limit)
-                .skip(skip)
-                .populate('createdById', 'name')
-                .populate('projectId', 'name')
-                .populate({
-                    path: 'monitors.monitorId',
-                    select: 'name',
-                    populate: {
-                        path: 'componentId',
-                        select: 'name',
-                    },
-                });
+                .skip(skip);
+            integrationQuery = handleSelect(select, integrationQuery);
+            integrationQuery = handlePopulate(populate, integrationQuery);
+            const result = await integrationQuery;
 
-            return integrations;
+            return result;
         } catch (error) {
             ErrorService.log('IntegrationService.findBy', error);
             throw error;
@@ -105,25 +98,19 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) query = {};
 
             if (query.deleted) query.deleted = false;
-            const integration = await IntegrationModel.findOne(query)
+            let integrationQuery = IntegrationModel.findOne(query)
                 .lean()
-                .sort([['createdAt, -1']])
-                .populate('createdById', 'name')
-                .populate('projectId', 'name')
-                .populate({
-                    path: 'monitors.monitorId',
-                    select: 'name',
-                    populate: {
-                        path: 'componentId',
-                        select: 'name',
-                    },
-                });
-            return integration;
+                .sort([['createdAt, -1']]);
+            integrationQuery = handleSelect(select, integrationQuery);
+            integrationQuery = handlePopulate(populate, integrationQuery);
+            const result = await integrationQuery;
+
+            return result;
         } catch (error) {
             ErrorService.log('IntegrationService.findOneBy', error);
             throw error;
@@ -259,3 +246,5 @@ module.exports = {
 };
 const IntegrationModel = require('../models/integration');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
