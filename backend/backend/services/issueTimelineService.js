@@ -74,3 +74,5 @@ module.exports = {
 
 const IssueTimelineModel = require('../models/issueTimeline');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
