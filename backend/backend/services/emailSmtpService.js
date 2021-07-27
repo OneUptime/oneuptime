@@ -171,17 +171,19 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            let emailSmtp = await EmailSmtpModel.findOne(query)
+            let emailSmtpQuery = EmailSmtpModel.findOne(query)
                 .sort([['createdAt', -1]])
-                .populate('projectId', 'name')
                 .lean();
+            emailSmtpQuery = handleSelect(select, emailSmtpQuery);
+            emailSmtpQuery = handlePopulate(populate, emailSmtpQuery);
+            let emailSmtp = await emailSmtpQuery;
             if (emailSmtp && emailSmtp.pass && emailSmtp.iv) {
                 emailSmtp.pass = await EncryptDecrypt.decrypt(
                     emailSmtp.pass,
@@ -230,3 +232,5 @@ const Crypto = require('crypto');
 const EmailSmtpModel = require('../models/smtp');
 const ErrorService = require('./errorService');
 const EncryptDecrypt = require('../config/encryptDecrypt');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

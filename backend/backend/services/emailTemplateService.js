@@ -116,18 +116,21 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const emailTemplate = await EmailTemplateModel.findOne(query)
+            let emailTemplate = EmailTemplateModel.findOne(query)
                 .lean()
-                .sort([['createdAt', -1]])
-                .populate('projectId', 'name');
-            return emailTemplate;
+                .sort([['createdAt', -1]]);
+
+            emailTemplate = handleSelect(select, emailTemplate);
+            emailTemplate = handlePopulate(populate, emailTemplate);
+            const result = await emailTemplate;
+            return result;
         } catch (error) {
             ErrorService.log('emailTemplateService.findOneBy', error);
             throw error;
@@ -200,3 +203,5 @@ const EmailTemplateModel = require('../models/emailTemplate');
 const ErrorService = require('./errorService');
 const emailTemplateVariables = require('../config/emailTemplateVariables');
 const defaultTemplate = require('../config/emailTemplate');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
