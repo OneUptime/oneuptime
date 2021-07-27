@@ -254,7 +254,7 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLogQuery = MonitorLogModel.findOne(query).lean();
+            let monitorLogQuery = MonitorLogModel.findOne(query).lean();
             monitorLogQuery = handleSelect(select, monitorLogQuery);
             monitorLogQuery = handlePopulate(populate, monitorLogQuery);
 
