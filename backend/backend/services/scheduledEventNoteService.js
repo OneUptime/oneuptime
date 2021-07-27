@@ -48,10 +48,10 @@ module.exports = {
             }
 
             scheduledEventMessage.type === 'internal'
-                ? await RealTimeService.addScheduledEventInternalNote(
+                ? RealTimeService.addScheduledEventInternalNote(
                       scheduledEventMessage
                   )
-                : await RealTimeService.addScheduledEventInvestigationNote(
+                : RealTimeService.addScheduledEventInvestigationNote(
                       scheduledEventMessage,
                       projectId
                   );

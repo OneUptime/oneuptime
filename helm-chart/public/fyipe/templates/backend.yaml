@@ -69,6 +69,8 @@ spec:
                         value: {{ .Values.pushNotification.url }}
                       - name: SCRIPT_RUNNER_URL
                         value: {{ template "fyipe.scriptRunnerUrl" $ }}
+                      - name: REALTIME_URL
+                        value: {{ template "fyipe.realtimeUrl" $ }}
                       - name: NODE_ENV
                         value: 'production'
                       - name: IS_TESTING

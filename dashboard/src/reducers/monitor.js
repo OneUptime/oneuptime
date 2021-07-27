@@ -843,7 +843,13 @@ export default function monitor(state = INITIAL_STATE, action) {
                                                         .map(a => a._id)
                                                         .includes(
                                                             logData.probeId
-                                                        ) || !logData.probeId
+                                                                ._id ||
+                                                                logData.probeId
+                                                        ) ||
+                                                    !(
+                                                        logData.probeId._id ||
+                                                        logData.probeId
+                                                    )
                                                       ? monitor.logs.map(
                                                             probeLogs => {
                                                                 const probeId =
@@ -851,9 +857,17 @@ export default function monitor(state = INITIAL_STATE, action) {
 
                                                                 if (
                                                                     probeId ===
-                                                                        logData.probeId ||
+                                                                        (logData
+                                                                            .probeId
+                                                                            ._id ||
+                                                                            logData.probeId) ||
                                                                     (!probeId &&
-                                                                        !logData.probeId)
+                                                                        !(
+                                                                            logData
+                                                                                .probeId
+                                                                                ._id ||
+                                                                            logData.probeId
+                                                                        ))
                                                                 ) {
                                                                     if (
                                                                         probeLogs.logs &&
@@ -929,6 +943,9 @@ export default function monitor(state = INITIAL_STATE, action) {
                                                             ...monitor.logs,
                                                             {
                                                                 _id:
+                                                                    logData
+                                                                        .probeId
+                                                                        ._id ||
                                                                     logData.probeId ||
                                                                     null,
                                                                 logs: [logData],
@@ -937,6 +954,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                                                   : [
                                                         {
                                                             _id:
+                                                                logData.probeId
+                                                                    ._id ||
                                                                 logData.probeId ||
                                                                 null,
                                                             logs: [logData],

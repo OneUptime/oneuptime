@@ -18,13 +18,13 @@ import { getDockerCredentials } from '../../actions/credential';
 import { fetchComponent } from '../../actions/component';
 import BreadCrumbItem from '../breadCrumb/BreadCrumbItem';
 import getParentRoute from '../../utils/getParentRoute';
-import { API_URL } from '../../config';
+import { REALTIME_URL } from '../../config';
 import io from 'socket.io-client';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import Fade from 'react-reveal/Fade';
 
 // Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(API_URL.replace('/api', ''), {
+const socket = io.connect(REALTIME_URL.replace('/api', ''), {
     path: '/api/socket.io',
     transports: ['websocket', 'polling'],
 });

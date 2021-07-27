@@ -68,6 +68,7 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
         global.homeHost = 'https://' + req.host;
         global.accountsHost = 'https://' + req.host + '/accounts';
         global.backendHost = 'https://' + req.host + '/api';
+        global.realtimeHost = 'https://' + req.host + '/realtime';
     }
     if (req.host.includes('localhost')) {
         if (req.get('host').includes('localhost:')) {
@@ -76,11 +77,13 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
             global.accountsHost = 'http://' + req.host + ':' + 3003;
             global.homeHost = 'http://' + req.host + ':' + 1444;
             global.backendHost = 'http://' + req.host + ':' + 3002;
+            global.realtimeHost = 'http://' + req.host + ':' + 3300;
         } else if (!isClustLocal) {
             global.dashboardHost = 'http://' + req.host + '/dashboard';
             global.accountsHost = 'http://' + req.host + '/accounts';
             global.homeHost = 'http://' + req.host;
             global.backendHost = 'http://' + req.host + '/api';
+            global.realtimeHost = 'http://' + req.host + '/realtime';
         }
     }
 

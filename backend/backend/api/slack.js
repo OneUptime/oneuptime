@@ -163,12 +163,28 @@ router.get('/:projectId/teams', getUser, async function(req, res) {
     const integrationType = 'slack';
 
     try {
+        const select =
+            'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+        const populate = [
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: [{ path: 'componentId', select: 'name' }],
+            },
+        ];
         const [integrations, count] = await Promise.all([
-            IntegrationService.findBy(
-                { projectId: projectId, integrationType: integrationType },
-                req.query.skip || 0,
-                req.query.limit || 10
-            ),
+            IntegrationService.findBy({
+                query: {
+                    projectId: projectId,
+                    integrationType: integrationType,
+                },
+                skip: req.query.skip || 0,
+                limit: req.query.limit || 10,
+                select,
+                populate,
+            }),
             IntegrationService.countBy({
                 projectId: projectId,
                 integrationType: integrationType,

@@ -286,7 +286,7 @@ module.exports = {
         } else {
             updateData.fetchLightHouse = null;
         }
-
+        
         await MonitorModel.updateOne(
             { _id },
             {
@@ -299,6 +299,15 @@ module.exports = {
                 new: true,
             }
         );
+        
+        const select =
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+        const query = {_id};
+        
+        const monitor = await this.findOneBy({ query, select });
+        RealTimeService.monitorEdit(monitor);
+        return monitor;
+       
     },
 
     disableMonitor: async function(_id) {
@@ -400,7 +409,7 @@ module.exports = {
             query.deleted = false;
 
             const select =
-                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
             const populate = [
                 {
                     path: 'monitorSla',
@@ -649,7 +658,7 @@ module.exports = {
             const _this = this;
 
             const select =
-                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
             const populate = [
                 {
                     path: 'monitorSla',
@@ -1104,7 +1113,21 @@ module.exports = {
                                 query
                             );
                         } else {
-                            monitorLogs = await MonitorLogService.findBy(query);
+                            const selectMonitorLog =
+                                'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
+
+                            const populateMonitorLog = [
+                                {
+                                    path: 'probeId',
+                                    select:
+                                        'createdAt lastAlive probeKey probeName version probeImage deleted',
+                                },
+                            ];
+                            monitorLogs = await MonitorLogService.findBy({
+                                query,
+                                select: selectMonitorLog,
+                                populate: populateMonitorLog,
+                            });
                         }
                     }
 
@@ -1512,8 +1535,11 @@ module.exports = {
 
                 if (!monitorSla) {
                     monitorSla = await MonitorSlaService.findOneBy({
-                        projectId: projectId._id || projectId,
-                        isDefault: true,
+                        query: {
+                            projectId: projectId._id || projectId,
+                            isDefault: true,
+                        },
+                        select: 'frequency monitorUptime',
                     });
                 }
 

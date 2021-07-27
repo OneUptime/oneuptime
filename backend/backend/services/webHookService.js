@@ -86,8 +86,19 @@ module.exports = {
             } else {
                 return;
             }
+            const select =
+                'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+            ];
             const [integrations, monitorStatus] = await Promise.all([
-                IntegrationService.findBy(query),
+                IntegrationService.findBy({ query, select, populate }),
                 MonitorStatusService.findOneBy({
                     monitorId: monitor._id,
                 }),

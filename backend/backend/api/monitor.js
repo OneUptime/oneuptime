@@ -541,6 +541,16 @@ router.post(
             } = req.body;
             const monitorId = req.params.monitorId;
             const query = {};
+            const selectMonitorLog =
+                'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
+
+            const populateMonitorLog = [
+                {
+                    path: 'probeId',
+                    select:
+                        'createdAt lastAlive probeKey probeName version probeImage deleted',
+                },
+            ];
             if (monitorId && !incidentId) query.monitorId = monitorId;
             if (incidentId) query.incidentIds = incidentId;
             if (probeValue) query.probeId = probeValue;
@@ -549,7 +559,13 @@ router.post(
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
             const [monitorLogs, count] = await Promise.all([
-                MonitorLogService.findBy(query, limit || 10, skip || 0),
+                MonitorLogService.findBy({
+                    query,
+                    limit: limit || 10,
+                    skip: skip || 0,
+                    populate: populateMonitorLog,
+                    select: selectMonitorLog,
+                }),
                 MonitorLogService.countBy(query),
             ]);
             return sendListResponse(req, res, monitorLogs, count);

@@ -184,10 +184,16 @@ module.exports = {
                 };
 
                 if (!incident.manuallyCreated) {
+                    const select =
+                        'projectId title description incidentPriority isDefault name';
+                    const query = {
+                        projectId: data.projectId,
+                        isDefault: true,
+                    };
                     const incidentSettings = await IncidentSettingsService.findOne(
                         {
-                            projectId: data.projectId,
-                            isDefault: true,
+                            query,
+                            select,
                         }
                     );
 
@@ -1463,7 +1469,7 @@ module.exports = {
 
                         // await was left out here because we care about the slaCountDown
                         // and also to ensure that it was delivered successfully
-                        await RealTimeService.sendSlaCountDown(
+                        RealTimeService.sendSlaCountDown(
                             currentIncident,
                             `${countDown}`
                         );

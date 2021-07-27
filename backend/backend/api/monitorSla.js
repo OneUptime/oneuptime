@@ -12,14 +12,21 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
         const { limit, skip } = req.query;
+
+        const selectMonSla =
+            'name projectId isDefault frequency monitorUptime deleted deletedAt';
+
+        const populateMonSla = [{ path: 'projectId', select: 'name slug' }];
         const [monitorSlas, count] = await Promise.all([
-            MonitorSlaService.findBy(
-                {
+            MonitorSlaService.findBy({
+                query: {
                     projectId,
                 },
                 limit,
-                skip
-            ),
+                skip,
+                select: selectMonSla,
+                populate: populateMonSla,
+            }),
             MonitorSlaService.countBy({
                 projectId,
             }),
@@ -186,9 +193,14 @@ router.get(
     async function(req, res) {
         try {
             const { projectId } = req.params;
+            const selectMonSla =
+                'name projectId isDefault frequency monitorUptime deleted deletedAt';
+
+            const populateMonSla = [{ path: 'projectId', select: 'name slug' }];
             const defaultMonitorSla = await MonitorSlaService.findOneBy({
-                projectId,
-                isDefault: true,
+                query: { projectId, isDefault: true },
+                select: selectMonSla,
+                populate: populateMonSla,
             });
 
             return sendItemResponse(req, res, defaultMonitorSla);

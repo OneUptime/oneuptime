@@ -205,6 +205,8 @@ haraka:
 
 host: 
   backendPort: 3002
+  dataIngestorPort: 3200
+  realtimePort: 3300
   homePort: 1444
   licensingPort: 3004
   statusPageHttpPort: 3006
@@ -220,6 +222,8 @@ host:
   httpTestServerPort: 3010
   adminDashboardPort: 3100
   backendServicePort: 80
+  dataIngestorServicePort: 80
+  realtimeServicePort: 80
   homeServicePort: 80
   apiDocsServicePort: 80
   statusPageHttpServicePort: 80

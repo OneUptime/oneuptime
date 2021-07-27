@@ -1,0 +1,59 @@
+production_data-ingestor:
+    stage: Deploy
+    retry: 2
+    allow_failure: true
+    script:
+        - chmod +x ./ci/scripts/version-setup.sh
+        - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/deployment-setup.sh
+        - ./ci/scripts/deployment-setup.sh
+        - chmod +x ./ci/scripts/deployment-production-setup.sh
+        - ./ci/scripts/deployment-production-setup.sh
+        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker build -t fyipeproject/data-ingestor:latest ./data-ingestor
+        - sudo docker tag fyipeproject/data-ingestor:latest fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/data-ingestor:latest
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-data-ingestor fi-data-ingestor=fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
+        # Cleanup
+        - chmod +x ./ci/scripts/deployment-cleanup.sh
+        - ./ci/scripts/deployment-cleanup.sh
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - release
+            - hotfix-release
+    environment:
+        name: production
+
+# DEPLOYMENT STAGE - Data-ingestor
+staging_data-ingestor:
+    stage: Deploy
+    retry: 2
+    allow_failure: true
+    script:
+        - chmod +x ./ci/scripts/version-setup.sh
+        - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/deployment-setup.sh
+        - ./ci/scripts/deployment-setup.sh
+        - chmod +x ./ci/scripts/deployment-staging-setup.sh
+        - ./ci/scripts/deployment-staging-setup.sh
+        # Build and deploy data-ingestor.
+        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker build -t fyipeproject/data-ingestor:master ./data-ingestor
+        - sudo docker tag fyipeproject/data-ingestor:master fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/data-ingestor:master
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-data-ingestor fi-data-ingestor=fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
+        # Cleanup
+        - chmod +x ./ci/scripts/deployment-cleanup.sh
+        - ./ci/scripts/deployment-cleanup.sh
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - master
+            - hotfix-master
+    environment:
+        name: staging

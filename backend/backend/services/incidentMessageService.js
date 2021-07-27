@@ -31,7 +31,8 @@ module.exports = {
             });
 
             if (incidentMessage.postOnStatusPage) {
-                await RealTimeService.addIncidentNote(incidentMessage);
+                // run in the background
+                RealTimeService.addIncidentNote(incidentMessage);
             }
 
             return incidentMessage;
