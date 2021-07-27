@@ -58,7 +58,7 @@ module.exports = {
         }
     },
 
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -76,11 +76,22 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLogsByWeek = await MonitorLogByWeekModel.find(query)
+            let monitorLogsByWeekQuery = MonitorLogByWeekModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
+
+            monitorLogsByWeekQuery = handleSelect(
+                select,
+                monitorLogsByWeekQuery
+            );
+            monitorLogsByWeekQuery = handlePopulate(
+                populate,
+                monitorLogsByWeekQuery
+            );
+
+            const monitorLogsByWeek = await monitorLogsByWeekQuery;
 
             return monitorLogsByWeek;
         } catch (error) {
@@ -89,16 +100,18 @@ module.exports = {
         }
     },
 
-    async findOneBy(query) {
+    async findOneBy({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
-            const monitorLog = await MonitorLogByWeekModel.findOne(
-                query
-            ).lean();
+            let monitorLogQuery = MonitorLogByWeekModel.findOne(query).lean();
 
+            monitorLogQuery = handleSelect(select, monitorLogQuery);
+            monitorLogQuery = handlePopulate(populate, monitorLogQuery);
+
+            const monitorLog = await monitorLogQuery;
             return monitorLog;
         } catch (error) {
             ErrorService.log('monitorLogByWeekService.findOneBy', error);
@@ -124,3 +137,5 @@ module.exports = {
 
 const MonitorLogByWeekModel = require('../models/monitorLogByWeek');
 const ErrorService = require('../services/errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

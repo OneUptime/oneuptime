@@ -58,7 +58,7 @@ module.exports = {
         }
     },
 
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -76,11 +76,22 @@ module.exports = {
                 query = {};
             }
 
-            const monitorLogsByHour = await MonitorLogByHourModel.find(query)
+            let monitorLogsByHourQuery = MonitorLogByHourModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
+
+            monitorLogsByHourQuery = handleSelect(
+                select,
+                monitorLogsByHourQuery
+            );
+            monitorLogsByHourQuery = handlePopulate(
+                populate,
+                monitorLogsByHourQuery
+            );
+
+            const monitorLogsByHour = await monitorLogsByHourQuery;
 
             return monitorLogsByHour;
         } catch (error) {
@@ -89,16 +100,18 @@ module.exports = {
         }
     },
 
-    async findOneBy(query) {
+    async findOneBy({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
-            const monitorLog = await MonitorLogByHourModel.findOne(
-                query
-            ).lean();
+            let monitorLogQuery = MonitorLogByHourModel.findOne(query).lean();
 
+            monitorLogQuery = handleSelect(select, monitorLogQuery);
+            monitorLogQuery = handlePopulate(populate, monitorLogQuery);
+
+            const monitorLog = await monitorLogQuery;
             return monitorLog;
         } catch (error) {
             ErrorService.log('monitorLogByHourService.findOneBy', error);
@@ -124,3 +137,5 @@ module.exports = {
 
 const MonitorLogByHourModel = require('../models/monitorLogByHour');
 const ErrorService = require('../services/errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
