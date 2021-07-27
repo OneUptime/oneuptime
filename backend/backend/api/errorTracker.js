@@ -728,9 +728,19 @@ router.post(
                 });
             }
 
+            const selectIssueMember =
+                'issueId userId createdAt createdById removed removedAt removedById';
+
+            const populateIssueMember = [
+                { path: 'issueId', select: 'name' },
+
+                { path: 'userId', select: 'name email' },
+            ];
+
             const issueMembers = await IssueMemberService.findBy({
-                issueId,
-                removed: false,
+                query: { issueId, removed: false },
+                select: selectIssueMember,
+                populate: populateIssueMember,
             });
             return sendItemResponse(req, res, { issueId, issueMembers });
         } catch (error) {
@@ -858,10 +868,19 @@ router.post(
                     }
                 })
             );
+            const selectIssueMember =
+                'issueId userId createdAt createdById removed removedAt removedById';
+
+            const populateIssueMember = [
+                { path: 'issueId', select: 'name' },
+
+                { path: 'userId', select: 'name email' },
+            ];
 
             const members = await IssueMemberService.findBy({
-                issueId,
-                removed: false,
+                query: { issueId, removed: false },
+                select: selectIssueMember,
+                populate: populateIssueMember,
             });
             return sendItemResponse(req, res, { issueId, members });
         } catch (error) {
@@ -975,9 +994,18 @@ router.post(
                 })
             );
 
+            const selectIssueMember =
+                'issueId userId createdAt createdById removed removedAt removedById';
+
+            const populateIssueMember = [
+                { path: 'issueId', select: 'name' },
+
+                { path: 'userId', select: 'name email' },
+            ];
             const members = await IssueMemberService.findBy({
-                issueId,
-                removed: false,
+                query: { issueId, removed: false },
+                select: selectIssueMember,
+                populate: populateIssueMember,
             });
             return sendItemResponse(req, res, { issueId, members });
         } catch (error) {

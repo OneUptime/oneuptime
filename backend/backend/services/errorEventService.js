@@ -134,6 +134,15 @@ module.exports = {
             const selectIssueTimeline =
                 'issueId createdById createdAt status deleted';
 
+            const selectIssueMember =
+                'issueId userId createdAt createdById removed removedAt removedById';
+
+            const populateIssueMember = [
+                { path: 'issueId', select: 'name' },
+
+                { path: 'userId', select: 'name email' },
+            ];
+
             const errorTrackerIssues = await IssueService.findBy({
                 query,
                 limit: 0, // set limit to 0 to get ALL issues related by query
@@ -181,8 +190,9 @@ module.exports = {
                             this.countBy(innerQuery),
                             // we get the memebrs attached to this issue
                             IssueMemberService.findBy({
-                                issueId: issue._id,
-                                removed: false,
+                                query: { issueId: issue._id, removed: false },
+                                select: selectIssueMember,
+                                populate: populateIssueMember,
                             }),
                             // we get the timeline to attach to this issue
                             IssueTimelineService.findBy({
