@@ -59,21 +59,33 @@ module.exports = {
         const intervalDayDate = moment(now).format('MMM Do YYYY');
         const intervalWeekDate = moment(now).format('wo [week of] YYYY');
 
+        const selectMonitorLogBy =
+            'monitorId probeId status responseTime responseStatus cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp createdAt intervalDate maxResponseTime maxCpuLoad maxMemoryUsed maxStorageUsed maxMainTemp sslCertificate kubernetesLog';
+
         const [logByHour, logByDay, logByWeek] = await Promise.all([
             MonitorLogByHourService.findOneBy({
-                probeId: data.probeId,
-                monitorId: data.monitorId,
-                intervalDate: intervalHourDate,
+                query: {
+                    probeId: data.probeId,
+                    monitorId: data.monitorId,
+                    intervalDate: intervalHourDate,
+                },
+                select: selectMonitorLogBy,
             }),
             MonitorLogByDayService.findOneBy({
-                probeId: data.probeId,
-                monitorId: data.monitorId,
-                intervalDate: intervalDayDate,
+                query: {
+                    probeId: data.probeId,
+                    monitorId: data.monitorId,
+                    intervalDate: intervalDayDate,
+                },
+                select: selectMonitorLogBy,
             }),
             MonitorLogByWeekService.findOneBy({
-                probeId: data.probeId,
-                monitorId: data.monitorId,
-                intervalDate: intervalWeekDate,
+                query: {
+                    probeId: data.probeId,
+                    monitorId: data.monitorId,
+                    intervalDate: intervalWeekDate,
+                },
+                select: selectMonitorLogBy,
             }),
         ]);
 

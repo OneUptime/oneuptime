@@ -286,7 +286,7 @@ module.exports = {
         } else {
             updateData.fetchLightHouse = null;
         }
-        
+
         await MonitorModel.updateOne(
             { _id },
             {
@@ -299,15 +299,14 @@ module.exports = {
                 new: true,
             }
         );
-        
+
         const select =
-                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
-        const query = {_id};
-        
+            '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+        const query = { _id };
+
         const monitor = await this.findOneBy({ query, select });
         RealTimeService.monitorEdit(monitor);
         return monitor;
-       
     },
 
     disableMonitor: async function(_id) {
@@ -1083,6 +1082,9 @@ module.exports = {
                     probes = await ProbeService.findBy({});
                 }
 
+                const selectMonitorLogBy =
+                    'monitorId probeId status responseTime responseStatus cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp createdAt intervalDate maxResponseTime maxCpuLoad maxMemoryUsed maxStorageUsed maxMainTemp sslCertificate kubernetesLog';
+
                 for (const probe of probes) {
                     const query = {
                         monitorId,
@@ -1095,13 +1097,15 @@ module.exports = {
                     let monitorLogs;
 
                     if (intervalInDays > 30 && !isNewMonitor) {
-                        monitorLogs = await MonitorLogByWeekService.findBy(
-                            query
-                        );
+                        monitorLogs = await MonitorLogByWeekService.findBy({
+                            query,
+                            select: selectMonitorLogBy,
+                        });
                     } else if (intervalInDays > 2 && !isNewMonitor) {
-                        monitorLogs = await MonitorLogByDayService.findBy(
-                            query
-                        );
+                        monitorLogs = await MonitorLogByDayService.findBy({
+                            query,
+                            select: selectMonitorLogBy,
+                        });
                     } else {
                         if (
                             moment(endDate).diff(
@@ -1109,9 +1113,10 @@ module.exports = {
                                 'minutes'
                             ) > 60
                         ) {
-                            monitorLogs = await MonitorLogByHourService.findBy(
-                                query
-                            );
+                            monitorLogs = await MonitorLogByHourService.findBy({
+                                query,
+                                select: selectMonitorLogBy,
+                            });
                         } else {
                             const selectMonitorLog =
                                 'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
@@ -1162,6 +1167,10 @@ module.exports = {
             } else {
                 probes = await ProbeService.findBy({});
             }
+
+            const selectMonitorLogBy =
+                'monitorId probeId status responseTime responseStatus cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp createdAt intervalDate maxResponseTime maxCpuLoad maxMemoryUsed maxStorageUsed maxMainTemp sslCertificate kubernetesLog';
+
             const probeLogs = [];
             for (const probe of probes) {
                 const query = {
@@ -1171,12 +1180,13 @@ module.exports = {
                 if (typeof probe !== 'undefined') {
                     query.probeId = probe._id;
                 }
-                const monitorLogs = await MonitorLogByDayService.findBy(
+                const monitorLogs = await MonitorLogByDayService.findBy({
                     query,
-                    null,
-                    null,
-                    filter
-                );
+                    limit: null,
+                    skip: null,
+                    filter,
+                    select: selectMonitorLogBy,
+                });
                 if (monitorLogs && monitorLogs.length > 0) {
                     probeLogs.push({
                         _id: typeof probe !== 'undefined' ? probe._id : null,
