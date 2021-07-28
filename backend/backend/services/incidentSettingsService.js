@@ -76,7 +76,7 @@ module.exports = {
             responseQuery = handlePopulate(populate, responseQuery);
             const result = await responseQuery;
 
-            return await result;
+            return result;
         } catch (error) {
             ErrorService.log('IncidentSettingsService.findBy', error);
             throw error;
