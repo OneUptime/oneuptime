@@ -12,42 +12,58 @@ module.exports = {
             issueMember.createdById = data.createdById;
 
             const savedIssueMember = await issueMember.save();
+
+            const selectIssueMember =
+                'issueId userId createdAt createdById removed removedAt removedById';
+
+            const populateIssueMember = [
+                { path: 'issueId', select: 'name' },
+
+                { path: 'userId', select: 'name email' },
+            ];
             issueMember = await _this.findOneBy({
-                _id: savedIssueMember._id,
+                query: { _id: savedIssueMember._id },
+                select: selectIssueMember,
+                populate: populateIssueMember,
             });
-            return savedIssueMember;
+            return issueMember;
         } catch (error) {
             ErrorService.log('issueMemberService.create', error);
             throw error;
         }
     },
     // find a list of Members assigned to an Issue
-    async findBy(query) {
+    async findBy({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
-            const issues = await IssueMemberModel.find(query)
-                .lean()
-                .populate('issueId', 'name')
-                .populate('userId', ['name', 'email']);
+            let issuesQuery = IssueMemberModel.find(query).lean();
+
+            issuesQuery = handleSelect(select, issuesQuery);
+            issuesQuery = handlePopulate(populate, issuesQuery);
+
+            const issues = await issuesQuery;
             return issues;
         } catch (error) {
             ErrorService.log('issueMemberService.findBy', error);
             throw error;
         }
     },
-    async findOneBy(query) {
+    async findOneBy({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
-            const issueMember = await IssueMemberModel.findOne(query)
-                .lean()
-                .populate('issueId', 'name')
-                .populate('userId', ['name', 'email']);
+            let issueMemberQuery = IssueMemberModel.findOne(query).lean();
+
+            issueMemberQuery = handleSelect(select, issueMemberQuery);
+            issueMemberQuery = handlePopulate(populate, issueMemberQuery);
+
+            const issueMember = await issueMemberQuery;
+
             return issueMember;
         } catch (error) {
             ErrorService.log('issueMemberService.findOneBy', error);
@@ -78,7 +94,20 @@ module.exports = {
                 );
             }
 
-            issueMember = await this.findOneBy(query);
+            const selectIssueMember =
+                'issueId userId createdAt createdById removed removedAt removedById';
+
+            const populateIssueMember = [
+                { path: 'issueId', select: 'name' },
+
+                { path: 'userId', select: 'name email' },
+            ];
+
+            issueMember = await this.findOneBy({
+                query,
+                select: selectIssueMember,
+                populate: populateIssueMember,
+            });
 
             return issueMember;
         } catch (error) {
@@ -90,3 +119,5 @@ module.exports = {
 
 const IssueMemberModel = require('../models/issueMember');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
