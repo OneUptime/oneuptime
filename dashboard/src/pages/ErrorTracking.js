@@ -18,8 +18,8 @@ import { logEvent } from '../analytics';
 import io from 'socket.io-client';
 import { history } from '../store';
 
-const socket = io.connect(REALTIME_URL.replace('/api', ''), {
-    path: '/api/socket.io',
+const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+    path: '/realtime/socket.io',
     transports: ['websocket', 'polling'],
 });
 

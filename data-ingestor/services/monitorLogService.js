@@ -10,7 +10,7 @@ const { postApi } = require('../utils/api');
 const { realtimeUrl } = require('../utils/config');
 const ProjectService = require('./projectService');
 
-const realtimeBaseUrl = `${realtimeUrl}/api/realtime`;
+const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 module.exports = {
     create: async function(data) {

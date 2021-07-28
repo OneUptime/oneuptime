@@ -29,7 +29,7 @@ if (
     apiUrl = protocol + '//localhost:3002/api';
     dashboardUrl = protocol + '//localhost:3000/dashboard';
     accountsUrl = protocol + '//localhost:3003/accounts';
-    realtimeUrl = protocol + '//localhost:3300/api';
+    realtimeUrl = protocol + '//localhost:3300/realtime';
 } else if (env('FYIPE_HOST')) {
     const FYIPE_HOST = env('FYIPE_HOST').replace(/(http:\/\/|https:\/\/)/, ''); // remove any protocol that might have been added
     apiUrl = protocol + `//${FYIPE_HOST}/api`;

@@ -22,9 +22,10 @@ import io from 'socket.io-client';
 import sortByName from '../utils/sortByName';
 import { history } from '../store';
 
-// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(REALTIME_URL.replace('/api', ''), {
-    path: '/api/socket.io',
+// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
+// '/realtime' is set as socket io namespace, so remove
+const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+    path: '/realtime/socket.io',
     transports: ['websocket', 'polling'],
 });
 class Container extends Component {

@@ -7,7 +7,7 @@ const moment = require('moment');
 const ProjectService = require('./projectService');
 const { realtimeUrl } = require('../utils/config');
 
-const realtimeBaseUrl = `${realtimeUrl}/api/realtime`;
+const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 module.exports = {
     create: async function(data) {
