@@ -1,5 +1,7 @@
 package fyipe
 
+import "time"
+
 type ApplicationLog struct {
 	ID   string `json:"_id"`
 	Name string
@@ -18,7 +20,8 @@ type LoggerResponse struct {
 }
 
 type Timeline struct {
-	Category string
-	Data     interface{}
-	Type     string
+	Category  string
+	Data      interface{}
+	Type      string
+	Timestamp time.Time
 }
