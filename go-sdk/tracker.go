@@ -1,6 +1,8 @@
 package fyipe
 
-import "sync"
+import (
+	"sync"
+)
 
 type Tracker struct {
 	stack *stack
@@ -65,4 +67,17 @@ func (tracker *Tracker) FyipeTracker() *FyipeTracker {
 func (tracker *Tracker) Realm() *Realm {
 	top := tracker.stackTop()
 	return top.realm
+}
+func (tracker *Tracker) AddToTimeline(timeline *Timeline) {
+	currentFyipeTracker := tracker.FyipeTracker()
+
+	options := currentFyipeTracker.options.Options
+
+	userTimeline := options.MaxTimeline
+
+	if userTimeline < 1 {
+		return
+	}
+
+	tracker.Realm().AddToTimeline(timeline, userTimeline)
 }
