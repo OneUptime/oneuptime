@@ -775,8 +775,20 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
+            const selectLighthouseLogs =
+                'monitorId probeId data url performance accessibility bestPractices seo pwa createdAt scanning';
+
+            const populateLighthouseLogs = [
+                {
+                    path: 'probeId',
+                    select:
+                        'probeName probeKey version lastAlive deleted probeImage',
+                },
+            ];
             const lighthouseIssue = await LighthouseLogService.findOneBy({
-                _id: req.params.issueId,
+                query: { _id: req.params.issueId },
+                select: selectLighthouseLogs,
+                populate: populateLighthouseLogs,
             });
 
             return sendItemResponse(req, res, lighthouseIssue);
