@@ -1,6 +1,8 @@
 package fyipe
 
-import "errors"
+import (
+	"errors"
+)
 
 const MAX_ITEMS_ALLOWED_IN_STACK = 100
 
@@ -21,9 +23,9 @@ type FyipeTracker struct {
 
 // Generic Error Messages
 var (
-	ErrErrorTrackerIDMissing  = "Application Log ID cant be empty"
-	ErrErrorTrackerKeyMissing = "Application Log Key cant be empty"
-	ErrInvalidTimeline        = "Timeline Value must be between 1 and 100"
+	ErrErrorTrackerIDMissing  = "Error Tracker ID cant be empty"
+	ErrErrorTrackerKeyMissing = "Error Tracker Key cant be empty"
+	ErrInvalidTimeline        = "Timeline Value must be between 0 and 100"
 )
 
 func NewFyipeTracker(options FyipeTrackerOption) (*FyipeTracker, error) {
@@ -37,7 +39,7 @@ func NewFyipeTracker(options FyipeTrackerOption) (*FyipeTracker, error) {
 		return nil, errors.New(ErrErrorTrackerKeyMissing)
 	}
 	userTimelineVal := options.Options.MaxTimeline
-	if userTimelineVal > MAX_ITEMS_ALLOWED_IN_STACK || userTimelineVal < 1 {
+	if userTimelineVal > MAX_ITEMS_ALLOWED_IN_STACK || userTimelineVal < 0 { // if 0 it means user is not recording any timeline activity
 		return nil, errors.New(ErrInvalidTimeline)
 	}
 
@@ -64,8 +66,15 @@ func InitTracker(options FyipeTrackerOption) error {
 	return nil
 }
 
-func addToTimeline(timelineObj Timeline) {
+func AddToTimeline(timeline *Timeline) {
 
-	// TODO log data
+	tracker := CurrentTracker()
 
+	tracker.AddToTimeline(timeline)
+
+}
+func GetTimeline() []*Timeline {
+	tracker := CurrentTracker()
+
+	return tracker.Realm().timelines
 }
