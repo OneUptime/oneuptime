@@ -71,7 +71,7 @@ app.get(['/probe/version', '/version'], function(req, res) {
 });
 
 // This cron runs every other minute.
-cron.schedule('*/2 * * * *', () => {
+cron.schedule('* * * * *', () => {
     setTimeout(() => {
         Main.runJob();
     }, cronMinuteStartTime * 1000);

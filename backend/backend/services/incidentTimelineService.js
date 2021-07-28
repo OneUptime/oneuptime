@@ -41,14 +41,10 @@ module.exports = {
             ]);
             incidentTimeline = timeline;
 
-            if (incident) {
-                const _incidentTimeline = Object.assign(
-                    {},
-                    incidentTimeline._doc || incidentTimeline,
-                    {
-                        projectId: incident.projectId._id || incident.projectId,
-                    }
-                );
+            if (incident && incidentTimeline) {
+                const _incidentTimeline = Object.assign({}, incidentTimeline, {
+                    projectId: incident.projectId._id || incident.projectId,
+                });
                 RealTimeService.updateIncidentTimeline(_incidentTimeline);
             }
 
