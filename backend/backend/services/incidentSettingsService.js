@@ -76,7 +76,7 @@ module.exports = {
             responseQuery = handlePopulate(populate, responseQuery);
             const result = await responseQuery;
 
-            return await result;
+            return result;
         } catch (error) {
             ErrorService.log('IncidentSettingsService.findBy', error);
             throw error;
@@ -118,9 +118,13 @@ module.exports = {
 
             if (data.name && query.projectId && query._id) {
                 const incidentSetting = await this.findOne({
-                    projectId: query.projectId,
-                    name: data.name,
-                    _id: { $ne: query._id },
+                    query: {
+                        projectId: query.projectId,
+                        name: data.name,
+                        _id: { $ne: query._id },
+                    },
+                    select:
+                        'projectId title description incidentPriority isDefault name createdAt',
                 });
 
                 if (incidentSetting) {
@@ -154,7 +158,11 @@ module.exports = {
                     upsert: true,
                 }
             );
-            const incidentSettings = await this.findOne(query);
+            const incidentSettings = await this.findOne({
+                query,
+                select:
+                    'projectId title description incidentPriority isDefault name createdAt',
+            });
             return incidentSettings;
         } catch (error) {
             ErrorService.log('IncidentSettingsService.updateOne', error);
@@ -171,7 +179,12 @@ module.exports = {
             let updatedData = await incidentSettingsModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const populate = [
+                { path: 'incidentPriority', select: 'name color' },
+            ];
+            const select =
+                'projectId title description incidentPriority isDefault name createdAt';
+            updatedData = await this.findBy({ query, select, populate });
             return updatedData;
         } catch (error) {
             ErrorService.log('IncidentSettingsService.updateBy', error);
@@ -180,7 +193,11 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            const incidentSetting = await this.findOne(query);
+            const incidentSetting = await this.findOne({
+                query,
+                select:
+                    'projectId title description incidentPriority isDefault name createdAt',
+            });
             if (incidentSetting.isDefault) {
                 const error = new Error('Default template cannot be deleted');
                 error.code = 400;

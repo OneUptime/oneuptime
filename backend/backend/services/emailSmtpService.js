@@ -83,7 +83,10 @@ module.exports = {
             let updatedData = await EmailSmtpModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const select =
+                'projectId user pass host port from name iv secure enabled createdAt';
+            const populate = [{ path: 'projectId', select: 'name' }];
+            updatedData = await this.findBy({ query, select, populate });
             for (const updatedEmailSmtp of updatedData) {
                 if (
                     updatedEmailSmtp &&
@@ -126,7 +129,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -145,12 +148,14 @@ module.exports = {
             }
 
             query.deleted = false;
-            const emailSmtp = await EmailSmtpModel.find(query)
+            let emailSmtpQuery = EmailSmtpModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('projectId', 'name')
                 .lean();
+            emailSmtpQuery = handleSelect(select, emailSmtpQuery);
+            emailSmtpQuery = handlePopulate(populate, emailSmtpQuery);
+            const emailSmtp = await emailSmtpQuery;
             for (const updatedEmailSmtp of emailSmtp) {
                 if (
                     updatedEmailSmtp &&

@@ -14,9 +14,19 @@ module.exports = {
                 throw error;
             }
             // try to find in the application log if the name already exist for that component
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
             const existingErrorTracker = await _this.findBy({
-                name: data.name,
-                componentId: data.componentId,
+                query: { name: data.name, componentId: data.componentId },
+                select,
+                populate: [
+                    {
+                        path: 'componentId',
+                        select: 'name slug projectId',
+                        populate: [{ path: 'projectId', select: 'name' }],
+                    },
+                    { path: 'resourceCategory', select: 'name' },
+                ],
             });
             if (existingErrorTracker && existingErrorTracker.length > 0) {
                 const error = new Error(
@@ -45,7 +55,12 @@ module.exports = {
             }
             const savedErrorTracker = await errorTracker.save();
             errorTracker = await _this.findOneBy({
-                _id: savedErrorTracker._id,
+                query: { _id: savedErrorTracker._id },
+                select,
+                populate: [
+                    { path: 'componentId', select: 'name' },
+                    { path: 'resourceCategory', select: 'name' },
+                ],
             });
             return errorTracker;
         } catch (error) {
@@ -143,12 +158,19 @@ module.exports = {
             if (typeof limit === 'string') limit = parseInt(limit);
             if (typeof skip === 'string') skip = parseInt(skip);
             const _this = this;
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
 
-            const errorTrackers = await _this.findBy(
-                { componentId: componentId },
+            const errorTrackers = await _this.findBy({
+                query: { componentId: componentId },
                 limit,
-                skip
-            );
+                skip,
+                select,
+                populate: [
+                    { path: 'componentId', select: 'name' },
+                    { path: 'resourceCategory', select: 'name' },
+                ],
+            });
             return errorTrackers;
         } catch (error) {
             ErrorService.log(
@@ -224,8 +246,14 @@ module.exports = {
                     }
                 );
             }
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
-            errorTracker = await this.findOneBy(query);
+            errorTracker = await this.findOneBy({ query, select, populate });
 
             // run in the background
             RealTimeService.errorTrackerKeyReset(errorTracker);
