@@ -154,11 +154,16 @@ module.exports = {
 
     getTemplates: async function(projectId) {
         const _this = this;
+        const select = 'projectId subject body emailType allowedVariables';
         const templates = await Promise.all(
             defaultTemplate.map(async template => {
                 const emailTemplate = await _this.findOneBy({
-                    projectId: projectId,
-                    emailType: template.emailType,
+                    query: {
+                        projectId: projectId,
+                        emailType: template.emailType,
+                    },
+                    select,
+                    populate: [{ path: 'projectId', select: 'nmae' }],
                 });
                 return emailTemplate != null && emailTemplate != undefined
                     ? emailTemplate
@@ -170,7 +175,12 @@ module.exports = {
 
     resetTemplate: async function(projectId, templateId) {
         const _this = this;
-        const oldTemplate = await _this.findOneBy({ _id: templateId });
+        const select = 'projectId subject body emailType allowedVariables';
+        const oldTemplate = await _this.findOneBy({
+            query: { _id: templateId },
+            select,
+            populate: [{ path: 'projectId', select: 'nmae' }],
+        });
         const newTemplate = defaultTemplate.filter(
             template => template.emailType === oldTemplate.emailType
         )[0];

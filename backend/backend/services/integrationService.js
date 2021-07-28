@@ -55,7 +55,22 @@ module.exports = {
             }
 
             let integration = await integrationModel.save();
-            integration = await _this.findOneBy({ _id: integration._id });
+            const select =
+                'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+            ];
+            integration = await _this.findOneBy({
+                query: { _id: integration._id },
+                select,
+                populate,
+            });
             return integration;
         } catch (error) {
             ErrorService.log('IntegrationService.create', error);
@@ -160,8 +175,21 @@ module.exports = {
                     },
                     { new: true }
                 );
+                const select =
+                    'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+                const populate = [
+                    { path: 'createdById', select: 'name' },
+                    { path: 'projectId', select: 'name' },
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name',
+                        populate: [{ path: 'componentId', select: 'name' }],
+                    },
+                ];
                 updatedIntegration = await _this.findOneBy({
-                    _id: updatedIntegration._id,
+                    query: { _id: updatedIntegration._id },
+                    select,
+                    populate,
                 });
                 return updatedIntegration;
             }
@@ -181,7 +209,18 @@ module.exports = {
             let updatedData = await IntegrationModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const select =
+                'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+            ];
+            updatedData = await this.findBy({ query, select, populate });
             return updatedData;
         } catch (error) {
             ErrorService.log('IntegrationService.updateMany', error);
@@ -213,7 +252,18 @@ module.exports = {
     restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
-        const integration = await _this.findBy(query);
+        const select =
+            'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+        const populate = [
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: [{ path: 'componentId', select: 'name' }],
+            },
+        ];
+        const integration = await _this.findBy({ query, select, populate });
         if (integration && integration.length > 1) {
             const integrations = await Promise.all(
                 integration.map(async integration => {
