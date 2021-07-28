@@ -71,9 +71,13 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                 data.lighthouseScanStatus
             );
 
-            await LighthouseLogService.updateAllLighthouseLogs(data.monitor.projectId, data.monitorId, {
-                scanning: true,
-            });
+            await LighthouseLogService.updateAllLighthouseLogs(
+                data.monitor.projectId,
+                data.monitorId,
+                {
+                    scanning: true,
+                }
+            );
         } else {
             await MonitorService.updateLighthouseScanStatus(
                 data.monitorId,

@@ -182,7 +182,7 @@ module.exports = {
             globalConfigsQuery = handleSelect(select, globalConfigsQuery);
             globalConfigsQuery = handlePopulate(populate, globalConfigsQuery);
 
-            let globalConfigs = await globalConfigsQuery;
+            const globalConfigs = await globalConfigsQuery;
             for (const globalConfig of globalConfigs) {
                 if (globalConfig.name === 'twilio') {
                     globalConfig.value[
@@ -226,7 +226,7 @@ module.exports = {
             globalConfigQuery = handleSelect(select, globalConfigQuery);
             globalConfigQuery = handlePopulate(populate, globalConfigQuery);
 
-            let globalConfig = await globalConfigQuery;
+            const globalConfig = await globalConfigQuery;
 
             if (globalConfig && globalConfig.name === 'twilio') {
                 globalConfig.value[

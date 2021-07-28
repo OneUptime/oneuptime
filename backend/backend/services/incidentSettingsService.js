@@ -10,13 +10,14 @@ module.exports = {
                 name,
             } = data;
 
-            const query = {projectId};
-            const select = '_id projectId title description incidentPriority name';
+            const query = { projectId };
+            const select =
+                '_id projectId title description incidentPriority name';
             const incidentSetting = await this.findOne({
                 query,
-                select
+                select,
             });
-            
+
             if (incidentSetting) {
                 const error = new Error(
                     'Incident template with this name already exist in project'
