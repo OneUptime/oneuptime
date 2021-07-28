@@ -30,7 +30,8 @@ module.exports = {
                     select: '_id',
                 }),
                 GitCredentialService.findOneBy({
-                    _id: data.gitCredential,
+                    query: { _id: data.gitCredential },
+                    select: '_id',
                 }),
             ]);
 
