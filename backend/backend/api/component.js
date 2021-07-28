@@ -676,11 +676,25 @@ router.get(
             });
 
             let errorTrackers = [];
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                {
+                    path: 'componentId',
+                    select: 'name slug projectId',
+                    populate: [{ path: 'projectId', select: 'name' }],
+                },
+                { path: 'resourceCategory', select: 'name' },
+            ];
             await Promise.all(
                 allComponents.map(async component => {
                     const componentErrorTrackers = await ErrorTrackerService.findBy(
                         {
-                            componentId: component._id,
+                            query: {
+                                componentId: component._id,
+                            },
+                            select,
+                            populate,
                         }
                     );
                     errorTrackers = [
