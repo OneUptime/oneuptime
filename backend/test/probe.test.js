@@ -230,7 +230,8 @@ describe('Probe API', function() {
         expect(res).to.have.status(200);
         expect(res.body).to.be.an('object');
         const probe = await ProbeService.findOneBy({
-            probeName: probeServerName1,
+            query: { probeName: probeServerName1 },
+            select: '_id',
         });
         expect(probe).to.not.eql(null);
     });

@@ -1079,7 +1079,10 @@ module.exports = {
                 ) {
                     probes = [undefined];
                 } else {
-                    probes = await ProbeService.findBy({});
+                    probes = await ProbeService.findBy({
+                        query: {},
+                        select: '_id',
+                    });
                 }
 
                 const selectMonitorLogBy =
@@ -1166,7 +1169,10 @@ module.exports = {
             if (monitor.type === 'server-monitor' && !monitor.agentlessConfig) {
                 probes = [undefined];
             } else {
-                probes = await ProbeService.findBy({});
+                probes = await ProbeService.findBy({
+                    query: {},
+                    select: '_id',
+                });
             }
 
             const selectMonitorLogBy =
@@ -1221,7 +1227,10 @@ module.exports = {
             ) {
                 probes = [undefined];
             } else {
-                probes = await ProbeService.findBy({});
+                probes = await ProbeService.findBy({
+                    query: {},
+                    select: '_id',
+                });
             }
 
             for (const probe of probes) {

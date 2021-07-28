@@ -62,7 +62,7 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
         data.lighthouseData =
             resp && resp.lighthouseData ? resp.lighthouseData : null;
         data.monitorId = req.params.monitorId || monitor._id;
-        const probeId = await ProbeService.findBy();
+        const probeId = await ProbeService.findBy({ query: {}, select: '_id' });
         data.probeId = probeId ? probeId[0]._id : null;
 
         if (data.lighthouseScanStatus === 'scanning') {
