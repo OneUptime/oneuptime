@@ -14,29 +14,15 @@ type Logger struct {
 	stack *stack
 	mu    sync.RWMutex
 }
-type ApplicationLog struct {
-	ID   string `json:"_id"`
-	Name string
-}
-type LoggerResponse struct {
-	ID                 string `json:"_id"`
-	Deleted            bool
-	CreatedAt          string
-	Content            interface{}
-	StringifiedContent string
-	Type               string
-	CreatedBy          string
-	AppLog             ApplicationLog `json:"applicationLogId"`
-	Tags               []string
-	Message            string
-}
 
 type stack []*layer
 
 type layer struct {
-	// mu protects concurrent reads and writes to fyipeLogger.
-	mu          sync.RWMutex
-	fyipeLogger *FyipeLogger
+	// mu protects concurrent reads and writes to these objects.
+	mu           sync.RWMutex
+	fyipeLogger  *FyipeLogger
+	fyipeTracker *FyipeTracker
+	realm        *Realm
 }
 
 // return stored fyipeLogger
