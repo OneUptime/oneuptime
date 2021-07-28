@@ -259,7 +259,7 @@ const AutomatedTabularList = props => {
                         <div
                             style={{ textAlign: 'center', paddingTop: '15px' }}
                         >
-                            You don't have any scripts so far. 
+                            You don&apos;t have any scripts so far.
                         </div>
                     </ShouldRender>
                 </div>

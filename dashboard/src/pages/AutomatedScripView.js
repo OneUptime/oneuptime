@@ -499,7 +499,16 @@ const AutomatedScripView = props => {
                                                                                                 '12px',
                                                                                         }}
                                                                                     >
-                                                                                        No logs available for this script because it never ran.
+                                                                                        No
+                                                                                        logs
+                                                                                        available
+                                                                                        for
+                                                                                        this
+                                                                                        script
+                                                                                        because
+                                                                                        it
+                                                                                        never
+                                                                                        ran.
                                                                                     </div>
                                                                                 </ShouldRender>
                                                                                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
