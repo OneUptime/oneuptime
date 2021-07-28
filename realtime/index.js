@@ -57,7 +57,18 @@ app.use(function(req, res, next) {
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.json({ limit: '10mb' }));
 
-app.use(['/', '/realtime'], require('./api/realtime'));
+app.get('/realtime/stat', function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            status: 200,
+            message: 'Service Status - OK',
+            serviceType: 'fyipe-realtime',
+        })
+    );
+});
+
+app.use('/realtime', require('./api/realtime'));
 
 app.set('port', process.env.PORT || 3300);
 

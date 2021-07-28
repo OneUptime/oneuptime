@@ -120,7 +120,9 @@ module.exports = {
                 return;
             }
             const incident = await IncidentService.findOneBy({
-                query: { _id: incidentNote.incidentId._id },
+                query: {
+                    _id: incidentNote.incidentId._id || incidentNote.incidentId,
+                },
                 select: 'projectId _id',
             });
             const project = await ProjectService.findOneBy({
@@ -149,7 +151,9 @@ module.exports = {
                 return;
             }
             const incident = await IncidentService.findOneBy({
-                query: { _id: incidentNote.incidentId._id },
+                query: {
+                    _id: incidentNote.incidentId._id || incidentNote.incidentId,
+                },
                 select: 'projectId',
             });
             const project = await ProjectService.findOneBy({
@@ -233,7 +237,9 @@ module.exports = {
                 return;
             }
             const incident = await IncidentService.findOneBy({
-                query: { _id: incidentNote.incidentId._id },
+                query: {
+                    _id: incidentNote.incidentId._id || incidentNote.incidentId,
+                },
                 select: 'projectId',
             });
             const project = await ProjectService.findOneBy({
@@ -259,14 +265,14 @@ module.exports = {
     addScheduledEvent: async event => {
         try {
             const project = await ProjectService.findOneBy({
-                query: { _id: event.projectId },
+                query: { _id: event.projectId._id || event.projectId },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : event.projectId;
+                : event.projectId._id || event.projectId;
 
             postApi(`${realtimeBaseUrl}/add-scheduled-event`, {
                 event,
@@ -281,14 +287,14 @@ module.exports = {
     deleteScheduledEvent: async event => {
         try {
             const project = await ProjectService.findOneBy({
-                query: { _id: event.projectId },
+                query: { _id: event.projectId._id || event.projectId },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : event.projectId;
+                : event.projectId._id || event.projectId;
 
             postApi(`${realtimeBaseUrl}/delete-scheduled-event`, {
                 event,
@@ -303,14 +309,14 @@ module.exports = {
     updateScheduledEvent: async event => {
         try {
             const project = await ProjectService.findOneBy({
-                query: { _id: event.projectId },
+                query: { _id: event.projectId._id || event.projectId },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : event.projectId;
+                : event.projectId._id || event.projectId;
 
             postApi(`${realtimeBaseUrl}/update-scheduled-event`, {
                 event,
@@ -325,14 +331,14 @@ module.exports = {
     resolveScheduledEvent: async event => {
         try {
             const project = await ProjectService.findOneBy({
-                query: { _id: event.projectId._id },
+                query: { _id: event.projectId._id || event.projectId },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : event.projectId._id;
+                : event.projectId._id || event.projectId;
 
             postApi(`${realtimeBaseUrl}/resolve-scheduled-event`, {
                 event,
@@ -522,14 +528,14 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                query: { _id: component.projectId._id },
+                query: { _id: component.projectId._id || component.projectId },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : component.projectId._id;
+                : component.projectId._id || component.projectId;
 
             postApi(`${realtimeBaseUrl}/send-component-created`, {
                 component,
@@ -548,14 +554,14 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                query: { _id: monitor.projectId._id },
+                query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : monitor.projectId._id;
+                : monitor.projectId._id || monitor.projectId;
 
             postApi(`${realtimeBaseUrl}/send-monitor-created`, {
                 monitor,
@@ -574,14 +580,14 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                query: { _id: monitor.projectId._id },
+                query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : monitor.projectId._id;
+                : monitor.projectId._id || monitor.projectId;
 
             postApi(`${realtimeBaseUrl}/send-monitor-delete`, {
                 monitor,
@@ -600,14 +606,14 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                query: { _id: component.projectId },
+                query: { _id: component.projectId._id || component.projectId },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : component.projectId;
+                : component.projectId._id || component.projectId;
 
             postApi(`${realtimeBaseUrl}/send-component-delete`, {
                 component,
@@ -626,14 +632,14 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                query: { _id: monitor.projectId },
+                query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : monitor.projectId;
+                : monitor.projectId._id || monitor.projectId;
 
             postApi(`${realtimeBaseUrl}/send-monitor-delete`, {
                 monitor,
@@ -700,14 +706,16 @@ module.exports = {
     statusPageEdit: async statusPage => {
         try {
             const project = await ProjectService.findOneBy({
-                query: { _id: statusPage.projectId._id },
+                query: {
+                    _id: statusPage.projectId._id || statusPage.projectId,
+                },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : statusPage.projectId._id;
+                : statusPage.projectId._id || statusPage.projectId;
 
             postApi(`${realtimeBaseUrl}/status-page-edit`, {
                 statusPage,
@@ -726,14 +734,14 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                query: { _id: component.projectId },
+                query: { _id: component.projectId._id || component.projectId },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : component.projectId;
+                : component.projectId._id || component.projectId;
 
             postApi(`${realtimeBaseUrl}/component-edit`, {
                 component,
@@ -752,14 +760,14 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                query: { _id: monitor.projectId },
+                query: { _id: monitor.projectId._id || monitor.projectId },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : monitor.projectId;
+                : monitor.projectId._id || monitor.projectId;
 
             postApi(`${realtimeBaseUrl}/monitor-edit`, {
                 monitor,
@@ -923,14 +931,14 @@ module.exports = {
             }
 
             const project = await ProjectService.findOneBy({
-                query: { _id: data.projectId },
+                query: { _id: data.projectId._id || data.projectId },
                 select: 'parentProject _id',
             });
             const projectId = project
                 ? project.parentProjectId
                     ? project.parentProjectId._id || project.parentProjectId
                     : project._id
-                : data.projectId;
+                : data.projectId._id || data.projectId;
 
             postApi(`${realtimeBaseUrl}/send-notification`, {
                 data,
@@ -1028,7 +1036,8 @@ module.exports = {
             if (!global || !global.io) {
                 return;
             }
-            const componentId = applicationLog.componentId._id;
+            const componentId =
+                applicationLog.componentId._id || applicationLog.componentId;
 
             postApi(`${realtimeBaseUrl}/send-application-log-created`, {
                 applicationLog,
@@ -1048,7 +1057,8 @@ module.exports = {
                 return;
             }
 
-            const componentId = applicationLog.componentId._id;
+            const componentId =
+                applicationLog.componentId._id || applicationLog.componentId;
 
             postApi(`${realtimeBaseUrl}/send-application-log-delete`, {
                 applicationLog,
@@ -1064,7 +1074,8 @@ module.exports = {
             if (!global || !global.io) {
                 return;
             }
-            const applicationLogId = contentLog.applicationLogId._id;
+            const applicationLogId =
+                contentLog.applicationLogId._id || contentLog.applicationLogId;
 
             postApi(`${realtimeBaseUrl}/send-log-created`, {
                 contentLog,
@@ -1081,7 +1092,8 @@ module.exports = {
                 return;
             }
 
-            const componentId = applicationLog.componentId._id;
+            const componentId =
+                applicationLog.componentId._id || applicationLog.componentId;
 
             postApi(`${realtimeBaseUrl}/application-log-key-reset`, {
                 applicationLog,
@@ -1097,7 +1109,9 @@ module.exports = {
             if (!global || !global.io) {
                 return;
             }
-            const componentId = containerSecurity.componentId;
+            const componentId =
+                containerSecurity.componentId._id ||
+                containerSecurity.componentId;
 
             postApi(`${realtimeBaseUrl}/send-container-security-created`, {
                 containerSecurity,
@@ -1116,7 +1130,9 @@ module.exports = {
             if (!global || !global.io) {
                 return;
             }
-            const componentId = applicationSecurity.componentId;
+            const componentId =
+                applicationSecurity.componentId._id ||
+                applicationSecurity.componentId;
 
             postApi(`${realtimeBaseUrl}/send-application-security-created`, {
                 applicationSecurity,
@@ -1135,7 +1151,8 @@ module.exports = {
             if (!global || !global.io) {
                 return;
             }
-            const componentId = errorTracker.componentId._id;
+            const componentId =
+                errorTracker.componentId._id || errorTracker.componentId;
 
             postApi(`${realtimeBaseUrl}/send-error-tracker-created`, {
                 errorTracker,
@@ -1152,7 +1169,8 @@ module.exports = {
                 return;
             }
 
-            const componentId = errorTracker.componentId._id;
+            const componentId =
+                errorTracker.componentId._id || errorTracker.componentId;
 
             postApi(`${realtimeBaseUrl}/send-error-tracker-delete`, {
                 errorTracker,
@@ -1169,7 +1187,8 @@ module.exports = {
                 return;
             }
 
-            const componentId = errorTracker.componentId._id;
+            const componentId =
+                errorTracker.componentId._id || errorTracker.componentId;
 
             postApi(`${realtimeBaseUrl}/error-tracker-key-reset`, {
                 errorTracker,
@@ -1185,7 +1204,9 @@ module.exports = {
             if (!global || !global.io) {
                 return;
             }
-            const errorTrackerId = data.errorEvent.errorTrackerId._id;
+            const errorTrackerId =
+                data.errorEvent.errorTrackerId._id ||
+                data.errorEvent.errorTrackerId;
 
             postApi(`${realtimeBaseUrl}/send-error-event-created`, {
                 data,
@@ -1201,7 +1222,8 @@ module.exports = {
             if (!global || !global.io) {
                 return;
             }
-            const errorTrackerId = issue.errorTrackerId._id;
+            const errorTrackerId =
+                issue.errorTrackerId._id || issue.errorTrackerId;
 
             postApi(`${realtimeBaseUrl}/send-issue-status-change`, {
                 issue,
@@ -1219,7 +1241,8 @@ module.exports = {
                 return;
             }
 
-            const errorTrackerId = issue.errorTrackerId._id;
+            const errorTrackerId =
+                issue.errorTrackerId._id || issue.errorTrackerId;
 
             postApi(`${realtimeBaseUrl}/send-error-tracker-issue-delete`, {
                 issue,

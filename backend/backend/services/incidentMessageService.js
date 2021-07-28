@@ -30,7 +30,7 @@ module.exports = {
                 populate,
             });
 
-            if (incidentMessage.postOnStatusPage) {
+            if (incidentMessage && incidentMessage.postOnStatusPage) {
                 // run in the background
                 RealTimeService.addIncidentNote(incidentMessage);
             }

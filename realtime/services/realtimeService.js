@@ -329,19 +329,6 @@ module.exports = {
         }
     },
 
-    // deleteMonitor: ({ monitor, projectId }) => {
-    //     try {
-    //         if (!global || !global.io) {
-    //             return;
-    //         }
-
-    //         global.io.emit(`deleteMonitor-${projectId}`, monitor);
-    //     } catch (error) {
-    //         ErrorService.log('realtimeService.deleteMonitor', error);
-    //         throw error;
-    //     }
-    // },
-
     sendComponentDelete: ({ component, projectId }) => {
         try {
             if (!global || !global.io) {
