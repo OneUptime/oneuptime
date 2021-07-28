@@ -1309,4 +1309,4 @@ const MonitorService = require('./monitorService');
 const IncidentService = require('./incidentService');
 const { postApi } = require('../utils/api');
 const { REALTIME_URL } = require('../config/realtime');
-const realtimeBaseUrl = `${REALTIME_URL}/api/realtime`;
+const realtimeBaseUrl = `${REALTIME_URL}/realtime`;

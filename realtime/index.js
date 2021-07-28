@@ -29,7 +29,7 @@ const app = express();
 const http = require('http').createServer(app);
 const cors = require('cors');
 const io = require('socket.io')(http, {
-    path: '/api/socket.io',
+    path: '/realtime/socket.io',
     transports: ['websocket', 'polling'], // using websocket does not require sticky session
 });
 // attach socket to global object
@@ -57,7 +57,7 @@ app.use(function(req, res, next) {
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.json({ limit: '10mb' }));
 
-app.use(['/realtime', '/api/realtime'], require('./api/realtime'));
+app.use(['/', '/realtime'], require('./api/realtime'));
 
 app.set('port', process.env.PORT || 3300);
 

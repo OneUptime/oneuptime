@@ -124,7 +124,7 @@ class MonitorView extends React.Component {
                 0,
                 10,
                 moment()
-                    .subtract(30, 'd')
+                    .subtract(5, 'd')
                     .utc(),
                 moment().utc(),
                 null,
@@ -224,7 +224,7 @@ class MonitorView extends React.Component {
                     0,
                     10,
                     moment()
-                        .subtract(30, 'd')
+                        .subtract(5, 'd')
                         .utc(),
                     moment().utc(),
                     null,

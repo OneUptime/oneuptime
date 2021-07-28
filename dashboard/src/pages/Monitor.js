@@ -36,8 +36,8 @@ import { REALTIME_URL } from '../config';
 import io from 'socket.io-client';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
 
-const socket = io.connect(REALTIME_URL.replace('/api', ''), {
-    path: '/api/socket.io',
+const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+    path: '/realtime/socket.io',
     transports: ['websocket', 'polling'],
 });
 class DashboardView extends Component {

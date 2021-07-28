@@ -6176,4 +6176,4 @@ const probeCollection = global.db.collection('probes');
 const { v1: uuidv1 } = require('uuid');
 const { postApi } = require('../utils/api');
 const { realtimeUrl } = require('../utils/config');
-const realtimeBaseUrl = `${realtimeUrl}/api/realtime`;
+const realtimeBaseUrl = `${realtimeUrl}/realtime`;
