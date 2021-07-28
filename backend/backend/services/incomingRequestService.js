@@ -120,13 +120,26 @@ module.exports = {
                 }));
             }
             data.enabled = true;
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
 
             let incomingRequest = await IncomingRequestModel.create({
                 ...data,
             });
 
             incomingRequest = await _this.findOneBy({
-                _id: incomingRequest._id,
+                query: { _id: incomingRequest._id },
+                select,
+                populate,
             });
 
             // await RealTimeService.addScheduledEvent(incomingRequest);
@@ -323,9 +336,22 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
 
             updatedIncomingRequest = await _this.findOneBy({
-                _id: query.requestId,
+                query: { _id: query.requestId },
+                select,
+                populate,
             });
 
             // await RealTimeService.updateScheduledEvent(updatedIncomingRequest);
@@ -542,6 +568,17 @@ module.exports = {
                 'projectId name color createdAt deletedAt deleted deletedById';
             const selectIncSettings =
                 'projectId title description incidentPriority isDefault name createdAt';
+            const selectInRequest =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populateInRequest = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
             const [
                 incidentPriorities,
                 incidentSettings,
@@ -559,8 +596,9 @@ module.exports = {
                     select: selectIncSettings,
                 }),
                 _this.findOneBy({
-                    _id: data.requestId,
-                    projectId: data.projectId,
+                    query: { _id: data.requestId, projectId: data.projectId },
+                    select: selectInRequest,
+                    populate: populateInRequest,
                 }),
             ]);
 
