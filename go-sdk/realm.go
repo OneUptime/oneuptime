@@ -1,6 +1,9 @@
 package fyipe
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 type Realm struct {
 	mu          sync.RWMutex
@@ -17,4 +20,19 @@ func NewRealm() *Realm {
 	}
 
 	return &realm
+}
+
+// adds new timeline to the current realm
+func (realm *Realm) AddToTimeline(timeline *Timeline, limit int) {
+	timeline.Timestamp = time.Now()
+
+	realm.mu.Lock()
+	defer realm.mu.Unlock()
+
+	timelines := append(realm.timelines, timeline)
+	if len(timelines) > limit {
+		realm.timelines = timelines[1 : limit+1]
+	} else {
+		realm.timelines = timelines
+	}
 }
