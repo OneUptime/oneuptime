@@ -412,10 +412,24 @@ const getErrorTrackers = async (projectIds, val, parentProjectId) => {
         select: '_id',
     });
     const componentIds = components.map(component => component._id);
+    const select =
+        'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+    const populate = [
+        {
+            path: 'componentId',
+            select: 'name slug projectId',
+            populate: [{ path: 'projectId', select: 'name' }],
+        },
+        { path: 'resourceCategory', select: 'name' },
+    ];
     const errorTrackers = await ErrorTrackerService.findBy({
-        componentId: { $in: componentIds },
-        deleted: false,
-        $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+        query: {
+            componentId: { $in: componentIds },
+            deleted: false,
+            $or: [{ name: { $regex: new RegExp(val), $options: 'i' } }],
+        },
+        select,
+        populate,
     });
     if (errorTrackers.length > 0) {
         const resultObj = {

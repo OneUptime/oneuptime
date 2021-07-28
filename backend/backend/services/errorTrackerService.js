@@ -70,7 +70,7 @@ module.exports = {
     },
 
     // find a list of error trackers
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -89,39 +89,34 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const errorTrackers = await ErrorTrackerModel.find(query)
+            let errorTrackersQuery = ErrorTrackerModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate({
-                    path: 'componentId',
-                    select: 'name slug projectId',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name',
-                    },
-                })
-                .populate('resourceCategory', 'name');
-            return errorTrackers;
+                .skip(skip);
+
+            errorTrackersQuery = handleSelect(select, errorTrackersQuery);
+            errorTrackersQuery = handlePopulate(populate, errorTrackersQuery);
+            const result = await errorTrackersQuery;
+            return result;
         } catch (error) {
             ErrorService.log('errorTrackerService.findBy', error);
             throw error;
         }
     },
     // find a particular error tracker
-    async findOneBy(query) {
+    async findOneBy({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const errorTracker = await ErrorTrackerModel.findOne(query)
-                .lean()
-                .populate('componentId', 'name')
-                .populate('resourceCategory', 'name');
-            return errorTracker;
+            let errorTrackersQuery = ErrorTrackerModel.findOne(query).lean();
+            errorTrackersQuery = handleSelect(select, errorTrackersQuery);
+            errorTrackersQuery = handlePopulate(populate, errorTrackersQuery);
+            const result = await errorTrackersQuery;
+            return result;
         } catch (error) {
             ErrorService.log('errorTrackerService.findOneBy', error);
             throw error;
@@ -251,3 +246,5 @@ const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
 const uuid = require('uuid');
 const getSlug = require('../utils/getSlug');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
