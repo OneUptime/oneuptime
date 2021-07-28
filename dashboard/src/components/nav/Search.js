@@ -191,7 +191,7 @@ class Search extends Component {
             0,
             10,
             moment()
-                .subtract(5, 'd')
+                .subtract(1, 'd')
                 .utc(),
             moment().utc(),
             null,
