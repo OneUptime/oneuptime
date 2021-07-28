@@ -9,7 +9,8 @@ module.exports = {
                 probeKey = uuidv1();
             }
             const storedProbe = await _this.findOneBy({
-                probeName: data.probeName,
+                query: { probeName: data.probeName },
+                select: 'probeName',
             });
             if (storedProbe && storedProbe.probeName) {
                 const error = new Error('Probe name already exists.');
@@ -61,7 +62,10 @@ module.exports = {
             let updatedData = await ProbeModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+
+            const selectProbe =
+                'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
+            updatedData = await this.findBy({ query, select: selectProbe });
             return updatedData;
         } catch (error) {
             ErrorService.log('ProbeService.updateMany', error);
@@ -69,7 +73,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -88,11 +92,17 @@ module.exports = {
             }
 
             query.deleted = false;
-            const probe = await ProbeModel.find(query)
+            let probeQuery = ProbeModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
+
+            probeQuery = handleSelect(select, probeQuery);
+            probeQuery = handlePopulate(populate, probeQuery);
+
+            const probe = await probeQuery;
+
             return probe;
         } catch (error) {
             ErrorService.log('ProbeService.findBy', error);
@@ -100,16 +110,21 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, populate, select }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const probe = await ProbeModel.findOne(query, {
+            let probeQuery = ProbeModel.findOne(query, {
                 deleted: false,
             }).lean();
+
+            probeQuery = handleSelect(select, probeQuery);
+            probeQuery = handlePopulate(populate, probeQuery);
+
+            const probe = await probeQuery;
             return probe;
         } catch (error) {
             ErrorService.log('ProbeService.findOneBy', error);
@@ -162,7 +177,12 @@ module.exports = {
 
     sendProbe: async function(probeId, monitorId) {
         try {
-            const probe = await this.findOneBy({ _id: probeId });
+            const selectProbe =
+                'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
+            const probe = await this.findOneBy({
+                query: { _id: probeId },
+                select: selectProbe,
+            });
             if (probe) {
                 delete probe.deleted;
                 // run in the background
@@ -6432,3 +6452,5 @@ const moment = require('moment');
 const { some, forEach } = require('p-iteration');
 const vm = require('vm');
 const AutomatedScriptService = require('./automatedScriptService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
