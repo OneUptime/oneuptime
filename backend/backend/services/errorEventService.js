@@ -37,34 +37,25 @@ module.exports = {
             throw error;
         }
     },
-    async findOneBy(query) {
+    async findOneBy({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) delete query.deleted;
-            const errorEvent = await ErrorEventModel.findOne(query)
-                .lean()
-                .populate('errorTrackerId', 'name')
-                .populate('issueId', [
-                    '_id',
-                    'name',
-                    'description',
-                    'type',
-                    'ignored',
-                    'resolved',
-                ])
-                .populate('resolvedById', 'name')
-                .populate('ignoredById', 'name');
-            return errorEvent;
+            let errorEventQuery = ErrorEventModel.findOne(query).lean();
+            errorEventQuery = handleSelect(select, errorEventQuery);
+            errorEventQuery = handlePopulate(populate, errorEventQuery);
+            const result = await errorEventQuery;
+            return result;
         } catch (error) {
             ErrorService.log('errorEventService.findOneBy', error);
             throw error;
         }
     },
     // get all error events that matches the specified query
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -83,13 +74,15 @@ module.exports = {
             }
 
             if (!query.deleted) delete query.deleted;
-            const errorEvents = await ErrorEventModel.find(query)
+            let errorEventsQuery = ErrorEventModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('errorTrackerId', 'name');
-            return errorEvents;
+                .skip(skip);
+            errorEventsQuery = handleSelect(select, errorEventsQuery);
+            errorEventsQuery = handlePopulate(populate, errorEventsQuery);
+            const result = await errorEventsQuery;
+            return result;
         } catch (error) {
             ErrorService.log('errorEventService.findBy', error);
             throw error;
@@ -428,3 +421,5 @@ const IssueService = require('./issueService');
 const IssueMemberService = require('./issueMemberService');
 const IssueTimelineService = require('./issueTimelineService');
 const moment = require('moment');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

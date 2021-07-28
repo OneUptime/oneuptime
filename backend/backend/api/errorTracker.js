@@ -159,9 +159,17 @@ router.post(
     isUserAdmin,
     async function(req, res) {
         const errorTrackerId = req.params.errorTrackerId;
+        const select =
+            'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+        const populate = [
+            { path: 'componentId', select: 'name' },
+            { path: 'resourceCategory', select: 'name' },
+        ];
 
         const currentErrorTracker = await ErrorTrackerService.findOneBy({
-            _id: errorTrackerId,
+            query: { _id: errorTrackerId },
+            select,
+            populate,
         });
         if (!currentErrorTracker) {
             return sendErrorResponse(req, res, {
@@ -210,9 +218,16 @@ router.put(
                 message: 'New Error Tracker Name is required.',
             });
         }
+        const select =
+            'componentId name slug key showQuickStart resourceCategory createdById createdAt';
 
         const currentErrorTracker = await ErrorTrackerService.findOneBy({
-            _id: errorTrackerId,
+            query: { _id: errorTrackerId },
+            select,
+            populate: [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ],
         });
         if (!currentErrorTracker) {
             return sendErrorResponse(req, res, {
@@ -229,9 +244,18 @@ router.put(
         if (data.resourceCategory != '') {
             existingQuery.resourceCategory = data.resourceCategory;
         }
-        const existingErrorTracking = await ErrorTrackerService.findBy(
-            existingQuery
-        );
+        const existingErrorTracking = await ErrorTrackerService.findBy({
+            query: existingQuery,
+            select,
+            populate: [
+                {
+                    path: 'componentId',
+                    select: 'name slug projectId',
+                    populate: [{ path: 'projectId', select: 'name' }],
+                },
+                { path: 'resourceCategory', select: 'name' },
+            ],
+        });
 
         if (
             existingErrorTracking &&
@@ -350,9 +374,17 @@ router.post(
         try {
             const { skip, limit, startDate, endDate, filters } = req.body;
             const errorTrackerId = req.params.errorTrackerId;
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
+                query: { _id: errorTrackerId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
@@ -404,10 +436,22 @@ router.post(
                 });
             }
             const errorTrackerId = req.params.errorTrackerId;
+            const select =
+                'errorTrackerId issueId content type timeline tags sdk fingerprint fingerprintHash device createdAt';
+            const populate = [
+                { path: 'errorTrackerId', select: 'name' },
+                {
+                    path: 'issueId',
+                    select: '_id name description type ignored resolved',
+                },
+                { path: 'resolvedById', select: 'name' },
+                { path: 'ignoredById', select: 'name' },
+            ];
 
             const currentErrorEvent = await ErrorEventService.findOneBy({
-                _id: errorEventId,
-                errorTrackerId,
+                query: { _id: errorEventId, errorTrackerId },
+                select,
+                populate,
             });
             if (!currentErrorEvent) {
                 return sendErrorResponse(req, res, {
@@ -524,10 +568,17 @@ router.post(
                     message: 'Error Tracker ID is required',
                 });
             }
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
-                componentId,
+                query: { _id: errorTrackerId, componentId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
@@ -645,9 +696,17 @@ router.post(
                 });
             }
             const errorTrackerId = req.params.errorTrackerId;
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
+                query: { _id: errorTrackerId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
@@ -665,11 +724,13 @@ router.post(
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
-            const errorEvents = await ErrorEventService.findBy(
+            const errorEvents = await ErrorEventService.findBy({
                 query,
-                limit || 10,
-                skip || 0
-            );
+                limit: limit || 10,
+                skip: skip || 0,
+                select,
+                populate: [{ path: 'errorTrackerId', select: 'name' }],
+            });
 
             return sendItemResponse(req, res, errorEvents);
         } catch (error) {
@@ -705,10 +766,17 @@ router.post(
                     message: 'Issue ID is required',
                 });
             }
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
-                componentId,
+                query: { _id: errorTrackerId, componentId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
@@ -721,7 +789,7 @@ router.post(
                 _id: issueId,
                 errorTrackerId,
             });
-            if (!currentIssue || currentId === 0) {
+            if (!currentIssue || currentIssue === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
                     message: 'Issue not found',
@@ -797,10 +865,17 @@ router.post(
                     message: 'Issue ID is required',
                 });
             }
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
-                componentId,
+                query: { _id: errorTrackerId, componentId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
@@ -937,10 +1012,17 @@ router.post(
                     message: 'Issue ID is required',
                 });
             }
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
-                componentId,
+                query: { _id: errorTrackerId, componentId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
@@ -1041,10 +1123,17 @@ router.delete(
                     message: 'Issue ID is required',
                 });
             }
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
-                componentId,
+                query: { _id: errorTrackerId, componentId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
