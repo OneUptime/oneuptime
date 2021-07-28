@@ -13,29 +13,30 @@ const IncidentPrioritiesService = require('../services/incidentPrioritiesService
 const IncidentSettingsService = require('../services/incidentSettingsService');
 const joinNames = require('../utils/joinNames');
 const vm = require('vm');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 // const RealTimeService = require('./realTimeService');
 
 module.exports = {
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const incomingRequest = await IncomingRequestModel.findOne(query)
-                .populate({
-                    path: 'monitors.monitorId',
-                    select: 'name customFields componentId deleted',
-                    populate: {
-                        path: 'componentId',
-                        select: 'name',
-                    },
-                })
-                .populate('projectId', 'name')
-                .lean();
+            let incomingRequestQuery = IncomingRequestModel.findOne(
+                query
+            ).lean();
 
-            return incomingRequest;
+            incomingRequestQuery = handleSelect(select, incomingRequestQuery);
+            incomingRequestQuery = handlePopulate(
+                populate,
+                incomingRequestQuery
+            );
+            const result = await incomingRequestQuery;
+
+            return result;
         } catch (error) {
             ErrorService.log('incomingRequestService.findOneBy', error);
             throw error;
@@ -353,7 +354,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip || isNaN(skip)) skip = 0;
 
@@ -372,22 +373,17 @@ module.exports = {
             }
 
             query.deleted = false;
-            const allIncomingRequest = await IncomingRequestModel.find(query)
+            let allIncomingRequest = IncomingRequestModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
-                .populate({
-                    path: 'monitors.monitorId',
-                    select: 'name customFields componentId deleted',
-                    populate: {
-                        path: 'componentId',
-                        select: 'name',
-                    },
-                })
-                .populate('projectId', 'name')
                 .lean();
 
-            return allIncomingRequest;
+            allIncomingRequest = handleSelect(select, allIncomingRequest);
+            allIncomingRequest = handlePopulate(populate, allIncomingRequest);
+            const result = await allIncomingRequest;
+
+            return result;
         } catch (error) {
             ErrorService.log('incomingRequestService.findBy', error);
             throw error;

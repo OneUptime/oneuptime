@@ -16,14 +16,27 @@ router.get(
         try {
             const { projectId } = req.params;
             const { limit, skip } = req.query;
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
             const [allIncomingRequest, count] = await Promise.all([
-                IncomingRequestService.findBy(
-                    {
+                IncomingRequestService.findBy({
+                    query: {
                         projectId,
                     },
                     limit,
-                    skip
-                ),
+                    skip,
+                    select,
+                    populate,
+                }),
                 IncomingRequestService.countBy({
                     projectId,
                 }),
@@ -52,10 +65,21 @@ router.post(
                 error.code = 400;
                 throw error;
             }
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
             let incomingRequest = await IncomingRequestService.findOneBy({
-                name: data.name,
-                projectId,
+                query: { name: data.name, projectId },
+                select,
+                populate,
             });
             if (incomingRequest) {
                 const error = new Error(
@@ -96,10 +120,22 @@ router.put(
                 error.code = 400;
                 throw error;
             }
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
 
             let incomingRequest = await IncomingRequestService.findOneBy({
-                name: data.name,
-                projectId,
+                query: { name: data.name, projectId },
+                select,
+                populate,
             });
             if (
                 incomingRequest &&
@@ -194,10 +230,22 @@ router.post(
         try {
             const { projectId, requestId } = req.params;
             const data = req.body;
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
 
             let incomingRequest = await IncomingRequestService.findOneBy({
-                name: data.name,
-                projectId,
+                query: { name: data.name, projectId },
+                select,
+                populate,
             });
             if (
                 incomingRequest &&
