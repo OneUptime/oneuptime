@@ -83,6 +83,7 @@ module.exports = {
 
             let probeId = null;
 
+            const selectProbe = '_id probeKey version probeName';
             if (clusterKey && clusterKey === CLUSTER_KEY) {
                 // if cluster key matches then just query by probe name,
                 // because if the probe key does not match, we can update probe key later
@@ -92,7 +93,10 @@ module.exports = {
                     // If probeName could not be found, the else statement is called.
                     probeId = global.probes[probeName]._id;
                 } else {
-                    const probe = await ProbeService.findOneBy({ probeName });
+                    const probe = await ProbeService.findOneBy({
+                        query: { probeName },
+                        select: selectProbe,
+                    });
                     /**
                      *  If probe does not exist:
                      *  ProbeService.findOneBy({probeName}) returns null
@@ -114,8 +118,8 @@ module.exports = {
                     probeId = global.probes[probeName]._id;
                 } else {
                     const probe = await ProbeService.findOneBy({
-                        probeKey,
-                        probeName,
+                        query: { probeKey, probeName },
+                        select: selectProbe,
                     });
                     if (probe && probe._id) {
                         probeId = probe._id;
@@ -161,8 +165,8 @@ module.exports = {
                 );
 
                 const probe = await ProbeService.findOneBy({
-                    probeKey,
-                    probeName,
+                    query: { probeKey, probeName },
+                    select: selectProbe,
                 });
 
                 probeId = probe._id;

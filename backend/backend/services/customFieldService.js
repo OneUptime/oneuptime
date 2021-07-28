@@ -70,6 +70,17 @@ module.exports = {
             const populateCustomField = [{ path: 'projectId', select: 'name' }];
             const selectCustomField =
                 'fieldName fieldType projectId uniqueField';
+            const selectIncomingRequest =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populateIncomingRequest = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
             const [customField, incomingRequests] = await Promise.all([
                 _this.findOneBy({
                     query,
@@ -77,7 +88,9 @@ module.exports = {
                     populate: populateCustomField,
                 }),
                 IncomingRequestService.findBy({
-                    projectId: query.projectId,
+                    query: { projectId: query.projectId },
+                    select: selectIncomingRequest,
+                    populate: populateIncomingRequest,
                 }),
             ]);
 
@@ -172,6 +185,17 @@ module.exports = {
         try {
             // when a custom field is deleted
             // it should be removed from the corresponding incoming request
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
             const [customField, incomingRequests] = await Promise.all([
                 CustomFieldModel.findOneAndUpdate(
                     query,
@@ -184,7 +208,9 @@ module.exports = {
                     { new: true }
                 ),
                 IncomingRequestService.findBy({
-                    projectId: query.projectId,
+                    query: { projectId: query.projectId },
+                    select,
+                    populate,
                 }),
             ]);
 

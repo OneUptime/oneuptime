@@ -265,9 +265,16 @@ module.exports = {
     async findOneWithPrevAndNext(errorEventId, errorTrackerId) {
         try {
             let previous, next;
+            const selectErrorTracker =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populateErrorTracker = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
             let errorEvent = await this.findOneBy({
-                _id: errorEventId,
-                errorTrackerId: errorTrackerId,
+                query: { _id: errorEventId, errorTrackerId: errorTrackerId },
+                select: selectErrorTracker,
+                populate: populateErrorTracker,
             });
 
             const populateIssueTimeline = [
@@ -387,8 +394,14 @@ module.exports = {
                     new: true,
                 }
             );
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
-            errorEvent = await this.findOneBy(query);
+            errorEvent = await this.findOneBy({ query, select, populate });
 
             return errorEvent;
         } catch (error) {

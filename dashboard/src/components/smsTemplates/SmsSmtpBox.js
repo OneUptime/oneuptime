@@ -131,7 +131,7 @@ export class SmsSmtpBox extends Component {
                                                 <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                                     <fieldset className="bs-Fieldset">
                                                         <div className="bs-Fieldset-rows">
-                                                            <div className="bs-Fieldset-row">
+                                                            <div className="bs-Fieldset-row email-smt-row">
                                                                 <div className="Box-root Margin-bottom--12">
                                                                     <div
                                                                         data-test="RetrySettings-failedPaymentsRow"
@@ -141,8 +141,8 @@ export class SmsSmtpBox extends Component {
                                                                             className="Checkbox responsive"
                                                                             htmlFor="enabled"
                                                                             style={{
-                                                                                marginLeft:
-                                                                                    '150px',
+                                                                                textAlign:
+                                                                                    'center',
                                                                             }}
                                                                             id="enableTwilio"
                                                                         >
@@ -206,7 +206,7 @@ export class SmsSmtpBox extends Component {
                                                                         .showSmsSmtpConfiguration
                                                                 }
                                                             >
-                                                                <div className="bs-Fieldset-row">
+                                                                <div className="bs-Fieldset-row email-smt-row">
                                                                     <label className="bs-Fieldset-label">
                                                                         Account
                                                                         SID
@@ -247,7 +247,7 @@ export class SmsSmtpBox extends Component {
                                                                         </p>
                                                                     </div>
                                                                 </div>
-                                                                <div className="bs-Fieldset-row">
+                                                                <div className="bs-Fieldset-row email-smt-row">
                                                                     <label className="bs-Fieldset-label">
                                                                         Auth
                                                                         Token
@@ -288,7 +288,7 @@ export class SmsSmtpBox extends Component {
                                                                         </p>
                                                                     </div>
                                                                 </div>
-                                                                <div className="bs-Fieldset-row">
+                                                                <div className="bs-Fieldset-row email-smt-row">
                                                                     <label className="bs-Fieldset-label">
                                                                         Phone
                                                                         Number
