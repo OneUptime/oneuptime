@@ -231,7 +231,8 @@ module.exports = {
                 });
             if (performanceTracker) {
                 NotificationService.create(
-                    performanceTracker.componentId.projectId,
+                    performanceTracker.componentId.projectId._id ||
+                        performanceTracker.componentId.projectId,
                     `The performance tracker ${performanceTracker.name} was deleted from the component ${performanceTracker.componentId.name} by ${performanceTracker.deletedById.name}`,
                     performanceTracker.deletedById._id,
                     'performanceTrackeraddremove'

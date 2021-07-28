@@ -339,7 +339,7 @@ router.post('/send-monitor-delete', isAuthorizedService, async function(
     try {
         const { monitor, projectId } = req.body;
 
-        RealtimeService.deleteMonitor({ monitor, projectId });
+        RealtimeService.sendMonitorDelete({ monitor, projectId });
         return sendEmptyResponse(req, res);
     } catch (error) {
         return sendErrorResponse(req, res, error);

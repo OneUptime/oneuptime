@@ -252,7 +252,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         }
 
         NotificationService.create(
-            monitor.projectId._id,
+            monitor.projectId._id || monitor.projectId,
             `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
             user._id,
             'monitoraddremove'

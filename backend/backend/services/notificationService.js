@@ -56,7 +56,7 @@ module.exports = {
                 meta = {};
             }
             const populateNotification = [
-                { path: 'projectId', select: 'name' },
+                { path: 'projectId', select: 'name _id' },
                 {
                     path: 'meta.incidentId',
                     model: 'Incident',
