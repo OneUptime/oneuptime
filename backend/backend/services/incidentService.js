@@ -1413,13 +1413,14 @@ module.exports = {
         if (!currentIncident.breachedCommunicationSla) {
             const slaList = {};
             let fetchedDefault = false;
+
             for (const monitor of monitorList) {
                 let sla = monitor.incidentCommunicationSla;
                 // don't fetch default communication sla twice
                 if (!sla && !fetchedDefault) {
                     sla = await IncidentCommunicationSlaService.findOneBy({
-                        projectId: projectId,
-                        isDefault: true,
+                        query: { projectId: projectId, isDefault: true },
+                        select: '_id',
                     });
                     fetchedDefault = true;
                 }
