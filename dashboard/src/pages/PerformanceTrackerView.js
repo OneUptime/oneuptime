@@ -27,8 +27,8 @@ import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import PerformanceTrackerHeader from '../components/performanceTracker/PerformanceTrackerHeader';
 
-const socket = io.connect(REALTIME_URL.replace('/api', ''), {
-    path: '/api/socket.io',
+const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+    path: '/realtime/socket.io',
     transports: ['websocket', 'polling'],
 });
 class PerformanceTrackerView extends Component {

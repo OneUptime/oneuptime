@@ -31,7 +31,7 @@ if (isLocalhost) {
     apiUrl = window.location.protocol + `//${address}:3002/api`;
     dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
     accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
-    realtimeUrl = `${window.location.protocol}//${address}:3300/api`;
+    realtimeUrl = `${window.location.protocol}//${address}:3300/realtime`;
 }
 
 export function env(value) {
