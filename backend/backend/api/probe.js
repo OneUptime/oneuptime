@@ -33,8 +33,15 @@ router.get('/', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
+        const selectProbe =
+            'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
         const [probe, count] = await Promise.all([
-            ProbeService.findBy({}, limit, skip),
+            ProbeService.findBy({
+                query: {},
+                limit,
+                skip,
+                select: selectProbe,
+            }),
             ProbeService.countBy({}),
         ]);
         return sendListResponse(req, res, probe, count);
@@ -690,8 +697,15 @@ router.get('/:projectId/probes', getUser, isAuthorized, async function(
     try {
         const limit = req.query.limit || null;
         const skip = req.query.skip || null;
+        const selectProbe =
+            'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
         const [probe, count] = await Promise.all([
-            ProbeService.findBy({}, limit, skip),
+            ProbeService.findBy({
+                query: {},
+                limit,
+                skip,
+                select: selectProbe,
+            }),
             ProbeService.countBy({}),
         ]);
         return sendListResponse(req, res, probe, count);

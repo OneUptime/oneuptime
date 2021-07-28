@@ -601,7 +601,14 @@ router.get('/statusBubble', async function(req, res) {
     const statusPageId = req.query.statusPageId;
     const statusBubbleId = req.query.statusBubbleId;
     try {
-        const probes = await ProbeService.findBy({}, 0, 0);
+        const selectProbe =
+            'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
+        const probes = await ProbeService.findBy({
+            query: {},
+            limit: 0,
+            skip: 0,
+            select: selectProbe,
+        });
         if (!statusPageId) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -1361,8 +1368,15 @@ router.get('/:projectId/probes', checkUser, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
+        const selectProbe =
+            'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
         const [probes, count] = await Promise.all([
-            ProbeService.findBy({}, limit, skip),
+            ProbeService.findBy({
+                query: {},
+                limit,
+                skip,
+                select: selectProbe,
+            }),
             ProbeService.countBy({}),
         ]);
         return sendListResponse(req, res, probes, count);
@@ -2032,7 +2046,14 @@ async function getPastEvents(req, statusPageSlug) {
 async function getProbes(req) {
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 0;
-    const probes = await ProbeService.findBy({}, limit, skip);
+    const selectProbe =
+        'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
+    const probes = await ProbeService.findBy({
+        query: {},
+        limit,
+        skip,
+        select: selectProbe,
+    });
     const count = await ProbeService.countBy({});
     return { probes, count };
 }
