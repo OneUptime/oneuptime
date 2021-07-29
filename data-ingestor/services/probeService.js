@@ -25,8 +25,8 @@ module.exports = {
                 const now = new Date(moment().format());
                 probe.createdAt = now;
                 probe.lastAlive = now;
-                probe.deleted = false; // This is automatically added using mongoose however, manual addition is needed in MongoDB driver. FindBy, FindOneBy need 'deleted=false' as part of it default query.
-                
+                probe.deleted = false;
+
                 const result = await probeCollection.insertOne(probe);
                 const savedProbe = await _this.findOneBy({
                     _id: ObjectId(result.insertedId),
@@ -523,19 +523,18 @@ module.exports = {
 
     incidentResolveOrAcknowledge: async function(data, allCriteria) {
         try {
-            const incidents = await IncidentService.findBy({
-                query: {
-                    'monitors.monitorId': ObjectId(data.monitorId),
-                    resolved: false,
-                    manuallyCreated: false,
-                },
-                // select,
-                // populate,
-            });
-
-            const monitor = await MonitorService.findOneBy({
-                query: { _id: ObjectId(data.monitorId) },
-            });
+            const [incidents, monitor] = await Promise.all([
+                IncidentService.findBy({
+                    query: {
+                        'monitors.monitorId': ObjectId(data.monitorId),
+                        resolved: false,
+                        manuallyCreated: false,
+                    },
+                }),
+                MonitorService.findOneBy({
+                    query: { _id: ObjectId(data.monitorId) },
+                }),
+            ]);
 
             // should grab all the criterion for the monitor and put them into one array
             // check the id of each criteria against the id of criteria attached to an incident
@@ -591,20 +590,20 @@ module.exports = {
                 });
                 // }
             }
-            await Promise.all(
-                incidentsV1.map(async incident => {
-                    if (
-                        incident.probes &&
-                        incident.probes.length > 0 &&
-                        monitor.type !== 'incomingHttpRequest'
-                    ) {
-                        const initialProbes = incident.probes.map(probe => ({
-                            probeId: probe.probeId._id || probe.probeId,
-                            updatedAt: probe.updatedAt,
-                            status: probe.status,
-                            reportedStatus: probe.reportedStatus,
-                        }));
-                        const newIncident = await IncidentService.updateOneBy(
+            for (const incident of incidentsV1) {
+                if (
+                    incident.probes &&
+                    incident.probes.length > 0 &&
+                    monitor.type !== 'incomingHttpRequest'
+                ) {
+                    const initialProbes = incident.probes.map(probe => ({
+                        probeId: probe.probeId._id || probe.probeId,
+                        updatedAt: probe.updatedAt,
+                        status: probe.status,
+                        reportedStatus: probe.reportedStatus,
+                    }));
+                    const [newIncident] = await Promise.all([
+                        IncidentService.updateOneBy(
                             {
                                 _id: ObjectId(incident._id),
                             },
@@ -619,23 +618,23 @@ module.exports = {
                                     },
                                 ],
                             }
-                        );
-                        incidentsV2.push(newIncident);
-
-                        await IncidentTimelineService.create({
+                        ),
+                        IncidentTimelineService.create({
                             incidentId: incident._id.toString(),
                             probeId: data.probeId,
                             status: data.status,
-                        });
+                        }),
+                    ]);
 
-                        return newIncident;
-                    } else {
-                        incidentsV2.push(incident);
+                    incidentsV2.push(newIncident);
 
-                        return incident;
-                    }
-                })
-            );
+                    return newIncident;
+                } else {
+                    incidentsV2.push(incident);
+
+                    return incident;
+                }
+            }
 
             await forEach(incidentsV2, async incident => {
                 const trueArray = [];
