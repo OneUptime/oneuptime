@@ -33,6 +33,7 @@ const INITIAL_STATE = {
         success: false,
         error: null,
         details: null,
+        count: null,
     },
     deleteScript: {
         requesting: false,
@@ -106,6 +107,7 @@ export default function component(state = INITIAL_STATE, action) {
                     log: action.payload.data.logs,
                     skip: action.payload.skip,
                     limit: action.payload.limit,
+                    count: action.payload.count,
                     requesting: false,
                     success: true,
                     error: null,
