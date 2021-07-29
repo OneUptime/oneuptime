@@ -33,7 +33,7 @@ const INITIAL_STATE = {
         success: false,
         error: null,
         details: null,
-        count: null,
+        count: 0,
     },
     deleteScript: {
         requesting: false,
