@@ -66,6 +66,10 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "haraka"  }}
               servicePort: 80
+          - path: /script
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name "script"  }}
+              servicePort: 80
           {{- range $probeKey, $probeValue := $.Values.probes }}
           - path: {{ printf "/%s" $probeKey }}
             backend:
