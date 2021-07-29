@@ -3,6 +3,8 @@ package fyipe
 import (
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Realm struct {
@@ -10,6 +12,7 @@ type Realm struct {
 	timelines   []*Timeline
 	fingerprint []string
 	tags        map[string]string
+	eventId     string
 }
 
 func NewRealm() *Realm {
@@ -17,6 +20,7 @@ func NewRealm() *Realm {
 		timelines:   make([]*Timeline, 0),
 		tags:        make(map[string]string),
 		fingerprint: make([]string, 0),
+		eventId:     uuid.New().String(),
 	}
 
 	return &realm
@@ -25,6 +29,7 @@ func NewRealm() *Realm {
 // adds new timeline to the current realm
 func (realm *Realm) AddToTimeline(timeline *Timeline, limit int) {
 	timeline.Timestamp = time.Now()
+	timeline.EventId = realm.eventId
 
 	realm.mu.Lock()
 	defer realm.mu.Unlock()
