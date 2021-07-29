@@ -82,13 +82,16 @@ module.exports = {
                     probeId = global.probes[probeName]._id;
                 } else {
                     const probe = await ProbeService.findOneBy({ probeName });
-                    probeId = probe._id;
-
-                    global.probes[probeName] = {
-                        _id: probe._id,
-                        probeKey: probe.probeKey,
-                        version: probe.version,
-                    };
+                    
+                    if(probe && probe._id){
+                        probeId = probe._id;
+                        global.probes[probeName] = {
+                            _id: probe._id,
+                            probeKey: probe.probeKey,
+                            version: probe.version,
+                        };
+                    }
+                    
                 }
             } else {
                 if (global.probes[probeName]) {
@@ -98,13 +101,15 @@ module.exports = {
                         probeKey,
                         probeName,
                     });
-                    probeId = probe._id;
 
-                    global.probes[probeName] = {
-                        _id: probe._id,
-                        probeKey: probe.probeKey,
-                        version: probe.version,
-                    };
+                    if(probe && probe._id){
+                        probeId = probe._id;
+                        global.probes[probeName] = {
+                            _id: probe._id,
+                            probeKey: probe.probeKey,
+                            version: probe.version,
+                        };
+                    }
                 }
             }
 
@@ -123,13 +128,15 @@ module.exports = {
                     probeVersion,
                 });
 
+                probeId = probe._id
+
                 global.probes[probeName] = {
                     _id: probe._id,
                     probeKey: probe.probeKey,
                     version: probe.version,
                 };
             }
-
+            
             if (global.probes[probeName].probeKey !== probeKey) {
                 //update probe key becasue it does not match.
                 await ProbeService.updateOneBy(
@@ -152,6 +159,7 @@ module.exports = {
                     version: probe.version,
                 };
             }
+           
             req.probe = {};
             req.probe.id = probeId.toString();
 
