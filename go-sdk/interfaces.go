@@ -26,3 +26,8 @@ type Timeline struct {
 	Timestamp time.Time
 	EventId   string
 }
+
+type Tag struct {
+	Key   string
+	Value string
+}

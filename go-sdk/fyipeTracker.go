@@ -89,3 +89,8 @@ func SetTags(tags map[string]string) {
 
 	tracker.SetTags(tags)
 }
+func GetTag() []*Tag {
+	tracker := CurrentTracker()
+
+	return tracker.Realm().tags
+}

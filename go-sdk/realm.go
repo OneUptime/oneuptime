@@ -11,14 +11,14 @@ type Realm struct {
 	mu          sync.RWMutex
 	timelines   []*Timeline
 	fingerprint []string
-	tags        map[string]string
+	tags        []*Tag
 	eventId     string
 }
 
 func NewRealm() *Realm {
 	realm := Realm{
 		timelines:   make([]*Timeline, 0),
-		tags:        make(map[string]string),
+		tags:        make([]*Tag, 0),
 		fingerprint: make([]string, 0),
 		eventId:     uuid.New().String(),
 	}
@@ -46,7 +46,19 @@ func (realm *Realm) SetTag(key, value string) {
 	realm.mu.Lock()
 	defer realm.mu.Unlock()
 
-	realm.tags[key] = value
+	availableTags := realm.tags
+	isFound := false
+	for i := range availableTags {
+		if availableTags[i].Key == key {
+			isFound = true
+			availableTags[i].Value = value
+		}
+	}
+
+	if !isFound {
+		availableTags = append(availableTags, &Tag{Key: key, Value: value})
+	}
+	realm.tags = availableTags
 }
 
 func (realm *Realm) SetTags(tags map[string]string) {
@@ -54,6 +66,6 @@ func (realm *Realm) SetTags(tags map[string]string) {
 	defer realm.mu.Unlock()
 
 	for key, value := range tags {
-		realm.tags[key] = value
+		SetTag(key, value)
 	}
 }
