@@ -316,9 +316,12 @@ const AutomatedScripView = props => {
                                                                                         </div>
                                                                                     </header>
                                                                                     {scriptLogs &&
-                                                                                        scriptLogs.length >
+                                                                                        scriptLogs.log &&
+                                                                                        scriptLogs
+                                                                                            .log
+                                                                                            .length >
                                                                                             0 &&
-                                                                                        scriptLogs.map(
+                                                                                        scriptLogs.log.map(
                                                                                             (
                                                                                                 log,
                                                                                                 index
@@ -486,7 +489,10 @@ const AutomatedScripView = props => {
                                                                                 <ShouldRender
                                                                                     if={
                                                                                         (scriptLogs &&
-                                                                                            scriptLogs.length ===
+                                                                                            scriptLogs.log &&
+                                                                                            scriptLogs
+                                                                                                .log
+                                                                                                .length ===
                                                                                                 0) ||
                                                                                         !scriptLogs
                                                                                     }
@@ -657,7 +663,7 @@ AutomatedScripView.propTypes = {
 
 const mapStateToProps = state => ({
     currentProject: state.project.currentProject,
-    script: state.automatedScripts.individualScript.log,
+    script: state.automatedScripts.individualScript,
     details: state.automatedScripts.individualScript.details,
     requesting: state.automatedScripts.individualScript.requesting,
 });
