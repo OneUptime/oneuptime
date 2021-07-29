@@ -165,7 +165,7 @@ module.exports = {
             let data = null;
             if (scriptType === 'JavaScript') {
                 const result = await postApi(
-                    `${scriptBaseUrl}/api/script/js`,
+                    `${scriptBaseUrl}/script/js`,
                     {
                         script,
                     },
@@ -183,7 +183,7 @@ module.exports = {
                 };
             } else if (scriptType === 'Bash') {
                 const result = await postApi(
-                    `${scriptBaseUrl}/api/script/bash`,
+                    `${scriptBaseUrl}/script/bash`,
                     {
                         script,
                     },

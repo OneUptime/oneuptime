@@ -1517,7 +1517,7 @@ const _this = {
         try {
             const customTwilioSettings = await _this.findByOne({
                 query: { projectId, enabled: true },
-                select: 'phoneNumber accountSid authToken',
+                select: 'phoneNumber accountSid authToken iv',
             });
             if (!to.startsWith('+')) {
                 to = '+' + to;

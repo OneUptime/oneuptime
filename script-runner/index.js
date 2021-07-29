@@ -54,7 +54,18 @@ app.set('port', process.env.PORT || 3009);
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 
-app.use(['/script', '/api/script'], require('./api/script'));
+app.get('/script/status', function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            status: 200,
+            message: 'Service Status - OK',
+            serviceType: 'fyipe-script-runner',
+        })
+    );
+});
+
+app.use('/script', require('./api/script'));
 
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line

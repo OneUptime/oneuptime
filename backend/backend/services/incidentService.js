@@ -1399,7 +1399,7 @@ module.exports = {
                 populate: [
                     {
                         path: 'incidentCommunicationSla',
-                        select: '_id duration',
+                        select: '_id duration deleted',
                     },
                 ],
             }),
@@ -1413,17 +1413,18 @@ module.exports = {
         if (!currentIncident.breachedCommunicationSla) {
             const slaList = {};
             let fetchedDefault = false;
+
             for (const monitor of monitorList) {
                 let sla = monitor.incidentCommunicationSla;
                 // don't fetch default communication sla twice
                 if (!sla && !fetchedDefault) {
                     sla = await IncidentCommunicationSlaService.findOneBy({
-                        projectId: projectId,
-                        isDefault: true,
+                        query: { projectId: projectId, isDefault: true },
+                        select: '_id duration deleted',
                     });
                     fetchedDefault = true;
                 }
-                if (sla && !slaList[sla._id]) {
+                if (sla && !slaList[sla._id] && !sla.deleted) {
                     slaList[sla._id] = sla;
                 }
             }

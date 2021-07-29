@@ -4,7 +4,7 @@
     "description": "A Container Security Scanner",
     "main": "index.js",
     "scripts": {
-        "start": "node --max-old-space-size=4096 --max-http-header-size=80000 index.js",
+        "start": "node --max-http-header-size=80000 index.js",
         "test": "echo \"Error: no test specified\" && exit 1",
         "dev": "node --inspect=0.0.0.0 --max-http-header-size=80000 index.js",
         "audit": "npm audit --audit-level=low",

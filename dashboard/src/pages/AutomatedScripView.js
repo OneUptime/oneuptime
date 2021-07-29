@@ -316,9 +316,12 @@ const AutomatedScripView = props => {
                                                                                         </div>
                                                                                     </header>
                                                                                     {scriptLogs &&
-                                                                                        scriptLogs.length >
+                                                                                        scriptLogs.log &&
+                                                                                        scriptLogs
+                                                                                            .log
+                                                                                            .length >
                                                                                             0 &&
-                                                                                        scriptLogs.map(
+                                                                                        scriptLogs.log.map(
                                                                                             (
                                                                                                 log,
                                                                                                 index
@@ -486,7 +489,10 @@ const AutomatedScripView = props => {
                                                                                 <ShouldRender
                                                                                     if={
                                                                                         (scriptLogs &&
-                                                                                            scriptLogs.length ===
+                                                                                            scriptLogs.log &&
+                                                                                            scriptLogs
+                                                                                                .log
+                                                                                                .length ===
                                                                                                 0) ||
                                                                                         !scriptLogs
                                                                                     }
@@ -499,10 +505,16 @@ const AutomatedScripView = props => {
                                                                                                 '12px',
                                                                                         }}
                                                                                     >
-                                                                                        You&#39;ve
-                                                                                        no
-                                                                                        log
-                                                                                        currently
+                                                                                        No
+                                                                                        logs
+                                                                                        available
+                                                                                        for
+                                                                                        this
+                                                                                        script
+                                                                                        because
+                                                                                        it
+                                                                                        never
+                                                                                        ran.
                                                                                     </div>
                                                                                 </ShouldRender>
                                                                                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
@@ -651,7 +663,7 @@ AutomatedScripView.propTypes = {
 
 const mapStateToProps = state => ({
     currentProject: state.project.currentProject,
-    script: state.automatedScripts.individualScript.log,
+    script: state.automatedScripts.individualScript,
     details: state.automatedScripts.individualScript.details,
     requesting: state.automatedScripts.individualScript.requesting,
 });

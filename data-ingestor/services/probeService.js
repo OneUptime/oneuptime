@@ -25,7 +25,8 @@ module.exports = {
                 const now = new Date(moment().format());
                 probe.createdAt = now;
                 probe.lastAlive = now;
-
+                probe.deleted = false; // This is automatically added using mongoose however, manual addition is needed in MongoDB driver. FindBy, FindOneBy need 'deleted=false' as part of it default query.
+                
                 const result = await probeCollection.insertOne(probe);
                 const savedProbe = await _this.findOneBy({
                     _id: ObjectId(result.insertedId),

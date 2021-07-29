@@ -289,7 +289,7 @@ module.exports = {
             });
             let data = null;
             if (scriptType === 'JavaScript') {
-                const result = await postApi(`${scriptBaseUrl}/api/script/js`, {
+                const result = await postApi(`${scriptBaseUrl}/script/js`, {
                     script,
                 });
                 data = {
@@ -303,12 +303,9 @@ module.exports = {
                     consoleLogs: result.consoleLogs,
                 };
             } else if (scriptType === 'Bash') {
-                const result = await postApi(
-                    `${scriptBaseUrl}/api/script/bash`,
-                    {
-                        script,
-                    }
-                );
+                const result = await postApi(`${scriptBaseUrl}/script/bash`, {
+                    script,
+                });
                 data = {
                     success: result.success,
                     errors: result.errors,
