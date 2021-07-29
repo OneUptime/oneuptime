@@ -28,7 +28,7 @@ Expand the name of the chart.
 {{- end -}}
 
 {{- define "fyipe.scriptRunnerUrl" -}}
-{{ printf "http://%s-runner.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
+{{ printf "http://%s-script.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
 {{- end -}}
 
 {{- define "fyipe.dataIngestorUrl" -}}
