@@ -451,24 +451,37 @@ export default function incident(state = initialState, action) {
             });
 
         case 'UPDATE_INCIDENT_TIMELINE': {
-            const incident = Object.assign({}, state.incident.incident);
-            if (
-                incident &&
-                incident.timeline &&
-                action.payload.incidentId === incident._id
-            ) {
-                incident.timeline = [...incident.timeline, action.payload];
-                if (incident.timeline.length > 10) incident.timeline.pop();
-                return Object.assign({}, state, {
-                    incident: {
-                        ...state.incident,
-                        incident,
-                        count: state.incident.count + 1,
+            const idNumber =
+                action.payload.incidentId && action.payload.incidentId.idNumber;
+            if (Object.keys(state.incidentMessages).length === 0) {
+                return {
+                    ...state,
+                    incidentMessages: {
+                        [idNumber]: {
+                            internal: {
+                                incidentMessages: [action.payload],
+                            },
+                        },
                     },
-                });
-            } else {
-                return state;
+                };
             }
+            return {
+                ...state,
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    [idNumber]: {
+                        ...state.incidentMessages[idNumber],
+                        internal: {
+                            ...state.incidentMessages[idNumber]?.internal,
+                            incidentMessages: [
+                                action.payload,
+                                ...state.incidentMessages[idNumber]?.internal
+                                    .incidentMessages,
+                            ],
+                        },
+                    },
+                },
+            };
         }
 
         case types.PROJECT_INCIDENTS_SUCCESS:

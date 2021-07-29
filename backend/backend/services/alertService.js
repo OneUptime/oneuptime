@@ -244,6 +244,7 @@ module.exports = {
                 path: 'probeId',
                 select: 'probeName probeImage',
             },
+            { path: 'incidentId', select: 'idNumber' },
         ];
         const selectIncTimeline =
             'incidentId createdById probeId createdByZapier createdAt status incident_state';
