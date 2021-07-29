@@ -208,8 +208,11 @@ export default function incident(state = initialState, action) {
             });
 
         case types.CREATE_INCIDENT_SUCCESS:
+        case 'ADD_NEW_INCIDENT_TO_MONITORS':
             isExistingIncident = state.incidents.incidents.find(
-                incident => incident._id === action.payload.projectId
+                incident =>
+                    incident._id ===
+                    (action.payload.projectId._id || action.payload.projectId)
             );
             return Object.assign({}, state, {
                 newIncident: {
@@ -223,13 +226,20 @@ export default function incident(state = initialState, action) {
                         ? state.incidents.incidents.length > 0
                             ? state.incidents.incidents.map(incident => {
                                   return incident._id ===
-                                      action.payload.projectId
+                                      (action.payload.projectId._id ||
+                                          action.payload.projectId)
                                       ? {
-                                            _id: action.payload.projectId,
+                                            _id:
+                                                action.payload.projectId._id ||
+                                                action.payload.projectId,
                                             incidents: [
                                                 action.payload,
                                                 ...incident.incidents.filter(
-                                                    (inc, index) => index < 9
+                                                    (inc, index) =>
+                                                        inc._id !==
+                                                            action.payload
+                                                                ._id ||
+                                                        index < 9
                                                 ),
                                             ],
                                             count: incident.count + 1,
@@ -240,7 +250,9 @@ export default function incident(state = initialState, action) {
                               })
                             : [
                                   {
-                                      _id: action.payload.projectId,
+                                      _id:
+                                          action.payload.projectId._id ||
+                                          action.payload.projectId,
                                       incidents: [action.payload],
                                       count: 1,
                                       skip: 0,
@@ -249,7 +261,9 @@ export default function incident(state = initialState, action) {
                               ]
                         : state.incidents.incidents.concat([
                               {
-                                  _id: action.payload.projectId,
+                                  _id:
+                                      action.payload.projectId._id ||
+                                      action.payload.projectId,
                                   incidents: [action.payload],
                                   count: 1,
                                   skip: 0,
@@ -437,24 +451,37 @@ export default function incident(state = initialState, action) {
             });
 
         case 'UPDATE_INCIDENT_TIMELINE': {
-            const incident = Object.assign({}, state.incident.incident);
-            if (
-                incident &&
-                incident.timeline &&
-                action.payload.incidentId === incident._id
-            ) {
-                incident.timeline = [...incident.timeline, action.payload];
-                if (incident.timeline.length > 10) incident.timeline.pop();
-                return Object.assign({}, state, {
-                    incident: {
-                        ...state.incident,
-                        incident,
-                        count: state.incident.count + 1,
+            const idNumber =
+                action.payload.incidentId && action.payload.incidentId.idNumber;
+            if (Object.keys(state.incidentMessages).length === 0) {
+                return {
+                    ...state,
+                    incidentMessages: {
+                        [idNumber]: {
+                            internal: {
+                                incidentMessages: [action.payload],
+                            },
+                        },
                     },
-                });
-            } else {
-                return state;
+                };
             }
+            return {
+                ...state,
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    [idNumber]: {
+                        ...state.incidentMessages[idNumber],
+                        internal: {
+                            ...state.incidentMessages[idNumber]?.internal,
+                            incidentMessages: [
+                                action.payload,
+                                ...state.incidentMessages[idNumber]?.internal
+                                    .incidentMessages,
+                            ],
+                        },
+                    },
+                },
+            };
         }
 
         case types.PROJECT_INCIDENTS_SUCCESS:
@@ -990,6 +1017,27 @@ export default function incident(state = initialState, action) {
                             ? action.payload.data
                             : state.incident.incident,
                 },
+                incidents: {
+                    ...state.incidents,
+                    incidents: state.incidents.incidents.map(incident => {
+                        if (
+                            incident._id ===
+                            (action.payload.data.projectId._id ||
+                                action.payload.data.projectId)
+                        ) {
+                            incident.incidents = incident.incidents.map(
+                                inObj => {
+                                    if (inObj._id === action.payload.data._id) {
+                                        inObj = action.payload.data;
+                                    }
+                                    return inObj;
+                                }
+                            );
+                        }
+
+                        return incident;
+                    }),
+                },
             });
 
         case 'INCIDENT_ACKNOWLEDGED_BY_SOCKET':
@@ -1017,6 +1065,27 @@ export default function incident(state = initialState, action) {
                         state.incident.incident._id === action.payload.data._id
                             ? action.payload.data
                             : state.incident.incident,
+                },
+                incidents: {
+                    ...state.incidents,
+                    incidents: state.incidents.incidents.map(incident => {
+                        if (
+                            incident._id ===
+                            (action.payload.data.projectId._id ||
+                                action.payload.data.projectId)
+                        ) {
+                            incident.incidents = incident.incidents.map(
+                                inObj => {
+                                    if (inObj._id === action.payload.data._id) {
+                                        inObj = action.payload.data;
+                                    }
+                                    return inObj;
+                                }
+                            );
+                        }
+
+                        return incident;
+                    }),
                 },
             });
 

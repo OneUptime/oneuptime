@@ -1671,9 +1671,24 @@ export default function monitor(state = INITIAL_STATE, action) {
                                                   if (incidents.length > 2) {
                                                       incidents.splice(-1, 1);
                                                   }
-                                                  incidents.unshift(
-                                                      action.payload
-                                                  );
+                                                  let found = false;
+                                                  for (const incident of incidents) {
+                                                      if (
+                                                          String(
+                                                              incident._id
+                                                          ) ===
+                                                          String(
+                                                              action.payload._id
+                                                          )
+                                                      ) {
+                                                          found = true;
+                                                          return;
+                                                      }
+                                                  }
+                                                  !found &&
+                                                      incidents.unshift(
+                                                          action.payload
+                                                      );
                                               } else {
                                                   incidents = [action.payload];
                                               }
