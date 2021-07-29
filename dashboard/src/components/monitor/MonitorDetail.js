@@ -121,7 +121,7 @@ export class MonitorDetail extends Component {
     prevClicked = () => {
         this.props
             .fetchMonitorsIncidents(
-                this.props.monitor.projectId._id,
+                this.props.monitor.projectId,
                 this.props.monitor._id,
                 this.props.monitor.skip
                     ? parseInt(this.props.monitor.skip, 10) - 3
@@ -152,7 +152,7 @@ export class MonitorDetail extends Component {
     nextClicked = () => {
         this.props
             .fetchMonitorsIncidents(
-                this.props.monitor.projectId._id,
+                this.props.monitor.projectId,
                 this.props.monitor._id,
                 this.props.monitor.skip
                     ? parseInt(this.props.monitor.skip, 10) + 3
