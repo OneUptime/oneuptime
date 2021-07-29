@@ -24,4 +24,5 @@ type Timeline struct {
 	Data      interface{}
 	Type      string
 	Timestamp time.Time
+	EventId   string
 }
