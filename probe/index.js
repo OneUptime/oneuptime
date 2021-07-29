@@ -70,8 +70,8 @@ app.get(['/probe/version', '/version'], function(req, res) {
     res.send({ probeVersion: process.env.npm_package_version });
 });
 
-// This cron runs every other minute.
-cron.schedule('* * * * *', () => {
+// This cron runs every second minute.
+cron.schedule('*/2 * * * *', () => {
     setTimeout(() => {
         Main.runJob();
     }, cronMinuteStartTime * 1000);
