@@ -1,5 +1,12 @@
 # Mongo Operations Manual
 
+
+## Copy DB from One Server to Another
+
+```
+mongodump --uri="mongodb://old_username:old_password@old_ip:old_port/fyipedb" --archive | mongorestore --uri="mongodb://new_username:new_pass@new_ip:new_port/fyipedb" --archive
+```
+
 ## Root Username
 
 Admin mongodb username is: `root`
@@ -175,7 +182,3 @@ db.users.update({email: 'admin@fyipe.com'}, {$set:{ role: 'master-admin'}}) # Up
 ```
 
 
-## Copy DB from One Server to Another
-
-```
-mongodump --uri="mongodb://8aKfamHvEqOjFVTZNNXN:outjgx08356875486snewrsf2s@159.203.150.222:80/fyipedb" --archive | mongorestore --uri="mongodb://8aKfamHvEqOjFVTZNNXN:outjgx08356875486snewrsf2s@138.197.51.250:80/fyipedb" --archive
