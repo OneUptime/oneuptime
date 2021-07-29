@@ -81,3 +81,11 @@ func (tracker *Tracker) AddToTimeline(timeline *Timeline) {
 
 	tracker.Realm().AddToTimeline(timeline, userTimeline)
 }
+
+func (tracker *Tracker) SetTag(key, value string) {
+	tracker.Realm().SetTag(key, value)
+}
+
+func (tracker *Tracker) SetTags(tags map[string]string) {
+	tracker.Realm().SetTags(tags)
+}

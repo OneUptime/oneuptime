@@ -41,3 +41,19 @@ func (realm *Realm) AddToTimeline(timeline *Timeline, limit int) {
 		realm.timelines = timelines
 	}
 }
+
+func (realm *Realm) SetTag(key, value string) {
+	realm.mu.Lock()
+	defer realm.mu.Unlock()
+
+	realm.tags[key] = value
+}
+
+func (realm *Realm) SetTags(tags map[string]string) {
+	realm.mu.Lock()
+	defer realm.mu.Unlock()
+
+	for key, value := range tags {
+		realm.tags[key] = value
+	}
+}

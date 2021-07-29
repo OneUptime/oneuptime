@@ -78,3 +78,14 @@ func GetTimeline() []*Timeline {
 
 	return tracker.Realm().timelines
 }
+func SetTag(key, value string) {
+	tracker := CurrentTracker()
+
+	tracker.SetTag(key, value)
+}
+
+func SetTags(tags map[string]string) {
+	tracker := CurrentTracker()
+
+	tracker.SetTags(tags)
+}
