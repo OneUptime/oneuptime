@@ -173,3 +173,9 @@ db.auth('fyipe','password')
 db.users.find({email: 'admin@fyipe.com'}) # Master admin user. Should be already signed up.
 db.users.update({email: 'admin@fyipe.com'}, {$set:{ role: 'master-admin'}}) # Update the user
 ```
+
+
+## Copy DB from One Server to Another
+
+```
+mongodump --uri="mongodb://8aKfamHvEqOjFVTZNNXN:outjgx08356875486snewrsf2s@159.203.150.222:80/fyipedb" --archive | mongorestore --uri="mongodb://8aKfamHvEqOjFVTZNNXN:outjgx08356875486snewrsf2s@138.197.51.250:80/fyipedb" --archive
