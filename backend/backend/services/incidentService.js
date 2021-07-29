@@ -1399,7 +1399,7 @@ module.exports = {
                 populate: [
                     {
                         path: 'incidentCommunicationSla',
-                        select: '_id duration',
+                        select: '_id duration deleted',
                     },
                 ],
             }),
@@ -1420,11 +1420,11 @@ module.exports = {
                 if (!sla && !fetchedDefault) {
                     sla = await IncidentCommunicationSlaService.findOneBy({
                         query: { projectId: projectId, isDefault: true },
-                        select: '_id',
+                        select: '_id duration deleted',
                     });
                     fetchedDefault = true;
                 }
-                if (sla && !slaList[sla._id]) {
+                if (sla && !slaList[sla._id] && !sla.deleted) {
                     slaList[sla._id] = sla;
                 }
             }
