@@ -62,8 +62,6 @@ func (realm *Realm) SetTag(key, value string) {
 }
 
 func (realm *Realm) SetTags(tags map[string]string) {
-	realm.mu.Lock()
-	defer realm.mu.Unlock()
 
 	for key, value := range tags {
 		SetTag(key, value)

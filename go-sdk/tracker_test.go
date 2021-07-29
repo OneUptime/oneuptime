@@ -226,3 +226,103 @@ func TestOlderTimelineAreDiscarded(t *testing.T) {
 	}
 
 }
+func TestTagIsAdded(t *testing.T) {
+	timelineOpt := TrackerOption{
+		MaxTimeline: 2,
+	}
+	option := FyipeTrackerOption{
+		ErrorTrackerId:  errorTracker["_id"].(string),
+		ErrorTrackerKey: errorTracker["key"].(string),
+		ApiUrl:          apiUrl,
+		Options:         timelineOpt,
+	}
+
+	InitTracker(option)
+
+	tagKey := "Location"
+	tagValue := "Warsaw"
+
+	expectedResponse := tagKey
+
+	SetTag(tagKey, tagValue)
+
+	tags := GetTag()
+
+	actualResponse := tags[0].Key
+	if fmt.Sprint(actualResponse) != expectedResponse {
+		t.Errorf("TestTagIsAdded failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestTagIsAdded success expected %v, got %v", expectedResponse, actualResponse)
+	}
+}
+
+func TestTagsAreAdded(t *testing.T) {
+	timelineOpt := TrackerOption{
+		MaxTimeline: 2,
+	}
+	option := FyipeTrackerOption{
+		ErrorTrackerId:  errorTracker["_id"].(string),
+		ErrorTrackerKey: errorTracker["key"].(string),
+		ApiUrl:          apiUrl,
+		Options:         timelineOpt,
+	}
+
+	InitTracker(option)
+
+	tags := map[string]string{
+		"location": "Warsaw",
+		"agent":    "Safari",
+		"actor":    "Tom Cruise",
+	}
+
+	expectedResponse := len(tags)
+
+	SetTags(tags)
+
+	availableTags := GetTag()
+
+	actualResponse := len(availableTags)
+	if actualResponse != expectedResponse {
+		t.Errorf("TestTagsAreAdded failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestTagsAreAdded success expected %v, got %v", expectedResponse, actualResponse)
+	}
+}
+func TestOverwriteTagsWithSameKeyWhenAdded(t *testing.T) {
+	timelineOpt := TrackerOption{
+		MaxTimeline: 2,
+	}
+	option := FyipeTrackerOption{
+		ErrorTrackerId:  errorTracker["_id"].(string),
+		ErrorTrackerKey: errorTracker["key"].(string),
+		ApiUrl:          apiUrl,
+		Options:         timelineOpt,
+	}
+
+	InitTracker(option)
+
+	tags := map[string]string{
+		"location": "Warsaw",
+		"agent":    "Safari",
+		"actor":    "Tom Cruise",
+	}
+
+	expectedResponse := "Kent"
+
+	SetTags(tags)
+	SetTag("location", "Brussels")
+	SetTag("location", expectedResponse)
+
+	availableTags := GetTag()
+
+	actualResponse := availableTags[0].Value // latest value for that tag location
+
+	if len(tags) != len(availableTags) { // only 3 unique tags
+		t.Errorf("TestOverwriteTagsWithSameKeyWhenAdded failed expected %v, got %v", len(tags), len(availableTags))
+	}
+	if actualResponse != expectedResponse {
+		t.Errorf("TestOverwriteTagsWithSameKeyWhenAdded failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestOverwriteTagsWithSameKeyWhenAdded success expected %v, got %v", expectedResponse, actualResponse)
+	}
+}
