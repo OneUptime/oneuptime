@@ -27,7 +27,26 @@ type Timeline struct {
 	EventId   string
 }
 
+type Exception struct {
+	Message string
+}
+
 type Tag struct {
 	Key   string
 	Value string
 }
+type ErrorEvent struct {
+	Type            string
+	Timeline        []*Timeline
+	Exception       interface{}
+	EventId         string
+	Tags            []*Tag
+	Fingerprint     []string
+	ErrorTrackerKey string
+}
+
+// const (
+// 	LevelInfo    Level = "info"
+// 	LevelWarning Level = "warning"
+// 	LevelError   Level = "error"
+// )
