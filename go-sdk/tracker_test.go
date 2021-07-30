@@ -326,3 +326,65 @@ func TestOverwriteTagsWithSameKeyWhenAdded(t *testing.T) {
 		t.Logf("TestOverwriteTagsWithSameKeyWhenAdded success expected %v, got %v", expectedResponse, actualResponse)
 	}
 }
+func TestFingerprintShouldBeCaptureMessage(t *testing.T) {
+	timelineOpt := TrackerOption{
+		MaxTimeline: 2,
+	}
+	option := FyipeTrackerOption{
+		ErrorTrackerId:  errorTracker["_id"].(string),
+		ErrorTrackerKey: errorTracker["key"].(string),
+		ApiUrl:          apiUrl,
+		Options:         timelineOpt,
+	}
+
+	InitTracker(option)
+
+	errorMessage := "Uncaught Exception"
+
+	expectedResponse := errorMessage
+
+	CaptureMessage(errorMessage)
+
+	errorEvent := GetErrorEvent()
+
+	actualResponse := errorEvent.Fingerprint[0]
+
+	if actualResponse != expectedResponse {
+		t.Errorf("TestFingerprintShouldBeCaptureMessage failed expected %v, got %v", expectedResponse, actualResponse)
+	} else {
+		t.Logf("TestFingerprintShouldBeCaptureMessage success expected %v, got %v", expectedResponse, actualResponse)
+	}
+}
+
+func TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage(t *testing.T) {
+	timelineOpt := TrackerOption{
+		MaxTimeline: 2,
+	}
+	option := FyipeTrackerOption{
+		ErrorTrackerId:  errorTracker["_id"].(string),
+		ErrorTrackerKey: errorTracker["key"].(string),
+		ApiUrl:          apiUrl,
+		Options:         timelineOpt,
+	}
+
+	InitTracker(option)
+
+	errorMessage := "Uncaught Exception"
+
+	fingerprints := []string{"custom", "errors", "plankton", "ruby", "golang"}
+	SetFingerprint(fingerprints)
+
+	CaptureMessage(errorMessage)
+
+	errorEvent := GetErrorEvent()
+
+	for i := range errorEvent.Fingerprint {
+		expectedResponse := fingerprints[i]
+		actualResponse := errorEvent.Fingerprint[i]
+		if actualResponse != expectedResponse {
+			t.Errorf("TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage failed expected %v, got %v", expectedResponse, actualResponse)
+		} else {
+			t.Logf("TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage success expected %v, got %v", expectedResponse, actualResponse)
+		}
+	}
+}
