@@ -59,7 +59,7 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
 
-    ingestor:
+    data-ingestor:
         ports:
             - '3200:3200'
             - '9239:9229' # Debugging port.
