@@ -657,7 +657,7 @@ module.exports = {
             const _this = this;
 
             const select =
-                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+                '_id name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
             const populate = [
                 {
                     path: 'monitorSla',
@@ -665,6 +665,7 @@ module.exports = {
                 },
                 { path: 'componentId', select: 'name' },
                 { path: 'incidentCommunicationSla', select: '_id' },
+                { path: 'resourceCategory', select: 'name' },
             ];
             const subProjectMonitors = await Promise.all(
                 subProjectIds.map(async id => {
