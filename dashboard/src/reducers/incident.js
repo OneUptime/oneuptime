@@ -453,6 +453,9 @@ export default function incident(state = initialState, action) {
         case 'UPDATE_INCIDENT_TIMELINE': {
             const idNumber =
                 action.payload.incidentId && action.payload.incidentId.idNumber;
+            if (!action || !action.payload) {
+                return state;
+            }
             if (Object.keys(state.incidentMessages).length === 0) {
                 return {
                     ...state,
@@ -999,7 +1002,10 @@ export default function incident(state = initialState, action) {
                     success: true,
                     incidents: state.unresolvedincidents.incidents.map(
                         incident => {
-                            if (incident._id === action.payload.data._id) {
+                            if (
+                                String(incident._id) ===
+                                String(action.payload.data._id)
+                            ) {
                                 return action.payload.data;
                             } else {
                                 return incident;
@@ -1048,7 +1054,10 @@ export default function incident(state = initialState, action) {
                     success: true,
                     incidents: state.unresolvedincidents.incidents.map(
                         incident => {
-                            if (incident._id === action.payload.data._id) {
+                            if (
+                                String(incident._id) ===
+                                String(action.payload.data._id)
+                            ) {
                                 return action.payload.data;
                             } else {
                                 return incident;
