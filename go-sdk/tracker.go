@@ -89,3 +89,17 @@ func (tracker *Tracker) SetTag(key, value string) {
 func (tracker *Tracker) SetTags(tags map[string]string) {
 	tracker.Realm().SetTags(tags)
 }
+
+func (tracker *Tracker) SetFingerprint(fingerprint []string) {
+	tracker.Realm().SetFingerprint(fingerprint)
+}
+
+func (tracker *Tracker) PrepareErrorObject(category string, errorObj *Exception) {
+	AddToTimeline(&Timeline{
+		Category: category,
+		Data:     errorObj.Message,
+		Type:     "error",
+	})
+
+	tracker.Realm().PrepareErrorObject(category, errorObj)
+}

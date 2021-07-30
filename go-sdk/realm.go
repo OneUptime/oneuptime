@@ -8,11 +8,12 @@ import (
 )
 
 type Realm struct {
-	mu          sync.RWMutex
-	timelines   []*Timeline
-	fingerprint []string
-	tags        []*Tag
-	eventId     string
+	mu                sync.RWMutex
+	timelines         []*Timeline
+	fingerprint       []string
+	tags              []*Tag
+	eventId           string
+	currentErrorEvent *ErrorEvent
 }
 
 func NewRealm() *Realm {
@@ -66,4 +67,30 @@ func (realm *Realm) SetTags(tags map[string]string) {
 	for key, value := range tags {
 		SetTag(key, value)
 	}
+}
+
+func (realm *Realm) SetFingerprint(fingerprint []string) {
+
+	realm.fingerprint = fingerprint
+}
+
+func (realm *Realm) PrepareErrorObject(errorType string, errorObj *Exception) {
+	realm.mu.Lock()
+	defer realm.mu.Unlock()
+
+	if len(realm.fingerprint) < 1 { // default fingerprint will be the message from the error stacktrace
+		fingerprint := []string{errorObj.Message}
+		SetFingerprint(fingerprint)
+	}
+
+	errorEvent := &ErrorEvent{
+		Type:        errorType,
+		Timeline:    realm.timelines,
+		EventId:     realm.eventId,
+		Tags:        realm.tags,
+		Fingerprint: realm.fingerprint,
+	}
+
+	realm.currentErrorEvent = errorEvent
+
 }

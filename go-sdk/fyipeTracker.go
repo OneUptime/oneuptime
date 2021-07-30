@@ -94,3 +94,25 @@ func GetTag() []*Tag {
 
 	return tracker.Realm().tags
 }
+func SetFingerprint(fingerprint []string) {
+	tracker := CurrentTracker()
+
+	tracker.SetFingerprint(fingerprint)
+}
+
+func CaptureMessage(message string) {
+	tracker := CurrentTracker()
+
+	messageObj := &Exception{
+		Message: message,
+	}
+
+	tracker.SetTag("handled", "true")
+
+	tracker.PrepareErrorObject("message", messageObj)
+}
+func GetErrorEvent() *ErrorEvent {
+	tracker := CurrentTracker()
+
+	return tracker.Realm().currentErrorEvent
+}
