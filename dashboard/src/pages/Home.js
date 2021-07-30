@@ -31,6 +31,7 @@ import BreachedMonitorSla from '../components/monitorSla/BreachedMonitorSla';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import { fetchErrorTrackersByProject } from '../actions/errorTracker';
 import { ErrorTrackerList } from '../components/errorTracker/ErrorTrackerList';
+import { fetchUnresolvedIncidents } from '../actions/incident';
 
 class Home extends Component {
     constructor(props) {
@@ -57,6 +58,10 @@ class Home extends Component {
         }
         this.props.userScheduleRequest();
         if (this.props.currentProjectId) {
+            this.props.fetchUnresolvedIncidents(
+                this.props.currentProjectId,
+                true
+            );
             this.props.getSmtpConfig(this.props.currentProjectId);
             this.props.fetchErrorTrackersByProject(this.props.currentProjectId);
             if (this.props.currentProjectId && this.props.user.id) {
@@ -94,6 +99,10 @@ class Home extends Component {
         }
         if (prevProps.currentProjectId !== this.props.currentProjectId) {
             this.props.subProjectTeamLoading(this.props.currentProjectId);
+            this.props.fetchUnresolvedIncidents(
+                this.props.currentProjectId,
+                true
+            );
         }
     }
 
@@ -645,6 +654,7 @@ Home.propTypes = {
     closingSla: PropTypes.bool,
     fetchErrorTrackersByProject: PropTypes.func,
     errorTrackers: PropTypes.array,
+    fetchUnresolvedIncidents: PropTypes.func,
 };
 
 const mapStateToProps = state => {
@@ -717,6 +727,7 @@ const mapDispatchToProps = dispatch => {
             closeBreachedMonitorSla,
             fetchDefaultMonitorSla,
             fetchErrorTrackersByProject,
+            fetchUnresolvedIncidents,
         },
         dispatch
     );
