@@ -110,7 +110,9 @@ function AnnouncementBox({ announcement, monitorState, type }) {
                 </div>
             </div>
             <div className="ann_desc">
-                <Markdown>{announcement.description}</Markdown>
+                {announcement?.description && (
+                    <Markdown>{announcement.description}</Markdown>
+                )}
             </div>
             <ShouldRender if={announcement.monitors.length > 0}>
                 <div className={'resources_aff'}>
