@@ -221,7 +221,8 @@ module.exports = {
                 query = {};
             }
 
-            let globalConfigQuery = GlobalConfigModel.findOne(query).lean();
+            // we won't use lean here because of iv that should be a buffer
+            let globalConfigQuery = GlobalConfigModel.findOne(query);
 
             globalConfigQuery = handleSelect(select, globalConfigQuery);
             globalConfigQuery = handlePopulate(populate, globalConfigQuery);
