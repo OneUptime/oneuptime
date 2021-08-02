@@ -85,7 +85,7 @@ class MonitorInfo extends Component {
                     : null;
 
             //this fixes the problem if the monitor is just created and its an api monitor
-            if (monitorData.statuses.length === 1) {
+            if (monitorData?.statuses?.length === 1) {
                 probe =
                     probes && probes.length > 0
                         ? probes.filter(
