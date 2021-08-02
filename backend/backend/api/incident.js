@@ -49,7 +49,15 @@ router.post(
             const description = req.body.description;
             const customFields = req.body.customFields;
             const monitors = req.body.monitors;
-            const userId = req.user ? req.user.id : null;
+            const userId = req.user
+                ? req.user.id === 'API'
+                    ? null
+                    : req.user.id
+                : null;
+            let createdByApi = false;
+            if (req.user && req.user.id === 'API') {
+                createdByApi = true;
+            }
             let oldIncidentsCount = null;
 
             // monitors should be an array containing id of monitor(s)
@@ -120,6 +128,7 @@ router.post(
                 incidentPriority,
                 customFields,
                 monitors,
+                createdByApi,
             });
             if (incident) {
                 for (const monitor of monitors) {
@@ -366,13 +375,25 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
-            const userId = req.user ? req.user.id : null;
+            const userId = req.user
+                ? req.user.id === 'API'
+                    ? null
+                    : req.user.id
+                : null;
+            let acknowledgedByApi = false;
+            if (req.user && req.user.id === 'API') {
+                acknowledgedByApi = true;
+            }
             const projectId = req.params.projectId;
             // Call the IncidentService
             const incident = await IncidentService.acknowledge(
                 req.params.incidentId,
                 userId,
-                req.user.name
+                req.user.name,
+                null,
+                null,
+                null,
+                acknowledgedByApi
             );
             let incidentMessages = await IncidentMessageService.findBy({
                 incidentId: incident._id,
@@ -439,12 +460,25 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
-            const userId = req.user ? req.user.id : null;
+            const userId = req.user
+                ? req.user.id === 'API'
+                    ? null
+                    : req.user.id
+                : null;
+            let resolvedByApi = false;
+            if (req.user && req.user.id === 'API') {
+                resolvedByApi = true;
+            }
             const projectId = req.params.projectId;
             // Call the IncidentService
             const incident = await IncidentService.resolve(
                 req.params.incidentId,
-                userId
+                userId,
+                null,
+                null,
+                null,
+                null,
+                resolvedByApi
             );
             let incidentMessages = await IncidentMessageService.findBy({
                 incidentId: incident._id,
