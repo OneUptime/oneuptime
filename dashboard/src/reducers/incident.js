@@ -468,6 +468,19 @@ export default function incident(state = initialState, action) {
                     },
                 };
             }
+            if (!state.incidentMessages[idNumber]) {
+                return {
+                    ...state,
+                    incidentMessages: {
+                        ...state.incidentMessages,
+                        [idNumber]: {
+                            internal: {
+                                incidentMessages: [action.payload],
+                            },
+                        },
+                    },
+                };
+            }
             return {
                 ...state,
                 incidentMessages: {
