@@ -331,6 +331,30 @@ export class IncidentList extends Component {
                                                                         Zapier
                                                                     </span>
                                                                 </div>
+                                                            ) : incident.createdByApi ? (
+                                                                <div className="Box-root Margin-right--16">
+                                                                    <img
+                                                                        src="/dashboard/assets/img/Fyipe.svg"
+                                                                        style={{
+                                                                            display:
+                                                                                'inline-block',
+                                                                            height:
+                                                                                '20px',
+                                                                            width:
+                                                                                '20px',
+                                                                            borderRadius:
+                                                                                '50%',
+                                                                            margin:
+                                                                                '5px 10px -4px 0px',
+                                                                            backgroundColor:
+                                                                                '#14AAD9',
+                                                                        }}
+                                                                        alt=""
+                                                                    />
+                                                                    <span>
+                                                                        API
+                                                                    </span>
+                                                                </div>
                                                             ) : incident.createdByIncomingHttpRequest ? (
                                                                 <div className="Box-root Margin-right--16">
                                                                     <img
@@ -617,6 +641,30 @@ export class IncidentList extends Component {
                                                                                                     Zapier
                                                                                                 </span>
                                                                                             </span>
+                                                                                        ) : incident.acknowledgedByApi ? (
+                                                                                            <span>
+                                                                                                <img
+                                                                                                    src="/dashboard/assets/img/Fyipe.svg"
+                                                                                                    style={{
+                                                                                                        display:
+                                                                                                            'inline-block',
+                                                                                                        height:
+                                                                                                            '20px',
+                                                                                                        width:
+                                                                                                            '20px',
+                                                                                                        borderRadius:
+                                                                                                            '50%',
+                                                                                                        margin:
+                                                                                                            '-1px 5px -5px -7px',
+                                                                                                        backgroundColor:
+                                                                                                            '#14AAD9',
+                                                                                                    }}
+                                                                                                    alt=""
+                                                                                                />
+                                                                                                <span>
+                                                                                                    API
+                                                                                                </span>
+                                                                                            </span>
                                                                                         ) : incident.acknowledgedByIncomingHttpRequest ? (
                                                                                             <span>
                                                                                                 <img
@@ -791,6 +839,30 @@ export class IncidentList extends Component {
                                                                                     />
                                                                                     <span>
                                                                                         Zapier
+                                                                                    </span>
+                                                                                </span>
+                                                                            ) : incident.resolvedByApi ? (
+                                                                                <span>
+                                                                                    <img
+                                                                                        src="/dashboard/assets/img/Fyipe.svg"
+                                                                                        style={{
+                                                                                            display:
+                                                                                                'inline-block',
+                                                                                            height:
+                                                                                                '20px',
+                                                                                            width:
+                                                                                                '20px',
+                                                                                            borderRadius:
+                                                                                                '50%',
+                                                                                            margin:
+                                                                                                '-1px 5px -5px -7px',
+                                                                                            backgroundColor:
+                                                                                                '#14AAD9',
+                                                                                        }}
+                                                                                        alt=""
+                                                                                    />
+                                                                                    <span>
+                                                                                        API
                                                                                     </span>
                                                                                 </span>
                                                                             ) : incident.resolvedByIncomingHttpRequest ? (

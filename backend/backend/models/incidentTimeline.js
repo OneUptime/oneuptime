@@ -11,6 +11,11 @@ const incidentTimelineSchema = new Schema({
         default: false,
     }, // is true when zapier creates incident
 
+    createdByApi: {
+        type: Boolean,
+        default: false,
+    },
+
     createdAt: {
         type: Date,
         default: Date.now,

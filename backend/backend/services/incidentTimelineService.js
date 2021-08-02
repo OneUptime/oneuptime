@@ -14,6 +14,7 @@ module.exports = {
                 incidentTimeline.incident_state = data.incident_state;
             }
             incidentTimeline.createdByZapier = data.createdByZapier || false;
+            incidentTimeline.createdByApi = data.createdByApi || false;
             incidentTimeline.status = data.status;
 
             incidentTimeline = await incidentTimeline.save();

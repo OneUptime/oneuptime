@@ -187,7 +187,9 @@ export class IncidentMessageThread extends Component {
                                                                               .name
                                                                         : incident.createdByZapier
                                                                         ? 'Zapier'
-                                                                        : 'Fyipe'}
+                                                                        : incidentMessage.createdByApi
+                                                                        ? 'API'
+                                                                        : 'Fyiper'}
                                                                 </span>
                                                             </div>
 
@@ -465,6 +467,8 @@ export class IncidentMessageThread extends Component {
                                                                                       .name
                                                                                 : incident.createdByZapier
                                                                                 ? 'Zapier'
+                                                                                : incidentMessage.createdByApi
+                                                                                ? 'API'
                                                                                 : 'Fyipe'}
                                                                         </span>
                                                                     </div>
@@ -769,6 +773,8 @@ export class IncidentMessageThread extends Component {
                                                                                 ? incidentMessage
                                                                                       .probeId
                                                                                       .probeName
+                                                                                : incidentMessage.createdByApi
+                                                                                ? 'API'
                                                                                 : 'Fyipe'}
                                                                         </span>
                                                                     </div>
