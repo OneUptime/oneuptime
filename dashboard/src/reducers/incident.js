@@ -470,12 +470,6 @@ export default function incident(state = initialState, action) {
                     },
                 };
             }
-            const incidentMessages = [
-                ...(state.incidentMessages[idNumber]?.internal
-                    ?.incidentMessages || []),
-            ];
-            incidentMessages.push(action.payload);
-
             return {
                 ...state,
                 incidentMessages: {
@@ -484,7 +478,11 @@ export default function incident(state = initialState, action) {
                         ...state.incidentMessages[idNumber],
                         internal: {
                             ...state.incidentMessages[idNumber]?.internal,
-                            incidentMessages: incidentMessages,
+                            incidentMessages: [
+                                action.payload,
+                                ...(state.incidentMessages[idNumber]?.internal
+                                    ?.incidentMessages || []),
+                            ],
                         },
                     },
                 },
