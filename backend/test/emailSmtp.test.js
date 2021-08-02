@@ -69,7 +69,7 @@ describe('Email SMTP Api Test', function() {
         const authorization = `Basic ${jwtToken}`;
         const { value } = await GlobalConfigService.findOneBy({
             query: { name: 'smtp' },
-            select: 'value',
+            select: 'value name',
         });
         const payload = {
             user: value.email,
@@ -94,7 +94,7 @@ describe('Email SMTP Api Test', function() {
         const authorization = `Basic ${jwtToken}`;
         const { value } = await GlobalConfigService.findOneBy({
             query: { name: 'smtp' },
-            select: 'value',
+            select: 'value name',
         });
 
         value.email = 'randomemail@gmail.com';

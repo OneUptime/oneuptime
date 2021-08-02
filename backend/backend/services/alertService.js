@@ -775,7 +775,7 @@ module.exports = {
         const [project, ec] = await Promise.all([
             ProjectService.findOneBy({
                 query: { _id: projectId },
-                select: '_id alertEnable alertOptions slug',
+                select: '_id alertEnable alertOptions slug name',
             }),
             EscalationService.findOneBy({
                 query: { _id: escalation._id },
@@ -2025,7 +2025,7 @@ module.exports = {
                     }),
                     ProjectService.findOneBy({
                         query: { _id: projectId },
-                        select: 'slug',
+                        select: 'slug name',
                     }),
                 ]);
                 monitor = mon;
@@ -2390,7 +2390,7 @@ module.exports = {
                     }),
                     ProjectService.findOneBy({
                         query: { _id: projectId },
-                        select: 'slug',
+                        select: 'slug name',
                     }),
                 ]);
                 monitor = mon;

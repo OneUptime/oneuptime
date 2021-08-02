@@ -148,7 +148,7 @@ describe('Twilio API', function() {
         const authorization = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
-            select: 'value',
+            select: 'value name',
         });
         const value = configuration.value;
 
@@ -171,7 +171,7 @@ describe('Twilio API', function() {
         const authorization = `Basic ${token}`;
         const configuration = await GlobalConfigService.findOneBy({
             query: { name: 'twilio' },
-            select: 'value',
+            select: 'value name',
         });
         const value = configuration.value;
 

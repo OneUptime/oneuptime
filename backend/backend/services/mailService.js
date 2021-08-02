@@ -178,7 +178,7 @@ const _this = {
     getSmtpSettings: async () => {
         const document = await GlobalConfigService.findOneBy({
             query: { name: 'smtp' },
-            select: 'value',
+            select: 'value name',
         });
         if (document && document.value && !document.value.internalSmtp) {
             return {

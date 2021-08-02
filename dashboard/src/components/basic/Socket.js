@@ -484,10 +484,10 @@ class SocketApp extends Component {
                       )
                     : false;
                 if (isUserInProject) {
-                    thisObj.props.teamMemberCreate(data.response);
+                    thisObj.props.teamMemberCreate(data.users);
                 } else {
                     const subProject = thisObj.props.subProjects.find(
-                        subProject => subProject._id === data.projectId
+                        subProject => subProject._id === this.props.project._id
                     );
                     const isUserInSubProject = subProject
                         ? subProject.users.some(
@@ -496,7 +496,7 @@ class SocketApp extends Component {
                         : false;
 
                     if (isUserInSubProject)
-                        thisObj.props.teamMemberCreate(data.response);
+                        thisObj.props.teamMemberCreate(data.users);
                 }
             });
             socket.on(`TeamMemberDelete-${this.props.project._id}`, function(

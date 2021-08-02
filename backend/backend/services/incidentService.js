@@ -81,7 +81,7 @@ module.exports = {
 
                 const project = await ProjectService.findOneBy({
                     query: { _id: data.projectId },
-                    select: 'users parentProjectId',
+                    select: 'users parentProjectId name',
                 });
                 const users =
                     project && project.users && project.users.length
@@ -262,7 +262,7 @@ module.exports = {
                     { path: 'incidentPriority', select: 'name' },
                 ];
                 let select =
-                    'notifications _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted';
+                    'idNumber notifications _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted';
                 const populatedIncident = await _this.findOneBy({
                     query: { _id: incident._id },
                     populate,
