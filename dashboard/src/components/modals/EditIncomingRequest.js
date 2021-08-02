@@ -3133,12 +3133,16 @@ const mapStateToProps = state => {
     state.monitor.monitorsList.monitors.forEach(monitor => {
         monitors = [...monitors, ...monitor.monitors];
     });
-    if (!initialValues.selectAllMonitors) {
+    if (!initialValues.selectAllMonitors && incomingRequestToBeUpdated) {
         initialValues.monitors =
             incomingRequestToBeUpdated.monitors &&
-            incomingRequestToBeUpdated.monitors.map(
-                monitor => monitor.monitorId._id
-            );
+            incomingRequestToBeUpdated.monitors
+                .map(monitor =>
+                    monitor.monitorId
+                        ? monitor.monitorId._id || monitor.monitorId
+                        : null
+                )
+                .filter(item => typeof item === 'string');
     }
 
     return {

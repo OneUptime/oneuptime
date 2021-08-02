@@ -1297,9 +1297,12 @@ export default (state = INITIAL_STATE, action) => {
                 },
                 futureEvents: {
                     ...state.futureEvents,
+                    requesting: false,
+                    success: true,
+                    error: null,
                     events: action.payload.futureEvents.events || [],
                     skip: 0,
-                    count: action.payload.futureEvents.length,
+                    count: action.payload.futureEvents.count,
                 },
                 pastEvents: {
                     requesting: false,

@@ -77,7 +77,7 @@ export class IncidentList extends Component {
         const numberOfPages = this.props.numberOfPage
             ? this.props.numberOfPage
             : Math.ceil(parseInt(this.props.incidents.count) / 10);
-        const incidents =
+        let incidents =
             this.props.filteredIncidents &&
             this.props.filteredIncidents.length > 0
                 ? this.props.filteredIncidents
@@ -90,6 +90,16 @@ export class IncidentList extends Component {
                   this.props.incidents.incidents.length > 0
                 ? this.props.incidents.incidents
                 : [];
+
+        const updatedIncidents = [],
+            incidentIds = [];
+        incidents.forEach(incident => {
+            if (!incidentIds.includes(incident._id)) {
+                updatedIncidents.push(incident);
+                incidentIds.push(incident._id);
+            }
+        });
+        incidents = updatedIncidents;
 
         return (
             <div>
