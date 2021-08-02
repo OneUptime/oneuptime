@@ -148,7 +148,8 @@ module.exports = {
 
                 incident.projectId = data.projectId || null;
                 incident.monitors = monitors;
-                incident.createdById = data.createdById || null;
+                incident.createdById = data.createdById;
+                incident.createdByApi = data.createdByApi;
                 incident.notClosedBy = users;
                 incident.incidentType = data.incidentType;
                 incident.manuallyCreated = data.manuallyCreated || false;
@@ -251,6 +252,7 @@ module.exports = {
                     createdById: data.createdById,
                     probeId: data.probeId,
                     status: data.incidentType,
+                    createdByApi: data.createdByApi,
                 });
 
                 // ********* TODO ************
@@ -536,7 +538,8 @@ module.exports = {
         name,
         probeId,
         zapier,
-        httpRequest = {}
+        httpRequest = {},
+        acknowledgedByApi = false
     ) {
         try {
             const _this = this;
@@ -554,7 +557,8 @@ module.exports = {
                         acknowledgedBy: userId,
                         acknowledgedAt: Date.now(),
                         acknowledgedByZapier: zapier,
-                        acknowledgedByIncomingHttpRequest: httpRequest._id,
+                        acknowledgedByIncomingHttpRequest: httpRequest?._id,
+                        acknowledgedByApi,
                     }
                 );
 
@@ -614,6 +618,7 @@ module.exports = {
                     probeId: probeId,
                     createdByZapier: zapier,
                     status: 'acknowledged',
+                    createdByApi: acknowledgedByApi,
                 });
 
                 _this.refreshInterval(incidentId);
@@ -682,7 +687,8 @@ module.exports = {
         name,
         probeId,
         zapier,
-        httpRequest = {}
+        httpRequest = {},
+        resolvedByApi = false
     ) {
         try {
             const _this = this;
@@ -698,7 +704,8 @@ module.exports = {
                 data.acknowledgedBy = userId;
                 data.acknowledgedAt = Date.now();
                 data.acknowledgedByZapier = zapier;
-                data.acknowledgedByIncomingHttpRequest = httpRequest._id;
+                data.acknowledgedByIncomingHttpRequest = httpRequest?._id;
+                data.acknowledgedByApi = resolvedByApi;
 
                 await IncidentTimelineService.create({
                     incidentId: incidentId,
@@ -706,13 +713,15 @@ module.exports = {
                     probeId: probeId,
                     createdByZapier: zapier,
                     status: 'acknowledged',
+                    createdByApi: resolvedByApi,
                 });
             }
             data.resolved = true;
             data.resolvedBy = userId;
             data.resolvedAt = Date.now();
             data.resolvedByZapier = zapier;
-            data.resolvedByIncomingHttpRequest = httpRequest._id;
+            data.resolvedByIncomingHttpRequest = httpRequest?._id;
+            data.resolvedByApi = resolvedByApi;
 
             incident = await _this.updateOneBy({ _id: incidentId }, data);
 
@@ -740,6 +749,7 @@ module.exports = {
                 probeId: probeId,
                 createdByZapier: zapier,
                 status: 'resolved',
+                createdByApi: resolvedByApi,
             });
 
             _this.clearInterval(incidentId);
