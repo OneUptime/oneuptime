@@ -2252,7 +2252,7 @@ async function calculateTime(statusPage, monitorStatus, probeData, range) {
             );
             const probe = probeData?.probes.filter(
                 probe =>
-                    String(probe._id) === String(monitorData.statuses[0]._id)
+                    String(probe._id) === String(monitorData.statuses[0]?._id)
             );
             const statuses = filterProbeData(
                 monitorData,
