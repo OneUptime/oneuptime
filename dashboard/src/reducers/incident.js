@@ -451,11 +451,13 @@ export default function incident(state = initialState, action) {
             });
 
         case 'UPDATE_INCIDENT_TIMELINE': {
-            const idNumber =
+            let idNumber =
                 action.payload.incidentId && action.payload.incidentId.idNumber;
+            idNumber = idNumber - 1;
             if (!action || !action.payload) {
                 return state;
             }
+
             if (Object.keys(state.incidentMessages).length === 0) {
                 return {
                     ...state,
@@ -478,8 +480,8 @@ export default function incident(state = initialState, action) {
                             ...state.incidentMessages[idNumber]?.internal,
                             incidentMessages: [
                                 action.payload,
-                                ...state.incidentMessages[idNumber]?.internal
-                                    .incidentMessages,
+                                ...(state.incidentMessages[idNumber]?.internal
+                                    ?.incidentMessages || []),
                             ],
                         },
                     },
