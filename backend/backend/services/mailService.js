@@ -4847,16 +4847,11 @@ const _this = {
         projectName,
         projectId,
         unsubscribeUrl,
-        monitorsAffected
+        monitorName
     ) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
-
-        const resourcesAffected = [];
-        monitorsAffected.map(monitor => {
-            return resourcesAffected.push(monitor.name);
-        });
 
         try {
             let { template, subject } = await _this.getTemplates(
@@ -4870,8 +4865,8 @@ const _this = {
                 announcementDescription,
                 projectName: UppercaseFirstLetter(projectName),
                 unsubscribeUrl,
-                resourcesAffected: resourcesAffected.toString(),
                 year: DateTime.getCurrentYear,
+                monitorName,
             };
             template = template(data);
             subject = subject(data);

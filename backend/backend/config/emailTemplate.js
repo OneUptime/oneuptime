@@ -4244,7 +4244,7 @@ Fyipe Team.
             '{{announcementDescription}} : Description of the scheduled event.',
             '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
             '{{projectName}} : Name of project on which announcement is created',
-            '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
+            '{{monitorName}} : List of monitors affected by scheduled maintenance event',
         ],
         emailType: 'Subscriber Announcement Notification Created',
         subject: `Announcement Notification for {{projectName}}`,
@@ -4563,10 +4563,10 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
                       <strong>Content: </strong>
                       <span>"{{announcementDescription}}"</span><br></p>
                       
-                    {{#if resourcesAffected}}
+                    {{#if monitorName}}
                       <p style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                       <strong>Resource Affected: </strong>
-                      <span>{{resourcesAffected}}</span><br></p> 
+                      <span>{{monitorName}}</span><br></p> 
                     {{/if}}                                   
                   </td>
                 </tr>
