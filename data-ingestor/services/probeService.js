@@ -631,12 +631,8 @@ module.exports = {
                     ]);
 
                     incidentsV2.push(newIncident);
-
-                    return newIncident;
                 } else {
                     incidentsV2.push(incident);
-
-                    return incident;
                 }
             }
 
@@ -650,6 +646,7 @@ module.exports = {
                         falseArray.push(probe);
                     }
                 });
+
                 if (
                     trueArray.length === falseArray.length ||
                     monitor.type === 'incomingHttpRequest'
@@ -678,6 +675,7 @@ module.exports = {
                     }
                 }
             });
+
             return {};
         } catch (error) {
             ErrorService.log(
