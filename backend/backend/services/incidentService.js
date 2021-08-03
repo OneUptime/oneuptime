@@ -298,7 +298,10 @@ module.exports = {
                     },
                     { path: 'resolvedByIncomingHttpRequest', select: 'name' },
                     { path: 'createdByIncomingHttpRequest', select: 'name' },
-                    { path: 'probes.probeId', select: 'name _id' },
+                    {
+                        path: 'probes.probeId',
+                        select: 'probeName _id probeImage',
+                    },
                 ];
                 select =
                     'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
@@ -485,7 +488,7 @@ module.exports = {
                 },
                 { path: 'resolvedByIncomingHttpRequest', select: 'name' },
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
-                { path: 'probes.probeId', select: 'name _id' },
+                { path: 'probes.probeId', select: 'probeName _id probeImage' },
             ];
             const select =
                 'notifications hideIncident acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
@@ -536,7 +539,7 @@ module.exports = {
                 },
                 { path: 'resolvedByIncomingHttpRequest', select: 'name' },
                 { path: 'createdByIncomingHttpRequest', select: 'name' },
-                { path: 'probes.probeId', select: 'name _id' },
+                { path: 'probes.probeId', select: 'probeName _id probeImage' },
             ];
             const select =
                 'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
@@ -809,7 +812,10 @@ module.exports = {
                     },
                     { path: 'resolvedByIncomingHttpRequest', select: 'name' },
                     { path: 'createdByIncomingHttpRequest', select: 'name' },
-                    { path: 'probes.probeId', select: 'name _id' },
+                    {
+                        path: 'probes.probeId',
+                        select: 'probeName _id probeImage',
+                    },
                 ];
                 const select =
                     'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
@@ -996,7 +1002,7 @@ module.exports = {
             },
             { path: 'resolvedByIncomingHttpRequest', select: 'name' },
             { path: 'createdByIncomingHttpRequest', select: 'name' },
-            { path: 'probes.probeId', select: 'name _id' },
+            { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
         const select =
             'createdAt notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
@@ -1043,7 +1049,7 @@ module.exports = {
             },
             { path: 'resolvedByIncomingHttpRequest', select: 'name' },
             { path: 'createdByIncomingHttpRequest', select: 'name' },
-            { path: 'probes.probeId', select: 'name _id' },
+            { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
         const select =
             'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
@@ -1096,7 +1102,7 @@ module.exports = {
             },
             { path: 'resolvedByIncomingHttpRequest', select: 'name' },
             { path: 'createdByIncomingHttpRequest', select: 'name' },
-            { path: 'probes.probeId', select: 'name _id' },
+            { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
         const select =
             'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
@@ -1149,7 +1155,7 @@ module.exports = {
             },
             { path: 'resolvedByIncomingHttpRequest', select: 'name' },
             { path: 'createdByIncomingHttpRequest', select: 'name' },
-            { path: 'probes.probeId', select: 'name _id' },
+            { path: 'probes.probeId', select: 'probeName _id probeImage' },
         ];
         const select =
             'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
