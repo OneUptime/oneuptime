@@ -1403,7 +1403,7 @@ const checkAnd = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload > con.criteria[i].field1
+                                payload > Number(con.criteria[i].field1)
                             )
                         ) {
                             validity = false;
@@ -1425,7 +1425,7 @@ const checkAnd = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload < con.criteria[i].field1
+                                payload < Number(con.criteria[i].field1)
                             )
                         ) {
                             validity = false;
@@ -1448,8 +1448,8 @@ const checkAnd = (
                                 con.criteria[i].field1 &&
                                 payload &&
                                 con.criteria[i].field2 &&
-                                payload > con.criteria[i].field1 &&
-                                payload < con.criteria[i].field2
+                                payload > Number(con.criteria[i].field1) &&
+                                payload < Number(con.criteria[i].field2)
                             )
                         ) {
                             validity = false;
@@ -1471,7 +1471,7 @@ const checkAnd = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload == con.criteria[i].field1
+                                payload === Number(con.criteria[i].field1)
                             )
                         ) {
                             validity = false;
@@ -1493,7 +1493,7 @@ const checkAnd = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload != con.criteria[i].field1
+                                payload !== Number(con.criteria[i].field1)
                             )
                         ) {
                             validity = false;
@@ -1515,7 +1515,7 @@ const checkAnd = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload >= con.criteria[i].field1
+                                payload >= Number(con.criteria[i].field1)
                             )
                         ) {
                             validity = false;
@@ -1537,7 +1537,7 @@ const checkAnd = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload <= con.criteria[i].field1
+                                payload <= Number(con.criteria[i].field1)
                             )
                         ) {
                             validity = false;
@@ -3752,7 +3752,7 @@ const checkOr = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload > con.criteria[i].field1
+                            payload > Number(con.criteria[i].field1)
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3772,7 +3772,7 @@ const checkOr = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload < con.criteria[i].field1
+                            payload < Number(con.criteria[i].field1)
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3793,8 +3793,8 @@ const checkOr = (
                             con.criteria[i].field1 &&
                             payload &&
                             con.criteria[i].field2 &&
-                            payload > con.criteria[i].field1 &&
-                            payload < con.criteria[i].field2
+                            payload > Number(con.criteria[i].field1) &&
+                            payload < Number(con.criteria[i].field2)
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3814,7 +3814,7 @@ const checkOr = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload == con.criteria[i].field1
+                            payload === Number(con.criteria[i].field1)
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3834,7 +3834,7 @@ const checkOr = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload != con.criteria[i].field1
+                            payload !== Number(con.criteria[i].field1)
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3854,7 +3854,7 @@ const checkOr = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload >= con.criteria[i].field1
+                            payload >= Number(con.criteria[i].field1)
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3874,7 +3874,7 @@ const checkOr = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload <= con.criteria[i].field1
+                            payload <= Number(con.criteria[i].field1)
                         ) {
                             validity = true;
                             successReasons.push(
