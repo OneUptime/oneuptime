@@ -118,6 +118,40 @@ module.exports = {
         }
     },
 
+    findBy: async function({ query, limit, skip }) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') skip = parseInt(skip);
+
+            if (typeof limit === 'string') limit = parseInt(limit);
+
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
+
+            const incidents = await monitorStatusCollection
+                .find(query)
+                .limit(limit)
+                .skip(skip)
+                .sort({ createdAt: -1 })
+                .toArray();
+
+            return incidents;
+        } catch (error) {
+            ErrorService.log('incidentService.findBy', error);
+            throw error;
+        }
+    },
+
     async sendMonitorStatus(data) {
         try {
             const monitor = await MonitorService.findOneBy({
