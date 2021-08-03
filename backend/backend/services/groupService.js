@@ -51,7 +51,7 @@ module.exports = {
                 .populate('projectId', 'name')
                 .populate({
                     path: 'teams',
-                    select: 'name',
+                    select: 'name email',
                 })
                 .lean();
 
