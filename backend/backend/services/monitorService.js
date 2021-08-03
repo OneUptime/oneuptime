@@ -1068,12 +1068,12 @@ module.exports = {
                 query: { _id: monitorId },
                 select,
             });
-            const isNewMonitor =
-                moment(endDate).diff(moment(monitor.createdAt), 'days') < 2;
 
             let probes;
             const probeLogs = [];
             if (monitor) {
+                const isNewMonitor =
+                    moment(endDate).diff(moment(monitor.createdAt), 'days') < 2;
                 if (
                     monitor.type === 'server-monitor' &&
                     !monitor.agentlessConfig

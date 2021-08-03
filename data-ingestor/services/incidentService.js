@@ -1,11 +1,6 @@
 const ErrorService = require('./errorService');
 const incidentCollection = global.db.collection('incidents');
-const { ObjectId } = require('mongodb');
 const { postApi } = require('../utils/api');
-const { realtimeUrl } = require('../utils/config');
-const ProjectService = require('./projectService');
-
-const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 module.exports = {
     findBy: async function({ query, limit, skip }) {
@@ -78,57 +73,16 @@ module.exports = {
                     { deleted: { $exists: false } },
                 ];
 
-            const _this = this;
-            const oldIncident = await _this.findOneBy({
-                query: { _id: ObjectId(query._id), deleted: { $ne: null } },
-            });
-
-            const notClosedBy = oldIncident && oldIncident.notClosedBy;
-            if (data.notClosedBy) {
-                data.notClosedBy = notClosedBy.concat(data.notClosedBy);
-            }
-            data.manuallyCreated =
-                data.manuallyCreated ||
-                (oldIncident && oldIncident.manuallyCreated) ||
-                false;
-
-            if (
-                data.reason &&
-                Array.isArray(data.reason) &&
-                data.reason.length > 0
-            ) {
-                data.reason = data.reason.join('\n');
-            }
-
-            let updatedIncident = await incidentCollection.updateOne(query, {
-                $set: data,
-            });
-
-            updatedIncident = await _this.findOneBy({
+            // THIS IS AN EXCEPTION TO THE NORMAL FLOW
+            // WHY?
+            // Instead of running multiple aggregate pipelines and also running multiple data formatting
+            // we will send this request to the backend, to use mongoose for the processing
+            // ADVANTAGE?
+            // Save resource and computational speed, since mongoose is already optimise to populate fields and deeply nested fields
+            return await postApi('api/incident/data-ingestor/update-incident', {
                 query,
+                data,
             });
-            const project = await ProjectService.findOneBy({
-                query: {
-                    _id: ObjectId(
-                        updatedIncident.projectId._id ||
-                            updatedIncident.projectId
-                    ),
-                },
-            });
-            const projectId = project
-                ? project.parentProjectId
-                    ? project.parentProjectId._id || project.parentProjectId
-                    : project._id
-                : updatedIncident.projectId._id || updatedIncident.projectId;
-
-            // realtime update
-            postApi(
-                `${realtimeBaseUrl}/update-incident`,
-                { incident: updatedIncident, projectId },
-                true
-            );
-
-            return updatedIncident;
         } catch (error) {
             ErrorService.log('incidentService.updateOneBy', error);
             throw error;
