@@ -235,7 +235,7 @@ const EscalationSummarySingle = ({
                             }).length > 0 && (
                                 <span>
                                     {' '}
-                                    Team Memmbers: <br />
+                                    Team Members: <br />
                                     <br />{' '}
                                 </span>
                             )}
