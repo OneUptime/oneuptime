@@ -92,9 +92,14 @@ module.exports = {
 
     createMonitorDisabledStatus: async function(data) {
         try {
-            let monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: data.monitorId,
+            let monitorStatus = await MonitorStatusService.findBy({
+                query: {
+                    monitorId: data.monitorId,
+                },
+                limit: 1, // only get one item, which is the latest item
             });
+            monitorStatus = monitorStatus[0];
+
             const lastStatus =
                 monitorStatus && monitorStatus.status
                     ? monitorStatus.status
