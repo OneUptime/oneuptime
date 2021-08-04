@@ -12,7 +12,7 @@ export class EscalationSummary extends Component {
     }
 
     render() {
-        const { onEditClicked, escalations, teamMembers } = this.props;
+        const { onEditClicked, escalations, teamMembers, groups } = this.props;
 
         const { isLoading, error } = this.state;
         return (
@@ -111,6 +111,7 @@ export class EscalationSummary extends Component {
                                                             currentEscalationPolicyCount={
                                                                 i + 1
                                                             }
+                                                            groups={groups}
                                                         />
                                                     )}
 
@@ -136,6 +137,7 @@ export class EscalationSummary extends Component {
                                                             currentEscalationPolicyCount={
                                                                 i + 1
                                                             }
+                                                            groups={groups}
                                                         />
                                                     )}
                                             </div>
@@ -197,6 +199,7 @@ EscalationSummary.propTypes = {
     onEditClicked: PropTypes.func.isRequired,
     escalations: PropTypes.array.isRequired,
     teamMembers: PropTypes.array.isRequired,
+    groups: PropTypes.array,
 };
 
 const mapDispatchToProps = dispatch => bindActionCreators({}, dispatch);

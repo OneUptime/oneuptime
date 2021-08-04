@@ -57,6 +57,14 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
                     select: 'name email',
                 },
             },
+            {
+                path: 'escalationIds',
+                select: 'teams',
+                populate: {
+                    path: 'teams.teamMembers.groupId',
+                    select: 'name',
+                },
+            },
         ];
 
         const select =
