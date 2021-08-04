@@ -309,12 +309,12 @@ module.exports = {
         return monitor;
     },
 
-    disableMonitor: async function(_id) {
+    disableMonitor: async function(_id, isDisabledOrEnable) {
         await MonitorModel.updateOne(
             { _id },
             {
                 $set: {
-                    disabled: true,
+                    disabled: isDisabledOrEnable,
                 },
             }
         );
