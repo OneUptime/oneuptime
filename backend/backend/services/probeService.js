@@ -206,9 +206,15 @@ module.exports = {
 
     createMonitorDisabledStatus: async function(data) {
         try {
-            let monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: data.monitorId,
+            const select =
+                '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
+            let monitorStatus = await MonitorStatusService.findBy({
+                query: { monitorId: data.monitorId },
+                select,
+                limit: 1,
             });
+            monitorStatus = monitorStatus[0];
+
             const lastStatus =
                 monitorStatus && monitorStatus.status
                     ? monitorStatus.status
@@ -229,10 +235,12 @@ module.exports = {
         try {
             const _this = this;
 
-            const monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: data.monitorId,
-                probeId: data.probeId,
+            let monitorStatus = await MonitorStatusService.findBy({
+                query: { monitorId: data.monitorId, probeId: data.probeId },
+                select: 'status',
+                limit: 1,
             });
+            monitorStatus = monitorStatus[0];
 
             const lastStatus =
                 monitorStatus && monitorStatus.status

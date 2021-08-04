@@ -370,7 +370,8 @@ module.exports = {
                 this.clearInterval(incident._id); // clear any existing sla interval
 
                 const monitorStatuses = await MonitorStatusService.findBy({
-                    incidentId: incident._id,
+                    query: { incidentId: incident._id },
+                    select: '_id',
                 });
                 for (const monitorStatus of monitorStatuses) {
                     const { _id } = monitorStatus;
