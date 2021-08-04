@@ -69,12 +69,17 @@ export class MonitorViewDisableBox extends Component {
                         <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                             <div className="Box-root">
                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                    <span>Disable Monitor</span>
+                                    <span>
+                                        {disabledMonitor
+                                            ? 'Enable Monitor'
+                                            : 'Disable Monitor'}
+                                    </span>
                                 </span>
                                 <p>
                                     <span>
-                                        Click the button to disable this
-                                        monitor.
+                                        Click the button to{' '}
+                                        {disabledMonitor ? 'enable' : 'disable'}{' '}
+                                        this monitor.
                                     </span>
                                 </p>
                             </div>
