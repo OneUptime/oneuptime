@@ -960,10 +960,10 @@ router.post(
                 query: { _id: monitorId },
                 select,
             });
-
+           
             const disabled = monitor.disabled ? false : true;
-            const [newMonitor] = await Promise.all([
-                MonitorService.disableMonitor(monitorId),
+            await Promise.all([
+                MonitorService.disableMonitor(monitorId, disabled), // This enables or disables the monitor as needed.
 
                 ProbeService.createMonitorDisabledStatus({
                     monitorId,
@@ -971,7 +971,12 @@ router.post(
                     status: disabled ? 'disabled' : 'enable',
                 }),
             ]);
-            return sendItemResponse(req, res, newMonitor);
+            // This fetch the values of the updated monitor needed to update UI state.
+            const updatedMonitor = await MonitorService.findOneBy({
+                query: { _id: monitorId },
+                select: '_id disabled'
+            })
+            return sendItemResponse(req, res, updatedMonitor);
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

@@ -309,12 +309,12 @@ module.exports = {
         return monitor;
     },
 
-    disableMonitor: async function(_id) {
+    disableMonitor: async function(_id, isDisabledOrEnable) {
         await MonitorModel.updateOne(
             { _id },
             {
                 $set: {
-                    disabled: true,
+                    disabled: isDisabledOrEnable,
                 },
             }
         );
@@ -414,7 +414,7 @@ module.exports = {
                     path: 'monitorSla',
                     select: 'frequency _id',
                 },
-                { path: 'componentId', select: 'name' },
+                { path: 'componentId', select: 'name slug' },
                 { path: 'incidentCommunicationSla', select: '_id' },
             ];
             const monitor = await this.findOneBy({ query, select, populate });
@@ -1854,7 +1854,8 @@ module.exports = {
         const [monitor, component] = await Promise.all([
             this.findOneBy({ query: { _id: monitorId }, select: 'projectId' }),
             componentService.findOneBy({
-                _id: componentId,
+              query:{_id: componentId},
+              select :'projectId'  
             }),
         ]);
 
