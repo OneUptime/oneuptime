@@ -1389,9 +1389,44 @@ module.exports = {
                         );
                     }
 
+                    const populate = [
+                        {
+                            path: 'monitors.monitorId',
+                            select: 'name slug componentId projectId type',
+                            populate: [
+                                { path: 'componentId', select: 'name slug' },
+                                { path: 'projectId', select: 'name slug' },
+                            ],
+                        },
+                        { path: 'createdById', select: 'name' },
+                        { path: 'projectId', select: 'name slug' },
+                        { path: 'resolvedBy', select: 'name' },
+                        { path: 'acknowledgedBy', select: 'name' },
+                        { path: 'incidentPriority', select: 'name color' },
+                        {
+                            path: 'acknowledgedByIncomingHttpRequest',
+                            select: 'name',
+                        },
+                        {
+                            path: 'resolvedByIncomingHttpRequest',
+                            select: 'name',
+                        },
+                        {
+                            path: 'createdByIncomingHttpRequest',
+                            select: 'name',
+                        },
+                        {
+                            path: 'probes.probeId',
+                            select: 'probeName _id probeImage',
+                        },
+                    ];
+                    const select =
+                        'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
                     updatedIncident = await _this.findOneBy({
-                        _id: updatedIncident._id,
-                        deleted: true,
+                        query: { _id: updatedIncident._id, deleted: true },
+                        select,
+                        populate,
                     });
 
                     // run in the background
