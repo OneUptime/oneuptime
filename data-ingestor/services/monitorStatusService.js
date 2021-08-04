@@ -53,6 +53,7 @@ module.exports = {
                     status: data.status,
                     createdAt: now,
                     startTime: now,
+                    deleted: false,
                 };
                 if (data.lastStatus) {
                     monitorStatusData.lastStatus = data.lastStatus;

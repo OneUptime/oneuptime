@@ -25,6 +25,7 @@ module.exports = {
             scriptLog.consoleLogs = data.consoleLogs || null;
             scriptLog.error = data.error || null;
             scriptLog.createdAt = new Date(moment().format());
+            scriptLog.deleted = false;
 
             const result = await scriptLogCollection.insertOne(scriptLog);
             const newScriptLog = await this.findOneBy({
