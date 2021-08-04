@@ -376,7 +376,9 @@ class MonitorInfo extends Component {
                                     >
                                         {loadingData ? (
                                             <div ref={this.scrollContent}>
-                                                loading...
+                                                {statuses.length === 0
+                                                    ? 'calculating...'
+                                                    : 'loading...'}
                                             </div>
                                         ) : (
                                             <div
@@ -554,7 +556,9 @@ class MonitorInfo extends Component {
                             >
                                 {loadingData ? (
                                     <div ref={this.scrollContent}>
-                                        Loading...
+                                        {statuses.length === 0
+                                            ? 'calculating...'
+                                            : 'loading...'}
                                     </div>
                                 ) : (
                                     <div
