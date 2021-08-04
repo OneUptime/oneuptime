@@ -62,6 +62,8 @@ function parseSchedule(schedule) {
                     escalation[i].teamMembers[j] &&
                         escalation[i].teamMembers[j].userId &&
                         userIds.push(escalation[i].teamMembers[j].userId);
+                    escalation[i].teamMembers[j].groupId &&
+                        userIds.push(escalation[i].teamMembers[j].groupId);
                 }
             }
         }

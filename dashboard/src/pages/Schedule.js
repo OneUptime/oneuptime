@@ -79,6 +79,7 @@ class Schedule extends Component {
             subProjectId,
             location: { pathname },
             schedule,
+            groups,
         } = this.props;
         const name = schedule ? schedule.name : null;
         if (error) {
@@ -124,6 +125,7 @@ class Schedule extends Component {
                                                             teamMembers={
                                                                 teamMembers
                                                             }
+                                                            groups={groups}
                                                         />
                                                     )}
 
@@ -186,6 +188,7 @@ const mapStateToProps = (state, props) => {
         subProjectId: schedule && schedule.projectId._id,
         scheduleId: schedule && schedule._id,
         teamMembers: state.team.teamMembers,
+        groups: state.groups.oncallDuty?.groups,
     };
 };
 
@@ -199,6 +202,7 @@ Schedule.propTypes = {
     teamLoading: PropTypes.func.isRequired,
     escalations: PropTypes.array.isRequired,
     teamMembers: PropTypes.array.isRequired,
+    groups: PropTypes.array,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
