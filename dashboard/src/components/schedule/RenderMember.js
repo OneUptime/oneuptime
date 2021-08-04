@@ -77,9 +77,9 @@ let RenderMember = ({
 
     const renderType =
         formValues[renderKey] ||
-        form[policyIndex].teams[teamIndex].teamMembers[nameIndex].groupId
+        (form[policyIndex].teams[teamIndex].teamMembers[nameIndex].groupId
             ? 'group'
-            : 'team';
+            : 'team');
     return (
         <li key={nameIndex}>
             <ShouldRender if={projectGroups && projectGroups.count > 0}>
