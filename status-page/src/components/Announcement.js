@@ -12,13 +12,6 @@ class Announcement extends Component {
         this.limit = 2;
         this.counter = 2;
     }
-    async componentDidMount() {
-        const {
-            getAnnouncements,
-            statusPage: { projectId, _id },
-        } = this.props;
-        await getAnnouncements(projectId._id, _id, 0, this.limit);
-    }
 
     handleRouting = announcementSlug => {
         const {
@@ -117,7 +110,9 @@ function AnnouncementBox({ announcement, monitorState, type }) {
                 </div>
             </div>
             <div className="ann_desc">
-                <Markdown>{announcement.description}</Markdown>
+                {announcement?.description && (
+                    <Markdown>{announcement.description}</Markdown>
+                )}
             </div>
             <ShouldRender if={announcement.monitors.length > 0}>
                 <div className={'resources_aff'}>

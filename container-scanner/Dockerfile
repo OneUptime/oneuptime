@@ -1,0 +1,27 @@
+#
+# Fyipe-backend Dockerfile
+#
+
+# Pull base image nodejs image.
+FROM node:16
+
+#SET ENV Variables
+ENV PRODUCTION=true
+
+RUN mkdir -p /usr/src/app
+
+WORKDIR /usr/src/app
+
+# Install app dependencies
+COPY package*.json /usr/src/app/
+RUN npm ci --only=production
+
+# Bundle app source
+COPY . /usr/src/app
+
+# Expose ports.
+#   - 3055: Container Scanner
+EXPOSE 3055
+
+#Run the app
+CMD [ "npm", "start"]

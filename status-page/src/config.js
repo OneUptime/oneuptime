@@ -3,6 +3,7 @@ import validUrl from 'valid-url';
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
+let realtimeUrl = window.location.origin + '/realtime';
 
 export function env(value) {
     const { _env } = window;
@@ -28,14 +29,18 @@ if (
     apiUrl = protocol + '//localhost:3002/api';
     dashboardUrl = protocol + '//localhost:3000/dashboard';
     accountsUrl = protocol + '//localhost:3003/accounts';
+    realtimeUrl = protocol + '//localhost:3300/realtime';
 } else if (env('FYIPE_HOST')) {
     const FYIPE_HOST = env('FYIPE_HOST').replace(/(http:\/\/|https:\/\/)/, ''); // remove any protocol that might have been added
     apiUrl = protocol + `//${FYIPE_HOST}/api`;
     dashboardUrl = protocol + `//${FYIPE_HOST}/dashboard`;
     accountsUrl = protocol + `//${FYIPE_HOST}/accounts`;
+    realtimeUrl = protocol + `//${FYIPE_HOST}/realtime`;
 }
 
 export const API_URL = apiUrl;
+
+export const REALTIME_URL = realtimeUrl;
 
 export const DASHBOARD_URL = dashboardUrl;
 
@@ -137,9 +142,8 @@ export const bindRaf = fn => {
     };
 };
 
-export const filterProbeData = (monitor, probe) => {
-    const monitorStatuses =
-        monitor && monitor.statuses ? monitor.statuses : null;
+export const filterProbeData = (monitor, probe, backupStatus) => {
+    const monitorStatuses = monitor.statuses || backupStatus;
 
     const probesStatus =
         monitorStatuses && monitorStatuses.length > 0
@@ -147,7 +151,7 @@ export const filterProbeData = (monitor, probe) => {
                 ? monitorStatuses.filter(probeStatuses => {
                       return (
                           probeStatuses._id === null ||
-                          probeStatuses._id === probe._id
+                          String(probeStatuses._id) === String(probe._id)
                       );
                   })
                 : monitorStatuses

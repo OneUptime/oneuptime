@@ -17,7 +17,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
         const body = req.body;
         const userId = req.user ? req.user.id : null;
 
-        const monitorId = body.monitorId;
+        const monitors = body.monitors;
         const endpoint = body.endpoint;
         const webHookName = body.webHookName;
         const endpointType = body.endpointType;
@@ -26,6 +26,17 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
         const incidentAcknowledged = body.incidentAcknowledged;
         const incidentNoteAdded = body.incidentNoteAdded;
         const integrationType = body.type;
+        const select =
+            'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+        const populate = [
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: [{ path: 'componentId', select: 'name' }],
+            },
+        ];
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -40,11 +51,10 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
                 message: 'endpoint missing in body, must be present',
             });
         }
-
-        if (!monitorId) {
+        if (!monitors || monitors.length < 1) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'monitorId is missing in body, must be present',
+                message: 'no monitor is added, add a monitor',
             });
         }
 
@@ -62,12 +72,16 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
                     message: 'name missing in body, must be present',
                 });
             }
-
-            const existingName = await IntegrationService.findOneBy({
-                monitorId,
+            const query = {
                 webHookName,
                 integrationType,
                 deleted: { $ne: null },
+            };
+
+            const existingName = await IntegrationService.findOneBy({
+                query,
+                select,
+                populate,
             });
 
             if (existingName) {
@@ -79,10 +93,13 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
         }
 
         const existingWebhook = await IntegrationService.findOneBy({
-            monitorId,
-            'data.endpoint': endpoint,
-            'data.endpointType': endpointType,
-            deleted: { $ne: null },
+            query: {
+                'data.endpoint': endpoint,
+                'data.endpointType': endpointType,
+                deleted: { $ne: null },
+            },
+            select,
+            populate,
         });
 
         if (existingWebhook) {
@@ -92,7 +109,7 @@ router.post('/:projectId/create', getUser, isUserAdmin, async function(
             });
         }
 
-        const data = { userId, endpoint, endpointType, monitorId, webHookName };
+        const data = { userId, endpoint, endpointType, monitors, webHookName };
         const notificationOptions = {
             incidentCreated,
             incidentAcknowledged,
@@ -124,6 +141,17 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
         data.projectId = req.params.projectId;
         data.userId = req.user ? req.user.id : null;
         data._id = integrationId;
+        const select =
+            'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+        const populate = [
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: [{ path: 'componentId', select: 'name' }],
+            },
+        ];
 
         if (!data.projectId) {
             return sendErrorResponse(req, res, {
@@ -139,10 +167,10 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
             });
         }
 
-        if (!data.monitorId) {
+        if (!data.monitors || !data.monitors.length > 0) {
             return sendErrorResponse(req, res, {
                 code: 400,
-                message: 'monitorId missing in body, must be present',
+                message: 'monitors missing in body, must be present',
             });
         }
 
@@ -161,10 +189,14 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
                 });
             }
             const existingName = await IntegrationService.findOneBy({
-                monitorId: data.monitorId,
-                webHookName: data.webHookName,
-                integrationType: data.type,
-                deleted: { $ne: null },
+                query: {
+                    monitorId: data.monitorId,
+                    webHookName: data.webHookName,
+                    integrationType: data.type,
+                    deleted: { $ne: null },
+                },
+                select,
+                populate,
             });
 
             if (existingName && existingName._id.toString() !== integrationId) {
@@ -176,13 +208,17 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
         }
 
         const existingWebhook = await IntegrationService.findOneBy({
-            monitorId: data.monitorId,
-            'data.endpoint': data.endpoint,
-            ...(data.type === 'webhook' && {
-                'data.endpointType': data.endpointType,
-            }),
-            integrationType: data.type,
-            deleted: { $ne: null },
+            query: {
+                monitorId: data.monitorId,
+                'data.endpoint': data.endpoint,
+                ...(data.type === 'webhook' && {
+                    'data.endpointType': data.endpointType,
+                }),
+                integrationType: data.type,
+                deleted: { $ne: null },
+            },
+            select,
+            populate,
         });
 
         if (
@@ -231,11 +267,24 @@ router.get('/:projectId/hooks', getUser, async function(req, res) {
     try {
         const projectId = req.params.projectId;
         const integrationType = req.query.type || 'webhook';
-        const integrations = await IntegrationService.findBy(
-            { projectId: projectId, integrationType: integrationType },
-            req.query.skip || 0,
-            req.query.limit || 10
-        );
+        const select =
+            'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+        const populate = [
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: [{ path: 'componentId', select: 'name' }],
+            },
+        ];
+        const integrations = await IntegrationService.findBy({
+            query: { projectId: projectId, integrationType: integrationType },
+            skip: req.query.skip || 0,
+            limit: req.query.limit || 10,
+            select,
+            populate,
+        });
         const count = await IntegrationService.countBy({
             projectId: projectId,
             integrationType: integrationType,

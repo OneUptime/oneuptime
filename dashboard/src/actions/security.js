@@ -212,10 +212,9 @@ export const scanContainerSecurity = ({
     dispatch(setActiveContainerSecurity(containerSecurityId));
 
     try {
-        const response = await postApi(
+        await postApi(
             `security/${projectId}/container/scan/${containerSecurityId}`
         );
-        dispatch(scanContainerSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
             error.response && error.response.data
@@ -591,12 +590,10 @@ export const scanApplicationSecurity = ({
 }) => async dispatch => {
     dispatch(scanApplicationSecurityRequest());
     dispatch(setActiveApplicationSecurity(applicationSecurityId));
-
     try {
-        const response = await postApi(
+        await postApi(
             `security/${projectId}/application/scan/${applicationSecurityId}`
         );
-        dispatch(scanApplicationSecuritySuccess(response.data));
     } catch (error) {
         const errorMsg =
             error.response && error.response.data

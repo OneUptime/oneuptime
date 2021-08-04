@@ -3,7 +3,6 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
 import { getDockerCredentials } from '../actions/credential';
@@ -52,43 +51,36 @@ class DockerCredential extends Component {
         } = this.props;
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Project Settings"
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Docker Credentials" />
+                <div className="Margin-vertical--12">
+                    <TutorialBox
+                        type="dockerCredentials"
+                        currentProjectId={projectId}
                     />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name="Docker Credentials"
-                    />
-                    <div className="Margin-vertical--12">
-                        <TutorialBox
-                            type="dockerCredentials"
-                            currentProjectId={projectId}
-                        />
-                        <div>
-                            <div
-                                id="dockerCredentialPage"
-                                className="db-BackboneViewContainer"
-                            >
-                                <div className="react-settings-view react-view">
-                                    <span>
-                                        <DockerCredentialList
-                                            dockerCredentials={
-                                                dockerCredentials
-                                            }
-                                            error={getError}
-                                            projectId={projectId}
-                                            isRequesting={isRequesting}
-                                        />
-                                    </span>
-                                </div>
+                    <div>
+                        <div
+                            id="dockerCredentialPage"
+                            className="db-BackboneViewContainer"
+                        >
+                            <div className="react-settings-view react-view">
+                                <span>
+                                    <DockerCredentialList
+                                        dockerCredentials={dockerCredentials}
+                                        error={getError}
+                                        projectId={projectId}
+                                        isRequesting={isRequesting}
+                                    />
+                                </span>
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

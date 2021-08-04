@@ -75,8 +75,12 @@ router.get(
     async function(req, res) {
         try {
             const smsTemplateId = req.params.smsTemplateId;
+            const populate = [{ path: 'projectId', select: 'name' }];
+            const select = 'projectId body smsType allowedVariables';
             const smsTemplates = await SmsTemplateService.findOneBy({
-                _id: smsTemplateId,
+                query: { _id: smsTemplateId },
+                populate,
+                select,
             });
             return sendItemResponse(req, res, smsTemplates);
         } catch (error) {
@@ -121,17 +125,21 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
             value.body = await DOMPurify.sanitize(value.body);
             data.push(value);
         }
+
+        const templateData = [];
         for (const value of data) {
             const smsTemplate = await SmsTemplateService.findOneBy({
-                projectId: value.projectId,
-                smsType: value.smsType,
+                query: { projectId: value.projectId, smsType: value.smsType },
+                select: '_id',
             });
             if (smsTemplate) {
                 await SmsTemplateService.updateOneBy({ _id: value._id }, value);
             } else {
-                await SmsTemplateService.create(value);
+                templateData.push(value);
             }
         }
+        await SmsTemplateService.createMany(templateData);
+
         const smsTemplates = await SmsTemplateService.getTemplates(
             req.params.projectId
         );

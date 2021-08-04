@@ -7,9 +7,14 @@ async function handleFetchingDomains() {
     const domainsWithoutCert = [];
 
     const statusPages = await StatusPageService.findBy({
-        'domains.enableHttps': { $eq: true },
-        'domains.autoProvisioning': { $eq: true },
-        'domains.domain': { $type: 'string' },
+        query: {
+            'domains.enableHttps': { $eq: true },
+            'domains.autoProvisioning': { $eq: true },
+            'domains.domain': { $type: 'string' },
+        },
+        skip: 0,
+        limit: 99999,
+        select: 'domains',
     });
 
     for (const statusPage of statusPages) {
@@ -21,7 +26,8 @@ async function handleFetchingDomains() {
                 domain.autoProvisioning
             ) {
                 const cert = await CertificateStoreService.findOneBy({
-                    subject: domain.domain,
+                    query: { subject: domain.domain },
+                    select: 'id',
                 });
                 if (!cert) {
                     domainsWithoutCert.push(domain.domain);

@@ -95,7 +95,7 @@ process.on('message', function(data) {
             return scores;
         })
         .catch(err => {
-            /* eslint-disable no-console */
+            // eslint-disable-next-line no-console
             console.log(err);
             process.exit(1);
         });

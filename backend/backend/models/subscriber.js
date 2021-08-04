@@ -23,6 +23,11 @@ const subscriberSchema = new Schema({
         enum: ['get', 'post'],
         required: true,
     },
+    notificationType: {
+        incident: { type: Boolean, default: true },
+        announcement: { type: Boolean, default: true },
+        scheduledEvent: { type: Boolean, default: true },
+    },
     createdAt: { type: Date, default: Date.now },
     deleted: { type: Boolean, default: false },
     deletedAt: {

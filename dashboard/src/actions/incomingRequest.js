@@ -158,3 +158,29 @@ export const setActiveIncomingRequest = requestId => ({
     type: types.SET_ACTIVE_INCOMING_REQUEST,
     payload: requestId,
 });
+
+export const incomingRequestToggle = (
+    projectId,
+    requestId,
+    enabled
+) => async dispatch => {
+    try {
+        dispatch(editIncomingRequestRequest());
+        const response = await postApi(
+            `incoming-request/${projectId}/toggle/${requestId}`,
+            enabled
+        );
+
+        dispatch(editIncomingRequestSuccess(response.data));
+    } catch (error) {
+        const errorMsg =
+            error.response && error.response.data
+                ? error.response.data
+                : error.data
+                ? error.data
+                : error.message
+                ? error.message
+                : 'Network Error';
+        dispatch(editIncomingRequestFailure(errorMsg));
+    }
+};

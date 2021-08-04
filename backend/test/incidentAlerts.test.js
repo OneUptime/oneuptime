@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 process.env.PORT = 3020;
 const userData = require('./data/user');
 const chai = require('chai');
@@ -982,7 +981,8 @@ describe('SMS/Calls Incident Alerts', function() {
             await sleep(120 * 1000);
 
             const { _id: lastIncidentId } = await IncidentService.findOneBy({
-                monitorId: newMonitorId,
+                query: { monitorId: newMonitorId },
+                select: '_id',
             });
 
             const onCallAlerts = await getOnCallAlerts({
@@ -1140,7 +1140,8 @@ describe('SMS/Calls Incident Alerts', function() {
             await sleep(30 * 1000);
 
             const { _id: lastIncidentId } = await IncidentService.findOneBy({
-                monitorId: newMonitorId,
+                query: { monitorId: newMonitorId },
+                select: '_id',
             });
 
             const onCallAlerts = await getOnCallAlerts({
@@ -1288,7 +1289,8 @@ describe('SMS/Calls Incident Alerts', function() {
             await sleep(120 * 1000);
 
             const { _id: lastIncidentId } = await IncidentService.findOneBy({
-                monitorId: newMonitorId,
+                query: { monitorId: newMonitorId },
+                select: '_id',
             });
 
             const onCallAlerts = await getOnCallAlerts({
@@ -1929,7 +1931,10 @@ describe('SMS/Calls Incident Alerts', function() {
             // get the project balance before an alert is sent
             const {
                 balance: originalProjectBalance,
-            } = await ProjectService.findOneBy({ _id: projectId });
+            } = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'balance',
+            });
 
             const newIncident = await createIncident({
                 request,
@@ -1959,7 +1964,10 @@ describe('SMS/Calls Incident Alerts', function() {
 
             const {
                 balance: newProjectBalance,
-            } = await ProjectService.findOneBy({ _id: projectId });
+            } = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'balance',
+            });
 
             expect(newProjectBalance).to.equal(originalProjectBalance);
 
@@ -2037,7 +2045,8 @@ describe('SMS/Calls Incident Alerts', function() {
             // check the balance again
 
             const { balance, alertOptions } = await ProjectService.findOneBy({
-                _id: projectId,
+                query: { _id: projectId },
+                select: 'balance alertOptions',
             });
 
             const { rechargeToBalance, minimumBalance } = alertOptions;
@@ -2118,7 +2127,8 @@ describe('SMS/Calls Incident Alerts', function() {
             const {
                 balance: originalProjectBalance,
             } = await ProjectService.findOneBy({
-                _id: projectId,
+                query: { _id: projectId },
+                select: 'balance',
             });
 
             // send notification

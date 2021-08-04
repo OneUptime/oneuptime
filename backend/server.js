@@ -1,3 +1,8 @@
+// if new relic license key exists. Then load the key.
+if (process.env.NEW_RELIC_LICENSE_KEY) {
+    require('newrelic');
+}
+
 const express = require('express');
 const app = express();
 
@@ -9,21 +14,21 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Server Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Unhandled rejection in server process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in server process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -98,7 +103,7 @@ app.use(function(req, res, next) {
         }
     }
 
-    next();
+    return next();
 });
 
 // Add limit of 10 MB to avoid "Request Entity too large error"
@@ -202,7 +207,18 @@ app.use(
     require('./backend/api/scheduledEvent')
 );
 app.use(['/probe', '/api/probe'], require('./backend/api/probe'));
-app.use(['/application', '/api/application'], require('./backend/api/applicationScanner'));
+app.use(
+    ['/application', '/api/application'],
+    require('./backend/api/applicationScanner')
+);
+app.use(
+    ['/container', '/api/container'],
+    require('./backend/api/containerScanner')
+);
+app.use(
+    ['/lighthouse', '/api/lighthouse'],
+    require('./backend/api/lighthouse')
+);
 app.use(['/version', '/api/version'], require('./backend/api/version'));
 app.use(['/tutorial', '/api/tutorial'], require('./backend/api/tutorial'));
 app.use(['/audit-logs', '/api/audit-logs'], require('./backend/api/auditLogs'));
@@ -267,6 +283,10 @@ app.use(
     require('./backend/api/incomingRequest')
 );
 app.use(
+    ['/script-runner', '/api/script-runner'],
+    require('./backend/api/scriptRunner')
+);
+app.use(
     ['/customField', '/api/customField'],
     require('./backend/api/customField')
 );
@@ -295,6 +315,10 @@ app.use(
 app.use(
     ['/performanceMetric', '/api/performanceMetric'],
     require('./backend/api/performanceTrackerMetric')
+);
+app.use(
+    ['/incidentNoteTemplate', '/api/incidentNoteTemplate'],
+    require('./backend/api/incidentNoteTemplate')
 );
 
 app.get(['/', '/api'], function(req, res) {

@@ -377,38 +377,6 @@ export function getIncident(projectId, incidentId) {
     };
 }
 
-// Calls the API to get the incident to show using idNumber
-export function getIncidentByIdNumber(projectId, incidentIdNumber) {
-    return function(dispatch) {
-        let promise = null;
-        promise = getApi(
-            `incident/${projectId}/incidentNumber/${incidentIdNumber}`
-        );
-        dispatch(incidentRequest(promise));
-
-        promise.then(
-            function(incident) {
-                dispatch(incidentSuccess(incident.data));
-            },
-            function(error) {
-                if (error && error.response && error.response.data)
-                    error = error.response.data;
-                if (error && error.data) {
-                    error = error.data;
-                }
-                if (error && error.message) {
-                    error = error.message;
-                } else {
-                    error = 'Network Error';
-                }
-                dispatch(incidentError(errors(error)));
-            }
-        );
-
-        return promise;
-    };
-}
-
 export function addIncident(incident) {
     return function(dispatch) {
         dispatch(incidentSuccess(incident));
@@ -559,7 +527,7 @@ export function acknowledgeIncident(projectId, incidentId, userId, multiple) {
 
 // calls the api to store the resolve status to the database
 export function resolveIncident(projectId, incidentId, userId, multiple) {
-    //This fucntion will switch to incidentId of the params beig passed.
+    //This function will switch to incidentId of the params being passed.
     return function(dispatch) {
         let promise = null;
         const data = {

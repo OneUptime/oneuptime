@@ -235,7 +235,7 @@ const EscalationSummarySingle = ({
                             }).length > 0 && (
                                 <span>
                                     {' '}
-                                    Team Memmbers: <br />
+                                    Team Members: <br />
                                     <br />{' '}
                                 </span>
                             )}
@@ -273,7 +273,10 @@ const EscalationSummarySingle = ({
                                                 className="userIcon"
                                                 alt=""
                                             />
-                                            <span>{membersFromList.name}</span>
+                                            <span>
+                                                {membersFromList.name ||
+                                                    membersFromList.email}
+                                            </span>
                                             <span>
                                                 {' '}
                                                 <br />

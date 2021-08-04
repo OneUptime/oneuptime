@@ -2,6 +2,8 @@ const PerformanceTrackerMetricModel = require('../models/performanceTrackerMetri
 const ErrorService = require('./errorService');
 const moment = require('moment');
 const RealTimeService = require('./realTimeService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
     create: async function(data) {
@@ -15,14 +17,30 @@ module.exports = {
             throw error;
         }
     },
+    createMany: async function(allData) {
+        try {
+            const allMetrics = await PerformanceTrackerMetricModel.insertMany(
+                allData
+            );
+            return allMetrics;
+        } catch (error) {
+            ErrorService.log(
+                'performanceTrackerMetricService.createMany',
+                error
+            );
+            throw error;
+        }
+    },
     //Description: Gets all performance metrics by component.
-    findBy: async function(
+    findBy: async function({
         query,
         limit,
         skip,
         sortCriteria = 'createdAt',
-        sort = -1
-    ) {
+        sort = -1,
+        select,
+        populate,
+    }) {
         try {
             if (!skip) skip = 0;
 
@@ -41,19 +59,23 @@ module.exports = {
             }
             if (!query.deleted) query.deleted = false;
 
-            const performanceTrackerMetrics = await PerformanceTrackerMetricModel.find(
+            let performanceTrackerMetricQuery = PerformanceTrackerMetricModel.find(
                 query
             )
                 .lean()
                 .sort([[sortCriteria, sort]])
                 .limit(limit)
-                .skip(skip)
-                .populate({
-                    path: 'performanceTrackerId',
-                    populate: {
-                        path: 'componentId',
-                    },
-                });
+                .skip(skip);
+            performanceTrackerMetricQuery = handleSelect(
+                select,
+                performanceTrackerMetricQuery
+            );
+            performanceTrackerMetricQuery = handlePopulate(
+                populate,
+                performanceTrackerMetricQuery
+            );
+
+            const performanceTrackerMetrics = await performanceTrackerMetricQuery;
             return performanceTrackerMetrics;
         } catch (error) {
             ErrorService.log('performanceTrackerMetricService.findBy', error);
@@ -61,30 +83,36 @@ module.exports = {
         }
     },
 
-    mergeMetrics: async function(
+    mergeMetrics: async function({
         query,
-        limit,
-        skip,
+        // limit,
+        // skip,
         sortCriteria = 'createdAt',
-        sort = -1
-    ) {
+        sort = -1,
+        select,
+        populate,
+    }) {
         try {
             if (!query) {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
 
-            const performanceTrackerMetrics = await PerformanceTrackerMetricModel.find(
+            let performanceTrackerMetricQuery = PerformanceTrackerMetricModel.find(
                 query
             )
                 .lean()
-                .sort([[sortCriteria, sort]])
-                .populate({
-                    path: 'performanceTrackerId',
-                    populate: {
-                        path: 'componentId',
-                    },
-                });
+                .sort([[sortCriteria, sort]]);
+            performanceTrackerMetricQuery = handleSelect(
+                select,
+                performanceTrackerMetricQuery
+            );
+            performanceTrackerMetricQuery = handlePopulate(
+                populate,
+                performanceTrackerMetricQuery
+            );
+
+            const performanceTrackerMetrics = await performanceTrackerMetricQuery;
 
             // restructure performance metrics
             // same path and method should be merged together
@@ -151,16 +179,26 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
             if (!query.deleted) query.deleted = false;
 
-            const performanceTrackerMetric = await PerformanceTrackerMetricModel.findOne(
+            let performanceTrackerMetricQuery = PerformanceTrackerMetricModel.findOne(
                 query
             ).lean();
+            performanceTrackerMetricQuery = handleSelect(
+                select,
+                performanceTrackerMetricQuery
+            );
+            performanceTrackerMetricQuery = handlePopulate(
+                populate,
+                performanceTrackerMetricQuery
+            );
+
+            const performanceTrackerMetric = await performanceTrackerMetricQuery;
             return performanceTrackerMetric;
         } catch (error) {
             ErrorService.log(
@@ -256,8 +294,9 @@ module.exports = {
         receivedAt = moment(receivedAt).format();
         try {
             // handle incoming/outgoing request
+            const allData = [];
             for (const [key, value] of Object.entries(data)) {
-                await _this.create({
+                allData.push({
                     type,
                     callIdentifier: key,
                     performanceTrackerId: appId,
@@ -271,6 +310,7 @@ module.exports = {
                     createdAt: receivedAt,
                 });
             }
+            await _this.createMany(allData);
 
             // fetch the stored data in that time frame
             // get the total avg time, and probably the total avg max time
@@ -298,20 +338,23 @@ module.exports = {
         const _this = this;
         startDate = moment(startDate).format();
         endDate = moment(endDate).format();
+
+        const select = 'metrics createdAt';
         try {
             // store the metrics according to createdAt
             // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
             const dataBank = {};
-            const timeMetrics = await _this.findBy(
-                {
+            const timeMetrics = await _this.findBy({
+                query: {
                     performanceTrackerId: appId,
                     createdAt: { $gte: startDate, $lte: endDate },
                 },
-                0,
-                0,
-                null,
-                1
-            );
+                limit: 0,
+                skip: 0,
+                sortCriteria: null,
+                sort: 1,
+                select,
+            });
             timeMetrics.forEach(metric => {
                 const date = moment(metric.createdAt).format();
                 if (!(date in dataBank)) {
@@ -354,16 +397,18 @@ module.exports = {
             // store the metrics according to createdAt
             // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
             const dataBank = {};
-            const timeMetrics = await _this.findBy(
-                {
+            const select = 'createdAt metrics';
+            const timeMetrics = await _this.findBy({
+                query: {
                     performanceTrackerId: appId,
                     createdAt: { $gte: startDate, $lte: endDate },
                 },
-                0,
-                0,
-                null,
-                1
-            );
+                limit: 0,
+                skip: 0,
+                sortCriteria: null,
+                sort: 1,
+                select,
+            });
 
             timeMetrics.forEach(metric => {
                 const date = moment(metric.createdAt).format();
@@ -405,16 +450,18 @@ module.exports = {
             // store the metrics according to createdAt
             // eg {'2021-04-21T17:15:00+01:00': [{ type, metrics, callIdentifier, ... }]}
             const dataBank = {};
-            const timeMetrics = await _this.findBy(
-                {
+            const select = 'createdAt metrics';
+            const timeMetrics = await _this.findBy({
+                query: {
                     performanceTrackerId: appId,
                     createdAt: { $gte: startDate, $lte: endDate },
                 },
-                0,
-                0,
-                null,
-                1
-            );
+                limit: 0,
+                skip: 0,
+                sortCriteria: null,
+                sort: 1,
+                select,
+            });
 
             timeMetrics.forEach(metric => {
                 const date = moment(metric.createdAt).format();

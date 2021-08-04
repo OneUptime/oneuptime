@@ -6,6 +6,7 @@
 
 const express = require('express');
 const moment = require('moment');
+const Handlebars = require('handlebars');
 const IncidentService = require('../services/incidentService');
 const IncidentTimelineService = require('../services/incidentTimelineService');
 const MonitorStatusService = require('../services/monitorStatusService');
@@ -29,6 +30,87 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const subscriberAlertService = require('../services/subscriberAlertService');
 const onCallScheduleStatusService = require('../services/onCallScheduleStatusService');
 const Services = require('../utils/services');
+const joinNames = require('../utils/joinNames');
+const { isAuthorizedService } = require('../middlewares/serviceAuthorization');
+
+// data-ingestor will consume this api
+// create an incident and return the created incident
+router.post(
+    '/data-ingestor/create-incident',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const data = req.body;
+
+            // Call the IncidentService
+            const incident = await IncidentService.create(data);
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// data-ingestor will consume this api
+// acknowledge an incident
+router.post(
+    '/data-ingestor/acknowledge-incident',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const { incidentId, name, probeId } = req.body;
+
+            const incident = await IncidentService.acknowledge(
+                incidentId,
+                null,
+                name,
+                probeId
+            );
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// data-ingestor will consume this api
+// resolve an incident
+router.post(
+    '/data-ingestor/resolve-incident',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const { incidentId, name, probeId } = req.body;
+
+            const incident = await IncidentService.resolve(
+                incidentId,
+                null,
+                name,
+                probeId
+            );
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+// data-ingestor will consume this api
+// update an incident
+router.post(
+    '/data-ingestor/update-incident',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const { data, query } = req.body;
+            const incident = await IncidentService.updateOneBy(query, data);
+
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 // Route
 // Description: Creating incident.
@@ -49,7 +131,15 @@ router.post(
             const description = req.body.description;
             const customFields = req.body.customFields;
             const monitors = req.body.monitors;
-            const userId = req.user ? req.user.id : null;
+            const userId = req.user
+                ? req.user.id === 'API'
+                    ? null
+                    : req.user.id
+                : null;
+            let createdByApi = false;
+            if (req.user && req.user.id === 'API') {
+                createdByApi = true;
+            }
             let oldIncidentsCount = null;
 
             // monitors should be an array containing id of monitor(s)
@@ -120,16 +210,19 @@ router.post(
                 incidentPriority,
                 customFields,
                 monitors,
+                createdByApi,
             });
             if (incident) {
+                const monitorItems = [];
                 for (const monitor of monitors) {
-                    await MonitorStatusService.create({
+                    monitorItems.push({
                         monitorId: monitor,
                         incidentId: incident._id,
                         manuallyCreated: true,
                         status: incidentType,
                     });
                 }
+                await MonitorStatusService.createMany(monitorItems);
             }
             return sendItemResponse(req, res, incident);
         } catch (error) {
@@ -166,12 +259,41 @@ router.post(
                 };
             }
 
-            const incidents = await IncidentService.findBy(
-                query,
-                req.body.limit || 3,
-                req.body.skip || 0
-            );
-            const count = await IncidentService.countBy(query);
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'probeName _id' },
+            ];
+            const select =
+                'createdAt reason notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+            const [incidents, count] = await Promise.all([
+                IncidentService.findBy({
+                    query,
+                    limit: req.body.limit || 3,
+                    skip: req.body.skip || 0,
+                    select,
+                    populate,
+                }),
+                IncidentService.countBy(query),
+            ]);
             return sendListResponse(req, res, incidents, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -249,12 +371,41 @@ router.get('/:projectId/incident', getUser, isAuthorized, async function(
 ) {
     try {
         const projectId = req.params.projectId;
-        const incident = await IncidentService.findBy(
-            { projectId },
-            req.query.limit || 10,
-            req.query.skip || 0
-        );
-        const count = await IncidentService.countBy({ projectId });
+        const populate = [
+            {
+                path: 'monitors.monitorId',
+                select: 'name slug componentId projectId type',
+                populate: [
+                    { path: 'componentId', select: 'name slug' },
+                    { path: 'projectId', select: 'name slug' },
+                ],
+            },
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'acknowledgedBy', select: 'name' },
+            { path: 'incidentPriority', select: 'name color' },
+            {
+                path: 'acknowledgedByIncomingHttpRequest',
+                select: 'name',
+            },
+            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+            { path: 'createdByIncomingHttpRequest', select: 'name' },
+            { path: 'probes.probeId', select: 'probeName _id' },
+        ];
+        const select =
+            'createdAt reason notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+        const [incident, count] = await Promise.all([
+            IncidentService.findBy({
+                query: { projectId },
+                limit: req.query.limit || 10,
+                skip: req.query.skip || 0,
+                select,
+                populate,
+            }),
+            IncidentService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, incident, count); // frontend expects sendListResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -275,33 +426,35 @@ router.get(
 
         try {
             const { projectId, incidentId } = req.params;
-            const incident = await IncidentService.findOneBy({
-                projectId,
-                idNumber: incidentId,
-            });
-            return sendItemResponse(req, res, incident);
-        } catch (error) {
-            return sendErrorResponse(req, res, error);
-        }
-    }
-);
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'probeName _id' },
+            ];
+            const select =
+                'createdAt reason notifications hideIncident acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
-// Route
-// Description: Getting incident
-// Params:
-// Param 1: req.headers-> {authorization}; req.user-> {id}; req.params-> {incidentIdNumber}
-// Returns: 200: incidents, 400: Error; 500: Server Error.
-router.get(
-    '/:projectId/incidentNumber/:incidentIdNumber',
-    getUser,
-    isAuthorized,
-    async function(req, res) {
-        // Call the IncidentService.
-
-        try {
             const incident = await IncidentService.findOneBy({
-                projectId: req.params.projectId,
-                idNumber: req.params.incidentIdNumber,
+                query: { projectId, idNumber: incidentId },
+                select,
+                populate,
             });
             return sendItemResponse(req, res, incident);
         } catch (error) {
@@ -318,16 +471,25 @@ router.get(
         try {
             const { incidentId } = req.params;
 
-            // const incident = await IncidentService.findOneBy({
-            //     projectId,
-            //     idNumber: incidentId,
-            // });
-            const timeline = await IncidentTimelineService.findBy(
-                { incidentId },
-                req.query.skip || 0,
-                req.query.limit || 10
-            );
-            const count = await IncidentTimelineService.countBy({ incidentId });
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
+            const [timeline, count] = await Promise.all([
+                IncidentTimelineService.findBy({
+                    query: { incidentId },
+                    skip: req.query.skip || 0,
+                    limit: req.query.limit || 10,
+                    populate: populateIncTimeline,
+                    select: selectIncTimeline,
+                }),
+                IncidentTimelineService.countBy({ incidentId }),
+            ]);
             return sendListResponse(req, res, timeline, count); // frontend expects sendListResponse
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -366,35 +528,125 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
-            const userId = req.user ? req.user.id : null;
+            const userId = req.user
+                ? req.user.id === 'API'
+                    ? null
+                    : req.user.id
+                : null;
+            let acknowledgedByApi = false;
+            if (req.user && req.user.id === 'API') {
+                acknowledgedByApi = true;
+            }
             const projectId = req.params.projectId;
-            // Call the IncidentService
+
             const incident = await IncidentService.acknowledge(
                 req.params.incidentId,
                 userId,
-                req.user.name
+                req.user.name,
+                null,
+                null,
+                null,
+                acknowledgedByApi
             );
-            let incidentMessages = await IncidentMessageService.findBy({
-                incidentId: incident._id,
-                type: 'internal',
-            });
-            const timeline = await IncidentTimelineService.findBy({
-                incidentId: incident._id,
-            });
-            const alerts = await AlertService.findBy({
-                query: { incidentId: incident._id },
-            });
-            const subscriberAlerts = await subscriberAlertService.findBy({
-                incidentId: incident._id,
-                projectId,
-            });
-            const subAlerts = await Services.deduplicate(subscriberAlerts);
-            let callScheduleStatus = await onCallScheduleStatusService.findBy({
-                query: { incident: incident._id },
-            });
-            callScheduleStatus = await Services.checkCallSchedule(
-                callScheduleStatus
-            );
+            const populateIncidentMessage = [
+                {
+                    path: 'incidentId',
+                    select: 'idNumber name',
+                },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
+            const populateAlert = [
+                { path: 'userId', select: 'name' },
+                { path: 'monitorId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+            ];
+
+            const selectAlert =
+                '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+
+            const populate = [
+                { path: 'incidentId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'subscriberId',
+                    select:
+                        'name contactEmail contactPhone contactWebhook countryCode',
+                },
+            ];
+            const select =
+                'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+            const selectOnCallScheduleStatus =
+                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+            const populateOnCallScheduleStatus = [
+                { path: 'incidentId', select: 'name slug' },
+                { path: 'project', select: 'name slug' },
+                { path: 'scheduleId', select: 'name slug' },
+                { path: 'schedule', select: '_id name slug' },
+                {
+                    path: 'activeEscalationId',
+                    select: 'projectId teams scheduleId',
+                },
+            ];
+
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
+            /* eslint-disable prefer-const */
+            let [
+                incidentMessages,
+                timeline,
+                alerts,
+                subscriberAlerts,
+                callScheduleStatus,
+            ] = await Promise.all([
+                IncidentMessageService.findBy({
+                    query: {
+                        incidentId: req.params.incidentId,
+                        type: 'internal',
+                    },
+                    populate: populateIncidentMessage,
+                    select: selectIncidentMessage,
+                }),
+                IncidentTimelineService.findBy({
+                    query: { incidentId: req.params.incidentId },
+                    select: selectIncTimeline,
+                    populate: populateIncTimeline,
+                }),
+                AlertService.findBy({
+                    query: { incidentId: req.params.incidentId },
+                    populate: populateAlert,
+                    select: selectAlert,
+                }),
+                subscriberAlertService.findBy({
+                    query: { incidentId: req.params.incidentId, projectId },
+                    select,
+                    populate,
+                }),
+                onCallScheduleStatusService.findBy({
+                    query: { incident: req.params.incidentId },
+                    select: selectOnCallScheduleStatus,
+                    populate: populateOnCallScheduleStatus,
+                }),
+            ]);
+            /* eslint-enable prefer-const */
+
+            const [subAlerts, scheduleStatus] = await Promise.all([
+                Services.deduplicate(subscriberAlerts),
+                Services.checkCallSchedule(callScheduleStatus),
+            ]);
+            callScheduleStatus = scheduleStatus;
+
             const timelineAlerts = [
                 ...timeline,
                 ...alerts,
@@ -439,34 +691,126 @@ router.post(
     isAuthorized,
     async function(req, res) {
         try {
-            const userId = req.user ? req.user.id : null;
+            const userId = req.user
+                ? req.user.id === 'API'
+                    ? null
+                    : req.user.id
+                : null;
+            let resolvedByApi = false;
+            if (req.user && req.user.id === 'API') {
+                resolvedByApi = true;
+            }
             const projectId = req.params.projectId;
-            // Call the IncidentService
+
             const incident = await IncidentService.resolve(
                 req.params.incidentId,
-                userId
+                userId,
+                null,
+                null,
+                null,
+                null,
+                resolvedByApi
             );
-            let incidentMessages = await IncidentMessageService.findBy({
-                incidentId: incident._id,
-                type: 'internal',
-            });
-            const timeline = await IncidentTimelineService.findBy({
-                incidentId: incident._id,
-            });
-            const alerts = await AlertService.findBy({
-                query: { incidentId: incident._id },
-            });
-            const subscriberAlerts = await subscriberAlertService.findBy({
-                incidentId: incident._id,
-                projectId,
-            });
-            const subAlerts = await Services.deduplicate(subscriberAlerts);
-            let callScheduleStatus = await onCallScheduleStatusService.findBy({
-                query: { incident: incident._id },
-            });
-            callScheduleStatus = await Services.checkCallSchedule(
-                callScheduleStatus
-            );
+            const populateIncidentMessage = [
+                {
+                    path: 'incidentId',
+                    select: 'idNumber name',
+                },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
+            const populateAlert = [
+                { path: 'userId', select: 'name' },
+                { path: 'monitorId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+            ];
+
+            const selectAlert =
+                '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+
+            const populate = [
+                { path: 'incidentId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'subscriberId',
+                    select:
+                        'name contactEmail contactPhone contactWebhook countryCode',
+                },
+            ];
+            const select =
+                'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+
+            const selectOnCallScheduleStatus =
+                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+            const populateOnCallScheduleStatus = [
+                { path: 'incidentId', select: 'name slug' },
+                { path: 'project', select: 'name slug' },
+                { path: 'scheduleId', select: 'name slug' },
+                { path: 'schedule', select: '_id name slug' },
+                {
+                    path: 'activeEscalationId',
+                    select: 'projectId teams scheduleId',
+                },
+            ];
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
+            /* eslint-disable prefer-const */
+            let [
+                incidentMessages,
+                timeline,
+                alerts,
+                subscriberAlerts,
+                callScheduleStatus,
+            ] = await Promise.all([
+                IncidentMessageService.findBy({
+                    query: {
+                        incidentId: req.params.incidentId,
+                        type: 'internal',
+                    },
+                    populate: populateIncidentMessage,
+                    select: selectIncidentMessage,
+                }),
+                IncidentTimelineService.findBy({
+                    query: { incidentId: req.params.incidentId },
+                    select: selectIncTimeline,
+                    populate: populateIncTimeline,
+                }),
+                AlertService.findBy({
+                    query: { incidentId: req.params.incidentId },
+                    select: selectAlert,
+                    populate: populateAlert,
+                }),
+                subscriberAlertService.findBy({
+                    query: { incidentId: req.params.incidentId, projectId },
+                    select,
+                    populate,
+                }),
+                onCallScheduleStatusService.findBy({
+                    query: { incident: req.params.incidentId },
+                    select: selectOnCallScheduleStatus,
+                    populate: populateOnCallScheduleStatus,
+                }),
+            ]);
+            /* eslint-enable prefer-const */
+
+            const [subAlerts, scheduleStatus] = await Promise.all([
+                Services.deduplicate(subscriberAlerts),
+                Services.checkCallSchedule(callScheduleStatus),
+            ]);
+
+            callScheduleStatus = scheduleStatus;
+
             const timelineAlerts = [
                 ...timeline,
                 ...alerts,
@@ -544,17 +888,13 @@ router.put(
             });
         }
         try {
-            await IncidentService.updateOneBy(
+            const incident = await IncidentService.updateOneBy(
                 {
                     projectId,
                     _id: incidentId,
                 },
                 query
             );
-            const incident = await IncidentService.findOneBy({
-                projectId,
-                _id: incidentId,
-            });
             return sendItemResponse(req, res, incident);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -570,9 +910,49 @@ router.post(
             const data = req.body;
             const incidentId = req.params.incidentId;
             const projectId = req.params.projectId;
-            const { idNumber } = await IncidentService.findOneBy({
-                _id: incidentId,
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: [
+                        { path: 'componentId', select: 'name slug' },
+                        { path: 'projectId', select: 'name slug' },
+                    ],
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'probeName _id' },
+            ];
+            const select =
+                'createdAt reason notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+            const populateIncidentMessage = [
+                {
+                    path: 'incidentId',
+                    select: 'idNumber name',
+                },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
+            const incident = await IncidentService.findOneBy({
+                query: { _id: incidentId },
+                select,
+                populate,
             });
+            const idNumber = incident.idNumber;
+
             const userId = req.user.id;
             if (!data.content) {
                 return sendErrorResponse(req, res, {
@@ -624,11 +1004,6 @@ router.post(
                 }
             }
 
-            // Call the IncidentService
-            const incident = await IncidentService.findOneBy({
-                _id: incidentId,
-            });
-
             if (!incident) {
                 return sendErrorResponse(req, res, {
                     code: 404,
@@ -639,11 +1014,11 @@ router.post(
             // If the message ID is available, treat this as an update
             if (data.id) {
                 // validate if Message ID exist or not
-                const incidentMsg = await IncidentMessageService.findOneBy({
+                const incidentMsgCount = await IncidentMessageService.countBy({
                     _id: data.id,
                 });
 
-                if (!incidentMsg) {
+                if (!incidentMsgCount || incidentMsgCount === 0) {
                     return sendErrorResponse(req, res, {
                         code: 404,
                         message: 'Incident Message not found.',
@@ -653,6 +1028,24 @@ router.post(
             let incidentMessage = null;
             if (incident && incident._id) {
                 data.incidentId = incidentId;
+
+                const monitors = incident.monitors.map(
+                    monitor => monitor.monitorId.name
+                );
+                const templateInput = {
+                    time: moment(incident.createdAt).format('h:mm:ss a'),
+                    date: moment(incident.createdAt).format('MMM Do YYYY'),
+                    projectName: incident.projectId.name,
+                    incidentType: incident.incidentType,
+                    monitorName: joinNames(monitors),
+                };
+                const incidentStateTemplate = Handlebars.compile(
+                    data.incident_state
+                );
+                const contentTemplate = Handlebars.compile(data.content);
+
+                data.incident_state = incidentStateTemplate(templateInput);
+                data.content = contentTemplate(templateInput);
 
                 // handle creation or updating
                 if (!data.id) {
@@ -665,7 +1058,8 @@ router.post(
                         AlertService.sendInvestigationNoteToSubscribers(
                             incident,
                             data,
-                            'created'
+                            'created',
+                            projectId
                         );
                     }
                 } else {
@@ -673,20 +1067,26 @@ router.post(
                         content: data.content,
                         incident_state: data.incident_state,
                     };
-                    incidentMessage = await IncidentMessageService.updateOneBy(
-                        { _id: data.id },
-                        updatedMessage
-                    );
-                    const investigation = await IncidentMessageService.findOneBy(
-                        {
-                            _id: data.id,
-                        }
-                    );
+
+                    const [message, investigation] = await Promise.all([
+                        IncidentMessageService.updateOneBy(
+                            { _id: data.id },
+                            updatedMessage
+                        ),
+                        IncidentMessageService.findOneBy({
+                            query: { _id: data.id },
+                            select: selectIncidentMessage,
+                            populate: populateIncidentMessage,
+                        }),
+                    ]);
+                    incidentMessage = message;
+
                     if (investigation.type === 'investigation') {
                         AlertService.sendInvestigationNoteToSubscribers(
                             incident,
                             data,
-                            'updated'
+                            'updated',
+                            projectId
                         );
                     }
                 }
@@ -709,54 +1109,116 @@ router.post(
                 }`;
 
                 const user = await UserService.findOneBy({
-                    _id: userId,
+                    query: { _id: userId },
+                    select: 'name',
                 });
 
                 data.created_by = user && user.name ? user.name : 'Fyipe User';
 
-                // send slack/msteams notification
-                await IncidentService.sendIncidentNoteAdded(
-                    projectId,
-                    incident,
-                    data
-                );
+                const populateAlert = [
+                    { path: 'userId', select: 'name' },
+                    { path: 'monitorId', select: 'name' },
+                    { path: 'projectId', select: 'name' },
+                ];
 
-                // update timeline
-                await IncidentTimelineService.create({
-                    incidentId: incident._id,
-                    createdById: req.user.id,
-                    incident_state: data.incident_state,
-                    status,
-                });
+                const selectAlert =
+                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
 
-                const alerts = await AlertService.findBy({
-                    query: { incidentId: incident._id },
-                });
-                const subscriberAlerts = await subscriberAlertService.findBy({
-                    incidentId: incident._id,
-                    projectId: req.params.projectId,
-                });
+                const populate = [
+                    { path: 'incidentId', select: 'name' },
+                    { path: 'projectId', select: 'name' },
+                    {
+                        path: 'subscriberId',
+                        select:
+                            'name contactEmail contactPhone contactWebhook countryCode',
+                    },
+                ];
+                const select =
+                    'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+                const selectOnCallScheduleStatus =
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+                const populateOnCallScheduleStatus = [
+                    { path: 'incidentId', select: 'name slug' },
+                    { path: 'project', select: 'name slug' },
+                    { path: 'scheduleId', select: 'name slug' },
+                    { path: 'schedule', select: '_id name slug' },
+                    {
+                        path: 'activeEscalationId',
+                        select: 'projectId teams scheduleId',
+                    },
+                ];
+
+                const populateIncTimeline = [
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'probeId',
+                        select: 'probeName probeImage',
+                    },
+                ];
+                const selectIncTimeline =
+                    'incidentId createdById probeId createdByZapier createdAt status incident_state';
+                const [alerts, subscriberAlerts] = await Promise.all([
+                    AlertService.findBy({
+                        query: { incidentId: incident._id },
+                        select: selectAlert,
+                        populate: populateAlert,
+                    }),
+                    subscriberAlertService.findBy({
+                        query: {
+                            incidentId: incident._id,
+                            projectId: req.params.projectId,
+                        },
+                        select,
+                        populate,
+                    }),
+                    IncidentTimelineService.create({
+                        incidentId: incident._id,
+                        createdById: req.user.id,
+                        incident_state: data.incident_state,
+                        status,
+                    }),
+                    IncidentService.sendIncidentNoteAdded(
+                        projectId,
+                        incident,
+                        data
+                    ),
+                ]);
 
                 if (
                     data.type === 'internal' ||
                     (data.type === 'internal' &&
                         data.incident_state === 'update')
                 ) {
-                    let incidentMessages = await IncidentMessageService.findBy({
-                        incidentId: incident._id,
-                        type: data.type,
-                    });
-                    const timeline = await IncidentTimelineService.findBy({
-                        incidentId: incident._id,
-                    });
-                    const subAlerts = await Services.deduplicate(
-                        subscriberAlerts
-                    );
-                    let callScheduleStatus = await onCallScheduleStatusService.findBy(
-                        {
+                    /* eslint-disable prefer-const */
+                    let [
+                        incidentMessages,
+                        timeline,
+                        subAlerts,
+                        callScheduleStatus,
+                    ] = await Promise.all([
+                        IncidentMessageService.findBy({
+                            query: {
+                                incidentId: incident._id,
+                                type: data.type,
+                            },
+                            select: selectIncidentMessage,
+                            populate: populateIncidentMessage,
+                        }),
+                        IncidentTimelineService.findBy({
+                            query: { incidentId: incident._id },
+                            select: selectIncTimeline,
+                            populate: populateIncTimeline,
+                        }),
+                        Services.deduplicate(subscriberAlerts),
+                        onCallScheduleStatusService.findBy({
                             query: { incident: incident._id },
-                        }
-                    );
+                            select: selectOnCallScheduleStatus,
+                            populate: populateOnCallScheduleStatus,
+                        }),
+                    ]);
+                    /* eslint-enable*/
+
                     callScheduleStatus = await Services.checkCallSchedule(
                         callScheduleStatus
                     );
@@ -789,8 +1251,12 @@ router.post(
                     };
                 } else {
                     incidentMessage = await IncidentMessageService.findOneBy({
-                        _id: incidentMessage._id,
-                        incidentId: incidentMessage.incidentId,
+                        query: {
+                            _id: incidentMessage._id,
+                            incidentId: incidentMessage.incidentId,
+                        },
+                        select: selectIncidentMessage,
+                        populate: populateIncidentMessage,
                     });
                 }
             }
@@ -812,8 +1278,8 @@ router.get(
             const { projectId, incidentId } = req.params;
 
             const incident = await IncidentService.findOneBy({
-                projectId,
-                idNumber: incidentId,
+                query: { projectId, idNumber: incidentId },
+                select: '_id',
             });
             if (incident) {
                 const {
@@ -841,58 +1307,138 @@ router.delete(
     async function(req, res) {
         try {
             const { incidentId, incidentMessageId, projectId } = req.params;
-            const { idNumber } = await IncidentService.findOneBy({
-                _id: incidentId,
-            });
-            const checkMsg = await IncidentMessageService.findOneBy({
-                _id: incidentMessageId,
-            });
+            const populateIncidentMessage = [
+                { path: 'incidentId', select: 'idNumber name' },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
+            const [incident, checkMsg, incidentMessage] = await Promise.all([
+                IncidentService.findOneBy({
+                    query: { _id: incidentId },
+                    select: 'idNumber',
+                }),
+                IncidentMessageService.findOneBy({
+                    query: { _id: incidentMessageId },
+                    select: selectIncidentMessage,
+                    populate: populateIncidentMessage,
+                }),
+                IncidentMessageService.deleteBy(
+                    {
+                        _id: incidentMessageId,
+                        incidentId,
+                    },
+                    req.user.id
+                ),
+            ]);
+            const idNumber = incident.idNumber;
             let result;
-            const incidentMessage = await IncidentMessageService.deleteBy(
-                {
-                    _id: incidentMessageId,
-                    incidentId,
-                },
-                req.user.id
-            );
+            /* eslint-disable prefer-const */
             if (incidentMessage) {
                 const status = `${incidentMessage.type} notes deleted`;
-                // update timeline
-                await IncidentTimelineService.create({
-                    incidentId,
-                    createdById: req.user.id,
-                    status,
-                });
-                const alerts = await AlertService.findBy({
-                    query: { incidentId: incidentId },
-                });
-                const subscriberAlerts = await subscriberAlertService.findBy({
-                    incidentId: incidentId,
-                    projectId,
-                });
 
-                await RealTimeService.deleteIncidentNote(incidentMessage);
-                let callScheduleStatus = await onCallScheduleStatusService.findBy(
+                // RUN IN THE BACKGROUND
+                RealTimeService.deleteIncidentNote(incidentMessage);
+
+                const populateAlert = [
+                    { path: 'userId', select: 'name' },
+                    { path: 'monitorId', select: 'name' },
+                    { path: 'projectId', select: 'name' },
+                ];
+
+                const selectAlert =
+                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+
+                const populate = [
+                    { path: 'incidentId', select: 'name' },
+                    { path: 'projectId', select: 'name' },
                     {
+                        path: 'subscriberId',
+                        select:
+                            'name contactEmail contactPhone contactWebhook countryCode',
+                    },
+                ];
+                const select =
+                    'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+
+                const selectOnCallScheduleStatus =
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+                const populateOnCallScheduleStatus = [
+                    { path: 'incidentId', select: 'name slug' },
+                    { path: 'project', select: 'name slug' },
+                    { path: 'scheduleId', select: 'name slug' },
+                    {
+                        path: 'schedule',
+                        select: '_id name slug',
+                    },
+                    {
+                        path: 'activeEscalationId',
+                        select: 'projectId teams scheduleId',
+                    },
+                ];
+
+                const populateIncTimeline = [
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'probeId',
+                        select: 'probeName probeImage',
+                    },
+                ];
+                const selectIncTimeline =
+                    'incidentId createdById probeId createdByZapier createdAt status incident_state';
+                let [
+                    alerts,
+                    subscriberAlerts,
+                    callScheduleStatus,
+                ] = await Promise.all([
+                    AlertService.findBy({
+                        query: { incidentId: incidentId },
+                        select: selectAlert,
+                        populate: populateAlert,
+                    }),
+                    subscriberAlertService.findBy({
+                        query: { incidentId: incidentId, projectId },
+                        select,
+                        populate,
+                    }),
+                    onCallScheduleStatusService.findBy({
                         query: { incident: incidentId },
-                    }
-                );
+                        select: selectOnCallScheduleStatus,
+                        populate: populateOnCallScheduleStatus,
+                    }),
+                    IncidentTimelineService.create({
+                        incidentId,
+                        createdById: req.user.id,
+                        status,
+                    }),
+                ]);
+
                 callScheduleStatus = await Services.checkCallSchedule(
                     callScheduleStatus
                 );
                 if (checkMsg.type === 'investigation') {
                     result = incidentMessage;
                 } else {
-                    let incidentMessages = await IncidentMessageService.findBy({
-                        incidentId,
-                        type: checkMsg.type,
-                    });
-                    const timeline = await IncidentTimelineService.findBy({
-                        incidentId,
-                    });
-                    const subAlerts = await Services.deduplicate(
-                        subscriberAlerts
-                    );
+                    let [
+                        incidentMessages,
+                        timeline,
+                        subAlerts,
+                    ] = await Promise.all([
+                        IncidentMessageService.findBy({
+                            query: { incidentId, type: checkMsg.type },
+                            populate: populateIncidentMessage,
+                            select: selectIncidentMessage,
+                        }),
+                        IncidentTimelineService.findBy({
+                            query: { incidentId },
+                            select: selectIncTimeline,
+                            populate: populateIncTimeline,
+                        }),
+                        Services.deduplicate(subscriberAlerts),
+                    ]);
                     const timelineAlerts = [
                         ...timeline,
                         ...alerts,
@@ -921,6 +1467,7 @@ router.delete(
                         data: await Services.rearrangeDuty(filteredMsg),
                     };
                 }
+                /* eslint-enable prefer-const */
                 return sendItemResponse(req, res, result);
             } else {
                 return sendErrorResponse(req, res, {
@@ -949,50 +1496,127 @@ router.get(
             const idNumber = req.params.incidentId;
             const projectId = req.params.projectId;
             let incidentId = await IncidentService.findOneBy({
-                projectId,
-                idNumber,
+                query: { projectId, idNumber },
+                select: '_id',
             });
             if (incidentId) {
                 incidentId = incidentId._id;
+                let skip = 0,
+                    limit = 0;
                 if (type === 'investigation') {
-                    incidentMessages = await IncidentMessageService.findBy(
-                        { incidentId, type },
-                        req.query.skip || 0,
-                        req.query.limit || 10
-                    );
-                } else {
-                    incidentMessages = await IncidentMessageService.findBy({
+                    skip = req.query.skip || 0;
+                    limit = req.query.limit || 10;
+                }
+
+                const populateIncidentMessage = [
+                    {
+                        path: 'incidentId',
+                        select: 'idNumber name',
+                    },
+                    { path: 'createdById', select: 'name' },
+                ];
+
+                const selectIncidentMessage =
+                    '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+                const populateAlert = [
+                    { path: 'userId', select: 'name' },
+                    { path: 'monitorId', select: 'name' },
+                    { path: 'projectId', select: 'name' },
+                ];
+
+                const selectAlert =
+                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+
+                const populate = [
+                    { path: 'incidentId', select: 'name' },
+                    { path: 'projectId', select: 'name' },
+                    {
+                        path: 'subscriberId',
+                        select:
+                            'name contactEmail contactPhone contactWebhook countryCode',
+                    },
+                ];
+                const select =
+                    'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+
+                const selectOnCallScheduleStatus =
+                    'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+                const populateOnCallScheduleStatus = [
+                    { path: 'incidentId', select: 'name slug' },
+                    { path: 'project', select: 'name slug' },
+                    { path: 'scheduleId', select: 'name slug' },
+                    {
+                        path: 'schedule',
+                        select: '_id name slug',
+                    },
+                    {
+                        path: 'activeEscalationId',
+                        select: 'projectId teams scheduleId',
+                    },
+                ];
+
+                const populateIncTimeline = [
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'probeId',
+                        select: 'probeName probeImage',
+                    },
+                ];
+                const selectIncTimeline =
+                    'incidentId createdById probeId createdByZapier createdAt status incident_state';
+                const [
+                    timeline,
+                    alerts,
+                    subscriberAlerts,
+                    messageCount,
+                    incMessages,
+                ] = await Promise.all([
+                    IncidentTimelineService.findBy({
+                        query: { incidentId },
+                        select: selectIncTimeline,
+                        populate: populateIncTimeline,
+                    }),
+                    AlertService.findBy({
+                        query: { incidentId: incidentId },
+                        select: selectAlert,
+                        populate: populateAlert,
+                    }),
+                    subscriberAlertService.findBy({
+                        query: { incidentId: incidentId, projectId },
+                        select,
+                        populate,
+                    }),
+                    IncidentMessageService.countBy({
                         incidentId,
                         type,
-                    });
-                }
-                const timeline = await IncidentTimelineService.findBy({
-                    incidentId,
-                });
-                const alerts = await AlertService.findBy({
-                    query: { incidentId: incidentId },
-                });
-                const subscriberAlerts = await subscriberAlertService.findBy({
-                    incidentId: incidentId,
-                    projectId,
-                });
-                count = await IncidentMessageService.countBy({
-                    incidentId,
-                    type,
-                });
+                    }),
+                    IncidentMessageService.findBy({
+                        query: {
+                            incidentId,
+                            type,
+                        },
+                        skip,
+                        limit,
+                        populate: populateIncidentMessage,
+                        select: selectIncidentMessage,
+                    }),
+                ]);
+                incidentMessages = incMessages;
+                count = messageCount;
                 if (type === 'investigation') {
                     result = incidentMessages;
                 } else {
-                    const subAlerts = await Services.deduplicate(
-                        subscriberAlerts
-                    );
-                    let callScheduleStatus = await onCallScheduleStatusService.findBy(
-                        {
+                    const [subAlerts, scheduleStatus] = await Promise.all([
+                        Services.deduplicate(subscriberAlerts),
+                        onCallScheduleStatusService.findBy({
                             query: { incident: incidentId },
-                        }
-                    );
-                    callScheduleStatus = await Services.checkCallSchedule(
-                        callScheduleStatus
+                            select: selectOnCallScheduleStatus,
+                            populate: populateOnCallScheduleStatus,
+                        }),
+                    ]);
+                    const callScheduleStatus = await Services.checkCallSchedule(
+                        scheduleStatus
                     );
                     const timelineAlerts = [
                         ...timeline,
@@ -1038,7 +1662,8 @@ router.delete('/:projectId/:incidentId', getUser, isUserAdmin, async function(
             req.user.id
         );
         if (incident) {
-            await RealTimeService.deleteIncident(incident);
+            // RUN IN THE BACKGROUND
+            RealTimeService.deleteIncident(incident);
             return sendItemResponse(req, res, incident);
         } else {
             return sendErrorResponse(req, res, {
@@ -1054,13 +1679,16 @@ router.put('/:projectId/:incidentId', getUser, async function(req, res) {
     try {
         const { projectId, incidentId } = req.params;
         const { hideIncident } = req.body;
-        const incident = await IncidentService.updateOneBy(
+        const result = await IncidentService.updateOneBy(
             {
                 projectId,
                 _id: incidentId,
             },
             { hideIncident }
         );
+        const incident = {
+            hideIncident: result.hideIncident,
+        };
         return sendItemResponse(req, res, incident);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1080,14 +1708,19 @@ router.get(
     async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
-            await IncidentService.resolve(req.params.incidentId, userId);
 
             // get incident properties to build url
             const { incidentId, projectId } = req.params;
-            const incident = await IncidentService.findOneBy({
-                projectId,
-                _id: incidentId,
-            });
+
+            const [incident] = await Promise.all([
+                IncidentService.findOneBy({
+                    query: { projectId, _id: incidentId },
+                    select: 'idNumber projectId',
+                    populate: [{ path: 'projectId', select: 'slug' }],
+                }),
+                IncidentService.resolve(req.params.incidentId, userId),
+            ]);
+
             const { projectId: project } = incident;
 
             return res.status(200).render('incidentAction.ejs', {
@@ -1117,18 +1750,23 @@ router.get(
     async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
-            await IncidentService.acknowledge(
-                req.params.incidentId,
-                userId,
-                req.user.name
-            );
 
             // get incident properties to build url
             const { incidentId, projectId } = req.params;
-            const incident = await IncidentService.findOneBy({
-                projectId,
-                _id: incidentId,
-            });
+
+            const [incident] = await Promise.all([
+                IncidentService.findOneBy({
+                    query: { projectId, _id: incidentId },
+                    select: 'idNumber projectId',
+                    populate: [{ path: 'projectId', select: 'slug' }],
+                }),
+                IncidentService.acknowledge(
+                    req.params.incidentId,
+                    userId,
+                    req.user.name
+                ),
+            ]);
+
             const { projectId: project } = incident;
 
             return res.status(200).render('incidentAction.ejs', {

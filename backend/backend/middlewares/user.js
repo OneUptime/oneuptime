@@ -18,6 +18,7 @@ const _this = {
     // Params:
     // Param 1: req.headers-> {token}
     // Returns: 400: User is unauthorized since unauthorized token was present.
+
     getUser: async function(req, res, next) {
         try {
             const projectId = apiMiddleware.getProjectId(req);
@@ -82,7 +83,10 @@ const _this = {
                 }
             }
             req.user = decoded;
-            const user = await UserService.findOneBy({ _id: req.user.id });
+            const user = await UserService.findOneBy({
+                query: { _id: req.user.id },
+                select: 'role',
+            });
             if (!user) {
                 if (res) {
                     return sendErrorResponse(req, res, {
@@ -103,7 +107,7 @@ const _this = {
                 { lastActive: Date.now() }
             );
             if (next) {
-                next();
+                return next();
             } else {
                 return req;
             }
@@ -121,7 +125,7 @@ const _this = {
 
             if (!accessToken) {
                 req.user = null;
-                next();
+                return next();
             } else {
                 if (accessToken && typeof accessToken !== 'string') {
                     return sendErrorResponse(req, res, {
@@ -146,7 +150,7 @@ const _this = {
                             { _id: req.user.id },
                             { lastActive: Date.now() }
                         );
-                        next();
+                        return next();
                     }
                 });
             }
@@ -162,7 +166,7 @@ const _this = {
                 url.parse(req.url, true).query.accessToken;
             if (!accessToken) {
                 req.user = null;
-                next();
+                return next();
             } else {
                 if (accessToken && typeof accessToken !== 'string') {
                     return sendErrorResponse(req, res, {
@@ -180,10 +184,7 @@ const _this = {
                     } else {
                         req.authorizationType = 'USER';
                         req.user = decoded;
-                        UserService.updateOneBy(
-                            { _id: req.user.id },
-                            { lastActive: Date.now() }
-                        );
+
                         const userId = req.user
                             ? req.user.id
                             : null || url.parse(req.url, true).query.userId;
@@ -197,9 +198,15 @@ const _this = {
                                 message: 'Project id is not present.',
                             });
                         }
-                        const project = await ProjectService.findOneBy({
-                            _id: projectId,
-                        });
+                        const [project] = await Promise.all([
+                            ProjectService.findOneBy({
+                                _id: projectId,
+                            }),
+                            UserService.updateOneBy(
+                                { _id: req.user.id },
+                                { lastActive: Date.now() }
+                            ),
+                        ]);
                         let isUserPresentInProject = false;
                         if (project) {
                             for (let i = 0; i < project.users.length; i++) {
@@ -215,7 +222,7 @@ const _this = {
                             });
                         }
                         if (isUserPresentInProject) {
-                            next();
+                            return next();
                         } else {
                             return sendErrorResponse(req, res, {
                                 code: 400,
@@ -238,7 +245,7 @@ const _this = {
 
         if (req && req.authorizationType === 'MASTER-ADMIN') {
             if (next) {
-                next();
+                return next();
             } else {
                 return true;
             }

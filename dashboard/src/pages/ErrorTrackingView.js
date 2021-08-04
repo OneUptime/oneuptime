@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
-import Dashboard from '../components/Dashboard';
 import getParentRoute from '../utils/getParentRoute';
 import Fade from 'react-reveal/Fade';
 import { connect } from 'react-redux';
@@ -23,6 +22,8 @@ class ErrorTrackingView extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > ERROR TRACKING > ERROR TRACKING DETAIL PAGE'
             );
         }
+
+        this.ready();
     }
     componentDidUpdate(prevProps) {
         if (
@@ -85,54 +86,52 @@ class ErrorTrackingView extends Component {
         const errorTrackerName =
             errorTracker.length > 0 ? errorTracker[0].name : null;
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'error-tracker')}
-                        name={componentName}
-                    />
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'error-trackers')}
-                        name="Error Tracking"
-                    />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name={errorTrackerName}
-                        pageTitle="Error Tracking"
-                        containerType="Error Tracker Container"
-                    />
-                    <ShouldRender if={!errorTracker[0]}>
-                        <LoadingState />
-                    </ShouldRender>
-                    <ShouldRender if={errorTracker && errorTracker[0]}>
-                        {errorTracker &&
-                        errorTracker[0] &&
-                        errorTracker[0].showQuickStart ? (
-                            <LibraryList
-                                title="Error Tracking"
-                                type="errorTracking"
-                                errorTracker={errorTracker[0]}
-                                close={this.handleCloseQuickStart}
-                            />
-                        ) : null}
-                        <div>
-                            <ErrorTrackerDetail
-                                componentId={component?._id}
-                                index={errorTracker[0]?._id}
-                                isDetails={true}
-                                componentSlug={component?.slug}
-                            />
-                        </div>
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'error-tracker')}
+                    name={componentName}
+                />
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'error-trackers')}
+                    name="Error Tracking"
+                />
+                <BreadCrumbItem
+                    route={pathname}
+                    name={errorTrackerName}
+                    pageTitle="Error Tracking"
+                    containerType="Error Tracker Container"
+                />
+                <ShouldRender if={!errorTracker[0]}>
+                    <LoadingState />
+                </ShouldRender>
+                <ShouldRender if={errorTracker && errorTracker[0]}>
+                    {errorTracker &&
+                    errorTracker[0] &&
+                    errorTracker[0].showQuickStart ? (
+                        <LibraryList
+                            title="Error Tracking"
+                            type="errorTracking"
+                            errorTracker={errorTracker[0]}
+                            close={this.handleCloseQuickStart}
+                        />
+                    ) : null}
+                    <div>
+                        <ErrorTrackerDetail
+                            componentId={component?._id}
+                            index={errorTracker[0]?._id}
+                            isDetails={true}
+                            componentSlug={component?.slug}
+                        />
+                    </div>
 
-                        <div className="Box-root Margin-bottom--12">
-                            <ErrorTrackerViewDeleteBox
-                                componentId={component?._id}
-                                errorTracker={errorTracker[0]}
-                            />
-                        </div>
-                    </ShouldRender>
-                </Fade>
-            </Dashboard>
+                    <div className="Box-root Margin-bottom--12">
+                        <ErrorTrackerViewDeleteBox
+                            componentId={component?._id}
+                            errorTracker={errorTracker[0]}
+                        />
+                    </div>
+                </ShouldRender>
+            </Fade>
         );
     }
 }

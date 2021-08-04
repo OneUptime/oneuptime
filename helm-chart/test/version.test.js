@@ -1,4 +1,3 @@
-/* eslint-disable linebreak-style */
 process.env.PORT = 3424;
 const expect = require('chai').expect;
 const chai = require('chai');

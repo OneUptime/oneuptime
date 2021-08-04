@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 process.env.PORT = 3020;
 process.env.IS_SAAS_SERVICE = true;
 const chai = require('chai');
@@ -139,9 +137,10 @@ describe('Incoming HTTP Request API', function() {
     });
 
     it('should create an incoming http request (Create Incident)', function(done) {
-        IncidentPrioritiesService.findOne({ projectId }).then(function(
-            priority
-        ) {
+        IncidentPrioritiesService.findOne({
+            query: { projectId },
+            select: '_id',
+        }).then(function(priority) {
             // fetch one of the priorities
             incidentPriorityId = priority._id;
             incidentRequest.incidentPriority = incidentPriorityId;
@@ -241,7 +240,7 @@ describe('Incoming HTTP Request API', function() {
 
     it('should list all the created incoming http request in a project', function(done) {
         incidentRequest.name = 'anotherOne';
-        incidentRequest.isDefault = false;
+        incidentRequest.selectAllMonitors = false;
         incidentRequest.monitors = [monitorId];
         // add one more incoming http request
         request

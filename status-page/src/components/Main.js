@@ -23,6 +23,7 @@ import {
     selectedProbe,
     getScheduledEvent,
     getOngoingScheduledEvent,
+    getAllStatusPageResource,
 } from '../actions/status';
 import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
@@ -76,33 +77,11 @@ class Main extends Component {
         this.state = {
             now: Date.now(),
             nowHandler: null,
+            windowSize: window.innerWidth,
         };
     }
 
     componentDidUpdate(prevProps) {
-        const fetchData = (skip = 0, theme = false, limit = 5) => {
-            this.props.getOngoingScheduledEvent(
-                this.props.statusData.projectId._id,
-                this.props.statusData.slug,
-                skip,
-                theme,
-                limit
-            );
-            this.props.fetchFutureEvents(
-                this.props.statusData.projectId._id,
-                this.props.statusData.slug,
-                skip,
-                theme,
-                limit
-            );
-            this.props.fetchPastEvents(
-                this.props.statusData.slug,
-                this.props.statusData.slug,
-                skip,
-                theme,
-                limit
-            );
-        };
         if (
             JSON.stringify(prevProps.probes) !==
             JSON.stringify(this.props.probes)
@@ -113,11 +92,7 @@ class Main extends Component {
 
             this.setLastAlive();
         }
-        if (prevProps.statusData._id !== this.props.statusData._id) {
-            this.props.getProbes(this.props.statusData._id, 0, 10).then(() => {
-                this.selectbutton(this.props.activeProbe);
-            });
-        }
+
         if (
             prevProps.statusData.customJS !== this.props.statusData.customJS &&
             this.props.statusData.customJS
@@ -126,17 +101,6 @@ class Main extends Component {
                 .createRange()
                 .createContextualFragment(this.props.statusData.customJS);
             document.body.appendChild(javascript);
-        }
-        if (
-            JSON.stringify(prevProps.statusData.projectId) !==
-            JSON.stringify(this.props.statusData.projectId)
-        ) {
-            if (this.props.statusData.theme === 'Clean Theme') {
-                fetchData(0, true, this.props.scheduleHistoryDays || 14);
-            }
-            if (this.props.statusData.theme === 'Classic Theme') {
-                fetchData(0, false, 5);
-            }
         }
     }
 
@@ -177,21 +141,28 @@ class Main extends Component {
             statusPageSlug = 'null';
             url = window.location.host;
         }
-        if (this.props.statusData._id) {
-            this.props.getProbes(this.props.statusData._id, 0, 10).then(() => {
-                this.selectbutton(this.props.activeProbe);
-            });
+        let range;
+        const { windowSize } = this.state;
+        if (windowSize <= 600) {
+            range = 30;
         }
-
-        this.props.getStatusPage(statusPageSlug, url).catch(err => {
-            if (err.message === 'Request failed with status code 401') {
-                const { loginRequired } = this.props.login;
-                if (loginRequired) {
-                    window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
+        if (windowSize > 600 && windowSize < 1000) {
+            range = 60;
+        }
+        if (windowSize >= 1000) {
+            range = 90;
+        }
+        this.props
+            .getAllStatusPageResource(statusPageSlug, url, range)
+            .catch(err => {
+                if (err.message === 'Request failed with status code 401') {
+                    const { loginRequired } = this.props.login;
+                    if (loginRequired) {
+                        window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
+                    }
+                    this.selectbutton(this.props.activeProbe);
                 }
-            }
-        });
-
+            });
         this.setLastAlive();
     }
 
@@ -308,9 +279,10 @@ class Main extends Component {
                 openIconClass="sp__icon sp__icon--up"
                 statusColorStyle={{
                     borderRadius: ' 100px',
-                    height: '8px',
-                    width: '8px',
+                    height: '10px',
+                    width: '10px',
                     backgroundColor: categoryStatusBk,
+                    marginRight: 8,
                 }}
             >
                 {monitors.map((monitor, i) => {
@@ -332,6 +304,15 @@ class Main extends Component {
                                     'Clean Theme'
                                         ? true
                                         : false
+                                }
+                                onlineText={
+                                    statusData.onlineText || 'Operational'
+                                }
+                                offlineText={
+                                    statusData.offlineText || 'Offline'
+                                }
+                                degradedText={
+                                    statusData.degradedText || 'Degraded'
                                 }
                             />
                             {this.props.monitors.some(
@@ -404,6 +385,9 @@ class Main extends Component {
             footerHTML,
             customCSS,
             theme,
+            onlineText = 'operational',
+            offlineText = 'offline',
+            degradedText = 'degraded',
         } = this.props.statusData;
         const sanitizedCSS = customCSS ? customCSS.split('↵').join('') : '';
         const probes = this.props.probes;
@@ -477,36 +461,36 @@ class Main extends Component {
 
             if (serviceStatus === 'all') {
                 status = 'status-bubble status-up';
-                statusMessage = 'All services are online';
+                statusMessage = `All services are ${onlineText.toLowerCase()}`;
                 faviconurl = '/status-page/greenfavicon.ico';
-                newStatusMessage = 'All resources are operational';
+                newStatusMessage = `All resources are ${onlineText.toLowerCase()}`;
                 newbg =
                     uptimeColor.backgroundColor === 'rgba(108, 219, 86, 1)'
                         ? '#49c3b1'
                         : uptimeColor.backgroundColor;
             } else if (serviceStatus === 'some') {
                 status = 'status-bubble status-down';
-                statusMessage = 'Some services are offline';
+                statusMessage = `Some services are ${offlineText.toLowerCase()}`;
                 faviconurl = '/status-page/redfavicon.ico';
-                newStatusMessage = 'Some resources are offline';
+                newStatusMessage = `Some resources are ${offlineText.toLowerCase()}`;
                 newbg =
                     downtimeColor.backgroundColor === 'rgba(250, 109, 70, 1)'
                         ? '#FA6D46'
                         : downtimeColor.backgroundColor;
             } else if (serviceStatus === 'none') {
                 status = 'status-bubble status-down';
-                statusMessage = 'All services are offline';
+                statusMessage = `All services are ${offlineText.toLowerCase()}`;
                 faviconurl = '/status-page/redfavicon.ico';
-                newStatusMessage = 'All resources are offline';
+                newStatusMessage = `All resources are ${offlineText.toLowerCase()}`;
                 newbg =
                     downtimeColor.backgroundColor === 'rgba(250, 109, 70, 1)'
                         ? '#FA6D46'
                         : downtimeColor.backgroundColor;
             } else if (serviceStatus === 'some-degraded') {
                 status = 'status-bubble status-paused';
-                statusMessage = 'Some services are degraded';
+                statusMessage = `Some services are ${degradedText.toLowerCase()}`;
                 faviconurl = '/status-page/yellowfavicon.ico';
-                newStatusMessage = 'Some resources are degraded';
+                newStatusMessage = `Some resources are ${degradedText.toLowerCase()}`;
                 newbg =
                     degradedColor.backgroundColor === 'rgba(255, 222, 36, 1)'
                         ? '#e39f48'
@@ -782,6 +766,21 @@ class Main extends Component {
                                                         isGroupedByMonitorCategory
                                                     }
                                                     theme={'clean'}
+                                                    onlineText={
+                                                        this.props.statusData
+                                                            .onlineText ||
+                                                        'Operational'
+                                                    }
+                                                    offlineText={
+                                                        this.props.statusData
+                                                            .offlineText ||
+                                                        'Offline'
+                                                    }
+                                                    degradedText={
+                                                        this.props.statusData
+                                                            .degradedText ||
+                                                        'Degraded'
+                                                    }
                                                 />
                                                 <LineChartsContainer
                                                     monitor={
@@ -1098,6 +1097,24 @@ class Main extends Component {
                                                         id={`monitor${i}`}
                                                         isGroupedByMonitorCategory={
                                                             isGroupedByMonitorCategory
+                                                        }
+                                                        onlineText={
+                                                            this.props
+                                                                .statusData
+                                                                .onlineText ||
+                                                            'Operational'
+                                                        }
+                                                        offlineText={
+                                                            this.props
+                                                                .statusData
+                                                                .offlineText ||
+                                                            'Offline'
+                                                        }
+                                                        degradedText={
+                                                            this.props
+                                                                .statusData
+                                                                .degradedText ||
+                                                            'Degraded'
                                                         }
                                                     />
                                                     <LineChartsContainer
@@ -1459,6 +1476,7 @@ const mapDispatchToProps = dispatch =>
             getOngoingScheduledEvent,
             fetchFutureEvents,
             fetchPastEvents,
+            getAllStatusPageResource,
         },
         dispatch
     );
@@ -1487,6 +1505,7 @@ Main.propTypes = {
     fetchPastEvents: PropTypes.func,
     futureEvents: PropTypes.func,
     pastEvents: PropTypes.func,
+    getAllStatusPageResource: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

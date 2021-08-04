@@ -38,6 +38,10 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "accounts"  }}
               servicePort: 80
+          - path: /data-ingestor
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+              servicePort: 80
           - path: /dashboard
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "dashboard"  }}
@@ -50,6 +54,10 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "backend"  }}
               servicePort: 80
+          - path: /realtime
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name "realtime" }}
+              servicePort: 80
           - path: /status-page
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "status"  }}
@@ -57,6 +65,10 @@ spec:
           - path: /haraka
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "haraka"  }}
+              servicePort: 80
+          - path: /script
+            backend:
+              serviceName: {{ printf "%s-%s" $.Release.Name "script"  }}
               servicePort: 80
           {{- range $probeKey, $probeValue := $.Values.probes }}
           - path: {{ printf "/%s" $probeKey }}

@@ -44,10 +44,18 @@ module.exports = {
                           ],
                       };
             // Fetch user subprojects
-            const subProjects = await ProjectService.findBy(query);
+            const populate = [{ path: 'parentProjectId', select: 'name' }];
+            const select =
+                '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
+
+            const subProjects = await ProjectService.findBy({
+                query,
+                select,
+                populate,
+            });
             if (subProjects.length > 0) {
                 req.user.subProjects = subProjects;
-                next();
+                return next();
             } else {
                 return sendErrorResponse(req, res, {
                     code: 400,

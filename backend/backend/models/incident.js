@@ -90,7 +90,7 @@ const monitorSchema = new Schema({
     investigationNote: { type: String, default: '' },
 
     createdById: { type: String, ref: 'User', index: true }, // userId
-
+    createdByApi: { type: Boolean, default: false },
     createdAt: {
         type: Date,
         default: Date.now,
@@ -100,6 +100,9 @@ const monitorSchema = new Schema({
         type: Boolean,
         default: false,
     }, // is true when zapier creates incident
+
+    acknowledgedByApi: { type: Boolean, default: false },
+    resolvedByApi: { type: Boolean, default: false },
 
     notClosedBy: [{ type: String, ref: 'User', index: true }],
     manuallyCreated: { type: Boolean, default: false },

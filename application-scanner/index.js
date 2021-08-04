@@ -1,26 +1,28 @@
 const { NODE_ENV } = process.env;
 
-if(!NODE_ENV || NODE_ENV === 'development'){
+if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /backend/.env
     require('custom-env').env();
 }
 
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Application Scanner Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    /* eslint-disable no-console */
-    console.error('Unhandled rejection in application scanner process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
+    console.error(
+        'Unhandled rejection in application scanner process occurred'
+    );
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in application scanner process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -40,11 +42,9 @@ app.set('port', process.env.PORT || 3005);
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log(
-        `Application Scanner ${config.applicationScannerName} and Application Key ${
-            config.applicationScannerKey
-        } Started on port ${app.get('port')}. Fyipe API URL: ${
-            config.serverUrl
-        }`
+        `Application Scanner Started on port ${app.get(
+            'port'
+        )}. Fyipe API URL: ${config.serverUrl}`
     );
 });
 
@@ -54,7 +54,7 @@ app.get('/', function(req, res) {
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
-            serviceType: 'fyipe-applicationScanner',
+            serviceType: 'fyipe-application-scanner',
         })
     );
 });
@@ -65,8 +65,8 @@ app.get(['/application/version', '/version'], function(req, res) {
     res.send({ applicationScannerVersion: process.env.npm_package_version });
 });
 
-// Run this cron at 3 AM once a day.
-cron.schedule('0 3 * * *', () => {
+// Run this cron every 5 minute.
+cron.schedule('*/5 * * * *', () => {
     setTimeout(() => {
         Main.runApplicationScan();
     }, cronApplicationSecurityStartTime * 1000);

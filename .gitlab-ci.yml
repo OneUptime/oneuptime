@@ -65,6 +65,10 @@ include:
   - '/ci/spec/init-script/audit.yaml'
   - '/ci/spec/init-script/deploy.yaml'
 
+  # LIGHTHOUSE RUNNER
+  - '/ci/spec/lighthouse-runner/audit.yaml'
+  - '/ci/spec/lighthouse-runner/deploy.yaml'
+
   # LICENSING
   - '/ci/spec/licensing/audit.yaml'
   - '/ci/spec/licensing/build-n-test.yaml'
@@ -115,6 +119,11 @@ include:
   - '/ci/spec/python-sdk/build-n-test.yaml'
   - '/ci/spec/python-sdk/deploy.yaml'
 
+  # RUBY-SDK
+  - '/ci/spec/ruby-sdk/audit.yaml'
+  - '/ci/spec/ruby-sdk/build-n-test.yaml'
+  - '/ci/spec/ruby-sdk/deploy.yaml'
+
   # HARAKA
   - '/ci/spec/haraka/deploy.yaml'
 
@@ -126,3 +135,23 @@ include:
 
   # FYIPE-GL-MANAGER
   - '/ci/spec/fyipe-gl-manager/deploy.yaml'
+
+  # Application Scanner
+  - '/ci/spec/application-scanner/deploy.yaml'
+
+  #  Script Runner
+  - '/ci/spec/script-runner/audit.yaml'
+  - '/ci/spec/script-runner/deploy.yaml'
+
+  #  Container Scanner
+  - '/ci/spec/container-scanner/deploy.yaml'
+
+  # realtime
+  - '/ci/spec/realtime/audit.yaml'
+  - '/ci/spec/realtime/deploy.yaml'
+  - '/ci/spec/realtime/rollback.yaml'
+
+  # data-ingestor
+  - '/ci/spec/data-ingestor/audit.yaml'
+  - '/ci/spec/data-ingestor/deploy.yaml'
+  - '/ci/spec/data-ingestor/rollback.yaml'

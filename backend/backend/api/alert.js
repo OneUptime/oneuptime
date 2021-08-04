@@ -63,12 +63,25 @@ router.get('/:projectId/alert', getUser, isAuthorized, async function(
 ) {
     try {
         const projectId = req.params.projectId;
-        const alerts = await alertService.findBy({
-            query: { projectId },
-            skip: req.query.skip || 0,
-            limit: req.query.limit || 10,
-        });
-        const count = await alertService.countBy({ projectId });
+        const populateAlert = [
+            { path: 'userId', select: 'name' },
+            { path: 'monitorId', select: 'name' },
+            { path: 'projectId', select: 'name' },
+        ];
+
+        const selectAlert =
+            '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+
+        const [alerts, count] = await Promise.all([
+            alertService.findBy({
+                query: { projectId },
+                skip: req.query.skip || 0,
+                limit: req.query.limit || 10,
+                populate: populateAlert,
+                select: selectAlert,
+            }),
+            alertService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, alerts, count); // frontend expects sendListResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -84,8 +97,8 @@ router.get(
             const idNumber = req.params.incidentId;
             const projectId = req.params.projectId;
             let incidentId = await IncidentService.findOneBy({
-                projectId,
-                idNumber,
+                query: { projectId, idNumber },
+                select: '_id',
             });
             const skip = req.query.skip || 0;
             const limit = req.query.limit || 10;
@@ -94,14 +107,30 @@ router.get(
                 count = 0;
             if (incidentId) {
                 incidentId = incidentId._id;
-                alerts = await alertService.findBy({
-                    query: { incidentId: incidentId },
-                    skip,
-                    limit,
-                });
-                count = await alertService.countBy({
-                    incidentId: incidentId,
-                });
+                const populateAlert = [
+                    { path: 'userId', select: 'name email' },
+                    { path: 'monitorId', select: 'name' },
+                    { path: 'projectId', select: 'name' },
+                ];
+
+                const selectAlert =
+                    '_id projectId userId alertVia alertStatus eventType monitorId createdAt incidentId onCallScheduleStatus schedule escalation error errorMessage alertProgress deleted deletedAt deletedById';
+
+                const [allAlerts, allCount] = await Promise.all([
+                    alertService.findBy({
+                        query: { incidentId: incidentId },
+                        skip,
+                        limit,
+                        populate: populateAlert,
+                        select: selectAlert,
+                    }),
+                    alertService.countBy({
+                        incidentId: incidentId,
+                    }),
+                ]);
+
+                alerts = allAlerts;
+                count = allCount;
             }
             return sendListResponse(req, res, alerts, count);
         } catch (error) {
@@ -157,12 +186,29 @@ router.get('/:projectId/alert/charges', getUser, isAuthorized, async function(
 ) {
     try {
         const projectId = req.params.projectId;
-        const alertCharges = await alertChargeService.findBy(
-            { projectId },
-            req.query.skip,
-            req.query.limit
-        );
-        const count = await alertChargeService.countBy({ projectId });
+
+        //Important! Always pass required field(s)
+        const populate = [
+            { path: 'alertId', select: 'alertVia' },
+            { path: 'subscriberAlertId', select: 'alertVia' },
+            { path: 'monitorId', select: 'name slug' },
+            { path: 'incidentId', select: 'idNumber' },
+        ];
+
+        const select =
+            'alertId subscriberAlertId monitorId incidentId closingAccountBalance chargeAmount';
+
+        const [alertCharges, count] = await Promise.all([
+            alertChargeService.findBy({
+                query: { projectId },
+                skip: req.query.skip,
+                limit: req.query.limit,
+                sort: false,
+                populate,
+                select,
+            }),
+            alertChargeService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, alertCharges, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

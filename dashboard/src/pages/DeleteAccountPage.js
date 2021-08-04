@@ -1,7 +1,6 @@
 import React from 'react';
 import { PropTypes } from 'prop-types';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import DeleteAccountBox from '../components/profileSettings/DeleteAccountBox';
 import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';
@@ -12,29 +11,27 @@ const DeleteAccountPage = props => {
     } = props;
 
     return (
-        <Dashboard>
-            <Fade>
-                <div className="Profile-Pages--view">
-                    <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
-                    <BreadCrumbItem route={pathname} name="Advanced" />
-                    <div>
-                        <div className="db-BackboneViewContainer">
-                            <div className="react-settings-view react-view">
-                                <span data-reactroot="">
+        <Fade>
+            <div className="Profile-Pages--view">
+                <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
+                <BreadCrumbItem route={pathname} name="Advanced" />
+                <div>
+                    <div className="db-BackboneViewContainer">
+                        <div className="react-settings-view react-view">
+                            <span data-reactroot="">
+                                <div>
                                     <div>
-                                        <div>
-                                            <div className="Box-root Margin-bottom--12">
-                                                <DeleteAccountBox />
-                                            </div>
+                                        <div className="Box-root Margin-bottom--12">
+                                            <DeleteAccountBox />
                                         </div>
                                     </div>
-                                </span>
-                            </div>
+                                </div>
+                            </span>
                         </div>
                     </div>
                 </div>
-            </Fade>
-        </Dashboard>
+            </div>
+        </Fade>
     );
 };
 

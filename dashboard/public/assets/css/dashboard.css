@@ -35466,3 +35466,9 @@ padding-left:20px
 .basic-multi-select {
   min-width: 300px;
 }
+
+.bs-script-display {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}

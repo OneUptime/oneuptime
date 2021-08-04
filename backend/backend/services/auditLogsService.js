@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function({ query, skip, limit }) {
+    findBy: async function({ query, skip, limit, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -11,13 +11,17 @@ module.exports = {
 
             if (!query) query = {};
 
-            const auditLogs = await AuditLogsModel.find(query)
+            let auditLogsQuery = AuditLogsModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('userId', 'name')
-                .populate('projectId', 'name');
+                .skip(skip);
+
+            auditLogsQuery = handleSelect(select, auditLogsQuery);
+            auditLogsQuery = handlePopulate(populate, auditLogsQuery);
+
+            const auditLogs = await auditLogsQuery;
+
             return auditLogs;
         } catch (error) {
             ErrorService.log('auditLogs.findBy', error);
@@ -57,8 +61,23 @@ module.exports = {
             'request.apiSection': { $regex: new RegExp(filter), $options: 'i' },
         };
 
-        const searchedAuditLogs = await _this.findBy({ query, skip, limit });
-        const totalSearchCount = await _this.countBy({ query });
+        const populateAuditLog = [
+            { path: 'userId', select: 'name' },
+            { path: 'projectId', select: 'name' },
+        ];
+
+        const selectAuditLog = 'userId projectId request response createdAt';
+
+        const [searchedAuditLogs, totalSearchCount] = await Promise.all([
+            _this.findBy({
+                query,
+                skip,
+                limit,
+                populate: populateAuditLog,
+                select: selectAuditLog,
+            }),
+            _this.countBy({ query }),
+        ]);
 
         return { searchedAuditLogs, totalSearchCount };
     },
@@ -75,3 +94,5 @@ module.exports = {
 
 const AuditLogsModel = require('../models/auditLogs');
 const ErrorService = require('./errorService');
+const handlePopulate = require('../utils/populate');
+const handleSelect = require('../utils/select');

@@ -34,7 +34,9 @@ router.get('/store/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const account = await AccountStoreService.findOneBy({
-            id,
+            query: { id },
+            select:
+                'id privateKeyPem privateKeyJwk publicKeyPem publicKeyJwk key deleted deletedAt',
         });
 
         return sendItemResponse(req, res, account);

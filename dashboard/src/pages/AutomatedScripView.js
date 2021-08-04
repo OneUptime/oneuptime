@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Dashboard from '../components/Dashboard';
 import Fade from 'react-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import PropTypes from 'prop-types';
@@ -17,6 +16,8 @@ import { fetchSingleAutomatedScript } from '../actions/automatedScript';
 import Badge from '../components/common/Badge';
 import ViewScriptLogs from '../components/modals/ViewScriptLogs';
 import UpdateScript from '../components/automationScript/UpdateScript';
+import RunAutomationScript from '../components/modals/RunAutomationScript';
+import moment from 'moment';
 
 const AutomatedScripView = props => {
     const { history } = props;
@@ -24,6 +25,8 @@ const AutomatedScripView = props => {
 
     const [tabIndex, setTabIndex] = useState(0);
     const [viewJsonModalId] = useState(uuidv4());
+    const [automatedId] = useState(uuidv4);
+    const [showUpdate, setShowUpdate] = useState(false);
 
     useEffect(() => {
         const projectId = props.currentProject?._id;
@@ -92,58 +95,149 @@ const AutomatedScripView = props => {
     const automatedSlug = props.match.params.automatedScriptslug;
     const details = props.details;
     const scriptName = details?.name;
+    const scriptType = details?.scriptType;
+    const projectId = props.currentProject?._id;
 
     return (
-        <Dashboard>
-            <Fade>
-                <BreadCrumbItem route={parentRoute} name="Automation Scripts" />
-                <BreadCrumbItem
-                    route={history.location.pathname}
-                    name={scriptName}
-                    pageTitle="Automation Scripts"
-                />
-                <Tabs
-                    selectedTabClassName={'custom-tab-selected'}
-                    onSelect={tab => tabSelected(tab)}
-                    selectedIndex={tabIndex}
-                >
-                    <div className="Flex-flex Flex-direction--columnReverse">
-                        <TabList
-                            id="customTabList"
-                            className={'custom-tab-list'}
+        <Fade>
+            <BreadCrumbItem route={parentRoute} name="Automation Scripts" />
+            <BreadCrumbItem
+                route={history.location.pathname}
+                name={scriptName}
+                pageTitle="Automation Scripts"
+            />
+            <Tabs
+                selectedTabClassName={'custom-tab-selected'}
+                onSelect={tab => tabSelected(tab)}
+                selectedIndex={tabIndex}
+            >
+                <div className="Flex-flex Flex-direction--columnReverse">
+                    <TabList id="customTabList" className={'custom-tab-list'}>
+                        <Tab
+                            className={
+                                'custom-tab custom-tab-6 basic-tab bs-automate-tab'
+                            }
                         >
-                            <Tab
-                                className={
-                                    'custom-tab custom-tab-6 basic-tab bs-automate-tab'
-                                }
-                            >
-                                Basic
-                            </Tab>
-                            <Tab
-                                className={
-                                    'custom-tab custom-tab-6 advanced-options-tab bs-automate-tab'
-                                }
-                            >
-                                Advanced Options
-                            </Tab>
-                            <div
-                                id="tab-slider"
-                                className="custom-tab-6 status-tab bs-automate-slider"
-                            ></div>
-                        </TabList>
-                    </div>
+                            Basic
+                        </Tab>
+                        <Tab
+                            className={
+                                'custom-tab custom-tab-6 advanced-options-tab bs-automate-tab'
+                            }
+                        >
+                            Advanced Options
+                        </Tab>
+                        <div
+                            id="tab-slider"
+                            className="custom-tab-6 status-tab bs-automate-slider"
+                        ></div>
+                    </TabList>
+                </div>
 
-                    <div className="Box-root">
+                <div className="Box-root">
+                    <div>
                         <div>
-                            <div>
-                                <div className="db-BackboneViewContainer">
-                                    <div className="react-settings-view react-view">
-                                        <span data-reactroot="">
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <span data-reactroot="">
+                                        <div>
                                             <div>
-                                                <div>
-                                                    <ShouldRender if={true}>
-                                                        <TabPanel>
-                                                            <Fade>
+                                                <ShouldRender if={true}>
+                                                    <TabPanel>
+                                                        <Fade>
+                                                            <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
+                                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                                        <div className="bs-script-display">
+                                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                                                    <span>
+                                                                                        {
+                                                                                            scriptName
+                                                                                        }
+                                                                                    </span>
+                                                                                </span>
+                                                                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                    <span>
+                                                                                        {
+                                                                                            scriptType
+                                                                                        }
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8 bs-table-display-end">
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        !showUpdate
+                                                                                    }
+                                                                                >
+                                                                                    <button
+                                                                                        className="bs-Button bs-Button--icon bs-Button--play"
+                                                                                        title="run"
+                                                                                        disabled={
+                                                                                            false
+                                                                                        }
+                                                                                        onClick={() =>
+                                                                                            props.openModal(
+                                                                                                {
+                                                                                                    id: automatedId,
+                                                                                                    content: DataPathHoC(
+                                                                                                        RunAutomationScript,
+                                                                                                        {
+                                                                                                            automatedScriptId:
+                                                                                                                details?._id,
+                                                                                                            projectId,
+                                                                                                            automatedSlug:
+                                                                                                                details?.slug,
+                                                                                                        }
+                                                                                                    ),
+                                                                                                }
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        <span>
+                                                                                            Run
+                                                                                        </span>
+                                                                                    </button>
+                                                                                </ShouldRender>
+                                                                                <button
+                                                                                    className="bs-Button bs-Button--icon bs-Button--settings"
+                                                                                    title="edit"
+                                                                                    disabled={
+                                                                                        false
+                                                                                    }
+                                                                                    onClick={() =>
+                                                                                        setShowUpdate(
+                                                                                            !showUpdate
+                                                                                        )
+                                                                                    }
+                                                                                >
+                                                                                    <span>
+                                                                                        <ShouldRender
+                                                                                            if={
+                                                                                                !showUpdate
+                                                                                            }
+                                                                                        >
+                                                                                            Edit
+                                                                                        </ShouldRender>
+                                                                                        <ShouldRender
+                                                                                            if={
+                                                                                                showUpdate
+                                                                                            }
+                                                                                        >
+                                                                                            Hide
+                                                                                            update
+                                                                                        </ShouldRender>
+                                                                                    </span>
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <ShouldRender
+                                                                if={!showUpdate}
+                                                            >
                                                                 <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
                                                                     <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
                                                                         <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
@@ -204,6 +298,16 @@ const AutomatedScripView = props => {
                                                                                         <div
                                                                                             className="bs-ObjectList-cell"
                                                                                             style={{
+                                                                                                marginRight:
+                                                                                                    '10px',
+                                                                                            }}
+                                                                                        >
+                                                                                            Ran
+                                                                                            At
+                                                                                        </div>
+                                                                                        <div
+                                                                                            className="bs-ObjectList-cell"
+                                                                                            style={{
                                                                                                 float:
                                                                                                     'right',
                                                                                             }}
@@ -212,9 +316,12 @@ const AutomatedScripView = props => {
                                                                                         </div>
                                                                                     </header>
                                                                                     {scriptLogs &&
-                                                                                        scriptLogs.length >
+                                                                                        scriptLogs.log &&
+                                                                                        scriptLogs
+                                                                                            .log
+                                                                                            .length >
                                                                                             0 &&
-                                                                                        scriptLogs.map(
+                                                                                        scriptLogs.log.map(
                                                                                             (
                                                                                                 log,
                                                                                                 index
@@ -261,6 +368,8 @@ const AutomatedScripView = props => {
                                                                                                                         log.triggerByIncident
                                                                                                                     }
                                                                                                                 >
+                                                                                                                    Incident
+                                                                                                                    #
                                                                                                                     {
                                                                                                                         log
                                                                                                                             .triggerByIncident
@@ -313,6 +422,15 @@ const AutomatedScripView = props => {
                                                                                                                         </Badge>
                                                                                                                     )
                                                                                                                 ) : null}
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                                                            <div className="Box-root">
+                                                                                                                {moment(
+                                                                                                                    log.createdAt
+                                                                                                                ).format(
+                                                                                                                    'MMMM Do YYYY, h:mm a'
+                                                                                                                )}
                                                                                                             </div>
                                                                                                         </div>
                                                                                                         <div
@@ -371,7 +489,10 @@ const AutomatedScripView = props => {
                                                                                 <ShouldRender
                                                                                     if={
                                                                                         (scriptLogs &&
-                                                                                            scriptLogs.length ===
+                                                                                            scriptLogs.log &&
+                                                                                            scriptLogs
+                                                                                                .log
+                                                                                                .length ===
                                                                                                 0) ||
                                                                                         !scriptLogs
                                                                                     }
@@ -384,10 +505,16 @@ const AutomatedScripView = props => {
                                                                                                 '12px',
                                                                                         }}
                                                                                     >
-                                                                                        You&#39;ve
-                                                                                        no
-                                                                                        log
-                                                                                        currently
+                                                                                        No
+                                                                                        logs
+                                                                                        available
+                                                                                        for
+                                                                                        this
+                                                                                        script
+                                                                                        because
+                                                                                        it
+                                                                                        never
+                                                                                        ran.
                                                                                     </div>
                                                                                 </ShouldRender>
                                                                                 <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
@@ -472,50 +599,53 @@ const AutomatedScripView = props => {
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                                <ShouldRender
-                                                                    if={details}
-                                                                >
-                                                                    <div>
-                                                                        <UpdateScript
-                                                                            details={
-                                                                                details
-                                                                            }
-                                                                        />
-                                                                    </div>
-                                                                </ShouldRender>
-                                                            </Fade>
-                                                        </TabPanel>
-                                                        <TabPanel>
-                                                            <Fade>
-                                                                <DeleteScriptBox
-                                                                    {...props}
-                                                                    name={
-                                                                        scriptName
-                                                                    }
-                                                                    parentRoute={
-                                                                        parentRoute
-                                                                    }
-                                                                    automatedSlug={
-                                                                        automatedSlug
-                                                                    }
-                                                                />
-                                                            </Fade>
-                                                        </TabPanel>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={false}>
-                                                        <LoadingState />
-                                                    </ShouldRender>
-                                                </div>
+                                                            </ShouldRender>
+                                                            <ShouldRender
+                                                                if={
+                                                                    details &&
+                                                                    showUpdate
+                                                                }
+                                                            >
+                                                                <div>
+                                                                    <UpdateScript
+                                                                        details={
+                                                                            details
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </ShouldRender>
+                                                        </Fade>
+                                                    </TabPanel>
+                                                    <TabPanel>
+                                                        <Fade>
+                                                            <DeleteScriptBox
+                                                                {...props}
+                                                                name={
+                                                                    scriptName
+                                                                }
+                                                                parentRoute={
+                                                                    parentRoute
+                                                                }
+                                                                automatedSlug={
+                                                                    automatedSlug
+                                                                }
+                                                            />
+                                                        </Fade>
+                                                    </TabPanel>
+                                                </ShouldRender>
+                                                <ShouldRender if={false}>
+                                                    <LoadingState />
+                                                </ShouldRender>
                                             </div>
-                                        </span>
-                                    </div>
+                                        </div>
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </Tabs>
-            </Fade>
-        </Dashboard>
+                </div>
+            </Tabs>
+        </Fade>
     );
 };
 
@@ -533,7 +663,7 @@ AutomatedScripView.propTypes = {
 
 const mapStateToProps = state => ({
     currentProject: state.project.currentProject,
-    script: state.automatedScripts.individualScript.log,
+    script: state.automatedScripts.individualScript,
     details: state.automatedScripts.individualScript.details,
     requesting: state.automatedScripts.individualScript.requesting,
 });

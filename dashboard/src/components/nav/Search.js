@@ -208,8 +208,6 @@ class Search extends Component {
             history.push(
                 '/dashboard/project/' +
                     currentProject.slug +
-                    '/component/' +
-                    searchObj.componentId +
                     '/incidents/' +
                     searchObj.idNumber
             );
@@ -422,6 +420,8 @@ class Search extends Component {
                 return 'db-SideNav-icon--user';
             case 'password':
                 return 'db-SideNav-icon--password';
+            case 'play':
+                return 'db-SideNav-icon--play';
             default:
                 return '';
         }

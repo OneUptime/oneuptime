@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import CustomerBalance from '../components/paymentCard/CustomerBalance';
 import AlertCharges from '../components/alert/AlertCharges';
 import ChangePlan from '../components/settings/ChangePlan';
@@ -39,31 +38,29 @@ class Billing extends Component {
         } = this.props;
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Project Settings"
-                    />
-                    <BreadCrumbItem route={pathname} name="Billing" />
-                    <div id="billingSetting" className="Margin-vertical--12">
-                        <ShouldRender if={!alertEnable}>
-                            <AlertDisabledWarning page="Billing" />
-                        </ShouldRender>
-                        <ShouldRender if={currentProject}>
-                            <AlertAdvanceOption />
-                        </ShouldRender>
-                        <CustomerBalance />
-                        <AlertCharges />
-                        <ShouldRender if={currentProject}>
-                            <ChangePlan />
-                        </ShouldRender>
-                        <RenderIfOwner>
-                            <DeleteProject />
-                        </RenderIfOwner>
-                    </div>
-                </Fade>
-            </Dashboard>
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Project Settings"
+                />
+                <BreadCrumbItem route={pathname} name="Billing" />
+                <div id="billingSetting" className="Margin-vertical--12">
+                    <ShouldRender if={!alertEnable}>
+                        <AlertDisabledWarning page="Billing" />
+                    </ShouldRender>
+                    <ShouldRender if={currentProject}>
+                        <AlertAdvanceOption />
+                    </ShouldRender>
+                    <CustomerBalance />
+                    <AlertCharges />
+                    <ShouldRender if={currentProject}>
+                        <ChangePlan />
+                    </ShouldRender>
+                    <RenderIfOwner>
+                        <DeleteProject />
+                    </RenderIfOwner>
+                </div>
+            </Fade>
         );
     }
 }

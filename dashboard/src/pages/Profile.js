@@ -1,6 +1,5 @@
 import React from 'react';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import ProfileSetting from '../components/profileSettings/Profile';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import BreadCrumbs from '../components/breadCrumb/BreadCrumbs';
@@ -12,35 +11,33 @@ const Profile = props => {
     } = props;
 
     return (
-        <Dashboard>
-            <Fade>
-                <div className="Profile-Pages--view">
-                    <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
-                    <BreadCrumbItem route={pathname} name="Profile Settings" />
-                    <div>
-                        <div
-                            className="db-RadarRulesLists-page bs-ContentSection"
-                            style={{ boxShadow: 'none' }}
-                        >
-                            <div className="react-settings-view react-view">
-                                <span data-reactroot="">
+        <Fade>
+            <div className="Profile-Pages--view">
+                <BreadCrumbs styles="breadCrumbContainer Card-shadow--medium db-mb" />
+                <BreadCrumbItem route={pathname} name="Profile Settings" />
+                <div>
+                    <div
+                        className="db-RadarRulesLists-page bs-ContentSection"
+                        style={{ boxShadow: 'none' }}
+                    >
+                        <div className="react-settings-view react-view">
+                            <span data-reactroot="">
+                                <div>
                                     <div>
-                                        <div>
-                                            <div
-                                                id="profileSettingPage"
-                                                className="Margin-vertical--12"
-                                            >
-                                                <ProfileSetting />
-                                            </div>
+                                        <div
+                                            id="profileSettingPage"
+                                            className="Margin-vertical--12"
+                                        >
+                                            <ProfileSetting />
                                         </div>
                                     </div>
-                                </span>
-                            </div>
+                                </div>
+                            </span>
                         </div>
                     </div>
                 </div>
-            </Fade>
-        </Dashboard>
+            </div>
+        </Fade>
     );
 };
 

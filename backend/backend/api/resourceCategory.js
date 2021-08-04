@@ -183,7 +183,7 @@ router.put(
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const projectId = req.params.projectId;
-        const query = req.query;
+        const { limit, skip } = req.query;
 
         if (!projectId) {
             return sendErrorResponse(req, res, {
@@ -199,12 +199,16 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
             });
         }
         // Call the ResourceCategoryService
-        const resourceCategories = await ResourceCategoryService.findBy(
-            { projectId },
-            query.limit,
-            query.skip
-        );
-        const count = await ResourceCategoryService.countBy({ projectId });
+        const selectResourceCat = 'projectId name createdById createdAt';
+        const [resourceCategories, count] = await Promise.all([
+            ResourceCategoryService.findBy({
+                query: { projectId },
+                limit,
+                skip,
+                select: selectResourceCat,
+            }),
+            ResourceCategoryService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, resourceCategories, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

@@ -102,7 +102,10 @@ class Webhook extends Component {
                 >
                     {this.props.subscribed && this.props.subscribed.success ? (
                         <div style={{ textAlign: 'center', margin: '15px 0' }}>
-                            <span id="monitor-subscribe-success-message">
+                            <span
+                                className="subscriber-success"
+                                id="monitor-subscribe-success-message"
+                            >
                                 You have subscribed to this status page
                                 successfully
                             </span>

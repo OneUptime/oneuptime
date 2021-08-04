@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { Router, Route, Redirect, Switch } from 'react-router-dom';
 import { history, isServer } from './store';
 import { connect } from 'react-redux';
@@ -16,6 +16,7 @@ import Cookies from 'universal-cookie';
 import { saveStatusPage, checkIfMasterAdminExists } from './actions/login';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
+import { LoadingState } from './components/basic/Loader';
 
 const cookies = new Cookies();
 
@@ -74,22 +75,24 @@ const App = ({
     return (
         <div style={{ height: '100%' }}>
             <Router history={history}>
-                <Switch>
-                    {allRoutes
-                        .filter(route => route.visible)
-                        .map((route, index) => {
-                            return (
-                                <Route
-                                    exact={route.exact}
-                                    path={route.path}
-                                    key={index}
-                                    component={route.component}
-                                />
-                            );
-                        })}
+                <Suspense fallback={LoadingState}>
+                    <Switch>
+                        {allRoutes
+                            .filter(route => route.visible)
+                            .map((route, index) => {
+                                return (
+                                    <Route
+                                        exact={route.exact}
+                                        path={route.path}
+                                        key={index}
+                                        component={route.component}
+                                    />
+                                );
+                            })}
 
-                    <Redirect to="/accounts/login" />
-                </Switch>
+                        <Redirect to="/accounts/login" />
+                    </Switch>
+                </Suspense>
             </Router>
             <BackboneModals />
         </div>

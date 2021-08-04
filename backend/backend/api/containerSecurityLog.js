@@ -19,9 +19,17 @@ router.get(
         try {
             const { containerSecurityId, componentId } = req.params;
 
+            const selectContainerLog =
+                'securityId componentId data deleted deleteAt';
+
+            const populateContainerLog = [
+                { path: 'securityId', select: 'name slug' },
+                { path: 'componentId', select: 'name slug' },
+            ];
             const securityLog = await ContainerSecurityLogService.findOneBy({
-                securityId: containerSecurityId,
-                componentId,
+                query: { securityId: containerSecurityId, componentId },
+                select: selectContainerLog,
+                populate: populateContainerLog,
             });
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
@@ -42,9 +50,17 @@ router.get(
         try {
             const { containerSecuritySlug, componentId } = req.params;
 
+            const selectContainerLog =
+                'securityId componentId data deleted deleteAt';
+
+            const populateContainerLog = [
+                { path: 'securityId', select: 'name slug' },
+                { path: 'componentId', select: 'name slug' },
+            ];
             const securityLog = await ContainerSecurityLogService.findOneBy({
-                slug: containerSecuritySlug,
-                componentId,
+                query: { slug: containerSecuritySlug, componentId },
+                select: selectContainerLog,
+                populate: populateContainerLog,
             });
             return sendItemResponse(req, res, securityLog);
         } catch (error) {
@@ -64,8 +80,17 @@ router.get(
     async (req, res) => {
         try {
             const { componentId } = req.params;
+            const selectContainerLog =
+                'securityId componentId data deleted deleteAt';
+
+            const populateContainerLog = [
+                { path: 'securityId', select: 'name slug' },
+                { path: 'componentId', select: 'name slug' },
+            ];
             const securityLogs = await ContainerSecurityLogService.findBy({
                 componentId,
+                select: selectContainerLog,
+                populate: populateContainerLog,
             });
             return sendItemResponse(req, res, securityLogs);
         } catch (error) {

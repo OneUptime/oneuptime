@@ -77,7 +77,6 @@ import {
     RESET_STATUSPAGE_EMBEDDED_CSS_REQUEST,
     RESET_STATUSPAGE_EMBEDDED_CSS_SUCCESS,
     RESET_STATUSPAGE_EMBEDDED_CSS_FAILURE,
-    SHOW_DUPLICATE_STATUSPAGE,
     DUPLICATE_STATUSPAGE_REQUEST,
     DUPLICATE_STATUSPAGE_SUCCESS,
     DUPLICATE_STATUSPAGE_FAILURE,
@@ -109,6 +108,7 @@ import {
     FETCH_ANNOUNCEMEMTLOGS_REQUEST,
     FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
     FETCH_ANNOUNCEMEMTLOGS_FAILURE,
+    UPDATE_STATUSPAGE_SUCCESS,
 } from '../constants/statusPage';
 
 import {
@@ -135,7 +135,6 @@ import {
 
 const INITIAL_STATE = {
     addMoreDomain: false,
-    showDuplicateStatusPage: false,
     setting: {
         error: null,
         requesting: false,
@@ -1047,6 +1046,24 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 status,
             });
 
+        case UPDATE_STATUSPAGE_SUCCESS: {
+            const monitors = action.payload.monitors.map(mon => {
+                return {
+                    ...mon,
+                    _id: mon._id,
+                    monitor: mon.monitor._id,
+                    description: mon.description,
+                };
+            });
+            const monitorNames = action.payload.monitors.map(
+                ({ monitor }) => monitor.name
+            );
+            const status = { ...action.payload, monitorNames, monitors };
+            return Object.assign({}, state, {
+                status,
+            });
+        }
+
         case UPDATE_STATUSPAGE_THEME_FAILURE:
             return Object.assign({}, state, {
                 theme: {
@@ -1570,11 +1587,6 @@ export default function statusPage(state = INITIAL_STATE, action) {
                 },
             });
 
-        case SHOW_DUPLICATE_STATUSPAGE:
-            return Object.assign({}, state, {
-                showDuplicateStatusPage: action.payload,
-            });
-
         case RESET_BRANDING_COLORS_REQUEST:
             return Object.assign({}, state, {
                 resetBrandingColors: {
@@ -1608,6 +1620,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     success: false,
                 },
             });
+
         case UPDATE_STATUS_PAGE_LAYOUT_SUCCESS:
             return Object.assign({}, state, {
                 updateLayout: {
@@ -1616,6 +1629,7 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     success: true,
                 },
             });
+
         case UPDATE_STATUS_PAGE_LAYOUT_REQUEST:
             return Object.assign({}, state, {
                 updateLayout: {

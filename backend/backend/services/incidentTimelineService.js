@@ -14,25 +14,39 @@ module.exports = {
                 incidentTimeline.incident_state = data.incident_state;
             }
             incidentTimeline.createdByZapier = data.createdByZapier || false;
+            incidentTimeline.createdByApi = data.createdByApi || false;
             incidentTimeline.status = data.status;
 
             incidentTimeline = await incidentTimeline.save();
-            incidentTimeline = await this.findOneBy({
-                _id: incidentTimeline._id,
-            });
 
-            const incident = await IncidentService.findOneBy({
-                _id: data.incidentId,
-            });
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+                { path: 'incidentId', select: 'idNumber' },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
 
-            if (incident) {
-                const _incidentTimeline = Object.assign(
-                    {},
-                    incidentTimeline._doc || incidentTimeline,
-                    {
-                        projectId: incident.projectId._id || incident.projectId,
-                    }
-                );
+            const [timeline, incident] = await Promise.all([
+                this.findOneBy({
+                    query: { _id: incidentTimeline._id },
+                    select: selectIncTimeline,
+                    populate: populateIncTimeline,
+                }),
+                IncidentService.findOneBy({
+                    query: { _id: data.incidentId },
+                    select: 'projectId',
+                }),
+            ]);
+            incidentTimeline = timeline;
+
+            if (incident && incidentTimeline) {
+                const _incidentTimeline = Object.assign({}, incidentTimeline, {
+                    projectId: incident.projectId._id || incident.projectId,
+                });
                 RealTimeService.updateIncidentTimeline(_incidentTimeline);
             }
 
@@ -57,7 +71,21 @@ module.exports = {
                     new: true,
                 }
             );
-            incidentTimeline = await this.findOneBy(query);
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+                { path: 'incidentId', select: 'idNumber' },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
+            incidentTimeline = await this.findOneBy({
+                query,
+                populate: populateIncTimeline,
+                select: selectIncTimeline,
+            });
 
             return incidentTimeline;
         } catch (error) {
@@ -79,7 +107,21 @@ module.exports = {
                     $set: data,
                 }
             );
-            incidentTimelines = await this.findBy(query);
+
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
+            incidentTimelines = await this.findBy({
+                query,
+                select: selectIncTimeline,
+                populate: populateIncTimeline,
+            });
 
             return incidentTimelines;
         } catch (error) {
@@ -88,7 +130,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
             if (!limit) limit = 0;
@@ -101,13 +143,22 @@ module.exports = {
             }
             query.deleted = false;
 
-            const incidentTimelines = await IncidentTimelineModel.find(query)
+            let incidentTimelinesQuery = IncidentTimelineModel.find(query)
                 .lean()
                 .sort({ createdAt: 1 })
                 .limit(limit)
-                .skip(skip)
-                .populate('createdById', 'name')
-                .populate({ path: 'probeId', select: 'probeName probeImage' });
+                .skip(skip);
+
+            incidentTimelinesQuery = handleSelect(
+                select,
+                incidentTimelinesQuery
+            );
+            incidentTimelinesQuery = handlePopulate(
+                populate,
+                incidentTimelinesQuery
+            );
+
+            const incidentTimelines = await incidentTimelinesQuery;
 
             return incidentTimelines;
         } catch (error) {
@@ -116,18 +167,24 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
             query.deleted = false;
 
-            const incidentTimeline = await IncidentTimelineModel.findOne(query)
-                .lean()
-                .populate('createdById', 'name')
-                .populate('probeId', 'probeName');
+            let incidentTimelineQuery = IncidentTimelineModel.findOne(
+                query
+            ).lean();
 
+            incidentTimelineQuery = handleSelect(select, incidentTimelineQuery);
+            incidentTimelineQuery = handlePopulate(
+                populate,
+                incidentTimelineQuery
+            );
+
+            const incidentTimeline = await incidentTimelineQuery;
             return incidentTimeline;
         } catch (error) {
             ErrorService.log('incidentTimelineService.findOneBy', error);
@@ -159,13 +216,24 @@ module.exports = {
             const skip = 0,
                 limit = 1;
 
+            const populateIncTimeline = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'probeId',
+                    select: 'probeName probeImage',
+                },
+            ];
+            const selectIncTimeline =
+                'incidentId createdById probeId createdByZapier createdAt status incident_state';
             let timelines = await Promise.all(
                 incidents.map(async incident => {
-                    const timeline = await _this.findBy(
-                        { incidentId: incident._id },
+                    const timeline = await _this.findBy({
+                        query: { incidentId: incident._id },
                         skip,
-                        limit
-                    );
+                        limit,
+                        select: selectIncTimeline,
+                        populate: populateIncTimeline,
+                    });
                     return timeline;
                 })
             );
@@ -213,3 +281,5 @@ const IncidentService = require('./incidentService');
 const RealTimeService = require('./realTimeService');
 const ErrorService = require('./errorService');
 const flattenArray = require('../utils/flattenArray');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

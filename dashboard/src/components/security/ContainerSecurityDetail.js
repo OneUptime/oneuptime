@@ -18,16 +18,26 @@ import { getDockerCredentials } from '../../actions/credential';
 import { fetchComponent } from '../../actions/component';
 import BreadCrumbItem from '../breadCrumb/BreadCrumbItem';
 import getParentRoute from '../../utils/getParentRoute';
-import { API_URL } from '../../config';
+import { REALTIME_URL } from '../../config';
 import io from 'socket.io-client';
+import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
+import Fade from 'react-reveal/Fade';
 
-// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(API_URL.replace('/api', ''), {
-    path: '/api/socket.io',
+// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
+// '/realtime' is set as socket io namespace, so remove
+const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+    path: '/realtime/socket.io',
     transports: ['websocket', 'polling'],
 });
 
 class ContainerSecurityDetail extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            tabIndex: 0,
+        };
+    }
+
     componentDidUpdate(prevProps) {
         if (
             prevProps.projectId !== this.props.projectId ||
@@ -77,6 +87,9 @@ class ContainerSecurityDetail extends Component {
             }
         }
     }
+    componentWillMount() {
+        resetIdCounter();
+    }
     componentDidMount() {
         const {
             fetchComponent,
@@ -111,6 +124,14 @@ class ContainerSecurityDetail extends Component {
             });
         }
     }
+
+    tabSelected = index => {
+        const tabSlider = document.getElementById('tab-slider');
+        tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+        this.setState({
+            tabIndex: index,
+        });
+    };
 
     render() {
         const {
@@ -164,71 +185,113 @@ class ContainerSecurityDetail extends Component {
                     pageTitle="Container Detail"
                     containerType="Container Security"
                 />
-                <ShouldRender
-                    if={
-                        isRequesting && gettingSecurityLog && gettingCredentials
-                    }
+                <Tabs
+                    selectedTabClassName={'custom-tab-selected'}
+                    onSelect={tabIndex => this.tabSelected(tabIndex)}
+                    selectedIndex={this.state.tabIndex}
                 >
-                    <div style={{ textAlign: 'center' }}>
-                        <LargeSpinner />
+                    <div className="Flex-flex Flex-direction--columnReverse">
+                        <TabList
+                            id="customTabList"
+                            className={'custom-tab-list'}
+                        >
+                            <Tab
+                                className={'custom-tab custom-tab-2 basic-tab'}
+                            >
+                                Basic
+                            </Tab>
+                            <Tab
+                                className={
+                                    'custom-tab custom-tab-2 advanced-options-tab'
+                                }
+                            >
+                                Advanced Options
+                            </Tab>
+                            <div id="tab-slider" className="custom-tab-2"></div>
+                        </TabList>
                     </div>
-                </ShouldRender>
-                <ShouldRender
-                    if={
-                        containerSecurity.name &&
-                        !gettingSecurityLog &&
-                        !gettingCredentials
-                    }
-                >
-                    <ContainerSecurityView
-                        projectId={projectId}
-                        componentId={componentId}
-                        containerSecurityId={containerSecurityId}
-                        containerSecuritySlug={containerSecuritySlug}
-                        isRequesting={isRequesting}
-                        containerSecurity={containerSecurity}
-                        componentSlug={componentSlug}
-                    />
-                </ShouldRender>
-                <ShouldRender
-                    if={
-                        containerSecurity.name &&
-                        !gettingSecurityLog &&
-                        !gettingCredentials
-                    }
-                >
-                    <SecurityLog
-                        type="Container"
-                        containerSecurityLog={containerSecurityLog}
-                    />
-                </ShouldRender>
-                <ShouldRender
-                    if={
-                        containerSecurity.name &&
-                        !gettingSecurityLog &&
-                        !gettingCredentials
-                    }
-                >
-                    <ContainerSecurityDeleteBox
-                        projectId={projectId}
-                        componentId={componentId}
-                        containerSecurityId={containerSecurityId}
-                        containerSecuritySlug={containerSecuritySlug}
-                        componentSlug={componentSlug}
-                    />
-                </ShouldRender>
-                <ShouldRender
-                    if={
-                        !isRequesting &&
-                        !gettingSecurityLog &&
-                        !gettingCredentials &&
-                        (getContainerError ||
-                            fetchLogError ||
-                            fetchCredentialError)
-                    }
-                >
-                    {getContainerError || fetchLogError || fetchCredentialError}
-                </ShouldRender>
+                    <TabPanel>
+                        <Fade>
+                            <ShouldRender
+                                if={
+                                    isRequesting &&
+                                    gettingSecurityLog &&
+                                    gettingCredentials
+                                }
+                            >
+                                <div style={{ textAlign: 'center' }}>
+                                    <LargeSpinner />
+                                </div>
+                            </ShouldRender>
+                            <ShouldRender
+                                if={
+                                    containerSecurity.name &&
+                                    !gettingSecurityLog &&
+                                    !gettingCredentials
+                                }
+                            >
+                                <ContainerSecurityView
+                                    projectId={projectId}
+                                    componentId={componentId}
+                                    containerSecurityId={containerSecurityId}
+                                    containerSecuritySlug={
+                                        containerSecuritySlug
+                                    }
+                                    isRequesting={isRequesting}
+                                    containerSecurity={containerSecurity}
+                                    componentSlug={componentSlug}
+                                />
+                            </ShouldRender>
+                            <ShouldRender
+                                if={
+                                    containerSecurity.name &&
+                                    !gettingSecurityLog &&
+                                    !gettingCredentials
+                                }
+                            >
+                                <SecurityLog
+                                    type="Container"
+                                    containerSecurityLog={containerSecurityLog}
+                                />
+                            </ShouldRender>
+                            <ShouldRender
+                                if={
+                                    !isRequesting &&
+                                    !gettingSecurityLog &&
+                                    !gettingCredentials &&
+                                    (getContainerError ||
+                                        fetchLogError ||
+                                        fetchCredentialError)
+                                }
+                            >
+                                {getContainerError ||
+                                    fetchLogError ||
+                                    fetchCredentialError}
+                            </ShouldRender>
+                        </Fade>
+                    </TabPanel>
+                    <TabPanel>
+                        <Fade>
+                            <ShouldRender
+                                if={
+                                    containerSecurity.name &&
+                                    !gettingSecurityLog &&
+                                    !gettingCredentials
+                                }
+                            >
+                                <ContainerSecurityDeleteBox
+                                    projectId={projectId}
+                                    componentId={componentId}
+                                    containerSecurityId={containerSecurityId}
+                                    containerSecuritySlug={
+                                        containerSecuritySlug
+                                    }
+                                    componentSlug={componentSlug}
+                                />
+                            </ShouldRender>
+                        </Fade>
+                    </TabPanel>
+                </Tabs>
             </div>
         );
     }

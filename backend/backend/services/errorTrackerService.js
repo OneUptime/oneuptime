@@ -2,21 +2,31 @@ module.exports = {
     create: async function(data) {
         try {
             const _this = this;
-            // try to get the component by the ID
-            const component = await ComponentService.findOneBy({
+            // check if component exist
+            const componentCount = await ComponentService.countBy({
                 _id: data.componentId,
             });
             // send an error if the component doesnt exist
-            if (!component) {
+            if (!componentCount || componentCount === 0) {
                 const error = new Error('Component does not exist.');
                 error.code = 400;
                 ErrorService.log('errorTrackerService.create', error);
                 throw error;
             }
             // try to find in the application log if the name already exist for that component
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
             const existingErrorTracker = await _this.findBy({
-                name: data.name,
-                componentId: data.componentId,
+                query: { name: data.name, componentId: data.componentId },
+                select,
+                populate: [
+                    {
+                        path: 'componentId',
+                        select: 'name slug projectId',
+                        populate: [{ path: 'projectId', select: 'name' }],
+                    },
+                    { path: 'resourceCategory', select: 'name' },
+                ],
             });
             if (existingErrorTracker && existingErrorTracker.length > 0) {
                 const error = new Error(
@@ -26,16 +36,18 @@ module.exports = {
                 ErrorService.log('errorTrackerService.create', error);
                 throw error;
             }
-            const resourceCategory = await ResourceCategoryService.findBy({
-                _id: data.resourceCategory,
-            });
+            const resourceCategoryCount = await ResourceCategoryService.countBy(
+                {
+                    _id: data.resourceCategory,
+                }
+            );
             // prepare error tracker model
             let errorTracker = new ErrorTrackerModel();
             errorTracker.name = data.name;
             errorTracker.key = uuid.v4(); // generate random string here
             errorTracker.componentId = data.componentId;
             errorTracker.createdById = data.createdById;
-            if (resourceCategory) {
+            if (resourceCategoryCount && resourceCategoryCount > 0) {
                 errorTracker.resourceCategory = data.resourceCategory;
             }
             if (data && data.name) {
@@ -43,7 +55,12 @@ module.exports = {
             }
             const savedErrorTracker = await errorTracker.save();
             errorTracker = await _this.findOneBy({
-                _id: savedErrorTracker._id,
+                query: { _id: savedErrorTracker._id },
+                select,
+                populate: [
+                    { path: 'componentId', select: 'name' },
+                    { path: 'resourceCategory', select: 'name' },
+                ],
             });
             return errorTracker;
         } catch (error) {
@@ -51,8 +68,24 @@ module.exports = {
             throw error;
         }
     },
+
+    async countBy(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            const count = await ErrorTrackerModel.countDocuments(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('errorTrackerService.countBy', error);
+            throw error;
+        }
+    },
+
     // find a list of error trackers
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -71,39 +104,34 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const errorTrackers = await ErrorTrackerModel.find(query)
+            let errorTrackersQuery = ErrorTrackerModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate({
-                    path: 'componentId',
-                    select: 'name slug projectId',
-                    populate: {
-                        path: 'projectId',
-                        select: 'name',
-                    },
-                })
-                .populate('resourceCategory', 'name');
-            return errorTrackers;
+                .skip(skip);
+
+            errorTrackersQuery = handleSelect(select, errorTrackersQuery);
+            errorTrackersQuery = handlePopulate(populate, errorTrackersQuery);
+            const result = await errorTrackersQuery;
+            return result;
         } catch (error) {
             ErrorService.log('errorTrackerService.findBy', error);
             throw error;
         }
     },
     // find a particular error tracker
-    async findOneBy(query) {
+    async findOneBy({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const errorTracker = await ErrorTrackerModel.findOne(query)
-                .lean()
-                .populate('componentId', 'name')
-                .populate('resourceCategory', 'name');
-            return errorTracker;
+            let errorTrackersQuery = ErrorTrackerModel.findOne(query).lean();
+            errorTrackersQuery = handleSelect(select, errorTrackersQuery);
+            errorTrackersQuery = handlePopulate(populate, errorTrackersQuery);
+            const result = await errorTrackersQuery;
+            return result;
         } catch (error) {
             ErrorService.log('errorTrackerService.findOneBy', error);
             throw error;
@@ -111,12 +139,12 @@ module.exports = {
     },
     // get all error trackers by component ID
     async getErrorTrackersByComponentId(componentId, limit, skip) {
-        // try to get the component by the ID
-        const component = await ComponentService.findOneBy({
+        // Check if component exists
+        const componentCount = await ComponentService.countBy({
             _id: componentId,
         });
         // send an error if the component doesnt exist
-        if (!component) {
+        if (!componentCount || componentCount === 0) {
             const error = new Error('Component does not exist.');
             error.code = 400;
             ErrorService.log(
@@ -130,12 +158,19 @@ module.exports = {
             if (typeof limit === 'string') limit = parseInt(limit);
             if (typeof skip === 'string') skip = parseInt(skip);
             const _this = this;
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
 
-            const errorTrackers = await _this.findBy(
-                { componentId: componentId },
+            const errorTrackers = await _this.findBy({
+                query: { componentId: componentId },
                 limit,
-                skip
-            );
+                skip,
+                select,
+                populate: [
+                    { path: 'componentId', select: 'name' },
+                    { path: 'resourceCategory', select: 'name' },
+                ],
+            });
             return errorTrackers;
         } catch (error) {
             ErrorService.log(
@@ -165,15 +200,16 @@ module.exports = {
             ).populate('deletedById', 'name');
             if (errorTracker) {
                 const component = ComponentService.findOneBy({
-                    _id: errorTracker.componentId._id,
+                    query: { _id: errorTracker.componentId._id },
+                    select: 'projectId',
                 });
-                await NotificationService.create(
+                NotificationService.create(
                     component.projectId,
                     `An Error Tracker ${errorTracker.name} was deleted from the component ${errorTracker.componentId.name} by ${errorTracker.deletedById.name}`,
                     errorTracker.deletedById._id,
                     'errorTrackeraddremove'
                 );
-                await RealTimeService.sendErrorTrackerDelete(errorTracker);
+                RealTimeService.sendErrorTrackerDelete(errorTracker);
                 return errorTracker;
             } else {
                 return null;
@@ -210,10 +246,17 @@ module.exports = {
                     }
                 );
             }
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
-            errorTracker = await this.findOneBy(query);
+            errorTracker = await this.findOneBy({ query, select, populate });
 
-            await RealTimeService.errorTrackerKeyReset(errorTracker);
+            // run in the background
+            RealTimeService.errorTrackerKeyReset(errorTracker);
 
             return errorTracker;
         } catch (error) {
@@ -231,3 +274,5 @@ const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
 const uuid = require('uuid');
 const getSlug = require('../utils/getSlug');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

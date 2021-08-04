@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import NavItem from './SideNavItem';
-import { groups } from '../../routes';
+import { allRoutes, groups } from '../../routes';
 import { openModal, closeModal } from '../../actions/modal';
 import { closeSideNav } from '../../actions/page';
 import ProjectSwitcher from '../project/ProjectSwitcher';
@@ -16,6 +16,7 @@ import {
 } from '../../actions/project';
 import { API_URL, User } from '../../config';
 import { getSubProjects } from '../../actions/subProject';
+import { Route, Switch, withRouter } from 'react-router-dom';
 
 class SideNav extends Component {
     state = { navLoading: false };
@@ -156,7 +157,7 @@ class SideNav extends Component {
     render() {
         const {
             location,
-            selectedComponent,
+            allIndividualComponents,
             switchToProjectViewerNav,
         } = this.props;
         const switchToComponentDetailNav =
@@ -254,6 +255,10 @@ class SideNav extends Component {
                     .filter(group => !group.visibleForProjectViewer);
             }
         }
+        const { componentSlug } = this.props.match.params;
+        const selectedComponent = allIndividualComponents.find(
+            component => component.slug === componentSlug
+        );
 
         return (
             <ClickOutside onClickOutside={this.props.closeSideNav}>
@@ -374,21 +379,17 @@ class SideNav extends Component {
 
 SideNav.displayName = 'SideNav';
 
-const mapStateToProps = function(state, props) {
-    const { componentSlug } = props.match.params;
+const mapStateToProps = function(state) {
     const allIndividualComponents = state.component.componentList.components.reduce(
         (acc, curr) => acc.concat(curr.components || []),
         []
-    );
-    const selectedComponent = allIndividualComponents.find(
-        component => component.slug === componentSlug
     );
     const settings = state.profileSettings.profileSetting.data;
     const profilePic = settings ? settings.profilePic : '';
     const userName = settings ? settings.name : '';
 
     return {
-        selectedComponent,
+        allIndividualComponents,
         project: state.project,
         sidenavopen: state.page.sidenavopen,
         profilePic,
@@ -423,7 +424,7 @@ SideNav.propTypes = {
     hideForm: PropTypes.func.isRequired,
     closeSideNav: PropTypes.func,
     sidenavopen: PropTypes.bool,
-    selectedComponent: PropTypes.object,
+    allIndividualComponents: PropTypes.array,
     location: PropTypes.object,
     match: PropTypes.object,
     profilePic: PropTypes.oneOfType([
@@ -439,4 +440,30 @@ SideNav.propTypes = {
     getSubProjects: PropTypes.func,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(SideNav);
+// since sideNav is above page routes we have no access to the pages' props.match,
+// we rebuild the routes here to enable access to these properties
+
+const WrappedSideNav = props => {
+    return (
+        <Switch>
+            {allRoutes
+                .filter(route => route.visible)
+                .map((route, index) => {
+                    return (
+                        <Route
+                            exact={route.exact}
+                            path={route.path}
+                            key={index}
+                            render={routeProps => (
+                                <SideNav {...props} {...routeProps} />
+                            )}
+                        />
+                    );
+                })}
+        </Switch>
+    );
+};
+
+export default withRouter(
+    connect(mapStateToProps, mapDispatchToProps)(WrappedSideNav)
+);

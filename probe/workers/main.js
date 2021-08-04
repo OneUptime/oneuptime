@@ -6,11 +6,9 @@
 const getApi = require('../utils/api').getApi;
 const ApiMonitors = require('./apiMonitors');
 const UrlMonitors = require('./urlMonitors');
-const ScriptMonitors = require('./scriptMonitors');
 const IPMonitors = require('./ipMonitors');
 const ServerMonitors = require('./serverMonitors');
 const ErrorService = require('../utils/errorService');
-const ContainerSecurity = require('./containerSecurity');
 const IncomingHttpRequestMonitors = require('./incomingHttpRequestMonitors');
 const KubernetesMonitors = require('./kubernetesMonitors');
 
@@ -19,51 +17,31 @@ module.exports = {
         try {
             let monitors = await getApi('probe/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data
-            await Promise.all(
-                monitors.map(monitor => {
+
+            for (const monitor of monitors) {
+                try {
                     if (monitor.type === 'api') {
-                        return ApiMonitors.ping(monitor);
+                        await ApiMonitors.ping(monitor);
                     } else if (monitor.type === 'url') {
-                        return UrlMonitors.ping(monitor);
+                        await UrlMonitors.ping(monitor);
                     } else if (monitor.type === 'ip') {
-                        return IPMonitors.ping(monitor);
-                    } else if (monitor.type === 'script') {
-                        return ScriptMonitors.run(monitor);
+                        await IPMonitors.ping(monitor);
                     } else if (
                         monitor.type === 'server-monitor' &&
                         monitor.agentlessConfig
                     ) {
-                        return ServerMonitors.run(monitor);
+                        await ServerMonitors.run(monitor);
                     } else if (monitor.type === 'incomingHttpRequest') {
-                        return IncomingHttpRequestMonitors.run(monitor);
+                        await IncomingHttpRequestMonitors.run(monitor);
                     } else if (monitor.type === 'kubernetes') {
-                        return KubernetesMonitors.run(monitor);
+                        await KubernetesMonitors.run(monitor);
                     }
-
-                    return null;
-                })
-            );
+                } catch (e) {
+                    ErrorService.log('Main.runJob', e);
+                }
+            }
         } catch (error) {
             ErrorService.log('getApi', error);
-        }
-    },
-
-    runContainerScan: async function() {
-        try {
-            const securities = await getApi('probe/containerSecurities');
-            if (securities && securities.length > 0) {
-                await Promise.all(
-                    securities.map(security => {
-                        // send a stringified json over the network
-                        // fix issue with iv key on the collection (obj.toObject is not a function)
-                        return ContainerSecurity.scan(JSON.stringify(security));
-                    })
-                );
-            }
-
-            return;
-        } catch (error) {
-            ErrorService.log('runContainerScan.getApi', error);
         }
     },
 };

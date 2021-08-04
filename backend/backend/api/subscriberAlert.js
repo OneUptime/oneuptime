@@ -78,14 +78,29 @@ router.get('/:projectId', async (req, res) => {
         const projectId = req.params.projectId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const subscriberAlerts = await SubscriberAlertService.findBy(
-            { projectId: projectId },
-            skip,
-            limit
-        );
-        const count = await SubscriberAlertService.countBy({
-            projectId: projectId,
-        });
+        const populate = [
+            { path: 'incidentId', select: 'name' },
+            { path: 'projectId', select: 'name' },
+            {
+                path: 'subscriberId',
+                select:
+                    'name contactEmail contactPhone contactWebhook countryCode',
+            },
+        ];
+        const select =
+            'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+        const [subscriberAlerts, count] = await Promise.all([
+            SubscriberAlertService.findBy({
+                query: { projectId: projectId },
+                skip,
+                limit,
+                select,
+                populate,
+            }),
+            SubscriberAlertService.countBy({
+                projectId: projectId,
+            }),
+        ]);
         return sendListResponse(req, res, subscriberAlerts, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -100,8 +115,8 @@ router.get('/:projectId/incident/:incidentId', async (req, res) => {
         const projectId = req.params.projectId;
         const idNumber = req.params.incidentId;
         let incidentId = await IncidentService.findOneBy({
-            projectId,
-            idNumber,
+            query: { projectId, idNumber },
+            select: '_id',
         });
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
@@ -110,15 +125,32 @@ router.get('/:projectId/incident/:incidentId', async (req, res) => {
             count = 0;
         if (incidentId) {
             incidentId = incidentId._id;
-            subscriberAlerts = await SubscriberAlertService.findBy(
-                { incidentId: incidentId, projectId: projectId },
-                skip,
-                limit
-            );
-            count = await SubscriberAlertService.countBy({
-                incidentId: incidentId,
-                projectId: projectId,
-            });
+            const populate = [
+                { path: 'incidentId', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'subscriberId',
+                    select:
+                        'name contactEmail contactPhone contactWebhook countryCode',
+                },
+            ];
+            const select =
+                'incidentId projectId subscriberId alertVia alertStatus eventType error errorMessage totalSubscribers identification';
+            const [alerts, alertCount] = await Promise.all([
+                SubscriberAlertService.findBy({
+                    query: { incidentId: incidentId, projectId: projectId },
+                    skip,
+                    limit,
+                    select,
+                    populate,
+                }),
+                SubscriberAlertService.countBy({
+                    incidentId: incidentId,
+                    projectId: projectId,
+                }),
+            ]);
+            subscriberAlerts = alerts;
+            count = alertCount;
         }
         return sendListResponse(req, res, subscriberAlerts, count);
     } catch (error) {

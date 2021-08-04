@@ -37,34 +37,25 @@ module.exports = {
             throw error;
         }
     },
-    async findOneBy(query) {
+    async findOneBy({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) delete query.deleted;
-            const errorEvent = await ErrorEventModel.findOne(query)
-                .lean()
-                .populate('errorTrackerId', 'name')
-                .populate('issueId', [
-                    '_id',
-                    'name',
-                    'description',
-                    'type',
-                    'ignored',
-                    'resolved',
-                ])
-                .populate('resolvedById', 'name')
-                .populate('ignoredById', 'name');
-            return errorEvent;
+            let errorEventQuery = ErrorEventModel.findOne(query).lean();
+            errorEventQuery = handleSelect(select, errorEventQuery);
+            errorEventQuery = handlePopulate(populate, errorEventQuery);
+            const result = await errorEventQuery;
+            return result;
         } catch (error) {
             ErrorService.log('errorEventService.findOneBy', error);
             throw error;
         }
     },
     // get all error events that matches the specified query
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -83,13 +74,15 @@ module.exports = {
             }
 
             if (!query.deleted) delete query.deleted;
-            const errorEvents = await ErrorEventModel.find(query)
+            let errorEventsQuery = ErrorEventModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('errorTrackerId', 'name');
-            return errorEvents;
+                .skip(skip);
+            errorEventsQuery = handleSelect(select, errorEventsQuery);
+            errorEventsQuery = handlePopulate(populate, errorEventsQuery);
+            const result = await errorEventsQuery;
+            return result;
         } catch (error) {
             ErrorService.log('errorEventService.findBy', error);
             throw error;
@@ -116,11 +109,40 @@ module.exports = {
 
             if (!query.deleted) delete query.deleted;
             // get all unique hashes by error tracker Id
-            const errorTrackerIssues = await IssueService.findBy(
+
+            const populateIssue = [
+                { path: 'errorTrackerId', select: 'name' },
+                { path: 'resolvedById', select: 'name' },
+                { path: 'ignoredById', select: 'name' },
+            ];
+
+            const selectIssue =
+                'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+
+            const populateIssueTimeline = [
+                { path: 'issueId', select: 'name' },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIssueTimeline =
+                'issueId createdById createdAt status deleted';
+
+            const selectIssueMember =
+                'issueId userId createdAt createdById removed removedAt removedById';
+
+            const populateIssueMember = [
+                { path: 'issueId', select: 'name' },
+
+                { path: 'userId', select: 'name email' },
+            ];
+
+            const errorTrackerIssues = await IssueService.findBy({
                 query,
-                0, // set limit to 0 to get ALL issues related by query
-                skip
-            );
+                limit: 0, // set limit to 0 to get ALL issues related by query
+                skip,
+                select: selectIssue,
+                populate: populateIssue,
+            });
 
             const totalErrorEvents = [];
             let index = 0;
@@ -139,29 +161,40 @@ module.exports = {
                         issueId: issue._id,
                     };
                     // run a query to get the first and last error event that has current error tracker id and fingerprint hash
-                    const earliestErrorEvent = await ErrorEventModel.findOne(
-                        innerQuery
-                    ).sort({ createdAt: 1 });
-                    const latestErrorEvent = await ErrorEventModel.findOne(
-                        innerQuery
-                    ).sort({ createdAt: -1 });
+                    const [
+                        earliestErrorEvent,
+                        latestErrorEvent,
+                    ] = await Promise.all([
+                        ErrorEventModel.findOne(innerQuery).sort({
+                            createdAt: 1,
+                        }),
+                        ErrorEventModel.findOne(innerQuery).sort({
+                            createdAt: -1,
+                        }),
+                    ]);
                     // if we have an earliest and latest error event
                     if (earliestErrorEvent && latestErrorEvent) {
-                        // get total number of events for that issue
-                        const totalNumberOfEvents = await this.countBy(
-                            innerQuery
-                        );
+                        const [
+                            totalNumberOfEvents,
+                            members,
+                            timeline,
+                        ] = await Promise.all([
+                            // get total number of events for that issue
+                            this.countBy(innerQuery),
+                            // we get the memebrs attached to this issue
+                            IssueMemberService.findBy({
+                                query: { issueId: issue._id, removed: false },
+                                select: selectIssueMember,
+                                populate: populateIssueMember,
+                            }),
+                            // we get the timeline to attach to this issue
+                            IssueTimelineService.findBy({
+                                issueId: issue._id,
+                                populate: populateIssueTimeline,
+                                select: selectIssueTimeline,
+                            }),
+                        ]);
 
-                        // we get the memebrs attached to this issue
-                        const members = await IssueMemberService.findBy({
-                            issueId: issue._id,
-                            removed: false,
-                        });
-
-                        // we get the timeline to attach to this issue
-                        const timeline = await IssueTimelineService.findBy({
-                            issueId: issue._id,
-                        });
                         // fill in its biodata with the latest error event details
                         const errorEvent = {
                             _id: issue._id,
@@ -232,63 +265,87 @@ module.exports = {
     async findOneWithPrevAndNext(errorEventId, errorTrackerId) {
         try {
             let previous, next;
+            const selectErrorTracker =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populateErrorTracker = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
             let errorEvent = await this.findOneBy({
-                _id: errorEventId,
-                errorTrackerId: errorTrackerId,
+                query: { _id: errorEventId, errorTrackerId: errorTrackerId },
+                select: selectErrorTracker,
+                populate: populateErrorTracker,
             });
+
+            const populateIssueTimeline = [
+                { path: 'issueId', select: 'name' },
+                { path: 'createdById', select: 'name' },
+            ];
+
+            const selectIssueTimeline =
+                'issueId createdById createdAt status deleted';
 
             // add issue timeline to this error event
             const issueTimeline = await IssueTimelineService.findBy({
-                issueId: errorEvent.issueId._id,
+                query: { issueId: errorEvent.issueId._id },
+                select: selectIssueTimeline,
+                populate: populateIssueTimeline,
             });
 
             errorEvent = JSON.parse(JSON.stringify(errorEvent));
             errorEvent.issueId.timeline = issueTimeline;
 
-            const previousErrorEvent = await ErrorEventModel.find({
-                _id: { $lt: errorEventId },
-                errorTrackerId: errorEvent.errorTrackerId,
-                issueId: errorEvent.issueId,
-            })
-                .sort({ _id: -1 })
-                .limit(1);
+            const [
+                previousErrorEvent,
+                oldestErrorEvent,
+                nextErrorEvent,
+                latestErrorEvent,
+            ] = await Promise.all([
+                ErrorEventModel.find({
+                    _id: { $lt: errorEventId },
+                    errorTrackerId: errorEvent.errorTrackerId,
+                    issueId: errorEvent.issueId,
+                })
+                    .sort({ _id: -1 })
+                    .limit(1),
+                ErrorEventModel.find({
+                    _id: { $lt: errorEventId },
+                    errorTrackerId: errorEvent.errorTrackerId,
+                    issueId: errorEvent.issueId,
+                })
+                    .sort({ _id: 1 })
+                    .limit(1),
+                ErrorEventModel.find({
+                    _id: { $gt: errorEventId },
+                    errorTrackerId: errorEvent.errorTrackerId,
+                    issueId: errorEvent.issueId,
+                })
+                    .sort({ _id: 1 })
+                    .limit(1),
+                ErrorEventModel.find({
+                    _id: { $gt: errorEventId },
+                    errorTrackerId: errorEvent.errorTrackerId,
+                    issueId: errorEvent.issueId,
+                })
+                    .sort({ _id: -1 })
+                    .limit(1),
+            ]);
+
             if (previousErrorEvent.length > 0) {
                 previous = {
                     _id: previousErrorEvent[0]._id,
                     createdAt: previousErrorEvent[0].createdAt,
                 };
             }
-            const oldestErrorEvent = await ErrorEventModel.find({
-                _id: { $lt: errorEventId },
-                errorTrackerId: errorEvent.errorTrackerId,
-                issueId: errorEvent.issueId,
-            })
-                .sort({ _id: 1 })
-                .limit(1);
             if (oldestErrorEvent.length > 0) {
                 previous.oldest = oldestErrorEvent[0]._id;
             }
-
-            const nextErrorEvent = await ErrorEventModel.find({
-                _id: { $gt: errorEventId },
-                errorTrackerId: errorEvent.errorTrackerId,
-                issueId: errorEvent.issueId,
-            })
-                .sort({ _id: 1 })
-                .limit(1);
             if (nextErrorEvent.length > 0) {
                 next = {
                     _id: nextErrorEvent[0]._id,
                     createdAt: nextErrorEvent[0].createdAt,
                 };
             }
-            const latestErrorEvent = await ErrorEventModel.find({
-                _id: { $gt: errorEventId },
-                errorTrackerId: errorEvent.errorTrackerId,
-                issueId: errorEvent.issueId,
-            })
-                .sort({ _id: -1 })
-                .limit(1);
             if (latestErrorEvent.length > 0) {
                 next.latest = latestErrorEvent[0]._id;
             }
@@ -337,8 +394,14 @@ module.exports = {
                     new: true,
                 }
             );
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
-            errorEvent = await this.findOneBy(query);
+            errorEvent = await this.findOneBy({ query, select, populate });
 
             return errorEvent;
         } catch (error) {
@@ -371,3 +434,5 @@ const IssueService = require('./issueService');
 const IssueMemberService = require('./issueMemberService');
 const IssueTimelineService = require('./issueTimelineService');
 const moment = require('moment');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

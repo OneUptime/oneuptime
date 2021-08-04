@@ -1,11 +1,13 @@
-import Login from './Login';
-import SsoLogin from './SsoLogin';
-import Register from './Register';
-import ResetPassword from './ResetPassword';
-import ChangePassword from './ChangePassword';
-import ResendToken from './ResendToken';
-import VerifyAuthToken from './VerifyAuthToken';
-import VerifyBackupCode from './VerifyBackupCode';
+import { lazy } from 'react';
+
+const Login = lazy(() => import('./Login'));
+const SsoLogin = lazy(() => import('./SsoLogin'));
+const Register = lazy(() => import('./Register'));
+const ResetPassword = lazy(() => import('./ResetPassword'));
+const ChangePassword = lazy(() => import('./ChangePassword'));
+const ResendToken = lazy(() => import('./ResendToken'));
+const VerifyAuthToken = lazy(() => import('./VerifyAuthToken'));
+const VerifyBackupCode = lazy(() => import('./VerifyBackupCode'));
 
 export default {
     ResetPassword,

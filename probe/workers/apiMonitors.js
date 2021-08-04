@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fetch = require('node-fetch');
@@ -17,11 +16,11 @@ module.exports = {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {
-                    const headers = await ApiService.headers(
+                    const headers = ApiService.headers(
                         monitor.headers,
                         monitor.bodyType
                     );
-                    const body = await ApiService.body(
+                    const body = ApiService.body(
                         monitor && monitor.text && monitor.text.length
                             ? monitor.text
                             : monitor.formData,
@@ -158,7 +157,7 @@ const pingfetch = async (url, method, body, headers) => {
     }
 
     // this hard coded value will be removed soon
-    res = res / 100;
+    // res = res / 250;
 
     return {
         res,

@@ -1,5 +1,7 @@
 const ApplicationSecurityLogModel = require('../models/applicationSecurityLog');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
     create: async function({ securityId, componentId, data }) {
@@ -25,7 +27,10 @@ module.exports = {
                 throw error;
             }
 
-            let securityLog = await this.findOneBy({ securityId });
+            let securityLog = await this.findOneBy({
+                query: { securityId },
+                select: '_id',
+            });
 
             if (!securityLog) {
                 securityLog = await ApplicationSecurityLogModel.create({
@@ -46,24 +51,27 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, populate, select }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const securityLog = await ApplicationSecurityLogModel.findOne(query)
-                .lean()
-                .populate('securityId')
-                .populate('componentId');
+            let securityLogQuery = ApplicationSecurityLogModel.findOne(
+                query
+            ).lean();
 
+            securityLogQuery = handleSelect(select, securityLogQuery);
+            securityLogQuery = handlePopulate(populate, securityLogQuery);
+
+            const securityLog = await securityLogQuery;
             return securityLog;
         } catch (error) {
-            ErrorService.log('applicationSecurityService.findOneBy', error);
+            ErrorService.log('applicationSecurityLogService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -77,17 +85,19 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const securityLogs = await ApplicationSecurityLogModel.find(query)
+            let securityLogsQuery = ApplicationSecurityLogModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('componentId')
-                .populate('securityId');
+                .skip(skip);
 
+            securityLogsQuery = handleSelect(select, securityLogsQuery);
+            securityLogsQuery = handlePopulate(populate, securityLogsQuery);
+
+            const securityLogs = await securityLogsQuery;
             return securityLogs;
         } catch (error) {
-            ErrorService.log('applicationSecurityService.findBy', error);
+            ErrorService.log('applicationSecurityLogService.findBy', error);
             throw error;
         }
     },
@@ -97,7 +107,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const applicationSecurityLog = ApplicationSecurityLogModel.findOneAndUpdate(
+            const applicationSecurityLog = await ApplicationSecurityLogModel.findOneAndUpdate(
                 query,
                 {
                     $set: data,
@@ -124,7 +134,7 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let securityLog = this.findOneBy(query);
+            let securityLog = this.findOneBy({ query, select: '_id' });
 
             if (!securityLog) {
                 const error = new Error(

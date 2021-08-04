@@ -18,8 +18,19 @@ module.exports = {
             issue.errorTrackerId = data.errorTrackerId;
 
             const savedIssue = await issue.save();
+            const populateIssue = [
+                { path: 'errorTrackerId', select: 'name' },
+                { path: 'resolvedById', select: 'name' },
+                { path: 'ignoredById', select: 'name' },
+            ];
+
+            const selectIssue =
+                'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+
             issue = await _this.findOneBy({
-                _id: savedIssue._id,
+                query: { _id: savedIssue._id },
+                select: selectIssue,
+                populate: populateIssue,
             });
             return issue;
         } catch (error) {
@@ -28,7 +39,7 @@ module.exports = {
         }
     },
     // find a list of Issues
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -47,32 +58,37 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const issues = await IssueModel.find(query)
+            let issuesQuery = IssueModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('errorTrackerId', 'name')
-                .populate('resolvedById', 'name')
-                .populate('ignoredById', 'name');
+                .skip(skip);
+
+            issuesQuery = handleSelect(select, issuesQuery);
+            issuesQuery = handlePopulate(populate, issuesQuery);
+
+            const issues = await issuesQuery;
+
             return issues;
         } catch (error) {
             ErrorService.log('issueService.findBy', error);
             throw error;
         }
     },
-    async findOneBy(query) {
+
+    async findOneBy({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             if (!query.deleted) query.deleted = false;
-            const issue = await IssueModel.findOne(query)
-                .lean()
-                .populate('errorTrackerId', 'name')
-                .populate('resolvedById', 'name')
-                .populate('ignoredById', 'name');
+            let issueQuery = IssueModel.findOne(query).lean();
+
+            issueQuery = handleSelect(select, issueQuery);
+            issueQuery = handlePopulate(populate, issueQuery);
+
+            const issue = await issueQuery;
             return issue;
         } catch (error) {
             ErrorService.log('issueService.findOneBy', error);
@@ -122,7 +138,20 @@ module.exports = {
                 );
             }
 
-            issue = await this.findOneBy(query);
+            const populateIssue = [
+                { path: 'errorTrackerId', select: 'name' },
+                { path: 'resolvedById', select: 'name' },
+                { path: 'ignoredById', select: 'name' },
+            ];
+
+            const selectIssue =
+                'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+
+            issue = await this.findOneBy({
+                query,
+                select: selectIssue,
+                populate: populateIssue,
+            });
 
             return issue;
         } catch (error) {
@@ -150,21 +179,39 @@ module.exports = {
             ).populate('deletedById', 'name');
             if (issue) {
                 const component = await ComponentService.findOneBy({
-                    _id: componentId,
+                    query: { _id: componentId },
+                    select: 'projectId',
                 });
-                await NotificationService.create(
+                NotificationService.create(
                     component.projectId,
                     `An Issue under Error Tracker ${issue.errorTrackerId.name} was deleted under the component ${component.name} by ${issue.deletedById.name}`,
                     issue.deletedById._id,
                     'errorTrackerIssueaddremove'
                 );
-                await RealTimeService.sendErrorTrackerIssueDelete(issue);
+
+                // run in the background
+                RealTimeService.sendErrorTrackerIssueDelete(issue);
                 return issue;
             } else {
                 return null;
             }
         } catch (error) {
             ErrorService.log('issueService.deleteBy', error);
+            throw error;
+        }
+    },
+
+    countBy: async function(query) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            const count = await IssueModel.countDocuments(query);
+            return count;
+        } catch (error) {
+            ErrorService.log('issueService.countBy', error);
             throw error;
         }
     },
@@ -176,3 +223,5 @@ const sha256 = require('crypto-js/sha256');
 const ComponentService = require('./componentService');
 const RealTimeService = require('./realTimeService');
 const NotificationService = require('./notificationService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

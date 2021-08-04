@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const { join } = require('path');
 const { performance } = require('perf_hooks');
 

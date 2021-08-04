@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const express = require('express');
 const path = require('path');
 const app = express();
@@ -11,7 +10,34 @@ const fetch = require('node-fetch');
 const { spawn } = require('child_process');
 const axios = require('axios');
 
+// mongodb
+const MongoClient = require('mongodb').MongoClient;
+const mongoUrl =
+    process.env['MONGO_URL'] || 'mongodb://localhost:27017/fyipedb';
+
 const { NODE_ENV } = process.env;
+
+function getMongoClient() {
+    return new MongoClient(mongoUrl, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+}
+
+// setup mongodb connection
+const client = getMongoClient();
+(async function() {
+    try {
+        // eslint-disable-next-line no-console
+        console.log('connecting to db');
+        await client.connect();
+        // eslint-disable-next-line no-console
+        console.log('connected to db');
+    } catch (error) {
+        // eslint-disable-next-line no-console
+        console.log('connection error: ', error);
+    }
+})();
 
 if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /statuspage/.env
@@ -83,6 +109,44 @@ app.use('/.well-known/acme-challenge/:token', async function(req, res) {
     res.send(response.data);
 });
 
+// fetch details about a domain from the db
+async function handleCustomDomain(client, collection, domain) {
+    const statusPage = await client
+        .db('fyipedb')
+        .collection(collection)
+        .findOne({
+            domains: { $elemMatch: { domain } },
+            deleted: false,
+        });
+
+    let domainObj = {};
+    statusPage &&
+        statusPage.domains &&
+        statusPage.domains.forEach(eachDomain => {
+            if (eachDomain.domain === domain) {
+                domainObj = eachDomain;
+            }
+        });
+
+    return {
+        cert: domainObj.cert,
+        privateKey: domainObj.privateKey,
+        autoProvisioning: domainObj.autoProvisioning,
+        enableHttps: domainObj.enableHttps,
+        domain: domainObj.domain,
+    };
+}
+
+// fetch certificate for a particular domain
+async function handleCertificate(client, collection, domain) {
+    const certificate = await client
+        .db('fyipedb')
+        .collection(collection)
+        .findOne({ id: domain });
+
+    return certificate;
+}
+
 app.use('/', async function(req, res, next) {
     const host = req.hostname;
     if (
@@ -95,27 +159,30 @@ app.use('/', async function(req, res, next) {
     }
 
     try {
-        const response = await fetch(
-            `${apiHost}/statusPage/tlsCredential?domain=${host}`
-        ).then(res => res.json());
+        const response = await handleCustomDomain(client, 'statuspages', host);
 
         const { enableHttps } = response;
         if (enableHttps) {
             if (!req.secure) {
-                res.writeHead(301, { Location: `https://${host}${req.url}` });
+                res.writeHead(301, {
+                    Location: `https://${host}${req.url}`,
+                });
                 return res.end();
             }
-            next();
+            return next();
         } else {
             if (req.secure) {
-                res.writeHead(301, { Location: `http://${host}${req.url}` });
+                res.writeHead(301, {
+                    Location: `http://${host}${req.url}`,
+                });
                 return res.end();
             }
-            next();
+            return next();
         }
     } catch (error) {
+        // eslint-disable-next-line no-console
         console.log('Error with fetch', error);
-        next();
+        return next();
     }
 });
 
@@ -187,6 +254,7 @@ function createDir(dirPath) {
 (async function() {
     // create http server
     http.createServer(app).listen(3006, () =>
+        // eslint-disable-next-line no-console
         console.log('Server running on port 3006')
     );
 
@@ -227,9 +295,11 @@ function createDir(dirPath) {
                 path.resolve(process.cwd(), 'src', 'credentials', 'private.key')
             ),
             SNICallback: async function(domain, cb) {
-                const res = await fetch(
-                    `${apiHost}/statusPage/tlsCredential?domain=${domain}`
-                ).then(res => res.json());
+                const res = await handleCustomDomain(
+                    client,
+                    'statuspages',
+                    domain
+                );
 
                 let certPath, privateKeyPath;
                 if (res) {
@@ -246,10 +316,12 @@ function createDir(dirPath) {
                     // cert and private key is a string
                     // store it to a file on disk
                     if (enableHttps && autoProvisioning) {
-                        const url = `${apiHost}/certificate/store/cert/${domain}`;
-                        const response = await axios.get(url);
-                        const certificate = response.data;
-                        if (response && certificate) {
+                        const certificate = await handleCertificate(
+                            client,
+                            'certificates',
+                            domain
+                        );
+                        if (certificate) {
                             certPath = path.resolve(
                                 process.cwd(),
                                 'src',
@@ -337,11 +409,14 @@ function createDir(dirPath) {
             },
         };
 
-        https
-            .createServer(options, app)
-            .listen(3007, () => console.log('Server running on port 3007'));
+        https.createServer(options, app).listen(3007, () => {
+            // eslint-disable-next-line no-console
+            console.log('Server running on port 3007');
+        });
     } catch (e) {
+        // eslint-disable-next-line no-console
         console.log('Unable to create HTTPS Server');
+        // eslint-disable-next-line no-console
         console.log(e);
     }
 })();

@@ -13,8 +13,17 @@ mongoose.set('useUnifiedTopology', true);
 mongoose.set('useFindAndModify', false);
 mongoose.set('useCreateIndex', true);
 
+let options = {};
+
+if (process.env.IS_MONGO_REPLICA_SET) {
+    options = {
+        readPreference: 'secondaryPreferred',
+        keepAlive: 1,
+    };
+}
+
 mongoose
-    .connect(mongoUrl)
+    .connect(mongoUrl, options)
     .then(() => {
         // eslint-disable-next-line
         return console.log('Mongo connected');

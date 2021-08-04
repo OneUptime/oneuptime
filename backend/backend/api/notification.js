@@ -23,14 +23,36 @@ router.get('/:projectId', getUser, isAuthorized, getSubProjects, async function(
         const subProjectIds = req.user.subProjects
             ? req.user.subProjects.map(project => project._id)
             : null;
-        const notifications = await NotificationService.findBy(
-            { projectId: { $in: subProjectIds } },
-            req.query.skip || 0,
-            req.query.limit || 20
-        );
-        const count = await NotificationService.countBy({
-            projectId: { $in: subProjectIds },
-        });
+
+        const populateNotification = [
+            { path: 'projectId', select: 'name' },
+            {
+                path: 'meta.incidentId',
+                model: 'Incident',
+                select: '_id idNumber',
+            },
+            {
+                path: 'meta.componentId',
+                model: 'Component',
+                select: '_id slug',
+            },
+        ];
+
+        const selectNotification =
+            'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedById';
+
+        const [notifications, count] = await Promise.all([
+            NotificationService.findBy({
+                query: { projectId: { $in: subProjectIds } },
+                skip: req.query.skip || 0,
+                limit: req.query.limit || 20,
+                populate: populateNotification,
+                select: selectNotification,
+            }),
+            NotificationService.countBy({
+                projectId: { $in: subProjectIds },
+            }),
+        ]);
         return sendListResponse(req, res, notifications, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);

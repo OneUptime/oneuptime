@@ -170,7 +170,7 @@ class ApplicationSecurityForm extends Component {
                                                             type="text"
                                                             name="gitRepositoryUrl"
                                                             id="gitRepositoryUrl"
-                                                            placeholder="https://gitlab.com/fyipe/app"
+                                                            placeholder="https://github.com/bitcoin/bitcoin"
                                                             disabled={
                                                                 isRequesting
                                                             }

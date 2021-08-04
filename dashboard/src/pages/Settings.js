@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import ProjectSettings from '../components/settings/ProjectSettings';
 import SubProjects from '../components/settings/SubProjects';
 import RenderIfMember from '../components/basic/RenderIfMember';
@@ -23,32 +22,30 @@ class Settings extends Component {
         } = this.props;
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem route={pathname} name="Project Settings" />
-                    <div className="Margin-vertical--12">
-                        <div>
-                            <div id="settingsPage">
-                                <div className="db-BackboneViewContainer">
-                                    <div className="react-settings-view react-view">
-                                        <span>
-                                            <div>
-                                                <ProjectSettings />
+            <Fade>
+                <BreadCrumbItem route={pathname} name="Project Settings" />
+                <div className="Margin-vertical--12">
+                    <div>
+                        <div id="settingsPage">
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <span>
+                                        <div>
+                                            <ProjectSettings />
 
-                                                <SubProjects />
+                                            <SubProjects />
 
-                                                <RenderIfMember>
-                                                    <ExitProject />
-                                                </RenderIfMember>
-                                            </div>
-                                        </span>
-                                    </div>
+                                            <RenderIfMember>
+                                                <ExitProject />
+                                            </RenderIfMember>
+                                        </div>
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

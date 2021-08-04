@@ -114,18 +114,20 @@ router.delete(
         try {
             const { groupId, projectId } = req.params;
             const userId = req.user.id;
-            const deleteGroup = await GroupService.deleteBy(
-                {
-                    _id: groupId,
-                },
-                userId
-            );
 
-            await EscalationService.deleteEscalationMember(
-                projectId,
-                groupId,
-                userId
-            );
+            const [deleteGroup] = await Promise.all([
+                GroupService.deleteBy(
+                    {
+                        _id: groupId,
+                    },
+                    userId
+                ),
+                EscalationService.deleteEscalationMember(
+                    projectId,
+                    groupId,
+                    userId
+                ),
+            ]);
 
             return sendItemResponse(req, res, deleteGroup);
         } catch (error) {

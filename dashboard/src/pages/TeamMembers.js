@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import {
     subProjectTeamLoading,
     subProjectTeamLoadingRequest,
@@ -271,54 +270,49 @@ class TeamApp extends Component {
         const { inviteModalId } = this.state;
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem route={pathname} name="Team Members" />
-                    <div
-                        onKeyDown={this.handleKeyBoard}
-                        className="Margin-vertical--12"
-                    >
-                        <div>
-                            <div id="teamMemberPage">
-                                <div className="db-BackboneViewContainer">
-                                    <div
-                                        className="customers-list-view react-view popover-container"
-                                        style={{
-                                            position: 'relative',
-                                            overflow: 'visible',
-                                        }}
-                                    >
-                                        {subProjectTeamLoading.requesting ? (
-                                            <LoadingState />
-                                        ) : (
-                                            <LoadedTeam
-                                                inviteModalId={inviteModalId}
-                                                rowData={teamMembers}
-                                                header={this.getTableHeaders()}
-                                                {...this.props}
-                                                pages={pages}
-                                                paginate={this.props.paginate}
-                                                subProjects={
-                                                    this.props.subProjects
-                                                }
-                                                currentProjectId={
-                                                    this.props.currentProject
-                                                        ? this.props
-                                                              .currentProject
-                                                              ._id
-                                                        : null
-                                                }
-                                                parent={pathname}
-                                                modalList={this.props.modalList}
-                                            />
-                                        )}
-                                    </div>
+            <Fade>
+                <BreadCrumbItem route={pathname} name="Team Members" />
+                <div
+                    onKeyDown={this.handleKeyBoard}
+                    className="Margin-vertical--12"
+                >
+                    <div>
+                        <div id="teamMemberPage">
+                            <div className="db-BackboneViewContainer">
+                                <div
+                                    className="customers-list-view react-view popover-container"
+                                    style={{
+                                        position: 'relative',
+                                        overflow: 'visible',
+                                    }}
+                                >
+                                    {subProjectTeamLoading.requesting ? (
+                                        <LoadingState />
+                                    ) : (
+                                        <LoadedTeam
+                                            inviteModalId={inviteModalId}
+                                            rowData={teamMembers}
+                                            header={this.getTableHeaders()}
+                                            {...this.props}
+                                            pages={pages}
+                                            paginate={this.props.paginate}
+                                            subProjects={this.props.subProjects}
+                                            currentProjectId={
+                                                this.props.currentProject
+                                                    ? this.props.currentProject
+                                                          ._id
+                                                    : null
+                                            }
+                                            parent={pathname}
+                                            modalList={this.props.modalList}
+                                        />
+                                    )}
                                 </div>
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

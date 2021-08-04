@@ -81,12 +81,14 @@ import {
     CALCULATE_TIME_REQUEST,
     CALCULATE_TIME_SUCCESS,
     CALCULATE_TIME_FAILURE,
+    FETCH_ALL_RESOURCES_SUCCESS,
 } from '../constants/status';
 import moment from 'moment';
 
 const INITIAL_STATE = {
     error: null,
     statusPage: {},
+    monitorStatuses: {},
     requesting: false,
     notes: {
         error: null,
@@ -224,6 +226,8 @@ const INITIAL_STATE = {
 };
 
 export default (state = INITIAL_STATE, action) => {
+    let monitorTimeRequest;
+    let monitorTimeSuccess;
     switch (action.type) {
         case FETCH_ANNOUNCEMEMTLOGS_REQUEST:
             return Object.assign({}, state, {
@@ -737,7 +741,7 @@ export default (state = INITIAL_STATE, action) => {
                 action.payload.monitors.map(monitor => {
                     if (
                         String(monitor.monitorId._id) ===
-                        String(monitorData.monitor)
+                        String(monitorData.monitor._id)
                     ) {
                         monitorInStatusPage = true;
                     }
@@ -1070,6 +1074,10 @@ export default (state = INITIAL_STATE, action) => {
         case FETCH_MONITOR_STATUSES_REQUEST:
             return Object.assign({}, state, {
                 requestingstatuses: true,
+                monitorStatuses: {
+                    ...state.monitorStatuses,
+                    [action.payload]: null,
+                },
             });
 
         case FETCH_MONITOR_STATUSES_SUCCESS:
@@ -1078,13 +1086,20 @@ export default (state = INITIAL_STATE, action) => {
                     ...state.statusPage,
 
                     monitorsData: state.statusPage.monitorsData.map(monitor => {
-                        if (monitor._id === action.payload.monitorId) {
+                        if (
+                            String(monitor._id) ===
+                            String(action.payload.monitorId)
+                        ) {
                             monitor.statuses = action.payload.statuses.data;
                         }
                         return monitor;
                     }),
                 },
                 requestingstatuses: false,
+                monitorStatuses: {
+                    ...state.monitorStatuses,
+                    [action.payload.monitorId]: action.payload.statuses.data,
+                },
             });
 
         case FETCH_MONITOR_STATUSES_FAILURE:
@@ -1215,7 +1230,99 @@ export default (state = INITIAL_STATE, action) => {
                 },
                 requestingstatuses: false,
             });
+        case FETCH_ALL_RESOURCES_SUCCESS:
+            monitorTimeRequest = {};
+            monitorTimeSuccess = {};
 
+            Object.keys(action.payload.time).map(id => {
+                monitorTimeRequest[id] = false;
+                monitorTimeSuccess[id] = true;
+                return id;
+            });
+            return Object.assign({}, state, {
+                statusPage: action.payload.statusPages,
+                announcements: {
+                    ...state.announcements,
+                    list: action.payload.announcement,
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                requestingstatuses: false,
+                requesting: false,
+                monitorStatuses: action.payload.monitorStatus,
+                logs: action.payload.monitorLogs.map(log => ({
+                    monitorId: log.monitorId,
+                    logs: log.logs,
+                    count: log.logs.count,
+                })),
+                lastIncidentTimelines: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    timelines: action.payload.timelines,
+                },
+                notes: {
+                    error: null,
+                    notes:
+                        action.payload && action.payload.statusPageNote.result
+                            ? action.payload.statusPageNote.result
+                            : [],
+                    requesting: false,
+                    skip: 0,
+                    count:
+                        action.payload.statusPageNote &&
+                        action.payload.statusPageNote.count
+                            ? action.payload.statusPageNote.count
+                            : 0,
+                },
+                announcementLogs: {
+                    ...state.announcementLogs,
+                    logsList: action.payload.announcementLogs,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                ongoing: {
+                    error: null,
+                    ongoing:
+                        action.payload.ongoingEvents &&
+                        action.payload.ongoingEvents.events,
+                    requesting: false,
+                },
+                moreFutureEvents: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+                futureEvents: {
+                    ...state.futureEvents,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    events: action.payload.futureEvents.events || [],
+                    skip: 0,
+                    count: action.payload.futureEvents.count,
+                },
+                pastEvents: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    events: action.payload.pastEvents.events || [],
+                    count: action.payload.pastEvents.count,
+                    skip: action.payload.skip || 0,
+                },
+                individualEvents: {
+                    // reset individualEvents state
+                    ...INITIAL_STATE.individualEvents,
+                },
+                monitorInfo: {
+                    requesting: monitorTimeRequest,
+                    success: monitorTimeSuccess,
+                    error: null,
+                    info: action.payload.time,
+                },
+            });
         case FETCH_MONITOR_LOGS_REQUEST:
             return Object.assign({}, state, {
                 logs: state.logs.some(log => log.monitorId === action.payload)

@@ -47,7 +47,10 @@ router.post('/signup', async function(req, res) {
             //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
             delete data.role;
         } else {
-            const users = await UserService.findBy({});
+            const users = await UserService.findBy({
+                query: {},
+                select: '_id',
+            });
 
             if (!users || users.length === 0) {
                 data.role = 'master-admin';
@@ -125,18 +128,26 @@ router.post('/signup', async function(req, res) {
                 message: 'Name is not in string format.',
             });
         }
-        let user = await UserService.findOneBy({ email: data.email });
+        const [userData, token] = await Promise.all([
+            UserService.findOneBy({
+                query: { email: data.email },
+                select: '_id password',
+            }),
+            VerificationTokenModel.findOne({
+                token: req.query.token,
+            }),
+        ]);
+        let user = userData;
         let verified = true;
-
-        const token = await VerificationTokenModel.findOne({
-            token: req.query.token,
-        });
         if (token) {
             user = await UserModel.findOne({
                 _id: token.userId,
             });
             if (!user) {
-                user = await UserService.findOneBy({ email: data.email });
+                user = await UserService.findOneBy({
+                    query: { email: data.email },
+                    select: '_id password',
+                });
                 verified = false;
             }
         } else {
@@ -247,8 +258,13 @@ router.post('/signup', async function(req, res) {
                 verificationToken: user.verificationToken || null,
             };
             winston.info('A User just signed up');
+            const populate = [{ path: 'parentProjectId', select: 'name' }];
+            const select =
+                '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
             const project = await ProjectService.findOneBy({
-                'users.userId': user._id,
+                query: { 'users.userId': user._id },
+                select,
+                populate,
             });
             return sendItemResponse(
                 req,
@@ -263,7 +279,10 @@ router.post('/signup', async function(req, res) {
 
 router.get('/masterAdminExists', async function(req, res) {
     try {
-        const masterAdmin = await UserService.findBy({ role: 'master-admin' });
+        const masterAdmin = await UserService.findBy({
+            query: { role: 'master-admin' },
+            select: '_id',
+        });
 
         if (masterAdmin && masterAdmin.length > 0) {
             return sendItemResponse(req, res, { result: true });
@@ -302,7 +321,12 @@ router.get('/sso/login', async function(req, res) {
     const domain = matchedTokens[1];
 
     try {
-        const sso = await SsoService.findOneBy({ domain });
+        const selectSso = '_id saml-enabled remoteLoginUrl entityId';
+
+        const sso = await SsoService.findOneBy({
+            query: { domain },
+            select: selectSso,
+        });
         if (!sso) {
             return sendErrorResponse(req, res, {
                 code: 404,
@@ -357,7 +381,11 @@ router.post('/sso/callback', async function(req, res) {
     }
 
     const domain = matchedTokens[1];
-    const sso = await SsoService.findOneBy({ domain });
+
+    const sso = await SsoService.findOneBy({
+        query: { domain },
+        select: '_id samlSsoUrl entityId',
+    });
     if (!sso) {
         return sendErrorResponse(req, res, {
             code: 404,
@@ -370,7 +398,7 @@ router.post('/sso/callback', async function(req, res) {
     });
 
     const idp = new saml2.IdentityProvider({
-        sso_login_url: sso.amlSsoUrl,
+        sso_login_url: sso.samlSsoUrl,
     });
 
     sp.post_assert(idp, options, async function(err, saml_response) {
@@ -395,7 +423,11 @@ router.post('/sso/callback', async function(req, res) {
         }
 
         const domain = matchedTokens[1];
-        const sso = await SsoService.findOneBy({ domain });
+
+        const sso = await SsoService.findOneBy({
+            query: { domain },
+            select: '_id domain saml-enabled',
+        });
 
         if (!sso)
             return sendErrorResponse(req, res, {
@@ -409,7 +441,10 @@ router.post('/sso/callback', async function(req, res) {
                 message: 'SSO is disabled for the domain.',
             });
 
-        let user = await UserService.findOneBy({ email });
+        let user = await UserService.findOneBy({
+            query: { email },
+            select: '_id name email stripeCustomerId jwtRefreshToken role',
+        });
 
         if (!user) {
             // User is not create yet
@@ -568,7 +603,8 @@ router.post('/totp/verifyToken', async function(req, res) {
         let userId = data.userId;
         if (data.email && !data.userId) {
             const foundUser = await UserService.findOneBy({
-                email: data.email,
+                query: { email: data.email },
+                select: '_id',
             });
             userId = foundUser._id;
         }
@@ -631,7 +667,10 @@ router.post('/verify/backupCode', async function(req, res) {
         const data = req.body;
         // Call the UserService
         let user;
-        user = await UserService.findOneBy({ email: data.email });
+        user = await UserService.findOneBy({
+            query: { email: data.email },
+            select: 'backupCodes',
+        });
         if (!user) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -709,7 +748,10 @@ router.post('/verify/backupCode', async function(req, res) {
 // Return: return the new list of backup codes.
 router.post('/generate/backupCode', getUser, async function(req, res) {
     const userId = req.user.id || null;
-    const user = await UserService.findOneBy({ _id: userId });
+    const user = await UserService.findOneBy({
+        query: { _id: userId },
+        select: 'twoFactorAuthEnabled twoFactorSecretCode backupCodes',
+    });
     if (!user) {
         return sendErrorResponse(req, res, {
             code: 400,
@@ -758,7 +800,10 @@ router.post('/generate/backupCode', getUser, async function(req, res) {
 router.post('/totp/token/:userId', async function(req, res) {
     try {
         const userId = req.params.userId;
-        const user = await UserService.findOneBy({ _id: userId });
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: '_id otpauth_url',
+        });
         if (!userId || !user._id) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -887,7 +932,10 @@ router.post('/isInvited', async function(req, res) {
             });
         }
         // Call the UserService
-        const user = await UserService.findOneBy({ email: data.email });
+        const user = await UserService.findOneBy({
+            query: { email: data.email },
+            select: '_id',
+        });
         if (user) {
             return sendItemResponse(req, res, true);
         } else {
@@ -933,7 +981,10 @@ router.put('/profile', getUser, async function(req, res) {
             ) {
                 data.profilePic = req.files.profilePic[0].filename;
             }
-            const userData = await UserService.findOneBy({ _id: userId });
+            const userData = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'email tempEmail alertPhoneNumber isVerified name _id',
+            });
             if (data.email !== userData.email) {
                 if (data.email === userData.tempEmail) delete data.email;
                 else {
@@ -977,7 +1028,10 @@ router.put('/:userId/2fa', isUserMasterAdmin, async function(req, res) {
     try {
         const { userId } = req.params;
         const data = req.body;
-        const userData = await UserService.findOneBy({ _id: userId });
+        const userData = await UserService.findOneBy({
+            query: { _id: userId },
+            select: 'email',
+        });
         if (userData.email !== data.email) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -1138,7 +1192,12 @@ router.get('/profile', getUser, async function(req, res) {
             });
         }
         // Call the UserService
-        const user = await UserService.findOneBy({ _id: userId });
+        const select =
+            'name email isVerified jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber profilePic twoFactorAuthEnabled timezone role alertPhoneNumber tempAlertPhoneNumber identification';
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select,
+        });
         const userObj = {
             id: user._id,
             name: user.name ? user.name : '',
@@ -1284,11 +1343,13 @@ router.get('/users', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const users = await UserService.getAllUsers(skip, limit);
-        const count = await UserService.countBy({
-            _id: { $ne: null },
-            deleted: { $ne: null },
-        });
+        const [users, count] = await Promise.all([
+            UserService.getAllUsers(skip, limit),
+            UserService.countBy({
+                _id: { $ne: null },
+                deleted: { $ne: null },
+            }),
+        ]);
         return sendListResponse(req, res, users, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1301,9 +1362,11 @@ router.get('/users/:userId', getUser, isUserMasterAdmin, async function(
 ) {
     try {
         const userId = req.params.userId;
+        const select =
+            'createdAt name email tempEmail isVerified sso jwtRefreshToken companyName companyRole companySize referral companyPhoneNumber onCallAlert profilePic twoFactorAuthEnabled stripeCustomerId timeZone lastActive disabled paymentFailedDate role isBlocked adminNotes deleted deletedById alertPhoneNumber tempAlertPhoneNumber tutorial identification source isAdminMode';
         const user = await UserService.findOneBy({
-            _id: userId,
-            deleted: { $ne: null },
+            query: { _id: userId, deleted: { $ne: null } },
+            select,
         });
 
         return sendItemResponse(req, res, user);
@@ -1517,24 +1580,31 @@ router.post('/users/search', getUser, isUserMasterAdmin, async function(
         const filter = req.body.filter;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const users = await UserService.searchUsers(
-            {
+        const [users, count] = await Promise.all([
+            UserService.searchUsers(
+                {
+                    deleted: { $ne: null },
+                    $or: [
+                        { name: { $regex: new RegExp(filter), $options: 'i' } },
+                        {
+                            email: {
+                                $regex: new RegExp(filter),
+                                $options: 'i',
+                            },
+                        },
+                    ],
+                },
+                skip,
+                limit
+            ),
+            UserService.countBy({
                 deleted: { $ne: null },
                 $or: [
                     { name: { $regex: new RegExp(filter), $options: 'i' } },
                     { email: { $regex: new RegExp(filter), $options: 'i' } },
                 ],
-            },
-            skip,
-            limit
-        );
-        const count = await UserService.countBy({
-            deleted: { $ne: null },
-            $or: [
-                { name: { $regex: new RegExp(filter), $options: 'i' } },
-                { email: { $regex: new RegExp(filter), $options: 'i' } },
-            ],
-        });
+            }),
+        ]);
 
         return sendListResponse(req, res, users, count);
     } catch (error) {
@@ -1556,7 +1626,10 @@ router.delete('/:userId/delete', getUser, async function(req, res) {
             });
         }
         const userId = req.user.id;
-        const user = await UserService.findOneBy({ _id: userId });
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: 'projects',
+        });
         if (!user) {
             return sendErrorResponse(req, res, {
                 code: 400,

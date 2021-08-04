@@ -11,18 +11,6 @@ class AnnouncementLogs extends Component {
     state = {
         limit: 5,
     };
-    componentDidMount() {
-        const {
-            fetchAnnouncementLogs,
-            projectId,
-            statusPageId,
-            theme,
-        } = this.props;
-        const limit = theme
-            ? statusPageId.announcementLogsHistory || 14
-            : this.state.limit;
-        fetchAnnouncementLogs(projectId, statusPageId._id, 0, limit);
-    }
 
     more = () => {
         const {

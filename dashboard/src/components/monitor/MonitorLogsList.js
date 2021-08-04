@@ -645,10 +645,14 @@ export class MonitorLogsList extends Component {
                                                                             : this
                                                                                   .props
                                                                                   .monitorType &&
-                                                                              this
-                                                                                  .props
-                                                                                  .monitorType ===
-                                                                                  'incomingHttpRequest'
+                                                                              [
+                                                                                  'incomingHttpRequest',
+                                                                                  'script',
+                                                                              ].includes(
+                                                                                  this
+                                                                                      .props
+                                                                                      .monitorType
+                                                                              )
                                                                             ? 'Fyipe'
                                                                             : 'Unknown Probe'}
                                                                     </span>
@@ -883,7 +887,7 @@ export class MonitorLogsList extends Component {
                                                                                     log
                                                                                         .scriptMetadata
                                                                                         .statusText !==
-                                                                                        'completed' ? (
+                                                                                        'success' ? (
                                                                                         <div className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                 <span>
@@ -901,7 +905,7 @@ export class MonitorLogsList extends Component {
                                                                                       log
                                                                                           .scriptMetadata
                                                                                           .statusText ===
-                                                                                          'completed' ? (
+                                                                                          'success' ? (
                                                                                         <div className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2">
                                                                                             <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                                                                 <span>
@@ -1240,7 +1244,10 @@ function mapStateToProps(state, props) {
 
     if (monitorLogs && monitorLogs.logs) {
         monitorLogs.logs = monitorLogs.logs.map(log => {
-            if (log.kubernetesLog) {
+            if (
+                log.kubernetesLog &&
+                Object.keys(log.kubernetesLog).length > 0
+            ) {
                 const initialData = { ...log.kubernetesLog };
                 const newData = {};
                 newData.podData = {

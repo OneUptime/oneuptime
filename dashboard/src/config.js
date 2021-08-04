@@ -12,6 +12,7 @@ const dJSON = require('dirty-json');
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
+let realtimeUrl = window.location.origin + '/realtime';
 
 const isLocalhost =
     window &&
@@ -30,6 +31,7 @@ if (isLocalhost) {
     apiUrl = window.location.protocol + `//${address}:3002/api`;
     dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
     accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
+    realtimeUrl = `${window.location.protocol}//${address}:3300/realtime`;
 }
 
 export function env(value) {
@@ -41,6 +43,8 @@ export function env(value) {
 }
 
 export const API_URL = apiUrl;
+
+export const REALTIME_URL = realtimeUrl;
 
 export const DASHBOARD_URL = dashboardUrl;
 
@@ -1676,7 +1680,7 @@ fyipeTracker = tracker.FyipeTracker(
     '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
     '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
     options # Optional Field               
-);
+)
                             
 # capturing error exception manually and sent to your fyipe dashboard
 try:
@@ -1757,13 +1761,72 @@ print(response)`,
                 id: 'ruby',
                 language: 'Ruby',
                 height: {
-                    install: '25px',
+                    install: '50px',
                     usage: '500px',
                 },
-                errorTracking:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
-                logs:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                errorTracking: {
+                    installation: {
+                        package: 'Gem Install',
+                        command: `
+$ gem install fyipe`,
+                    },
+                    usage: `
+require 'fyipe'
+                
+# set up tracking configurations    
+options = {
+    "maxTimeline": 50,
+    "captureCodeSnippet": true
+}               
+
+# constructor                        
+tracker = FyipeTracker.new(                        
+    "${apiUrl ? apiUrl : 'API_URL'}",
+    '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
+    '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
+    options # Optional Field               
+)
+                
+# capturing error exception manually and sent to your fyipe dashboard
+begin
+    # your code logic
+    result = 5/0 # Should throw a division by zero error
+rescue => ex
+    tracker.captureException(ex)
+end
+`,
+                },
+                logs: {
+                    installation: {
+                        package: 'Gem Install',
+                        command: `
+$ gem install fyipe`,
+                    },
+                    usage: `
+require 'fyipe'
+                
+# constructor
+logger = FyipeLogger.new(                    
+    '${apiUrl ? apiUrl : 'API_URL'}',
+    '${
+        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+    }',                    
+    '${applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'}'
+);
+                
+# Sending an object log to the server
+
+item = {
+    "user" => "Test User",
+    "page" => "Landing Page"
+}
+                
+response = logger.log(item)
+
+# response after logging a request
+puts response
+                `,
+                },
             },
             {
                 id: 'go',
@@ -1810,5 +1873,30 @@ export const incomingRequestVariables = [
         variable: '{{request.headers.*}}',
         description:
             '{{request.headers.*}} : You can attach any key value pair on the request headers',
+    },
+];
+
+export const incidentNoteTemplateVariables = [
+    {
+        variable: '{{incidentType}}',
+        description: '{{incidentType}}: Type of incident.',
+    },
+    {
+        name: '{{monitorName}}',
+        description:
+            '{{monitorName}}: Name of the monitor on which incident has occured.',
+    },
+    {
+        name: '{{projectName}}',
+        description:
+            '{{projectName}}: Name of the project on which the incident has occured.',
+    },
+    {
+        name: '{{time}}',
+        description: '{{time}}: Time when the incident has occured.',
+    },
+    {
+        name: '{{date}}',
+        description: '{{date}}: Date when the incident has occured.',
     },
 ];

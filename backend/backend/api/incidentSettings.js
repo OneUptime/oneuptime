@@ -29,9 +29,14 @@ router.get('/:projectId/default', getUser, isAuthorized, async function(
             error.code = 400;
             throw error;
         }
+        const select =
+            'projectId title description incidentPriority isDefault name createdAt';
 
         const query = { projectId, isDefault: true };
-        const template = await IncidentSettingsService.findOne(query);
+        const template = await IncidentSettingsService.findOne({
+            query,
+            select,
+        });
 
         return sendItemResponse(req, res, template);
     } catch (error) {
@@ -52,12 +57,20 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
         }
 
         const query = { projectId };
-        const templates = await IncidentSettingsService.findBy({
-            query,
-            limit,
-            skip,
-        });
-        const count = await IncidentSettingsService.countBy(query);
+        const populate = [{ path: 'incidentPriority', select: 'name color' }];
+        const select =
+            'projectId title description incidentPriority isDefault name createdAt';
+        const [templates, count] = await Promise.all([
+            IncidentSettingsService.findBy({
+                query,
+                limit,
+                skip,
+                select,
+                populate,
+            }),
+            IncidentSettingsService.countBy(query),
+        ]);
+
         return sendListResponse(req, res, templates, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -132,11 +145,11 @@ router.put('/:projectId/:templateId', getUser, isAuthorized, async function(
 
     try {
         //Update should not happen if the incident priority is remove and doesn't exist.
-        const priority = await IncidentPrioritiesService.findOne({
+        const priority = await IncidentPrioritiesService.countBy({
             _id: incidentPriority,
         });
 
-        if (!priority)
+        if (!priority || priority === 0)
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: "Incident priority doesn't exist.",

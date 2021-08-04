@@ -5,7 +5,7 @@
  */
 
 module.exports = {
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -18,14 +18,16 @@ module.exports = {
             if (!query) query = {};
 
             query.deleted = false;
-            const statusPages = await StatusPageModel.find(query)
+            let statusPagesQuery = StatusPageModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip)
-                .populate('projectId')
-                .populate('domains.domainVerificationToken')
-                .populate('monitors.monitor', 'name')
                 .lean();
+
+            statusPagesQuery = handleSelect(select, statusPagesQuery);
+            statusPagesQuery = handlePopulate(populate, statusPagesQuery);
+
+            const statusPages = await statusPagesQuery;
             return statusPages;
         } catch (error) {
             ErrorService.log('statusPageService.findBy', error);
@@ -36,13 +38,14 @@ module.exports = {
     create: async function(data) {
         try {
             let existingStatusPage = null;
+
             if (data.name) {
-                existingStatusPage = await this.findBy({
+                existingStatusPage = await this.countBy({
                     name: data.name,
                     projectId: data.projectId,
                 });
             }
-            if (existingStatusPage && existingStatusPage.length > 0) {
+            if (existingStatusPage && existingStatusPage > 0) {
                 const error = new Error(
                     'StatusPage with that name already exists.'
                 );
@@ -76,8 +79,23 @@ module.exports = {
             }
 
             const statusPage = await statusPageModel.save();
+
+            const populateStatusPage = [
+                { path: 'projectId', select: 'parentProjectId' },
+                { path: 'monitorIds', select: 'name' },
+                { path: 'monitors.monitor', select: 'name' },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
             const newStatusPage = await this.findOneBy({
                 _id: statusPage._id,
+                populate: populateStatusPage,
+                select: selectStatusPage,
             });
             return newStatusPage;
         } catch (error) {
@@ -102,7 +120,10 @@ module.exports = {
             // only one domain in the db is allowed
             const existingBaseDomain = await DomainVerificationService.findOneBy(
                 {
-                    domain: subDomain,
+                    query: {
+                        domain: subDomain,
+                    },
+                    select: '_id',
                 }
             );
 
@@ -116,8 +137,18 @@ module.exports = {
                     creationData
                 );
             }
+
+            const populateStatusPage = [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+
             const statusPage = await this.findOneBy({
-                _id: statusPageId,
+                query: { _id: statusPageId },
+                populate: populateStatusPage,
+                select: 'domains',
             });
 
             if (statusPage) {
@@ -142,7 +173,8 @@ module.exports = {
                     // if there's none, add the domain to the flow
                     const certificate = await CertificateStoreService.findOneBy(
                         {
-                            subject: subDomain,
+                            query: { subject: subDomain },
+                            select: 'id',
                         }
                     );
 
@@ -192,10 +224,21 @@ module.exports = {
     updateCustomDomain: async function(domainId, newDomain, oldDomain) {
         const _this = this;
         try {
-            const statusPages = await _this.findBy({
-                domains: {
-                    $elemMatch: { domainVerificationToken: domainId },
+            const populateStatusPage = [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
                 },
+            ];
+
+            const statusPages = await _this.findBy({
+                query: {
+                    domains: {
+                        $elemMatch: { domainVerificationToken: domainId },
+                    },
+                },
+                populate: populateStatusPage,
+                select: '_id domains',
             });
 
             for (const statusPage of statusPages) {
@@ -239,7 +282,7 @@ module.exports = {
 
         try {
             const existingBaseDomain = await DomainVerificationService.findOneBy(
-                { domain: newDomain }
+                { query: { domain: newDomain }, select: '_id' }
             );
 
             if (!existingBaseDomain) {
@@ -252,9 +295,17 @@ module.exports = {
                     creationData
                 );
             }
+            const populateStatusPage = [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
 
             const statusPage = await this.findOneBy({
-                _id: statusPageId,
+                query: { _id: statusPageId },
+                populate: populateStatusPage,
+                select: 'domains',
             });
 
             if (!statusPage) {
@@ -295,7 +346,8 @@ module.exports = {
                         // if there's none, add the domain to the flow
                         const certificate = await CertificateStoreService.findOneBy(
                             {
-                                subject: eachDomain.domain,
+                                query: { subject: eachDomain.domain },
+                                select: 'id',
                             }
                         );
 
@@ -337,8 +389,16 @@ module.exports = {
 
     deleteDomain: async function(statusPageId, domainId) {
         try {
+            const populateStatusPage = [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
             const statusPage = await this.findOneBy({
-                _id: statusPageId,
+                query: { _id: statusPageId },
+                populate: populateStatusPage,
+                select: 'domain',
             });
 
             if (!statusPage) {
@@ -417,13 +477,14 @@ module.exports = {
 
             if (statusPage) {
                 const subscribers = await SubscriberService.findBy({
-                    statusPageId: statusPage._id,
+                    query: { statusPageId: statusPage._id },
+                    select: '_id',
                 });
 
                 await Promise.all(
                     subscribers.map(async subscriber => {
                         await SubscriberService.deleteBy(
-                            { _id: subscriber },
+                            { _id: subscriber._id },
                             userId
                         );
                     })
@@ -453,8 +514,19 @@ module.exports = {
 
     removeMonitor: async function(monitorId) {
         try {
+            const populateStatusPage = [
+                {
+                    path: 'monitors.monitor',
+                    select: '_id name',
+                },
+            ];
+
+            const selectStatusPage = 'monitors';
+
             const statusPages = await this.findBy({
-                'monitors.monitor': monitorId,
+                query: { 'monitors.monitor': monitorId },
+                select: selectStatusPage,
+                populate: populateStatusPage,
             });
             for (const statusPage of statusPages) {
                 const monitors = statusPage.monitors.filter(
@@ -477,20 +549,21 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const statusPage = await StatusPageModel.findOne(query)
+            let statusPageQuery = StatusPageModel.findOne(query)
                 .lean()
-                .sort([['createdAt', -1]])
-                .populate('projectId')
-                .populate('monitorIds', 'name')
-                .populate('domains.domainVerificationToken')
-                .populate('monitors.monitor', 'name');
+                .sort([['createdAt', -1]]);
+
+            statusPageQuery = handleSelect(select, statusPageQuery);
+            statusPageQuery = handlePopulate(populate, statusPageQuery);
+
+            const statusPage = await statusPageQuery;
             return statusPage;
         } catch (error) {
             ErrorService.log('statusPageService.findOneBy', error);
@@ -501,9 +574,12 @@ module.exports = {
     updateOneBy: async function(query, data) {
         try {
             const existingStatusPage = await this.findBy({
-                name: data.name,
-                projectId: data.projectId,
-                _id: { $not: { $eq: data._id } },
+                query: {
+                    name: data.name,
+                    projectId: data.projectId,
+                    _id: { $not: { $eq: data._id } },
+                },
+                select: 'slug',
             });
             if (existingStatusPage && existingStatusPage.length > 0) {
                 const error = new Error(
@@ -532,8 +608,24 @@ module.exports = {
                     new: true,
                 }
             );
+
+            const populateStatusPage = [
+                { path: 'projectId', select: 'parentProjectId' },
+                { path: 'monitorIds', select: 'name' },
+                { path: 'monitors.monitor', select: 'name' },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+            ];
+
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
             updatedStatusPage = await this.findOneBy({
-                _id: updatedStatusPage._id,
+                query: { _id: updatedStatusPage._id },
+                populate: populateStatusPage,
+                select: selectStatusPage,
             });
             return updatedStatusPage;
         } catch (error) {
@@ -552,7 +644,31 @@ module.exports = {
             let updatedData = await StatusPageModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+
+            const populateStatusPage = [
+                {
+                    path: 'projectId',
+                    select: 'name parentProjectId',
+                    populate: { path: 'parentProjectId', select: '_id' },
+                },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+            ];
+
+            const selectStatusPage =
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
+            updatedData = await this.findBy({
+                query,
+                populate: populateStatusPage,
+                select: selectStatusPage,
+            });
             return updatedData;
         } catch (error) {
             ErrorService.log('statusPageService.updateMany', error);
@@ -573,7 +689,19 @@ module.exports = {
             if (typeof limit === 'string') limit = parseInt(limit);
 
             if (!query) query = {};
-            const statuspages = await _this.findBy(query, 0, limit);
+
+            const statuspages = await _this.findBy({
+                query,
+                skip: 0,
+                limit,
+                select: 'hideResolvedIncident monitors',
+                populate: [
+                    {
+                        path: 'monitors.monitor',
+                        select: 'name',
+                    },
+                ],
+            });
             const checkHideResolved = statuspages[0].hideResolvedIncident;
             let option = {};
             if (checkHideResolved) {
@@ -590,24 +718,50 @@ module.exports = {
                 ? statuspage.monitors.map(m => m.monitor._id)
                 : [];
             if (monitorIds && monitorIds.length) {
-                const notes = await IncidentService.findBy(
+                const populate = [
                     {
+                        path: 'monitors.monitorId',
+                        select: 'name slug componentId projectId type',
+                        populate: { path: 'componentId', select: 'name slug' },
+                    },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'acknowledgedBy', select: 'name' },
+                    { path: 'incidentPriority', select: 'name color' },
+                    {
+                        path: 'acknowledgedByIncomingHttpRequest',
+                        select: 'name',
+                    },
+                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                    { path: 'createdByIncomingHttpRequest', select: 'name' },
+                    { path: 'probes.probeId', select: 'name _id' },
+                ];
+                const select =
+                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber createdAt';
+
+                const [notes, count] = await Promise.all([
+                    IncidentService.findBy({
+                        query: {
+                            'monitors.monitorId': { $in: monitorIds },
+                            hideIncident: false,
+                            ...option,
+                        },
+                        limit,
+                        skip,
+                        populate,
+                        select,
+                    }),
+                    IncidentService.countBy({
                         'monitors.monitorId': { $in: monitorIds },
                         hideIncident: false,
                         ...option,
-                    },
-                    limit,
-                    skip
-                );
-                const count = await IncidentService.countBy({
-                    'monitors.monitorId': { $in: monitorIds },
-                    hideIncident: false,
-                    ...option,
-                });
+                    }),
+                ]);
 
                 return { notes, count };
             } else {
-                const error = new Error('no monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 ErrorService.log('statusPage.getNotes', error);
                 throw error;
@@ -620,7 +774,33 @@ module.exports = {
 
     getIncident: async function(query) {
         try {
-            const incident = await IncidentService.findOneBy(query);
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: { path: 'componentId', select: 'name slug' },
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+            const incident = await IncidentService.findOneBy({
+                query,
+                select,
+                populate,
+            });
 
             return incident;
         } catch (error) {
@@ -642,13 +822,27 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
-            const message = await IncidentMessageService.findBy(
-                query,
-                skip,
-                limit
-            );
+            const populateIncidentMessage = [
+                {
+                    path: 'incidentId',
+                    select: 'idNumber name',
+                },
+                { path: 'createdById', select: 'name' },
+            ];
 
-            const count = await IncidentMessageService.countBy(query);
+            const selectIncidentMessage =
+                '_id updated postOnStatusPage createdAt content incidentId createdById type incident_state';
+
+            const [message, count] = await Promise.all([
+                IncidentMessageService.findBy({
+                    query,
+                    skip,
+                    limit,
+                    populate: populateIncidentMessage,
+                    select: selectIncidentMessage,
+                }),
+                IncidentMessageService.countBy(query),
+            ]);
 
             return { message, count };
         } catch (error) {
@@ -659,13 +853,43 @@ module.exports = {
 
     getNotesByDate: async function(query, skip, limit) {
         try {
-            const incidents = await IncidentService.findBy(query, limit, skip);
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name slug componentId projectId type',
+                    populate: { path: 'componentId', select: 'name slug' },
+                },
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'acknowledgedBy', select: 'name' },
+                { path: 'incidentPriority', select: 'name color' },
+                {
+                    path: 'acknowledgedByIncomingHttpRequest',
+                    select: 'name',
+                },
+                { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                { path: 'createdByIncomingHttpRequest', select: 'name' },
+                { path: 'probes.probeId', select: 'name _id' },
+            ];
+            const select =
+                'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+            const [incidents, count] = await Promise.all([
+                IncidentService.findBy({
+                    query,
+                    limit,
+                    skip,
+                    populate,
+                    select,
+                }),
+                IncidentService.countBy(query),
+            ]);
 
             const investigationNotes = incidents.map(incident => {
                 // return all the incident object
                 return incident;
             });
-            const count = await IncidentService.countBy(query);
             return { investigationNotes, count };
         } catch (error) {
             ErrorService.log('statusPageService.getNotesByDate', error);
@@ -688,7 +912,18 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
-            const statuspages = await _this.findBy(query, 0, limit);
+            const statuspages = await _this.findBy({
+                query,
+                skip: 0,
+                limit,
+                select: 'monitors',
+                populate: [
+                    {
+                        path: 'monitors.monitor',
+                        select: 'name',
+                    },
+                ],
+            });
 
             const withMonitors = statuspages.filter(
                 statusPage => statusPage.monitors.length
@@ -700,17 +935,38 @@ module.exports = {
             if (monitorIds && monitorIds.length) {
                 const currentDate = moment();
                 const eventIds = [];
+
+                const populate = [
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name',
+                        populate: {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                    },
+                ];
+                const select =
+                    'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
                         const scheduledEvents = await ScheduledEventsService.findBy(
                             {
-                                'monitors.monitorId': monitorId,
-                                showEventOnStatusPage: true,
-                                startDate: { $lte: currentDate },
-                                endDate: {
-                                    $gte: currentDate,
+                                query: {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    startDate: { $lte: currentDate },
+                                    endDate: {
+                                        $gte: currentDate,
+                                    },
+                                    resolved: false,
                                 },
-                                resolved: false,
+                                select,
+                                populate,
                             }
                         );
                         scheduledEvents.map(event => {
@@ -737,7 +993,7 @@ module.exports = {
 
                 return { events, count };
             } else {
-                const error = new Error('no monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 ErrorService.log('statusPageService.getEvents', error);
                 throw error;
@@ -763,7 +1019,18 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
-            const statuspages = await _this.findBy(query, 0, limit);
+            const statuspages = await _this.findBy({
+                query,
+                skip: 0,
+                limit,
+                select: 'monitors',
+                populate: [
+                    {
+                        path: 'monitors.monitor',
+                        select: 'name',
+                    },
+                ],
+            });
 
             const withMonitors = statuspages.filter(
                 statusPage => statusPage.monitors.length
@@ -775,13 +1042,33 @@ module.exports = {
             if (monitorIds && monitorIds.length) {
                 const currentDate = moment();
                 const eventIds = [];
+                const populate = [
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name',
+                        populate: {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                    },
+                ];
+                const select =
+                    'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
                         const scheduledEvents = await ScheduledEventsService.findBy(
                             {
-                                'monitors.monitorId': monitorId,
-                                showEventOnStatusPage: true,
-                                startDate: { $gt: currentDate },
+                                query: {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    startDate: { $gt: currentDate },
+                                },
+                                select,
+                                populate,
                             }
                         );
                         scheduledEvents.map(event => {
@@ -810,7 +1097,7 @@ module.exports = {
                 const count = events.length;
                 return { events, count };
             } else {
-                const error = new Error('no monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 ErrorService.log('statusPageService.getFutureEvents', error);
                 throw error;
@@ -836,7 +1123,18 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
-            const statuspages = await _this.findBy(query, 0, limit);
+            const statuspages = await _this.findBy({
+                query,
+                skip: 0,
+                limit,
+                select: 'monitors',
+                populate: [
+                    {
+                        path: 'monitors.monitor',
+                        select: '_id name',
+                    },
+                ],
+            });
 
             const withMonitors = statuspages.filter(
                 statusPage => statusPage.monitors.length
@@ -848,13 +1146,33 @@ module.exports = {
             if (monitorIds && monitorIds.length) {
                 const currentDate = moment();
                 const eventIds = [];
+                const populate = [
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'createdById', select: 'name' },
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name',
+                        populate: {
+                            path: 'componentId',
+                            select: 'name slug',
+                        },
+                    },
+                ];
+                const select =
+                    'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
                 let events = await Promise.all(
                     monitorIds.map(async monitorId => {
                         const scheduledEvents = await ScheduledEventsService.findBy(
                             {
-                                'monitors.monitorId': monitorId,
-                                showEventOnStatusPage: true,
-                                endDate: { $lt: currentDate },
+                                query: {
+                                    'monitors.monitorId': monitorId,
+                                    showEventOnStatusPage: true,
+                                    endDate: { $lt: currentDate },
+                                },
+                                populate,
+                                select,
                             }
                         );
                         scheduledEvents.map(event => {
@@ -883,7 +1201,7 @@ module.exports = {
                 const count = events.length;
                 return { events: limitEvents(events, limit, skip), count };
             } else {
-                const error = new Error('no monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 ErrorService.log('statusPageService.getPastEvents', error);
                 throw error;
@@ -895,10 +1213,28 @@ module.exports = {
     },
 
     getEvent: async function(query) {
+        const populate = [
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: {
+                    path: 'componentId',
+                    select: 'name slug',
+                },
+            },
+        ];
+        const select =
+            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
         try {
-            const scheduledEvent = await ScheduledEventsService.findOneBy(
-                query
-            );
+            const scheduledEvent = await ScheduledEventsService.findOneBy({
+                query,
+                select,
+                populate,
+            });
             return scheduledEvent;
         } catch (error) {
             ErrorService.log('statusPageService.getEvent', error);
@@ -919,13 +1255,30 @@ module.exports = {
             if (!query) query = {};
             query.deleted = false;
 
-            const eventNote = await ScheduledEventNoteService.findBy(
-                query,
-                limit,
-                skip
-            );
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'scheduledEventId',
+                    select: 'name monitors alertSubscriber projectId',
+                    populate: {
+                        path: 'projectId',
+                        select: 'name replyAddress',
+                    },
+                },
+            ];
+            const select =
+                'updated content type event_state createdAt updatedAt createdById scheduledEventId';
 
-            const count = await ScheduledEventNoteService.countBy(query);
+            const [eventNote, count] = await Promise.all([
+                ScheduledEventNoteService.findBy({
+                    query,
+                    limit,
+                    skip,
+                    populate,
+                    select,
+                }),
+                ScheduledEventNoteService.countBy(query),
+            ]);
 
             return { notes: eventNote, count };
         } catch (error) {
@@ -936,12 +1289,32 @@ module.exports = {
 
     getEventsByDate: async function(query, skip, limit) {
         try {
-            const scheduledEvents = await ScheduledEventsService.findBy(
-                query,
-                limit,
-                skip
-            );
-            const count = await ScheduledEventsService.countBy(query);
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
+            const [scheduledEvents, count] = await Promise.all([
+                ScheduledEventsService.findBy({
+                    query,
+                    limit,
+                    skip,
+                    populate,
+                    select,
+                }),
+                ScheduledEventsService.countBy(query),
+            ]);
 
             return { scheduledEvents, count };
         } catch (error) {
@@ -950,7 +1323,7 @@ module.exports = {
         }
     },
 
-    getStatusPage: async function(query, userId) {
+    getStatusPage: async function({ query, userId, populate, select }) {
         try {
             const thisObj = this;
             if (!query) {
@@ -959,13 +1332,14 @@ module.exports = {
 
             query.deleted = false;
 
-            const statusPages = await StatusPageModel.find(query)
+            let statusPagesQuery = StatusPageModel.find(query)
                 .sort([['createdAt', -1]])
-                .populate('projectId')
-                .populate('monitorIds', 'name')
-                .populate('domains.domainVerificationToken')
-                .populate('monitors.monitor', 'name')
                 .lean();
+
+            statusPagesQuery = handleSelect(select, statusPagesQuery);
+            statusPagesQuery = handlePopulate(populate, statusPagesQuery);
+
+            const statusPages = await statusPagesQuery;
 
             let statusPage = null;
 
@@ -1015,7 +1389,13 @@ module.exports = {
                 );
                 const projectId = statusPage.projectId._id;
                 const subProjects = await ProjectService.findBy({
-                    $or: [{ parentProjectId: projectId }, { _id: projectId }],
+                    query: {
+                        $or: [
+                            { parentProjectId: projectId },
+                            { _id: projectId },
+                        ],
+                    },
+                    select: '_id',
                 });
                 const subProjectIds = subProjects
                     ? subProjects.map(project => project._id)
@@ -1056,7 +1436,17 @@ module.exports = {
             const _this = this;
 
             if (!query) query = {};
-            const statuspages = await _this.findBy(query);
+
+            const statuspages = await _this.findBy({
+                query,
+                select: 'monitors',
+                populate: [
+                    {
+                        path: 'monitors.monitor',
+                        select: 'name',
+                    },
+                ],
+            });
 
             const withMonitors = statuspages.filter(
                 statusPage => statusPage.monitors.length
@@ -1065,15 +1455,41 @@ module.exports = {
             const monitorIds =
                 statuspage && statuspage.monitors.map(m => m.monitor._id);
             if (monitorIds && monitorIds.length) {
-                const incidents = await IncidentService.findBy({
-                    'monitors.monitorId': { $in: monitorIds },
-                });
-                const count = await IncidentService.countBy({
-                    'monitors.monitorId': { $in: monitorIds },
-                });
+                const populate = [
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name slug componentId projectId type',
+                        populate: { path: 'componentId', select: 'name slug' },
+                    },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'acknowledgedBy', select: 'name' },
+                    { path: 'incidentPriority', select: 'name color' },
+                    {
+                        path: 'acknowledgedByIncomingHttpRequest',
+                        select: 'name',
+                    },
+                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                    { path: 'createdByIncomingHttpRequest', select: 'name' },
+                    { path: 'probes.probeId', select: 'name _id' },
+                ];
+                const select =
+                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
+                const [incidents, count] = await Promise.all([
+                    IncidentService.findBy({
+                        query: { 'monitors.monitorId': { $in: monitorIds } },
+                        select,
+                        populate,
+                    }),
+                    IncidentService.countBy({
+                        'monitors.monitorId': { $in: monitorIds },
+                    }),
+                ]);
                 return { incidents, count };
             } else {
-                const error = new Error('No monitor to check');
+                const error = new Error('No monitors on this status page');
                 error.code = 400;
                 throw error;
             }
@@ -1088,7 +1504,8 @@ module.exports = {
                 if (statusPage.isPrivate) {
                     if (userId) {
                         const project = await ProjectService.findOneBy({
-                            _id: statusPage.projectId._id,
+                            query: { _id: statusPage.projectId._id },
+                            select: '_id users',
                         });
                         if (project && project._id) {
                             if (
@@ -1119,13 +1536,35 @@ module.exports = {
 
     getSubProjectStatusPages: async function(subProjectIds) {
         const _this = this;
+
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
         const subProjectStatusPages = await Promise.all(
             subProjectIds.map(async id => {
-                const statusPages = await _this.findBy(
-                    { projectId: id },
-                    0,
-                    10
-                );
+                const statusPages = await _this.findBy({
+                    query: { projectId: id },
+                    skip: 0,
+                    limit: 10,
+                    select: selectStatusPage,
+                    populate: populateStatusPage,
+                });
                 const count = await _this.countBy({ projectId: id });
                 return { statusPages, count, _id: id, skip: 0, limit: 10 };
             })
@@ -1146,7 +1585,31 @@ module.exports = {
     restoreBy: async function(query) {
         const _this = this;
         query.deleted = true;
-        const statusPage = await _this.findBy(query);
+
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
+        const statusPage = await _this.findBy({
+            query,
+            populate: populateStatusPage,
+            select: selectStatusPage,
+        });
         if (statusPage && statusPage.length > 1) {
             const statusPages = await Promise.all(
                 statusPage.map(async statusPage => {
@@ -1251,11 +1714,11 @@ module.exports = {
     doesDomainExist: async function(domain) {
         const _this = this;
         try {
-            const statusPage = await _this.findOneBy({
+            const statusPage = await _this.countBy({
                 domains: { $elemMatch: { domain } },
             });
 
-            if (!statusPage) return false;
+            if (!statusPage || statusPage === 0) return false;
 
             return true;
         } catch (error) {
@@ -1649,3 +2112,5 @@ const CertificateStoreService = require('./certificateStoreService');
 const AnnouncementModel = require('../models/announcements');
 const getSlug = require('../utils/getSlug');
 const AnnouncementLogModel = require('../models/announcementLogs');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

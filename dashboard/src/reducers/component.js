@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import {
     FETCH_COMPONENTS_SUCCESS,
     FETCH_COMPONENTS_FAILURE,

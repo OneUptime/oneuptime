@@ -7,8 +7,8 @@
 saas:
     isSaasService: true
     slackErrorLog:
-        webhook: https://hooks.slack.com/services/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
-        channel: fyipe-logs 
+        webhook: https://hooks.slack.com/services/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
+        channel: fyipe-engineering
     stripe:
         publicKey: pk_test_UynUDrFmbBmFVgJXd9EZCvBj00QAVpdwPv
         privateKey: sk_test_YxwnzywggtAd8jDaHecNmHiN

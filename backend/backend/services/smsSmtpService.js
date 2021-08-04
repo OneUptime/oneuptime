@@ -79,7 +79,10 @@ module.exports = {
             let updatedData = await TwilioModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const populate = [{ path: 'projectId', select: 'name' }];
+            const select =
+                'projectId accountSid authToken phoneNumber iv enabled createdAt deletedById';
+            updatedData = await this.findBy({ query, select, populate });
             return updatedData;
         } catch (error) {
             ErrorService.log('smsSmtpService.updateMany', error);
@@ -116,7 +119,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -135,12 +138,17 @@ module.exports = {
             }
 
             query.deleted = false;
-            const twilioSettings = await TwilioModel.find(query)
+
+            let twilioSettingQuery = TwilioModel.find(query)
+                .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId', 'name')
-                .lean();
+                .skip(skip);
+
+            twilioSettingQuery = handleSelect(select, twilioSettingQuery);
+            twilioSettingQuery = handlePopulate(populate, twilioSettingQuery);
+
+            const twilioSettings = await twilioSettingQuery;
 
             for (const config of twilioSettings) {
                 if (config && config.authToken && config.iv) {
@@ -158,17 +166,22 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const twilio = await TwilioModel.findOne(query)
+
+            let twilioQuery = TwilioModel.findOne(query)
                 .sort([['createdAt', -1]])
-                .populate('projectId', 'name')
                 .lean();
+            twilioQuery = handleSelect(select, twilioQuery);
+            twilioQuery = handlePopulate(populate, twilioQuery);
+
+            const twilio = await twilioQuery;
+
             if (twilio && twilio.authToken && twilio.iv) {
                 twilio.authToken = await EncryptDecrypt.decrypt(
                     twilio.authToken,
@@ -214,3 +227,5 @@ const Crypto = require('crypto');
 const TwilioModel = require('../models/twilio');
 const ErrorService = require('./errorService');
 const EncryptDecrypt = require('../config/encryptDecrypt');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

@@ -40,10 +40,14 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
         }
 
         // sanitize template markup
-        data.subject = await DOMPurify.sanitize(data.subject);
-        data.body = await DOMPurify.sanitize(data.body, {
-            WHOLE_DOCUMENT: true,
-        });
+        const [subject, body] = await Promise.all([
+            DOMPurify.sanitize(data.subject),
+            DOMPurify.sanitize(data.body, {
+                WHOLE_DOCUMENT: true,
+            }),
+        ]);
+        data.subject = subject;
+        data.body = body;
         const emailTemplate = await EmailTemplateService.create(data);
         return sendItemResponse(req, res, emailTemplate);
     } catch (error) {
@@ -87,8 +91,11 @@ router.get(
     async function(req, res) {
         try {
             const emailTemplateId = req.params.emailTemplateId;
+            const select = 'projectId subject body emailType allowedVariables';
             const emailTemplates = await EmailTemplateService.findOneBy({
-                _id: emailTemplateId,
+                query: { _id: emailTemplateId },
+                select,
+                populate: [{ path: 'projectId', select: 'nmae' }],
             });
             return sendItemResponse(req, res, emailTemplates);
         } catch (error) {
@@ -136,16 +143,25 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
             }
             // sanitize template markup
             value.projectId = req.params.projectId;
-            value.subject = await DOMPurify.sanitize(value.subject);
-            value.body = await DOMPurify.sanitize(value.body, {
-                WHOLE_DOCUMENT: true,
-            });
+            const [subject, body] = await Promise.all([
+                DOMPurify.sanitize(value.subject),
+                DOMPurify.sanitize(value.body, {
+                    WHOLE_DOCUMENT: true,
+                }),
+            ]);
+            value.subject = subject;
+            value.body = body;
             data.push(value);
         }
+        const select = 'projectId subject body emailType allowedVariables';
         for (const value of data) {
             const emailTemplate = await EmailTemplateService.findOneBy({
-                projectId: value.projectId,
-                emailType: value.emailType,
+                query: {
+                    projectId: value.projectId,
+                    emailType: value.emailType,
+                },
+                select,
+                populate: [{ path: 'projectId', select: 'nmae' }],
             });
             if (emailTemplate) {
                 await EmailTemplateService.updateOneBy(

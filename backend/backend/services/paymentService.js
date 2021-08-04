@@ -70,7 +70,10 @@ module.exports = {
         alertType
     ) => {
         try {
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'balance alertOptions',
+            });
             const balance = project.balance;
             const countryType = getCountryType(alertPhoneNumber);
             const alertChargeAmount = getAlertChargeAmount(
@@ -428,7 +431,8 @@ module.exports = {
     chargeAlert: async function(userId, projectId, chargeAmount) {
         try {
             let project = await ProjectService.findOneBy({
-                _id: projectId,
+                query: { _id: projectId },
+                select: 'balance alertOptions _id',
             });
             const { balance } = project;
             const { minimumBalance, rechargeToBalance } = project.alertOptions;
@@ -446,7 +450,7 @@ module.exports = {
                         type: 'action',
                         client_secret: paymentIntent.client_secret,
                     };
-                    await NotificationService.create(
+                    NotificationService.create(
                         projectId,
                         message,
                         userId,
@@ -461,7 +465,8 @@ module.exports = {
                 await StripeService.confirmPayment(paymentIntent);
             }
             project = await ProjectService.findOneBy({
-                _id: projectId,
+                query: { _id: projectId },
+                select: 'balance',
             });
             const balanceAfterAlertSent = formatBalance(
                 project.balance - chargeAmount

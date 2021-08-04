@@ -10,7 +10,7 @@ import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import moment from 'moment';
 
 const endDate = moment();
-const startDate = moment().subtract(30, 'd');
+const startDate = moment().subtract(1, 'd');
 export class MonitorViewLogsBox extends Component {
     constructor(props) {
         super(props);

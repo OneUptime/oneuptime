@@ -10,13 +10,19 @@ module.exports = {
         { note, incidentState, statusNoteStatus } = {}
     ) {
         try {
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const [project, monitorStatus] = await Promise.all([
+                ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'parentProjectId slug name _id',
+                }),
+                MonitorStatusService.findOneBy({
+                    monitorId: monitor._id,
+                }),
+            ]);
             if (project && project.parentProjectId) {
-                projectId = project.parentProjectId._id;
+                projectId =
+                    project.parentProjectId._id || project.parentProjectId;
             }
-            const monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: monitor._id,
-            });
 
             return await this.notify(
                 project,
@@ -49,14 +55,18 @@ module.exports = {
         try {
             const self = this;
             let response;
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProjectId slug name _id',
+            });
             if (project && project.parentProjectId) {
-                projectId = project.parentProjectId._id;
+                projectId =
+                    project.parentProjectId._id || project.parentProjectId;
             }
             let query = {
                 projectId: projectId,
                 integrationType: 'webhook',
-                monitorId: monitor._id,
+                monitors: { $elemMatch: { monitorId: monitor._id } },
             };
             if (incidentStatus === INCIDENT_RESOLVED) {
                 query = {
@@ -76,10 +86,23 @@ module.exports = {
             } else {
                 return;
             }
-            const integrations = await IntegrationService.findBy(query);
-            const monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: monitor._id,
-            });
+            const select =
+                'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+            ];
+            const [integrations, monitorStatus] = await Promise.all([
+                IntegrationService.findBy({ query, select, populate }),
+                MonitorStatusService.findOneBy({
+                    monitorId: monitor._id,
+                }),
+            ]);
             // if (integrations.length === 0) deferred.resolve('no webhook added for this to notify');
             for (const integration of integrations) {
                 response = await self.notify(
@@ -328,8 +351,16 @@ module.exports = {
                     .request({
                         method: httpMethod,
                         url: webHookURL,
-                        data: httpMethod === 'post' ? payload : null,
-                        params: httpMethod === 'get' ? data : null,
+                        data:
+                            httpMethod === 'post' ||
+                            httpMethod === 'put' ||
+                            httpMethod === 'patch'
+                                ? payload
+                                : null,
+                        params:
+                            httpMethod === 'get' || httpMethod === 'delete'
+                                ? data
+                                : null,
                         headers: {
                             'Content-Type': 'application/json',
                         },

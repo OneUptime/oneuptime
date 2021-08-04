@@ -17,6 +17,7 @@ import page from './page';
 import sso from './sso';
 import ssoDefaultRoles from './ssoDefaultRoles';
 import version from './version';
+import dashboard from './dashboard';
 
 const appReducer = combineReducers({
     routing: routerReducer,
@@ -37,6 +38,7 @@ const appReducer = combineReducers({
     sso,
     ssoDefaultRoles,
     version,
+    dashboard,
 });
 
 export default (state, action) => {

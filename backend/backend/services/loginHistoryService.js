@@ -22,7 +22,7 @@ module.exports = {
             throw error;
         }
     },
-    async findBy(query, skip, limit) {
+    async findBy({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -39,12 +39,20 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            const logs = await LoginHistoryModel.find(query)
+
+            let logsQuery = LoginHistoryModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
-            const count = await LoginHistoryModel.countDocuments(query);
+
+            logsQuery = await handleSelect(select, logsQuery);
+            logsQuery = await handlePopulate(populate, logsQuery);
+
+            const [logs, count] = await Promise.all([
+                logsQuery,
+                LoginHistoryModel.countDocuments(query),
+            ]);
             const response = { logs, skip, limit, count };
             return response;
         } catch (error) {
@@ -59,3 +67,5 @@ const ErrorService = require('./errorService');
 const DeviceDetector = require('node-device-detector');
 const MailService = require('../services/mailService');
 const UserService = require('../services/userService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

@@ -26,6 +26,7 @@
         "prettier": "^1.19.1"
     },
     "scripts": {
+        "uninstall": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)",
         "delete-all-local-branches": "git branch | grep -v 'master' | xargs git branch -D",
         "lint": "eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore",
         "fix-lint": "eslint '**/*.js' -c .eslintrc.json --ignore-path .eslintignore --fix",

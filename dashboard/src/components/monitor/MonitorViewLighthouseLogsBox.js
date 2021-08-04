@@ -227,8 +227,10 @@ export class MonitorViewLighthouseLogsBox extends Component {
                                         id: addSiteUrlModalId,
                                         content: DataPathHoC(AddSiteUrl, {
                                             monitorId: this.props.monitor._id,
-                                            projectId: this.props.monitor
-                                                .projectId._id,
+                                            projectId:
+                                                this.props.monitor.projectId
+                                                    ._id ||
+                                                this.props.monitor.projectId,
                                         }),
                                     })
                                 }

@@ -143,6 +143,13 @@ export default function incident(state = initialState, action) {
                     success: true,
                     requesting: false,
                 },
+                incident: {
+                    ...state.incident,
+                    incident: {
+                        ...state.incident.incident,
+                        ...action.payload,
+                    },
+                },
             };
         }
 
@@ -201,8 +208,11 @@ export default function incident(state = initialState, action) {
             });
 
         case types.CREATE_INCIDENT_SUCCESS:
+        case 'ADD_NEW_INCIDENT_TO_MONITORS':
             isExistingIncident = state.incidents.incidents.find(
-                incident => incident._id === action.payload.projectId
+                incident =>
+                    incident._id ===
+                    (action.payload.projectId._id || action.payload.projectId)
             );
             return Object.assign({}, state, {
                 newIncident: {
@@ -216,13 +226,20 @@ export default function incident(state = initialState, action) {
                         ? state.incidents.incidents.length > 0
                             ? state.incidents.incidents.map(incident => {
                                   return incident._id ===
-                                      action.payload.projectId
+                                      (action.payload.projectId._id ||
+                                          action.payload.projectId)
                                       ? {
-                                            _id: action.payload.projectId,
+                                            _id:
+                                                action.payload.projectId._id ||
+                                                action.payload.projectId,
                                             incidents: [
                                                 action.payload,
                                                 ...incident.incidents.filter(
-                                                    (inc, index) => index < 9
+                                                    (inc, index) =>
+                                                        inc._id !==
+                                                            action.payload
+                                                                ._id ||
+                                                        index < 9
                                                 ),
                                             ],
                                             count: incident.count + 1,
@@ -233,7 +250,9 @@ export default function incident(state = initialState, action) {
                               })
                             : [
                                   {
-                                      _id: action.payload.projectId,
+                                      _id:
+                                          action.payload.projectId._id ||
+                                          action.payload.projectId,
                                       incidents: [action.payload],
                                       count: 1,
                                       skip: 0,
@@ -242,7 +261,9 @@ export default function incident(state = initialState, action) {
                               ]
                         : state.incidents.incidents.concat([
                               {
-                                  _id: action.payload.projectId,
+                                  _id:
+                                      action.payload.projectId._id ||
+                                      action.payload.projectId,
                                   incidents: [action.payload],
                                   count: 1,
                                   skip: 0,
@@ -355,7 +376,7 @@ export default function incident(state = initialState, action) {
                     requesting: false,
                     error: null,
                     success: true,
-                    incident: action.payload,
+                    incident: action.payload || null,
                 },
             });
         }
@@ -385,7 +406,7 @@ export default function incident(state = initialState, action) {
                     incident: {
                         ...state.incident,
                         requesting: false,
-                        error: action.payload.error,
+                        error: action.payload,
                         success: false,
                     },
                 });
@@ -430,24 +451,55 @@ export default function incident(state = initialState, action) {
             });
 
         case 'UPDATE_INCIDENT_TIMELINE': {
-            const incident = Object.assign({}, state.incident.incident);
-            if (
-                incident &&
-                incident.timeline &&
-                action.payload.incidentId === incident._id
-            ) {
-                incident.timeline = [...incident.timeline, action.payload];
-                if (incident.timeline.length > 10) incident.timeline.pop();
-                return Object.assign({}, state, {
-                    incident: {
-                        ...state.incident,
-                        incident,
-                        count: state.incident.count + 1,
-                    },
-                });
-            } else {
+            let idNumber =
+                action.payload.incidentId && action.payload.incidentId.idNumber;
+            idNumber = idNumber - 1;
+            if (!action || !action.payload) {
                 return state;
             }
+
+            if (Object.keys(state.incidentMessages).length === 0) {
+                return {
+                    ...state,
+                    incidentMessages: {
+                        [idNumber]: {
+                            internal: {
+                                incidentMessages: [action.payload],
+                            },
+                        },
+                    },
+                };
+            }
+            if (!state.incidentMessages[idNumber]) {
+                return {
+                    ...state,
+                    incidentMessages: {
+                        ...state.incidentMessages,
+                        [idNumber]: {
+                            internal: {
+                                incidentMessages: [action.payload],
+                            },
+                        },
+                    },
+                };
+            }
+            return {
+                ...state,
+                incidentMessages: {
+                    ...state.incidentMessages,
+                    [idNumber]: {
+                        ...state.incidentMessages[idNumber],
+                        internal: {
+                            ...state.incidentMessages[idNumber]?.internal,
+                            incidentMessages: [
+                                action.payload,
+                                ...(state.incidentMessages[idNumber]?.internal
+                                    ?.incidentMessages || []),
+                            ],
+                        },
+                    },
+                },
+            };
         }
 
         case types.PROJECT_INCIDENTS_SUCCESS:
@@ -611,7 +663,7 @@ export default function incident(state = initialState, action) {
                 return Object.assign({}, state, {
                     incident: {
                         ...state.incident,
-                        requesting: true,
+                        requesting: false,
                         success: false,
                         error: null,
                         resolving: false,
@@ -965,7 +1017,10 @@ export default function incident(state = initialState, action) {
                     success: true,
                     incidents: state.unresolvedincidents.incidents.map(
                         incident => {
-                            if (incident._id === action.payload.data._id) {
+                            if (
+                                String(incident._id) ===
+                                String(action.payload.data._id)
+                            ) {
                                 return action.payload.data;
                             } else {
                                 return incident;
@@ -982,6 +1037,27 @@ export default function incident(state = initialState, action) {
                         state.incident.incident._id === action.payload.data._id
                             ? action.payload.data
                             : state.incident.incident,
+                },
+                incidents: {
+                    ...state.incidents,
+                    incidents: state.incidents.incidents.map(incident => {
+                        if (
+                            incident._id ===
+                            (action.payload.data.projectId._id ||
+                                action.payload.data.projectId)
+                        ) {
+                            incident.incidents = incident.incidents.map(
+                                inObj => {
+                                    if (inObj._id === action.payload.data._id) {
+                                        inObj = action.payload.data;
+                                    }
+                                    return inObj;
+                                }
+                            );
+                        }
+
+                        return incident;
+                    }),
                 },
             });
 
@@ -993,7 +1069,10 @@ export default function incident(state = initialState, action) {
                     success: true,
                     incidents: state.unresolvedincidents.incidents.map(
                         incident => {
-                            if (incident._id === action.payload.data._id) {
+                            if (
+                                String(incident._id) ===
+                                String(action.payload.data._id)
+                            ) {
                                 return action.payload.data;
                             } else {
                                 return incident;
@@ -1010,6 +1089,27 @@ export default function incident(state = initialState, action) {
                         state.incident.incident._id === action.payload.data._id
                             ? action.payload.data
                             : state.incident.incident,
+                },
+                incidents: {
+                    ...state.incidents,
+                    incidents: state.incidents.incidents.map(incident => {
+                        if (
+                            incident._id ===
+                            (action.payload.data.projectId._id ||
+                                action.payload.data.projectId)
+                        ) {
+                            incident.incidents = incident.incidents.map(
+                                inObj => {
+                                    if (inObj._id === action.payload.data._id) {
+                                        inObj = action.payload.data;
+                                    }
+                                    return inObj;
+                                }
+                            );
+                        }
+
+                        return incident;
+                    }),
                 },
             });
 

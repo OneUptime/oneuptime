@@ -109,7 +109,8 @@ module.exports = {
         } else return {};
     },
     getCountryType: function(phoneNumber) {
-        if (phoneNumber.startsWith('+1')) {
+        if (phoneNumber.startsWith('+1') || phoneNumber.startsWith('+44')) {
+            //return us for canadian,us and uk numbers
             return 'us';
         } else if (
             phoneNumber.startsWith('+53') ||

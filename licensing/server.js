@@ -9,14 +9,14 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Server Shutting Shutdown');
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in server process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -38,7 +38,7 @@ app.use(function(req, res, next) {
         'Access-Control-Allow-Headers',
         'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
     );
-    next();
+    return next();
 });
 
 // Add limit of 10 MB to avoid "Request Entity too large error"

@@ -29,6 +29,8 @@ spec:
                       value: 'production'
                     - name: BACKEND_URL
                       value: {{ template "fyipe.backendHost" . }}
+                    - name: MONGO_URL
+                      value: {{ template "fyipe.mongodbConnectionString" . }}
                     {{- if .Values.saas.isSaasService }}
                     - name: IS_SAAS_SERVICE
                       value: 'true'
@@ -77,3 +79,19 @@ spec:
     {{- end }}
 ---
 ########################################
+
+{{- if .Values.autoScaler.enabled }}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ printf "%s-%s" .Release.Name "status"  }}
+spec:
+  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
+  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ printf "%s-%s" .Release.Name "status"  }}
+  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+---
+{{- end }}

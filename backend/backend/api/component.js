@@ -68,16 +68,23 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         data.projectId = projectId;
 
-        const component = await ComponentService.create(data);
-        const user = await UserService.findOneBy({ _id: req.user.id });
+        const [component, user] = await Promise.all([
+            ComponentService.create(data),
+            UserService.findOneBy({
+                query: { _id: req.user.id },
+                select: 'name _id',
+            }),
+        ]);
 
-        await NotificationService.create(
+        NotificationService.create(
             component.projectId._id,
             `A New Component was Created with name ${component.name} by ${user.name}`,
             user._id,
             'componentaddremove'
         );
-        await RealTimeService.sendComponentCreated(component);
+
+        // run in the background
+        RealTimeService.sendComponentCreated(component);
         return sendItemResponse(req, res, component);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -143,8 +150,17 @@ router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(
 ) {
     try {
         const { slug } = req.params;
+        const populateComponent = [
+            { path: 'projectId', select: 'name' },
+            { path: 'componentCategoryId', select: 'name' },
+        ];
+
+        const selectComponent =
+            '_id createdAt name createdById projectId slug componentCategoryId';
         const component = await ComponentService.findOneBy({
-            slug,
+            query: { slug },
+            select: selectComponent,
+            populate: populateComponent,
         });
 
         return sendItemResponse(req, res, component);
@@ -168,14 +184,26 @@ router.get(
                 ? { projectId: { $in: subProjectIds }, type }
                 : { projectId: { $in: subProjectIds } };
 
-            const components = await ComponentService.findBy(
-                query,
-                req.query.limit || 10,
-                req.query.skip || 0
-            );
-            const count = await ComponentService.countBy({
-                projectId: { $in: subProjectIds },
-            });
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
+
+            const [components, count] = await Promise.all([
+                ComponentService.findBy({
+                    query,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
+                    populate: populateComponent,
+                    select: selectComponent,
+                }),
+                ComponentService.countBy({
+                    projectId: { $in: subProjectIds },
+                }),
+            ]);
             return sendListResponse(req, res, components, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -199,7 +227,18 @@ router.get(
                 ? { _id: componentId, projectId: { $in: subProjectIds }, type }
                 : { _id: componentId, projectId: { $in: subProjectIds } };
 
-            const component = await ComponentService.findOneBy(query);
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
+            const component = await ComponentService.findOneBy({
+                query,
+                select: selectComponent,
+                populate: populateComponent,
+            });
             return sendItemResponse(req, res, component);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -221,12 +260,12 @@ router.post(
                 ? req.user.subProjects.map(project => project._id)
                 : null;
 
-            // Get that component
-            const component = await ComponentService.findOneBy({
+            // Check that component exists
+            const componentCount = await ComponentService.countBy({
                 _id: componentId,
                 projectId: { $in: subProjectIds },
             });
-            if (!component) {
+            if (!componentCount || componentCount === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
                     message: 'Component not Found',
@@ -234,8 +273,10 @@ router.post(
             }
 
             // fetch monitors
+            const select = '_id name';
             let monitors = await MonitorService.findBy({
-                componentId: componentId,
+                query: { componentId: componentId },
+                select,
             });
 
             if (monitors && monitors.length) {
@@ -323,7 +364,18 @@ router.get(
                 : { _id: componentId, projectId: { $in: subProjectIds } };
 
             // Get that component
-            const component = await ComponentService.findOneBy(query);
+            const populateComponent = [
+                { path: 'projectId', select: 'name' },
+                { path: 'componentCategoryId', select: 'name' },
+            ];
+
+            const selectComponent =
+                '_id createdAt name createdById projectId slug componentCategoryId';
+            const component = await ComponentService.findOneBy({
+                query,
+                select: selectComponent,
+                populate: populateComponent,
+            });
             if (!component) {
                 return sendErrorResponse(req, res, {
                     code: 404,
@@ -334,12 +386,73 @@ router.get(
             const limit = 1000;
             const skip = req.query.skip || 0;
 
-            // fetch monitors
-            const monitors = await MonitorService.findBy(
-                { componentId: componentId },
-                limit,
-                skip
-            );
+            const populateApplicationSecurity = [
+                {
+                    path: 'componentId',
+                    select: '_id slug name slug',
+                },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
+            const selectContainerLog =
+                'securityId componentId data deleted deleteAt';
+
+            const populateContainerLog = [
+                { path: 'securityId', select: 'name slug' },
+                { path: 'componentId', select: 'name slug' },
+            ];
+            const [
+                monitors,
+                containerSecurity,
+                applicationSecurity,
+                applicationLogs,
+                errorTrackers,
+                performanceTrackers,
+            ] = await Promise.all([
+                MonitorService.findBy({
+                    query: { componentId: componentId },
+                    limit,
+                    skip,
+                    select: '_id name slug type createdAt',
+                }),
+                ContainerSecurityService.findBy({
+                    query: { componentId: componentId },
+                    limit,
+                    skip,
+                    select: '_id name createdAt slug',
+                }),
+                ApplicationSecurityService.findBy({
+                    query: { componentId: componentId },
+                    limit,
+                    skip,
+                    select: selectApplicationSecurity,
+                    populate: populateApplicationSecurity,
+                }),
+                ApplicationLogService.getApplicationLogsByComponentId(
+                    componentId,
+                    limit,
+                    skip
+                ),
+                ErrorTrackerService.getErrorTrackersByComponentId(
+                    componentId,
+                    limit,
+                    skip
+                ),
+                PerformanceTrackerService.getPerformanceTrackerByComponentId(
+                    componentId,
+                    limit,
+                    skip
+                ),
+            ]);
+
             monitors.map(elem => {
                 const newElement = {
                     _id: elem._id,
@@ -363,18 +476,16 @@ router.get(
                 return newElement;
             });
 
-            // fetch container security
-            const containerSecurity = await ContainerSecurityService.findBy(
-                { componentId: componentId },
-                limit,
-                skip
-            );
             await Promise.all(
                 containerSecurity.map(async elem => {
                     const securityLog = await ContainerSecurityLogService.findOneBy(
                         {
-                            securityId: elem._id,
-                            componentId,
+                            query: {
+                                securityId: elem._id,
+                                componentId,
+                            },
+                            select: selectContainerLog,
+                            populate: populateContainerLog,
                         }
                     );
                     const newElement = {
@@ -392,19 +503,32 @@ router.get(
                 })
             );
 
-            // fetch application security
-            const applicationSecurity = await ApplicationSecurityService.findBy(
-                { componentId: componentId },
-                limit,
-                skip
-            );
             await Promise.all(
                 applicationSecurity.map(async elem => {
                     // get the security log
+
+                    const populateApplicationSecurityLog = [
+                        {
+                            path: 'componentId',
+                            select: '_id slug name slug',
+                        },
+                        {
+                            path: 'securityId',
+                            select:
+                                '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
+                        },
+                    ];
+
+                    const selectApplicationSecurityLog =
+                        '_id securityId componentId data';
                     const securityLog = await ApplicationSecurityLogService.findOneBy(
                         {
-                            securityId: elem._id,
-                            componentId,
+                            query: {
+                                securityId: elem._id,
+                                componentId,
+                            },
+                            select: selectApplicationSecurityLog,
+                            populate: populateApplicationSecurityLog,
                         }
                     );
                     const newElement = {
@@ -420,13 +544,6 @@ router.get(
                     totalResources.push(newElement);
                     return newElement;
                 })
-            );
-
-            // fetch application logs
-            const applicationLogs = await ApplicationLogService.getApplicationLogsByComponentId(
-                componentId,
-                limit,
-                skip
             );
 
             await Promise.all(
@@ -455,21 +572,26 @@ router.get(
                 })
             );
 
-            // fetch error trackers
-            const errorTrackers = await ErrorTrackerService.getErrorTrackersByComponentId(
-                componentId,
-                limit,
-                skip
-            );
-
             await Promise.all(
                 errorTrackers.map(async errorTracker => {
                     let errorStatus = 'No Errors yet';
-                    const issues = await IssueService.findBy(
-                        { errorTrackerId: errorTracker._id },
-                        1,
-                        0
-                    );
+
+                    const populateIssue = [
+                        { path: 'errorTrackerId', select: 'name' },
+                        { path: 'resolvedById', select: 'name' },
+                        { path: 'ignoredById', select: 'name' },
+                    ];
+
+                    const selectIssue =
+                        'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+
+                    const issues = await IssueService.findBy({
+                        query: { errorTrackerId: errorTracker._id },
+                        limit: 1,
+                        skip: 0,
+                        select: selectIssue,
+                        populate: populateIssue,
+                    });
                     if (issues.length > 0) errorStatus = 'Listening for Errors';
                     const newElement = {
                         _id: errorTracker._id,
@@ -486,20 +608,18 @@ router.get(
                 })
             );
 
-            // fetch performance tracker
-            const performanceTrackers = await PerformanceTrackerService.getPerformanceTrackerByComponentId(
-                componentId,
-                limit,
-                skip
-            );
-
             await Promise.all(
                 performanceTrackers.map(async performanceTracker => {
                     let trackerStatus = 'Not monitoring performance';
                     const metrics = await PerformanceTrackerMetricService.findBy(
-                        { performanceTrackerId: performanceTracker._id },
-                        1,
-                        0
+                        {
+                            query: {
+                                performanceTrackerId: performanceTracker._id,
+                            },
+                            limit: 1,
+                            skip: 0,
+                            select: '_id',
+                        }
                     );
                     if (metrics.length > 0) {
                         trackerStatus = 'Monitoring performance';
@@ -518,6 +638,7 @@ router.get(
                     return newElement;
                 })
             );
+
             // return response
             return sendItemResponse(req, res, {
                 totalResources,
@@ -555,11 +676,25 @@ router.get(
             });
 
             let errorTrackers = [];
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                {
+                    path: 'componentId',
+                    select: 'name slug projectId',
+                    populate: [{ path: 'projectId', select: 'name' }],
+                },
+                { path: 'resourceCategory', select: 'name' },
+            ];
             await Promise.all(
                 allComponents.map(async component => {
                     const componentErrorTrackers = await ErrorTrackerService.findBy(
                         {
-                            componentId: component._id,
+                            query: {
+                                componentId: component._id,
+                            },
+                            select,
+                            populate,
                         }
                     );
                     errorTrackers = [

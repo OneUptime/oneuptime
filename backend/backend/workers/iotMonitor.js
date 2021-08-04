@@ -33,13 +33,39 @@ module.exports = {
 
 const job = async (monitor, res) => {
     try {
+        const populate = [
+            {
+                path: 'monitors.monitorId',
+                select: 'name slug componentId projectId type',
+                populate: { path: 'componentId', select: 'name slug' },
+            },
+            { path: 'createdById', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'acknowledgedBy', select: 'name' },
+            { path: 'incidentPriority', select: 'name color' },
+            {
+                path: 'acknowledgedByIncomingHttpRequest',
+                select: 'name',
+            },
+            { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+            { path: 'createdByIncomingHttpRequest', select: 'name' },
+            { path: 'probes.probeId', select: 'name _id' },
+        ];
+        const select =
+            'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
         if (res) {
             await MonitorService.setMonitorTime(monitor._id, res, 'online');
             let incident = await IncidentService.findBy({
-                monitorId: monitor._id,
-                createdById: null,
-                resolved: false,
-                manuallyCreated: false,
+                query: {
+                    monitorId: monitor._id,
+                    createdById: null,
+                    resolved: false,
+                    manuallyCreated: false,
+                },
+                select,
+                populate,
             });
             if (incident.length) {
                 incident = await IncidentService.resolve(
@@ -51,10 +77,14 @@ const job = async (monitor, res) => {
         } else {
             await MonitorService.setMonitorTime(monitor._id, 0, 'offline');
             let incident1 = await IncidentService.findBy({
-                monitorId: monitor._id,
-                createdById: null,
-                resolved: false,
-                manuallyCreated: false,
+                query: {
+                    monitorId: monitor._id,
+                    createdById: null,
+                    resolved: false,
+                    manuallyCreated: false,
+                },
+                select,
+                populate,
             });
             if (!incident1.length) {
                 incident1 = await IncidentService.create({

@@ -215,7 +215,7 @@ const AutomatedTabularList = props => {
                                         >
                                             <div className="db-ListViewItem-cellContent Box-root Padding-all--8 bs-table-display-end">
                                                 <button
-                                                    className="bs-Button"
+                                                    className="bs-Button bs-Button--icon bs-Button--play"
                                                     title="run"
                                                     disabled={false}
                                                     onClick={() =>
@@ -229,6 +229,7 @@ const AutomatedTabularList = props => {
                                                                     projectId,
                                                                     automatedSlug:
                                                                         script.slug,
+                                                                    navigate: true,
                                                                 }
                                                             ),
                                                         })
@@ -237,7 +238,7 @@ const AutomatedTabularList = props => {
                                                     <span>Run</span>
                                                 </button>
                                                 <button
-                                                    className="bs-Button"
+                                                    className="bs-Button bs-DeprecatedButton"
                                                     title="view"
                                                     disabled={false}
                                                     onClick={() => {
@@ -258,7 +259,7 @@ const AutomatedTabularList = props => {
                         <div
                             style={{ textAlign: 'center', paddingTop: '15px' }}
                         >
-                            You have no script yet!
+                            You don&apos;t have any scripts so far.
                         </div>
                     </ShouldRender>
                 </div>

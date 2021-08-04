@@ -4,7 +4,6 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ApplicationSecurityService = require('../services/applicationSecurityService');
-const ApplicationScannerService = require('../services/applicationScannerService');
 const RealTimeService = require('../services/realTimeService');
 const ResourceCategoryService = require('../services/resourceCategoryService');
 
@@ -107,12 +106,12 @@ router.put(
             if (!resourceCategory || resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
             } else {
-                const resourceCategoryModel = await ResourceCategoryService.findBy(
+                const resourceCategoryCount = await ResourceCategoryService.countBy(
                     {
                         _id: resourceCategory,
                     }
                 );
-                if (resourceCategoryModel) {
+                if (resourceCategoryCount && resourceCategoryCount) {
                     data.resourceCategory = resourceCategory;
                 } else {
                     unsetData = { resourceCategory: '' };
@@ -142,9 +141,27 @@ router.get(
     async (req, res) => {
         try {
             const { applicationSecurityId } = req.params;
+
+            const populateApplicationSecurity = [
+                { path: 'componentId', select: '_id slug name slug' },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             const applicationSecurity = await ApplicationSecurityService.findOneBy(
                 {
-                    _id: applicationSecurityId,
+                    query: {
+                        _id: applicationSecurityId,
+                    },
+                    select: selectApplicationSecurity,
+                    populate: populateApplicationSecurity,
                 }
             );
 
@@ -173,9 +190,27 @@ router.get(
     async (req, res) => {
         try {
             const { applicationSecuritySlug } = req.params;
+
+            const populateApplicationSecurity = [
+                { path: 'componentId', select: '_id slug name slug' },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             const applicationSecurity = await ApplicationSecurityService.findOneBy(
                 {
-                    slug: applicationSecuritySlug,
+                    query: {
+                        slug: applicationSecuritySlug,
+                    },
+                    select: selectApplicationSecurity,
+                    populate: populateApplicationSecurity,
                 }
             );
 
@@ -204,9 +239,26 @@ router.get(
     async (req, res) => {
         try {
             const { componentId } = req.params;
+            const populateApplicationSecurity = [
+                { path: 'componentId', select: '_id slug name slug' },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             const applicationSecurities = await ApplicationSecurityService.findBy(
                 {
-                    componentId,
+                    query: {
+                        componentId,
+                    },
+                    select: selectApplicationSecurity,
+                    populate: populateApplicationSecurity,
                 }
             );
 
@@ -272,8 +324,26 @@ router.get(
     async (req, res) => {
         try {
             const { credentialId } = req.params;
+            const populateApplicationSecurity = [
+                {
+                    path: 'componentId',
+                    select: '_id slug name slug',
+                },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             const response = await ApplicationSecurityService.findBy({
-                gitCredential: credentialId,
+                query: { gitCredential: credentialId },
+                select: selectApplicationSecurity,
+                populate: populateApplicationSecurity,
             });
 
             return sendItemResponse(req, res, response);
@@ -294,10 +364,9 @@ router.post(
     async (req, res) => {
         try {
             const { applicationSecurityId } = req.params;
-            let applicationSecurity = await ApplicationSecurityService.findOneBy(
-                { _id: applicationSecurityId }
+            const applicationSecurity = await ApplicationSecurityService.findOneBy(
+                { query: { _id: applicationSecurityId }, select: '_id' }
             );
-
             if (!applicationSecurity) {
                 const error = new Error(
                     'Application Security not found or does not exist'
@@ -305,20 +374,14 @@ router.post(
                 error.code = 400;
                 return sendErrorResponse(req, res, error);
             }
+            const updatedApplicationSecurity = await ApplicationSecurityService.updateOneBy(
+                { _id: applicationSecurityId },
+                { scanned: false }
+            ); //This helps the application scanner to pull the application
 
-            // decrypt password
-            applicationSecurity = await ApplicationSecurityService.decryptPassword(
-                applicationSecurity
-            );
-
-            const securityLog = await ApplicationScannerService.scanApplicationSecurity(
-                applicationSecurity
-            );
-            global.io.emit(
-                `securityLog_${applicationSecurity._id}`,
-                securityLog
-            );
-            return sendItemResponse(req, res, securityLog);
+            RealTimeService.handleScanning({
+                security: updatedApplicationSecurity,
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

@@ -1,19 +1,19 @@
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Unhandled rejection in process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -40,7 +40,7 @@ app.use('*', function(req, res, next) {
     if (process.env && process.env.PRODUCTION) {
         res.set('Cache-Control', 'public, max-age=86400');
     } else res.set('Cache-Control', 'no-cache');
-    next();
+    return next();
 });
 
 app.set('views', path.join(__dirname, 'views'));

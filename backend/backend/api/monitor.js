@@ -235,7 +235,15 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             }
         }
         data.projectId = projectId;
-        const monitor = await MonitorService.create(data);
+
+        const [monitor, user] = await Promise.all([
+            MonitorService.create(data),
+            UserService.findOneBy({
+                query: { _id: req.user.id },
+                select: 'name _id',
+            }),
+        ]);
+
         if (data.callScheduleIds && data.callScheduleIds.length) {
             await ScheduleService.addMonitorToSchedules(
                 data.callScheduleIds,
@@ -243,16 +251,15 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             );
         }
 
-        const user = await UserService.findOneBy({ _id: req.user.id });
-
-        await NotificationService.create(
-            monitor.projectId._id,
+        NotificationService.create(
+            monitor.projectId._id || monitor.projectId,
             `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
             user._id,
             'monitoraddremove'
         );
 
-        await RealTimeService.sendMonitorCreated(monitor);
+        // RUN REALTIME SERVICE IN THE BACKGROUND
+        RealTimeService.sendMonitorCreated(monitor);
 
         return sendItemResponse(req, res, monitor);
     } catch (error) {
@@ -390,6 +397,7 @@ router.put(
             if (!data.resourceCategory || data.resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
             }
+
             const monitor = await MonitorService.updateOneBy(
                 { _id: req.params.monitorId },
                 data,
@@ -447,14 +455,28 @@ router.get(
                 ? { projectId: { $in: subProjectIds }, type }
                 : { projectId: { $in: subProjectIds } };
 
-            const monitors = await MonitorService.findBy(
-                query,
-                req.query.limit || 10,
-                req.query.skip || 0
-            );
-            const count = await MonitorService.countBy({
-                projectId: { $in: subProjectIds },
-            });
+            const select =
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
+            const populate = [
+                {
+                    path: 'monitorSla',
+                    select: 'frequency _id',
+                },
+                { path: 'componentId', select: 'name' },
+                { path: 'incidentCommunicationSla', select: '_id' },
+            ];
+            const [monitors, count] = await Promise.all([
+                MonitorService.findBy({
+                    query,
+                    limit: req.query.limit || 10,
+                    skip: req.query.skip || 0,
+                    select,
+                    populate,
+                }),
+                MonitorService.countBy({
+                    projectId: { $in: subProjectIds },
+                }),
+            ]);
             return sendListResponse(req, res, monitors, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -478,7 +500,21 @@ router.get(
                 ? { _id: monitorId, projectId: { $in: subProjectIds }, type }
                 : { _id: monitorId, projectId: { $in: subProjectIds } };
 
-            const monitor = await MonitorService.findOneBy(query);
+            const select =
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
+            const populate = [
+                {
+                    path: 'monitorSla',
+                    select: 'frequency _id',
+                },
+                { path: 'componentId', select: 'name' },
+                { path: 'incidentCommunicationSla', select: '_id' },
+            ];
+            const monitor = await MonitorService.findOneBy({
+                query,
+                select,
+                populate,
+            });
             return sendItemResponse(req, res, monitor);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -505,6 +541,16 @@ router.post(
             } = req.body;
             const monitorId = req.params.monitorId;
             const query = {};
+            const selectMonitorLog =
+                'monitorId probeId status responseTime responseStatus responseBody responseHeader cpuLoad avgCpuLoad cpuCores memoryUsed totalMemory swapUsed storageUsed totalStorage storageUsage mainTemp maxTemp incidentIds createdAt sslCertificate  kubernetesLog scriptMetadata';
+
+            const populateMonitorLog = [
+                {
+                    path: 'probeId',
+                    select:
+                        'createdAt lastAlive probeKey probeName version probeImage deleted',
+                },
+            ];
             if (monitorId && !incidentId) query.monitorId = monitorId;
             if (incidentId) query.incidentIds = incidentId;
             if (probeValue) query.probeId = probeValue;
@@ -512,13 +558,16 @@ router.post(
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
-            // Call the MonitorService.
-            const monitorLogs = await MonitorLogService.findBy(
-                query,
-                limit || 10,
-                skip || 0
-            );
-            const count = await MonitorLogService.countBy(query);
+            const [monitorLogs, count] = await Promise.all([
+                MonitorLogService.findBy({
+                    query,
+                    limit: limit || 10,
+                    skip: skip || 0,
+                    populate: populateMonitorLog,
+                    select: selectMonitorLog,
+                }),
+                MonitorLogService.countBy(query),
+            ]);
             return sendListResponse(req, res, monitorLogs, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -566,41 +615,48 @@ router.post(
             const data = req.body;
             data.monitorId = monitorId;
 
-            const monitor = await MonitorService.findOneBy({ _id: monitorId });
+            const select = 'type criteria';
+            const monitor = await MonitorService.findOneBy({
+                query: { _id: monitorId },
+                select,
+            });
 
             const {
                 stat: validUp,
                 successReasons: upSuccessReasons,
                 failedReasons: upFailedReasons,
-            } = await (monitor && monitor.criteria && monitor.criteria.up
-                ? ProbeService.conditions(
-                      monitor.type,
-                      monitor.criteria.up,
-                      data
-                  )
-                : { stat: false, failedReasons: [], successReasons: [] });
+            } =
+                monitor && monitor.criteria && monitor.criteria.up
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.up,
+                          data
+                      )
+                    : { stat: false, failedReasons: [], successReasons: [] };
             const {
                 stat: validDegraded,
                 successReasons: degradedSuccessReasons,
                 failedReasons: degradedFailedReasons,
-            } = await (monitor && monitor.criteria && monitor.criteria.degraded
-                ? ProbeService.conditions(
-                      monitor.type,
-                      monitor.criteria.degraded,
-                      data
-                  )
-                : { stat: false, failedReasons: [], successReasons: [] });
+            } =
+                monitor && monitor.criteria && monitor.criteria.degraded
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.degraded,
+                          data
+                      )
+                    : { stat: false, failedReasons: [], successReasons: [] };
             const {
                 stat: validDown,
                 successReasons: downSuccessReasons,
                 failedReasons: downFailedReasons,
-            } = await (monitor && monitor.criteria && monitor.criteria.down
-                ? ProbeService.conditions(
-                      monitor.type,
-                      monitor.criteria.down,
-                      data
-                  )
-                : { stat: false, failedReasons: [], successReasons: [] });
+            } =
+                monitor && monitor.criteria && monitor.criteria.down
+                    ? ProbeService.conditions(
+                          monitor.type,
+                          monitor.criteria.down,
+                          data
+                      )
+                    : { stat: false, failedReasons: [], successReasons: [] };
 
             if (validUp) {
                 data.status = 'online';
@@ -719,8 +775,20 @@ router.get(
     isAuthorized,
     async function(req, res) {
         try {
+            const selectLighthouseLogs =
+                'monitorId probeId data url performance accessibility bestPractices seo pwa createdAt scanning';
+
+            const populateLighthouseLogs = [
+                {
+                    path: 'probeId',
+                    select:
+                        'probeName probeKey version lastAlive deleted probeImage',
+                },
+            ];
             const lighthouseIssue = await LighthouseLogService.findOneBy({
-                _id: req.params.issueId,
+                query: { _id: req.params.issueId },
+                select: selectLighthouseLogs,
+                populate: populateLighthouseLogs,
             });
 
             return sendItemResponse(req, res, lighthouseIssue);
@@ -846,9 +914,11 @@ router.get(
     async function(req, res) {
         try {
             const { projectId } = req.params;
+            const select =
+                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
             const monitors = await MonitorService.findBy({
-                projectId,
-                breachedMonitorSla: true,
+                query: { projectId, breachedMonitorSla: true },
+                select,
             });
             return sendItemResponse(req, res, monitors);
         } catch (error) {
@@ -885,19 +955,22 @@ router.post(
     async function(req, res) {
         try {
             const { monitorId } = req.params;
-            const monitor = await MonitorService.findOneBy({ _id: monitorId });
-            const disabled = monitor.disabled ? false : true;
-            const newMonitor = await MonitorService.updateOneBy(
-                {
-                    _id: monitorId,
-                },
-                { disabled: disabled }
-            );
-            await ProbeService.createMonitorDisabledStatus({
-                monitorId,
-                manuallyCreated: true,
-                status: disabled ? 'disabled' : 'enable',
+            const select = 'disabled';
+            const monitor = await MonitorService.findOneBy({
+                query: { _id: monitorId },
+                select,
             });
+
+            const disabled = monitor.disabled ? false : true;
+            const [newMonitor] = await Promise.all([
+                MonitorService.disableMonitor(monitorId),
+
+                ProbeService.createMonitorDisabledStatus({
+                    monitorId,
+                    manuallyCreated: true,
+                    status: disabled ? 'disabled' : 'enable',
+                }),
+            ]);
             return sendItemResponse(req, res, newMonitor);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -931,13 +1004,18 @@ router.post('/:monitorId/calculate-time', async function(req, res) {
         const { monitorId } = req.params;
         const { statuses, start, range } = req.body;
 
-        const monitor = await MonitorService.findOneBy({ _id: monitorId });
+        const select = '_id';
+        const [monitor, result] = await Promise.all([
+            MonitorService.findOneBy({ query: { _id: monitorId }, select }),
+            MonitorService.calcTime(statuses, start, range),
+        ]);
+
         if (!monitor) {
             const error = new Error('Monitor not found or does not exist');
             error.code = 400;
             throw error;
         }
-        const result = await MonitorService.calcTime(statuses, start, range);
+
         result.monitorId = monitor._id;
 
         return sendItemResponse(req, res, result);

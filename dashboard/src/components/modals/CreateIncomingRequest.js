@@ -69,7 +69,7 @@ class CreateIncomingRequest extends Component {
         const postObj = {};
 
         postObj.name = values.name;
-        postObj.isDefault = values.isDefault;
+        postObj.selectAllMonitors = values.selectAllMonitors;
 
         postObj.filterMatch = values.filterMatch;
         postObj.filters =
@@ -120,7 +120,7 @@ class CreateIncomingRequest extends Component {
             }));
 
             postObj.monitors = [];
-            if (!postObj.isDefault) {
+            if (!postObj.selectAllMonitors) {
                 if (values.monitors && values.monitors.length > 0) {
                     const monitors = values.monitors.filter(
                         monitorId => typeof monitorId === 'string'
@@ -162,6 +162,9 @@ class CreateIncomingRequest extends Component {
             if (values.incidentState === 'others') {
                 postObj.incidentState = values.customIncidentState;
             }
+            if (values.post_statuspage) {
+                postObj.post_statuspage = values.post_statuspage;
+            }
         }
 
         if (values.nextAction && values.nextAction === 'acknowledgeIncident') {
@@ -188,115 +191,204 @@ class CreateIncomingRequest extends Component {
 
     renderMonitors = ({ fields }) => {
         const { monitorError } = this.state;
+        const { formValues } = this.props;
         return (
             <>
-                <div
-                    style={{
-                        width: '100%',
-                        position: 'relative',
-                    }}
-                >
-                    <button
-                        id="addMoreMonitor"
-                        className="Button bs-ButtonLegacy ActionIconParent"
-                        style={{
-                            position: 'absolute',
-                            zIndex: 1,
-                            right: 0,
-                        }}
-                        type="button"
-                        onClick={() => {
-                            fields.push();
-                        }}
+                {formValues && formValues.selectAllMonitors && (
+                    <div
+                        className="bs-Fieldset-row"
+                        style={{ padding: 0, width: '100%' }}
                     >
-                        <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
-                            <span>Add Monitor</span>
-                        </span>
-                    </button>
-                    {fields.map((field, index) => {
-                        return (
-                            <div
-                                style={{
-                                    width: '65%',
-                                    marginBottom: 10,
-                                }}
-                                key={index}
-                            >
-                                <Field
-                                    className="db-select-nw Table-cell--width--maximized"
-                                    component={RenderSelect}
-                                    name={field}
-                                    id={`monitorfield_${index}`}
-                                    placeholder="Monitor"
-                                    style={{
-                                        height: '28px',
-                                        width: '100%',
-                                    }}
-                                    options={[
-                                        {
-                                            value: '',
-                                            label: 'Select a Monitor',
-                                        },
-                                        ...(this.props.monitors &&
-                                        this.props.monitors.length > 0
-                                            ? this.props.monitors.map(
-                                                  monitor => ({
-                                                      value: monitor._id,
-                                                      label: `${monitor.projectId.name} / ${monitor.componentId.name} / ${monitor.name}`,
-                                                  })
-                                              )
-                                            : []),
-                                    ]}
-                                />
-                                <button
-                                    id="removeMonitor"
-                                    className="Button bs-ButtonLegacy ActionIconParent"
-                                    style={{
-                                        marginTop: 10,
-                                    }}
-                                    type="button"
-                                    onClick={() => {
-                                        fields.remove(index);
-                                    }}
-                                >
-                                    <span className="bs-Button bs-Button--icon bs-Button--delete">
-                                        <span>Remove Monitor</span>
-                                    </span>
-                                </button>
-                            </div>
-                        );
-                    })}
-                    {monitorError && (
                         <div
-                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                            style={{
-                                marginTop: '5px',
-                                alignItems: 'center',
-                            }}
+                            className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                            style={{ padding: 0 }}
                         >
                             <div
-                                className="Box-root Margin-right--8"
-                                style={{ marginTop: '2px' }}
-                            >
-                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                            </div>
-                            <div className="Box-root">
-                                <span
-                                    id="monitorError"
-                                    style={{ color: 'red' }}
+                                className="Box-root"
+                                style={{
+                                    height: '5px',
+                                }}
+                            ></div>
+                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                <label
+                                    className="Checkbox"
+                                    htmlFor="selectAllMonitorsBox"
                                 >
-                                    {monitorError}
-                                </span>
+                                    <Field
+                                        component="input"
+                                        type="checkbox"
+                                        name="selectAllMonitors"
+                                        className="Checkbox-source"
+                                        id="selectAllMonitorsBox"
+                                    />
+                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                        <div className="Checkbox-target Box-root">
+                                            <div className="Checkbox-color Box-root"></div>
+                                        </div>
+                                    </div>
+                                    <div className="Checkbox-label Box-root Margin-left--8">
+                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                            <span>All Monitors Selected</span>
+                                        </span>
+                                    </div>
+                                </label>
                             </div>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
+                {formValues && !formValues.selectAllMonitors && (
+                    <div
+                        style={{
+                            width: '100%',
+                            position: 'relative',
+                        }}
+                    >
+                        <button
+                            id="addMoreMonitor"
+                            className="Button bs-ButtonLegacy ActionIconParent"
+                            style={{
+                                position: 'absolute',
+                                zIndex: 1,
+                                right: 0,
+                            }}
+                            type="button"
+                            onClick={() => {
+                                fields.push();
+                            }}
+                        >
+                            <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                                <span>Add Monitor</span>
+                            </span>
+                        </button>
+                        {fields.length === 0 && !formValues.selectAllMonitors && (
+                            <div
+                                className="bs-Fieldset-row"
+                                style={{ padding: 0, width: '100%' }}
+                            >
+                                <div
+                                    className="bs-Fieldset-fields bs-Fieldset-fields--wide"
+                                    style={{ padding: 0 }}
+                                >
+                                    <div
+                                        className="Box-root"
+                                        style={{
+                                            height: '5px',
+                                        }}
+                                    ></div>
+                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                        <label
+                                            className="Checkbox"
+                                            htmlFor="selectAllMonitorsBox"
+                                        >
+                                            <Field
+                                                component="input"
+                                                type="checkbox"
+                                                name="selectAllMonitors"
+                                                className="Checkbox-source"
+                                                id="selectAllMonitorsBox"
+                                            />
+                                            <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                <div className="Checkbox-target Box-root">
+                                                    <div className="Checkbox-color Box-root"></div>
+                                                </div>
+                                            </div>
+                                            <div className="Checkbox-label Box-root Margin-left--8">
+                                                <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                    <span>
+                                                        Select All Monitors
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {fields.map((field, index) => {
+                            return (
+                                <div
+                                    style={{
+                                        width: '65%',
+                                        marginBottom: 10,
+                                    }}
+                                    key={index}
+                                >
+                                    <Field
+                                        className="db-select-nw Table-cell--width--maximized"
+                                        component={RenderSelect}
+                                        name={field}
+                                        id={`monitorfield_${index}`}
+                                        placeholder="Monitor"
+                                        style={{
+                                            height: '28px',
+                                            width: '100%',
+                                        }}
+                                        options={[
+                                            {
+                                                value: '',
+                                                label: 'Select a Monitor',
+                                            },
+                                            ...(this.props.monitors &&
+                                            this.props.monitors.length > 0
+                                                ? this.props.monitors.map(
+                                                      monitor => ({
+                                                          value: monitor._id,
+                                                          label: `${monitor.componentId.name} / ${monitor.name}`,
+                                                      })
+                                                  )
+                                                : []),
+                                        ]}
+                                    />
+                                    <button
+                                        id="removeMonitor"
+                                        className="Button bs-ButtonLegacy ActionIconParent"
+                                        style={{
+                                            marginTop: 10,
+                                        }}
+                                        type="button"
+                                        onClick={() => {
+                                            fields.remove(index);
+                                        }}
+                                    >
+                                        <span className="bs-Button bs-Button--icon bs-Button--delete">
+                                            <span>Remove Monitor</span>
+                                        </span>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                        {monitorError && (
+                            <div
+                                className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                style={{
+                                    marginTop: '5px',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <div
+                                    className="Box-root Margin-right--8"
+                                    style={{ marginTop: '2px' }}
+                                >
+                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                </div>
+                                <div className="Box-root">
+                                    <span
+                                        id="monitorError"
+                                        style={{ color: 'red' }}
+                                    >
+                                        {monitorError}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </>
         );
     };
 
     renderFilters = ({ fields }) => {
-        const { monitorError, filterShowing } = this.state;
+        const { filterShowing } = this.state;
         const { formValues, monitorCustomFields, customFields } = this.props;
 
         if (
@@ -709,30 +801,6 @@ class CreateIncomingRequest extends Component {
                             </div>
                         );
                     })}
-                    {monitorError && (
-                        <div
-                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                            style={{
-                                marginTop: '5px',
-                                alignItems: 'center',
-                            }}
-                        >
-                            <div
-                                className="Box-root Margin-right--8"
-                                style={{ marginTop: '2px' }}
-                            >
-                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                            </div>
-                            <div className="Box-root">
-                                <span
-                                    id="monitorError"
-                                    style={{ color: 'red' }}
-                                >
-                                    {monitorError}
-                                </span>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </>
         );
@@ -1091,70 +1159,6 @@ class CreateIncomingRequest extends Component {
                                             </div>
                                         </fieldset>
 
-                                        <fieldset>
-                                            <div className="bs-Fieldset-rows">
-                                                <div
-                                                    className="bs-Fieldset-row"
-                                                    style={{ padding: 0 }}
-                                                >
-                                                    <label
-                                                        className="bs-Fieldset-label Text-align--left"
-                                                        htmlFor="updateIncidentNote"
-                                                        style={{
-                                                            flexBasis: '20%',
-                                                        }}
-                                                    >
-                                                        <span></span>
-                                                    </label>
-                                                    <div
-                                                        className="bs-Fieldset-fields"
-                                                        style={{
-                                                            paddingTop: '6px',
-                                                            flexBasis: '80%',
-                                                            maxWidth: '80%',
-                                                        }}
-                                                    >
-                                                        <div className="bs-Fieldset-field">
-                                                            <label
-                                                                className="bs-Radio"
-                                                                style={{
-                                                                    marginRight:
-                                                                        '12px',
-                                                                }}
-                                                                htmlFor="updateIncidentNote"
-                                                            >
-                                                                <Field
-                                                                    component="input"
-                                                                    type="radio"
-                                                                    name="nextAction"
-                                                                    className="bs-Radio-source"
-                                                                    id="updateIncidentNote"
-                                                                    value="updateIncidentNote"
-                                                                    style={{
-                                                                        width: 0,
-                                                                    }}
-                                                                />
-                                                                <span className="bs-Radio-button"></span>
-                                                                <div
-                                                                    className="Box-root"
-                                                                    style={{
-                                                                        paddingLeft:
-                                                                            '5px',
-                                                                    }}
-                                                                >
-                                                                    <span>
-                                                                        Update
-                                                                        Incident
-                                                                        Note
-                                                                    </span>
-                                                                </div>
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </fieldset>
-
                                         <fieldset className="Margin-bottom--16">
                                             <div className="bs-Fieldset-rows">
                                                 <div
@@ -1220,10 +1224,9 @@ class CreateIncomingRequest extends Component {
                                         </fieldset>
 
                                         {formValues &&
-                                            !formValues.isDefault &&
                                             formValues.nextAction ===
                                                 'createIncident' && (
-                                                <fieldset className="Margin-bottom--16">
+                                                <fieldset className="Margin-bottom--4">
                                                     <div className="bs-Fieldset-rows">
                                                         <div
                                                             className="bs-Fieldset-row"
@@ -1297,7 +1300,7 @@ class CreateIncomingRequest extends Component {
                                                                 className="bs-Fieldset-fields"
                                                                 style={{
                                                                     paddingTop:
-                                                                        '6px',
+                                                                        '0px',
                                                                     flexBasis:
                                                                         '80%',
                                                                     maxWidth:
@@ -1336,82 +1339,6 @@ class CreateIncomingRequest extends Component {
                                                                                 Create
                                                                                 separate
                                                                                 incidents
-                                                                            </span>
-                                                                        </div>
-                                                                    </label>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </fieldset>
-                                            )}
-
-                                        {formValues &&
-                                            formValues.nextAction ===
-                                                'createIncident' && (
-                                                <fieldset className="Margin-bottom--16">
-                                                    <div className="bs-Fieldset-rows">
-                                                        <div
-                                                            className="bs-Fieldset-row"
-                                                            style={{
-                                                                padding: 0,
-                                                            }}
-                                                        >
-                                                            <label
-                                                                className="bs-Fieldset-label Text-align--left"
-                                                                htmlFor="isDefault"
-                                                                style={{
-                                                                    flexBasis:
-                                                                        '20%',
-                                                                }}
-                                                            >
-                                                                <span></span>
-                                                            </label>
-                                                            <div
-                                                                className="bs-Fieldset-fields"
-                                                                style={{
-                                                                    paddingTop:
-                                                                        '6px',
-                                                                    flexBasis:
-                                                                        '80%',
-                                                                    maxWidth:
-                                                                        '80%',
-                                                                }}
-                                                            >
-                                                                <div className="bs-Fieldset-field">
-                                                                    <label
-                                                                        className="Checkbox"
-                                                                        style={{
-                                                                            marginRight:
-                                                                                '12px',
-                                                                        }}
-                                                                        htmlFor="isDefault"
-                                                                    >
-                                                                        <Field
-                                                                            component="input"
-                                                                            type="checkbox"
-                                                                            name="isDefault"
-                                                                            className="Checkbox-source"
-                                                                            id="isDefault"
-                                                                        />
-                                                                        <div className="Checkbox-box Box-root Margin-right--2">
-                                                                            <div className="Checkbox-target Box-root">
-                                                                                <div className="Checkbox-color Box-root"></div>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div
-                                                                            className="Box-root"
-                                                                            style={{
-                                                                                paddingLeft:
-                                                                                    '5px',
-                                                                            }}
-                                                                        >
-                                                                            <span>
-                                                                                Use
-                                                                                as
-                                                                                default
-                                                                                incoming
-                                                                                request
                                                                             </span>
                                                                         </div>
                                                                     </label>
@@ -1467,8 +1394,9 @@ class CreateIncomingRequest extends Component {
                                                                     }
                                                                     id="advancedOptionsBtn"
                                                                 >
-                                                                    Advanced
-                                                                    Options
+                                                                    {formValues.showAdvancedOptions
+                                                                        ? 'Hide Advanced Options'
+                                                                        : 'Show Advanced Options'}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1954,6 +1882,193 @@ class CreateIncomingRequest extends Component {
                                                                                 true
                                                                             }
                                                                         />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </fieldset>
+                                                    <fieldset>
+                                                        <div className="bs-Fieldset-rows">
+                                                            <div
+                                                                className="bs-Fieldset-row"
+                                                                style={{
+                                                                    padding:
+                                                                        '0px',
+                                                                }}
+                                                            >
+                                                                <label
+                                                                    className="bs-Fieldset-label Text-align--left"
+                                                                    style={{
+                                                                        flexBasis:
+                                                                            '20%',
+                                                                    }}
+                                                                >
+                                                                    <span></span>
+                                                                </label>
+                                                                <label
+                                                                    className="bs-Fieldset-label bs-Fieldset-row Checkbox"
+                                                                    style={{
+                                                                        padding:
+                                                                            '0px',
+                                                                        marginBottom:
+                                                                            '15px',
+                                                                    }}
+                                                                >
+                                                                    <Field
+                                                                        component="input"
+                                                                        type="checkbox"
+                                                                        name={`post_statuspage`}
+                                                                        data-test="RetrySettings-failedPaymentsCheckbox"
+                                                                        className="Checkbox-source"
+                                                                    />
+                                                                    <div className="Checkbox-box Box-root Margin-top--2 Margin-right--2">
+                                                                        <div className="Checkbox-target Box-root">
+                                                                            <div className="Checkbox-color Box-root"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div
+                                                                        className="Checkbox-label Box-root"
+                                                                        style={{
+                                                                            width:
+                                                                                '160px',
+                                                                        }}
+                                                                    >
+                                                                        <span className="Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                            <span>
+                                                                                Post
+                                                                                this
+                                                                                on
+                                                                                Status
+                                                                                Page
+                                                                            </span>
+                                                                        </span>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </fieldset>
+                                                    <fieldset
+                                                        style={{
+                                                            paddingTop: 0,
+                                                        }}
+                                                    >
+                                                        <div className="bs-Fieldset-rows">
+                                                            <div
+                                                                className="bs-Fieldset-row"
+                                                                style={{
+                                                                    padding: 0,
+                                                                }}
+                                                            >
+                                                                <label
+                                                                    className="bs-Fieldset-label Text-align--left"
+                                                                    htmlFor="name"
+                                                                    style={{
+                                                                        flexBasis:
+                                                                            '20%',
+                                                                    }}
+                                                                ></label>
+                                                                <div
+                                                                    className="bs-Fieldset-fields"
+                                                                    style={{
+                                                                        flexBasis:
+                                                                            '80%',
+                                                                        maxWidth:
+                                                                            '80%',
+                                                                    }}
+                                                                >
+                                                                    <div
+                                                                        className="bs-Fieldset-field"
+                                                                        style={{
+                                                                            width:
+                                                                                '100%',
+                                                                            display:
+                                                                                'block',
+                                                                        }}
+                                                                    >
+                                                                        {formValues &&
+                                                                            !formValues.showAvailableVariables && (
+                                                                                <div
+                                                                                    style={{
+                                                                                        width:
+                                                                                            '100%',
+                                                                                        paddingBottom: 10,
+                                                                                        textDecoration:
+                                                                                            'underline',
+                                                                                        cursor:
+                                                                                            'pointer',
+                                                                                    }}
+                                                                                    onClick={
+                                                                                        this
+                                                                                            .toggleShowAvailableVariables
+                                                                                    }
+                                                                                >
+                                                                                    Click
+                                                                                    to
+                                                                                    show
+                                                                                    available
+                                                                                    variables
+                                                                                </div>
+                                                                            )}
+                                                                        {formValues &&
+                                                                            formValues.showAvailableVariables && (
+                                                                                <div>
+                                                                                    <span
+                                                                                        className="template-variable-2"
+                                                                                        style={{
+                                                                                            display:
+                                                                                                'block',
+                                                                                            paddingBottom:
+                                                                                                '10px',
+                                                                                        }}
+                                                                                    >
+                                                                                        You
+                                                                                        can
+                                                                                        use
+                                                                                        these
+                                                                                        available
+                                                                                        variables
+                                                                                        in
+                                                                                        incident
+                                                                                        title,
+                                                                                        incident
+                                                                                        description
+                                                                                        or
+                                                                                        custom
+                                                                                        field.
+                                                                                    </span>
+                                                                                    <span
+                                                                                        className="template-variable-1"
+                                                                                        style={{
+                                                                                            display:
+                                                                                                'block',
+                                                                                        }}
+                                                                                    >
+                                                                                        {incomingRequestVariables.map(
+                                                                                            (
+                                                                                                item,
+                                                                                                index
+                                                                                            ) => {
+                                                                                                return (
+                                                                                                    <span
+                                                                                                        key={
+                                                                                                            index
+                                                                                                        }
+                                                                                                        className="template-variables"
+                                                                                                        style={
+                                                                                                            bulletpoints
+                                                                                                        }
+                                                                                                    >
+                                                                                                        {
+                                                                                                            item.description
+                                                                                                        }
+                                                                                                        <br />
+                                                                                                    </span>
+                                                                                                );
+                                                                                            }
+                                                                                        )}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -2833,7 +2948,7 @@ const mapStateToProps = state => {
             state.form.incomingRequestForm &&
             state.form.incomingRequestForm.values,
         initialValues: {
-            isDefault: false,
+            selectAllMonitors: false,
             incidentPriority: state.incidentBasicSettings.defaultTemplate
                 .template.incidentPriority
                 ? state.incidentBasicSettings.defaultTemplate.template

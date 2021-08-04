@@ -1,4 +1,3 @@
-/* eslint-disable */
 const workboxBuild = require('workbox-build');
 
 // NOTE: This should be run *AFTER* all your assets are built
@@ -14,6 +13,10 @@ const buildSW = () => {
         .then(({ count, size }) => {
             // Optionally, log any warnings and details.
             return `${count} files will be precached, totaling ${size} bytes.`;
+        })
+        .catch(e => {
+            // eslint-disable-next-line no-console
+            console.error(e);
         });
 };
 buildSW();

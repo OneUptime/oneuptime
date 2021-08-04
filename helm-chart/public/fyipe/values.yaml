@@ -205,6 +205,8 @@ haraka:
 
 host: 
   backendPort: 3002
+  dataIngestorPort: 3200
+  realtimePort: 3300
   homePort: 1444
   licensingPort: 3004
   statusPageHttpPort: 3006
@@ -220,6 +222,8 @@ host:
   httpTestServerPort: 3010
   adminDashboardPort: 3100
   backendServicePort: 80
+  dataIngestorServicePort: 80
+  realtimeServicePort: 80
   homeServicePort: 80
   apiDocsServicePort: 80
   statusPageHttpServicePort: 80
@@ -239,6 +243,12 @@ host:
   harakaServicePort: 2525
   scriptRunnerPort: 3009
   scripRunnerServicePort: 80
+  applicationScannerPort: 3005
+  applicationScannerServicePort: 80
+  containerScannerPort: 3055
+  containerScannerServicePort: 80
+  lighthouseRunnerPort: 3015
+  lighthouseRunnerServicePort: 80
 
 isThirdPartyBilling: false
 isRunningOnGCPMarketplace: false
@@ -269,3 +279,17 @@ pushNotification:
     privateKey: "WdFZTeXkuoxpsO_KNOtXvhDUc_Ae1rb-WjPv6AVexA4"
     url: "https://fyipe-test.com"
  
+
+autoScaler: 
+  enabled: false
+  averageCpuUtilization: 50
+  minReplicas: 1
+  maxReplicas: 1
+
+newRelic:
+  backend:
+    licenseKey: 
+    appName: 
+  probe:
+    licenseKey:
+    appName: 

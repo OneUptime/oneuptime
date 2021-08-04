@@ -3,11 +3,10 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import ApplicationSecurityForm from '../components/security/ApplicationSecurityForm';
 import ApplicationSecurity from '../components/security/ApplicationSecurity';
 import { logEvent } from '../analytics';
-import { SHOULD_LOG_ANALYTICS, API_URL } from '../config';
+import { SHOULD_LOG_ANALYTICS, REALTIME_URL } from '../config';
 import {
     getApplicationSecurities,
     getApplicationSecurityLogs,
@@ -23,9 +22,10 @@ import io from 'socket.io-client';
 import sortByName from '../utils/sortByName';
 import { history } from '../store';
 
-// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(API_URL.replace('/api', ''), {
-    path: '/api/socket.io',
+// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
+// '/realtime' is set as socket io namespace, so remove
+const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+    path: '/realtime/socket.io',
     transports: ['websocket', 'polling'],
 });
 
@@ -73,7 +73,7 @@ class Application extends Component {
                 getApplicationSecurities,
                 getApplicationSecurityLogs,
             } = this.props;
-            if (projectId) {
+            if (projectId && componentSlug) {
                 fetchComponent(projectId, componentSlug);
             }
             if (projectId && componentId) {
@@ -85,27 +85,6 @@ class Application extends Component {
             }
         }
     }
-
-    ready = () => {
-        const {
-            componentId,
-            projectId,
-            getApplicationSecurities,
-            getApplicationSecurityLogs,
-            componentSlug,
-            fetchComponent,
-        } = this.props;
-        if (projectId && componentId) {
-            // load all the available logs
-            getApplicationSecurityLogs({ projectId, componentId });
-
-            // load all the application securities
-            getApplicationSecurities({ projectId, componentId });
-        }
-        if (componentSlug && projectId) {
-            fetchComponent(projectId, componentSlug);
-        }
-    };
 
     render() {
         const {
@@ -144,91 +123,89 @@ class Application extends Component {
         const componentName = component ? component.name : '';
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname, null, 'component')}
-                        name={componentName}
-                    />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name="Application Security"
-                        pageTitle="Application"
-                    />
-                    <div className="Margin-vertical--12">
-                        <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="react-settings-view react-view">
-                                    <ShouldRender
-                                        if={
-                                            gettingApplicationSecurities &&
-                                            gettingSecurityLogs
-                                        }
-                                    >
-                                        <div style={{ textAlign: 'center' }}>
-                                            <LargeSpinner />
-                                        </div>
-                                    </ShouldRender>
-                                    <ShouldRender
-                                        if={
-                                            !gettingApplicationSecurities &&
-                                            !gettingSecurityLogs
-                                        }
-                                    >
-                                        {applicationSecurities.length > 0 &&
-                                            applicationSecurities.map(
-                                                applicationSecurity => {
-                                                    return (
-                                                        <span
-                                                            key={
-                                                                applicationSecurity._id
-                                                            }
-                                                        >
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'component')}
+                    name={componentName}
+                />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Application Security"
+                    pageTitle="Application"
+                />
+                <div className="Margin-vertical--12">
+                    <div>
+                        <div className="db-BackboneViewContainer">
+                            <div className="react-settings-view react-view">
+                                <ShouldRender
+                                    if={
+                                        gettingApplicationSecurities &&
+                                        gettingSecurityLogs
+                                    }
+                                >
+                                    <div style={{ textAlign: 'center' }}>
+                                        <LargeSpinner />
+                                    </div>
+                                </ShouldRender>
+                                <ShouldRender
+                                    if={
+                                        !gettingApplicationSecurities &&
+                                        !gettingSecurityLogs
+                                    }
+                                >
+                                    {applicationSecurities.length > 0 &&
+                                        applicationSecurities.map(
+                                            applicationSecurity => {
+                                                return (
+                                                    <span
+                                                        key={
+                                                            applicationSecurity._id
+                                                        }
+                                                    >
+                                                        <div>
                                                             <div>
-                                                                <div>
-                                                                    <ApplicationSecurity
-                                                                        name={
-                                                                            applicationSecurity.name
-                                                                        }
-                                                                        applicationSecurityId={
-                                                                            applicationSecurity._id
-                                                                        }
-                                                                        applicationSecuritySlug={
-                                                                            applicationSecurity.slug
-                                                                        }
-                                                                        projectId={
-                                                                            projectId
-                                                                        }
-                                                                        componentId={
-                                                                            componentId
-                                                                        }
-                                                                        componentSlug={
-                                                                            componentSlug
-                                                                        }
-                                                                    />
-                                                                </div>
+                                                                <ApplicationSecurity
+                                                                    name={
+                                                                        applicationSecurity.name
+                                                                    }
+                                                                    applicationSecurityId={
+                                                                        applicationSecurity._id
+                                                                    }
+                                                                    applicationSecuritySlug={
+                                                                        applicationSecurity.slug
+                                                                    }
+                                                                    projectId={
+                                                                        projectId
+                                                                    }
+                                                                    componentId={
+                                                                        componentId
+                                                                    }
+                                                                    componentSlug={
+                                                                        componentSlug
+                                                                    }
+                                                                />
                                                             </div>
-                                                        </span>
-                                                    );
-                                                }
-                                            )}
-                                    </ShouldRender>
-                                    <span>
+                                                        </div>
+                                                    </span>
+                                                );
+                                            }
+                                        )}
+                                </ShouldRender>
+                                <span>
+                                    <div>
                                         <div>
-                                            <div>
-                                                <ApplicationSecurityForm
-                                                    projectId={projectId}
-                                                    componentId={componentId}
-                                                />
-                                            </div>
+                                            <ApplicationSecurityForm
+                                                projectId={projectId}
+                                                componentId={componentId}
+                                            />
                                         </div>
-                                    </span>
-                                </div>
+                                    </div>
+                                </span>
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

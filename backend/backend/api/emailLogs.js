@@ -20,9 +20,18 @@ router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
         const query = {};
         const skip = req.query.skip;
         const limit = req.query.limit;
+        const selectEmailStatus =
+            'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
-        const emailLogs = await EmailLogsService.findBy({ query, skip, limit });
-        const count = await EmailLogsService.countBy(query);
+        const [emailLogs, count] = await Promise.all([
+            EmailLogsService.findBy({
+                query,
+                skip,
+                limit,
+                select: selectEmailStatus,
+            }),
+            EmailLogsService.countBy(query),
+        ]);
 
         return sendListResponse(req, res, emailLogs, count);
     } catch (error) {

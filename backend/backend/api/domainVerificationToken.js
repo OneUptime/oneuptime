@@ -98,16 +98,23 @@ router.put(
 router.get('/:projectId/domains', getUser, isAuthorized, async (req, res) => {
     const { projectId } = req.params;
     const { skip, limit } = req.query;
+    const selectDomainVerify =
+        'domain createdAt verificationToken verifiedAt updatedAt projectId';
+    const populateDomainVerify = [{ path: 'projectId', select: 'name slug' }];
     try {
         // a unique case where we have to consider the subProject as well
-        const domains = await DomainVerificationService.findBy(
-            {
-                projectId,
-            },
-            limit,
-            skip
-        );
-        const count = await DomainVerificationService.countBy({ projectId });
+        const [domains, count] = await Promise.all([
+            DomainVerificationService.findBy({
+                query: {
+                    projectId,
+                },
+                limit,
+                skip,
+                select: selectDomainVerify,
+                populate: populateDomainVerify,
+            }),
+            DomainVerificationService.countBy({ projectId }),
+        ]);
 
         return sendListResponse(req, res, domains, count);
     } catch (error) {
@@ -222,8 +229,8 @@ router.put(
 
             //check if there's a change in the domain
             const domainObj = await DomainVerificationService.findOneBy({
-                _id: domainId,
-                projectId,
+                query: { _id: domainId, projectId },
+                select: 'domain',
             });
             if (domainObj.domain === domain) {
                 return sendItemResponse(req, res, domainObj);

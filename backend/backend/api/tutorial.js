@@ -1,4 +1,3 @@
-/* eslint-disable linebreak-style */
 /**
  *
  * Copyright HackerBay, Inc.
@@ -17,7 +16,10 @@ const sendItemResponse = require('../middlewares/response').sendItemResponse;
 router.get('/', getUser, async function(req, res) {
     try {
         const userId = req.user ? req.user.id : null;
-        const user = await UserService.findOneBy({ _id: userId });
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: '_id tutorial',
+        });
         const tutorialObj = {
             _id: user._id,
             data: { ...user.tutorial },
@@ -32,7 +34,10 @@ router.get('/', getUser, async function(req, res) {
 router.put('/', getUser, async function(req, res) {
     try {
         const userId = req.user ? req.user.id : null;
-        let user = await UserService.findOneBy({ _id: userId });
+        let user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: 'tutorial _id',
+        });
         // validate that project ID is passed
         const projectId = req.body.projectId;
         if (!projectId) {

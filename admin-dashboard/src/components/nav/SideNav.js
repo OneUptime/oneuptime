@@ -3,10 +3,11 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import NavItem from './SideNavItem';
-import { groups } from '../../routes';
+import { allRoutes, groups } from '../../routes';
 import { openModal, closeModal } from '../../actions/modal';
 import { closeSideNav } from '../../actions/page';
 import ClickOutside from 'react-click-outside';
+import { withRouter, Switch, Route } from 'react-router-dom';
 
 class SideNav extends Component {
     handleKeyBoard = e => {
@@ -129,4 +130,31 @@ SideNav.propTypes = {
 SideNav.contextTypes = {
     mixpanel: PropTypes.object.isRequired,
 };
-export default connect(mapStateToProps, mapDispatchToProps)(SideNav);
+
+// since sideNav is above page routes we have no access to the pages' props.match,
+// we rebuild the routes here to enable access to these properties
+
+const WrappedSideNav = props => {
+    return (
+        <Switch>
+            {allRoutes
+                .filter(route => route.visible)
+                .map((route, index) => {
+                    return (
+                        <Route
+                            exact={route.exact}
+                            path={route.path}
+                            key={index}
+                            render={routeProps => (
+                                <SideNav {...props} {...routeProps} />
+                            )}
+                        />
+                    );
+                })}
+        </Switch>
+    );
+};
+
+export default withRouter(
+    connect(mapStateToProps, mapDispatchToProps)(WrappedSideNav)
+);

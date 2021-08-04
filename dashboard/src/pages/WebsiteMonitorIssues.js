@@ -60,6 +60,8 @@ class WebsiteMonitorIssues extends React.Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR > WEBSITE ISSUES > URL'
             );
         }
+
+        this.ready();
     }
     componentDidUpdate(prevProps) {
         if (
@@ -67,12 +69,7 @@ class WebsiteMonitorIssues extends React.Component {
                 String(this.props.componentSlug) ||
             prevProps.projectId !== this.props.projectId
         ) {
-            if (this.props.projectId && this.props.componentSlug) {
-                this.props.fetchComponent(
-                    this.props.projectId,
-                    this.props.componentSlug
-                );
-            }
+            this.ready();
         }
     }
 

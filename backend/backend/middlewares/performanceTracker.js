@@ -14,12 +14,12 @@ const _this = {
             }
 
             // check if there's a performance tracker with the key
-            const performanceTracker = await PerformanceTrackerService.findOneBy(
+            const performanceTrackerCount = await PerformanceTrackerService.countBy(
                 {
                     key,
                 }
             );
-            if (!performanceTracker) {
+            if (performanceTrackerCount === 0) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'API key is not valid',
@@ -27,7 +27,7 @@ const _this = {
             }
 
             // everything is fine at this point
-            next();
+            return next();
         } catch (error) {
             ErrorService.log('performanceTracker.isValidAPIKey', error);
             throw error;

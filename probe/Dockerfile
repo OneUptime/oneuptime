@@ -7,15 +7,6 @@ FROM node:16
 
 #SET ENV Variables
 ENV PRODUCTION=true
-ENV CHROME_PATH=/usr/bin/google-chrome
-
-# Install Chrome.
-RUN \
-  wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
-  echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
-  apt-get update && \
-  apt-get install -y google-chrome-stable && \
-  rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /usr/src/app
 
@@ -29,6 +20,12 @@ RUN curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -
 RUN chmod +x ./kubectl
 RUN mv ./kubectl /usr/local/bin/kubectl && \
   chown root: /usr/local/bin/kubectl
+
+# Due to this EPROTO wrong signature error on http fetch, we need to comment out CipherString
+# in the file /etc/ssl/openssl.cnf
+# https://github.com/nodejs/help/issues/2804
+# https://developers.exlibrisgroup.com/forums/topic/cant-fetch-from-alma-api-with-node/
+RUN sed -i 's/^CipherString$\?/#CipherString/g' /etc/ssl/openssl.cnf
 
 # Install app dependencies
 COPY package*.json /usr/src/app/

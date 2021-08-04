@@ -41,6 +41,12 @@ spec:
                             key: encryptionkey
                       - name: MONGO_URL
                         value: {{ template "fyipe.mongodbConnectionString" . }}
+                      {{- if .Values.mongodb.replicaSet.enabled }}
+                      - name: IS_MONGO_REPLICA_SET
+                        value: {{ .Values.mongodb.replicaSet.enabled | quote }}
+                      - name: MONGO_REPLICA_SET_NAME
+                        value: {{ .Values.mongodb.replicaSet.name }}
+                      {{- end }}
                       - name: REDIS_HOST
                         value: {{ template "fyipe.redisHost" . }}
                       - name: FYIPE_HOST
@@ -63,6 +69,8 @@ spec:
                         value: {{ .Values.pushNotification.url }}
                       - name: SCRIPT_RUNNER_URL
                         value: {{ template "fyipe.scriptRunnerUrl" $ }}
+                      - name: REALTIME_URL
+                        value: {{ template "fyipe.realtimeUrl" $ }}
                       - name: NODE_ENV
                         value: 'production'
                       - name: IS_TESTING
@@ -91,6 +99,14 @@ spec:
                         value: {{ .Values.haraka.fromEmail }}
                       - name: INTERNAL_SMTP_NAME
                         value: {{ .Values.haraka.fromName }}
+                      {{- if .Values.newRelic.backend.licenseKey }}
+                      - name: NEW_RELIC_LICENSE_KEY
+                        value: {{ .Values.newRelic.backend.licenseKey }}
+                      {{- end }}
+                      {{- if .Values.newRelic.backend.appName }}
+                      - name: NEW_RELIC_APPLICATION_NAME
+                        value: {{ .Values.newRelic.backend.appName}}
+                      {{- end }}
                       - name: CLUSTER_KEY
                         valueFrom:
                           configMapKeyRef:
@@ -165,3 +181,19 @@ spec:
     type: ClusterIP
 ---
 ##################################################
+
+{{- if .Values.autoScaler.enabled }}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ printf "%s-%s" .Release.Name "backend"  }}
+spec:
+  maxReplicas: {{ .Values.autoScaler.maxReplicas }}
+  minReplicas: {{ .Values.autoScaler.minReplicas }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ printf "%s-%s" .Release.Name "backend"  }}
+  targetCPUUtilizationPercentage: {{ .Values.autoScaler.averageCpuUtilization }}
+---
+{{- end }}

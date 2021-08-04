@@ -6,21 +6,21 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Script runner Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Unhandled rejection in Script runner process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in Script runner process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -29,6 +29,8 @@ const app = express();
 const http = require('http').createServer(app);
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const cron = require('node-cron');
+const main = require('./workers/main');
 
 app.use(cors());
 
@@ -44,7 +46,7 @@ app.use(function(req, res, next) {
         'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept,Authorization'
     );
 
-    next();
+    return next();
 });
 
 app.set('port', process.env.PORT || 3009);
@@ -52,9 +54,26 @@ app.set('port', process.env.PORT || 3009);
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 
-app.use(['/script', '/api/script'], require('./api/script'));
+app.get('/script/status', function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            status: 200,
+            message: 'Service Status - OK',
+            serviceType: 'fyipe-script-runner',
+        })
+    );
+});
+
+app.use('/script', require('./api/script'));
 
 http.listen(app.get('port'), function() {
     // eslint-disable-next-line
     console.log('Script runner started on port ' + app.get('port'));
+});
+const cronMinuteStartTime = Math.floor(Math.random() * 50);
+
+// script monitor cron job
+cron.schedule('* * * * *', () => {
+    setTimeout(() => main.runScriptMonitorsJob(), cronMinuteStartTime * 1000);
 });

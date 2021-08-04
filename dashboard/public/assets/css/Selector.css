@@ -280,6 +280,7 @@
     top: -100%;
 }
 
-#incidentTemplatePriority {
+#incidentTemplatePriority, 
+.full-width {
     width: 100% !important;
 }

@@ -1,5 +1,11 @@
 # Mongo Operations Manual
 
+## Copy DB from One Server to Another
+
+```
+mongodump --uri="mongodb://old_username:old_password@old_ip:old_port/fyipedb" --archive | mongorestore --uri="mongodb://new_username:new_pass@new_ip:new_port/fyipedb" --archive
+```
+
 ## Root Username
 
 Admin mongodb username is: `root`
