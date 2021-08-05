@@ -64,7 +64,13 @@ class Incident extends React.Component {
         this.ready();
     }
     componentDidUpdate(prevProps) {
-        console.log('Prev Props: ', prevProps)
+        if(
+             // When multiple incidents are created and 'ViewIncident' is clicked for each of them, this allows the proper incident to load.
+            prevProps.incidentId !== this.props.incidentId
+
+        ){
+           return this.ready();
+        }
         if (
             prevProps.projectId !== this.props.projectId ||
             (prevProps.incident && prevProps.incident._id) !==
