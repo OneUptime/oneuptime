@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -64,12 +63,11 @@ class Incident extends React.Component {
         this.ready();
     }
     componentDidUpdate(prevProps) {
-        if(
-             // When multiple incidents are created and 'ViewIncident' is clicked for each of them, this allows the proper incident to load.
+        if (
+            // When multiple incidents are created and 'ViewIncident' is clicked for each of them, this allows the proper incident to load.
             prevProps.incidentId !== this.props.incidentId
-
-        ){
-           return this.ready();
+        ) {
+            return this.ready();
         }
         if (
             prevProps.projectId !== this.props.projectId ||
