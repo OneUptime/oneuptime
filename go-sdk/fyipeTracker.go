@@ -2,6 +2,7 @@ package fyipe
 
 import (
 	"errors"
+	"reflect"
 )
 
 const MAX_ITEMS_ALLOWED_IN_STACK = 100
@@ -115,4 +116,18 @@ func GetErrorEvent() *ErrorEvent {
 	tracker := CurrentTracker()
 
 	return tracker.Realm().currentErrorEvent
+}
+
+func CaptureException(exception error) {
+	tracker := CurrentTracker()
+
+	exceptionObj := &Exception{
+		Message:    exception.Error(),
+		Type:       reflect.TypeOf(exception).String(),
+		Stacktrace: GetExceptionStackTrace(exception),
+	}
+
+	tracker.SetTag("handled", "true")
+
+	tracker.PrepareErrorObject("exception", exceptionObj)
 }
