@@ -125,7 +125,7 @@ module.exports = {
                 let incident = new IncidentModel();
                 let parentCount = 0,
                     deletedParentCount = 0;
-                if (project.parentProjectId) {
+                if (project && project.parentProjectId) {
                     const [pCount, dpCount] = await Promise.all([
                         _this.countBy({
                             projectId:
@@ -178,7 +178,7 @@ module.exports = {
 
                 const templatesInput = {
                     incidentType: data.incidentType,
-                    projectName: project.name,
+                    projectName: project?.name,
                     time: Moment().format('h:mm:ss a'),
                     date: Moment().format('MMM Do YYYY'),
                     monitorName: joinNames(monitorNames),
@@ -370,7 +370,8 @@ module.exports = {
                 this.clearInterval(incident._id); // clear any existing sla interval
 
                 const monitorStatuses = await MonitorStatusService.findBy({
-                    incidentId: incident._id,
+                    query: { incidentId: incident._id },
+                    select: '_id',
                 });
                 for (const monitorStatus of monitorStatuses) {
                     const { _id } = monitorStatus;

@@ -6,21 +6,16 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 process.on('exit', () => {
-    // eslint-disable-next-line no-console
     console.log('Server Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    // eslint-disable-next-line no-console
     console.error('Unhandled rejection in server process occurred');
-    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    // eslint-disable-next-line no-console
     console.error('Uncaught exception in server process occurred');
-    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -38,6 +33,8 @@ global.io = io;
 app.use(cors());
 
 app.use(function(req, res, next) {
+    console.log('** REALTIME CLUSTER KEY **', process.env.CLUSTER_KEY);
+
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
