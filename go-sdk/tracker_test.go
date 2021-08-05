@@ -388,3 +388,83 @@ func TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage(t *testing.T) {
 		}
 	}
 }
+func TestCreateEventReadyForServerUsingCaptureMessage(t *testing.T) {
+	timelineOpt := TrackerOption{
+		MaxTimeline: 2,
+	}
+	option := FyipeTrackerOption{
+		ErrorTrackerId:  errorTracker["_id"].(string),
+		ErrorTrackerKey: errorTracker["key"].(string),
+		ApiUrl:          apiUrl,
+		Options:         timelineOpt,
+	}
+
+	InitTracker(option)
+
+	errorMessage := "Uncaught Exception"
+
+	CaptureMessage(errorMessage)
+
+	errorEvent := GetErrorEvent()
+
+	expectedType := "message"
+	actualType := errorEvent.Type
+	if actualType != expectedType {
+		t.Errorf("TestCreateEventReadyForServerUsingCaptureMessage failed expected %v, got %v", expectedType, actualType)
+	} else {
+		t.Logf("TestCreateEventReadyForServerUsingCaptureMessage success expected %v, got %v", expectedType, actualType)
+	}
+
+	expectedMsg := errorMessage
+	actualMsg := errorEvent.Exception.Message
+	if actualMsg != expectedMsg {
+		t.Errorf("TestCreateEventReadyForServerUsingCaptureMessage failed expected %v, got %v", expectedMsg, actualMsg)
+	} else {
+		t.Logf("TestCreateEventReadyForServerUsingCaptureMessage success expected %v, got %v", expectedMsg, actualMsg)
+	}
+}
+func TestCaptureMessageTimelineAndEventWithSameID(t *testing.T) {
+	timelineOpt := TrackerOption{
+		MaxTimeline: 2,
+	}
+	option := FyipeTrackerOption{
+		ErrorTrackerId:  errorTracker["_id"].(string),
+		ErrorTrackerKey: errorTracker["key"].(string),
+		ApiUrl:          apiUrl,
+		Options:         timelineOpt,
+	}
+
+	InitTracker(option)
+
+	AddToTimeline(customTimeline)
+
+	errorMessage := "Uncaught Exception"
+
+	CaptureMessage(errorMessage)
+
+	errorEvent := GetErrorEvent()
+
+	expectedTimelineCount := 2
+	actualTimelineCount := len(errorEvent.Timeline)
+	if actualTimelineCount != expectedTimelineCount {
+		t.Errorf("TestCaptureMessageTimelineAndEventWithSameID failed expected %v, got %v", expectedTimelineCount, actualTimelineCount)
+	} else {
+		t.Logf("TestCaptureMessageTimelineAndEventWithSameID success expected %v, got %v", expectedTimelineCount, actualTimelineCount)
+	}
+
+	expectedEventId := errorEvent.EventId
+	actualEventId := errorEvent.Timeline[0].EventId
+	if actualEventId != expectedEventId {
+		t.Errorf("TestCaptureMessageTimelineAndEventWithSameID failed expected %v, got %v", expectedEventId, actualEventId)
+	} else {
+		t.Logf("TestCaptureMessageTimelineAndEventWithSameID success expected %v, got %v", expectedEventId, actualEventId)
+	}
+
+	expectedMsg := errorMessage
+	actualMsg := errorEvent.Exception.Message
+	if actualMsg != expectedMsg {
+		t.Errorf("TestCaptureMessageTimelineAndEventWithSameID failed expected %v, got %v", expectedMsg, actualMsg)
+	} else {
+		t.Logf("TestCaptureMessageTimelineAndEventWithSameID success expected %v, got %v", expectedMsg, actualMsg)
+	}
+}
