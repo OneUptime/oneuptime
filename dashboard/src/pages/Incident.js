@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -63,6 +64,7 @@ class Incident extends React.Component {
         this.ready();
     }
     componentDidUpdate(prevProps) {
+        console.log('Prev Props: ', prevProps)
         if (
             prevProps.projectId !== this.props.projectId ||
             (prevProps.incident && prevProps.incident._id) !==
