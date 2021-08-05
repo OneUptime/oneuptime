@@ -38,7 +38,7 @@ type Tag struct {
 type ErrorEvent struct {
 	Type            string
 	Timeline        []*Timeline
-	Exception       interface{}
+	Exception       *Exception
 	EventId         string
 	Tags            []*Tag
 	Fingerprint     []string
@@ -50,3 +50,12 @@ type ErrorEvent struct {
 // 	LevelWarning Level = "warning"
 // 	LevelError   Level = "error"
 // )
+
+type Stacktrace struct {
+	Frames []Frame
+}
+type Frame struct {
+	MethodName string
+	FileName   string
+	LineNumber string
+}
