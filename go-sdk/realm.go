@@ -89,6 +89,7 @@ func (realm *Realm) PrepareErrorObject(errorType string, errorObj *Exception) {
 		EventId:     realm.eventId,
 		Tags:        realm.tags,
 		Fingerprint: realm.fingerprint,
+		Exception:   errorObj,
 	}
 
 	realm.currentErrorEvent = errorEvent
