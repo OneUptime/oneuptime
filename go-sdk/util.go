@@ -1,6 +1,7 @@
 package fyipe
 
 import (
+	"fmt"
 	"reflect"
 	"runtime"
 )
@@ -91,7 +92,7 @@ func extractFrameFromProgramCounter(programCounters []uintptr) []Frame {
 		newFrame := Frame{
 			MethodName: callerFrame.Function,
 			FileName:   callerFrame.File,
-			LineNumber: string(callerFrame.Line),
+			LineNumber: fmt.Sprint(callerFrame.Line),
 		}
 		frames = append(frames, newFrame)
 
