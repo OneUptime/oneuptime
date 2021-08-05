@@ -35,6 +35,20 @@ class MonitorInfo extends Component {
     }
 
     componentDidMount() {
+        const { monitor } = this.props;
+
+        if (monitor) {
+            const endDate = moment(Date.now());
+            const startDate = moment(Date.now()).subtract(90, 'days');
+
+            this.props.fetchMonitorStatuses(
+                monitor.projectId._id || monitor.projectId,
+                monitor._id,
+                startDate,
+                endDate
+            );
+        }
+
         this.resizeHandler();
         window.addEventListener('resize', debounce(this.resizeHandler, 100));
         window.addEventListener('resize', () => {
@@ -54,8 +68,19 @@ class MonitorInfo extends Component {
             monitorStatus,
         } = this.props;
 
+        let currentProbe =
+            probes && probes.length > 0
+                ? probes[probes.length < 2 ? 0 : activeProbe]
+                : null;
+        const prevProbe =
+            prevProps.probes && prevProps.probes.length > 0
+                ? prevProps.probes[
+                      prevProps.probes.length < 2 ? 0 : activeProbe
+                  ]
+                : null;
+
         if (
-            JSON.stringify(prevProps.probes) !== JSON.stringify(probes) ||
+            prevProbe?._id !== currentProbe?._id ||
             JSON.stringify(prevProps.monitorStatus) !==
                 JSON.stringify(this.props.monitorStatus)
         ) {
@@ -79,14 +104,9 @@ class MonitorInfo extends Component {
                 a => String(a._id) === String(monitor._id)
             );
 
-            let probe =
-                probes && probes.length > 0
-                    ? probes[probes.length < 2 ? 0 : activeProbe]
-                    : null;
-
             //this fixes the problem if the monitor is just created and its an api monitor
             if (monitorData?.statuses?.length === 1) {
-                probe =
+                currentProbe =
                     probes && probes.length > 0
                         ? probes.filter(
                               probe =>
@@ -96,12 +116,16 @@ class MonitorInfo extends Component {
                         : null;
             }
 
-            const statuses = filterProbeData(monitorData, probe, monitorStatus);
+            const statuses = filterProbeData(
+                monitorData,
+                currentProbe,
+                monitorStatus
+            );
             calculateTime(statuses, now, range, monitor._id);
         }
 
         if (JSON.stringify(prevProps.monitor) !== JSON.stringify(monitor)) {
-            if (monitor && !monitor.statuses) {
+            if (monitor) {
                 const endDate = moment(Date.now());
                 const startDate = moment(Date.now()).subtract(90, 'days');
                 this.props.fetchMonitorStatuses(
@@ -376,7 +400,9 @@ class MonitorInfo extends Component {
                                     >
                                         {loadingData ? (
                                             <div ref={this.scrollContent}>
-                                                loading...
+                                                {statuses.length === 0
+                                                    ? 'calculating...'
+                                                    : 'loading...'}
                                             </div>
                                         ) : (
                                             <div
@@ -554,7 +580,9 @@ class MonitorInfo extends Component {
                             >
                                 {loadingData ? (
                                     <div ref={this.scrollContent}>
-                                        Loading...
+                                        {statuses.length === 0
+                                            ? 'calculating...'
+                                            : 'loading...'}
                                     </div>
                                 ) : (
                                     <div

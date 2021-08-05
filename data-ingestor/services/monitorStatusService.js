@@ -16,7 +16,11 @@ module.exports = {
             if (data.monitorId) query.monitorId = data.monitorId;
             if (data.probeId) query.probeId = data.probeId;
 
-            const previousMonitorStatus = await this.findOneBy(query);
+            let previousMonitorStatus = await this.findBy({
+                query,
+                limit: 1,
+            });
+            previousMonitorStatus = previousMonitorStatus[0];
 
             if (
                 !previousMonitorStatus ||
@@ -53,6 +57,7 @@ module.exports = {
                     status: data.status,
                     createdAt: now,
                     startTime: now,
+                    deleted: false,
                 };
                 if (data.lastStatus) {
                     monitorStatusData.lastStatus = data.lastStatus;

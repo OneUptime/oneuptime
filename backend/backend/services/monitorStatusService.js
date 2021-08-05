@@ -164,7 +164,12 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            query.deleted = false;
+
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             const monitorStatus = await MonitorStatusModel.find(query)
                 .lean()
@@ -183,7 +188,11 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
             const monitorStatus = await MonitorStatusModel.findOne(
                 query,
