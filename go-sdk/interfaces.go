@@ -29,7 +29,7 @@ type Timeline struct {
 
 type Exception struct {
 	Message    string
-	StackTrace Stacktrace
+	Stacktrace *Stacktrace
 	Type       string
 	LineNumber string
 }
