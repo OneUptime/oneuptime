@@ -1,29 +1,38 @@
 package fyipe
 
-import "reflect"
-
-type Stacktrace struct {
-	Frames []Frame
-}
-type Frame struct {
-	MethodName string
-	FileName   string
-	FileNo     string
-}
+import (
+	"reflect"
+	"runtime"
+)
 
 func GetExceptionStackTrace(exception error) *Stacktrace {
-	// TODO Get the method out of the package used to manage the error
+	// Get the method out of the package used to manage the error
 	currentMethod := getStackTraceMethod(exception)
 
-	// TODO Get the pointcounters out if it
+	var programCounters []uintptr
+	if currentMethod.IsValid() {
+		// Get the programcounters out if it if current method is valid
+		programCounters = getProgramCountersOutOfMethod(currentMethod)
+	} else {
+		// TODO handle method where we didnt handle the package yet
+		return nil
+	}
 
-	// TODO extract frames from the callersframes with the point counters
+	if len(programCounters) == 0 {
+		return nil // no program counter or we couldnt extract the program counter so its empty
+	}
 
-	// TODO set the resulting frames in the stacktrace object
+	// extract frames from the callersframes with the program counters
+	frames := extractFrameFromProgramCounter(programCounters)
 
-	// TODO set other properties of the stacktrace object
+	// set the resulting frames in the stacktrace object
 
-	// TODO return stacktrace
+	finalStackTrace := Stacktrace{
+		Frames: frames,
+	}
+
+	// return stacktrace
+	return &finalStackTrace
 }
 
 func getStackTraceMethod(exception error) reflect.Value {
@@ -46,4 +55,50 @@ func getStackTraceMethod(exception error) reflect.Value {
 	}
 
 	return method
+}
+
+func getProgramCountersOutOfMethod(method reflect.Value) []uintptr {
+
+	stackTrace := method.Call(make([]reflect.Value, 0))[0]
+
+	if stackTrace.Kind() != reflect.Slice { // if not an array, we end the show
+		return nil
+	}
+	var programCounterHolder []uintptr
+	for i := 0; i < stackTrace.Len(); i++ {
+		currentStack := stackTrace.Index(i)
+
+		// if we have justt th program counters, we save to the array
+		if currentStack.Kind() == reflect.Uintptr {
+			programCounterHolder = append(programCounterHolder, uintptr(currentStack.Uint()))
+		}
+
+		if currentStack.Kind() == reflect.Struct { // if struct, we get the field containing the program counter
+			programCounterHolder = append(programCounterHolder, uintptr(currentStack.FieldByName("ProgramCounter").Uint()))
+		}
+	}
+
+	return programCounterHolder
+}
+
+func extractFrameFromProgramCounter(programCounters []uintptr) []Frame {
+	callersFrames := runtime.CallersFrames(programCounters)
+	var frames []Frame
+
+	for {
+		callerFrame, more := callersFrames.Next()
+
+		newFrame := Frame{
+			MethodName: callerFrame.Function,
+			FileName:   callerFrame.File,
+			LineNumber: string(callerFrame.Line),
+		}
+		frames = append(frames, newFrame)
+
+		if !more {
+			break
+		}
+	}
+
+	return frames
 }
