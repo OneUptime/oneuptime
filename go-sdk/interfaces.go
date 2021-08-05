@@ -28,7 +28,10 @@ type Timeline struct {
 }
 
 type Exception struct {
-	Message string
+	Message    string
+	StackTrace Stacktrace
+	Type       string
+	LineNumber string
 }
 
 type Tag struct {
