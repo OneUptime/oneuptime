@@ -32,7 +32,11 @@ import NewThemeSubscriber from './NewThemeSubscriber';
 import Announcement from './Announcement';
 import AnnouncementLogs from './AnnouncementLogs';
 import PastEvent from './PastEvent';
-import { fetchFutureEvents, fetchPastEvents } from '../actions/status';
+import {
+    fetchFutureEvents,
+    fetchPastEvents,
+    fetchTweets,
+} from '../actions/status';
 import OngoingSchedule from './OngoingSchedule';
 import Collapsible from './Collapsible/Collapsible';
 import Twitter from './Twitter';
@@ -102,6 +106,15 @@ class Main extends Component {
                 .createContextualFragment(this.props.statusData.customJS);
             document.body.appendChild(javascript);
         }
+
+        if (
+            !prevProps?.status?.statusPage?.twitterHandle &&
+            this.props.status?.statusPage?.twitterHandle
+        )
+            this.props.fetchTweets(
+                this.props.status?.statusPage?.twitterHandle,
+                this.props.status?.statusPage?.projectId?._id
+            );
     }
 
     setLastAlive = () => {
@@ -1477,6 +1490,7 @@ const mapDispatchToProps = dispatch =>
             fetchFutureEvents,
             fetchPastEvents,
             getAllStatusPageResource,
+            fetchTweets,
         },
         dispatch
     );
@@ -1506,6 +1520,7 @@ Main.propTypes = {
     futureEvents: PropTypes.func,
     pastEvents: PropTypes.func,
     getAllStatusPageResource: PropTypes.func,
+    fetchTweets: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

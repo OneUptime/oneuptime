@@ -1391,3 +1391,56 @@ export function calculateTime(statuses, start, range, monitorId) {
         return promise;
     };
 }
+
+export function fetchTweetsRequest(monitorId) {
+    return {
+        type: types.FETCH_TWEETS_REQUEST,
+        payload: monitorId,
+    };
+}
+
+export function fetchTweetsSuccess(payload) {
+    return {
+        type: types.FETCH_TWEETS_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchTweetsFailure(error) {
+    return {
+        type: types.FETCH_TWEETS_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchTweets(handle, projectId) {
+    // eslint-disable-next-line no-console
+    console.log(handle);
+    return function(dispatch) {
+        const promise = postApi(`statusPage/${projectId}/${projectId}/tweets`, {
+            handle,
+        });
+        dispatch(fetchTweetsRequest());
+        promise.then(
+            function(response) {
+                // eslint-disable-next-line no-console
+                console.log(response);
+                dispatch(fetchTweetsSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchTweetsFailure(error));
+            }
+        );
+        return promise;
+    };
+}
