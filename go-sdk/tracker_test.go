@@ -506,3 +506,40 @@ func TestCaptureExceptionReadyForServer(t *testing.T) {
 		t.Logf("TestCaptureExceptionReadyForServer success expected %v, got %v", expectedType, actualType)
 	}
 }
+func TestCaptureExceptionWithStacktraceAndFrameReadyForServer(t *testing.T) {
+	timelineOpt := TrackerOption{
+		MaxTimeline: 2,
+	}
+	option := FyipeTrackerOption{
+		ErrorTrackerId:  errorTracker["_id"].(string),
+		ErrorTrackerKey: errorTracker["key"].(string),
+		ApiUrl:          apiUrl,
+		Options:         timelineOpt,
+	}
+
+	InitTracker(option)
+
+	errorMessage := "this function is supposed to crash"
+	err := errors.Errorf(errorMessage)
+
+	expectedType := reflect.TypeOf(err).String()
+
+	CaptureException(err)
+
+	errorEvent := GetErrorEvent()
+
+	expectedMsg := errorMessage
+	actualMsg := errorEvent.Exception.Message
+	if actualMsg != expectedMsg {
+		t.Errorf("TestCaptureExceptionReadyForServer failed expected %v, got %v", expectedMsg, actualMsg)
+	} else {
+		t.Logf("TestCaptureExceptionReadyForServer success expected %v, got %v", expectedMsg, actualMsg)
+	}
+
+	actualType := errorEvent.Exception.Type
+	if actualType != expectedType {
+		t.Errorf("TestCaptureExceptionReadyForServer failed expected %v, got %v", expectedType, actualType)
+	} else {
+		t.Logf("TestCaptureExceptionReadyForServer success expected %v, got %v", expectedType, actualType)
+	}
+}
