@@ -16,7 +16,11 @@ module.exports = {
             if (data.monitorId) query.monitorId = data.monitorId;
             if (data.probeId) query.probeId = data.probeId;
 
-            const previousMonitorStatus = await this.findOneBy(query);
+            let previousMonitorStatus = await this.findBy({
+                query,
+                limit: 1,
+            });
+            previousMonitorStatus = previousMonitorStatus[0];
 
             if (
                 !previousMonitorStatus ||
@@ -53,6 +57,7 @@ module.exports = {
                     status: data.status,
                     createdAt: now,
                     startTime: now,
+                    deleted: false,
                 };
                 if (data.lastStatus) {
                     monitorStatusData.lastStatus = data.lastStatus;
@@ -114,6 +119,40 @@ module.exports = {
             return monitorStatus;
         } catch (error) {
             ErrorService.log('MonitorStatusService.findOneBy', error);
+            throw error;
+        }
+    },
+
+    findBy: async function({ query, limit, skip }) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') skip = parseInt(skip);
+
+            if (typeof limit === 'string') limit = parseInt(limit);
+
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
+
+            const incidents = await monitorStatusCollection
+                .find(query)
+                .limit(limit)
+                .skip(skip)
+                .sort({ createdAt: -1 })
+                .toArray();
+
+            return incidents;
+        } catch (error) {
+            ErrorService.log('incidentService.findBy', error);
             throw error;
         }
     },

@@ -95,6 +95,23 @@ router.post(
     }
 );
 
+// data-ingestor will consume this api
+// update an incident
+router.post(
+    '/data-ingestor/update-incident',
+    isAuthorizedService,
+    async function(req, res) {
+        try {
+            const { data, query } = req.body;
+            const incident = await IncidentService.updateOneBy(query, data);
+
+            return sendItemResponse(req, res, incident);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 // Route
 // Description: Creating incident.
 // Params:

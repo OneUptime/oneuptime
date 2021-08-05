@@ -92,9 +92,14 @@ module.exports = {
 
     createMonitorDisabledStatus: async function(data) {
         try {
-            let monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: data.monitorId,
+            let monitorStatus = await MonitorStatusService.findBy({
+                query: {
+                    monitorId: data.monitorId,
+                },
+                limit: 1, // only get one item, which is the latest item
             });
+            monitorStatus = monitorStatus[0];
+
             const lastStatus =
                 monitorStatus && monitorStatus.status
                     ? monitorStatus.status
@@ -118,10 +123,14 @@ module.exports = {
         try {
             const _this = this;
 
-            const monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: data.monitorId,
-                probeId: data.probeId,
+            let monitorStatus = await MonitorStatusService.findBy({
+                query: {
+                    monitorId: data.monitorId,
+                    probeId: data.probeId,
+                },
+                limit: 1, // only get one item, which is the latest item
             });
+            monitorStatus = monitorStatus[0];
 
             const lastStatus =
                 monitorStatus && monitorStatus.status
@@ -627,12 +636,8 @@ module.exports = {
                     ]);
 
                     incidentsV2.push(newIncident);
-
-                    return newIncident;
                 } else {
                     incidentsV2.push(incident);
-
-                    return incident;
                 }
             }
 
@@ -646,6 +651,7 @@ module.exports = {
                         falseArray.push(probe);
                     }
                 });
+
                 if (
                     trueArray.length === falseArray.length ||
                     monitor.type === 'incomingHttpRequest'
@@ -674,6 +680,7 @@ module.exports = {
                     }
                 }
             });
+
             return {};
         } catch (error) {
             ErrorService.log(
@@ -1401,7 +1408,7 @@ const checkAnd = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload > con.criteria[i].field1
+                                payload > Number(con.criteria[i].field1)
                             )
                         ) {
                             validity = false;
@@ -1423,7 +1430,7 @@ const checkAnd = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload < con.criteria[i].field1
+                                payload < Number(con.criteria[i].field1)
                             )
                         ) {
                             validity = false;
@@ -1446,8 +1453,8 @@ const checkAnd = (
                                 con.criteria[i].field1 &&
                                 payload &&
                                 con.criteria[i].field2 &&
-                                payload > con.criteria[i].field1 &&
-                                payload < con.criteria[i].field2
+                                payload > Number(con.criteria[i].field1) &&
+                                payload < Number(con.criteria[i].field2)
                             )
                         ) {
                             validity = false;
@@ -1469,7 +1476,7 @@ const checkAnd = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload == con.criteria[i].field1
+                                payload === Number(con.criteria[i].field1)
                             )
                         ) {
                             validity = false;
@@ -1491,7 +1498,7 @@ const checkAnd = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload != con.criteria[i].field1
+                                payload !== Number(con.criteria[i].field1)
                             )
                         ) {
                             validity = false;
@@ -1513,7 +1520,7 @@ const checkAnd = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload >= con.criteria[i].field1
+                                payload >= Number(con.criteria[i].field1)
                             )
                         ) {
                             validity = false;
@@ -1535,7 +1542,7 @@ const checkAnd = (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
                                 payload &&
-                                payload <= con.criteria[i].field1
+                                payload <= Number(con.criteria[i].field1)
                             )
                         ) {
                             validity = false;
@@ -3750,7 +3757,7 @@ const checkOr = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload > con.criteria[i].field1
+                            payload > Number(con.criteria[i].field1)
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3770,7 +3777,7 @@ const checkOr = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload < con.criteria[i].field1
+                            payload < Number(con.criteria[i].field1)
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3791,8 +3798,8 @@ const checkOr = (
                             con.criteria[i].field1 &&
                             payload &&
                             con.criteria[i].field2 &&
-                            payload > con.criteria[i].field1 &&
-                            payload < con.criteria[i].field2
+                            payload > Number(con.criteria[i].field1) &&
+                            payload < Number(con.criteria[i].field2)
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3812,7 +3819,7 @@ const checkOr = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload == con.criteria[i].field1
+                            payload === Number(con.criteria[i].field1)
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3832,7 +3839,7 @@ const checkOr = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload != con.criteria[i].field1
+                            payload !== Number(con.criteria[i].field1)
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3852,7 +3859,7 @@ const checkOr = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload >= con.criteria[i].field1
+                            payload >= Number(con.criteria[i].field1)
                         ) {
                             validity = true;
                             successReasons.push(
@@ -3872,7 +3879,7 @@ const checkOr = (
                             con.criteria[i] &&
                             con.criteria[i].field1 &&
                             payload &&
-                            payload <= con.criteria[i].field1
+                            payload <= Number(con.criteria[i].field1)
                         ) {
                             validity = true;
                             successReasons.push(

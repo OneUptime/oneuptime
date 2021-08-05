@@ -157,7 +157,7 @@ const pingfetch = async (url, method, body, headers) => {
     }
 
     // this hard coded value will be removed soon
-    res = res / 250;
+    // res = res / 250;
 
     return {
         res,
