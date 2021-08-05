@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/go-errors/errors"
 )
 
 var errorTracker map[string]interface{}
@@ -466,5 +468,41 @@ func TestCaptureMessageTimelineAndEventWithSameID(t *testing.T) {
 		t.Errorf("TestCaptureMessageTimelineAndEventWithSameID failed expected %v, got %v", expectedMsg, actualMsg)
 	} else {
 		t.Logf("TestCaptureMessageTimelineAndEventWithSameID success expected %v, got %v", expectedMsg, actualMsg)
+	}
+}
+func TestCaptureExceptionReadyForServer(t *testing.T) {
+	timelineOpt := TrackerOption{
+		MaxTimeline: 2,
+	}
+	option := FyipeTrackerOption{
+		ErrorTrackerId:  errorTracker["_id"].(string),
+		ErrorTrackerKey: errorTracker["key"].(string),
+		ApiUrl:          apiUrl,
+		Options:         timelineOpt,
+	}
+
+	InitTracker(option)
+
+	errorMessage := "this function is supposed to crash"
+	err := errors.Errorf(errorMessage)
+
+	CaptureException(err)
+
+	errorEvent := GetErrorEvent()
+
+	expectedMsg := errorMessage
+	actualMsg := errorEvent.Exception.Message
+	if actualMsg != expectedMsg {
+		t.Errorf("TestCaptureExceptionReadyForServer failed expected %v, got %v", expectedMsg, actualMsg)
+	} else {
+		t.Logf("TestCaptureExceptionReadyForServer success expected %v, got %v", expectedMsg, actualMsg)
+	}
+
+	expectedType := "exception"
+	actualType := errorEvent.Type
+	if actualType != expectedType {
+		t.Errorf("TestCaptureExceptionReadyForServer failed expected %v, got %v", expectedType, actualType)
+	} else {
+		t.Logf("TestCaptureExceptionReadyForServer success expected %v, got %v", expectedType, actualType)
 	}
 }
