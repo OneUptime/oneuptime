@@ -90,7 +90,7 @@ class SmsTemplatesBox extends React.Component {
                                                 className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-vertical--2"
                                                 style={{ boxShadow: 'none' }}
                                             >
-                                                <div className="bs-Fieldset-row">
+                                                <div className="bs-Fieldset-row email-smt-row">
                                                     <label className="bs-Fieldset-label">
                                                         Templates
                                                     </label>
