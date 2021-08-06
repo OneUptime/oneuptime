@@ -101,7 +101,7 @@ func SetFingerprint(fingerprint []string) {
 	tracker.SetFingerprint(fingerprint)
 }
 
-func CaptureMessage(message string) {
+func CaptureMessage(message string) TrackerResponse {
 	tracker := CurrentTracker()
 
 	messageObj := &Exception{
@@ -110,7 +110,7 @@ func CaptureMessage(message string) {
 
 	tracker.SetTag("handled", "true")
 
-	tracker.PrepareErrorObject("message", messageObj)
+	return tracker.PrepareErrorObject("message", messageObj)
 }
 func GetErrorEvent() *ErrorEvent {
 	tracker := CurrentTracker()
@@ -118,7 +118,7 @@ func GetErrorEvent() *ErrorEvent {
 	return tracker.Realm().currentErrorEvent
 }
 
-func CaptureException(exception error) {
+func CaptureException(exception error) TrackerResponse {
 	tracker := CurrentTracker()
 
 	exceptionObj := &Exception{
@@ -129,5 +129,5 @@ func CaptureException(exception error) {
 
 	tracker.SetTag("handled", "true")
 
-	tracker.PrepareErrorObject("exception", exceptionObj)
+	return tracker.PrepareErrorObject("exception", exceptionObj)
 }

@@ -19,33 +19,47 @@ type LoggerResponse struct {
 	Message            string
 }
 
+type TrackerResponse struct {
+	ID              string `json:"_id"`
+	Deleted         bool
+	CreatedAt       string
+	Content         interface{}
+	ErrorTrackerId  string
+	Fingerprint     []string
+	FingerprintHash string
+	CreatedBy       string
+	Tags            []Tag
+	Timeline        []Timeline
+	Type            string
+}
+
 type Timeline struct {
-	Category  string
-	Data      interface{}
-	Type      string
-	Timestamp time.Time
-	EventId   string
+	Category  string      `json:"category"`
+	Data      interface{} `json:"data"`
+	Type      string      `json:"type"`
+	Timestamp time.Time   `json:"timestamp"`
+	EventId   string      `json:"eventId"`
 }
 
 type Exception struct {
-	Message    string
-	Stacktrace *Stacktrace
-	Type       string
-	LineNumber string
+	Message    string      `json:"message"`
+	Stacktrace *Stacktrace `json:"stacktrace"`
+	Type       string      `json:"type"`
+	LineNumber string      `json:"lineNumber"`
 }
 
 type Tag struct {
-	Key   string
-	Value string
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 type ErrorEvent struct {
-	Type            string
-	Timeline        []*Timeline
-	Exception       *Exception
-	EventId         string
-	Tags            []*Tag
-	Fingerprint     []string
-	ErrorTrackerKey string
+	Type            string      `json:"type"`
+	Timeline        []*Timeline `json:"timeline"`
+	Exception       *Exception  `json:"exception"`
+	EventId         string      `json:"eventId"`
+	Tags            []*Tag      `json:"tags"`
+	Fingerprint     []string    `json:"fingerprint"`
+	ErrorTrackerKey string      `json:"errorTrackerKey"`
 }
 
 // const (
@@ -55,10 +69,10 @@ type ErrorEvent struct {
 // )
 
 type Stacktrace struct {
-	Frames []Frame
+	Frames []Frame `json:"frames"`
 }
 type Frame struct {
-	MethodName string
-	FileName   string
-	LineNumber string
+	MethodName string `json:"methodName"`
+	FileName   string `json:"fileName"`
+	LineNumber string `json:"lineNumber"`
 }
