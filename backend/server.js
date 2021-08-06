@@ -54,9 +54,6 @@ global.io = io;
 app.use(cors());
 
 app.use(function(req, res, next) {
-    // eslint-disable-next-line no-console
-    console.log('** BACKEND CLUSTER KEY **', process.env.CLUSTER_KEY);
-
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }

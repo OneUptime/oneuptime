@@ -51,8 +51,6 @@ global.db = client.db('fyipedb');
 app.use(cors());
 
 app.use(function(req, res, next) {
-    console.log('** DATAINGESTOR CLUSTER KEY **', process.env.CLUSTER_KEY);
-
     if (typeof req.body === 'string') {
         req.body = JSON.parse(req.body);
     }
