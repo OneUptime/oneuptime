@@ -154,7 +154,7 @@ export class StatusPageLayout extends Component {
             case 'ongoingSchedule':
                 return 'This section contains the scheduled events that are ongoing';
             case 'twitter':
-                return 'This section displays the last 10 tweets for twitter handle entered in advanced options';
+                return 'This section displays the most recent tweets for any twitter handle entered in advanced options';
             case 'footer':
                 return 'This section displays the footer of the status page and can not be hidden';
             case 'header':
