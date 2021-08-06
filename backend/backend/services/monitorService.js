@@ -1253,9 +1253,12 @@ module.exports = {
                     query.probeId = { $in: [probe._id, null] };
                 }
 
-                const monitorStatuses = await MonitorStatusService.findBy(
-                    query
-                );
+                const select =
+                    '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
+                const monitorStatuses = await MonitorStatusService.findBy({
+                    query,
+                    select,
+                });
 
                 if (monitorStatuses && monitorStatuses.length > 0) {
                     probeStatuses.push({
