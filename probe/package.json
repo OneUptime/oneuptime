@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "start": "node --max-http-header-size=80000 index.js",
+        "start": "node --max-old-space-size=4096 --max-http-header-size=80000 index.js",
         "dev": "nodemon --inspect=0.0.0.0 --max-http-header-size=80000 index.js",
         "test": "echo 'no tests'",
         "audit": "npm audit --audit-level=low",
@@ -34,7 +34,6 @@
         "node-fetch": "^2.6.1",
         "node-ssh": "^11.1.1",
         "ping": "^0.4.0",
-        "puppeteer": "^10.0.0",
         "request": "^2.88.2",
         "uuid": "^8.3.2",
         "vm2": "^3.9.2",
