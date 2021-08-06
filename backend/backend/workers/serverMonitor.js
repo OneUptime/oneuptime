@@ -22,7 +22,8 @@ module.exports = {
                         select: '_id',
                     });
                     const monitorStatus = await MonitorStatusService.findOneBy({
-                        monitorId: monitor._id,
+                        query: { monitorId: monitor._id },
+                        select: 'status',
                     });
 
                     if (

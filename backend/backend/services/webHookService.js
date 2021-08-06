@@ -16,7 +16,8 @@ module.exports = {
                     select: 'parentProjectId slug name _id',
                 }),
                 MonitorStatusService.findOneBy({
-                    monitorId: monitor._id,
+                    query: { monitorId: monitor._id },
+                    select: 'status',
                 }),
             ]);
             if (project && project.parentProjectId) {
@@ -100,7 +101,8 @@ module.exports = {
             const [integrations, monitorStatus] = await Promise.all([
                 IntegrationService.findBy({ query, select, populate }),
                 MonitorStatusService.findOneBy({
-                    monitorId: monitor._id,
+                    query: { monitorId: monitor._id },
+                    select: 'status',
                 }),
             ]);
             // if (integrations.length === 0) deferred.resolve('no webhook added for this to notify');

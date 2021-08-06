@@ -4,7 +4,15 @@ module.exports = {
             const query = {};
             if (data.monitorId) query.monitorId = data.monitorId;
             if (data.probeId) query.probeId = data.probeId;
-            const previousMonitorStatus = await this.findOneBy(query);
+
+            const select = '_id status lastStatus';
+            let previousMonitorStatus = await this.findBy({
+                query,
+                limit: 1,
+                select,
+            });
+            previousMonitorStatus = previousMonitorStatus[0];
+
             if (
                 !previousMonitorStatus ||
                 (previousMonitorStatus &&
@@ -62,7 +70,15 @@ module.exports = {
                 const query = {};
                 if (data.monitorId) query.monitorId = data.monitorId;
                 if (data.probeId) query.probeId = data.probeId;
-                const previousMonitorStatus = await this.findOneBy(query);
+
+                const select = '_id status lastStatus';
+                let previousMonitorStatus = await this.findBy({
+                    query,
+                    limit: 1,
+                    select,
+                });
+                previousMonitorStatus = previousMonitorStatus[0];
+
                 if (
                     !previousMonitorStatus ||
                     (previousMonitorStatus &&
@@ -139,7 +155,9 @@ module.exports = {
             let updatedData = await MonitorStatusModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const select =
+                '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
+            updatedData = await this.findBy({ query, select });
             return updatedData;
         } catch (error) {
             ErrorService.log('MonitorStatusService.updateMany', error);
@@ -147,7 +165,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -171,11 +189,15 @@ module.exports = {
                     { deleted: { $exists: false } },
                 ];
 
-            const monitorStatus = await MonitorStatusModel.find(query)
+            let monitorStatusQuery = MonitorStatusModel.find(query)
                 .lean()
                 .sort({ createdAt: -1 })
                 .limit(limit)
                 .skip(skip);
+            monitorStatusQuery = handleSelect(select, monitorStatusQuery);
+            monitorStatusQuery = handlePopulate(populate, monitorStatusQuery);
+
+            const monitorStatus = await monitorStatusQuery;
             return monitorStatus;
         } catch (error) {
             ErrorService.log('monitorStatusService.findBy', error);
@@ -183,7 +205,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
@@ -194,13 +216,11 @@ module.exports = {
                     { deleted: { $exists: false } },
                 ];
 
-            const monitorStatus = await MonitorStatusModel.findOne(
-                query,
-                {},
-                {
-                    sort: { createdAt: -1 },
-                }
-            ).lean();
+            let monitorStatusQuery = MonitorStatusModel.findOne(query).lean();
+            monitorStatusQuery = handleSelect(select, monitorStatusQuery);
+            monitorStatusQuery = handlePopulate(populate, monitorStatusQuery);
+
+            const monitorStatus = await monitorStatusQuery;
             return monitorStatus;
         } catch (error) {
             ErrorService.log('MonitorStatusService.findOneBy', error);
@@ -280,3 +300,5 @@ const MonitorStatusModel = require('../models/monitorStatus');
 const MonitorService = require('../services/monitorService');
 const RealTimeService = require('./realTimeService');
 const ErrorService = require('../services/errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
