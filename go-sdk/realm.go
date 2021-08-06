@@ -74,7 +74,7 @@ func (realm *Realm) SetFingerprint(fingerprint []string) {
 	realm.fingerprint = fingerprint
 }
 
-func (realm *Realm) PrepareErrorObject(errorType string, errorObj *Exception) {
+func (realm *Realm) PrepareErrorObject(errorType string, errorObj *Exception, errorTrackerKey string) {
 	realm.mu.Lock()
 	defer realm.mu.Unlock()
 
@@ -84,12 +84,13 @@ func (realm *Realm) PrepareErrorObject(errorType string, errorObj *Exception) {
 	}
 
 	errorEvent := &ErrorEvent{
-		Type:        errorType,
-		Timeline:    realm.timelines,
-		EventId:     realm.eventId,
-		Tags:        realm.tags,
-		Fingerprint: realm.fingerprint,
-		Exception:   errorObj,
+		Type:            errorType,
+		Timeline:        realm.timelines,
+		EventId:         realm.eventId,
+		Tags:            realm.tags,
+		Fingerprint:     realm.fingerprint,
+		Exception:       errorObj,
+		ErrorTrackerKey: errorTrackerKey,
 	}
 
 	realm.currentErrorEvent = errorEvent
