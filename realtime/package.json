@@ -4,7 +4,7 @@
     "description": "A project to handle all realtime processing for Fyipe",
     "main": "index.js",
     "scripts": {
-        "start": "node index.js",
+        "start": "node --max-old-space-size=4096 index.js",
         "dev": "cross-env NODE_ENV=development nodemon index.js",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"
