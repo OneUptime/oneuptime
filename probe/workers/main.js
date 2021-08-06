@@ -4,8 +4,8 @@
  *
  */
 const getApi = require('../utils/api').getApi;
-const ApiMonitors = require('./apiMonitors');
-const UrlMonitors = require('./urlMonitors');
+// const ApiMonitors = require('./apiMonitors');
+// const UrlMonitors = require('./urlMonitors');
 const IPMonitors = require('./ipMonitors');
 const ServerMonitors = require('./serverMonitors');
 const ErrorService = require('../utils/errorService');
@@ -21,9 +21,9 @@ module.exports = {
             for (const monitor of monitors) {
                 try {
                     if (monitor.type === 'api') {
-                        await ApiMonitors.ping(monitor);
+                        // await ApiMonitors.ping(monitor);
                     } else if (monitor.type === 'url') {
-                        await UrlMonitors.ping(monitor);
+                        // await UrlMonitors.ping(monitor);
                     } else if (monitor.type === 'ip') {
                         await IPMonitors.ping(monitor);
                     } else if (
