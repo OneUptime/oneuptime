@@ -1,6 +1,10 @@
 package fyipe
 
 import (
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"sync"
 )
 
@@ -94,12 +98,49 @@ func (tracker *Tracker) SetFingerprint(fingerprint []string) {
 	tracker.Realm().SetFingerprint(fingerprint)
 }
 
-func (tracker *Tracker) PrepareErrorObject(category string, errorObj *Exception) {
+func (tracker *Tracker) PrepareErrorObject(category string, errorObj *Exception) TrackerResponse {
+	currentFyipeTracker := tracker.FyipeTracker()
+
 	AddToTimeline(&Timeline{
 		Category: category,
 		Data:     errorObj.Message,
 		Type:     "error",
 	})
 
-	tracker.Realm().PrepareErrorObject(category, errorObj)
+	tracker.Realm().PrepareErrorObject(category, errorObj, currentFyipeTracker.options.ErrorTrackerKey)
+
+	trackerResponse, err := tracker.sendErrorToServer()
+
+	if err != nil {
+		// something went wrong, server down, etc
+	}
+
+	return trackerResponse
+}
+
+func (tracker *Tracker) sendErrorToServer() (TrackerResponse, error) {
+	currentFyipeTracker := tracker.FyipeTracker()
+	currentErrorEvent := tracker.Realm().currentErrorEvent
+
+	postBody, _ := json.Marshal(currentErrorEvent)
+	responseBody := bytes.NewBuffer(postBody)
+
+	resp, err := http.Post(currentFyipeTracker.options.ApiUrl, "application/json", responseBody)
+
+	if err != nil {
+		// log.Fatalf("An Error Occured %v", err)
+		return TrackerResponse{}, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		// log.Fatalln(err)
+		return TrackerResponse{}, err
+	}
+
+	var res TrackerResponse
+	if err := json.Unmarshal([]byte(body), &res); err != nil {
+		panic(err)
+	}
+	return trackerResponse, nil
 }
