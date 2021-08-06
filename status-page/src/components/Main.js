@@ -927,13 +927,13 @@ class Main extends Component {
                 </div>
             ),
             twitter: (
-                <Twitter
-                    monitorState={this.props.monitorState}
-                    theme={theme}
-                    heading={heading}
-                    tweets={this.state.tweets}
-                    {...this.props}
-                />
+                <div>
+                    <Twitter
+                        theme={theme}
+                        tweets={this.props.tweetData}
+                        loading={this.props.status.tweets.requesting}
+                    />
+                </div>
             ),
             footer: (
                 <div className="powered">
@@ -1293,7 +1293,11 @@ class Main extends Component {
                 ),
             twitter: (
                 <div>
-                    <Twitter />
+                    <Twitter
+                        theme={theme}
+                        tweets={this.props.tweetData}
+                        loading={this.props.status.tweets.requesting}
+                    />
                 </div>
             ),
             footer: (
@@ -1460,6 +1464,7 @@ const mapStateToProps = state => {
         );
     const futureEvents = state.status.futureEvents.events;
     const pastEvents = state.status.pastEvents.events;
+    const tweetData = state.status.tweets.tweetList;
     return {
         status: state.status,
         statusData: state.status.statusPage,
@@ -1476,6 +1481,7 @@ const mapStateToProps = state => {
         ongoing,
         futureEvents,
         pastEvents,
+        tweetData,
     };
 };
 
@@ -1521,6 +1527,7 @@ Main.propTypes = {
     pastEvents: PropTypes.func,
     getAllStatusPageResource: PropTypes.func,
     fetchTweets: PropTypes.func,
+    tweetData: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

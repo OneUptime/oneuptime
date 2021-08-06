@@ -1414,17 +1414,14 @@ export function fetchTweetsFailure(error) {
 }
 
 export function fetchTweets(handle, projectId) {
-    // eslint-disable-next-line no-console
-    console.log(handle);
     return function(dispatch) {
-        const promise = postApi(`statusPage/${projectId}/${projectId}/tweets`, {
+        const promise = postApi(`statusPage/${projectId}/tweets`, {
             handle,
         });
+
         dispatch(fetchTweetsRequest());
         promise.then(
             function(response) {
-                // eslint-disable-next-line no-console
-                console.log(response);
                 dispatch(fetchTweetsSuccess(response.data));
             },
             function(error) {

@@ -1,107 +1,136 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-class Twitter extends React.Component {
-    state = {
-        tweets: [
-            {
-                text:
-                    'Jesus Loves the little children, all the children of the world',
-                created_at: '2019-06-11T17:59:13.000Z',
-            },
-            {
-                text:
-                    'Jesus Loves the little children, all the children of the world',
-                created_at: '2019-06-11T17:59:13.000Z',
-            },
-            {
-                text:
-                    'Jesus Loves the little children, all the children of the world',
-                created_at: '2019-06-11T17:59:13.000Z',
-            },
-            {
-                text:
-                    'Jesus Loves the little children, all the children of the world',
-                created_at: '2019-06-11T17:59:13.000Z',
-            },
-        ],
-    };
-
-    tweetList = (tweet, index) => {
-        return (
-            <li
-                style={{
-                    margin: '0 0 10px',
-                    cursor: 'text',
-                    display: 'flex',
-                }}
-                key={index}
+import moment from 'moment';
+const Twitter = ({ tweets, theme, loading }) => {
+    const TweetLayout =
+        theme && theme === 'Classic Theme' ? (
+            <div
+                id="scheduledEvents"
+                className="twitter-feed white box"
+                style={{ overflow: 'visible' }}
             >
-                <span className="feed-icon"></span>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div className="messages" style={{ position: 'relative' }}>
                     <div
-                        className="incidentlist feed-item clearfix"
+                        className="box-inner"
                         style={{
-                            marginBottom: 0,
-                            borderTopLeftRadius: 0,
+                            paddingLeft: 0,
+                            paddingRight: 0,
+                            width: '100%',
                         }}
                     >
-                        <p className="ct_desc">{tweet.text}</p>
-                    </div>
-                    <span className="twitterTime">{tweet.created_at}</span>
-                </div>
-            </li>
-        );
-    };
-
-    render() {
-        return (
-            <div>
-                <div
-                    id="scheduledEvents"
-                    className="twitter-feed white box"
-                    style={{ overflow: 'visible' }}
-                >
-                    <div className="messages" style={{ position: 'relative' }}>
                         <div
-                            className="box-inner"
-                            style={{
-                                paddingLeft: 0,
-                                paddingRight: 0,
-                                width: '100%',
-                            }}
+                            style={{ display: 'block' }}
+                            className="feed-header"
                         >
-                            <div
-                                style={{ display: 'block' }}
-                                className="feed-header"
-                            >
-                                <span className="feed-title">
-                                    Twitter Updates
-                                </span>
-                                <span className="feed-title">
-                                    <span className="feed-icon"></span>
-                                </span>
+                            <span className="feed-title">Twitter Updates</span>
+                            <span className="feed-title">
+                                <span className="feed-icon"></span>
+                            </span>
+
+                            {loading ? (
+                                <p>Loading Tweets...</p>
+                            ) : tweets?.length === 0 ? (
+                                <p>No tweets at this time</p>
+                            ) : (
                                 <ul className="feed-contents plain">
-                                    {this.state.tweets.map((tweet, i) =>
-                                        this.tweetList(tweet, i)
-                                    )}
+                                    {tweets?.length &&
+                                        tweets.map((tweet, i) =>
+                                            TweetList(tweet, i)
+                                        )}
                                 </ul>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
+        ) : (
+            <>
+                <div style={{ marginBottom: '10px' }} className="font-largest">
+                    Twitter
+                </div>
+                <div>
+                    <div
+                        className="box-inner"
+                        style={{
+                            paddingLeft: 0,
+                            paddingRight: 0,
+                            width: '100%',
+                        }}
+                    >
+                        {loading ? (
+                            <p>Loading Tweets...</p>
+                        ) : tweets?.length === 0 ? (
+                            <p>No tweets at this time</p>
+                        ) : (
+                            <ul className="feed-contents plain">
+                                {tweets?.length &&
+                                    tweets.map((tweet, i) =>
+                                        TweetList(tweet, i)
+                                    )}
+                            </ul>
+                        )}
+                    </div>
+                </div>
+            </>
         );
-    }
-}
+
+    return TweetLayout;
+};
 
 Twitter.displayName = 'Twitter';
 
 Twitter.PropTypes = {
-    handle: PropTypes.string,
-    theme: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.oneOf([null, undefined]),
-    ]),
+    tweets: PropTypes.array,
+    theme: PropTypes.string,
+    loading: PropTypes.bool,
 };
 
 export default Twitter;
+
+const TweetList = (tweet, index) => {
+    return (
+        <li
+            style={{
+                margin: '0 0 20px',
+                cursor: 'text',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+            }}
+            key={index}
+        >
+            <span className="feed-icon" style={{ width: '5%' }}></span>
+            <div
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    width: '90%',
+                }}
+            >
+                <div
+                    className="incidentlist feed-item clearfix"
+                    style={{
+                        marginBottom: 0,
+                        borderTopLeftRadius: 0,
+                        marginLeft: 0,
+                        marginRight: 0,
+                    }}
+                >
+                    <p className="ct_desc">{tweet.text}</p>
+                </div>
+                <span className="twitterTime">
+                    {moment(tweet.created_at).format(
+                        'dddd, MMMM Do YYYY, h:mm a'
+                    )}
+                </span>
+            </div>
+        </li>
+    );
+};
+
+TweetList.displayName = ' TweetList';
+
+TweetList.PropTypes = {
+    tweet: PropTypes.string,
+    index: PropTypes.string,
+};
