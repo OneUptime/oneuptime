@@ -67,12 +67,6 @@ module.exports = {
                 query = {};
             }
 
-            if (!query.deleted)
-                query.$or = [
-                    { deleted: false },
-                    { deleted: { $exists: false } },
-                ];
-
             // THIS IS AN EXCEPTION TO THE NORMAL FLOW
             // WHY?
             // Instead of running multiple aggregate pipelines and also running multiple data formatting
