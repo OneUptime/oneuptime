@@ -11,7 +11,7 @@ ENV CHROME_PATH=/usr/bin/chromium
 
 # Install Chrome.
 RUN apt-get update
-RUN apt-get install chromium
+RUN apt-get install -y chromium
 
 RUN mkdir -p /usr/src/app
 
