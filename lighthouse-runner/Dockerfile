@@ -7,11 +7,11 @@ FROM node:16
 
 #SET ENV Variables
 ENV PRODUCTION=true
-ENV CHROME_PATH=/usr/bin/chromium-browser
+ENV CHROME_PATH=/usr/bin/chromium
 
 # Install Chrome.
 RUN apt-get update
-RUN apt-get install chromium-browser
+RUN apt-get install chromium
 
 RUN mkdir -p /usr/src/app
 
