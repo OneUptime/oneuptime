@@ -9,8 +9,8 @@ FROM node:16
 ENV PRODUCTION=true
 
 RUN OS_ARCHITECTURE="amd64"
-RUN if [ "$(uname -m)" -eq "aarch64" ] ; then OS_ARCHITECTURE="arm64" ; fi
-RUN if [ "$(uname -m)" -eq "arm64" ] ; then OS_ARCHITECTURE="arm64" ; fi
+RUN if [[ "$(uname -m)" -eq "aarch64" ]] ; then OS_ARCHITECTURE="arm64" ; fi
+RUN if [[ "$(uname -m)" -eq "arm64" ]] ; then OS_ARCHITECTURE="arm64" ; fi
 
 RUN mkdir -p /usr/src/app
 

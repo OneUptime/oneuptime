@@ -8,8 +8,8 @@ FROM node:16
 WORKDIR /usr/src/app
 
 RUN OS_ARCHITECTURE="amd64"
-RUN if [ "$(uname -m)" -eq "aarch64" ] ; then OS_ARCHITECTURE="arm64" ; fi
-RUN if [ "$(uname -m)" -eq "arm64" ] ; then OS_ARCHITECTURE="arm64" ; fi
+RUN if [[ "$(uname -m)" -eq "aarch64" ]] ; then OS_ARCHITECTURE="arm64" ; fi
+RUN if [[ "$(uname -m)" -eq "arm64" ]] ; then OS_ARCHITECTURE="arm64" ; fi
 
 # Install trivy for container scanning
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
