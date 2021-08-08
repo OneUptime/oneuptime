@@ -48,5 +48,7 @@ build container-scanner $1
 build application-scanner $1
 build data-ingestor $1
 build realtime $1
+build haraka $1
+build http-test-server $1
 
 cd $DIR
