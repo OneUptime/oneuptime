@@ -25,4 +25,10 @@ version helm-chart
 version js-sdk
 version fyipe-le-store
 version fyipe-acme-http-01
+version lighthouse-runner
+version script-runner
+version container-scanner
+version application-scanner
+version data-ingestor
+version realtime
 version .
