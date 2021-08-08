@@ -23,9 +23,9 @@ fi
 DIR=$PWD
 FYIPE_DIR="$DIR/.."
 
-chmod +x ./ci/scripts/docker-build.sh
+chmod +x ./ci/scripts/docker-build-and-push.sh
 function build {
-  ./ci/scripts/docker-build.sh $1 $2
+  ./ci/scripts/docker-build-and-push.sh $1 $2
 }
 
 # cd ..
