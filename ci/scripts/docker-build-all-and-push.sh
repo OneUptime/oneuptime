@@ -42,11 +42,11 @@ build init-script $1
 build slack $1
 build licensing $1
 build helm-chart $1
-build lighthouse-runner
-build script-runner
-build container-scanner
-build application-scanner
-build data-ingestor
-build realtime
+build lighthouse-runner $1
+build script-runner $1
+build container-scanner $1
+build application-scanner $1
+build data-ingestor $1
+build realtime $1
 
 cd $DIR
