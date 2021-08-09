@@ -5,6 +5,11 @@
 ##
 
 mongodb:
+    image:
+        registry: docker.io
+        repository: mongodb
+        tag: latest
+        pullPolicy: Always
     persistence:
         enabled: true
         mountPath: /bitnami/mongodb
