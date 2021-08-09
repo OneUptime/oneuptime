@@ -6,7 +6,7 @@ const fetch = require('node-fetch');
 const { COMMAND, serverUrl } = require('../utils/config');
 
 module.exports = {
-    run: async monitor => {
+    run: async ({ monitor, store }) => {
         try {
             if (
                 monitor &&
@@ -92,6 +92,9 @@ module.exports = {
                         );
                         throw error;
                     });
+
+                // remove monitor from store
+                store.delete(monitor._id);
             }
         } catch (error) {
             ErrorService.log('serverMonitors.run', error);
