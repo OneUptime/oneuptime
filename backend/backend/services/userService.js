@@ -164,8 +164,10 @@ module.exports = {
                         .filter(project => project !== null);
                     projectIds = projects.map(project => project._id);
                 }
-                const populate = [{ path: 'parentProjectId', select: 'name' }];
-                const select =
+                const populateProject = [
+                    { path: 'parentProjectId', select: 'name' },
+                ];
+                const selectProject =
                     '_id slug name users stripePlanId stripeSubscriptionId parentProjectId seats deleted apiKey alertEnable alertLimit alertLimitReached balance alertOptions isBlocked adminNotes';
                 userProjects = await ProjectService.findBy({
                     query: {
@@ -174,10 +176,10 @@ module.exports = {
                             { _id: { $in: projectIds } },
                         ],
                     },
-                    select,
-                    populate,
+                    select: selectProject,
+                    populate: populateProject,
                 });
-                return await Object.assign({}, user._doc || user, {
+                return await Object.assign({}, user, {
                     projects: userProjects,
                 });
             }
