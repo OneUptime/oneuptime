@@ -5,6 +5,9 @@
 # Pull base image nodejs image.
 FROM node:16
 
+#Use bash shell by default
+SHELL ["/bin/bash", "-c"]
+
 #SET ENV Variables
 ENV PRODUCTION=true
 
@@ -13,7 +16,10 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 # Install kubectl for kubernetes monitor scanning
-RUN curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+RUN OS_ARCHITECTURE="amd64"
+RUN if [[ "$(uname -m)" -eq "aarch64" ]] ; then OS_ARCHITECTURE="arm64" ; fi
+RUN if [[ "$(uname -m)" -eq "arm64" ]] ; then OS_ARCHITECTURE="arm64" ; fi
+RUN curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/$(OS_ARCHITECTURE)/kubectl"
 RUN chmod +x ./kubectl
 RUN mv ./kubectl /usr/local/bin/kubectl && \
   chown root: /usr/local/bin/kubectl

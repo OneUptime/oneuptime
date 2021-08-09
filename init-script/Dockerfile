@@ -4,6 +4,9 @@
 
 FROM node:16
 
+#Use bash shell by default
+SHELL ["/bin/bash", "-c"]
+
 # Set env variables
 ENV PRODUCTION=true
 
