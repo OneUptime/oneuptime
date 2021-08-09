@@ -99,3 +99,17 @@ nginx-ingress-controller:
     service:
         type: NodePort
     hostNetwork: true
+
+redis:
+    redisPort: 6379
+    image:
+        registry: docker.io
+        repository: bitnami/redis
+        tag: latest
+        pullPolicy: Always
+    usePassword: false
+    persistence:
+        enabled: true
+        mountPath: /bitnami/mongodb
+        size: 2Gi
+        storageClass: nfs-client
