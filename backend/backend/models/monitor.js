@@ -173,6 +173,7 @@ const monitorSchema = new Schema({
         default: false,
     },
     scanning: { type: Boolean, default: false },
+    probeScanning: [String],
 });
 
 monitorSchema.virtual('project', {

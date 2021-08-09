@@ -51,4 +51,10 @@ module.exports = {
             monitorIds,
         });
     },
+    addProbeScan: async function(monitorIds) {
+        return await postApi('probe/add-probe-scan', { monitorIds });
+    },
+    removeProbeScan: async function(monitorIds) {
+        return await postApi('probe/remove-probe-scan', { monitorIds });
+    },
 };

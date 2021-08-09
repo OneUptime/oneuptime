@@ -36,7 +36,8 @@ module.exports = {
 
             // update all monitors to have scanning set to true
             const monitorIds = monitors.map(monitor => monitor._id);
-            await ApiService.setScanStatus(monitorIds, true);
+            // await ApiService.setScanStatus(monitorIds, true);
+            await ApiService.addProbeScan(monitorIds);
 
             for (const monitor of monitors) {
                 try {
@@ -82,7 +83,8 @@ module.exports = {
             }
 
             // update all monitor scan status to false
-            await ApiService.setScanStatus(monitorIds, false);
+            // await ApiService.setScanStatus(monitorIds, false);
+            await ApiService.removeProbeScan(monitorIds);
         } catch (error) {
             ErrorService.log('getApi', error);
         }

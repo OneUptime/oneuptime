@@ -644,4 +644,26 @@ router.post('/set-scan-status', isAuthorizedProbe, async function(req, res) {
     }
 });
 
+router.post('/add-probe-scan', isAuthorizedProbe, async function(req, res) {
+    try {
+        const { monitorIds } = req.body;
+        await MonitorService.addProbeScanning(monitorIds, req.probe.id);
+
+        return sendEmptyResponse(req, res);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/remove-probe-scan', isAuthorizedProbe, async function(req, res) {
+    try {
+        const { monitorIds } = req.body;
+        await MonitorService.removeProbeScanning(monitorIds, req.probe.id);
+
+        return sendEmptyResponse(req, res);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;
