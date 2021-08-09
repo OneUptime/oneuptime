@@ -9,6 +9,28 @@ module.exports = {
         );
     },
 
+    updateScanStatus: async function(monitorIds, status) {
+        try {
+            for (const id of monitorIds) {
+                await monitorCollection.updateOne(
+                    {
+                        _id: ObjectId(id),
+                        $or: [
+                            { deleted: false },
+                            { deleted: { $exists: false } },
+                        ],
+                    },
+                    {
+                        $set: { scanning: status },
+                    }
+                );
+            }
+        } catch (error) {
+            ErrorService.log('monitorService.updateScanStatus', error);
+            throw error;
+        }
+    },
+
     updateLighthouseScanStatus: async function(
         _id,
         lighthouseScanStatus,
@@ -81,6 +103,10 @@ module.exports = {
                         {
                             deleted: false,
                             disabled: false,
+                            $or: [
+                                { scanning: false },
+                                { scanning: { $exists: false } },
+                            ],
                         },
                         {
                             $or: [

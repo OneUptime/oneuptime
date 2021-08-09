@@ -172,6 +172,7 @@ const monitorSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    scanning: { type: Boolean, default: false },
 });
 
 monitorSchema.virtual('project', {

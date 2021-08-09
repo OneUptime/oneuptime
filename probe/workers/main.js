@@ -11,6 +11,7 @@ const ServerMonitors = require('./serverMonitors');
 const ErrorService = require('../utils/errorService');
 const IncomingHttpRequestMonitors = require('./incomingHttpRequestMonitors');
 const KubernetesMonitors = require('./kubernetesMonitors');
+const ApiService = require('../utils/apiService');
 
 /**
  *
@@ -32,6 +33,10 @@ module.exports = {
         try {
             let monitors = await getApi('probe/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data
+
+            // update all monitors to have scanning set to true
+            const monitorIds = monitors.map(monitor => monitor._id);
+            await ApiService.setScanStatus(monitorIds, true);
 
             for (const monitor of monitors) {
                 try {
@@ -75,6 +80,9 @@ module.exports = {
                     ErrorService.log('Main.runJob', e);
                 }
             }
+
+            // update all monitor scan status to false
+            await ApiService.setScanStatus(monitorIds, false);
         } catch (error) {
             ErrorService.log('getApi', error);
         }
