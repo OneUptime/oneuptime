@@ -69,6 +69,13 @@ router.post('/:projectId/tweets', checkUser, async (req, res) => {
     try {
         const { handle } = req.body;
 
+        if (!handle) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'handle is required',
+            });
+        }
+
         const userData = await axios.get(
             `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
             {
@@ -96,6 +103,7 @@ router.post('/:projectId/tweets', checkUser, async (req, res) => {
 
         return sendItemResponse(req, res, response);
     } catch (error) {
+        console.log('***', error);
         return sendErrorResponse(req, res, error);
     }
 });
