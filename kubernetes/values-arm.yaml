@@ -8,7 +8,7 @@ mongodb:
     persistence:
         enabled: true
         mountPath: /bitnami/mongodb
-        size: 1000Gi
+        size: 100Gi
         storageClass: nfs-client
 
 saas:
