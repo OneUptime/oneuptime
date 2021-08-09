@@ -65,6 +65,41 @@ app.use(function(req, res, next) {
     return next();
 });
 
+// log request middleware
+const getActualRequestDurationInMilliseconds = start => {
+    const NS_PER_SEC = 1e9; //  convert to nanoseconds
+    const NS_TO_MS = 1e6; // convert to milliseconds
+    const diff = process.hrtime(start);
+    return (diff[0] * NS_PER_SEC + diff[1]) / NS_TO_MS;
+};
+app.use(function(req, res, next) {
+    const current_datetime = new Date();
+    const formatted_date =
+        current_datetime.getFullYear() +
+        '-' +
+        (current_datetime.getMonth() + 1) +
+        '-' +
+        current_datetime.getDate() +
+        ' ' +
+        current_datetime.getHours() +
+        ':' +
+        current_datetime.getMinutes() +
+        ':' +
+        current_datetime.getSeconds();
+    const method = req.method;
+    const url = req.url;
+    const originalUrl = req.originalUrl;
+    const status = res.statusCode;
+    const start = process.hrtime();
+    const durationInMilliseconds = getActualRequestDurationInMilliseconds(
+        start
+    );
+    const log = `[${formatted_date}] ${method}:${url} ${originalUrl} ${status} ${durationInMilliseconds.toLocaleString()} ms`;
+    // eslint-disable-next-line no-console
+    console.log(log);
+    return next();
+});
+
 // Add limit of 10 MB to avoid "Request Entity too large error"
 // https://stackoverflow.com/questions/19917401/error-request-entity-too-large
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
