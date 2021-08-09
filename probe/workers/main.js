@@ -25,9 +25,6 @@ const ApiService = require('../utils/apiService');
  *  - if criteria is request body , then curl otherwise ICMP ping which is a LOT faster.
  */
 
-// create a local store here
-const scanning = new Map();
-
 module.exports = {
     runJob: async function() {
         try {
@@ -43,41 +40,21 @@ module.exports = {
 
             for (const monitor of monitors) {
                 try {
-                    if (!scanning.has(monitor._id)) {
-                        // store the key-value pair
-                        scanning.set(monitor._id, monitor);
-
-                        if (monitor.type === 'api') {
-                            await ApiMonitors.ping({
-                                monitor,
-                                store: scanning,
-                            });
-                        } else if (monitor.type === 'url') {
-                            await UrlMonitors.ping({
-                                monitor,
-                                store: scanning,
-                            });
-                        } else if (monitor.type === 'ip') {
-                            await IPMonitors.ping({ monitor, store: scanning });
-                        } else if (
-                            monitor.type === 'server-monitor' &&
-                            monitor.agentlessConfig
-                        ) {
-                            await ServerMonitors.run({
-                                monitor,
-                                store: scanning,
-                            });
-                        } else if (monitor.type === 'incomingHttpRequest') {
-                            await IncomingHttpRequestMonitors.run({
-                                monitor,
-                                store: scanning,
-                            });
-                        } else if (monitor.type === 'kubernetes') {
-                            await KubernetesMonitors.run({
-                                monitor,
-                                store: scanning,
-                            });
-                        }
+                    if (monitor.type === 'api') {
+                        await ApiMonitors.ping({ monitor });
+                    } else if (monitor.type === 'url') {
+                        await UrlMonitors.ping({ monitor });
+                    } else if (monitor.type === 'ip') {
+                        await IPMonitors.ping({ monitor });
+                    } else if (
+                        monitor.type === 'server-monitor' &&
+                        monitor.agentlessConfig
+                    ) {
+                        await ServerMonitors.run({ monitor });
+                    } else if (monitor.type === 'incomingHttpRequest') {
+                        await IncomingHttpRequestMonitors.run({ monitor });
+                    } else if (monitor.type === 'kubernetes') {
+                        await KubernetesMonitors.run({ monitor });
                     }
                 } catch (e) {
                     ErrorService.log('Main.runJob', e);

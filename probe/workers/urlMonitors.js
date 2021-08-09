@@ -14,7 +14,7 @@ const httpAgent = new http.Agent();
 // creates incident if a website is down and resolves it when they come back up
 
 module.exports = {
-    ping: async ({ monitor, store }) => {
+    ping: async ({ monitor }) => {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {
@@ -40,9 +40,6 @@ module.exports = {
                         }
                     }
                 }
-
-                // remove monitor from store
-                store.delete(monitor._id);
             }
         } catch (error) {
             ErrorService.log('UrlMonitors.ping', error);

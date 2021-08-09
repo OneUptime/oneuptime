@@ -9,7 +9,7 @@ const { serverUrl } = require('../utils/config');
 const { deleteFile } = require('../utils/fsHandlers');
 
 module.exports = {
-    run: async function({ monitor, store }) {
+    run: async function({ monitor }) {
         try {
             if (
                 monitor &&
@@ -725,9 +725,6 @@ module.exports = {
                         });
                     }
                 );
-
-                // remove monitor from store
-                store.delete(monitor._id);
             }
         } catch (error) {
             ErrorService.log('kubernetesMonitors.run', error);

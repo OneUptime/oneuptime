@@ -5,7 +5,7 @@ const ping = require('ping');
 // checks if the IP Address of the IP monitor is up or down
 // creates incident if a IP Address is down and resolves it when they come back up
 module.exports = {
-    ping: async ({ monitor, store }) => {
+    ping: async ({ monitor }) => {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.IPAddress) {
@@ -32,9 +32,6 @@ module.exports = {
                         }
                     }
                 }
-
-                // remove monitor from store
-                store.delete(monitor._id);
             }
         } catch (error) {
             ErrorService.log('IPMonitors.ping', error);
