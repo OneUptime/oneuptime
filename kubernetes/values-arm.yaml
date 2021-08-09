@@ -109,7 +109,7 @@ redis:
     redisPort: 6379
     image:
         registry: docker.io
-        repository: bitnami/redis
+        repository: redis
         tag: latest
         pullPolicy: Always
     usePassword: false
