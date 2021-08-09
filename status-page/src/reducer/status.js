@@ -81,6 +81,9 @@ import {
     CALCULATE_TIME_REQUEST,
     CALCULATE_TIME_SUCCESS,
     CALCULATE_TIME_FAILURE,
+    FETCH_TWEETS_REQUEST,
+    FETCH_TWEETS_SUCCESS,
+    FETCH_TWEETS_FAILURE,
     FETCH_ALL_RESOURCES_SUCCESS,
 } from '../constants/status';
 import moment from 'moment';
@@ -222,6 +225,12 @@ const INITIAL_STATE = {
         success: {},
         error: null,
         info: {},
+    },
+    tweets: {
+        requesting: {},
+        success: {},
+        error: null,
+        tweetList: {},
     },
 };
 
@@ -1963,6 +1972,38 @@ export default (state = INITIAL_STATE, action) => {
                 monitorInfo: {
                     ...state.monitorInfo,
                     error: action.payload,
+                },
+            };
+        case FETCH_TWEETS_FAILURE:
+            return {
+                ...state,
+                tweets: {
+                    ...state.tweets,
+                    success: false,
+                    requesting: false,
+                    error: action.payload,
+                },
+            };
+
+        case FETCH_TWEETS_REQUEST:
+            return {
+                ...state,
+                tweets: {
+                    ...state.tweets,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            };
+
+        case FETCH_TWEETS_SUCCESS:
+            return {
+                ...state,
+                tweets: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    tweetList: action.payload,
                 },
             };
 

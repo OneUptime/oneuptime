@@ -59,6 +59,7 @@ export class PrivateStatusPage extends Component {
                 offlineText: values.offlineText,
                 onlineText: values.onlineText,
                 degradedText: values.degradedText,
+                twitterHandle: values.twitterHandle,
             })
             .then(() => {
                 this.props.fetchProjectStatusPage(
@@ -1348,6 +1349,73 @@ export class PrivateStatusPage extends Component {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div
+                                                        className="bs-Fieldset-row"
+                                                        style={{
+                                                            paddingTop: '0',
+                                                        }}
+                                                    >
+                                                        <label
+                                                            className="bs-Fieldset-label"
+                                                            style={{
+                                                                flex: '25% 0 0',
+                                                            }}
+                                                        >
+                                                            <span></span>
+                                                        </label>
+                                                        <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
+                                                            <div
+                                                                className="Box-root"
+                                                                style={{
+                                                                    height:
+                                                                        '5px',
+                                                                }}
+                                                            ></div>
+                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                                <label className="Checkbox">
+                                                                    <div
+                                                                        className="Box-root"
+                                                                        style={{
+                                                                            paddingLeft:
+                                                                                '5px',
+                                                                        }}
+                                                                    >
+                                                                        <span>
+                                                                            Official
+                                                                            Twitter
+                                                                            Handle{' '}
+                                                                            <Field
+                                                                                component="input"
+                                                                                type="text"
+                                                                                placeholder="twitter username"
+                                                                                className="db-BusinessSettings-input-200 TextInput bs-TextInput"
+                                                                                name={
+                                                                                    'twitterHandle'
+                                                                                }
+                                                                                id="statuspage.twitterHandle"
+                                                                            />
+                                                                        </span>
+                                                                        <label className="bs-Fieldset-explanation">
+                                                                            <span>
+                                                                                (
+                                                                                e.g
+                                                                                MuddyTech).
+                                                                                This
+                                                                                will
+                                                                                populate
+                                                                                recent
+                                                                                tweets
+                                                                                from
+                                                                                the
+                                                                                username
+                                                                                entered.
+                                                                            </span>
+                                                                        </label>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </>
                                             )}
                                         </div>
@@ -1461,6 +1529,7 @@ const mapStateToProps = state => {
         initialValues.onlineText = status.onlineText || 'Operational';
         initialValues.offlineText = status.offlineText || 'Offline';
         initialValues.degradedText = status.degradedText || 'Degraded';
+        initialValues.twitterHandle = status.twitterHandle;
     }
     initialValues.showIpWhitelistInput = true;
 

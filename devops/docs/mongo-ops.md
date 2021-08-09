@@ -1,6 +1,5 @@
 # Mongo Operations Manual
 
-
 ## Copy DB from One Server to Another
 
 ```
@@ -180,5 +179,3 @@ db.auth('fyipe','password')
 db.users.find({email: 'admin@fyipe.com'}) # Master admin user. Should be already signed up.
 db.users.update({email: 'admin@fyipe.com'}, {$set:{ role: 'master-admin'}}) # Update the user
 ```
-
-
