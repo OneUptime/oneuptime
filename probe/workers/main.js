@@ -34,6 +34,8 @@ module.exports = {
             let monitors = await getApi('probe/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data
 
+            console.log('** monitors **', JSON.stringify(monitors, null, 4));
+
             // update all monitors to have scanning set to true
             const monitorIds = monitors.map(monitor => monitor._id);
             // await ApiService.setScanStatus(monitorIds, true);
