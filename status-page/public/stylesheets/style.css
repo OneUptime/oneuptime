@@ -562,6 +562,16 @@ div.block-chart::-webkit-scrollbar {
       color: #aab7c4;
     }
 
+    .twitterTime{
+       display: block;
+      margin-bottom:10px;
+      padding-top: 7px;
+      text-align: left;
+      font-size: 11px;
+      color: #aab7c4;
+    }
+    
+
     .feed-item div.message {
       background: #fdfdfd;
       border-radius: 6px;

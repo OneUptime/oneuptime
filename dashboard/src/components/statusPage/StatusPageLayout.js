@@ -55,7 +55,11 @@ export class StatusPageLayout extends Component {
             },
             { name: 'Footer', key: 'footer' },
         ],
-        invisible: [{ name: 'Scheduled Events Completed', key: 'pastEvents' }],
+        invisible: [
+            { name: 'Scheduled Events Completed', key: 'pastEvents' },
+
+            { name: 'Twitter Updates', key: 'twitter' },
+        ],
         confirmResetModalId: uuidv4(),
     };
 
@@ -152,6 +156,8 @@ export class StatusPageLayout extends Component {
                 return 'This section displays the announcement logs in the status page';
             case 'ongoingSchedule':
                 return 'This section contains the scheduled events that are ongoing';
+            case 'twitter':
+                return 'This section displays the most recent tweets for any twitter handle entered in advanced options';
             case 'footer':
                 return 'This section displays the footer of the status page and can not be hidden';
             case 'header':
@@ -185,10 +191,12 @@ export class StatusPageLayout extends Component {
                     name: 'Future Scheduled Events',
                     key: 'maintenance',
                 },
+
                 { name: 'Footer', key: 'footer' },
             ],
             invisible: [
                 { name: 'Scheduled Events Completed', key: 'pastEvents' },
+                { name: 'Twitter Updates', key: 'twitter' },
             ],
         };
         await this.props

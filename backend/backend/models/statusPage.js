@@ -129,6 +129,7 @@ const statusSchema = new Schema({
     onlineText: { type: String, default: 'Operational' },
     offlineText: { type: String, default: 'Offline' },
     degradedText: { type: String, default: 'Degraded' },
+    twitterHandle: { type: String },
 
     deletedAt: {
         type: Date,
