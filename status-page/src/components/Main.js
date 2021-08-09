@@ -563,11 +563,11 @@ class Main extends Component {
                 { name: 'Incidents List', key: 'incidents' },
                 { name: 'Past Announcements List', key: 'AnnouncementLogs' },
                 { name: 'Future Scheduled Events', key: 'maintenance' },
-                { name: 'Twitter Updates', key: 'twitter' },
                 { name: 'Footer', key: 'footer' },
             ],
             invisible: [
                 { name: 'Scheduled Events Completed', key: 'pastEvents' },
+                { name: 'Twitter Updates', key: 'twitter' },
             ],
         };
 
