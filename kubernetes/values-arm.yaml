@@ -9,6 +9,13 @@ mongodb:
         repository: mongo
         tag: latest
         pullPolicy: Always
+    replicaSet:
+        enabled: true
+        name: rs0
+        useHostnames: true
+        key: mongodbfyipe
+        secondary: 0
+        arbiter: 0
     persistence:
         enabled: true
         mountPath: /bitnami/mongodb
