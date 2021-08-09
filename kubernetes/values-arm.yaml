@@ -1,13 +1,12 @@
 ##################################################################################
 ## Important: If you're implenting this in the enterprise environment, this should always be `false`.
 ## Is this Fyipe SaaS service. This will deploy all the SaaS env vars
-
 ##
 
 mongodb:
     image:
         registry: docker.io
-        repository: mongodb
+        repository: mongo
         tag: latest
         pullPolicy: Always
     persistence:
