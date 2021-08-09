@@ -4,6 +4,13 @@
 
 ##
 
+mongodb:
+    persistence:
+        enabled: true
+        mountPath: /bitnami/mongodb
+        size: 1000Gi
+        storageClass: nfs-client
+
 saas:
     isSaasService: true
     isMongoPrimaryBackupServiceEnabled: true
