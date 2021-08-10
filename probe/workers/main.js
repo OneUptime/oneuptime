@@ -57,14 +57,11 @@ module.exports = {
                 } catch (e) {
                     ErrorService.log('Main.runJob', e);
                 }
-
-                // remove probe from probeScanning
-                await ApiService.removeProbeScan([monitor._id]);
             }
 
             // update all monitor scan status to false
             // await ApiService.setScanStatus(monitorIds, false);
-            // await ApiService.removeProbeScan(monitorIds);
+            await ApiService.removeProbeScan(monitorIds);
         } catch (error) {
             ErrorService.log('getApi', error);
         }
