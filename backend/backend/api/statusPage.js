@@ -1560,6 +1560,111 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
     }
 });
 
+router.post(
+    '/:projectId/createExternalStatusPage/:statusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageId } = req.params;
+            const { name, url } = req.body;
+            const data = {};
+
+            data.name = name;
+            data.url = url;
+
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Values can't be null",
+                });
+            }
+
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page name is required.',
+                });
+            }
+            if (!data.url || !data.url.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page url is required.',
+                });
+            }
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            // To confirm the name and url is not created already
+            const nameQuery = { name };
+            const urlQuery = { url };
+            const existingExternalStatusPageName = await StatusPageService.getExternalStatusPage(
+                nameQuery
+            );
+            const existingExternalStatusPageUrl = await StatusPageService.getExternalStatusPage(
+                urlQuery
+            );
+            if (existingExternalStatusPageName.length > 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Name is already present',
+                });
+            }
+            if (existingExternalStatusPageUrl.length > 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Url is already present',
+                });
+            }
+
+            data.createdById = req.user ? req.user.id : null;
+            data.projectId = projectId;
+            data.statusPageId = statusPageId;
+
+            const response = await StatusPageService.createExternalStatusPage(
+                data
+            );
+
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get(
+    '/:projectId/fetchExternalStatusPages/:statusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageId } = req.params;
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            if (!statusPageId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Status Page ID is required.',
+                });
+            }
+            // To fetch all created external statuspages
+
+            const response = await StatusPageService.getExternalStatusPage();
+
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.post('/:projectId/announcement/:statusPageId', checkUser, async function(
     req,
     res

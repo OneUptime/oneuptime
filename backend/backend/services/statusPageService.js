@@ -1727,6 +1727,51 @@ module.exports = {
         }
     },
 
+    createExternalStatusPage: async function(data) {
+        try {
+            const externalStatusPage = new ExternalStatusPageModel();
+            externalStatusPage.name = data.name || null;
+            externalStatusPage.projectId = data.projectId || null;
+            externalStatusPage.statusPageId = data.statusPageId || null;
+            externalStatusPage.url = data.url || null;
+            externalStatusPage.createdById = data.createdById || null;
+            const newExternalStatusPage = await externalStatusPage.save();
+
+            return newExternalStatusPage;
+        } catch (error) {
+            ErrorService.log('statusPageService.externalStatusPage', error);
+            throw error;
+        }
+    },
+    getExternalStatusPage: async function(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') {
+                skip = Number(skip);
+            }
+
+            if (typeof limit === 'string') {
+                limit = Number(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const externalStatusPages = await ExternalStatusPageModel.find(
+                query
+            );
+            return externalStatusPages;
+        } catch (error) {
+            ErrorService.log('statusPageService.getExternalStatusPage', error);
+            throw error;
+        }
+    },
+
     createAnnouncement: async function(data) {
         try {
             // reassign data.monitors with a restructured monitor data
@@ -2110,6 +2155,7 @@ const uuid = require('uuid');
 const greenlock = require('../../greenlock');
 const CertificateStoreService = require('./certificateStoreService');
 const AnnouncementModel = require('../models/announcements');
+const ExternalStatusPageModel = require('../models/externalstatuspage');
 const getSlug = require('../utils/getSlug');
 const AnnouncementLogModel = require('../models/announcementLogs');
 const handleSelect = require('../utils/select');

@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import { getApi, putApi, deleteApi, postApi } from '../api';
 import * as types from '../constants/statusPage';
 import FormData from 'form-data';
@@ -1334,6 +1335,110 @@ export function fetchStatusPageSubscribers(
         return promise;
     };
 }
+
+export function createExternalStatusPageRequest() {
+    return {
+        type: types.CREATE_EXTERNAL_STATUSPAGE_REQUEST,
+    };
+}
+
+export function createExternalStatusPageSuccess() {
+    return {
+        type: types.CREATE_EXTERNAL_STATUSPAGE_SUCCESS,
+    };
+}
+
+export function createExternalStatusPageFailure(error) {
+    return {
+        type: types.CREATE_EXTERNAL_STATUSPAGE_FAILURE,
+        payload: error
+    };
+}
+
+export function createExternalStatusPage(projectId, statusPageId, data) {
+   return function(dispatch) {
+        const promise = postApi(
+            `statusPage/${projectId}/createExternalStatusPage/${statusPageId}`,
+            data
+        );
+        dispatch(createExternalStatusPageRequest());
+        promise.then(
+            function(response) {
+                dispatch(createExternalStatusPageSuccess(response.data));
+                return response.data;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(createExternalStatusPageFailure(error));
+                return error;
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchExternalStatusPagesRequest() {
+    return {
+        type: types.FETCH_EXTERNAL_STATUSPAGES_REQUEST,
+    };
+}
+
+export function fetchExternalStatusPagesSuccess(data) {
+    return {
+        type: types.FETCH_EXTERNAL_STATUSPAGES_SUCCESS,
+        payload: data
+    };
+}
+
+export function fetchExternalStatusPagesFailure(error) {
+    return {
+        type: types.FETCH_EXTERNAL_STATUSPAGES_FAILURE,
+        payload: error
+    };
+}
+
+export function fetchExternalStatusPages(projectId, statusPageId, data) {
+    return function(dispatch) {
+         const promise = getApi(
+             `statusPage/${projectId}/fetchExternalStatusPages/${statusPageId}`,
+         );
+         dispatch(fetchExternalStatusPagesRequest());
+         promise.then(
+             function(response) {
+                 console.log('Fetch: ',response.data)
+                 dispatch(fetchExternalStatusPagesSuccess(response.data));
+                 return response.data;
+             },
+             function(error) {
+                console.log('Error 1: ',error)
+                 if (error && error.response && error.response.data)
+                     error = error.response.data;
+                 if (error && error.data) {
+                     error = error.data;
+                 }
+                 if (error && error.message) {
+                     error = error.message;
+                 } else {
+                     error = 'Network Error';
+                 }
+                 dispatch(fetchExternalStatusPagesFailure(error));
+                 return error;
+             }
+         );
+ 
+         return promise;
+     };
+ }
 
 export function createAnnouncementRequest() {
     return {

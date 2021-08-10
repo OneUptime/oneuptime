@@ -130,7 +130,7 @@ const TweetList = (tweet, index) => {
 
 TweetList.displayName = ' TweetList';
 
-TweetList.PropTypes = {
-    tweet: PropTypes.string,
-    index: PropTypes.string,
-};
+// TweetList.PropTypes = {
+//     tweet: PropTypes.string,
+//     index: PropTypes.string,
+// };
