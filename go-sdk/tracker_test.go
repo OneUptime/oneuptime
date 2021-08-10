@@ -506,7 +506,7 @@ func TestCaptureExceptionReadyForServer(t *testing.T) {
 		t.Logf("TestCaptureExceptionReadyForServer success expected %v, got %v", expectedType, actualType)
 	}
 }
-func TestCaptureExceptionWithStacktraceAndFrameReadyForServer(t *testing.T) {
+func TestCaptureExceptionAndCaptureMessageWithDifferentID(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 2,
 	}
@@ -519,27 +519,138 @@ func TestCaptureExceptionWithStacktraceAndFrameReadyForServer(t *testing.T) {
 
 	InitTracker(option)
 
+	AddToTimeline(customTimeline)
+
 	errorMessage := "this function is supposed to crash"
+
+	event := CaptureMessage(errorMessage)
+
+	AddToTimeline(customTimeline)
+
 	err := errors.Errorf(errorMessage)
 
-	expectedType := reflect.TypeOf(err).String()
+	newEvent := CaptureException(err)
 
-	CaptureException(err)
-
-	errorEvent := GetErrorEvent()
-
-	expectedMsg := errorMessage
-	actualMsg := errorEvent.Exception.Message
-	if actualMsg != expectedMsg {
-		t.Errorf("TestCaptureExceptionReadyForServer failed expected %v, got %v", expectedMsg, actualMsg)
+	// ensure that the first event have a type message, same error message
+	expectedType := "message"
+	actualType := event.Type
+	if actualType != expectedType {
+		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected %v, got %v", expectedType, actualType)
 	} else {
-		t.Logf("TestCaptureExceptionReadyForServer success expected %v, got %v", expectedMsg, actualMsg)
+		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected %v, got %v", expectedType, actualType)
 	}
 
-	actualType := errorEvent.Exception.Type
-	if actualType != expectedType {
-		t.Errorf("TestCaptureExceptionReadyForServer failed expected %v, got %v", expectedType, actualType)
+	actualMessage := event.Content.(map[string]interface{})["message"].(string)
+	if actualMessage != errorMessage {
+		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected %v, got %v", errorMessage, actualMessage)
 	} else {
-		t.Logf("TestCaptureExceptionReadyForServer success expected %v, got %v", expectedType, actualType)
+		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected %v, got %v", errorMessage, actualMessage)
+	}
+
+	// ensure that the second event have a type exception, same error message
+	expectedType = "exception"
+	actualType = newEvent.Type
+	if actualType != expectedType {
+		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected %v, got %v", expectedType, actualType)
+	} else {
+		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected %v, got %v", expectedType, actualType)
+	}
+
+	actualMessage = newEvent.Content.(map[string]interface{})["message"].(string)
+	if actualMessage != errorMessage {
+		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected %v, got %v", errorMessage, actualMessage)
+	} else {
+		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected %v, got %v", errorMessage, actualMessage)
+	}
+
+	// confim their eventId is different
+
+	if event.ID == newEvent.ID {
+		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected different value %v, got %v", event.ID, newEvent.ID)
+	} else {
+		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected different value %v, got %v", event.ID, newEvent.ID)
+	}
+}
+
+func TestCapturedErrorWithDifferentProperties(t *testing.T) {
+	timelineOpt := TrackerOption{
+		MaxTimeline: 2,
+	}
+	option := FyipeTrackerOption{
+		ErrorTrackerId:  errorTracker["_id"].(string),
+		ErrorTrackerKey: errorTracker["key"].(string),
+		ApiUrl:          apiUrl,
+		Options:         timelineOpt,
+	}
+
+	InitTracker(option)
+
+	// add timeline to first tracker
+	AddToTimeline(customTimeline)
+
+	errorMessage := "this function is supposed to crash"
+
+	event := CaptureMessage(errorMessage)
+
+	// add timeline and tag to second tracker
+	AddToTimeline(customTimeline)
+
+	tagKey := "Location"
+	tagValue := "Warsaw"
+
+	SetTag(tagKey, tagValue)
+
+	err := errors.Errorf(errorMessage)
+
+	newEvent := CaptureException(err)
+
+	// ensure that the first event have a type message, same error message and two timeline (one custom, one generic)
+	expectedType := "message"
+	actualType := event.Type
+	if actualType != expectedType {
+		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected %v, got %v", expectedType, actualType)
+	} else {
+		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected %v, got %v", expectedType, actualType)
+	}
+
+	actualMessage := event.Content.(map[string]interface{})["message"].(string)
+	if actualMessage != errorMessage {
+		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected %v, got %v", errorMessage, actualMessage)
+	} else {
+		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected %v, got %v", errorMessage, actualMessage)
+	}
+
+	if len(event.Timeline) != 2 {
+		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected %v, got %v", 2, len(event.Timeline))
+	} else {
+		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected %v, got %v", 2, len(event.Timeline))
+	}
+
+	// ensure that the second event have a type exception, same error message and 2 tags
+	expectedType = "exception"
+	actualType = newEvent.Type
+	if actualType != expectedType {
+		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected %v, got %v", expectedType, actualType)
+	} else {
+		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected %v, got %v", expectedType, actualType)
+	}
+
+	actualMessage = newEvent.Content.(map[string]interface{})["message"].(string)
+	if actualMessage != errorMessage {
+		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected %v, got %v", errorMessage, actualMessage)
+	} else {
+		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected %v, got %v", errorMessage, actualMessage)
+	}
+
+	if len(newEvent.Timeline) != 2 {
+		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected %v, got %v", 2, len(newEvent.Timeline))
+	} else {
+		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected %v, got %v", 2, len(newEvent.Timeline))
+	}
+
+	if len(newEvent.Tags) != 2 { // the default and custom tag
+		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected %v, got %v", 2, len(newEvent.Tags))
+	} else {
+		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected %v, got %v", 2, len(newEvent.Tags))
 	}
 }
