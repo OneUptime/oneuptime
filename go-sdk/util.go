@@ -1,9 +1,13 @@
 package fyipe
 
 import (
+	"bufio"
 	"fmt"
+	"log"
+	"os"
 	"reflect"
 	"runtime"
+	"strconv"
 )
 
 func GetExceptionStackTrace(exception error) *Stacktrace {
@@ -26,8 +30,10 @@ func GetExceptionStackTrace(exception error) *Stacktrace {
 	// extract frames from the callersframes with the program counters
 	frames := extractFrameFromProgramCounter(programCounters)
 
-	// set the resulting frames in the stacktrace object
+	// TODO if user allowed code snippet, get code snippet for frame
+	frames = getErrorCodeSnippet(frames)
 
+	// set the resulting frames in the stacktrace object
 	finalStackTrace := Stacktrace{
 		Frames: frames,
 	}
@@ -102,4 +108,91 @@ func extractFrameFromProgramCounter(programCounters []uintptr) []Frame {
 	}
 
 	return frames
+}
+
+func getErrorCodeSnippet(frames []Frame) []Frame {
+
+	var updatedFrames []Frame
+	for _, frame := range frames {
+		// try to read the file content and save to frame
+		lines := readFileContent(frame)
+
+		newFrame := addCodeSnippetToFrame(lines, frame, 5) // 5 lines by default
+
+		updatedFrames = append(updatedFrames, newFrame)
+
+	}
+
+	return updatedFrames
+}
+
+func readFileContent(frame Frame) []string {
+	fileName := frame.FileName
+
+	// try to read the file content and save to frame
+	file, errFile := os.Open(fileName)
+	if errFile != nil {
+		log.Fatal(errFile)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var lines []string
+	// optionally, resize scanner's capacity for lines over 64K, see next example
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	return lines
+}
+
+func addCodeSnippetToFrame(lines []string, frame Frame, linesOfContext int) Frame {
+	if len(lines) < 1 {
+		return frame
+	}
+
+	var lineNumber int
+	var errconv error
+
+	if frame.LineNumber != "" {
+		lineNumber, errconv = strconv.Atoi(frame.LineNumber)
+		if errconv != nil {
+			panic(errconv)
+		}
+	}
+
+	maxLines := len(lines)
+
+	sourceLine := max(min(maxLines, lineNumber-1), 0)
+
+	// attach the line before the error
+	frame.LinesBeforeError = getPathOfLines(lines, max(0, sourceLine-linesOfContext), linesOfContext)
+
+	// attach the line after the error
+	frame.LinesAfterError = getPathOfLines(
+		lines, min(sourceLine+1, maxLines), 1+linesOfContext,
+	)
+
+	// attach the error line
+	frame.ErrorLine = lines[min(maxLines-1, sourceLine)]
+
+	return frame
+}
+
+func getPathOfLines(lines []string, start int, count int) []string {
+	terminal := start + count
+	return lines[start:terminal]
+}
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
