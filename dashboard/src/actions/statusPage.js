@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import { getApi, putApi, deleteApi, postApi } from '../api';
 import * as types from '../constants/statusPage';
 import FormData from 'form-data';
@@ -1408,7 +1407,11 @@ export function updateExternalStatusPageFailure(error) {
     };
 }
 
-export function updateExternalStatusPage(projectId, externalStatusPageId, data) {
+export function updateExternalStatusPage(
+    projectId,
+    externalStatusPageId,
+    data
+) {
     return function(dispatch) {
         const promise = postApi(
             `statusPage/${projectId}/updateExternalStatusPage/${externalStatusPageId}`,
