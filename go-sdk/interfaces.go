@@ -72,7 +72,10 @@ type Stacktrace struct {
 	Frames []Frame `json:"frames"`
 }
 type Frame struct {
-	MethodName string `json:"methodName"`
-	FileName   string `json:"fileName"`
-	LineNumber string `json:"lineNumber"`
+	MethodName       string   `json:"methodName"`
+	FileName         string   `json:"fileName"`
+	LineNumber       string   `json:"lineNumber"`
+	LinesBeforeError []string `json:"lineBeforeError"`
+	LinesAfterError  []string `json:"lineAfterError"`
+	ErrorLine        string   `json:"errorLine"`
 }
