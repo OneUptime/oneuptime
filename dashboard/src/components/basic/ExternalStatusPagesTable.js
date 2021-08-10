@@ -19,162 +19,95 @@ export class ExternalStatusPagesTable extends Component {
         return (
             <div>
                 <table className="Table">
-                    <thead className="Table-body Box-background--offset bs-Fieldset">
-                        <tr className="Table-row db-ListViewItem db-ListViewItem-header">
-                            <td
-                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                style={{ height: '1px' }}
-                            >
-                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                    <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                        <span>Name</span>
-                                    </span>
-                                </div>
-                            </td>
-                            <td
-                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                style={{ height: '1px' }}
-                            >
-                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
-                                    <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                        <span>URL</span>
-                                    </span>
-                                </div>
-                            </td>
-                            <td
-                                className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--noWrap db-ListViewItem-cell"
-                                style={{ height: '1px' }}
-                            >
+                    <header className="bs-ObjectList-row bs-ObjectList-row--header">
+                        <div className="bs-ObjectList-cell">Name</div>
+                        <div className="bs-ObjectList-cell">URl</div>
+                        <div
+                            className="bs-ObjectList-cell"
+                            style={{
+                                float: 'right',
+                                marginRight: '10px',
+                            }}
+                        >
+                            Action
+                        </div>
+                    </header>
+                    {statusPage.externalStatusPages.externalStatusPagesList.map(
+                        (link, i) => {
+                            return (
                                 <div
-                                    className="db-ListViewItem-cellContent Box-root Padding-all--8"
-                                    style={{ marginLeft: '65px' }}
+                                    key={i}
+                                    className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                    style={{
+                                        backgroundColor: 'white',
+                                        cursor: 'pointer',
+                                    }}
                                 >
-                                    <span className="db-ListViewItem-text Text-color--dark Text-display--inline Text-fontSize--13 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--upper Text-wrap--wrap">
-                                        <span>Action</span>
-                                    </span>
-                                </div>
-                            </td>
-                        </tr>
-                    </thead>
-                    <tbody className="Table-body">
-                        {statusPage.externalStatusPages.externalStatusPagesList.map(
-                            (link, i) => {
-                                return (
-                                    <tr
-                                        id={`name_${i}`}
-                                        key={i}
-                                        className="Table-row db-ListViewItem bs-ActionsParent db-ListViewItem--hasLink incidentListItem"
-                                        style={{ cursor: 'auto' }}
-                                    >
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                            style={{ minWidth: '210px' }}
-                                        >
-                                            <div
-                                                className="db-ListViewItem-cellContent Box-root Padding-all--8 Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20"
-                                                style={{ marginLeft: '-23px' }}
-                                            >
-                                                <div className="bs-Fieldset-fields">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-vertical--8">
-                                                        <span
-                                                            className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
-                                                            id={`name_${i}`}
-                                                        >
-                                                            {link.name}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                            style={{ minWidth: '210px' }}
-                                        >
-                                            <div
-                                                className="db-ListViewItem-cellContent Box-root Padding-all--8 Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20"
-                                                style={{ marginLeft: '-5px' }}
-                                            >
-                                                <div className="bs-Fieldset-fields">
-                                                    <div className="db-ListViewItem-cellContent Box-root Padding-vertical--8">
-                                                        <span
-                                                            className="db-ListViewItem-text Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap"
-                                                            id={`name_${i}`}
-                                                        >
-                                                            {link.url}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td
-                                            className="Table-cell Table-cell--align--left Table-cell--verticalAlign--top Table-cell--width--minimized Table-cell--wrap--wrap db-ListViewItem-cell db-ListViewItem-cell--breakWord"
-                                            style={{ minWidth: '210px' }}
-                                        >
-                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                <div
-                                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                                    style={{
-                                                        marginLeft: '-5px',
-                                                    }}
-                                                >
-                                                    <div className="Box-root Margin-right--8">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                openModal({
-                                                                    id: deleteExternalStatusPageModalId,
-                                                                    content: DataPathHoC(
-                                                                        EditExternalStatusPageModal,
-                                                                        { link }
-                                                                    ),
-                                                                })
-                                                            }
-                                                            className="Button bs-ButtonLegacy"
-                                                        >
-                                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                    <span>
-                                                                        Edit
-                                                                    </span>
-                                                                </span>
-                                                            </div>
-                                                        </button>
-                                                    </div>
+                                    <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
+                                        <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
+                                            {link.name}
+                                        </div>
+                                    </div>
+                                    <div className="bs-ObjectList-cell bs-u-v-middle">
+                                        <div className="bs-ObjectList-cell-row">
+                                            {link.url}
+                                        </div>
+                                    </div>
 
-                                                    <div
-                                                        className="Box-root Margin-right--8"
-                                                        id="deleteStatusPage"
-                                                    >
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                openModal({
-                                                                    id: deleteExternalStatusPageModalId,
-                                                                    content: DataPathHoC(
-                                                                        RemoveExternalStatusPage,
-                                                                        { link }
-                                                                    ),
-                                                                });
-                                                            }}
-                                                            className="Button bs-ButtonLegacy"
-                                                        >
-                                                            <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                    <span>
-                                                                        Delete
-                                                                    </span>
-                                                                </span>
-                                                            </div>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            }
-                        )}
-                    </tbody>
+                                    <div
+                                        className="bs-ObjectList-cell bs-u-v-middle"
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'flex-end',
+                                            alignItems: 'center',
+                                            paddingTop: '20px',
+                                        }}
+                                    >
+                                        <button
+                                            title="edit"
+                                            className="bs-Button bs-DeprecatedButton"
+                                            type="button"
+                                            style={{
+                                                float: 'right',
+                                                marginLeft: 10,
+                                            }}
+                                            onClick={() =>
+                                                openModal({
+                                                    id: deleteExternalStatusPageModalId,
+                                                    content: DataPathHoC(
+                                                        EditExternalStatusPageModal,
+                                                        { link }
+                                                    ),
+                                                })
+                                            }
+                                        >
+                                            <span>Edit</span>
+                                        </button>
+                                        <button
+                                            title="delete"
+                                            className="bs-Button bs-DeprecatedButton"
+                                            type="button"
+                                            style={{
+                                                float: 'right',
+                                                marginLeft: 10,
+                                            }}
+                                            onClick={() => {
+                                                openModal({
+                                                    id: deleteExternalStatusPageModalId,
+                                                    content: DataPathHoC(
+                                                        RemoveExternalStatusPage,
+                                                        { link }
+                                                    ),
+                                                });
+                                            }}
+                                        >
+                                            <span>Delete</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        }
+                    )}
                 </table>
             </div>
         );
