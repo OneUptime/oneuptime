@@ -1388,6 +1388,58 @@ export function createExternalStatusPage(projectId, statusPageId, data) {
     };
 }
 
+export function updateExternalStatusPageRequest() {
+    return {
+        type: types.UPDATE_EXTERNAL_STATUSPAGE_REQUEST,
+    };
+}
+
+export function updateExternalStatusPageSuccess(data) {
+    return {
+        type: types.UPDATE_EXTERNAL_STATUSPAGE_SUCCESS,
+        payload: data,
+    };
+}
+
+export function updateExternalStatusPageFailure(error) {
+    return {
+        type: types.UPDATE_EXTERNAL_STATUSPAGE_FAILURE,
+        payload: error,
+    };
+}
+
+export function updateExternalStatusPage(projectId, externalStatusPageId, data) {
+    return function(dispatch) {
+        const promise = postApi(
+            `statusPage/${projectId}/updateExternalStatusPage/${externalStatusPageId}`,
+            data
+        );
+        dispatch(updateExternalStatusPageRequest());
+        promise.then(
+            function(response) {
+                dispatch(updateExternalStatusPageSuccess(response.data));
+                return response.data;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateExternalStatusPageFailure(error));
+                return error;
+            }
+        );
+
+        return promise;
+    };
+}
+
 export function fetchExternalStatusPagesRequest() {
     return {
         type: types.FETCH_EXTERNAL_STATUSPAGES_REQUEST,
@@ -1416,7 +1468,6 @@ export function fetchExternalStatusPages(projectId, statusPageId) {
         dispatch(fetchExternalStatusPagesRequest());
         promise.then(
             function(response) {
-                console.log('Fetch: ', response.data);
                 dispatch(fetchExternalStatusPagesSuccess(response.data));
                 return response.data;
             },

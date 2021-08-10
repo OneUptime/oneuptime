@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import DataPathHoC from '../DataPathHoC';
 import { v4 as uuidv4 } from 'uuid';
+import EditExternalStatusPageModal from '../modals/EditExternalStatusPageModal';
 import RemoveExternalStatusPage from '../modals/RemoveExternalStatusPage';
 import { openModal } from '../../actions/modal';
 import { bindActionCreators } from 'redux';
@@ -123,7 +124,7 @@ export class ExternalStatusPagesTable extends Component {
                                                                 openModal({
                                                                     id: deleteExternalStatusPageModalId,
                                                                     content: DataPathHoC(
-                                                                        RemoveExternalStatusPage,
+                                                                        EditExternalStatusPageModal,
                                                                         { link }
                                                                     ),
                                                                 })

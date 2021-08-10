@@ -118,6 +118,9 @@ import {
     DELETE_EXTERNAL_STATUSPAGE_REQUEST,
     DELETE_EXTERNAL_STATUSPAGE_SUCCESS,
     DELETE_EXTERNAL_STATUSPAGE_FAILURE,
+    UPDATE_EXTERNAL_STATUSPAGE_REQUEST,
+    UPDATE_EXTERNAL_STATUSPAGE_SUCCESS,
+    UPDATE_EXTERNAL_STATUSPAGE_FAILURE,
 } from '../constants/statusPage';
 
 import {
@@ -551,6 +554,37 @@ export default function statusPage(state = INITIAL_STATE, action) {
             });
 
         case CREATE_EXTERNAL_STATUSPAGE_FAILURE: {
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+        }
+
+        case UPDATE_EXTERNAL_STATUSPAGE_REQUEST:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+        case UPDATE_EXTERNAL_STATUSPAGE_SUCCESS:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.cexternalStatusPages,
+                    externalStatusPagesList: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case UPDATE_EXTERNAL_STATUSPAGE_FAILURE: {
             return Object.assign({}, state, {
                 externalStatusPages: {
                     ...state.externalStatusPages,

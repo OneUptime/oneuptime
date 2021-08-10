@@ -8,11 +8,11 @@ import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
-import { createExternalStatusPage } from '../../actions/statusPage';
+import { updateExternalStatusPage } from '../../actions/statusPage';
 import { RenderField } from '../basic/RenderField';
-import { Validate, ValidateField } from '../../config';
+import { Validate } from '../../config';
 
-class AddExternalStatusPagesModal extends Component {
+class EditExternalStatusPagesModal extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -22,11 +22,11 @@ class AddExternalStatusPagesModal extends Component {
     }
 
     submitForm = values => {
-        const { statusPage } = this.props.data;
+        const { data } = this.props;
         this.props
-            .createExternalStatusPage(
-                statusPage.status.projectId._id,
-                statusPage.status._id,
+            .updateExternalStatusPage(
+                data.link.projectId,
+                data.link._id,
                 values
             )
             .then(res => {
@@ -76,7 +76,7 @@ class AddExternalStatusPagesModal extends Component {
                                     }}
                                 >
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--20 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        <span>Create External Status Page</span>
+                                        <span>Edit External Status Page</span>
                                     </span>
                                 </div>
                             </div>
@@ -101,9 +101,6 @@ class AddExternalStatusPagesModal extends Component {
                                                         component={RenderField}
                                                         placeholder="Home"
                                                         autoFocus={true}
-                                                        validate={
-                                                            ValidateField.text
-                                                        }
                                                     />
                                                 </div>
                                             </div>
@@ -119,9 +116,6 @@ class AddExternalStatusPagesModal extends Component {
                                                         type="text"
                                                         component={RenderField}
                                                         placeholder="https://mycompany.com"
-                                                        validate={
-                                                            ValidateField.url
-                                                        }
                                                     />
                                                 </div>
                                             </div>
@@ -197,7 +191,7 @@ class AddExternalStatusPagesModal extends Component {
                                                     .externalStatusPages
                                                     .requesting && (
                                                     <>
-                                                        <span>Add</span>
+                                                        <span>Edit</span>
                                                         <span className="create-btn__keycode">
                                                             <span className="keycode__icon keycode__icon--enter" />
                                                         </span>
@@ -222,11 +216,12 @@ class AddExternalStatusPagesModal extends Component {
     }
 }
 
-AddExternalStatusPagesModal.displayName = 'AddExternalStatusPagesModal';
+EditExternalStatusPagesModal.displayName = 'EditExternalStatusPagesModal';
 
 //Client side validation
 function validate(values) {
     const errors = {};
+
     if (!Validate.text(values.name)) {
         errors.name = 'Name is not in text format.';
     }
@@ -236,32 +231,31 @@ function validate(values) {
     return errors;
 }
 
-const AddExternalStatusPagesModalForm = reduxForm({
-    form: 'AddExternalStatusPagesModal',
+const EditExternalStatusPagesModalForm = reduxForm({
+    form: 'EditExternalStatusPagesModal',
     validate, // <--- validation function given to redux-for
-})(AddExternalStatusPagesModal);
+})(EditExternalStatusPagesModal);
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             closeModal,
-            createExternalStatusPage,
+            updateExternalStatusPage
         },
         dispatch
     );
 };
 
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
     return {
+        initialValues: ownProps.data.link,
         statusPage: state.statusPage,
-        currentProject: state.project.currentProject,
         externalStatusPageModalId: state.modal.modals[0].id,
     };
 }
 
-AddExternalStatusPagesModal.propTypes = {
+EditExternalStatusPagesModal.propTypes = {
     externalStatusPageModalId: PropTypes.string,
-    createExternalStatusPage: PropTypes.func,
     handleSubmit: PropTypes.func.isRequired,
     statusPage: PropTypes.object.isRequired,
     data: PropTypes.object,
@@ -271,4 +265,4 @@ AddExternalStatusPagesModal.propTypes = {
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-)(AddExternalStatusPagesModalForm);
+)(EditExternalStatusPagesModalForm);

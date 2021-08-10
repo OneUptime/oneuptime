@@ -1633,6 +1633,59 @@ router.post(
     }
 );
 
+router.post(
+    '/:projectId/updateExternalStatusPage/:externalStatusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, externalStatusPageId } = req.params;
+            const { name, url } = req.body;
+            const data = {};
+            data.name = name;
+            data.url = url;
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Values can't be null",
+                });
+            }
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page name is required.',
+                });
+            }
+            if (!data.url || !data.url.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page url is required.',
+                });
+            }
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            if (!externalStatusPageId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Status Page ID is required.',
+                });
+            }
+            await StatusPageService.updateExternalStatusPage(
+                projectId,
+                externalStatusPageId,
+                data
+            );
+            const response = await StatusPageService.getExternalStatusPage();
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
 router.get(
     '/:projectId/fetchExternalStatusPages/:statusPageId',
     checkUser,

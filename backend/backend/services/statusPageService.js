@@ -1771,6 +1771,25 @@ module.exports = {
             throw error;
         }
     },
+    updateExternalStatusPage: async function(projectId, _id, data) {
+        const query = { projectId, _id };
+
+        try {
+            const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
+            return externalStatusPages;
+        } catch (error) {
+            ErrorService.log('statusPageService.getExternalStatusPage', error);
+            throw error;
+        }
+    },
     deleteExternalStatusPage: async function(projectId, _id, userId) {
         const query = { projectId, _id };
 
