@@ -31,8 +31,6 @@ module.exports = {
             let monitors = await getApi('probe/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data
 
-            console.log('** monitors **', JSON.stringify(monitors, null, 4));
-
             // update all monitors to have scanning set to true
             const monitorIds = monitors.map(monitor => monitor._id);
             // await ApiService.setScanStatus(monitorIds, true);
@@ -59,11 +57,14 @@ module.exports = {
                 } catch (e) {
                     ErrorService.log('Main.runJob', e);
                 }
+
+                // remove probe from probeScanning
+                await ApiService.removeProbeScan([monitor._id]);
             }
 
             // update all monitor scan status to false
             // await ApiService.setScanStatus(monitorIds, false);
-            await ApiService.removeProbeScan(monitorIds);
+            // await ApiService.removeProbeScan(monitorIds);
         } catch (error) {
             ErrorService.log('getApi', error);
         }
