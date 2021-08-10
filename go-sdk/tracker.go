@@ -138,8 +138,8 @@ func (tracker *Tracker) sendErrorToServer() (TrackerResponse, error) {
 		return TrackerResponse{}, err
 	}
 
-	var res TrackerResponse
-	if err := json.Unmarshal([]byte(body), &res); err != nil {
+	var trackerResponse TrackerResponse
+	if err := json.Unmarshal([]byte(body), &trackerResponse); err != nil {
 		panic(err)
 	}
 	return trackerResponse, nil
