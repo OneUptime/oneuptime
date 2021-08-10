@@ -8,7 +8,8 @@ import (
 const MAX_ITEMS_ALLOWED_IN_STACK = 100
 
 type TrackerOption struct {
-	MaxTimeline int
+	MaxTimeline        int
+	CaptureCodeSnippet bool
 }
 
 type FyipeTrackerOption struct {
@@ -124,7 +125,7 @@ func CaptureException(exception error) TrackerResponse {
 	exceptionObj := &Exception{
 		Message:    exception.Error(),
 		Type:       reflect.TypeOf(exception).String(),
-		Stacktrace: GetExceptionStackTrace(exception),
+		Stacktrace: tracker.GetExceptionStackTrace(exception),
 	}
 
 	tracker.SetTag("handled", "true")

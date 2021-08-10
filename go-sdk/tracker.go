@@ -98,6 +98,13 @@ func (tracker *Tracker) SetFingerprint(fingerprint []string) {
 	tracker.Realm().SetFingerprint(fingerprint)
 }
 
+func (tracker *Tracker) GetExceptionStackTrace(exception error) *Stacktrace {
+	currentFyipeTracker := tracker.FyipeTracker()
+
+	options := currentFyipeTracker.options.Options
+	return GetExceptionStackTrace(exception, options)
+}
+
 func (tracker *Tracker) PrepareErrorObject(category string, errorObj *Exception) TrackerResponse {
 	currentFyipeTracker := tracker.FyipeTracker()
 

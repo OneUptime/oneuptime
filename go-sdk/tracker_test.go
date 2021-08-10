@@ -574,7 +574,8 @@ func TestCaptureExceptionAndCaptureMessageWithDifferentID(t *testing.T) {
 
 func TestCapturedErrorWithDifferentProperties(t *testing.T) {
 	timelineOpt := TrackerOption{
-		MaxTimeline: 2,
+		MaxTimeline:        2,
+		CaptureCodeSnippet: true,
 	}
 	option := FyipeTrackerOption{
 		ErrorTrackerId:  errorTracker["_id"].(string),

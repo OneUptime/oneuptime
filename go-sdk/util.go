@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-func GetExceptionStackTrace(exception error) *Stacktrace {
+func GetExceptionStackTrace(exception error, options TrackerOption) *Stacktrace {
 	// Get the method out of the package used to manage the error
 	currentMethod := getStackTraceMethod(exception)
 
@@ -30,8 +30,10 @@ func GetExceptionStackTrace(exception error) *Stacktrace {
 	// extract frames from the callersframes with the program counters
 	frames := extractFrameFromProgramCounter(programCounters)
 
-	// TODO if user allowed code snippet, get code snippet for frame
-	frames = getErrorCodeSnippet(frames)
+	// if user allowed code snippet, get code snippet for frame
+	if options.CaptureCodeSnippet {
+		frames = getErrorCodeSnippet(frames)
+	}
 
 	// set the resulting frames in the stacktrace object
 	finalStackTrace := Stacktrace{
