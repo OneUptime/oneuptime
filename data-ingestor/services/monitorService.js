@@ -148,17 +148,13 @@ module.exports = {
                             deleted: false,
                             disabled: false,
                             // $or: [
-                            //     { scanning: false },
-                            //     { scanning: { $exists: false } },
+                            //     {
+                            //         probeScanning: { $exists: false },
+                            //     },
+                            //     {
+                            //         probeScanning: { $ne: probeId },
+                            //     },
                             // ],
-                            $or: [
-                                {
-                                    probeScanning: { $exists: false },
-                                },
-                                {
-                                    probeScanning: { $ne: probeId },
-                                },
-                            ],
                         },
                         {
                             $or: [
