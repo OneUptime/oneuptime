@@ -1771,6 +1771,29 @@ module.exports = {
             throw error;
         }
     },
+    deleteExternalStatusPage: async function(projectId, _id, userId) {
+        const query = { projectId, _id };
+
+        try {
+            const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+            return externalStatusPages;
+        } catch (error) {
+            ErrorService.log('statusPageService.getExternalStatusPage', error);
+            throw error;
+        }
+    },
 
     createAnnouncement: async function(data) {
         try {

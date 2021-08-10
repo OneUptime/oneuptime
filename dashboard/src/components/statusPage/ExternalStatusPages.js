@@ -2,85 +2,32 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { reduxForm, FieldArray } from 'redux-form';
 import {
-    updateStatusPageLinks,
-    updateStatusPageLinksRequest,
-    updateStatusPageLinksSuccess,
-    updateStatusPageLinksError,
-    fetchProjectStatusPage,
-    fetchExternalStatusPages
+    fetchExternalStatusPages,
 } from '../../actions/statusPage';
-import { ExternalStatusPagesTable } from '../basic/ExternalStatusPagesTable';
-import { Validate } from '../../config';
+import ExternalStatusPagesTable from '../basic/ExternalStatusPagesTable';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
-import ExternalStatusPagesModal from '../modals/ExternalStatusPagesModal';
-import { openModal, closeModal } from '../../actions/modal';
-
-//Client side validation
-function validate(values) {
-    const errors = {};
-    const linksArrayErrors = [];
-
-    if (values.links) {
-        for (let i = 0; i < values.links.length; i++) {
-            const linkErrors = {};
-            if (values.links[i].name) {
-                if (!Validate.text(values.links[i].name)) {
-                    linkErrors.name = 'Name is not in text format.';
-                    linksArrayErrors[i] = linkErrors;
-                }
-            }
-
-            if (values.links[i].url) {
-                if (!Validate.url(values.links[i].url)) {
-                    linkErrors.url = 'Url is invalid.';
-                    linksArrayErrors[i] = linkErrors;
-                }
-            }
-        }
-
-        if (linksArrayErrors.length) {
-            errors.links = linksArrayErrors;
-        }
-    }
-
-    return errors;
-}
+import AddExternalStatusPagesModal from '../modals/AddExternalStatusPagesModal';
+import { openModal} from '../../actions/modal';
 
 export class ExternalStatusPages extends Component {
     state = {
-        createFooterLinkModalId: uuidv4(),
-        MessageBoxId: uuidv4(),
-        removeFooterLinkModalId: uuidv4(),
-
         externalStatusPageModalId: uuidv4(),
         deleteModalId: uuidv4(),
     };
 
-    componentDidMount(){
-        this.props.fetchExternalStatusPages(this.props.subProjectId, this.props.statusPageId);
+    componentDidMount() {
+        this.props.fetchExternalStatusPages(
+            this.props.subProjectId,
+            this.props.statusPageId
+        );
     }
     render() {
-        const { handleSubmit, statusPage, openModal } = this.props;
-        const {
-            createFooterLinkModalId,
-            MessageBoxId,
-            removeFooterLinkModalId,
-            externalStatusPageModalId
-        } = this.state;
-        let deleting = false;
-
-        if (
-            this.props.statusPage.links &&
-            this.props.statusPage.links.requesting
-        ) {
-            deleting = true;
-        }
-      
+        const {statusPage, openModal } = this.props;
+        const { externalStatusPageModalId } = this.state;
         return (
             <div
                 className="bs-ContentSection Card-root Card-shadow--medium"
@@ -99,7 +46,8 @@ export class ExternalStatusPages extends Component {
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                     <span>
-                                        This is a service for adding external status pages.
+                                        This is a service for adding external
+                                        status pages.
                                     </span>
                                 </span>
                             </div>
@@ -109,17 +57,16 @@ export class ExternalStatusPages extends Component {
                                         id="btnAddLink"
                                         type="button"
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
-                                        onClick={
-                                            () =>
-                                                openModal({
-                                                    id: externalStatusPageModalId,
-                                                    content: DataPathHoC(
-                                                        ExternalStatusPagesModal,
-                                                        {
-                                                            statusPage: statusPage,
-                                                        }
-                                                    ),
-                                                })
+                                        onClick={() =>
+                                            openModal({
+                                                id: externalStatusPageModalId,
+                                                content: DataPathHoC(
+                                                    AddExternalStatusPagesModal,
+                                                    {
+                                                        statusPage: statusPage,
+                                                    }
+                                                ),
+                                            })
                                         }
                                     >
                                         Add External Status Pages
@@ -137,10 +84,13 @@ export class ExternalStatusPages extends Component {
                             <div>
                                 <div className="bs-Fieldset-wrapper Box-root">
                                     <fieldset className="Box-background--white">
-                                        <ExternalStatusPagesTable statusPage={statusPage}/>
+                                        <ExternalStatusPagesTable
+                                            statusPage={statusPage}
+                                        />
                                         <ShouldRender
                                             if={
-                                                statusPage.externalStatusPages.externalStatusPagesList
+                                                statusPage.externalStatusPages
+                                                    .externalStatusPagesList
                                                     .length === 0
                                             }
                                         >
@@ -152,8 +102,8 @@ export class ExternalStatusPages extends Component {
                                                     padding: '0 10px',
                                                 }}
                                             >
-                                                You don&#39;t have any custom
-                                                footer link added yet!
+                                                You don&#39;t have any external
+                                                status page.
                                             </div>
                                         </ShouldRender>
                                     </fieldset>
@@ -165,17 +115,31 @@ export class ExternalStatusPages extends Component {
                             <div className="Box-root">
                                 <div className="bs-ContentSection-content Box-root Box-divider--surface-bottom-1 Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--16">
                                     <div className="Box-root">
-                                        <p>
+                                        <ShouldRender
+                                            if={
+                                                statusPage.externalStatusPages
+                                                    .externalStatusPagesList
+                                                    .length > 0
+                                            }
+                                        >
                                             <span>
                                                 <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                     {
-                                                        statusPage.externalStatusPages.externalStatusPagesList
-                                                        .length
+                                                        statusPage
+                                                            .externalStatusPages
+                                                            .externalStatusPagesList
+                                                            .length
                                                     }{' '}
-                                                    External Status Pages
+                                                    External Status{' '}
+                                                    {statusPage
+                                                        .externalStatusPages
+                                                        .externalStatusPagesList
+                                                        .length > 1
+                                                        ? 'Pages'
+                                                        : 'Page'}
                                                 </span>
                                             </span>
-                                        </p>
+                                        </ShouldRender>
                                     </div>
                                 </div>
                             </div>
@@ -190,54 +154,29 @@ export class ExternalStatusPages extends Component {
 ExternalStatusPages.displayName = 'ExternalStatusPages';
 
 ExternalStatusPages.propTypes = {
-    updateStatusPageLinks: PropTypes.func.isRequired,
-    handleSubmit: PropTypes.func.isRequired,
     openModal: PropTypes.func,
-    closeModal: PropTypes.func,
     statusPage: PropTypes.object.isRequired,
-    fetchProjectStatusPage: PropTypes.func.isRequired,
     fetchExternalStatusPages: PropTypes.func.isRequired,
-    initialValues: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
         {
-            updateStatusPageLinks,
-            updateStatusPageLinksRequest,
-            updateStatusPageLinksSuccess,
-            updateStatusPageLinksError,
-            fetchProjectStatusPage,
             fetchExternalStatusPages,
             openModal,
-            closeModal,
         },
         dispatch
     );
 
 const mapStateToProps = state => {
-    const status = state.statusPage.status || [];
-    const links = [];
-
-    status.links &&
-        status.links.forEach(link => {
-            links.push({
-                name: link.name,
-                url: link.url,
-            });
-        });
-
     return {
-        initialValues: { links },
         statusPage: state.statusPage,
         currentProject: state.project.currentProject,
     };
 };
 
-const ExternalStatusPagesForm = reduxForm({
-    form: 'ExternalStatusPages', // a unique identifier for this form
-    validate, // <--- validation function given to redux-for
-    enableReinitialize: true,
-})(ExternalStatusPages);
 
-export default connect(mapStateToProps, mapDispatchToProps)(ExternalStatusPagesForm);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(ExternalStatusPages);

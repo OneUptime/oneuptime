@@ -1624,10 +1624,8 @@ router.post(
             data.projectId = projectId;
             data.statusPageId = statusPageId;
 
-            const response = await StatusPageService.createExternalStatusPage(
-                data
-            );
-
+            await StatusPageService.createExternalStatusPage(data);
+            const response = await StatusPageService.getExternalStatusPage();
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -1658,6 +1656,42 @@ router.get(
 
             const response = await StatusPageService.getExternalStatusPage();
 
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.post(
+    '/:projectId/deleteExternalStatusPage/:externalStatusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, externalStatusPageId } = req.params;
+            const userId = req.user ? req.user.id : null;
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            if (!externalStatusPageId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page ID is required.',
+                });
+            }
+
+            // Deleting the external Id
+            await StatusPageService.deleteExternalStatusPage(
+                projectId,
+                externalStatusPageId,
+                userId
+            );
+
+            const response = await StatusPageService.getExternalStatusPage();
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);

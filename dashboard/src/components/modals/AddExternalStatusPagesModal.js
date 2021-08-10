@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -8,11 +7,11 @@ import ClickOutside from 'react-click-outside';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { closeModal } from '../../actions/modal';
-import { createExternalStatusPage,  fetchExternalStatusPages } from '../../actions/statusPage';
+import { createExternalStatusPage } from '../../actions/statusPage';
 import { RenderField } from '../basic/RenderField';
 import { Validate } from '../../config';
 
-class ExternalStatusPagesModal extends Component {
+class AddExternalStatusPagesModal extends Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -32,14 +31,6 @@ class ExternalStatusPagesModal extends Component {
             )
             .then(res => {
                 if (res) {
-                    this.handleCloseModal();
-                    fetchExternalStatusPages(statusPage.status.projectId._id,
-                        statusPage.status._id)
-                    console.log('Created');
-                }
-            })
-            .catch(err => {
-                if (!err) {
                     this.handleCloseModal();
                 }
             });
@@ -225,7 +216,7 @@ class ExternalStatusPagesModal extends Component {
     }
 }
 
-ExternalStatusPagesModal.displayName = 'ExternalStatusPagesModal';
+AddExternalStatusPagesModal.displayName = 'AddExternalStatusPagesModal';
 
 //Client side validation
 function validate(values) {
@@ -240,10 +231,10 @@ function validate(values) {
     return errors;
 }
 
-const ExternalStatusPagesModalForm = reduxForm({
-    form: 'ExternalStatusPagesModal',
+const AddExternalStatusPagesModalForm = reduxForm({
+    form: 'AddExternalStatusPagesModal',
     validate, // <--- validation function given to redux-for
-})(ExternalStatusPagesModal);
+})(AddExternalStatusPagesModal);
 
 const mapDispatchToProps = dispatch => {
     return bindActionCreators(
@@ -263,7 +254,7 @@ function mapStateToProps(state) {
     };
 }
 
-ExternalStatusPagesModal.propTypes = {
+AddExternalStatusPagesModal.propTypes = {
     externalStatusPageModalId: PropTypes.string,
     createExternalStatusPage: PropTypes.func,
     handleSubmit: PropTypes.func.isRequired,
@@ -275,4 +266,4 @@ ExternalStatusPagesModal.propTypes = {
 export default connect(
     mapStateToProps,
     mapDispatchToProps
-)(ExternalStatusPagesModalForm);
+)(AddExternalStatusPagesModalForm);
