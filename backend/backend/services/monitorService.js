@@ -166,7 +166,6 @@ module.exports = {
                         monitor.slug = getSlug(data.name);
                     }
                     const savedMonitor = await monitor.save();
-                    console.log('** saved monitor **', savedMonitor);
 
                     const select =
                         '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
@@ -183,7 +182,6 @@ module.exports = {
                         select,
                         populate,
                     });
-                    console.log('** populated monitor **', populatedMonitor);
 
                     if (data.type === 'manual') {
                         await MonitorStatusService.create({
@@ -510,14 +508,12 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            let monitorQuery = MonitorModel.findOne(query);
+            let monitorQuery = MonitorModel.findOne(query).lean();
 
             monitorQuery = handleSelect(select, monitorQuery);
             monitorQuery = handlePopulate(populate, monitorQuery);
 
             const monitor = await monitorQuery;
-            console.log('** query **', query);
-            console.log('** found monitor **', monitor);
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);
