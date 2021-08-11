@@ -1,3 +1,5 @@
+#!/bin/bash
+
 echo "Get KubeCluster Config"
 sudo doctl kubernetes cluster kubeconfig save staging
 sudo kubectl config --kubeconfig=/root/.kube/config get-contexts

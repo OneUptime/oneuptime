@@ -84,9 +84,13 @@ class SingleAnnouncement extends Component {
                                                     color: 'rgba(0, 0, 0, 0.5)',
                                                 }}
                                             >
-                                                <Markdown>
-                                                    {announcement?.description}
-                                                </Markdown>
+                                                {announcement.description && (
+                                                    <Markdown>
+                                                        {
+                                                            announcement.description
+                                                        }
+                                                    </Markdown>
+                                                )}
                                             </span>
                                         </div>
                                         <ShouldRender

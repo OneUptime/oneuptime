@@ -1,6 +1,9 @@
 # Pull base image nodejs image.
 FROM node:16
 
+#Use bash shell by default
+SHELL ["/bin/bash", "-c"]
+
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 RUN mkdir -p /usr/src/app

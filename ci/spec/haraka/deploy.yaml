@@ -7,9 +7,9 @@ staging_haraka:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
-        - ./ci/scripts/deployment-staging-setup.sh
+        - bash ./ci/scripts/deployment-staging-setup.sh
         # Build and deploy haraka.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build --build-arg PORT="2525" ./haraka -t fyipeproject/haraka:master
@@ -37,9 +37,9 @@ production_haraka:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
-        - ./ci/scripts/deployment-production-setup.sh
+        - bash ./ci/scripts/deployment-production-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build --build-arg PORT="2525" ./haraka -t fyipeproject/haraka:latest
         - sudo docker tag fyipeproject/haraka:latest fyipeproject/haraka:3.0.$CI_PIPELINE_IID

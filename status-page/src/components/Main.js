@@ -32,9 +32,14 @@ import NewThemeSubscriber from './NewThemeSubscriber';
 import Announcement from './Announcement';
 import AnnouncementLogs from './AnnouncementLogs';
 import PastEvent from './PastEvent';
-import { fetchFutureEvents, fetchPastEvents } from '../actions/status';
+import {
+    fetchFutureEvents,
+    fetchPastEvents,
+    fetchTweets,
+} from '../actions/status';
 import OngoingSchedule from './OngoingSchedule';
 import Collapsible from './Collapsible/Collapsible';
+import Twitter from './Twitter';
 
 const greenBackground = {
     display: 'inline-block',
@@ -101,6 +106,15 @@ class Main extends Component {
                 .createContextualFragment(this.props.statusData.customJS);
             document.body.appendChild(javascript);
         }
+
+        if (
+            !prevProps?.status?.statusPage?.twitterHandle &&
+            this.props.status?.statusPage?.twitterHandle
+        )
+            this.props.fetchTweets(
+                this.props.status?.statusPage?.twitterHandle,
+                this.props.status?.statusPage?.projectId?._id
+            );
     }
 
     setLastAlive = () => {
@@ -553,6 +567,7 @@ class Main extends Component {
             ],
             invisible: [
                 { name: 'Scheduled Events Completed', key: 'pastEvents' },
+                { name: 'Twitter Updates', key: 'twitter' },
             ],
         };
 
@@ -908,6 +923,15 @@ class Main extends Component {
                         statusPageId={this.props.statusData}
                         monitorState={this.props.monitorState}
                         theme={theme}
+                    />
+                </div>
+            ),
+            twitter: (
+                <div>
+                    <Twitter
+                        theme={theme}
+                        tweets={this.props.tweetData}
+                        loading={this.props.status.tweets.requesting}
                     />
                 </div>
             ),
@@ -1267,6 +1291,15 @@ class Main extends Component {
                 ) : (
                     ''
                 ),
+            twitter: (
+                <div>
+                    <Twitter
+                        theme={theme}
+                        tweets={this.props.tweetData}
+                        loading={this.props.status.tweets.requesting}
+                    />
+                </div>
+            ),
             footer: (
                 <FooterCard
                     footerHTML={footerHTML}
@@ -1431,6 +1464,7 @@ const mapStateToProps = state => {
         );
     const futureEvents = state.status.futureEvents.events;
     const pastEvents = state.status.pastEvents.events;
+    const tweetData = state.status.tweets.tweetList;
     return {
         status: state.status,
         statusData: state.status.statusPage,
@@ -1447,6 +1481,7 @@ const mapStateToProps = state => {
         ongoing,
         futureEvents,
         pastEvents,
+        tweetData,
     };
 };
 
@@ -1461,6 +1496,7 @@ const mapDispatchToProps = dispatch =>
             fetchFutureEvents,
             fetchPastEvents,
             getAllStatusPageResource,
+            fetchTweets,
         },
         dispatch
     );
@@ -1490,6 +1526,8 @@ Main.propTypes = {
     futureEvents: PropTypes.func,
     pastEvents: PropTypes.func,
     getAllStatusPageResource: PropTypes.func,
+    fetchTweets: PropTypes.func,
+    tweetData: PropTypes.array,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

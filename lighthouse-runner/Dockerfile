@@ -5,17 +5,16 @@
 # Pull base image nodejs image.
 FROM node:16
 
+#Use bash shell by default
+SHELL ["/bin/bash", "-c"]
+
 #SET ENV Variables
 ENV PRODUCTION=true
-ENV CHROME_PATH=/usr/bin/google-chrome
+ENV CHROME_PATH=/usr/bin/chromium
 
 # Install Chrome.
-RUN \
-  wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
-  echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
-  apt-get update && \
-  apt-get install -y google-chrome-stable && \
-  rm -rf /var/lib/apt/lists/*
+RUN apt-get update
+RUN apt-get install -y chromium
 
 RUN mkdir -p /usr/src/app
 

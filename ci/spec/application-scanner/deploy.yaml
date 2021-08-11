@@ -7,9 +7,9 @@ staging_application-scanner:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
-        - ./ci/scripts/deployment-staging-setup.sh
+        - bash ./ci/scripts/deployment-staging-setup.sh
         # Build and deploy application-scanner
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build --build-arg PORT="3005" ./application-scanner -t fyipeproject/application-scanner:master
@@ -37,9 +37,9 @@ production_application-scanner:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
-        - ./ci/scripts/deployment-production-setup.sh
+        - bash ./ci/scripts/deployment-production-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build --build-arg PORT="3005" ./application-scanner -t fyipeproject/application-scanner:latest
         - sudo docker tag fyipeproject/application-scanner:latest fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID

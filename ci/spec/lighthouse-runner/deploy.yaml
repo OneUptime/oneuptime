@@ -7,9 +7,9 @@ staging_lighthouse-runner:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
-        - ./ci/scripts/deployment-staging-setup.sh
+        - bash ./ci/scripts/deployment-staging-setup.sh
         # Build and deploy lighthouse-runner
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build --build-arg PORT="3015" ./lighthouse-runner -t fyipeproject/lighthouse-runner:master
@@ -37,9 +37,9 @@ production_lighthouse-runner:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
-        - ./ci/scripts/deployment-production-setup.sh
+        - bash ./ci/scripts/deployment-production-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build --build-arg PORT="3015" ./lighthouse-runner -t fyipeproject/lighthouse-runner:latest
         - sudo docker tag fyipeproject/lighthouse-runner:latest fyipeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID
