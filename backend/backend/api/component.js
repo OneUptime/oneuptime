@@ -77,7 +77,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         ]);
 
         NotificationService.create(
-            component.projectId._id,
+            component.projectId._id || component.projectId,
             `A New Component was Created with name ${component.name} by ${user.name}`,
             user._id,
             'componentaddremove'
