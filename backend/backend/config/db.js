@@ -17,7 +17,7 @@ let options = {};
 
 if (process.env.IS_MONGO_REPLICA_SET) {
     options = {
-        readPreference: 'secondaryPreferred',
+        // readPreference: 'secondaryPreferred',
         keepAlive: 1,
     };
 }
