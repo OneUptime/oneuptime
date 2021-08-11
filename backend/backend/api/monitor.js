@@ -251,15 +251,17 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             );
         }
 
-        NotificationService.create(
-            monitor.projectId._id || monitor.projectId,
-            `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
-            user._id,
-            'monitoraddremove'
-        );
+        if (monitor) {
+            NotificationService.create(
+                monitor.projectId._id || monitor.projectId,
+                `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
+                user._id,
+                'monitoraddremove'
+            );
 
-        // RUN REALTIME SERVICE IN THE BACKGROUND
-        RealTimeService.sendMonitorCreated(monitor);
+            // RUN REALTIME SERVICE IN THE BACKGROUND
+            RealTimeService.sendMonitorCreated(monitor);
+        }
 
         return sendItemResponse(req, res, monitor);
     } catch (error) {
@@ -960,7 +962,7 @@ router.post(
                 query: { _id: monitorId },
                 select,
             });
-           
+
             const disabled = monitor.disabled ? false : true;
             await Promise.all([
                 MonitorService.disableMonitor(monitorId, disabled), // This enables or disables the monitor as needed.
@@ -974,8 +976,8 @@ router.post(
             // This fetch the values of the updated monitor needed to update UI state.
             const updatedMonitor = await MonitorService.findOneBy({
                 query: { _id: monitorId },
-                select: '_id disabled'
-            })
+                select: '_id disabled',
+            });
             return sendItemResponse(req, res, updatedMonitor);
         } catch (error) {
             return sendErrorResponse(req, res, error);

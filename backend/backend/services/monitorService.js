@@ -93,7 +93,7 @@ module.exports = {
                     !IS_SAAS_SERVICE ||
                     unlimitedMonitor.includes(plan.category)
                 ) {
-                    let monitor = new MonitorModel();
+                    const monitor = new MonitorModel();
                     monitor.name = data.name;
                     monitor.type = data.type;
                     monitor.monitorSla = data.monitorSla;
@@ -166,6 +166,7 @@ module.exports = {
                         monitor.slug = getSlug(data.name);
                     }
                     const savedMonitor = await monitor.save();
+                    console.log('** saved monitor **', savedMonitor);
 
                     const select =
                         '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
@@ -177,19 +178,23 @@ module.exports = {
                         { path: 'componentId', select: 'name' },
                         { path: 'incidentCommunicationSla', select: '_id' },
                     ];
-                    monitor = await _this.findOneBy({
+                    const populatedMonitor = await _this.findOneBy({
                         query: { _id: savedMonitor._id },
                         select,
                         populate,
                     });
+                    console.log('** populated monitor **', populatedMonitor);
+
                     if (data.type === 'manual') {
                         await MonitorStatusService.create({
-                            monitorId: monitor._id,
+                            monitorId: populatedMonitor
+                                ? populatedMonitor._id
+                                : savedMonitor._id,
                             manuallyCreated: true,
                             status: 'online',
                         });
                     }
-                    return monitor;
+                    return populatedMonitor || savedMonitor;
                 } else {
                     const error = new Error(
                         "You can't add any more monitors. Please upgrade your account."
@@ -497,7 +502,7 @@ module.exports = {
         }
     },
 
-    async findOneBy({ query, populate = null, select }) {
+    async findOneBy({ query, populate, select }) {
         try {
             if (!query) {
                 query = {};
@@ -505,12 +510,14 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            let monitorQuery = MonitorModel.findOne(query).lean();
+            let monitorQuery = MonitorModel.findOne(query);
 
             monitorQuery = handleSelect(select, monitorQuery);
             monitorQuery = handlePopulate(populate, monitorQuery);
 
             const monitor = await monitorQuery;
+            console.log('** query **', query);
+            console.log('** found monitor **', monitor);
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);
@@ -1854,8 +1861,8 @@ module.exports = {
         const [monitor, component] = await Promise.all([
             this.findOneBy({ query: { _id: monitorId }, select: 'projectId' }),
             componentService.findOneBy({
-              query:{_id: componentId},
-              select :'projectId'  
+                query: { _id: componentId },
+                select: 'projectId',
             }),
         ]);
 
