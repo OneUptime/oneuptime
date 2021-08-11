@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Install Kubectl
 OS_ARCHITECTURE="amd64"
