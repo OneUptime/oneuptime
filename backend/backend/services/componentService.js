@@ -111,7 +111,7 @@ module.exports = {
                     });
 
                     console.log('** populated component **', component);
-                    return component;
+                    return component || savedComponent;
                 } else {
                     const error = new Error(
                         "You can't add any more components. Please add an extra seat to add more components."
