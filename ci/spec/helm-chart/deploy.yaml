@@ -8,7 +8,7 @@ staging_helm-chart:
         - chmod +x ./ci/scripts/deployment-setup.sh
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
-        - ./ci/scripts/deployment-staging-setup.sh
+        - bash ./ci/scripts/deployment-staging-setup.sh
         # Install Helm.
         - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
         - cd ./helm-chart/public

@@ -9,7 +9,7 @@ staging_container-scanner:
         - chmod +x ./ci/scripts/deployment-setup.sh
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
-        - ./ci/scripts/deployment-staging-setup.sh
+        - bash ./ci/scripts/deployment-staging-setup.sh
         # Build and deploy container-scanner
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build --build-arg PORT="3055" ./container-scanner -t fyipeproject/container-scanner:master

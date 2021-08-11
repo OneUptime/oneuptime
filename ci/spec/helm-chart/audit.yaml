@@ -15,7 +15,7 @@ audit_helm-chart:
         - chmod +x ./ci/scripts/deployment-setup.sh
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
-        - ./ci/scripts/deployment-staging-setup.sh
+        - bash ./ci/scripts/deployment-staging-setup.sh
         - cd helm-chart
         - npm ci
         - npm run audit

@@ -9,7 +9,7 @@ staging_init-script:
         - chmod +x ./ci/scripts/deployment-setup.sh
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
-        - ./ci/scripts/deployment-staging-setup.sh
+        - bash ./ci/scripts/deployment-staging-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build -t fyipeproject/init-script:master ./init-script
         - sudo docker tag fyipeproject/init-script:master fyipeproject/init-script:3.0.$CI_PIPELINE_IID
