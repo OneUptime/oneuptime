@@ -9,7 +9,7 @@ const { serverUrl } = require('../utils/config');
 const { deleteFile } = require('../utils/fsHandlers');
 
 module.exports = {
-    run: async function(monitor) {
+    run: async function({ monitor }) {
         try {
             if (
                 monitor &&

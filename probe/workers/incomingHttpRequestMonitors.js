@@ -5,7 +5,7 @@ const ErrorService = require('../utils/errorService');
 // checks if the website of the url in the monitors is up or down
 // creates incident if a website is down and resolves it when they come back up
 module.exports = {
-    run: async monitor => {
+    run: async ({ monitor }) => {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.link && monitor.criteria) {
@@ -19,16 +19,13 @@ module.exports = {
                         ? await checkCondition(monitor.criteria.down)
                         : false;
                     if (up || degraded || down) {
-                        const response = await ApiService.ping(monitor._id, {
+                        await ApiService.ping(monitor._id, {
                             monitor,
                             res: null,
                             resp: null,
                             type: monitor.type,
                             retryCount: 3,
                         });
-                        return response;
-                    } else {
-                        return;
                     }
                 }
             }

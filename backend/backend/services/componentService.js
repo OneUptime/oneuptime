@@ -84,7 +84,7 @@ module.exports = {
                     !IS_SAAS_SERVICE ||
                     unlimitedComponent.includes(plan.category)
                 ) {
-                    let component = new ComponentModel();
+                    const component = new ComponentModel();
                     component.name = data.name;
                     component.createdById = data.createdById;
                     component.visibleOnStatusPage = data.visibleOnStatusPage;
@@ -102,12 +102,13 @@ module.exports = {
                     const selectComponent =
                         '_id createdAt name createdById projectId slug componentCategoryId';
 
-                    component = await _this.findOneBy({
+                    const populatedComponent = await _this.findOneBy({
                         query: { _id: savedComponent._id },
                         select: selectComponent,
                         populate: populateComponent,
                     });
-                    return component;
+
+                    return populatedComponent || savedComponent;
                 } else {
                     const error = new Error(
                         "You can't add any more components. Please add an extra seat to add more components."

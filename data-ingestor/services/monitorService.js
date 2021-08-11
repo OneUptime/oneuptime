@@ -9,6 +9,72 @@ module.exports = {
         );
     },
 
+    updateScanStatus: async function(monitorIds, status) {
+        try {
+            for (const id of monitorIds) {
+                await monitorCollection.updateOne(
+                    {
+                        _id: ObjectId(id),
+                        $or: [
+                            { deleted: false },
+                            { deleted: { $exists: false } },
+                        ],
+                    },
+                    {
+                        $set: { scanning: status },
+                    }
+                );
+            }
+        } catch (error) {
+            ErrorService.log('monitorService.updateScanStatus', error);
+            throw error;
+        }
+    },
+
+    addProbeScanning: async function(monitorIds, probeId) {
+        try {
+            for (const id of monitorIds) {
+                await monitorCollection.updateOne(
+                    {
+                        _id: ObjectId(id),
+                        $or: [
+                            { deleted: false },
+                            { deleted: { $exists: false } },
+                        ],
+                    },
+                    {
+                        $push: { probeScanning: probeId },
+                    }
+                );
+            }
+        } catch (error) {
+            ErrorService.log('monitorService.addProbeScanning', error);
+            throw error;
+        }
+    },
+
+    removeProbeScanning: async function(monitorIds, probeId) {
+        try {
+            for (const id of monitorIds) {
+                await monitorCollection.updateOne(
+                    {
+                        _id: ObjectId(id),
+                        $or: [
+                            { deleted: false },
+                            { deleted: { $exists: false } },
+                        ],
+                    },
+                    {
+                        $pull: { probeScanning: probeId },
+                    }
+                );
+            }
+        } catch (error) {
+            ErrorService.log('monitorService.removeProbeScanning', error);
+            throw error;
+        }
+    },
+
     updateLighthouseScanStatus: async function(
         _id,
         lighthouseScanStatus,
@@ -81,6 +147,14 @@ module.exports = {
                         {
                             deleted: false,
                             disabled: false,
+                            // $or: [
+                            //     {
+                            //         probeScanning: { $exists: false },
+                            //     },
+                            //     {
+                            //         probeScanning: { $ne: probeId },
+                            //     },
+                            // ],
                         },
                         {
                             $or: [
