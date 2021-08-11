@@ -59,21 +59,35 @@ const AutomatedTabularList = props => {
             <div className="bs-ContentSection Card-root Card-shadow--medium">
                 <div>
                     <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                    <span
-                                        style={{ textTransform: 'capitalize' }}
-                                    >
-                                        Automation Script
+                        <div className="bs-script-display">
+                            <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                    <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                        <span
+                                            style={{
+                                                textTransform: 'capitalize',
+                                            }}
+                                        >
+                                            Automation Script
+                                        </span>
                                     </span>
-                                </span>
-                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                    <span>
-                                        Automated script are script created for
-                                        yor project
+                                    <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                        <span>
+                                            Automated script are script created
+                                            for yor project
+                                        </span>
                                     </span>
-                                </span>
+                                </div>
+                            </div>
+                            <div>
+                                <button
+                                    className="bs-Button bs-DeprecatedButton"
+                                    title="New Script"
+                                    disabled={false}
+                                    onClick={props.toggleNewScript}
+                                >
+                                    <span>New Script</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -328,6 +342,7 @@ AutomatedTabularList.propTypes = {
     openModal: PropTypes.func,
     currentProject: PropTypes.object,
     fetchAutomatedScript: PropTypes.func,
+    toggleNewScript: PropTypes.func,
 };
 
 const mapStateToProps = state => {
