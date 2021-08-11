@@ -510,7 +510,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            let monitorQuery = MonitorModel.findOne(query).lean();
+            let monitorQuery = MonitorModel.findOne(query);
 
             monitorQuery = handleSelect(select, monitorQuery);
             monitorQuery = handlePopulate(populate, monitorQuery);
