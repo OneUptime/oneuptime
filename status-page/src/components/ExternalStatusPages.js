@@ -55,7 +55,7 @@ class ExternalStatusPages extends Component {
                             }
                         >
                             {' '}
-                            <div>
+                            <div className="nt_list">
                                 You don&#39;t have any external status page.
                             </div>
                         </ShouldRender>

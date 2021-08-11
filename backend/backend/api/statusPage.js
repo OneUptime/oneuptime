@@ -1706,8 +1706,11 @@ router.get(
                 });
             }
             // To fetch all created external statuspages
+            const query = { projectId, statusPageId };
 
-            const response = await StatusPageService.getExternalStatusPage();
+            const response = await StatusPageService.getExternalStatusPage(
+                query
+            );
 
             return sendItemResponse(req, res, response);
         } catch (error) {
