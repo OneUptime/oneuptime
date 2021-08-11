@@ -78,15 +78,17 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         console.log('** component **', component);
 
-        NotificationService.create(
-            component.projectId._id || component.projectId,
-            `A New Component was Created with name ${component.name} by ${user.name}`,
-            user._id,
-            'componentaddremove'
-        );
+        if (component) {
+            NotificationService.create(
+                component.projectId._id || component.projectId,
+                `A New Component was Created with name ${component.name} by ${user.name}`,
+                user._id,
+                'componentaddremove'
+            );
 
-        // run in the background
-        RealTimeService.sendComponentCreated(component);
+            // run in the background
+            RealTimeService.sendComponentCreated(component);
+        }
         return sendItemResponse(req, res, component);
     } catch (error) {
         return sendErrorResponse(req, res, error);
