@@ -166,6 +166,7 @@ module.exports = {
                         monitor.slug = getSlug(data.name);
                     }
                     const savedMonitor = await monitor.save();
+                    console.log('** saved monitor **', savedMonitor);
 
                     const select =
                         '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
@@ -182,6 +183,8 @@ module.exports = {
                         select,
                         populate,
                     });
+                    console.log('** populated monitor **', populatedMonitor);
+
                     if (data.type === 'manual') {
                         await MonitorStatusService.create({
                             monitorId: populatedMonitor
