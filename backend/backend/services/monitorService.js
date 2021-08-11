@@ -1854,8 +1854,8 @@ module.exports = {
         const [monitor, component] = await Promise.all([
             this.findOneBy({ query: { _id: monitorId }, select: 'projectId' }),
             componentService.findOneBy({
-              query:{_id: componentId},
-              select :'projectId'  
+                query: { _id: componentId },
+                select: 'projectId',
             }),
         ]);
 
