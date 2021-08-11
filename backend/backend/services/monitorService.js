@@ -502,7 +502,7 @@ module.exports = {
         }
     },
 
-    async findOneBy({ query, populate = null, select }) {
+    async findOneBy({ query, populate, select }) {
         try {
             if (!query) {
                 query = {};
@@ -516,6 +516,8 @@ module.exports = {
             monitorQuery = handlePopulate(populate, monitorQuery);
 
             const monitor = await monitorQuery;
+            console.log('** query **', query);
+            console.log('** found monitor **', monitor);
             return monitor;
         } catch (error) {
             ErrorService.log('monitorService.findOneBy', error);
