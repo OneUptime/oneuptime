@@ -17,6 +17,7 @@ import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/theme-github';
 import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
+import '@trendmicro/react-dropdown/dist/react-dropdown.css';
 
 const defaultScript =
     '// To inspect your script or add comments, use console.log\n\n' +
@@ -748,8 +749,17 @@ class NewScript extends Component {
                                 </div>
                                 <div>
                                     <button
+                                        className="bs-Button bs-DeprecatedButton"
+                                        title="Cancel"
+                                        disabled={false}
+                                        onClick={this.props.toggleNewScript}
+                                    >
+                                        <span>Cancel</span>
+                                    </button>
+                                    <button
                                         id="addComponentButton"
                                         className="bs-Button bs-Button--blue"
+                                        title="Add Script"
                                         disabled={false}
                                         type="submit"
                                     >
@@ -829,6 +839,7 @@ NewScript.propTypes = {
     schedules: PropTypes.array,
     successEventValues: PropTypes.array,
     failureEventValues: PropTypes.array,
+    toggleNewScript: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(NewScriptForm);
