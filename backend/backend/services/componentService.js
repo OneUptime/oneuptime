@@ -260,6 +260,8 @@ module.exports = {
             componentQuery = handlePopulate(populate, componentQuery);
 
             const component = await componentQuery;
+            console.log('** query **', query);
+            console.log('** found component **', component);
             return component;
         } catch (error) {
             ErrorService.log('componentService.findOneBy', error);
