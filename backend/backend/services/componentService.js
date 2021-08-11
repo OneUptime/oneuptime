@@ -94,6 +94,8 @@ module.exports = {
                     }
                     const savedComponent = await component.save();
 
+                    console.log('** saved component **', savedComponent);
+
                     const populateComponent = [
                         { path: 'projectId', select: 'name' },
                         { path: 'componentCategoryId', select: 'name' },
@@ -107,6 +109,8 @@ module.exports = {
                         select: selectComponent,
                         populate: populateComponent,
                     });
+
+                    console.log('** populated component **', component);
                     return component;
                 } else {
                     const error = new Error(
