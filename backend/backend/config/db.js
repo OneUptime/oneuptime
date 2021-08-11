@@ -17,6 +17,7 @@ let options = {};
 
 if (process.env.IS_MONGO_REPLICA_SET) {
     options = {
+        // commented because this was having issues reading "latest" data that was saved on primary.
         // readPreference: 'secondaryPreferred',
         keepAlive: 1,
     };
