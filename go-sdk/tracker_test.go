@@ -241,7 +241,7 @@ func TestTagIsAdded(t *testing.T) {
 
 	InitTracker(option)
 
-	tagKey := "Location"
+	tagKey := "location"
 	tagValue := "Warsaw"
 
 	expectedResponse := tagKey
@@ -316,6 +316,10 @@ func TestOverwriteTagsWithSameKeyWhenAdded(t *testing.T) {
 	SetTag("location", expectedResponse)
 
 	availableTags := GetTag()
+	for _, tag := range availableTags {
+		fmt.Printf("tag is %+v", tag)
+
+	}
 
 	actualResponse := availableTags[0].Value // latest value for that tag location
 
@@ -328,6 +332,7 @@ func TestOverwriteTagsWithSameKeyWhenAdded(t *testing.T) {
 		t.Logf("TestOverwriteTagsWithSameKeyWhenAdded success expected %v, got %v", expectedResponse, actualResponse)
 	}
 }
+
 func TestFingerprintShouldBeCaptureMessage(t *testing.T) {
 	timelineOpt := TrackerOption{
 		MaxTimeline: 2,
@@ -650,6 +655,7 @@ func TestCapturedErrorWithDifferentProperties(t *testing.T) {
 	}
 
 	if len(newEvent.Tags) != 2 { // the default and custom tag
+		fmt.Print(newEvent.Tags)
 		t.Errorf("TestCaptureExceptionAndCaptureMessageWithDifferentID failed expected %v, got %v", 2, len(newEvent.Tags))
 	} else {
 		t.Logf("TestCaptureExceptionAndCaptureMessageWithDifferentID success expected %v, got %v", 2, len(newEvent.Tags))

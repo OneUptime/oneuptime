@@ -121,6 +121,8 @@ func (tracker *Tracker) PrepareErrorObject(category string, errorObj *Exception)
 	if err != nil {
 		// something went wrong, server down, etc
 	}
+	// clear the Realm after a successful call to the server
+	tracker.Realm().clearRealm()
 
 	return trackerResponse
 }

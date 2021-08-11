@@ -31,6 +31,7 @@ type TrackerResponse struct {
 	Tags            []Tag
 	Timeline        []Timeline
 	Type            string
+	SDK             SDK
 }
 
 type Timeline struct {
@@ -60,6 +61,7 @@ type ErrorEvent struct {
 	Tags            []*Tag      `json:"tags"`
 	Fingerprint     []string    `json:"fingerprint"`
 	ErrorTrackerKey string      `json:"errorTrackerKey"`
+	SDK             *SDK        `json:"sdk"`
 }
 
 // const (
@@ -78,4 +80,8 @@ type Frame struct {
 	LinesBeforeError []string `json:"lineBeforeError"`
 	LinesAfterError  []string `json:"lineAfterError"`
 	ErrorLine        string   `json:"errorLine"`
+}
+type SDK struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
 }

@@ -5,6 +5,9 @@ import (
 	"reflect"
 )
 
+// This is the version of Fyipe Go SDK.
+const Version = "0.0.1"
+
 const MAX_ITEMS_ALLOWED_IN_STACK = 100
 
 type TrackerOption struct {

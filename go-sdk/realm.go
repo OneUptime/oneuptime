@@ -1,6 +1,7 @@
 package fyipe
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -43,7 +44,7 @@ func (realm *Realm) AddToTimeline(timeline *Timeline, limit int) {
 	}
 }
 
-func (realm *Realm) SetTag(key, value string) {
+func (realm *Realm) SetTag(key string, value string) {
 	realm.mu.Lock()
 	defer realm.mu.Unlock()
 
@@ -57,7 +58,7 @@ func (realm *Realm) SetTag(key, value string) {
 	}
 
 	if !isFound {
-		availableTags = append(availableTags, &Tag{Key: key, Value: value})
+		availableTags = append(availableTags, &Tag{Key: strings.ToLower(key), Value: value})
 	}
 	realm.tags = availableTags
 }
@@ -91,8 +92,23 @@ func (realm *Realm) PrepareErrorObject(errorType string, errorObj *Exception, er
 		Fingerprint:     realm.fingerprint,
 		Exception:       errorObj,
 		ErrorTrackerKey: errorTrackerKey,
+		SDK: &SDK{
+			Name:    "go-sdk",
+			Version: Version, // TODO dynamic version setting cuz version is set manually in the fyipeTracker.go file before every release
+		},
 	}
 
 	realm.currentErrorEvent = errorEvent
 
+}
+
+func (realm *Realm) clearRealm() {
+	realm.mu.Lock()
+	defer realm.mu.Unlock()
+
+	// generate a new event Id and set all array to 0
+	realm.timelines = make([]*Timeline, 0)
+	realm.tags = make([]*Tag, 0)
+	realm.fingerprint = make([]string, 0)
+	realm.eventId = uuid.New().String()
 }
