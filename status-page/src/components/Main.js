@@ -40,6 +40,7 @@ import {
 import OngoingSchedule from './OngoingSchedule';
 import Collapsible from './Collapsible/Collapsible';
 import Twitter from './Twitter';
+import ExternalStatusPages from './ExternalStatusPages';
 
 const greenBackground = {
     display: 'inline-block',
@@ -568,6 +569,7 @@ class Main extends Component {
             invisible: [
                 { name: 'Scheduled Events Completed', key: 'pastEvents' },
                 { name: 'Twitter Updates', key: 'twitter' },
+                { name: 'External Status Pages', key: 'externalStatusPage' },
             ],
         };
 
@@ -924,6 +926,18 @@ class Main extends Component {
                         monitorState={this.props.monitorState}
                         theme={theme}
                     />
+                </div>
+            ),
+            externalStatusPage: (
+                <div
+                    className="new-theme-incident matop-40"
+                    style={{
+                        width: '100%',
+                        ...contentBackground,
+                    }}
+                >
+                    <div className="font-largest">External Status Pages</div>
+                    <ExternalStatusPages theme={theme} />
                 </div>
             ),
             twitter: (
@@ -1291,6 +1305,12 @@ class Main extends Component {
                 ) : (
                     ''
                 ),
+            externalStatusPage: (
+                <div>
+                    {' '}
+                    <ExternalStatusPages theme={theme} />
+                </div>
+            ),
             twitter: (
                 <div>
                     <Twitter

@@ -59,6 +59,7 @@ export class StatusPageLayout extends Component {
             { name: 'Scheduled Events Completed', key: 'pastEvents' },
 
             { name: 'Twitter Updates', key: 'twitter' },
+            { name: 'External Status Pages', key: 'externalStatusPage' },
         ],
         confirmResetModalId: uuidv4(),
     };
@@ -162,6 +163,8 @@ export class StatusPageLayout extends Component {
                 return 'This section displays the footer of the status page and can not be hidden';
             case 'header':
                 return 'This section displays the header of the status page and can not be hidden';
+            case 'externalStatusPage':
+                return 'This section displays external status pages';
             default:
                 return '';
         }
@@ -197,6 +200,7 @@ export class StatusPageLayout extends Component {
             invisible: [
                 { name: 'Scheduled Events Completed', key: 'pastEvents' },
                 { name: 'Twitter Updates', key: 'twitter' },
+                { name: 'External Status Pages', key: 'externalStatusPage' },
             ],
         };
         await this.props

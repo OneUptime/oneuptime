@@ -1,22 +1,18 @@
-/*eslint-disable*/
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import {
-    fetchExternalStatusPages,
-} from '../../actions/statusPage';
+import { fetchExternalStatusPages } from '../../actions/statusPage';
 import ExternalStatusPagesTable from '../basic/ExternalStatusPagesTable';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import DataPathHoC from '../DataPathHoC';
 import AddExternalStatusPagesModal from '../modals/AddExternalStatusPagesModal';
-import { openModal} from '../../actions/modal';
+import { openModal } from '../../actions/modal';
 
 export class ExternalStatusPages extends Component {
     state = {
         externalStatusPageModalId: uuidv4(),
-        deleteModalId: uuidv4(),
     };
 
     componentDidMount() {
@@ -26,7 +22,7 @@ export class ExternalStatusPages extends Component {
         );
     }
     render() {
-        const {statusPage, openModal } = this.props;
+        const { statusPage, openModal } = this.props;
         const { externalStatusPageModalId } = this.state;
         return (
             <div
@@ -157,6 +153,8 @@ ExternalStatusPages.propTypes = {
     openModal: PropTypes.func,
     statusPage: PropTypes.object.isRequired,
     fetchExternalStatusPages: PropTypes.func.isRequired,
+    subProjectId: PropTypes.string,
+    statusPageId: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -171,10 +169,8 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = state => {
     return {
         statusPage: state.statusPage,
-        currentProject: state.project.currentProject,
     };
 };
-
 
 export default connect(
     mapStateToProps,

@@ -1441,3 +1441,52 @@ export function fetchTweets(handle, projectId) {
         return promise;
     };
 }
+
+export function fetchExternalStatusPagesRequest() {
+    return {
+        type: types.FETCH_EXTERNAL_STATUSPAGES_REQUEST,
+    };
+}
+
+export function fetchExternalStatusPagesSuccess(payload) {
+    return {
+        type: types.FETCH_EXTERNAL_STATUSPAGES_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchExternalStatusPagesFailure(error) {
+    return {
+        type: types.FETCH_EXTERNAL_STATUSPAGES_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchExternalStatusPages(projectId, statusPageId) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/fetchExternalStatusPages/${statusPageId}`
+        );
+
+        dispatch(fetchExternalStatusPagesRequest());
+        promise.then(
+            function(response) {
+                dispatch(fetchExternalStatusPagesSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchExternalStatusPagesFailure(error));
+            }
+        );
+        return promise;
+    };
+}

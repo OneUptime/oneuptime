@@ -85,6 +85,9 @@ import {
     FETCH_TWEETS_SUCCESS,
     FETCH_TWEETS_FAILURE,
     FETCH_ALL_RESOURCES_SUCCESS,
+    FETCH_EXTERNAL_STATUSPAGES_REQUEST,
+    FETCH_EXTERNAL_STATUSPAGES_SUCCESS,
+    FETCH_EXTERNAL_STATUSPAGES_FAILURE,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -2009,5 +2012,36 @@ export default (state = INITIAL_STATE, action) => {
 
         default:
             return state;
+
+        case FETCH_EXTERNAL_STATUSPAGES_REQUEST:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+        case FETCH_EXTERNAL_STATUSPAGES_SUCCESS:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.cexternalStatusPages,
+                    externalStatusPagesList: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case FETCH_EXTERNAL_STATUSPAGES_FAILURE: {
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+        }
     }
 };
