@@ -78,18 +78,18 @@ module.exports = {
             notification.createdBy = userId;
             notification.meta = meta;
             notification = await notification.save();
-            notification = await this.findOneBy({
+            const populatedNotification = await this.findOneBy({
                 query: { _id: notification._id },
                 select: selectNotification,
                 populate: populateNotification,
             });
 
-            console.log('** notification **', notification);
-
             // run this in the background
-            RealTimeService.sendNotification(notification);
+            RealTimeService.sendNotification(
+                populatedNotification || notification
+            );
 
-            return notification;
+            return populatedNotification || notification;
         } catch (error) {
             ErrorService.log('notificationService.create', error);
             throw error;

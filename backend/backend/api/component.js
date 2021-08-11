@@ -76,8 +76,6 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             }),
         ]);
 
-        console.log('** component **', component);
-
         if (component) {
             NotificationService.create(
                 component.projectId._id || component.projectId,
