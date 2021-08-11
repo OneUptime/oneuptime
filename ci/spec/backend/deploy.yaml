@@ -7,7 +7,7 @@ staging_backend:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - ./ci/scripts/deployment-staging-setup.sh
         # Build and deploy backend.
@@ -37,9 +37,9 @@ production_backend:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
-        - ./ci/scripts/deployment-production-setup.sh
+        - bash ./ci/scripts/deployment-production-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build -t fyipeproject/backend:latest ./backend
         - sudo docker tag fyipeproject/backend:latest fyipeproject/backend:3.0.$CI_PIPELINE_IID

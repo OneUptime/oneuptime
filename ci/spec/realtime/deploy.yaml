@@ -6,9 +6,9 @@ production_realtime:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
-        - ./ci/scripts/deployment-production-setup.sh
+        - bash ./ci/scripts/deployment-production-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build -t fyipeproject/realtime:latest ./realtime
         - sudo docker tag fyipeproject/realtime:latest fyipeproject/realtime:3.0.$CI_PIPELINE_IID
@@ -36,7 +36,7 @@ staging_realtime:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - ./ci/scripts/deployment-staging-setup.sh
         # Build and deploy realtime.

@@ -6,7 +6,7 @@ staging_helm-chart:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - ./ci/scripts/deployment-staging-setup.sh
         # Install Helm.
@@ -43,9 +43,9 @@ production_helm-chart:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
-        - ./ci/scripts/deployment-production-setup.sh
+        - bash ./ci/scripts/deployment-production-setup.sh
         # Install Helm.
         - sudo curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | sudo bash
         - cd ./helm-chart/public
