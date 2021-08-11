@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Install Kubectl
 OS_ARCHITECTURE="amd64"
 if [[ "$(uname -m)" -eq "aarch64" ]] ; then OS_ARCHITECTURE="arm64" ; fi
