@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo "Get KubeCluster Config"
 sudo doctl kubernetes cluster kubeconfig save staging
