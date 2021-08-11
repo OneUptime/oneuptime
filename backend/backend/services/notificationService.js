@@ -83,6 +83,9 @@ module.exports = {
                 select: selectNotification,
                 populate: populateNotification,
             });
+
+            console.log('** notification **', notification);
+
             // run this in the background
             RealTimeService.sendNotification(notification);
 
