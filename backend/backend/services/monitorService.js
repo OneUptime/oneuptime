@@ -93,7 +93,7 @@ module.exports = {
                     !IS_SAAS_SERVICE ||
                     unlimitedMonitor.includes(plan.category)
                 ) {
-                    let monitor = new MonitorModel();
+                    const monitor = new MonitorModel();
                     monitor.name = data.name;
                     monitor.type = data.type;
                     monitor.monitorSla = data.monitorSla;
@@ -177,19 +177,21 @@ module.exports = {
                         { path: 'componentId', select: 'name' },
                         { path: 'incidentCommunicationSla', select: '_id' },
                     ];
-                    monitor = await _this.findOneBy({
+                    const populatedMonitor = await _this.findOneBy({
                         query: { _id: savedMonitor._id },
                         select,
                         populate,
                     });
                     if (data.type === 'manual') {
                         await MonitorStatusService.create({
-                            monitorId: monitor._id,
+                            monitorId: populatedMonitor
+                                ? populatedMonitor._id
+                                : savedMonitor._id,
                             manuallyCreated: true,
                             status: 'online',
                         });
                     }
-                    return monitor;
+                    return populatedMonitor || savedMonitor;
                 } else {
                     const error = new Error(
                         "You can't add any more monitors. Please upgrade your account."
