@@ -68,6 +68,8 @@ class MonitorInfo extends Component {
             monitorStatus,
         } = this.props;
 
+        let { range } = this.props;
+
         let currentProbe =
             probes && probes.length > 0
                 ? probes[probes.length < 2 ? 0 : activeProbe]
@@ -82,23 +84,12 @@ class MonitorInfo extends Component {
         if (
             prevProbe?._id !== currentProbe?._id ||
             JSON.stringify(prevProps.monitorStatus) !==
-                JSON.stringify(this.props.monitorStatus)
+                JSON.stringify(this.props.monitorStatus) ||
+            prevProps.range !== range
         ) {
-            let range = !this.props.theme && 90;
-            const now = Date.now();
+            range = !this.props.theme ? 90 : range;
 
-            if (this.props.theme) {
-                const { windowSize } = this.state;
-                if (windowSize <= 600) {
-                    range = 30;
-                }
-                if (windowSize > 600 && windowSize < 1000) {
-                    range = 60;
-                }
-                if (windowSize >= 1000) {
-                    range = 90;
-                }
-            }
+            const now = Date.now();
 
             const monitorData = monitorState.find(
                 a => String(a._id) === String(monitor._id)
@@ -445,7 +436,9 @@ class MonitorInfo extends Component {
                                                 style={
                                                     subheading.color ===
                                                     'rgba(76, 76, 76, 1)'
-                                                        ? { color: '#aaaaaa' }
+                                                        ? {
+                                                              color: '#aaaaaa',
+                                                          }
                                                         : subheading
                                                 }
                                             >
@@ -456,7 +449,9 @@ class MonitorInfo extends Component {
                                                 style={
                                                     subheading.color ===
                                                     'rgba(76, 76, 76, 1)'
-                                                        ? { color: '#aaaaaa' }
+                                                        ? {
+                                                              color: '#aaaaaa',
+                                                          }
                                                         : subheading
                                                 }
                                             >
@@ -661,6 +656,7 @@ MonitorInfo.propTypes = {
     onlineText: PropTypes.string,
     offlineText: PropTypes.string,
     degradedText: PropTypes.string,
+    range: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);
