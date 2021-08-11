@@ -88,13 +88,12 @@ app.use(function(req, res, next) {
         current_datetime.getSeconds();
     const method = req.method;
     const url = req.url;
-    const originalUrl = req.originalUrl;
     const status = res.statusCode;
     const start = process.hrtime();
     const durationInMilliseconds = getActualRequestDurationInMilliseconds(
         start
     );
-    const log = `[${formatted_date}] ${method}:${url} ${originalUrl} ${status} ${durationInMilliseconds.toLocaleString()} ms`;
+    const log = `[${formatted_date}] ${method}:${url} ${status} ${durationInMilliseconds.toLocaleString()} ms`;
     // eslint-disable-next-line no-console
     console.log(log);
     return next();
