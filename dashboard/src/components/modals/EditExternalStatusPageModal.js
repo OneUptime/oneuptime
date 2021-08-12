@@ -89,22 +89,6 @@ class EditExternalStatusPagesModal extends Component {
                                         <div className="bs-Modal-content">
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
-                                                    Name
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <Field
-                                                        name="name"
-                                                        id="footerName"
-                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                        type="text"
-                                                        component={RenderField}
-                                                        placeholder="Home"
-                                                        autoFocus={true}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
                                                     URL
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -115,6 +99,22 @@ class EditExternalStatusPagesModal extends Component {
                                                         type="text"
                                                         component={RenderField}
                                                         placeholder="https://mycompany.com"
+                                                        autoFocus={true}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Unique ID
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field
+                                                        name="uniqueId"
+                                                        id="footerName"
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        component={RenderField}
+                                                        placeholder="7rmk7935gfd"
                                                     />
                                                 </div>
                                             </div>

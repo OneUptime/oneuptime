@@ -3,7 +3,7 @@
  * Copyright HackerBay, Inc.
  *
  */
-
+/*eslint-disable*/
 const express = require('express');
 const StatusPageService = require('../services/statusPageService');
 const MonitorService = require('../services/monitorService');
@@ -36,6 +36,8 @@ const SubscriberService = require('../services/subscriberService');
 const ScheduledEventService = require('../services/scheduledEventService');
 const axios = require('axios');
 const bearer = process.env.TWITTER_BEARER_TOKEN;
+//import {Statuspage} from 'statuspage.io';
+const  {Statuspage} = require('statuspage.io');
 
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -1566,10 +1568,11 @@ router.post(
     async function(req, res) {
         try {
             const { projectId, statusPageId } = req.params;
-            const { name, url } = req.body;
+            console.log('REQ BODY: ', req.body)
+            const { uniqueId, url } = req.body;
             const data = {};
 
-            data.name = name;
+            data.uniqueId = uniqueId;
             data.url = url;
 
             if (!data) {
@@ -1579,10 +1582,10 @@ router.post(
                 });
             }
 
-            if (!data.name || !data.name.trim()) {
+            if (!data.uniqueId || !data.uniqueId.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'External Status Page name is required.',
+                    message: 'External Status Page Unique ID is required.',
                 });
             }
             if (!data.url || !data.url.trim()) {
@@ -1599,18 +1602,18 @@ router.post(
                 });
             }
             // To confirm the name and url is not created already
-            const nameQuery = { name };
+            const idQuery = { uniqueId };
             const urlQuery = { url };
-            const existingExternalStatusPageName = await StatusPageService.getExternalStatusPage(
-                nameQuery
+            const existingExternalStatusPageId = await StatusPageService.getExternalStatusPage(
+                idQuery
             );
             const existingExternalStatusPageUrl = await StatusPageService.getExternalStatusPage(
                 urlQuery
             );
-            if (existingExternalStatusPageName.length > 0) {
+            if (existingExternalStatusPageId.length > 0) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'External Status Page Name is already present',
+                    message: 'External Status Page Unique ID is already present',
                 });
             }
             if (existingExternalStatusPageUrl.length > 0) {
@@ -1623,6 +1626,11 @@ router.post(
             data.createdById = req.user ? req.user.id : null;
             data.projectId = projectId;
             data.statusPageId = statusPageId;
+
+            let externalStatuspage = new Statuspage(`${data.uniqueId}`);
+            externalStatuspage =  await externalStatuspage.getStatus()
+            data.description = externalStatuspage.status.description
+            console.log('DATA: ',data.decription)
 
             await StatusPageService.createExternalStatusPage(data);
             const response = await StatusPageService.getExternalStatusPage();
@@ -1639,9 +1647,9 @@ router.post(
     async function(req, res) {
         try {
             const { projectId, externalStatusPageId } = req.params;
-            const { name, url } = req.body;
+            const { uniqueId, url } = req.body;
             const data = {};
-            data.name = name;
+            data.uniqueId = uniqueId;
             data.url = url;
             if (!data) {
                 return sendErrorResponse(req, res, {
@@ -1649,10 +1657,10 @@ router.post(
                     message: "Values can't be null",
                 });
             }
-            if (!data.name || !data.name.trim()) {
+            if (!data.uniqueId || !data.uniqueId.trim()) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'External Status Page name is required.',
+                    message: 'External Status Page Unique ID is required.',
                 });
             }
             if (!data.url || !data.url.trim()) {
@@ -1673,6 +1681,11 @@ router.post(
                     message: 'Status Page ID is required.',
                 });
             }
+            let externalStatuspage = new Statuspage(`${data.uniqueId}`);
+            externalStatuspage =  await externalStatuspage.getStatus()
+            data.description = externalStatuspage.status.description
+
+            console.log('Updated Status: ', data)
             await StatusPageService.updateExternalStatusPage(
                 projectId,
                 externalStatusPageId,
@@ -1705,6 +1718,7 @@ router.get(
                     message: 'Status Page ID is required.',
                 });
             }
+           
             // To fetch all created external statuspages
             const query = { projectId, statusPageId };
 

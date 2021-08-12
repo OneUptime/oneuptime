@@ -1730,10 +1730,11 @@ module.exports = {
     createExternalStatusPage: async function(data) {
         try {
             const externalStatusPage = new ExternalStatusPageModel();
-            externalStatusPage.name = data.name || null;
+            externalStatusPage.url = data.url || null;
+            externalStatusPage.uniqueId = data.uniqueId || null;
+            externalStatusPage.description = data.description || null;
             externalStatusPage.projectId = data.projectId || null;
             externalStatusPage.statusPageId = data.statusPageId || null;
-            externalStatusPage.url = data.url || null;
             externalStatusPage.createdById = data.createdById || null;
             const newExternalStatusPage = await externalStatusPage.save();
 

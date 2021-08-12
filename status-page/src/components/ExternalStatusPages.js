@@ -55,7 +55,7 @@ class ExternalStatusPages extends Component {
                                                         'translateY(-50%)',
                                                 }}
                                             >
-                                                {link.name}
+                                                {link.url}
                                             </span>
                                             <span
                                                 style={{
@@ -64,11 +64,15 @@ class ExternalStatusPages extends Component {
                                                     right: '10px',
                                                     transform:
                                                         'translateY(-50%)',
-                                                    color: '#49c3b1',
+                                                    color:
+                                                        link.description ===
+                                                        'All Systems Operational'
+                                                            ? '#49c3b1'
+                                                            : 'red',
                                                     fontWeight: '500',
                                                 }}
                                             >
-                                                Operational
+                                                {link.description}
                                             </span>
                                         </div>
                                     </div>
@@ -142,7 +146,7 @@ class ExternalStatusPages extends Component {
                                                                     'translateY(-50%)',
                                                             }}
                                                         >
-                                                            <b>{link.name}</b>
+                                                            <b>{link.url}</b>
                                                         </span>
                                                         <span
                                                             style={{
@@ -160,7 +164,7 @@ class ExternalStatusPages extends Component {
                                                                     '13px',
                                                             }}
                                                         >
-                                                            Operational
+                                                            {link.description}
                                                         </span>
                                                     </li>
                                                 );

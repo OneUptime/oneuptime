@@ -27,8 +27,10 @@ export class ExternalStatusPagesTable extends Component {
                     >
                         <div className="bs-ObjectList-rows">
                             <header className="bs-ObjectList-row bs-ObjectList-row--header">
-                                <div className="bs-ObjectList-cell">Name</div>
-                                <div className="bs-ObjectList-cell">URl</div>
+                                <div className="bs-ObjectList-cell">URL</div>
+                                <div className="bs-ObjectList-cell">
+                                    Unique ID
+                                </div>
                                 <div
                                     className="bs-ObjectList-cell"
                                     style={{
@@ -59,13 +61,13 @@ export class ExternalStatusPagesTable extends Component {
                                                 }}
                                             >
                                                 <div className="bbs-ObjectList-cell-row">
-                                                    {link.name}
+                                                    {link.url}
                                                 </div>
                                             </div>
 
                                             <div className="bs-ObjectList-cell bs-u-v-middle">
                                                 <div className="bs-ObjectList-cell-row">
-                                                    {link.url}
+                                                    {link.uniqueId}
                                                 </div>
                                             </div>
 

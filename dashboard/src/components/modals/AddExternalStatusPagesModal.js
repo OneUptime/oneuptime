@@ -22,6 +22,8 @@ class AddExternalStatusPagesModal extends Component {
 
     submitForm = values => {
         const { statusPage } = this.props.data;
+        /*eslint-disable*/
+        console.log('Values: ', values)
         this.props
             .createExternalStatusPage(
                 statusPage.status.projectId._id,
@@ -89,25 +91,6 @@ class AddExternalStatusPagesModal extends Component {
                                         <div className="bs-Modal-content">
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
-                                                    Name
-                                                </label>
-                                                <div className="bs-Fieldset-fields">
-                                                    <Field
-                                                        name="name"
-                                                        id="footerName"
-                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
-                                                        type="text"
-                                                        component={RenderField}
-                                                        placeholder="Home"
-                                                        autoFocus={true}
-                                                        validate={
-                                                            ValidateField.text
-                                                        }
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
                                                     URL
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -116,10 +99,29 @@ class AddExternalStatusPagesModal extends Component {
                                                         id="url"
                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                         type="text"
+                                                        autoFocus={true}
                                                         component={RenderField}
                                                         placeholder="https://mycompany.com"
                                                         validate={
                                                             ValidateField.url
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="bs-Fieldset-row">
+                                                <label className="bs-Fieldset-label">
+                                                    Unique ID
+                                                </label>
+                                                <div className="bs-Fieldset-fields">
+                                                    <Field
+                                                        name="uniqueId"
+                                                        id="footerName"
+                                                        className="db-BusinessSettings-input TextInput bs-TextInput"
+                                                        type="text"
+                                                        component={RenderField}
+                                                        placeholder="9emk7935gfd"
+                                                        validate={
+                                                            ValidateField.text
                                                         }
                                                     />
                                                 </div>
