@@ -103,7 +103,6 @@ router.post('/:projectId/tweets', checkUser, async (req, res) => {
 
         return sendItemResponse(req, res, response);
     } catch (error) {
-        console.log('***', error);
         return sendErrorResponse(req, res, error);
     }
 });
