@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { fetchExternalStatusPages } from '../actions/status';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import moment from 'moment';
 import ShouldRender from './ShouldRender';
 
 class ExternalStatusPages extends Component {
@@ -126,40 +125,42 @@ class ExternalStatusPages extends Component {
                                                         className="incidentlist feed-item clearfix"
                                                         style={{
                                                             margin: '0 0 10px',
-                                                            cursor: 'text',
                                                         }}
                                                     >
-                                                        <div
+                                                        <span
                                                             className="ct_header"
                                                             style={{
-                                                                marginBottom:
-                                                                    '5px',
+                                                                fontWeight:
+                                                                    '500',
+                                                                marginLeft:
+                                                                    '10px',
+                                                                position:
+                                                                    'absolute',
+                                                                top: '50%',
+                                                                transform:
+                                                                    'translateY(-50%)',
                                                             }}
                                                         >
-                                                            <b> {link.name} </b>
-                                                        </div>
-                                                        <div
-                                                            className="ct_desc"
+                                                            <b>{link.name}</b>
+                                                        </span>
+                                                        <span
                                                             style={{
-                                                                marginBottom:
-                                                                    '5px',
-                                                            }}
-                                                        >
-                                                            {link.url}
-                                                        </div>
-                                                        <div
-                                                            className="ct_time time"
-                                                            style={{
+                                                                position:
+                                                                    'absolute',
+                                                                top: '50%',
+                                                                right: '10px',
+                                                                transform:
+                                                                    'translateY(-50%)',
+                                                                color:
+                                                                    '#49c3b1',
+                                                                fontWeight:
+                                                                    '500',
                                                                 fontSize:
-                                                                    '11px',
+                                                                    '13px',
                                                             }}
                                                         >
-                                                            {moment(
-                                                                link.createdAt
-                                                            ).format(
-                                                                'MMMM Do YYYY, h:mm a'
-                                                            )}
-                                                        </div>
+                                                            Operational
+                                                        </span>
                                                     </li>
                                                 );
                                             }
