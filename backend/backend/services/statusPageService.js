@@ -1384,8 +1384,8 @@ module.exports = {
                     throw error;
                 }
 
-                const monitorIds = statusPage.monitors.map(
-                    monitorObj => monitorObj.monitor._id || monitorObj.monitor
+                const monitorIds = statusPage.monitors.map(monitorObj =>
+                    String(monitorObj.monitor._id || monitorObj.monitor)
                 );
                 const projectId =
                     statusPage.projectId._id || statusPage.projectId;
