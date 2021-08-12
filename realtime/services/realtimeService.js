@@ -500,6 +500,22 @@ module.exports = {
         }
     },
 
+    updateTweets: ({ tweets, statusPageId, _projectId }) => {
+        try {
+            if (!global || !global.io) {
+                return;
+            }
+
+            global.io.emit(`updateTweets-${_projectId}`, {
+                tweets,
+                statusPageId,
+            });
+        } catch (error) {
+            ErrorService.log('realtimeService.updateTweets', error);
+            throw error;
+        }
+    },
+
     updateProbe: ({ data }) => {
         try {
             if (!global || !global.io) {
