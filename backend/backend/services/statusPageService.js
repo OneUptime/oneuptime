@@ -1384,8 +1384,8 @@ module.exports = {
                     throw error;
                 }
 
-                const monitorIds = statusPage.monitors.map(monitor =>
-                    monitor.monitor._id.toString()
+                const monitorIds = statusPage.monitors.map(monitorObj =>
+                    String(monitorObj.monitor._id || monitorObj.monitor)
                 );
                 const projectId = statusPage.projectId._id;
                 const subProjects = await ProjectService.findBy({
