@@ -64,6 +64,16 @@ app.get('/', function(req, res) {
     );
 });
 
+app.get('/monitorCount', function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            monitorCount: Object.keys(monitorStore).length,
+            monitors: monitorStore,
+        })
+    );
+});
+
 //App Version
 app.get(['/probe/version', '/version'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
