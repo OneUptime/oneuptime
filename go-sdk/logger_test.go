@@ -46,11 +46,7 @@ func TestApplicationLogIDRequired(t *testing.T) {
 
 	setupResponse := Init(option)
 
-	if fmt.Sprint(setupResponse) != expectedResponse {
-		t.Errorf("TestApplicationLogIDRequired failed expected %v, got %v", expectedResponse, setupResponse)
-	} else {
-		t.Logf("TestApplicationLogIDRequired success expected %v, got %v", expectedResponse, setupResponse)
-	}
+	AssertEqual(t, "TestApplicationLogIDRequired", fmt.Sprint(setupResponse), expectedResponse)
 }
 func TestApplicationLogKeyRequired(t *testing.T) {
 	expectedResponse := ErrApplicationLogKeyMissing
@@ -62,11 +58,8 @@ func TestApplicationLogKeyRequired(t *testing.T) {
 
 	setupResponse := Init(option)
 
-	if fmt.Sprint(setupResponse) != expectedResponse {
-		t.Errorf("TestApplicationLogKeyRequired failed expected %v, got %v", expectedResponse, setupResponse)
-	} else {
-		t.Logf("TestApplicationLogKeyRequired success expected %v, got %v", expectedResponse, setupResponse)
-	}
+	AssertEqual(t, "TestApplicationLogKeyRequired", fmt.Sprint(setupResponse), expectedResponse)
+
 }
 func TestValidContentRequired(t *testing.T) {
 	expectedResponse := ErrContentMissing
@@ -79,17 +72,15 @@ func TestValidContentRequired(t *testing.T) {
 	setupResponse := Init(option)
 
 	if setupResponse != nil {
-		t.Errorf("TestValidContentRequired failed expected %v, got %v", expectedResponse, setupResponse)
+		AssertEqual(t, "TestValidContentRequired", fmt.Sprint(setupResponse), expectedResponse)
 	}
 	var tag = []string{}
 
 	logResponse, logErr := LogInfo(nil, tag)
 	fmt.Sprint(logResponse)
-	if fmt.Sprint(logErr) == expectedResponse {
-		t.Logf("TestValidContentRequired failed expected %v, got %v", expectedResponse, logErr)
-	} else {
-		t.Errorf("TestValidContentRequired failed expected %v, got %v", expectedResponse, logErr)
-	}
+
+	AssertEqual(t, "TestValidContentRequired", fmt.Sprint(logErr), expectedResponse)
+
 }
 func TestContentRequired(t *testing.T) {
 	expectedResponse := "Content to be logged is required."
@@ -102,7 +93,7 @@ func TestContentRequired(t *testing.T) {
 	setupResponse := Init(option)
 
 	if setupResponse != nil {
-		t.Errorf("TestContentRequired failed expected %v, got %v", expectedResponse, setupResponse)
+		AssertEqual(t, "TestContentRequired", fmt.Sprint(setupResponse), expectedResponse)
 	}
 	var tag = []string{}
 
@@ -110,14 +101,11 @@ func TestContentRequired(t *testing.T) {
 	actualResponse := logResponse.Message
 
 	if logErr != nil {
-		t.Errorf("TestContentRequired failed expected %v, got %v", expectedResponse, logErr)
+		AssertEqual(t, "TestContentRequired", fmt.Sprint(logErr), expectedResponse)
 	}
 
-	if actualResponse != expectedResponse {
-		t.Errorf("TestContentRequired failed expected %v, got %v", expectedResponse, actualResponse)
-	} else {
-		t.Logf("TestContentRequired success expected %v, got %v", expectedResponse, actualResponse)
-	}
+	AssertEqual(t, "TestContentRequired", actualResponse, expectedResponse)
+
 }
 func TestValidApplicationLogRequired(t *testing.T) {
 	expectedResponse := "Application Log does not exist."
@@ -130,7 +118,7 @@ func TestValidApplicationLogRequired(t *testing.T) {
 	setupResponse := Init(option)
 
 	if setupResponse != nil {
-		t.Errorf("TestValidApplicationLogRequired failed expected %v, got %v", expectedResponse, setupResponse)
+		AssertEqual(t, "TestValidApplicationLogRequired", fmt.Sprint(setupResponse), expectedResponse)
 	}
 	var tag = []string{}
 	randomContent := "Sample Content"
@@ -139,14 +127,11 @@ func TestValidApplicationLogRequired(t *testing.T) {
 	actualResponse := logResponse.Message
 
 	if logErr != nil {
-		t.Errorf("TestValidApplicationLogRequired failed expected %v, got %v", expectedResponse, logErr)
+		AssertEqual(t, "TestValidApplicationLogRequired", fmt.Sprint(logErr), expectedResponse)
 	}
 
-	if actualResponse != expectedResponse {
-		t.Errorf("TestValidApplicationLogRequired failed expected %v, got %v", expectedResponse, actualResponse)
-	} else {
-		t.Logf("TestValidApplicationLogRequired success expected %v, got %v", expectedResponse, actualResponse)
-	}
+	AssertEqual(t, "TestValidApplicationLogRequired", actualResponse, expectedResponse)
+
 }
 func TestContentStringIsLogged(t *testing.T) {
 	expectedResponse := ""
@@ -159,7 +144,8 @@ func TestContentStringIsLogged(t *testing.T) {
 	setupResponse := Init(option)
 
 	if setupResponse != nil {
-		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+		AssertEqual(t, "TestContentStringIsLogged", fmt.Sprint(setupResponse), expectedResponse)
+
 	}
 	var tag = []string{}
 	randomContent := "Sample Content"
@@ -169,10 +155,11 @@ func TestContentStringIsLogged(t *testing.T) {
 	actualResponse := logResponse.Content
 
 	if logErr != nil {
-		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, logErr)
+		AssertEqual(t, "TestContentStringIsLogged", fmt.Sprint(logErr), expectedResponse)
+
 	}
 
-	if actualResponse != expectedResponse {
+	if expectedResponse != actualResponse {
 		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
 	} else {
 		t.Logf("TestContentStringIsLogged success expected %v, got %v", expectedResponse, actualResponse)
@@ -189,7 +176,8 @@ func TestContentStructIsLogged(t *testing.T) {
 	setupResponse := Init(option)
 
 	if setupResponse != nil {
-		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+		AssertEqual(t, "TestContentStructIsLogged", fmt.Sprint(setupResponse), expectedResponse)
+
 	}
 	var tag = []string{}
 	randomContent := GetSampleLog()
@@ -199,14 +187,16 @@ func TestContentStructIsLogged(t *testing.T) {
 	actualResponse := logResponse.Content.(map[string]interface{})["name"]
 
 	if logErr != nil {
-		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, logErr)
+		AssertEqual(t, "TestContentStructIsLogged", fmt.Sprint(logErr), expectedResponse)
+
 	}
 
-	if actualResponse != expectedResponse {
-		t.Errorf("TestContentStringIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
+	if expectedResponse != actualResponse {
+		t.Errorf("TestContentStructIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
 	} else {
-		t.Logf("TestContentStringIsLogged success expected %v, got %v", expectedResponse, actualResponse)
+		t.Logf("TestContentStructIsLogged success expected %v, got %v", expectedResponse, actualResponse)
 	}
+
 }
 
 func TestContentOfTypeWarningIsLogged(t *testing.T) {
@@ -220,7 +210,8 @@ func TestContentOfTypeWarningIsLogged(t *testing.T) {
 	setupResponse := Init(option)
 
 	if setupResponse != nil {
-		t.Errorf("TestContentOfTypeWarningIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+		AssertEqual(t, "TestContentOfTypeWarningIsLogged", fmt.Sprint(setupResponse), expectedResponse)
+
 	}
 	var tag = []string{}
 	randomContent := "Sample Content"
@@ -229,14 +220,12 @@ func TestContentOfTypeWarningIsLogged(t *testing.T) {
 	actualResponse := logResponse.Type
 
 	if logErr != nil {
-		t.Errorf("TestContentOfTypeWarningIsLogged failed expected %v, got %v", expectedResponse, logErr)
+		AssertEqual(t, "TestContentOfTypeWarningIsLogged", fmt.Sprint(logErr), expectedResponse)
+
 	}
 
-	if actualResponse != expectedResponse {
-		t.Errorf("TestContentOfTypeWarningIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
-	} else {
-		t.Logf("TestContentOfTypeWarningIsLogged success expected %v, got %v", expectedResponse, actualResponse)
-	}
+	AssertEqual(t, "TestContentOfTypeWarningIsLogged", actualResponse, expectedResponse)
+
 }
 
 func TestContentOfTypeErrorIsLogged(t *testing.T) {
@@ -250,7 +239,8 @@ func TestContentOfTypeErrorIsLogged(t *testing.T) {
 	setupResponse := Init(option)
 
 	if setupResponse != nil {
-		t.Errorf("TestContentOfTypeErrorIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+		AssertEqual(t, "TestContentOfTypeErrorIsLogged", fmt.Sprint(setupResponse), expectedResponse)
+
 	}
 	var tag = []string{}
 	randomContent := GetSampleLog()
@@ -259,17 +249,15 @@ func TestContentOfTypeErrorIsLogged(t *testing.T) {
 	actualResponse := logResponse.Type
 
 	if logErr != nil {
-		t.Errorf("TestContentOfTypeErrorIsLogged failed expected %v, got %v", expectedResponse, logErr)
+		AssertEqual(t, "TestContentOfTypeErrorIsLogged", fmt.Sprint(logErr), expectedResponse)
+
 	}
 
-	if actualResponse != expectedResponse {
-		t.Errorf("TestContentOfTypeErrorIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
-	} else {
-		t.Logf("TestContentOfTypeErrorIsLogged success expected %v, got %v", expectedResponse, actualResponse)
-	}
+	AssertEqual(t, "TestContentOfTypeErrorIsLogged", actualResponse, expectedResponse)
+
 }
 func TestContentWithNoTagIsLogged(t *testing.T) {
-	expectedResponse := 0
+	expectedResponse := "0"
 	option := LoggerOptions{
 		ApplicationLogId:  appLog["_id"].(string),
 		ApplicationLogKey: appLog["key"].(string),
@@ -279,7 +267,8 @@ func TestContentWithNoTagIsLogged(t *testing.T) {
 	setupResponse := Init(option)
 
 	if setupResponse != nil {
-		t.Errorf("TestContentWithNoTagIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+		AssertEqual(t, "TestContentWithNoTagIsLogged", fmt.Sprint(setupResponse), expectedResponse)
+
 	}
 	var tag = []string{}
 	randomContent := GetSampleLog()
@@ -288,17 +277,15 @@ func TestContentWithNoTagIsLogged(t *testing.T) {
 	actualResponse := len(logResponse.Tags)
 
 	if logErr != nil {
-		t.Errorf("TestContentWithNoTagIsLogged failed expected %v, got %v", expectedResponse, logErr)
+		AssertEqual(t, "TestContentWithNoTagIsLogged", fmt.Sprint(logErr), expectedResponse)
+
 	}
 
-	if actualResponse != expectedResponse {
-		t.Errorf("TestContentWithNoTagIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
-	} else {
-		t.Logf("TestContentWithNoTagIsLogged success expected %v, got %v", expectedResponse, actualResponse)
-	}
+	AssertEqual(t, "TestContentWithNoTagIsLogged", fmt.Sprint(actualResponse), expectedResponse)
+
 }
 func TestContentWithOneTagIsLogged(t *testing.T) {
-	expectedResponse := 1
+	expectedResponse := "1"
 	option := LoggerOptions{
 		ApplicationLogId:  appLog["_id"].(string),
 		ApplicationLogKey: appLog["key"].(string),
@@ -308,7 +295,8 @@ func TestContentWithOneTagIsLogged(t *testing.T) {
 	setupResponse := Init(option)
 
 	if setupResponse != nil {
-		t.Errorf("TestContentWithOneTagIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+		AssertEqual(t, "TestContentWithOneTagIsLogged", fmt.Sprint(setupResponse), expectedResponse)
+
 	}
 	var tag = []string{"randon tag"}
 	randomContent := GetSampleLog()
@@ -317,17 +305,15 @@ func TestContentWithOneTagIsLogged(t *testing.T) {
 	actualResponse := len(logResponse.Tags)
 
 	if logErr != nil {
-		t.Errorf("TestContentWithOneTagIsLogged failed expected %v, got %v", expectedResponse, logErr)
+		AssertEqual(t, "TestContentWithOneTagIsLogged", fmt.Sprint(logErr), expectedResponse)
+
 	}
 
-	if actualResponse != expectedResponse {
-		t.Errorf("TestContentWithOneTagIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
-	} else {
-		t.Logf("TestContentWithOneTagIsLogged success expected %v, got %v", expectedResponse, actualResponse)
-	}
+	AssertEqual(t, "TestContentWithOneTagIsLogged", fmt.Sprint(actualResponse), expectedResponse)
+
 }
 func TestContentWithFourTagIsLogged(t *testing.T) {
-	expectedResponse := 4
+	expectedResponse := "4"
 	expectedTypeResponse := "warning"
 	option := LoggerOptions{
 		ApplicationLogId:  appLog["_id"].(string),
@@ -338,7 +324,8 @@ func TestContentWithFourTagIsLogged(t *testing.T) {
 	setupResponse := Init(option)
 
 	if setupResponse != nil {
-		t.Errorf("TestContentWithFourTagIsLogged failed expected %v, got %v", expectedResponse, setupResponse)
+		AssertEqual(t, "TestContentWithFourTagIsLogged", fmt.Sprint(setupResponse), expectedResponse)
+
 	}
 	var tag = []string{"testing", "rubylansh", "trial", "correct"}
 	randomContent := GetSampleLog()
@@ -348,17 +335,11 @@ func TestContentWithFourTagIsLogged(t *testing.T) {
 	actualTypeResponse := logResponse.Type
 
 	if logErr != nil {
-		t.Errorf("TestContentWithFourTagIsLogged failed expected %v, got %v", expectedResponse, logErr)
+		AssertEqual(t, "TestContentWithFourTagIsLogged", fmt.Sprint(logErr), expectedResponse)
+
 	}
 
-	if actualResponse != expectedResponse {
-		t.Errorf("TestContentWithFourTagIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
-	} else {
-		t.Logf("TestContentWithFourTagIsLogged  success expected %v, got %v", expectedResponse, actualResponse)
-	}
-	if actualTypeResponse != expectedTypeResponse {
-		t.Errorf("TestContentWithFourTagIsLogged failed expected %v, got %v", expectedResponse, actualResponse)
-	} else {
-		t.Logf("TestContentWithFourTagIsLogged success expected %v, got %v", expectedResponse, actualResponse)
-	}
+	AssertEqual(t, "TestContentWithFourTagIsLogged", fmt.Sprint(actualResponse), expectedResponse)
+	AssertEqual(t, "TestContentWithFourTagIsLogged", actualTypeResponse, expectedTypeResponse)
+
 }

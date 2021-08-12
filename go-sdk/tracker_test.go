@@ -66,23 +66,7 @@ func TestTakeInCustomTimelineEvent(t *testing.T) {
 
 	actualResponse := currentTimeline[0].Category
 
-	assertEqual(t, "TestTakeInCustomTimelineEvent", fmt.Sprint(actualResponse), expectedResponse)
-}
-
-func assertEqual(t *testing.T, testName string, actual string, expected string) {
-	if expected != actual {
-		t.Errorf("%v failed expected %v, got %v", testName, expected, actual)
-	} else {
-		t.Logf("%v success expected %v, got %v", testName, expected, actual)
-	}
-}
-
-func assertNotEqual(t *testing.T, testName string, actual string, expected string) {
-	if expected == actual {
-		t.Errorf("%v failed expected different value  %v, got %v", testName, expected, actual)
-	} else {
-		t.Logf("%v success expected different value %v, got %v", testName, expected, actual)
-	}
+	AssertEqual(t, "TestTakeInCustomTimelineEvent", fmt.Sprint(actualResponse), expectedResponse)
 }
 
 func TestPositiveTimelineIsRequired(t *testing.T) {
@@ -99,7 +83,7 @@ func TestPositiveTimelineIsRequired(t *testing.T) {
 
 	setupResponse := InitTracker(option)
 
-	assertEqual(t, "TestPositiveTimelineIsRequired", fmt.Sprint(setupResponse), expectedResponse)
+	AssertEqual(t, "TestPositiveTimelineIsRequired", fmt.Sprint(setupResponse), expectedResponse)
 
 }
 func TestCustomTimelineContainsimeStamp(t *testing.T) {
@@ -123,7 +107,7 @@ func TestCustomTimelineContainsimeStamp(t *testing.T) {
 
 	actualResponse := reflect.TypeOf(currentTimeline[0].Timestamp).String()
 
-	assertEqual(t, "TestCustomTimelineContainsimeStamp", fmt.Sprint(actualResponse), expectedResponse)
+	AssertEqual(t, "TestCustomTimelineContainsimeStamp", fmt.Sprint(actualResponse), expectedResponse)
 }
 func TestCustomTimelineContainsEventId(t *testing.T) {
 
@@ -146,7 +130,7 @@ func TestCustomTimelineContainsEventId(t *testing.T) {
 
 	actualResponse := reflect.TypeOf(currentTimeline[0].EventId).String()
 
-	assertEqual(t, "TestCustomTimelineContainsEventId", fmt.Sprint(actualResponse), expectedResponse)
+	AssertEqual(t, "TestCustomTimelineContainsEventId", fmt.Sprint(actualResponse), expectedResponse)
 }
 
 func TestTwoTimelineContainsSameEventId(t *testing.T) {
@@ -175,7 +159,7 @@ func TestTwoTimelineContainsSameEventId(t *testing.T) {
 
 	actualResponse := currentTimeline[1].EventId
 
-	assertEqual(t, "TestTwoTimelineContainsSameEventId", fmt.Sprint(actualResponse), expectedResponse)
+	AssertEqual(t, "TestTwoTimelineContainsSameEventId", fmt.Sprint(actualResponse), expectedResponse)
 }
 
 func TestOlderTimelineAreDiscarded(t *testing.T) {
@@ -212,9 +196,9 @@ func TestOlderTimelineAreDiscarded(t *testing.T) {
 	actualFirstTimelineResponse := currentTimeline[0].Category
 	actualSecondTimelineResponse := currentTimeline[1].Type
 
-	assertEqual(t, "TestTwoTimelineContainsSameEventId", fmt.Sprint(actualFirstTimelineResponse), expectedFirstTimelineResponse)
+	AssertEqual(t, "TestTwoTimelineContainsSameEventId", fmt.Sprint(actualFirstTimelineResponse), expectedFirstTimelineResponse)
 
-	assertEqual(t, "TestTwoTimelineContainsSameEventId", fmt.Sprint(actualSecondTimelineResponse), expectedSecondTimelineResponse)
+	AssertEqual(t, "TestTwoTimelineContainsSameEventId", fmt.Sprint(actualSecondTimelineResponse), expectedSecondTimelineResponse)
 
 }
 func TestTagIsAdded(t *testing.T) {
@@ -241,7 +225,7 @@ func TestTagIsAdded(t *testing.T) {
 
 	actualResponse := tags[0].Key
 
-	assertEqual(t, "TestTagIsAdded", fmt.Sprint(actualResponse), expectedResponse)
+	AssertEqual(t, "TestTagIsAdded", fmt.Sprint(actualResponse), expectedResponse)
 
 }
 
@@ -276,7 +260,7 @@ func TestTagsAreAdded(t *testing.T) {
 	} else {
 		t.Logf("TestTagsAreAdded success expected %v, got %v", expectedResponse, actualResponse)
 	}
-	assertEqual(t, "TestTagIsAdded", fmt.Sprint(actualResponse), fmt.Sprint(expectedResponse))
+	AssertEqual(t, "TestTagIsAdded", fmt.Sprint(actualResponse), fmt.Sprint(expectedResponse))
 
 }
 func TestOverwriteTagsWithSameKeyWhenAdded(t *testing.T) {
@@ -305,16 +289,12 @@ func TestOverwriteTagsWithSameKeyWhenAdded(t *testing.T) {
 	SetTag("location", expectedResponse)
 
 	availableTags := GetTag()
-	for _, tag := range availableTags {
-		fmt.Printf("tag is %+v", tag)
-
-	}
 
 	actualResponse := availableTags[0].Value // latest value for that tag location
 
-	assertEqual(t, "TestOverwriteTagsWithSameKeyWhenAdded", fmt.Sprint(len(tags)), fmt.Sprint(len(availableTags))) // only 3 unique tags
+	AssertEqual(t, "TestOverwriteTagsWithSameKeyWhenAdded", fmt.Sprint(len(tags)), fmt.Sprint(len(availableTags))) // only 3 unique tags
 
-	assertEqual(t, "TestOverwriteTagsWithSameKeyWhenAdded", actualResponse, expectedResponse)
+	AssertEqual(t, "TestOverwriteTagsWithSameKeyWhenAdded", actualResponse, expectedResponse)
 }
 
 func TestFingerprintShouldBeCaptureMessage(t *testing.T) {
@@ -340,7 +320,7 @@ func TestFingerprintShouldBeCaptureMessage(t *testing.T) {
 
 	actualResponse := errorEvent.Fingerprint[0]
 
-	assertEqual(t, "TestFingerprintShouldBeCaptureMessage", actualResponse, expectedResponse)
+	AssertEqual(t, "TestFingerprintShouldBeCaptureMessage", actualResponse, expectedResponse)
 }
 
 func TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage(t *testing.T) {
@@ -368,7 +348,7 @@ func TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage(t *testing.T) {
 	for i := range errorEvent.Fingerprint {
 		expectedResponse := fingerprints[i]
 		actualResponse := errorEvent.Fingerprint[i]
-		assertEqual(t, "TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage", actualResponse, expectedResponse)
+		AssertEqual(t, "TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage", actualResponse, expectedResponse)
 	}
 }
 func TestCreateEventReadyForServerUsingCaptureMessage(t *testing.T) {
@@ -393,12 +373,12 @@ func TestCreateEventReadyForServerUsingCaptureMessage(t *testing.T) {
 	expectedType := "message"
 	actualType := errorEvent.Type
 
-	assertEqual(t, "TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage", actualType, expectedType)
+	AssertEqual(t, "TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage", actualType, expectedType)
 
 	expectedMsg := errorMessage
 	actualMsg := errorEvent.Exception.Message
 
-	assertEqual(t, "TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage", actualMsg, expectedMsg)
+	AssertEqual(t, "TestFingerprintShouldBeCustomValuesSetAheadCaptureMessage", actualMsg, expectedMsg)
 }
 func TestCaptureMessageTimelineAndEventWithSameID(t *testing.T) {
 	timelineOpt := TrackerOption{
@@ -424,17 +404,17 @@ func TestCaptureMessageTimelineAndEventWithSameID(t *testing.T) {
 	expectedTimelineCount := 2
 	actualTimelineCount := len(errorEvent.Timeline)
 
-	assertEqual(t, "TestCaptureMessageTimelineAndEventWithSameID", fmt.Sprint(actualTimelineCount), fmt.Sprint(expectedTimelineCount))
+	AssertEqual(t, "TestCaptureMessageTimelineAndEventWithSameID", fmt.Sprint(actualTimelineCount), fmt.Sprint(expectedTimelineCount))
 
 	expectedEventId := errorEvent.EventId
 	actualEventId := errorEvent.Timeline[0].EventId
 
-	assertEqual(t, "TestCaptureMessageTimelineAndEventWithSameID", actualEventId, expectedEventId)
+	AssertEqual(t, "TestCaptureMessageTimelineAndEventWithSameID", actualEventId, expectedEventId)
 
 	expectedMsg := errorMessage
 	actualMsg := errorEvent.Exception.Message
 
-	assertEqual(t, "TestCaptureMessageTimelineAndEventWithSameID", actualMsg, expectedMsg)
+	AssertEqual(t, "TestCaptureMessageTimelineAndEventWithSameID", actualMsg, expectedMsg)
 
 }
 func TestCaptureExceptionReadyForServer(t *testing.T) {
@@ -459,12 +439,12 @@ func TestCaptureExceptionReadyForServer(t *testing.T) {
 
 	expectedMsg := errorMessage
 	actualMsg := errorEvent.Exception.Message
-	assertEqual(t, "TestCaptureExceptionReadyForServer", actualMsg, expectedMsg)
+	AssertEqual(t, "TestCaptureExceptionReadyForServer", actualMsg, expectedMsg)
 
 	expectedType := "exception"
 	actualType := errorEvent.Type
 
-	assertEqual(t, "TestCaptureExceptionReadyForServer", actualType, expectedType)
+	AssertEqual(t, "TestCaptureExceptionReadyForServer", actualType, expectedType)
 
 }
 func TestCaptureExceptionAndCaptureMessageWithDifferentID(t *testing.T) {
@@ -496,24 +476,24 @@ func TestCaptureExceptionAndCaptureMessageWithDifferentID(t *testing.T) {
 	expectedType := "message"
 	actualType := event.Type
 
-	assertEqual(t, "TestCaptureExceptionAndCaptureMessageWithDifferentID", actualType, expectedType)
+	AssertEqual(t, "TestCaptureExceptionAndCaptureMessageWithDifferentID", actualType, expectedType)
 
 	actualMessage := event.Content.(map[string]interface{})["message"].(string)
 
-	assertEqual(t, "TestCaptureExceptionAndCaptureMessageWithDifferentID", actualMessage, errorMessage)
+	AssertEqual(t, "TestCaptureExceptionAndCaptureMessageWithDifferentID", actualMessage, errorMessage)
 
 	// ensure that the second event have a type exception, same error message
 	expectedType = "exception"
 	actualType = newEvent.Type
 
-	assertEqual(t, "TestCaptureExceptionAndCaptureMessageWithDifferentID", actualType, expectedType)
+	AssertEqual(t, "TestCaptureExceptionAndCaptureMessageWithDifferentID", actualType, expectedType)
 
 	actualMessage = newEvent.Content.(map[string]interface{})["message"].(string)
-	assertEqual(t, "TestCaptureExceptionAndCaptureMessageWithDifferentID", actualMessage, errorMessage)
+	AssertEqual(t, "TestCaptureExceptionAndCaptureMessageWithDifferentID", actualMessage, errorMessage)
 
 	// confim their eventId is different
 
-	assertNotEqual(t, "TestCaptureExceptionAndCaptureMessageWithDifferentID", event.ID, newEvent.ID)
+	AssertNotEqual(t, "TestCaptureExceptionAndCaptureMessageWithDifferentID", event.ID, newEvent.ID)
 }
 
 func TestCapturedErrorWithDifferentProperties(t *testing.T) {
@@ -553,23 +533,23 @@ func TestCapturedErrorWithDifferentProperties(t *testing.T) {
 	expectedType := "message"
 	actualType := event.Type
 
-	assertEqual(t, "TestCapturedErrorWithDifferentProperties", actualType, expectedType)
+	AssertEqual(t, "TestCapturedErrorWithDifferentProperties", actualType, expectedType)
 
 	actualMessage := event.Content.(map[string]interface{})["message"].(string)
-	assertEqual(t, "TestCapturedErrorWithDifferentProperties", actualMessage, errorMessage)
+	AssertEqual(t, "TestCapturedErrorWithDifferentProperties", actualMessage, errorMessage)
 
-	assertEqual(t, "TestCapturedErrorWithDifferentProperties", fmt.Sprint(len(event.Timeline)), "2")
+	AssertEqual(t, "TestCapturedErrorWithDifferentProperties", fmt.Sprint(len(event.Timeline)), "2")
 
 	// ensure that the second event have a type exception, same error message and 2 tags
 	expectedType = "exception"
 	actualType = newEvent.Type
-	assertEqual(t, "TestCapturedErrorWithDifferentProperties", actualType, expectedType)
+	AssertEqual(t, "TestCapturedErrorWithDifferentProperties", actualType, expectedType)
 
 	actualMessage = newEvent.Content.(map[string]interface{})["message"].(string)
-	assertEqual(t, "TestCapturedErrorWithDifferentProperties", actualMessage, errorMessage)
+	AssertEqual(t, "TestCapturedErrorWithDifferentProperties", actualMessage, errorMessage)
 
-	assertEqual(t, "TestCapturedErrorWithDifferentProperties", fmt.Sprint(len(newEvent.Timeline)), "2")
+	AssertEqual(t, "TestCapturedErrorWithDifferentProperties", fmt.Sprint(len(newEvent.Timeline)), "2")
 
-	assertEqual(t, "TestCapturedErrorWithDifferentProperties", fmt.Sprint(len(newEvent.Tags)), "2") // the default and custom tag
+	AssertEqual(t, "TestCapturedErrorWithDifferentProperties", fmt.Sprint(len(newEvent.Tags)), "2") // the default and custom tag
 
 }

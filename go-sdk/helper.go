@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"testing"
 
 	"github.com/bxcodec/faker/v3"
 )
@@ -110,4 +111,20 @@ func MakeTestApiRequest(apiUrl string, content interface{}, token string) (map[s
 	}
 
 	return response, nil
+}
+
+func AssertEqual(t *testing.T, testName string, actual string, expected string) {
+	if expected != actual {
+		t.Errorf("%v failed expected %v, got %v", testName, expected, actual)
+	} else {
+		t.Logf("%v success expected %v, got %v", testName, expected, actual)
+	}
+}
+
+func AssertNotEqual(t *testing.T, testName string, actual string, expected string) {
+	if expected == actual {
+		t.Errorf("%v failed expected different value  %v, got %v", testName, expected, actual)
+	} else {
+		t.Logf("%v success expected different value %v, got %v", testName, expected, actual)
+	}
 }
