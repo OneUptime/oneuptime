@@ -41,6 +41,7 @@ class ExternalStatusPages extends Component {
                                                 borderStyle: 'solid',
                                                 borderColor: '#dfe1df',
                                                 backgroundColor: '#fdfdfd',
+                                                marginBottom: '25px',
                                                 opacity: '1',
                                             }}
                                         >

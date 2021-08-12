@@ -39,24 +39,6 @@ export class ExternalStatusPagesTable extends Component {
                                     Action
                                 </div>
                             </header>
-                            {/* <header className="bs-ObjectList-row bs-ObjectList-row--header">
-                                <div className="bs-ObjectList-cell">
-                                    Status Page Name
-                                </div>
-                                <div className="bs-ObjectList-cell">
-                                    {' '}
-                                    Status Page Url
-                                </div>
-                                <div
-                                    className="bs-ObjectList-cell"
-                                    style={{
-                                        float: 'right',
-                                        paddingRight: '29px',
-                                    }}
-                                >
-                                    Action
-                                </div>
-                            </header> */}
                             {statusPage.externalStatusPages.externalStatusPagesList.map(
                                 (link, i) => {
                                     return (

@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -240,7 +239,7 @@ const mapDispatchToProps = dispatch => {
     return bindActionCreators(
         {
             closeModal,
-            updateExternalStatusPage
+            updateExternalStatusPage,
         },
         dispatch
     );
@@ -256,6 +255,7 @@ function mapStateToProps(state, ownProps) {
 
 EditExternalStatusPagesModal.propTypes = {
     externalStatusPageModalId: PropTypes.string,
+    updateExternalStatusPage: PropTypes.func,
     handleSubmit: PropTypes.func.isRequired,
     statusPage: PropTypes.object.isRequired,
     data: PropTypes.object,

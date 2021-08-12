@@ -368,15 +368,6 @@ class StatusPage extends Component {
                                                                                     .props
                                                                                     .subProjectId
                                                                             }
-                                                                            projectId={
-                                                                                history.location.pathname
-                                                                                    .split(
-                                                                                        'project/'
-                                                                                    )[1]
-                                                                                    .split(
-                                                                                        '/'
-                                                                                    )[0]
-                                                                            }
                                                                         />
                                                                     </div>
                                                                     <div className="Box-root Margin-bottom--12">
