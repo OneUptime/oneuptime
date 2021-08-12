@@ -31,16 +31,45 @@ class ExternalStatusPages extends Component {
                             (link, i) => {
                                 return (
                                     <div key={i}>
-                                        <div className="date-big">
-                                            {moment(link.createdAt).format(
-                                                'LL'
-                                            )}
-                                        </div>
-                                        <div className="list_k">
-                                            <b> {link.name} </b>
-                                        </div>
-                                        <div className="incident_desc">
-                                            {link.url}
+                                        <div
+                                            style={{
+                                                height: '50px',
+                                                position: 'relative',
+                                                borderBottomWidth: '1px',
+                                                borderLeftWidth: '1px',
+                                                borderRightWidth: '1px',
+                                                borderTopWidth: '1px',
+                                                borderStyle: 'solid',
+                                                borderColor: '#dfe1df',
+                                                backgroundColor: '#fdfdfd',
+                                                opacity: '1',
+                                            }}
+                                        >
+                                            <span
+                                                style={{
+                                                    fontWeight: '500',
+                                                    marginLeft: '10px',
+                                                    position: 'absolute',
+                                                    top: '50%',
+                                                    transform:
+                                                        'translateY(-50%)',
+                                                }}
+                                            >
+                                                {link.name}
+                                            </span>
+                                            <span
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '50%',
+                                                    right: '10px',
+                                                    transform:
+                                                        'translateY(-50%)',
+                                                    color: '#49c3b1',
+                                                    fontWeight: '500',
+                                                }}
+                                            >
+                                                Operational
+                                            </span>
                                         </div>
                                     </div>
                                 );
