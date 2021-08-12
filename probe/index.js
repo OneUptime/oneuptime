@@ -55,7 +55,7 @@ http.listen(app.get('port'), function() {
 
 const monitorStore = {};
 
-app.get('/', function(req, res) {
+app.get('/status', function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
