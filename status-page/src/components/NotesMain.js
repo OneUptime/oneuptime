@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { Translate } from 'react-auto-translate';
 import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -255,7 +256,7 @@ class NotesMain extends Component {
                                         display: 'inline-block',
                                     }}
                                 >
-                                    No incident reported
+                                    <Translate>No incident reported</Translate>
                                 </div>
                             )}
                         </div>
@@ -279,7 +280,9 @@ class NotesMain extends Component {
                     {typeof this.props.notesmessage === 'string' ? (
                         this.props.notesmessage
                     ) : (
-                        <div>No incident available</div>
+                        <div>
+                            <Translate> No incident available</Translate>
+                        </div>
                     )}
                 </div>
             );
@@ -407,7 +410,7 @@ class NotesMain extends Component {
                                         className="feed-title"
                                         style={subheading}
                                     >
-                                        Incidents
+                                        Incidentssss
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender if={this.props.individualnote}>

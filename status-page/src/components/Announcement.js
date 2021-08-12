@@ -1,4 +1,6 @@
 import React, { Component } from 'react';
+
+import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { getAnnouncements } from '../actions/status';
 import { connect } from 'react-redux';
@@ -6,12 +8,26 @@ import { bindActionCreators } from 'redux';
 import { handleResources } from '../config';
 import ShouldRender from './ShouldRender';
 import Markdown from 'markdown-to-jsx';
+//import { translate } from '../config';
 class Announcement extends Component {
     constructor(props) {
         super(props);
         this.limit = 2;
         this.counter = 2;
+        this.announcement = '';
     }
+
+    // async componentDidUpdate(prevProps) {
+    //     if (
+    //         prevProps.language !== this.props.language &&
+    //         this.props.language !== 'english'
+    //     ) {
+    //         const lang = await translate('es', 'ANNOUNCEMENT');
+    //         // eslint-disable-next-line no-console
+    //         console.log(lang, 'langg');
+    //         //this.setState({ announcement: lang });
+    //     }
+    // }
 
     handleRouting = announcementSlug => {
         const {
@@ -44,7 +60,7 @@ class Announcement extends Component {
                                     this.handleRouting(announcement.slug);
                                 }}
                             >
-                                <span className="ann_header">ANNOUNCEMENT</span>
+                                <span className="ann_header">{}</span>
                                 <AnnouncementBox
                                     announcement={announcement}
                                     monitorState={monitorState}
@@ -59,7 +75,7 @@ class Announcement extends Component {
                                 }}
                             >
                                 <div className="ann_header classic_header">
-                                    ANNOUNCEMENT
+                                    <Translate>ANNOUNCEMENT</Translate>
                                 </div>
                                 <AnnouncementBox
                                     announcement={announcement}
@@ -84,11 +100,13 @@ Announcement.propTypes = {
     announcement: PropTypes.object,
     monitorState: PropTypes.array,
     history: PropTypes.object,
+    //language: PropTypes.object,
 };
 
 const mapStateToProps = state => {
     return {
         statusPage: state.status.statusPage,
+        language: state.status.language,
         announcement:
             state.status.announcements.list.allAnnouncements &&
             state.status.announcements.list.allAnnouncements.length > 0 &&
@@ -106,22 +124,27 @@ function AnnouncementBox({ announcement, monitorState, type }) {
         <>
             <div className="icon_ann">
                 <div className={type ? 'ann_title classic_font' : 'ann_title'}>
-                    {announcement.name}
+                    <Translate>{announcement.name}</Translate>
                 </div>
             </div>
             <div className="ann_desc">
                 {announcement?.description && (
-                    <Markdown>{announcement.description}</Markdown>
+                    <Markdown>
+                        <Translate>{announcement.description}</Translate>
+                    </Markdown>
                 )}
             </div>
             <ShouldRender if={announcement.monitors.length > 0}>
                 <div className={'resources_aff'}>
                     <span className={type && 'classic_font'}>
-                        Resources Affected:{' '}
+                        <Translate>Resources Affected: </Translate>
                     </span>
                     <span>
-                        {announcement &&
-                            handleResources(monitorState, announcement)}
+                        <Translate>
+                            {' '}
+                            {announcement &&
+                                handleResources(monitorState, announcement)}
+                        </Translate>
                     </span>
                 </div>
             </ShouldRender>

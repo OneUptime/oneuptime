@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import SubscribeBox from './Subscribe/SubscribeBox';
+import LanguageBox from './LanguageBox';
 import { Translate } from 'react-auto-translate';
 
-const NewThemeSubscriber = () => {
+const SelectLanguage = () => {
     const [isShown, setIsShown] = useState(false);
-    const popupRef = useRef();
+    const popupReff = useRef();
     const documentClickHandler = useRef();
 
     useEffect(() => {
         documentClickHandler.current = e => {
-            if (popupRef.current && popupRef.current.contains(e.target)) return;
+            if (popupReff.current && popupReff.current.contains(e.target))
+                return;
             setIsShown(false);
             removeDocumentClickHandler();
         };
@@ -31,15 +32,25 @@ const NewThemeSubscriber = () => {
     };
 
     return (
-        <div className="popup-menu-container" id="subscriber-button">
-            <button className="subscribe_btn" onClick={handleToggleButtonClick}>
-                <Translate>subscribe to updates</Translate>
+        <div
+            className="popup-menu-container"
+            id="subscriber-button"
+            style={{ marginLeft: 10 }}
+        >
+            <button
+                className="subscribe_btn"
+                onClick={handleToggleButtonClick}
+                style={{
+                    backgroundColor: 'transparent',
+                }}
+            >
+                <Translate>language</Translate>
             </button>
             <div
                 className={`popup-menu ${isShown ? 'shown' : ''}`}
-                ref={popupRef}
+                ref={popupReff}
             >
-                <SubscribeBox
+                <LanguageBox
                     theme={true}
                     handleCloseButtonClick={handleCloseButtonClick}
                 />
@@ -48,6 +59,6 @@ const NewThemeSubscriber = () => {
     );
 };
 
-NewThemeSubscriber.displayName = 'NewThemeSubscriber';
+SelectLanguage.displayName = 'SelectLanguage';
 
-export default NewThemeSubscriber;
+export default SelectLanguage;

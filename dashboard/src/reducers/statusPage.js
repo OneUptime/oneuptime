@@ -121,6 +121,9 @@ import {
     UPDATE_EXTERNAL_STATUSPAGE_REQUEST,
     UPDATE_EXTERNAL_STATUSPAGE_SUCCESS,
     UPDATE_EXTERNAL_STATUSPAGE_FAILURE,
+    UPDATE_MULTIPLE_LANGUAGE_FAILURE,
+    UPDATE_MULTIPLE_LANGUAGE_REQUEST,
+    UPDATE_MULTIPLE_LANGUAGE_SUCCESS,
 } from '../constants/statusPage';
 
 import {
@@ -235,6 +238,11 @@ const INITIAL_STATE = {
         error: null,
     },
     updateDomain: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    updateMultipleLanguage: {
         requesting: false,
         success: false,
         error: null,
@@ -1664,6 +1672,35 @@ export default function statusPage(state = INITIAL_STATE, action) {
         case RESET_STATUS_BUBBLE_ID_FAILURE:
             return Object.assign({}, state, {
                 statusBubble: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case UPDATE_MULTIPLE_LANGUAGE_REQUEST:
+            return Object.assign({}, state, {
+                updateMultipleLanguage: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case UPDATE_MULTIPLE_LANGUAGE_SUCCESS:
+            status = action.payload;
+            return Object.assign({}, state, {
+                updateMultipleLanguage: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                status,
+            });
+
+        case UPDATE_MULTIPLE_LANGUAGE_FAILURE:
+            return Object.assign({}, state, {
+                updateMultipleLanguage: {
                     requesting: false,
                     error: action.payload,
                     success: false,

@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Translator, Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import UptimeLegend from './UptimeLegend';
 import NoMonitor from './NoMonitor';
@@ -29,6 +30,7 @@ import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
 import NewThemeEvent from './NewThemeEvent';
 import NewThemeSubscriber from './NewThemeSubscriber';
+import SelectLanguage from './SelectLanguage';
 import Announcement from './Announcement';
 import AnnouncementLogs from './AnnouncementLogs';
 import PastEvent from './PastEvent';
@@ -685,14 +687,17 @@ class Main extends Component {
                                     </div>
                                 </ShouldRender>
                             </div>
-                            <ShouldRender
-                                if={
-                                    this.props.isSubscriberEnabled === true &&
-                                    showSubscriberOption
-                                }
-                            >
-                                <NewThemeSubscriber />
-                            </ShouldRender>
+                            <div style={{ display: 'flex' }}>
+                                <ShouldRender
+                                    if={
+                                        this.props.isSubscriberEnabled ===
+                                            true && showSubscriberOption
+                                    }
+                                >
+                                    <NewThemeSubscriber />
+                                </ShouldRender>
+                                <SelectLanguage />
+                            </div>
                         </div>
                     </ShouldRender>
                 </>
@@ -718,9 +723,11 @@ class Main extends Component {
                     }}
                     id="status-note"
                 >
-                    {this.props.ongoing && this.props.ongoing.length > 0
-                        ? 'Ongoing Scheduled Maintenance Event'
-                        : newStatusMessage}
+                    <Translate>
+                        {this.props.ongoing && this.props.ongoing.length > 0
+                            ? 'Ongoing Scheduled Maintenance Event'
+                            : newStatusMessage}
+                    </Translate>
                 </div>
             ),
             services: (
@@ -1364,7 +1371,12 @@ class Main extends Component {
         };
 
         return (
-            <>
+            <Translator
+                //cacheProvider={cacheProvider}
+                from="en"
+                to={this.props.language === 'english' ? 'en' : 'es'}
+                googleApiKey={process.env.REACT_APP_GOOGLE_TRANSLATE_API_KEY}
+            >
                 {theme === 'Clean Theme' ? (
                     <>
                         <div
@@ -1500,7 +1512,7 @@ class Main extends Component {
                         </ShouldRender>
                     </div>
                 )}
-            </>
+            </Translator>
         );
     }
 }
@@ -1535,6 +1547,7 @@ const mapStateToProps = state => {
         futureEvents,
         pastEvents,
         tweetData,
+        language: state.status.language,
     };
 };
 
@@ -1581,6 +1594,7 @@ Main.propTypes = {
     getAllStatusPageResource: PropTypes.func,
     fetchTweets: PropTypes.func,
     tweetData: PropTypes.array,
+    language: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

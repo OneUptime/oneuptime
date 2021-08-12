@@ -367,6 +367,56 @@ export function updateSubscriberOptionError(error) {
     };
 }
 
+// update status page multi language
+export function updateStatusPageLanguage(projectId, values) {
+    return function(dispatch) {
+        const promise = putApi(`statusPage/${projectId}`, values);
+        dispatch(updateStatusPageLanguageRequest());
+
+        promise.then(
+            function(response) {
+                const statusPage = response.data;
+                dispatch(updateStatusPageLanguageSuccess(statusPage));
+                dispatch(updateStatusSuccess(statusPage));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateStatusPageLanguageError(errors(error)));
+            }
+        );
+        return promise;
+    };
+}
+// Update status page advanace subscriber options.
+export function updateStatusPageLanguageRequest() {
+    return {
+        type: types.UPDATE_MULTIPLE_LANGUAGE_REQUEST,
+    };
+}
+
+export function updateStatusPageLanguageSuccess(statusPage) {
+    return {
+        type: types.UPDATE_MULTIPLE_LANGUAGE_SUCCESS,
+        payload: statusPage,
+    };
+}
+
+export function updateStatusPageLanguageError(error) {
+    return {
+        type: types.UPDATE_MULTIPLE_LANGUAGE_FAILURE,
+        payload: error,
+    };
+}
+
 // Calls the API to update private statuspages.
 export function updateSubscriberOption(projectId, values) {
     return function(dispatch) {

@@ -14,6 +14,7 @@ import DeleteBox from '../components/statusPage/DeleteBox';
 import DuplicateStatusBox from '../components/statusPage/DuplicateStatusPage';
 import ExternalStatusPages from '../components/statusPage/ExternalStatusPages';
 import PrivateStatusPage from '../components/statusPage/PrivateStatusPage';
+import StatusPageLanguage from '../components/statusPage/StatusPageLanguage';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import { LoadingState } from '../components/basic/Loader';
 import PropTypes from 'prop-types';
@@ -353,6 +354,9 @@ class StatusPage extends Component {
                                                                 >
                                                                     <div className="Box-root Margin-bottom--12">
                                                                         <PrivateStatusPage />
+                                                                    </div>
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <StatusPageLanguage />
                                                                     </div>
                                                                     <div className="Box-root Margin-bottom--12">
                                                                         <ExternalStatusPages

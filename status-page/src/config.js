@@ -5,6 +5,10 @@ let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
 let realtimeUrl = window.location.origin + '/realtime';
 
+const apiKey = process.env.REACT_APP_GOOGLE_TRANSLATE_API_KEY;
+
+export const googleTranslate = require('google-translate')(apiKey);
+
 export function env(value) {
     const { _env } = window;
     return (
@@ -275,3 +279,24 @@ export const handleResources = (monitorState, announcement) => {
         return result;
     }
 };
+
+export const translate = async (lang, word) => {
+    const promise = await new Promise((resolve, reject) => {
+        googleTranslate.translate(word, lang, function(err, translation) {
+            if (err) {
+                reject(err);
+            }
+            resolve(translation);
+        });
+    });
+    return promise.translatedText;
+};
+
+// async function testTranslate() {
+//     const word = await translate('es', 'good morning');
+//     // eslint-disable-next-line no-console
+//     console.log(word, 'this is the word');
+//     return;
+// }
+
+// testTranslate();
