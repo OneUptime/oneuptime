@@ -26,7 +26,7 @@
         "react-reveal": "^1.2.2",
         "react-router-dom": "^4.2.2",
         "react-router-redux": "^4.0.8",
-        "react-scripts": "^4.0.3",
+        "react-scripts": "^1.1.5",
         "react-stripe-elements": "^1.6.0",
         "redux": "^3.7.2",
         "redux-form": "^7.3.0",
@@ -55,7 +55,7 @@
         "chrome-launcher": "^0.13.2",
         "commander": "^7.2.0",
         "depcheck": "^1.4.1",
-        "lighthouse": "^6.2.0",
+        "lighthouse": "^8.3.0",
         "npm-force-resolutions": "0.0.10",
         "ora": "^5.4.1",
         "should": "^13.2.3"
