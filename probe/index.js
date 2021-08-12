@@ -53,6 +53,8 @@ http.listen(app.get('port'), function() {
     );
 });
 
+const monitorStore = {};
+
 app.get('/', function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
@@ -83,7 +85,7 @@ app.get(['/probe/version', '/version'], function(req, res) {
 // This cron runs every second minute.
 cron.schedule('*/2 * * * *', () => {
     setTimeout(() => {
-        Main.runJob();
+        Main.runJob(monitorStore);
     }, cronMinuteStartTime * 1000);
 });
 
