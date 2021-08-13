@@ -160,7 +160,11 @@ module.exports = {
                 },
             ];
             if (url) {
-                if (monitor.siteUrls && monitor.siteUrls.includes(url)) {
+                if (
+                    monitor &&
+                    monitor.siteUrls &&
+                    monitor.siteUrls.includes(url)
+                ) {
                     siteUrls = [url];
 
                     let log = await this.findBy({
@@ -176,7 +180,7 @@ module.exports = {
                     lighthouseLogs = log;
                 }
             } else {
-                siteUrls = monitor.siteUrls || [];
+                siteUrls = monitor ? monitor.siteUrls || [] : [];
                 if (siteUrls.length > 0) {
                     for (const url of siteUrls.slice(
                         skip,
