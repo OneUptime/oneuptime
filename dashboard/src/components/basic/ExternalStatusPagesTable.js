@@ -53,7 +53,6 @@ export class ExternalStatusPagesTable extends Component {
                                             <div
                                                 className="bs-ObjectList-cell bs-u-v-middle"
                                                 style={{
-                                                    display: 'flex',
                                                     width: '15vw',
                                                     whiteSpace: 'normal',
                                                 }}
