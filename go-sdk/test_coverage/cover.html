@@ -57,9 +57,17 @@
 				
 				<option value="file0">hackerbay/fyipe/fyipe.go (83.3%)</option>
 				
-				<option value="file1">hackerbay/fyipe/helper.go (79.4%)</option>
+				<option value="file1">hackerbay/fyipe/fyipeTracker.go (92.5%)</option>
 				
-				<option value="file2">hackerbay/fyipe/logger.go (90.6%)</option>
+				<option value="file2">hackerbay/fyipe/helper.go (77.5%)</option>
+				
+				<option value="file3">hackerbay/fyipe/logger.go (90.6%)</option>
+				
+				<option value="file4">hackerbay/fyipe/realm.go (100.0%)</option>
+				
+				<option value="file5">hackerbay/fyipe/tracker.go (92.6%)</option>
+				
+				<option value="file6">hackerbay/fyipe/util.go (89.7%)</option>
 				
 				</select>
 			</div>
@@ -182,11 +190,151 @@ func LogError(content interface{}, tags []string) (LoggerResponse, error) <span 
 		<pre class="file" id="file1" style="display: none">package fyipe
 
 import (
+        "errors"
+        "reflect"
+)
+
+// This is the version of Fyipe Go SDK.
+const Version = "0.0.1"
+
+const MAX_ITEMS_ALLOWED_IN_STACK = 100
+
+type TrackerOption struct {
+        MaxTimeline        int
+        CaptureCodeSnippet bool
+}
+
+type FyipeTrackerOption struct {
+        ErrorTrackerId  string
+        ErrorTrackerKey string
+        ApiUrl          string
+        Options         TrackerOption
+}
+
+type FyipeTracker struct {
+        options FyipeTrackerOption
+}
+
+// Generic Error Messages
+var (
+        ErrErrorTrackerIDMissing  = "Error Tracker ID cant be empty"
+        ErrErrorTrackerKeyMissing = "Error Tracker Key cant be empty"
+        ErrInvalidTimeline        = "Timeline Value must be between 0 and 100"
+)
+
+func NewFyipeTracker(options FyipeTrackerOption) (*FyipeTracker, error) <span class="cov8" title="1">{
+        if options.ApiUrl == "" </span><span class="cov0" title="0">{
+                return nil, errors.New(ErrApiURLMissing)
+        }</span>
+        <span class="cov8" title="1">if options.ErrorTrackerId == "" </span><span class="cov0" title="0">{
+                return nil, errors.New(ErrErrorTrackerIDMissing)
+        }</span>
+        <span class="cov8" title="1">if options.ErrorTrackerKey == "" </span><span class="cov0" title="0">{
+                return nil, errors.New(ErrErrorTrackerKeyMissing)
+        }</span>
+        <span class="cov8" title="1">userTimelineVal := options.Options.MaxTimeline
+        if userTimelineVal &gt; MAX_ITEMS_ALLOWED_IN_STACK || userTimelineVal &lt; 0 </span><span class="cov8" title="1">{ // if 0 it means user is not recording any timeline activity
+                return nil, errors.New(ErrInvalidTimeline)
+        }</span>
+
+        // set up API URL
+        <span class="cov8" title="1">options.ApiUrl = options.ApiUrl + "/error-tracker/" + options.ErrorTrackerId + "/track"
+
+        fyipeTracker := FyipeTracker{
+                options: options,
+        }
+        return &amp;fyipeTracker, nil</span>
+}
+
+// Init initializes the SDK with trackerOptions.
+// it returns the error if any of the options are invalid
+func InitTracker(options FyipeTrackerOption) error <span class="cov8" title="1">{
+        currentFyipeTracker, err := NewFyipeTracker(options)
+        if err != nil </span><span class="cov8" title="1">{
+                return err
+        }</span>
+        // confirm Tracker is ready to be used by binding user's fyipeTracker
+        <span class="cov8" title="1">tracker := CurrentTracker()
+        tracker.BindFyipeTracker(currentFyipeTracker)
+
+        return nil</span>
+}
+
+func AddToTimeline(timeline *Timeline) <span class="cov8" title="1">{
+
+        tracker := CurrentTracker()
+
+        tracker.AddToTimeline(timeline)
+
+}</span>
+func GetTimeline() []*Timeline <span class="cov8" title="1">{
+        tracker := CurrentTracker()
+
+        return tracker.Realm().timelines
+}</span>
+func SetTag(key, value string) <span class="cov8" title="1">{
+        tracker := CurrentTracker()
+
+        tracker.SetTag(key, value)
+}</span>
+
+func SetTags(tags map[string]string) <span class="cov8" title="1">{
+        tracker := CurrentTracker()
+
+        tracker.SetTags(tags)
+}</span>
+func GetTag() []*Tag <span class="cov8" title="1">{
+        tracker := CurrentTracker()
+
+        return tracker.Realm().tags
+}</span>
+func SetFingerprint(fingerprint []string) <span class="cov8" title="1">{
+        tracker := CurrentTracker()
+
+        tracker.SetFingerprint(fingerprint)
+}</span>
+
+func CaptureMessage(message string) TrackerResponse <span class="cov8" title="1">{
+        tracker := CurrentTracker()
+
+        messageObj := &amp;Exception{
+                Message: message,
+        }
+
+        tracker.SetTag("handled", "true")
+
+        return tracker.PrepareErrorObject("message", messageObj)
+}</span>
+func GetErrorEvent() *ErrorEvent <span class="cov8" title="1">{
+        tracker := CurrentTracker()
+
+        return tracker.Realm().currentErrorEvent
+}</span>
+
+func CaptureException(exception error) TrackerResponse <span class="cov8" title="1">{
+        tracker := CurrentTracker()
+
+        exceptionObj := &amp;Exception{
+                Message:    exception.Error(),
+                Type:       reflect.TypeOf(exception).String(),
+                Stacktrace: tracker.GetExceptionStackTrace(exception),
+        }
+
+        tracker.SetTag("handled", "true")
+
+        return tracker.PrepareErrorObject("exception", exceptionObj)
+}</span>
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package fyipe
+
+import (
         "bytes"
         "encoding/json"
         "fmt"
         "io/ioutil"
         "net/http"
+        "testing"
 
         "github.com/bxcodec/faker/v3"
 )
@@ -292,9 +440,25 @@ func MakeTestApiRequest(apiUrl string, content interface{}, token string) (map[s
 
         <span class="cov8" title="1">return response, nil</span>
 }
+
+func AssertEqual(t *testing.T, testName string, actual string, expected string) <span class="cov8" title="1">{
+        if expected != actual </span><span class="cov0" title="0">{
+                t.Errorf("%v failed expected %v, got %v", testName, expected, actual)
+        }</span> else<span class="cov8" title="1"> {
+                t.Logf("%v success expected %v, got %v", testName, expected, actual)
+        }</span>
+}
+
+func AssertNotEqual(t *testing.T, testName string, actual string, expected string) <span class="cov8" title="1">{
+        if expected == actual </span><span class="cov0" title="0">{
+                t.Errorf("%v failed expected different value  %v, got %v", testName, expected, actual)
+        }</span> else<span class="cov8" title="1"> {
+                t.Logf("%v success expected different value %v, got %v", testName, expected, actual)
+        }</span>
+}
 </pre>
 		
-		<pre class="file" id="file2" style="display: none">package fyipe
+		<pre class="file" id="file3" style="display: none">package fyipe
 
 import (
         "bytes"
@@ -310,29 +474,15 @@ type Logger struct {
         stack *stack
         mu    sync.RWMutex
 }
-type ApplicationLog struct {
-        ID   string `json:"_id"`
-        Name string
-}
-type LoggerResponse struct {
-        ID                 string `json:"_id"`
-        Deleted            bool
-        CreatedAt          string
-        Content            interface{}
-        StringifiedContent string
-        Type               string
-        CreatedBy          string
-        AppLog             ApplicationLog `json:"applicationLogId"`
-        Tags               []string
-        Message            string
-}
 
 type stack []*layer
 
 type layer struct {
-        // mu protects concurrent reads and writes to fyipeLogger.
-        mu          sync.RWMutex
-        fyipeLogger *FyipeLogger
+        // mu protects concurrent reads and writes to these objects.
+        mu           sync.RWMutex
+        fyipeLogger  *FyipeLogger
+        fyipeTracker *FyipeTracker
+        realm        *Realm
 }
 
 // return stored fyipeLogger
@@ -421,6 +571,481 @@ func (logger *Logger) MakeApiRequest(content interface{}, tagType string, tags [
                 panic(err)</span>
         }
         <span class="cov8" title="1">return loggerResponse, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package fyipe
+
+import (
+        "strings"
+        "sync"
+        "time"
+
+        "github.com/google/uuid"
+)
+
+type Realm struct {
+        mu                sync.RWMutex
+        timelines         []*Timeline
+        fingerprint       []string
+        tags              []*Tag
+        eventId           string
+        currentErrorEvent *ErrorEvent
+}
+
+func NewRealm() *Realm <span class="cov8" title="1">{
+        realm := Realm{
+                timelines:   make([]*Timeline, 0),
+                tags:        make([]*Tag, 0),
+                fingerprint: make([]string, 0),
+                eventId:     uuid.New().String(),
+        }
+
+        return &amp;realm
+}</span>
+
+// adds new timeline to the current realm
+func (realm *Realm) AddToTimeline(timeline *Timeline, limit int) <span class="cov8" title="1">{
+        timeline.Timestamp = time.Now()
+        timeline.EventId = realm.eventId
+
+        realm.mu.Lock()
+        defer realm.mu.Unlock()
+
+        timelines := append(realm.timelines, timeline)
+        if len(timelines) &gt; limit </span><span class="cov8" title="1">{
+                realm.timelines = timelines[1 : limit+1]
+        }</span> else<span class="cov8" title="1"> {
+                realm.timelines = timelines
+        }</span>
+}
+
+func (realm *Realm) SetTag(key string, value string) <span class="cov8" title="1">{
+        realm.mu.Lock()
+        defer realm.mu.Unlock()
+
+        availableTags := realm.tags
+        isFound := false
+        for i := range availableTags </span><span class="cov8" title="1">{
+                if availableTags[i].Key == key </span><span class="cov8" title="1">{
+                        isFound = true
+                        availableTags[i].Value = value
+                }</span>
+        }
+
+        <span class="cov8" title="1">if !isFound </span><span class="cov8" title="1">{
+                availableTags = append(availableTags, &amp;Tag{Key: strings.ToLower(key), Value: value})
+        }</span>
+        <span class="cov8" title="1">realm.tags = availableTags</span>
+}
+
+func (realm *Realm) SetTags(tags map[string]string) <span class="cov8" title="1">{
+
+        for key, value := range tags </span><span class="cov8" title="1">{
+                SetTag(key, value)
+        }</span>
+}
+
+func (realm *Realm) SetFingerprint(fingerprint []string) <span class="cov8" title="1">{
+
+        realm.fingerprint = fingerprint
+}</span>
+
+func (realm *Realm) PrepareErrorObject(errorType string, errorObj *Exception, errorTrackerKey string) <span class="cov8" title="1">{
+        realm.mu.Lock()
+        defer realm.mu.Unlock()
+
+        if len(realm.fingerprint) &lt; 1 </span><span class="cov8" title="1">{ // default fingerprint will be the message from the error stacktrace
+                fingerprint := []string{errorObj.Message}
+                SetFingerprint(fingerprint)
+        }</span>
+
+        <span class="cov8" title="1">errorEvent := &amp;ErrorEvent{
+                Type:            errorType,
+                Timeline:        realm.timelines,
+                EventId:         realm.eventId,
+                Tags:            realm.tags,
+                Fingerprint:     realm.fingerprint,
+                Exception:       errorObj,
+                ErrorTrackerKey: errorTrackerKey,
+                SDK: &amp;SDK{
+                        Name:    "go-sdk",
+                        Version: Version, // TODO dynamic version setting cuz version is set manually in the fyipeTracker.go file before every release
+                },
+        }
+
+        realm.currentErrorEvent = errorEvent</span>
+
+}
+
+func (realm *Realm) clearRealm() <span class="cov8" title="1">{
+        realm.mu.Lock()
+        defer realm.mu.Unlock()
+
+        // generate a new event Id and set all array to 0
+        realm.timelines = make([]*Timeline, 0)
+        realm.tags = make([]*Tag, 0)
+        realm.fingerprint = make([]string, 0)
+        realm.eventId = uuid.New().String()
+}</span>
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package fyipe
+
+import (
+        "bytes"
+        "encoding/json"
+        "io/ioutil"
+        "net/http"
+        "sync"
+)
+
+type Tracker struct {
+        stack *stack
+        mu    sync.RWMutex
+}
+
+var currentTracker = NewTracker(nil, NewRealm())
+
+// constructor for default fyipeTracker
+func NewTracker(fyipeTracker *FyipeTracker, realm *Realm) *Tracker <span class="cov8" title="1">{
+        tracker := Tracker{
+                stack: &amp;stack{{
+                        fyipeTracker: fyipeTracker,
+                        realm:        realm,
+                }},
+        }
+        return &amp;tracker
+}</span>
+
+// return stored fyipeTracker
+func (l *layer) FyipeTracker() *FyipeTracker <span class="cov8" title="1">{
+        l.mu.RLock()
+        defer l.mu.RUnlock()
+        return l.fyipeTracker
+}</span>
+
+// set the current fyipeTracker
+func (l *layer) SetFyipeTracker(f *FyipeTracker) <span class="cov8" title="1">{
+        l.mu.Lock()
+        defer l.mu.Unlock()
+        l.fyipeTracker = f
+}</span>
+
+// returns an instance of previously initialized Tracker.
+func CurrentTracker() *Tracker <span class="cov8" title="1">{
+        return currentTracker
+}</span>
+
+// set the current fyipeTracker being used by the user
+func (tracker *Tracker) BindFyipeTracker(fyipeTracker *FyipeTracker) <span class="cov8" title="1">{
+        top := tracker.stackTop()
+        top.SetFyipeTracker(fyipeTracker)
+}</span>
+
+// always return the topof the stack which contains one fyipeTracker
+func (tracker *Tracker) stackTop() *layer <span class="cov8" title="1">{
+        tracker.mu.RLock()
+        defer tracker.mu.RUnlock()
+
+        stack := tracker.stack
+        stackLen := len(*stack)
+        top := (*stack)[stackLen-1]
+        return top
+}</span>
+
+// get the current fyipeTracker for usage
+func (tracker *Tracker) FyipeTracker() *FyipeTracker <span class="cov8" title="1">{
+        top := tracker.stackTop()
+        return top.FyipeTracker()
+}</span>
+
+func (tracker *Tracker) Realm() *Realm <span class="cov8" title="1">{
+        top := tracker.stackTop()
+        return top.realm
+}</span>
+func (tracker *Tracker) AddToTimeline(timeline *Timeline) <span class="cov8" title="1">{
+        currentFyipeTracker := tracker.FyipeTracker()
+
+        options := currentFyipeTracker.options.Options
+
+        userTimeline := options.MaxTimeline
+
+        if userTimeline &lt; 1 </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">tracker.Realm().AddToTimeline(timeline, userTimeline)</span>
+}
+
+func (tracker *Tracker) SetTag(key, value string) <span class="cov8" title="1">{
+        tracker.Realm().SetTag(key, value)
+}</span>
+
+func (tracker *Tracker) SetTags(tags map[string]string) <span class="cov8" title="1">{
+        tracker.Realm().SetTags(tags)
+}</span>
+
+func (tracker *Tracker) SetFingerprint(fingerprint []string) <span class="cov8" title="1">{
+        tracker.Realm().SetFingerprint(fingerprint)
+}</span>
+
+func (tracker *Tracker) GetExceptionStackTrace(exception error) *Stacktrace <span class="cov8" title="1">{
+        currentFyipeTracker := tracker.FyipeTracker()
+
+        options := currentFyipeTracker.options.Options
+        return GetExceptionStackTrace(exception, options)
+}</span>
+
+func (tracker *Tracker) PrepareErrorObject(category string, errorObj *Exception) TrackerResponse <span class="cov8" title="1">{
+        currentFyipeTracker := tracker.FyipeTracker()
+
+        AddToTimeline(&amp;Timeline{
+                Category: category,
+                Data:     errorObj.Message,
+                Type:     "error",
+        })
+
+        tracker.Realm().PrepareErrorObject(category, errorObj, currentFyipeTracker.options.ErrorTrackerKey)
+
+        trackerResponse, err := tracker.sendErrorToServer()
+
+        if err != nil </span>{<span class="cov0" title="0">
+                // something went wrong, server down, etc
+        }</span>
+        // clear the Realm after a successful call to the server
+        <span class="cov8" title="1">tracker.Realm().clearRealm()
+
+        return trackerResponse</span>
+}
+
+func (tracker *Tracker) sendErrorToServer() (TrackerResponse, error) <span class="cov8" title="1">{
+        currentFyipeTracker := tracker.FyipeTracker()
+        currentErrorEvent := tracker.Realm().currentErrorEvent
+
+        postBody, _ := json.Marshal(currentErrorEvent)
+        responseBody := bytes.NewBuffer(postBody)
+
+        resp, err := http.Post(currentFyipeTracker.options.ApiUrl, "application/json", responseBody)
+
+        if err != nil </span><span class="cov0" title="0">{
+                // log.Fatalf("An Error Occured %v", err)
+                return TrackerResponse{}, err
+        }</span>
+
+        <span class="cov8" title="1">body, err := ioutil.ReadAll(resp.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                // log.Fatalln(err)
+                return TrackerResponse{}, err
+        }</span>
+
+        <span class="cov8" title="1">var trackerResponse TrackerResponse
+        if err := json.Unmarshal([]byte(body), &amp;trackerResponse); err != nil </span><span class="cov0" title="0">{
+                panic(err)</span>
+        }
+        <span class="cov8" title="1">return trackerResponse, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package fyipe
+
+import (
+        "bufio"
+        "fmt"
+        "log"
+        "os"
+        "reflect"
+        "runtime"
+        "strconv"
+)
+
+func GetExceptionStackTrace(exception error, options TrackerOption) *Stacktrace <span class="cov8" title="1">{
+        // Get the method out of the package used to manage the error
+        currentMethod := getStackTraceMethod(exception)
+
+        var programCounters []uintptr
+        if currentMethod.IsValid() </span><span class="cov8" title="1">{
+                // Get the programcounters out if it if current method is valid
+                programCounters = getProgramCountersOutOfMethod(currentMethod)
+        }</span> else<span class="cov0" title="0"> {
+                // TODO handle method where we didnt handle the package yet
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">if len(programCounters) == 0 </span><span class="cov0" title="0">{
+                return nil // no program counter or we couldnt extract the program counter so its empty
+        }</span>
+
+        // extract frames from the callersframes with the program counters
+        <span class="cov8" title="1">frames := extractFrameFromProgramCounter(programCounters)
+
+        // if user allowed code snippet, get code snippet for frame
+        if options.CaptureCodeSnippet </span><span class="cov8" title="1">{
+                frames = getErrorCodeSnippet(frames)
+        }</span>
+
+        // set the resulting frames in the stacktrace object
+        <span class="cov8" title="1">finalStackTrace := Stacktrace{
+                Frames: frames,
+        }
+
+        // return stacktrace
+        return &amp;finalStackTrace</span>
+}
+
+func getStackTraceMethod(exception error) reflect.Value <span class="cov8" title="1">{
+
+        var method reflect.Value
+        // try to get the method from the two package
+
+        // if error is managed by https://github.com/go-errors/errors
+        methodGetStackFrame := reflect.ValueOf(exception).MethodByName("StackFrames")
+
+        // if error is managed by https://github.com/pkg/errors
+        methodGetStackTrace := reflect.ValueOf(exception).MethodByName("StackTrace")
+
+        if methodGetStackFrame.IsValid() </span><span class="cov8" title="1">{
+                method = methodGetStackFrame
+        }</span>
+
+        <span class="cov8" title="1">if methodGetStackTrace.IsValid() </span><span class="cov0" title="0">{
+                method = methodGetStackTrace
+        }</span>
+
+        <span class="cov8" title="1">return method</span>
+}
+
+func getProgramCountersOutOfMethod(method reflect.Value) []uintptr <span class="cov8" title="1">{
+
+        stackTrace := method.Call(make([]reflect.Value, 0))[0]
+
+        if stackTrace.Kind() != reflect.Slice </span><span class="cov0" title="0">{ // if not an array, we end the show
+                return nil
+        }</span>
+        <span class="cov8" title="1">var programCounterHolder []uintptr
+        for i := 0; i &lt; stackTrace.Len(); i++ </span><span class="cov8" title="1">{
+                currentStack := stackTrace.Index(i)
+
+                // if we have justt th program counters, we save to the array
+                if currentStack.Kind() == reflect.Uintptr </span><span class="cov0" title="0">{
+                        programCounterHolder = append(programCounterHolder, uintptr(currentStack.Uint()))
+                }</span>
+
+                <span class="cov8" title="1">if currentStack.Kind() == reflect.Struct </span><span class="cov8" title="1">{ // if struct, we get the field containing the program counter
+                        programCounterHolder = append(programCounterHolder, uintptr(currentStack.FieldByName("ProgramCounter").Uint()))
+                }</span>
+        }
+
+        <span class="cov8" title="1">return programCounterHolder</span>
+}
+
+func extractFrameFromProgramCounter(programCounters []uintptr) []Frame <span class="cov8" title="1">{
+        callersFrames := runtime.CallersFrames(programCounters)
+        var frames []Frame
+
+        for </span><span class="cov8" title="1">{
+                callerFrame, more := callersFrames.Next()
+
+                newFrame := Frame{
+                        MethodName: callerFrame.Function,
+                        FileName:   callerFrame.File,
+                        LineNumber: fmt.Sprint(callerFrame.Line),
+                }
+                frames = append(frames, newFrame)
+
+                if !more </span><span class="cov8" title="1">{
+                        break</span>
+                }
+        }
+
+        <span class="cov8" title="1">return frames</span>
+}
+
+func getErrorCodeSnippet(frames []Frame) []Frame <span class="cov8" title="1">{
+
+        var updatedFrames []Frame
+        for _, frame := range frames </span><span class="cov8" title="1">{
+                // try to read the file content and save to frame
+                lines := readFileContent(frame)
+
+                newFrame := addCodeSnippetToFrame(lines, frame, 5) // 5 lines by default
+
+                updatedFrames = append(updatedFrames, newFrame)
+
+        }</span>
+
+        <span class="cov8" title="1">return updatedFrames</span>
+}
+
+func readFileContent(frame Frame) []string <span class="cov8" title="1">{
+        fileName := frame.FileName
+
+        // try to read the file content and save to frame
+        file, errFile := os.Open(fileName)
+        if errFile != nil </span><span class="cov0" title="0">{
+                log.Fatal(errFile)
+        }</span>
+        <span class="cov8" title="1">defer file.Close()
+
+        scanner := bufio.NewScanner(file)
+        var lines []string
+        // optionally, resize scanner's capacity for lines over 64K, see next example
+        for scanner.Scan() </span><span class="cov8" title="1">{
+                lines = append(lines, scanner.Text())
+        }</span>
+
+        <span class="cov8" title="1">return lines</span>
+}
+
+func addCodeSnippetToFrame(lines []string, frame Frame, linesOfContext int) Frame <span class="cov8" title="1">{
+        if len(lines) &lt; 1 </span><span class="cov0" title="0">{
+                return frame
+        }</span>
+
+        <span class="cov8" title="1">var lineNumber int
+        var errconv error
+
+        if frame.LineNumber != "" </span><span class="cov8" title="1">{
+                lineNumber, errconv = strconv.Atoi(frame.LineNumber)
+                if errconv != nil </span><span class="cov0" title="0">{
+                        panic(errconv)</span>
+                }
+        }
+
+        <span class="cov8" title="1">maxLines := len(lines)
+
+        sourceLine := max(min(maxLines, lineNumber-1), 0)
+
+        // attach the line before the error
+        frame.LinesBeforeError = getPathOfLines(lines, max(0, sourceLine-linesOfContext), linesOfContext)
+
+        // attach the line after the error
+        frame.LinesAfterError = getPathOfLines(
+                lines, min(sourceLine+1, maxLines), 1+linesOfContext,
+        )
+
+        // attach the error line
+        frame.ErrorLine = lines[min(maxLines-1, sourceLine)]
+
+        return frame</span>
+}
+
+func getPathOfLines(lines []string, start int, count int) []string <span class="cov8" title="1">{
+        terminal := start + count
+        return lines[start:terminal]
+}</span>
+func min(a, b int) int <span class="cov8" title="1">{
+        if a &lt; b </span><span class="cov8" title="1">{
+                return a
+        }</span>
+        <span class="cov8" title="1">return b</span>
+}
+
+func max(a, b int) int <span class="cov8" title="1">{
+        if a &gt; b </span><span class="cov8" title="1">{
+                return a
+        }</span>
+        <span class="cov8" title="1">return b</span>
 }
 </pre>
 		
