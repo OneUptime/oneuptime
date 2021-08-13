@@ -36,7 +36,7 @@ const SubscriberService = require('../services/subscriberService');
 const ScheduledEventService = require('../services/scheduledEventService');
 const axios = require('axios');
 const bearer = process.env.TWITTER_BEARER_TOKEN;
-
+const puppeteer = require('puppeteer');
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
 // Returns: response status page, error message
@@ -1620,7 +1620,29 @@ router.post(
                     message: 'External Status Page Url is already present',
                 });
             }
-
+            // This scrapes the External Status Page
+            const browser = await puppeteer.launch({ headless: true });
+            const page = await browser.newPage();
+            await page.goto(`${data.url}`, {
+                    waitUntil: 'networkidle2',
+                });
+            try {    
+                let spanElement = await page.waitForSelector(
+                    '.status .font-large', { timeout: 1000 }
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                
+                if (spanElement === 'All Systems Operational') {
+                    data.description = spanElement;
+                } else {
+                    data.description = 'Some Systems Are Down';
+                }
+            } catch (err) {
+                data.description = 'Invalid URL';
+            }
+            await browser.close();
+           
             data.createdById = req.user ? req.user.id : null;
             data.projectId = projectId;
             data.statusPageId = statusPageId;
@@ -1674,6 +1696,29 @@ router.post(
                     message: 'Status Page ID is required.',
                 });
             }
+
+            // This scrapes the External Status Page
+            const browser = await puppeteer.launch({ headless: true });
+            const page = await browser.newPage();
+            await page.goto(`${data.url}`, {
+                    waitUntil: 'networkidle2',
+                });
+            try {    
+                let spanElement = await page.waitForSelector(
+                    '.status .font-large', { timeout: 1000 }
+                );
+                spanElement = await spanElement.getProperty('innerText');
+                spanElement = await spanElement.jsonValue();
+                
+                if (spanElement === 'All Systems Operational') {
+                    data.description = spanElement;
+                } else {
+                    data.description = 'Some Systems Are Down';
+                }
+            } catch (err) {
+                data.description = 'Invalid URL';
+            }
+            await browser.close();
             
             await StatusPageService.updateExternalStatusPage(
                 projectId,

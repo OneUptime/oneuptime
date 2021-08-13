@@ -21,6 +21,7 @@ export class ExternalStatusPages extends Component {
             this.props.statusPageId
         );
     }
+
     render() {
         const { statusPage, openModal } = this.props;
         const { externalStatusPageModalId } = this.state;

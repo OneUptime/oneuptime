@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ShouldRender from './ShouldRender';
 class ExternalStatusPages extends Component {
-    componentDidMount() {
+    async componentDidMount() {
         this.props.fetchExternalStatusPages(
             this.props.statusPage.projectId._id,
             this.props.statusPage._id
@@ -14,7 +14,6 @@ class ExternalStatusPages extends Component {
 
     render() {
         const { externalStatusPages, theme } = this.props;
-
         return (
             <div>
                 {theme && theme === 'Clean Theme' && (
@@ -157,14 +156,17 @@ class ExternalStatusPages extends Component {
                                                                 transform:
                                                                     'translateY(-50%)',
                                                                 color:
-                                                                    '#49c3b1',
+                                                                    link.description ===
+                                                                    'All Systems Operational'
+                                                                        ? '#49c3b1'
+                                                                        : 'red',
                                                                 fontWeight:
                                                                     '500',
                                                                 fontSize:
                                                                     '13px',
                                                             }}
                                                         >
-                                                            {link.name}
+                                                            {link.description}
                                                         </span>
                                                     </li>
                                                 );
