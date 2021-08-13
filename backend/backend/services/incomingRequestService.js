@@ -473,7 +473,23 @@ module.exports = {
                     $set: data,
                 }
             );
-            updateIncomingRequest = await this.findBy(query);
+
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
+            updateIncomingRequest = await this.findBy({
+                query,
+                select,
+                populate,
+            });
             return updateIncomingRequest;
         } catch (error) {
             ErrorService.log('incomingRequestService.updateMany', error);
@@ -500,7 +516,8 @@ module.exports = {
     removeMonitor: async function(monitorId) {
         try {
             const allIncomingRequest = await this.findBy({
-                'monitors.monitorId': monitorId,
+                query: { 'monitors.monitorId': monitorId },
+                select: 'monitors',
             });
 
             await Promise.all(
@@ -508,7 +525,9 @@ module.exports = {
                     // remove the monitor from incomingRequest monitors list
                     incomingRequest.monitors = incomingRequest.monitors.filter(
                         monitor =>
-                            String(monitor.monitorId._id) !== String(monitorId)
+                            String(
+                                monitor.monitorId._id || monitor.monitorId
+                            ) !== String(monitorId)
                     );
 
                     if (incomingRequest.monitors.length > 0) {
