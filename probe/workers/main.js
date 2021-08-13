@@ -26,17 +26,24 @@ const KubernetesMonitors = require('./kubernetesMonitors');
  */
 
 module.exports = {
-    runJob: async function() {
+    runJob: async function(monitorStore) {
         try {
             let monitors = await getApi('probe/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data
 
+            // add monitor to store
+            monitors.forEach(monitor => {
+                if (!monitorStore[monitor._id]) {
+                    monitorStore[monitor._id] = monitor;
+                }
+            });
+
             // update all monitors to have scanning set to true
             // const monitorIds = monitors.map(monitor => monitor._id);
-            // await ApiService.setScanStatus(monitorIds, true);
             // await ApiService.addProbeScan(monitorIds);
 
-            for (const monitor of monitors) {
+            // loop over the monitor
+            for (const [key, monitor] of Object.entries(monitorStore)) {
                 try {
                     if (monitor.type === 'api') {
                         await ApiMonitors.ping({ monitor });
@@ -54,13 +61,15 @@ module.exports = {
                     } else if (monitor.type === 'kubernetes') {
                         await KubernetesMonitors.run({ monitor });
                     }
+
+                    // delete the monitor from store
+                    delete monitorStore[key];
                 } catch (e) {
                     ErrorService.log('Main.runJob', e);
                 }
             }
 
             // update all monitor scan status to false
-            // await ApiService.setScanStatus(monitorIds, false);
             // await ApiService.removeProbeScan(monitorIds);
         } catch (error) {
             ErrorService.log('getApi', error);
