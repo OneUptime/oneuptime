@@ -51,7 +51,7 @@ export class ExternalStatusPages extends Component {
                             <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                                 <div>
                                     <button
-                                        id="btnAddLink"
+                                        id="addExternalStatusPage"
                                         type="button"
                                         className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new"
                                         onClick={() =>

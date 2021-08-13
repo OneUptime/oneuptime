@@ -94,7 +94,7 @@ class EditExternalStatusPagesModal extends Component {
                                                 <div className="bs-Fieldset-fields">
                                                     <Field
                                                         name="name"
-                                                        id="footerName"
+                                                        id="name"
                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                         type="text"
                                                         component={RenderField}

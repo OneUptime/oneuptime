@@ -35,11 +35,7 @@ class RemoveExternalStatusPage extends Component {
         } = this.props;
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
-                <div
-                    className="ModalLayer-contents"
-                    tabIndex={-1}
-                    style={{ marginTop: 40 }}
-                >
+                <div className="ModalLayer-contents" style={{ marginTop: 40 }}>
                     <div className="bs-BIM">
                         <div className="bs-Modal bs-Modal--medium">
                             <ClickOutside onClickOutside={closeThisDialog}>
@@ -76,7 +72,7 @@ class RemoveExternalStatusPage extends Component {
                                             </span>
                                         </button>
                                         <button
-                                            id="deleteFooterLink"
+                                            id="delete"
                                             className="bs-Button bs-DeprecatedButton bs-Button--red btn__modal"
                                             type="button"
                                             onClick={() => {

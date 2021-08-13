@@ -58,11 +58,7 @@ class AddExternalStatusPagesModal extends Component {
         const { handleSubmit } = this.props;
 
         return (
-            <div
-                className="ModalLayer-contents"
-                tabIndex="-1"
-                style={{ marginTop: '40px' }}
-            >
+            <div className="ModalLayer-contents" style={{ marginTop: '40px' }}>
                 <div className="bs-BIM">
                     <div className="bs-Modal bs-Modal--medium">
                         <ClickOutside onClickOutside={this.handleCloseModal}>
@@ -94,7 +90,7 @@ class AddExternalStatusPagesModal extends Component {
                                                 <div className="bs-Fieldset-fields">
                                                     <Field
                                                         name="name"
-                                                        id="footerName"
+                                                        id="name"
                                                         className="db-BusinessSettings-input TextInput bs-TextInput"
                                                         type="text"
                                                         component={RenderField}
