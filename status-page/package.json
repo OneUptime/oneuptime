@@ -3,7 +3,6 @@
     "version": "3.0.0",
     "private": true,
     "dependencies": {
-        "@statuspage/status-widget": "^1.0.4",
         "axios": "^0.21.1",
         "chai": "^4.3.4",
         "chai-http": "^4.3.0",

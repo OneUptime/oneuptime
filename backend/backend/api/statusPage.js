@@ -3,7 +3,6 @@
  * Copyright HackerBay, Inc.
  *
  */
-/*eslint-disable*/
 const express = require('express');
 const StatusPageService = require('../services/statusPageService');
 const MonitorService = require('../services/monitorService');
@@ -1566,7 +1565,6 @@ router.post(
     async function(req, res) {
         try {
             const { projectId, statusPageId } = req.params;
-            console.log('REQ BODY: ', req.body)
             const { name, url } = req.body;
             const data = {};
 
@@ -1611,7 +1609,8 @@ router.post(
             if (existingExternalStatusPageId.length > 0) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message: 'External Status Page Unique ID is already present',
+                    message:
+                        'External Status Page Unique ID is already present',
                 });
             }
             if (existingExternalStatusPageUrl.length > 0) {
@@ -1624,15 +1623,16 @@ router.post(
             const browser = await puppeteer.launch({ headless: true });
             const page = await browser.newPage();
             await page.goto(`${data.url}`, {
-                    waitUntil: 'networkidle2',
-                });
-            try {    
+                waitUntil: 'networkidle2',
+            });
+            try {
                 let spanElement = await page.waitForSelector(
-                    '.status .font-large', { timeout: 1000 }
+                    '.status .font-large',
+                    { timeout: 1000 }
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                
+
                 if (spanElement === 'All Systems Operational') {
                     data.description = spanElement;
                 } else {
@@ -1642,7 +1642,7 @@ router.post(
                 data.description = 'Invalid URL';
             }
             await browser.close();
-           
+
             data.createdById = req.user ? req.user.id : null;
             data.projectId = projectId;
             data.statusPageId = statusPageId;
@@ -1701,15 +1701,16 @@ router.post(
             const browser = await puppeteer.launch({ headless: true });
             const page = await browser.newPage();
             await page.goto(`${data.url}`, {
-                    waitUntil: 'networkidle2',
-                });
-            try {    
+                waitUntil: 'networkidle2',
+            });
+            try {
                 let spanElement = await page.waitForSelector(
-                    '.status .font-large', { timeout: 1000 }
+                    '.status .font-large',
+                    { timeout: 1000 }
                 );
                 spanElement = await spanElement.getProperty('innerText');
                 spanElement = await spanElement.jsonValue();
-                
+
                 if (spanElement === 'All Systems Operational') {
                     data.description = spanElement;
                 } else {
@@ -1719,7 +1720,7 @@ router.post(
                 data.description = 'Invalid URL';
             }
             await browser.close();
-            
+
             await StatusPageService.updateExternalStatusPage(
                 projectId,
                 externalStatusPageId,
@@ -1752,7 +1753,7 @@ router.get(
                     message: 'Status Page ID is required.',
                 });
             }
-           
+
             // To fetch all created external statuspages
             const query = { projectId, statusPageId };
 
