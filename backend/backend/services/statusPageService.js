@@ -1036,9 +1036,10 @@ module.exports = {
                 statusPage => statusPage.monitors.length
             );
             const statuspage = withMonitors[0];
-            const monitorIds = statuspage
+            let monitorIds = statuspage
                 ? statuspage.monitors.map(m => m.monitor)
                 : [];
+            monitorIds = monitorIds.map(monitor => monitor._id || monitor);
             if (monitorIds && monitorIds.length) {
                 const currentDate = moment();
                 const eventIds = [];

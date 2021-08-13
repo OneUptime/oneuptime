@@ -1241,10 +1241,10 @@ module.exports = {
                 const query = {
                     monitorId,
                     $and: [
-                        { startTime: { $gte: start } },
+                        { startTime: { $lte: end } },
                         {
                             $or: [
-                                { endTime: { $lte: end } },
+                                { endTime: { $gte: start } },
                                 { endTime: null },
                                 { endTime: { $exists: false } },
                             ],
