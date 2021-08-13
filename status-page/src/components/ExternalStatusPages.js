@@ -4,7 +4,6 @@ import { fetchExternalStatusPages } from '../actions/status';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import ShouldRender from './ShouldRender';
-
 class ExternalStatusPages extends Component {
     componentDidMount() {
         this.props.fetchExternalStatusPages(
@@ -12,6 +11,7 @@ class ExternalStatusPages extends Component {
             this.props.statusPage._id
         );
     }
+
     render() {
         const { externalStatusPages, theme } = this.props;
 
@@ -72,7 +72,7 @@ class ExternalStatusPages extends Component {
                                                     fontWeight: '500',
                                                 }}
                                             >
-                                                {link.description}
+                                                {link.description}{' '}
                                             </span>
                                         </div>
                                     </div>
@@ -164,13 +164,14 @@ class ExternalStatusPages extends Component {
                                                                     '13px',
                                                             }}
                                                         >
-                                                            {link.description}
+                                                            {link.name}
                                                         </span>
                                                     </li>
                                                 );
                                             }
                                         )}
                                     </ul>
+
                                     <ShouldRender
                                         if={
                                             externalStatusPages &&

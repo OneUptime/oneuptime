@@ -1731,7 +1731,7 @@ module.exports = {
         try {
             const externalStatusPage = new ExternalStatusPageModel();
             externalStatusPage.url = data.url || null;
-            externalStatusPage.uniqueId = data.uniqueId || null;
+            externalStatusPage.name = data.name || null;
             externalStatusPage.description = data.description || null;
             externalStatusPage.projectId = data.projectId || null;
             externalStatusPage.statusPageId = data.statusPageId || null;

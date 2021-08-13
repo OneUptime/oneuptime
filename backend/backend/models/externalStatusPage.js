@@ -3,8 +3,8 @@ const mongoose = require('../config/db');
 const Schema = mongoose.Schema;
 const externalStatusPageSchema = new Schema(
     {
+        name: String,
         url: String,
-        uniqueId: String,
         description: String,
         statusPageId: {
             type: Schema.Types.ObjectId,
