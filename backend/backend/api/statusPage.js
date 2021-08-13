@@ -1609,8 +1609,7 @@ router.post(
             if (existingExternalStatusPageId.length > 0) {
                 return sendErrorResponse(req, res, {
                     code: 400,
-                    message:
-                        'External Status Page Unique ID is already present',
+                    message: 'External Status Page Name is already present',
                 });
             }
             if (existingExternalStatusPageUrl.length > 0) {
