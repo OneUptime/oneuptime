@@ -1431,7 +1431,9 @@ module.exports = {
                     });
 
                     // run in the background
-                    RealTimeService.deleteIncident(updatedIncident);
+                    if (updatedIncident) {
+                        RealTimeService.deleteIncident(updatedIncident);
+                    }
                 })
             );
         } catch (error) {
