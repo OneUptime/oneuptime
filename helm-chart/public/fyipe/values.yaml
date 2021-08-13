@@ -113,6 +113,8 @@ redis:
     tag: latest
     pullPolicy: Always
   usePassword: false
+  auth:
+    enabled: false
   persistence:
     enabled: true
     mountPath: /bitnami/mongodb
