@@ -8,7 +8,7 @@ sudo docker service logs <SERVICE_ID>
 
 # See all containers running on all docker swarm nodes
 
-sudo docker node ps $(sudo docker node ls -q)
+sudo docker node ps \$(sudo docker node ls -q)
 
 # Deploy / Update a stack
 
