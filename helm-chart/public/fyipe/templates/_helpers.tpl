@@ -4,7 +4,7 @@
 Expand the name of the chart.
 */}}
 {{- define "fyipe.mongodbConnectionString" -}}
-{{ printf "mongodb://%s:%s@%s-%s.%s.%s:%s/%s?replicaSet=%s" $.Values.mongodb.mongodbUsername $.Values.mongodb.mongodbPassword $.Release.Name "mongodb" $.Release.Namespace "svc.cluster.local" "27017" $.Values.mongodb.mongodbDatabase $.Values.mongodb.replicaSet.name }}
+{{ printf "mongodb://%s:%s@%s-%s.%s.%s:%s/%s?replicaSet=%s" $.Values.mongodb.auth.username $.Values.mongodb.auth.password $.Release.Name "mongodb" $.Release.Namespace "svc.cluster.local" "27017" $.Values.mongodb.auth.database $.Values.mongodb.replicaSetName }}
 {{- end -}}
 
 {{- define "fyipe.internalSmtpServer" -}}

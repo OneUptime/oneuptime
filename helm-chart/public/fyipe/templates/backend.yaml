@@ -41,11 +41,11 @@ spec:
                             key: encryptionkey
                       - name: MONGO_URL
                         value: {{ template "fyipe.mongodbConnectionString" . }}
-                      {{- if .Values.mongodb.replicaSet.enabled }}
+                      {{- if eq .Values.mongodb.architecture "replicaset" }}
                       - name: IS_MONGO_REPLICA_SET
-                        value: {{ .Values.mongodb.replicaSet.enabled | quote }}
+                        value: {{ true | quote }}
                       - name: MONGO_REPLICA_SET_NAME
-                        value: {{ .Values.mongodb.replicaSet.name }}
+                        value: {{ .Values.mongodb.replicaSetName }}
                       {{- end }}
                       - name: REDIS_HOST
                         value: {{ template "fyipe.redisHost" . }}
