@@ -18,7 +18,7 @@ audit_go-sdk:
         - export GOPATH=$HOME/go-sdk/fyipe
         - export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
         - go version
-        - cd go-sdk/fyipe
+        - cd go-sdk
         - go build
         - cd ..
         - cd ..
