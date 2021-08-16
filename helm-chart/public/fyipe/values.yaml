@@ -122,22 +122,35 @@ redis:
 
 
 mongodb: 
+  architecture: replicaset
+  auth:
+    enabled: true
+    rootPassword: root
+    userName: fyipe
+    password: password
+    database: fyipedb
+    replicaSetKey: mongodbfyipe
+  replicaSetName: rs0
+  replicaCount: 2
+  replicaSetHostnames: true
+  arbiter:
+    enabled: true
   image:
     registry: docker.io
     repository: bitnami/mongodb
     tag: latest
     pullPolicy: Always
-  mongodbRootPassword: root
-  mongodbUsername: fyipe
-  mongodbPassword: password
-  mongodbDatabase: fyipedb
-  replicaSet:
-    enabled: true
-    name: rs0
-    useHostnames: true
-    key: mongodbfyipe
-    secondary: 1
-    arbiter: 1
+  # mongodbRootPassword: root
+  # mongodbUsername: fyipe
+  # mongodbPassword: password
+  # mongodbDatabase: fyipedb
+  # replicaSet:
+  #   enabled: true
+  #   name: rs0
+  #   useHostnames: true
+  #   key: mongodbfyipe
+  #   secondary: 1
+  #   arbiter: 1
   persistence:
     enabled: true
     mountPath: /bitnami/mongodb
