@@ -1,4 +1,3 @@
-/*eslint-disable*/
 /**
  *
  * Copyright HackerBay, Inc.
@@ -1653,65 +1652,65 @@ router.post(
     checkUser,
     async function(req, res) {
         try {
-                const { projectId, externalStatusPageId } = req.params;
-                const { name, url } = req.body;
-                const data = {};
-                data.name = name;
-                data.url = url;
-                if (!data) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: "Values can't be null",
-                    });
+            const { projectId, externalStatusPageId } = req.params;
+            const { name, url } = req.body;
+            const data = {};
+            data.name = name;
+            data.url = url;
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Values can't be null",
+                });
+            }
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Name is required.',
+                });
+            }
+            if (!data.url || !data.url.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page url is required.',
+                });
+            }
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            if (!externalStatusPageId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Status Page ID is required.',
+                });
+            }
+            // This scrapes the External Status Page
+            try {
+                const res = await axios.get(`${data.url}`);
+                const $ = cheerio.load(res.data);
+                const status = $('span.status.font-large')
+                    .text()
+                    .replace(/\s\s+/g, ''); // To remove empty spaces
+                if (status === 'All Systems Operational') {
+                    data.description = status;
+                } else {
+                    data.description = 'Some Systems Are Down';
                 }
-                if (!data.name || !data.name.trim()) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'External Status Page Name is required.',
-                    });
-                }
-                if (!data.url || !data.url.trim()) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'External Status Page url is required.',
-                    });
-                }
-                if (!projectId) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Project ID is required.',
-                    });
-                }
-                if (!externalStatusPageId) {
-                    return sendErrorResponse(req, res, {
-                        code: 400,
-                        message: 'Status Page ID is required.',
-                    });
-                }
-               // This scrapes the External Status Page
-                try {
-                    const res = await axios.get(`${data.url}`);
-                    const $ = cheerio.load(res.data);
-                    const status = $('span.status.font-large')
-                        .text()
-                        .replace(/\s\s+/g, ''); // To remove empty spaces
-                    if (status === 'All Systems Operational') {
-                        data.description = status;
-                    } else {
-                        data.description = 'Some Systems Are Down';
-                    }
-                } catch (err) {
-                    data.description = 'Invalid URL';
-                }
-   
-                await StatusPageService.updateExternalStatusPage(
-                    projectId,
-                    externalStatusPageId,
-                    data
-                );
-                const response = await StatusPageService.getExternalStatusPage();
-                return sendItemResponse(req, res, response);
-            } catch (error) {
+            } catch (err) {
+                data.description = 'Invalid URL';
+            }
+
+            await StatusPageService.updateExternalStatusPage(
+                projectId,
+                externalStatusPageId,
+                data
+            );
+            const response = await StatusPageService.getExternalStatusPage();
+            return sendItemResponse(req, res, response);
+        } catch (error) {
             return sendErrorResponse(req, res, error);
         }
     }
