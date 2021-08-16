@@ -1324,6 +1324,31 @@ module.exports = {
             throw error;
         }
     },
+
+    updateTweets: async (tweets, statusPageId, projectId) => {
+        try {
+            const project = await ProjectService.findOneBy({
+                query: {
+                    _id: projectId._id || projectId,
+                },
+                select: 'parentProject _id',
+            });
+            const _projectId = project
+                ? project.parentProjectId
+                    ? project.parentProjectId._id || project.parentProjectId
+                    : project._id
+                : projectId._id || projectId;
+
+            postApi(`${realtimeBaseUrl}/status-page-update-tweets`, {
+                tweets,
+                statusPageId,
+                _projectId,
+            });
+        } catch (error) {
+            ErrorService.log('realTimeService.statusPageEdit', error);
+            throw error;
+        }
+    },
 };
 
 const ErrorService = require('./errorService');

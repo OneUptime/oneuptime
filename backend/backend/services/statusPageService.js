@@ -2022,6 +2022,47 @@ module.exports = {
             throw error;
         }
     },
+
+    fetchTweets: async handle => {
+        try {
+            if (!handle) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'handle is required',
+                });
+            }
+
+            const userData = await axios.get(
+                `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${bearer}`,
+                    },
+                }
+            );
+
+            const userId = userData?.data?.data?.id || false;
+            let response = '';
+
+            if (userId) {
+                const tweetData = await axios.get(
+                    `https://api.twitter.com/2/users/${userId}/tweets?tweet.fields=created_at&exclude=retweets,replies`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${bearer}`,
+                        },
+                    }
+                );
+
+                response = tweetData.data.data;
+            }
+
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.fetchTweets', error);
+            throw error;
+        }
+    },
 };
 
 // handle the unique pagination for scheduled events on status page
@@ -2116,3 +2157,5 @@ const getSlug = require('../utils/getSlug');
 const AnnouncementLogModel = require('../models/announcementLogs');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
+const axios = require('axios');
+const bearer = process.env.TWITTER_BEARER_TOKEN;

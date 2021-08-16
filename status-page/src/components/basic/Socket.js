@@ -25,6 +25,7 @@ import {
     deleteeventnotebysocket,
     updateeventnotebysocket,
     resolvescheduledeventbysocket,
+    updatestweetsbysocket,
 } from '../../actions/socket';
 
 // Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
@@ -153,6 +154,7 @@ class SocketApp extends Component {
                 socket.removeListener(
                     `resolveScheduledEvent-${this.props.project._id}`
                 );
+                socket.removeListener(`updateTweets-${this.props.project._id}`);
             }
             return true;
         } else {
@@ -169,6 +171,12 @@ class SocketApp extends Component {
             ) {
                 if (thisObj.props.statusPage._id === data._id) {
                     thisObj.props.updatestatuspagebysocket(data);
+                }
+            });
+
+            socket.on(`updateTweets-${this.props.project._id}`, function(data) {
+                if (thisObj.props.statusPage._id === data.statusPageId) {
+                    thisObj.props.updatestweetsbysocket(data.tweets);
                 }
             });
             socket.on(`updateMonitor-${this.props.project._id}`, function(
@@ -377,6 +385,7 @@ const mapDispatchToProps = dispatch =>
             deleteeventnotebysocket,
             updateeventnotebysocket,
             resolvescheduledeventbysocket,
+            updatestweetsbysocket,
         },
         dispatch
     );

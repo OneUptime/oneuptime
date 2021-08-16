@@ -962,6 +962,7 @@ class Main extends Component {
                         theme={theme}
                         tweets={this.props.tweetData}
                         loading={this.props.status.tweets.requesting}
+                        error={this.props.status.tweets.error}
                     />
                 </div>
             ),
@@ -1328,6 +1329,7 @@ class Main extends Component {
                         theme={theme}
                         tweets={this.props.tweetData}
                         loading={this.props.status.tweets.requesting}
+                        error={this.props.status.tweets.error}
                     />
                 </div>
             ),
