@@ -26,7 +26,7 @@ import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 
 const validate = values => {
     const errors = {};
-    const { monitors } = values;
+    const { monitors = [] } = values;
     const monitorsArrayErrors = {};
     const selectedMonitor = {};
     for (let i = 0; i < monitors.length; i++) {
