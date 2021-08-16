@@ -1625,7 +1625,7 @@ router.post(
                 const $ = cheerio.load(res.data);
                 const status = $('span.status.font-large')
                     .text()
-                    .replace(/\s\s+/g, '');
+                    .replace(/\s\s+/g, ''); // To remove empty spaces
                 if (status === 'All Systems Operational') {
                     data.description = status;
                 } else {
@@ -1694,7 +1694,7 @@ router.post(
                     const $ = cheerio.load(res.data);
                     const status = $('span.status.font-large')
                         .text()
-                        .replace(/\s\s+/g, '');
+                        .replace(/\s\s+/g, ''); // To remove empty spaces
                     if (status === 'All Systems Operational') {
                         data.description = status;
                     } else {
@@ -1703,8 +1703,7 @@ router.post(
                 } catch (err) {
                     data.description = 'Invalid URL';
                 }
-                
-                console.log(data)
+   
                 await StatusPageService.updateExternalStatusPage(
                     projectId,
                     externalStatusPageId,
