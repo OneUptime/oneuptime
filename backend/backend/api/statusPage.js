@@ -1,3 +1,4 @@
+/*eslint-disable*/
 /**
  *
  * Copyright HackerBay, Inc.
@@ -35,7 +36,7 @@ const SubscriberService = require('../services/subscriberService');
 const ScheduledEventService = require('../services/scheduledEventService');
 const axios = require('axios');
 const bearer = process.env.TWITTER_BEARER_TOKEN;
-const puppeteer = require('puppeteer');
+const cheerio = require('cheerio');
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
 // Returns: response status page, error message
@@ -1619,28 +1620,20 @@ router.post(
                 });
             }
             // This scrapes the External Status Page
-            const browser = await puppeteer.launch({ headless: true });
-            const page = await browser.newPage();
-            await page.goto(`${data.url}`, {
-                waitUntil: 'networkidle2',
-            });
             try {
-                let spanElement = await page.waitForSelector(
-                    '.status .font-large',
-                    { timeout: 1000 }
-                );
-                spanElement = await spanElement.getProperty('innerText');
-                spanElement = await spanElement.jsonValue();
-
-                if (spanElement === 'All Systems Operational') {
-                    data.description = spanElement;
+                const res = await axios.get(`${data.url}`);
+                const $ = cheerio.load(res.data);
+                const status = $('span.status.font-large')
+                    .text()
+                    .replace(/\s\s+/g, '');
+                if (status === 'All Systems Operational') {
+                    data.description = status;
                 } else {
                     data.description = 'Some Systems Are Down';
                 }
             } catch (err) {
                 data.description = 'Invalid URL';
             }
-            await browser.close();
 
             data.createdById = req.user ? req.user.id : null;
             data.projectId = projectId;
@@ -1660,74 +1653,66 @@ router.post(
     checkUser,
     async function(req, res) {
         try {
-            const { projectId, externalStatusPageId } = req.params;
-            const { name, url } = req.body;
-            const data = {};
-            data.name = name;
-            data.url = url;
-            if (!data) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: "Values can't be null",
-                });
-            }
-            if (!data.name || !data.name.trim()) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'External Status Page Name is required.',
-                });
-            }
-            if (!data.url || !data.url.trim()) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'External Status Page url is required.',
-                });
-            }
-            if (!projectId) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Project ID is required.',
-                });
-            }
-            if (!externalStatusPageId) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'Status Page ID is required.',
-                });
-            }
-
-            // This scrapes the External Status Page
-            const browser = await puppeteer.launch({ headless: true });
-            const page = await browser.newPage();
-            await page.goto(`${data.url}`, {
-                waitUntil: 'networkidle2',
-            });
-            try {
-                let spanElement = await page.waitForSelector(
-                    '.status .font-large',
-                    { timeout: 1000 }
-                );
-                spanElement = await spanElement.getProperty('innerText');
-                spanElement = await spanElement.jsonValue();
-
-                if (spanElement === 'All Systems Operational') {
-                    data.description = spanElement;
-                } else {
-                    data.description = 'Some Systems Are Down';
+                const { projectId, externalStatusPageId } = req.params;
+                const { name, url } = req.body;
+                const data = {};
+                data.name = name;
+                data.url = url;
+                if (!data) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: "Values can't be null",
+                    });
                 }
-            } catch (err) {
-                data.description = 'Invalid URL';
-            }
-            await browser.close();
-
-            await StatusPageService.updateExternalStatusPage(
-                projectId,
-                externalStatusPageId,
-                data
-            );
-            const response = await StatusPageService.getExternalStatusPage();
-            return sendItemResponse(req, res, response);
-        } catch (error) {
+                if (!data.name || !data.name.trim()) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'External Status Page Name is required.',
+                    });
+                }
+                if (!data.url || !data.url.trim()) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'External Status Page url is required.',
+                    });
+                }
+                if (!projectId) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Project ID is required.',
+                    });
+                }
+                if (!externalStatusPageId) {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'Status Page ID is required.',
+                    });
+                }
+               // This scrapes the External Status Page
+                try {
+                    const res = await axios.get(`${data.url}`);
+                    const $ = cheerio.load(res.data);
+                    const status = $('span.status.font-large')
+                        .text()
+                        .replace(/\s\s+/g, '');
+                    if (status === 'All Systems Operational') {
+                        data.description = status;
+                    } else {
+                        data.description = 'Some Systems Are Down';
+                    }
+                } catch (err) {
+                    data.description = 'Invalid URL';
+                }
+                
+                console.log(data)
+                await StatusPageService.updateExternalStatusPage(
+                    projectId,
+                    externalStatusPageId,
+                    data
+                );
+                const response = await StatusPageService.getExternalStatusPage();
+                return sendItemResponse(req, res, response);
+            } catch (error) {
             return sendErrorResponse(req, res, error);
         }
     }
