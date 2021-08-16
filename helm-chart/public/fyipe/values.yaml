@@ -141,6 +141,8 @@ mongodb:
     mountPath: /bitnami/mongodb
     size: 1000Gi
   useStatefulSet: true
+  ingress:
+    enabled: false
 
 # mongodb: 
 #   architecture: replicaset

@@ -4,7 +4,7 @@ entries:
   - annotations:
       category: Database
     apiVersion: v2
-    appVersion: 4.4.4
+    appVersion: 4.4.8
     created: "2021-03-07T11:19:29.272301Z"
     dependencies:
     - name: common
@@ -34,7 +34,7 @@ entries:
     - https://mongodb.org
     urls:
     - charts/mongodb-10.9.1.tgz
-    version: 10.9.1
+    version: 10.23.10
   nginx-ingress-controller:
   - annotations:
       category: Infrastructure
@@ -64,7 +64,7 @@ entries:
     version: 6.0.1
   redis:
   - apiVersion: v1
-    appVersion: 5.0.8
+    appVersion: 6.2.5
     created: "2021-03-07T11:19:29.277358Z"
     description: Open source, advanced key-value store. It is often referred to as
       a data structure server since keys can contain strings, hashes, lists, sets
@@ -86,5 +86,5 @@ entries:
     - https://github.com/bitnami/bitnami-docker-redis
     urls:
     - charts/redis-10.5.11.tgz
-    version: 10.5.11
+    version: 14.8.8
 generated: "2021-03-07T11:19:29.266593Z"
