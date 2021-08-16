@@ -126,7 +126,7 @@ mongodb:
   auth:
     enabled: true
     rootPassword: root
-    userName: fyipe
+    username: fyipe
     password: password
     database: fyipedb
     replicaSetKey: mongodbfyipe
