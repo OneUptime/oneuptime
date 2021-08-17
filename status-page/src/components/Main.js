@@ -699,10 +699,17 @@ class Main extends Component {
                                 >
                                     <NewThemeSubscriber />
                                 </ShouldRender>
-                                <SelectLanguage
-                                    theme={true}
-                                    languageMenu={this.props.languageMenu}
-                                />
+                                <ShouldRender
+                                    if={
+                                        this.props.statusPage
+                                            .enableMultipleLanguage
+                                    }
+                                >
+                                    <SelectLanguage
+                                        theme={true}
+                                        languageMenu={this.props.languageMenu}
+                                    />
+                                </ShouldRender>
                             </div>
                         </div>
                     </ShouldRender>
@@ -1456,6 +1463,22 @@ class Main extends Component {
                                     visibleLayout.visible.map(layout => {
                                         if (layout.key === 'header') {
                                             return <>{theme2Obj[layout.key]}</>;
+                                        } else if (layout.key === 'language') {
+                                            if (
+                                                this.props.statusPage
+                                                    .enableMultipleLanguage
+                                            ) {
+                                                return (
+                                                    <div
+                                                        key={layout.key}
+                                                        className="innernew"
+                                                    >
+                                                        {theme2Obj[layout.key]}
+                                                    </div>
+                                                );
+                                            } else {
+                                                return null;
+                                            }
                                         } else {
                                             return (
                                                 <div

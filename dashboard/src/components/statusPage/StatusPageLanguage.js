@@ -26,7 +26,7 @@ export function StatusPageLanguage(props) {
 
     const { multipleLanguages, formValues } = props;
     useEffect(() => {
-        const languages = multipleLanguages;
+        const languages = multipleLanguages || [];
         const filteredResult = [...language].filter(
             lang => !languages.includes(lang)
         );
@@ -56,13 +56,12 @@ export function StatusPageLanguage(props) {
                 offlineText: values.offlineText,
                 onlineText: values.onlineText,
                 degradedText: values.degradedText,
-                enableMultiLanguage: formValues.multiLanguage || false,
+                enableMultipleLanguage: formValues.multiLanguage || false,
                 multipleLanguages: langResult,
             })
             .then(() => {
                 props.fetchProjectStatusPage(projectId._id || projectId, true);
             });
-
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > PRIVATE STATUS PAGE UPDATED'
@@ -71,8 +70,6 @@ export function StatusPageLanguage(props) {
     };
     const handleLanguageChange = () => {
         const newArr = [...langResult];
-        // eslint-disable-next-line no-console
-        console.log(lang, 'language');
         if (!newArr.includes(lang)) {
             newArr.push(lang);
         }
@@ -433,7 +430,7 @@ const mapStateToProps = state => {
         initialValues.onlineText = status.onlineText || 'Operational';
         initialValues.offlineText = status.offlineText || 'Offline';
         initialValues.degradedText = status.degradedText || 'Degraded';
-        initialValues.multiLanguage = status.enableMultiLanguage || false;
+        initialValues.multiLanguage = status.enableMultipleLanguage || false;
         initialValues.multipleLanguages = status.multipleLanguages || [];
     }
 
