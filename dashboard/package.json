@@ -53,7 +53,7 @@
         "react-google-charts": "^3.0.15",
         "react-hover-observer": "^2.1.1",
         "react-json-view": "^1.21.3",
-        "react-markdown": "^4.3.1",
+        "react-markdown": "^6.0.3",
         "react-phone-input-2": "^2.14.0",
         "react-redux": "^5.0.7",
         "react-reveal": "^1.2.2",

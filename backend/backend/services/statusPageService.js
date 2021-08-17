@@ -1036,9 +1036,10 @@ module.exports = {
                 statusPage => statusPage.monitors.length
             );
             const statuspage = withMonitors[0];
-            const monitorIds = statuspage
+            let monitorIds = statuspage
                 ? statuspage.monitors.map(m => m.monitor)
                 : [];
+            monitorIds = monitorIds.map(monitor => monitor._id || monitor);
             if (monitorIds && monitorIds.length) {
                 const currentDate = moment();
                 const eventIds = [];
@@ -1384,10 +1385,11 @@ module.exports = {
                     throw error;
                 }
 
-                const monitorIds = statusPage.monitors.map(monitor =>
-                    monitor.monitor._id.toString()
+                const monitorIds = statusPage.monitors.map(monitorObj =>
+                    String(monitorObj.monitor._id || monitorObj.monitor)
                 );
-                const projectId = statusPage.projectId._id;
+                const projectId =
+                    statusPage.projectId._id || statusPage.projectId;
                 const subProjects = await ProjectService.findBy({
                     query: {
                         $or: [
@@ -1475,7 +1477,7 @@ module.exports = {
                     { path: 'probes.probeId', select: 'name _id' },
                 ];
                 const select =
-                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+                    'createdAt notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
 
                 const [incidents, count] = await Promise.all([
                     IncidentService.findBy({

@@ -894,13 +894,13 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
             statusPage = await StatusPageService.getStatusPage({
                 query: { domains: { $elemMatch: { domain: url } } },
                 userId: user,
-                select: 'name isPrivate',
+                select: 'name isPrivate monitors projectId',
             });
         } else if ((!url || url === 'null') && statusPageId) {
             statusPage = await StatusPageService.getStatusPage({
                 query: { _id: statusPageId },
                 userId: user,
-                select: 'name isPrivate',
+                select: 'name isPrivate monitors projectId',
             });
         } else {
             return sendErrorResponse(req, res, {

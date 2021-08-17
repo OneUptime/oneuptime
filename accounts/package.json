@@ -55,7 +55,7 @@
         "chrome-launcher": "^0.13.2",
         "commander": "^7.2.0",
         "depcheck": "^1.4.1",
-        "lighthouse": "^6.2.0",
+        "lighthouse": "^8.3.0",
         "npm-force-resolutions": "0.0.10",
         "ora": "^5.4.1",
         "should": "^13.2.3"
