@@ -230,10 +230,10 @@ const INITIAL_STATE = {
         info: {},
     },
     tweets: {
-        requesting: {},
-        success: {},
+        requesting: false,
+        success: false,
         error: null,
-        tweetList: {},
+        tweetList: [],
     },
 };
 
