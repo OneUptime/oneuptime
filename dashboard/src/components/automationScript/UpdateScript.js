@@ -17,7 +17,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/theme-github';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
+import DropDownMenu from '../basic/DropDownMenu';
 
 const defaultScript =
     '// To inspect your script or add comments, use console.log\n\n' +
@@ -481,48 +481,20 @@ class UpdateScript extends Component {
                                                         Script Type
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
-                                                        <Dropdown>
-                                                            <Dropdown.Toggle
-                                                                id="filterToggle"
-                                                                title={
-                                                                    this.state
-                                                                        .type
-                                                                }
-                                                                className="bs-Button bs-DeprecatedButton"
-                                                                style={{
-                                                                    textTransform:
-                                                                        'capitalize',
-                                                                }}
-                                                            />
-                                                            <Dropdown.Menu>
-                                                                <MenuItem
-                                                                    title="JavaScript"
-                                                                    onClick={() => {
-                                                                        this.setState(
-                                                                            {
-                                                                                type:
-                                                                                    'JavaScript',
-                                                                            }
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    JavaScript
-                                                                </MenuItem>
-                                                                <MenuItem
-                                                                    title="Bash"
-                                                                    onClick={() => {
-                                                                        this.setState(
-                                                                            {
-                                                                                type:
-                                                                                    'Bash',
-                                                                            }
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    Bash
-                                                                </MenuItem>
-                                                            </Dropdown.Menu>
-                                                        </Dropdown>
+                                                        <DropDownMenu
+                                                            options={[
+                                                                'JavaScript',
+                                                                'Bash',
+                                                            ]}
+                                                            value={
+                                                                this.state.type
+                                                            }
+                                                            updateState={val =>
+                                                                this.setState({
+                                                                    type: val,
+                                                                })
+                                                            }
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
