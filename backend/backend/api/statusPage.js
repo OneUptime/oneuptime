@@ -68,41 +68,10 @@ router.post('/:projectId/tweets', checkUser, async (req, res) => {
     try {
         const { handle } = req.body;
 
-        if (!handle) {
-            return sendErrorResponse(req, res, {
-                code: 400,
-                message: 'handle is required',
-            });
-        }
-
-        const userData = await axios.get(
-            `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
-            {
-                headers: {
-                    Authorization: `Bearer ${bearer}`,
-                },
-            }
-        );
-
-        const userId = userData?.data?.data?.id || false;
-        let response = '';
-
-        if (userId) {
-            const tweetData = await axios.get(
-                `https://api.twitter.com/2/users/${userId}/tweets?tweet.fields=created_at&exclude=retweets,replies`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${bearer}`,
-                    },
-                }
-            );
-
-            response = tweetData.data.data;
-        }
+        const response = await StatusPageService.fetchTweets(handle);
 
         return sendItemResponse(req, res, response);
     } catch (error) {
-        console.log('***', error);
         return sendErrorResponse(req, res, error);
     }
 });
@@ -635,6 +604,17 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             // run in the background
             RealTimeService.statusPageEdit(updatedStatusPage);
 
+            if (updatedStatusPage?.twitterHandle) {
+                const tweets = await StatusPageService.fetchTweets(
+                    updatedStatusPage.twitterHandle
+                );
+                RealTimeService.updateTweets(
+                    tweets,
+                    updatedStatusPage._id,
+                    updatedStatusPage.projectId
+                );
+            }
+
             return sendItemResponse(req, res, statusPage);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -894,13 +874,13 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
             statusPage = await StatusPageService.getStatusPage({
                 query: { domains: { $elemMatch: { domain: url } } },
                 userId: user,
-                select: 'name isPrivate',
+                select: 'name isPrivate monitors projectId',
             });
         } else if ((!url || url === 'null') && statusPageId) {
             statusPage = await StatusPageService.getStatusPage({
                 query: { _id: statusPageId },
                 userId: user,
-                select: 'name isPrivate',
+                select: 'name isPrivate monitors projectId',
             });
         } else {
             return sendErrorResponse(req, res, {

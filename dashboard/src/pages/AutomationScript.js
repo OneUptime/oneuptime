@@ -11,6 +11,12 @@ import NewScript from '../components/automationScript/NewScript';
 import AutomatedTabularList from '../components/automationScript/AutomatedTabularList';
 
 class AutomationScript extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            toggleNewScript: false,
+        };
+    }
     componentDidMount() {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
@@ -36,31 +42,51 @@ class AutomationScript extends Component {
             <Fade>
                 <BreadCrumbItem route={pathname} name="Automation Scripts" />
                 <div id="automationScriptsPage">
-                    <AutomatedTabularList {...this.props} />
+                    <ShouldRender if={!this.state.toggleNewScript}>
+                        <AutomatedTabularList
+                            {...this.props}
+                            toggleNewScript={() =>
+                                this.setState({
+                                    toggleNewScript: !this.state
+                                        .toggleNewScript,
+                                })
+                            }
+                        />
+                    </ShouldRender>
                 </div>
-                <div className="Box-root">
-                    <div>
+                <ShouldRender if={this.state.toggleNewScript}>
+                    <div className="Box-root">
                         <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="dashboard-home-view react-view">
-                                    <div>
+                            <div>
+                                <div className="db-BackboneViewContainer">
+                                    <div className="dashboard-home-view react-view">
                                         <div>
-                                            <span>
-                                                <ShouldRender if={true}>
-                                                    <NewScript />
-                                                </ShouldRender>
+                                            <div>
+                                                <span>
+                                                    <ShouldRender if={true}>
+                                                        <NewScript
+                                                            toggleNewScript={() =>
+                                                                this.setState({
+                                                                    toggleNewScript: !this
+                                                                        .state
+                                                                        .toggleNewScript,
+                                                                })
+                                                            }
+                                                        />
+                                                    </ShouldRender>
 
-                                                <ShouldRender if={false}>
-                                                    <LoadingState />
-                                                </ShouldRender>
-                                            </span>
+                                                    <ShouldRender if={false}>
+                                                        <LoadingState />
+                                                    </ShouldRender>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </ShouldRender>
             </Fade>
         );
     }

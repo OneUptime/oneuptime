@@ -68,23 +68,24 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 
         data.projectId = projectId;
 
-        const [component, user] = await Promise.all([
-            ComponentService.create(data),
-            UserService.findOneBy({
-                query: { _id: req.user.id },
-                select: 'name _id',
-            }),
-        ]);
+        const component = await ComponentService.create(data);
 
-        NotificationService.create(
-            component.projectId._id,
-            `A New Component was Created with name ${component.name} by ${user.name}`,
-            user._id,
-            'componentaddremove'
-        );
+        const user = await UserService.findOneBy({
+            query: { _id: req.user.id },
+            select: 'name _id',
+        });
 
-        // run in the background
-        RealTimeService.sendComponentCreated(component);
+        if (component) {
+            NotificationService.create(
+                component.projectId._id || component.projectId,
+                `A New Component was Created with name ${component.name} by ${user.name}`,
+                user._id,
+                'componentaddremove'
+            );
+
+            // run in the background
+            RealTimeService.sendComponentCreated(component);
+        }
         return sendItemResponse(req, res, component);
     } catch (error) {
         return sendErrorResponse(req, res, error);

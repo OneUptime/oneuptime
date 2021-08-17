@@ -2010,6 +2010,17 @@ export default (state = INITIAL_STATE, action) => {
                 },
             };
 
+        case 'UPDATE_TWEETS':
+            return {
+                ...state,
+                tweets: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    tweetList: action.payload,
+                },
+            };
+
         default:
             return state;
 

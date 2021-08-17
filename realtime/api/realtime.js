@@ -819,4 +819,18 @@ router.post('/handle-log', isAuthorizedService, async function(req, res) {
     }
 });
 
+router.post('/status-page-update-tweets', isAuthorizedService, async function(
+    req,
+    res
+) {
+    try {
+        const { tweets, statusPageId, _projectId } = req.body;
+
+        RealtimeService.updateTweets({ tweets, statusPageId, _projectId });
+        return sendEmptyResponse(req, res);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 module.exports = router;

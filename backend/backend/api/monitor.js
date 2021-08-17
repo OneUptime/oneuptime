@@ -251,15 +251,17 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             );
         }
 
-        NotificationService.create(
-            monitor.projectId._id || monitor.projectId,
-            `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
-            user._id,
-            'monitoraddremove'
-        );
+        if (monitor) {
+            NotificationService.create(
+                monitor.projectId._id || monitor.projectId,
+                `A New Monitor was Created with name ${monitor.name} by ${user.name}`,
+                user._id,
+                'monitoraddremove'
+            );
 
-        // RUN REALTIME SERVICE IN THE BACKGROUND
-        RealTimeService.sendMonitorCreated(monitor);
+            // RUN REALTIME SERVICE IN THE BACKGROUND
+            RealTimeService.sendMonitorCreated(monitor);
+        }
 
         return sendItemResponse(req, res, monitor);
     } catch (error) {

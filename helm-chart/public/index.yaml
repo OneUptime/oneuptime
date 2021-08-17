@@ -9,10 +9,10 @@ entries:
       version: 6.0.1
     - name: mongodb
       repository: https://charts.bitnami.com/bitnami
-      version: 10.9.1
+      version: 10.23.10
     - name: redis
       repository: https://charts.bitnami.com/bitnami
-      version: 10.5.11
+      version: 14.8.8
     description: One complete DevOps and DevOps platform.
     digest: f953d7ab1864e3953f368dbab8190d3131f2542c657050244a2eac923fb28f2a
     home: https://fyipe.com

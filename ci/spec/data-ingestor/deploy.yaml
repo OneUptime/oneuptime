@@ -6,11 +6,11 @@ production_data-ingestor:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
-        - ./ci/scripts/deployment-production-setup.sh
+        - bash ./ci/scripts/deployment-production-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/data-ingestor:latest ./ingestor
+        - sudo docker build -t fyipeproject/data-ingestor:latest ./data-ingestor
         - sudo docker tag fyipeproject/data-ingestor:latest fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/data-ingestor:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/data-ingestor:latest
@@ -36,9 +36,9 @@ staging_data-ingestor:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
-        - ./ci/scripts/deployment-staging-setup.sh
+        - bash ./ci/scripts/deployment-staging-setup.sh
         # Build and deploy data-ingestor.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build -t fyipeproject/data-ingestor:master ./data-ingestor

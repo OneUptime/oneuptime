@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-const Twitter = ({ tweets, theme, loading }) => {
+const Twitter = ({ tweets, theme, loading, error }) => {
     const TweetLayout =
         theme && theme === 'Classic Theme' ? (
             <div
@@ -40,6 +40,17 @@ const Twitter = ({ tweets, theme, loading }) => {
                                 </ul>
                             )}
                         </div>
+                        {error && (
+                            <div style={{ display: 'flex', marginLeft: 5 }}>
+                                <div
+                                    style={{ marginRight: 5 }}
+                                    className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"
+                                ></div>
+                                <span style={{ color: 'red', fontSize: 12 }}>
+                                    {error}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -83,6 +94,7 @@ Twitter.PropTypes = {
     tweets: PropTypes.array,
     theme: PropTypes.string,
     loading: PropTypes.bool,
+    error: PropTypes.string,
 };
 
 export default Twitter;

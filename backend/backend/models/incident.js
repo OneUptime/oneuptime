@@ -79,7 +79,7 @@ const monitorSchema = new Schema({
             },
         },
     ],
-    resolvedBy: { type: String, ref: 'User' }, // userId
+    resolvedBy: { type: String, ref: 'User', index: true }, // userId
     resolvedAt: { type: Date },
     resolvedByZapier: {
         type: Boolean,

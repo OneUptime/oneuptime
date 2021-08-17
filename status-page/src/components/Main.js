@@ -155,6 +155,12 @@ class Main extends Component {
             statusPageSlug = 'null';
             url = window.location.host;
         }
+
+        window.addEventListener('resize', () => {
+            this.setState({
+                windowSize: window.innerWidth,
+            });
+        });
         let range;
         const { windowSize } = this.state;
         if (windowSize <= 600) {
@@ -193,7 +199,7 @@ class Main extends Component {
         return collectionArray;
     }
 
-    groupedMonitors = () => {
+    groupedMonitors = range => {
         if (
             this.props.statusData &&
             this.props.statusData.monitorsData !== undefined &&
@@ -223,12 +229,17 @@ class Main extends Component {
 
                         return this.CollapsableGroup(
                             categoryName,
-                            filteredResource
+                            filteredResource,
+                            range
                         );
                     })}
                     {uncategorized &&
                         uncategorized.length > 0 &&
-                        this.CollapsableGroup('Uncategorized', uncategorized)}
+                        this.CollapsableGroup(
+                            'Uncategorized',
+                            uncategorized,
+                            range
+                        )}
                 </div>
             );
         } else {
@@ -236,7 +247,7 @@ class Main extends Component {
         }
     };
 
-    CollapsableGroup = (categoryName, monitors) => {
+    CollapsableGroup = (categoryName, monitors, range) => {
         const { probes, activeProbe, statusData } = this.props;
         const theme = statusData.theme === 'Clean Theme' ? true : false;
 
@@ -303,6 +314,7 @@ class Main extends Component {
                     return (
                         <>
                             <MonitorInfo
+                                range={range}
                                 monitor={monitor}
                                 selectedCharts={
                                     this.props.monitors.filter(
@@ -391,6 +403,11 @@ class Main extends Component {
         if (this.state.nowHandler) {
             clearTimeout(this.state.nowHandler);
         }
+        window.removeEventListener('resize', () => {
+            this.setState({
+                windowSize: window.innerWidth,
+            });
+        });
     }
 
     render() {
@@ -580,6 +597,18 @@ class Main extends Component {
             visibleLayout = defaultLayout;
         }
 
+        let range;
+        const { windowSize } = this.state;
+        if (windowSize <= 600) {
+            range = 30;
+        }
+        if (windowSize > 600 && windowSize < 1000) {
+            range = 60;
+        }
+        if (windowSize >= 1000) {
+            range = 90;
+        }
+
         const layoutObj = {
             header: (
                 <>
@@ -740,7 +769,7 @@ class Main extends Component {
                                             padding: 0,
                                         }}
                                     >
-                                        {this.groupedMonitors()}
+                                        {this.groupedMonitors(range)}
                                     </div>
                                 ) : this.props.statusData &&
                                   this.props.statusData.monitorsData !==
@@ -766,6 +795,7 @@ class Main extends Component {
                                                 key={i}
                                             >
                                                 <MonitorInfo
+                                                    range={range}
                                                     monitor={
                                                         this.props.statusData.monitorsData.filter(
                                                             m =>
@@ -946,6 +976,7 @@ class Main extends Component {
                         theme={theme}
                         tweets={this.props.tweetData}
                         loading={this.props.status.tweets.requesting}
+                        error={this.props.status.tweets.error}
                     />
                 </div>
             ),
@@ -1110,6 +1141,7 @@ class Main extends Component {
                                             .map((monitor, i) => (
                                                 <>
                                                     <MonitorInfo
+                                                        range={range}
                                                         monitor={
                                                             this.props.statusData.monitorsData.filter(
                                                                 m =>
@@ -1317,6 +1349,7 @@ class Main extends Component {
                         theme={theme}
                         tweets={this.props.tweetData}
                         loading={this.props.status.tweets.requesting}
+                        error={this.props.status.tweets.error}
                     />
                 </div>
             ),

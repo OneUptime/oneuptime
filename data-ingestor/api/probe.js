@@ -14,6 +14,7 @@ const isAuthorizedProbe = require('../middlewares/probeAuthorization')
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const sendListResponse = require('../middlewares/response').sendListResponse;
+const sendEmptyResponse = require('../middlewares/response').sendEmptyResponse;
 const { ObjectId } = require('mongodb');
 
 router.get('/monitors', isAuthorizedProbe, async function(req, res) {
@@ -627,6 +628,39 @@ router.post('/getTime/:monitorId', isAuthorizedProbe, async function(req, res) {
         data.monitorId = req.params.monitorId;
         const log = await ProbeService.getMonitorLog(data);
         return sendItemResponse(req, res, log);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/set-scan-status', isAuthorizedProbe, async function(req, res) {
+    try {
+        const { monitorIds, scanning } = req.body;
+        await MonitorService.updateScanStatus(monitorIds, scanning);
+
+        return sendEmptyResponse(req, res);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/add-probe-scan', isAuthorizedProbe, async function(req, res) {
+    try {
+        const { monitorIds } = req.body;
+        await MonitorService.addProbeScanning(monitorIds, req.probe.id);
+
+        return sendEmptyResponse(req, res);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/remove-probe-scan', isAuthorizedProbe, async function(req, res) {
+    try {
+        const { monitorIds } = req.body;
+        await MonitorService.removeProbeScanning(monitorIds, req.probe.id);
+
+        return sendEmptyResponse(req, res);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

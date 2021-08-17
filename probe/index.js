@@ -53,13 +53,25 @@ http.listen(app.get('port'), function() {
     );
 });
 
-app.get('/', function(req, res) {
+const monitorStore = {};
+
+app.get('/status', function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
             status: 200,
             message: 'Service Status - OK',
             serviceType: 'fyipe-probe',
+        })
+    );
+});
+
+app.get('/monitorCount', function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            monitorCount: Object.keys(monitorStore).length,
+            monitors: monitorStore,
         })
     );
 });
@@ -73,7 +85,7 @@ app.get(['/probe/version', '/version'], function(req, res) {
 // This cron runs every second minute.
 cron.schedule('*/2 * * * *', () => {
     setTimeout(() => {
-        Main.runJob();
+        Main.runJob(monitorStore);
     }, cronMinuteStartTime * 1000);
 });
 

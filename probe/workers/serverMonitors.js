@@ -6,7 +6,7 @@ const fetch = require('node-fetch');
 const { COMMAND, serverUrl } = require('../utils/config');
 
 module.exports = {
-    run: async monitor => {
+    run: async ({ monitor }) => {
         try {
             if (
                 monitor &&

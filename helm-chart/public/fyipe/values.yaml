@@ -113,6 +113,8 @@ redis:
     tag: latest
     pullPolicy: Always
   usePassword: false
+  auth:
+    enabled: false
   persistence:
     enabled: true
     mountPath: /bitnami/mongodb
@@ -120,52 +122,47 @@ redis:
 
 
 mongodb: 
+  architecture: replicaset
+  auth:
+    enabled: true
+    rootPassword: root
+    username: fyipe
+    password: password
+    database: fyipedb
+    replicaSetKey: mongodbfyipe
+  replicaSetName: rs0
+  replicaCount: 2
+  replicaSetHostnames: true
+  arbiter:
+    enabled: true
   image:
     registry: docker.io
     repository: bitnami/mongodb
     tag: latest
     pullPolicy: Always
-  mongodbRootPassword: root
-  mongodbUsername: fyipe
-  mongodbPassword: password
-  mongodbDatabase: fyipedb
-  replicaSet:
+  # Uncomment this field to enable external access
+  # to mongodb database
+
+  externalAccess:
     enabled: true
-    name: rs0
-    useHostnames: true
-    key: mongodbfyipe
-    secondary: 1
-    arbiter: 1
+    service:
+      type: LoadBalancer
+      port: 27017
+    autoDiscovery:
+      enabled: true
+  serviceAccount:
+    create: true
+  rbac:
+    create: true
+
+  # end of file for external access selectors
   persistence:
     enabled: true
     mountPath: /bitnami/mongodb
     size: 1000Gi
   useStatefulSet: true
-
-# mongodb: 
-#   architecture: replicaset
-#   image:
-#     registry: docker.io
-#     repository: bitnami/mongodb
-#     tag: latest
-#     pullPolicy: Always
-#   arbiter: 
-#     enabled: true
-#   auth: 
-#     enabled: true
-#     rootPassword: root
-#     username: fyipe
-#     password: password
-#     database: fyipedb
-#     replicaSetKey: mongodbfyipe
-#   replicaSetName: rs0
-#   replicaCount: 2
-#   replicaSetHostnames: true
-#   persistence:
-#     enabled: true
-#     mountPath: /bitnami/mongodb
-#     size: 20Gi
-#   useStatefulSet: true
+  ingress:
+    enabled: false
 
 ## Service Configuration
 ## For minikube, set service.type to NodePort, elsewhere use LoadBalancer
