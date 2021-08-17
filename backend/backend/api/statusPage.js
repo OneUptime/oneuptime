@@ -67,6 +67,12 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 router.post('/:projectId/tweets', checkUser, async (req, res) => {
     try {
         const { handle } = req.body;
+        if (!handle || (handle && handle.trim().length === 0)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'handle is required',
+            });
+        }
 
         const response = await StatusPageService.fetchTweets(handle);
 

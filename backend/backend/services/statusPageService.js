@@ -2113,13 +2113,6 @@ module.exports = {
 
     fetchTweets: async handle => {
         try {
-            if (!handle) {
-                return sendErrorResponse(req, res, {
-                    code: 400,
-                    message: 'handle is required',
-                });
-            }
-
             const userData = await axios.get(
                 `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
                 {
