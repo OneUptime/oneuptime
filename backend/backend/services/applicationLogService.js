@@ -143,8 +143,8 @@ module.exports = {
                     path: 'componentId',
                     select: 'name slug projectId',
                     populate: {
-                        path: 'projectId, resourceCategory',
-                        select: 'name slug, name',
+                        path: 'projectId',
+                        select: 'name slug',
                     },
                 },
                 { path: 'resourceCategory', select: 'name' },
