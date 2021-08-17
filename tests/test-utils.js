@@ -22,7 +22,7 @@ if (
 }
 
 const puppeteerLaunchConfig = {
-    headless: process.env.HEADLESS === 'false' ? false : false,
+    headless: process.env.HEADLESS === 'false' ? false : true,
     defaultViewport: null,
     slowMo: slomo,
     args: [
@@ -155,11 +155,12 @@ const dockerCredential = {
 };
 
 const gitCredential = {
-    gitUsername: process.env.GITHUB_UNMASKED_USERNAME || 'adeoluwadavid',
-    gitPassword: process.env.GITHUB_UNMASKED_PASSWORD || 'talodabijesu1',
+    gitUsername: process.env.GITHUB_UNMASKED_USERNAME || 'fyipetest',
+    gitPassword:
+        process.env.GITHUB_UNMASKED_PASSWORD || 'FzUHPgxBGrqCuf68aaHjPqaFZH',
     gitRepositoryUrl:
         process.env.GITHUB_SECURITY_SCAN_REPOSITORY_URL ||
-        'https://github.com/adeoluwadavid/SocketIO',
+        'https://github.com/twbs/bootstrap',
 };
 
 const smtpCredential = {

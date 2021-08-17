@@ -350,8 +350,6 @@ export function editApplicationLog(
 
         promise.then(
             function(applicationLog) {
-                /*eslint-disable*/
-                console.log('Edited App: ', applicationLog)
                 dispatch(editApplicationLogSuccess(applicationLog.data));
             },
             function(error) {
