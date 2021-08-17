@@ -143,18 +143,18 @@ mongodb:
   # Uncomment this field to enable external access
   # to mongodb database
 
-  # externalAccess:
-  #   enabled: true
-  #   service:
-  #     type: LoadBalancer
-  #     port: 27017
-  #   autoDiscovery:
-  #     enabled: true
-  # serviceAccount:
-  #   create: true
-  # rbac:
-  #   create: true
-  
+  externalAccess:
+    enabled: true
+    service:
+      type: LoadBalancer
+      port: 27017
+    autoDiscovery:
+      enabled: true
+  serviceAccount:
+    create: true
+  rbac:
+    create: true
+
   # end of file for external access selectors
   persistence:
     enabled: true
