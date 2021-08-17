@@ -14,6 +14,7 @@ import {
     getServiceStatus,
     filterProbeData,
     getMonitorStatus,
+    cacheProvider,
 } from '../config';
 import moment from 'moment';
 import { Helmet } from 'react-helmet';
@@ -570,10 +571,12 @@ class Main extends Component {
         const defaultLayout = {
             visible: [
                 { name: 'Header', key: 'header' },
+
                 {
                     name: 'Active Announcement',
                     key: 'anouncement',
                 },
+                { name: 'Language', key: 'language' },
                 {
                     name: 'Ongoing Scheduled Events',
                     key: 'ongoingSchedule',
@@ -696,7 +699,10 @@ class Main extends Component {
                                 >
                                     <NewThemeSubscriber />
                                 </ShouldRender>
-                                <SelectLanguage />
+                                <SelectLanguage
+                                    theme={true}
+                                    languageMenu={this.props.languageMenu}
+                                />
                             </div>
                         </div>
                     </ShouldRender>
@@ -875,7 +881,7 @@ class Main extends Component {
                     }}
                 >
                     <div className="font-largest" style={heading}>
-                        Incidents
+                        <Translate>Incidents</Translate>
                     </div>
                     <NotesMain
                         projectId={
@@ -928,7 +934,7 @@ class Main extends Component {
                         style={contentBackground}
                     >
                         <div className="font-largest" style={heading}>
-                            Scheduled Events Completed
+                            <Translate>Scheduled Events Completed</Translate>
                         </div>
                         <NewThemeEvent
                             projectId={
@@ -1008,6 +1014,29 @@ class Main extends Component {
                     {...this.props}
                 />
             ),
+            language: (
+                <div
+                    className="white box"
+                    style={{
+                        background: 'rgb(253, 253, 253)',
+                        marginTop: '50px',
+                        width: '100%',
+                        padding: 20,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingLeft: '40px',
+                        paddingRight: '40px',
+                    }}
+                >
+                    <div>
+                        <span>
+                            <Translate>Choose Language</Translate>
+                        </span>
+                    </div>
+                    <SelectLanguage languageMenu={this.props.languageMenu} />
+                </div>
+            ),
             incidents: (
                 <NotesMain
                     projectId={
@@ -1058,18 +1087,22 @@ class Main extends Component {
                             ></span>
                             <div className="title-wrapper">
                                 <span className="title" style={heading}>
-                                    {this.props.ongoing &&
-                                    this.props.ongoing.length > 0
-                                        ? 'Ongoing Scheduled Maintenance Event'
-                                        : statusMessage}
+                                    <Translate>
+                                        {this.props.ongoing &&
+                                        this.props.ongoing.length > 0
+                                            ? 'Ongoing Scheduled Maintenance Event'
+                                            : statusMessage}
+                                    </Translate>
                                 </span>
                                 <label
                                     className="status-time"
                                     style={secondaryText}
                                 >
-                                    As of{' '}
+                                    <Translate>As of</Translate>{' '}
                                     <span className="current-time">
-                                        {moment(new Date()).format('LLLL')}
+                                        <Translate>
+                                            {moment(new Date()).format('LLLL')}
+                                        </Translate>
                                     </span>
                                 </label>
                             </div>
@@ -1369,12 +1402,18 @@ class Main extends Component {
                 />
             ),
         };
-
+        const langObj = {
+            dutch: 'nl',
+            spanish: 'es',
+            french: 'fr',
+            english: 'en',
+            german: 'nl',
+        };
         return (
             <Translator
-                //cacheProvider={cacheProvider}
+                cacheProvider={cacheProvider}
                 from="en"
-                to={this.props.language === 'english' ? 'en' : 'es'}
+                to={langObj[this.props.language]}
                 googleApiKey={process.env.REACT_APP_GOOGLE_TRANSLATE_API_KEY}
             >
                 {theme === 'Clean Theme' ? (
@@ -1543,6 +1582,7 @@ const mapStateToProps = state => {
         statusPage: state.status.statusPage,
         isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
         scheduleHistoryDays: state.status.statusPage.scheduleHistoryDays,
+        languageMenu: state.subscribe.languageMenu,
         ongoing,
         futureEvents,
         pastEvents,
@@ -1595,6 +1635,7 @@ Main.propTypes = {
     fetchTweets: PropTypes.func,
     tweetData: PropTypes.array,
     language: PropTypes.object,
+    languageMenu: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

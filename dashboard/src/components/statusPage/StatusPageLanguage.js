@@ -10,15 +10,9 @@ import { RenderSelect } from '../basic/RenderSelect';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-// import { v4 as uuidv4 } from 'uuid';
 import { openModal } from '../../actions/modal';
-// import DataPathHoC from '../DataPathHoC';
-// import SubscriberAdvanceOptions from '../modals/SubscriberAdvanceOptions';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-//import PricingPlan from '../basic/PricingPlan';
-//import { RenderField } from '../basic/RenderField';
-//import { RenderSelect } from '../basic/RenderSelect';
 
 export function StatusPageLanguage(props) {
     const [language, setLang] = useState([
@@ -30,16 +24,15 @@ export function StatusPageLanguage(props) {
     const [langResult, setLangResult] = useState([]);
     const [lang, setLangText] = useState('');
 
-    const { formValues } = props;
+    const { multipleLanguages, formValues } = props;
     useEffect(() => {
-        const languages = (formValues && formValues.multipleLanguages) || [];
-
+        const languages = multipleLanguages;
         const filteredResult = [...language].filter(
             lang => !languages.includes(lang)
         );
         setLangResult(languages);
         setLang(filteredResult);
-    }, [formValues]);
+    }, []);
 
     const submitForm = values => {
         const { status } = props.statusPage;
@@ -69,7 +62,7 @@ export function StatusPageLanguage(props) {
             .then(() => {
                 props.fetchProjectStatusPage(projectId._id || projectId, true);
             });
-        // eslint-disable-next-line no-unreachable
+
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
                 'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > PRIVATE STATUS PAGE UPDATED'
@@ -78,6 +71,8 @@ export function StatusPageLanguage(props) {
     };
     const handleLanguageChange = () => {
         const newArr = [...langResult];
+        // eslint-disable-next-line no-console
+        console.log(lang, 'language');
         if (!newArr.includes(lang)) {
             newArr.push(lang);
         }
@@ -86,7 +81,7 @@ export function StatusPageLanguage(props) {
         setLang(filteredLangs);
     };
     const handleRemoveTeamMember = lang => {
-        const newArr = [...language];
+        const newArr = [...language, lang];
         const filteredLangs = langResult.filter(l => l !== lang);
         setLangResult(filteredLangs);
         setLang(newArr);
@@ -179,7 +174,9 @@ export function StatusPageLanguage(props) {
                                                 </div>
                                             </div>
                                         </div>
-                                        {langResult.length > 0 ? (
+                                        {formValues &&
+                                        formValues.multiLanguage &&
+                                        langResult.length > 0 ? (
                                             <div className="bs-Fieldset-row">
                                                 <label
                                                     className="bs-Fieldset-label"
@@ -290,7 +287,6 @@ export function StatusPageLanguage(props) {
                                                         >
                                                             <Field
                                                                 id="componentList"
-                                                                name="teamMembers"
                                                                 component={
                                                                     RenderSelect
                                                                 }
@@ -395,7 +391,7 @@ const StatusPageLanguageForm = reduxForm({
 
 StatusPageLanguage.propTypes = {
     updateStatusPageLanguage: PropTypes.func.isRequired,
-
+    multipleLanguages: PropTypes.array,
     statusPage: PropTypes.object.isRequired,
     handleSubmit: PropTypes.func.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,

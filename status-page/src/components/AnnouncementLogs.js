@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { Translate } from 'react-auto-translate';
 import { fetchAnnouncementLogs } from '../actions/status';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -39,7 +40,7 @@ class AnnouncementLogs extends Component {
                                 style={{ marginBottom: '40px' }}
                                 className="font-largest"
                             >
-                                Announcements
+                                <Translate> Announcements</Translate>
                             </div>
                             {announcementLogs && announcementLogs.length > 0 ? (
                                 announcementLogs.map((log, index) => {
@@ -52,7 +53,9 @@ class AnnouncementLogs extends Component {
                                                 <div className="date-big">
                                                     {moment(
                                                         log.createdAt
-                                                    ).format('MMMM Do, YYYY')}
+                                                    ).format(
+                                                        'MMMM Do, YYYY'
+                                                    )}{' '}
                                                 </div>
                                             </ShouldRender>
                                             <ShouldRender if={!log.style}>
@@ -71,7 +74,9 @@ class AnnouncementLogs extends Component {
                                                     >
                                                         <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                             <span id="ongoing-event">
-                                                                Active
+                                                                <Translate>
+                                                                    Active{' '}
+                                                                </Translate>
                                                             </span>
                                                         </span>
                                                     </div>
@@ -96,7 +101,10 @@ class AnnouncementLogs extends Component {
                                                             'rgba(76, 76, 76, 0.8)',
                                                     }}
                                                 >
-                                                    Resources Affected:{' '}
+                                                    <Translate>
+                                                        Resources Affected
+                                                    </Translate>
+                                                    :{' '}
                                                 </span>
                                                 <span
                                                     className="ongoing__affectedmonitor--content"
@@ -129,7 +137,7 @@ class AnnouncementLogs extends Component {
                                                             log.startDate
                                                         ).format(
                                                             'MMMM Do YYYY, h:mm a'
-                                                        )}
+                                                        )}{' '}
                                                         <ShouldRender
                                                             if={log.endDate}
                                                         >
@@ -151,10 +159,12 @@ class AnnouncementLogs extends Component {
                                 <div className="nt_list">
                                     {error ? (
                                         <span style={{ color: '#f00' }}>
-                                            {error}
+                                            <Translate>{error} </Translate>
                                         </span>
                                     ) : (
-                                        'No announcements at this time.'
+                                        <Translate>
+                                            No announcements at this time.
+                                        </Translate>
                                     )}
                                 </div>
                             )}
@@ -184,7 +194,9 @@ class AnnouncementLogs extends Component {
                                         className="feed-header"
                                     >
                                         <span className="feed-title">
-                                            Announcement History
+                                            <Translate>
+                                                Announcement History
+                                            </Translate>
                                         </span>
                                         <ul className="feed-contents plain">
                                             {announcementLogs &&
@@ -210,11 +222,13 @@ class AnnouncementLogs extends Component {
                                                                     }
                                                                 </div>
                                                                 <div className="ct_desc">
-                                                                    {
-                                                                        log
-                                                                            .announcementId
-                                                                            .description
-                                                                    }
+                                                                    <Translate>
+                                                                        {
+                                                                            log
+                                                                                .announcementId
+                                                                                .description
+                                                                        }
+                                                                    </Translate>
                                                                 </div>
                                                                 <ShouldRender
                                                                     if={
@@ -238,8 +252,10 @@ class AnnouncementLogs extends Component {
                                                                                     'rgba(76, 76, 76, 0.8)',
                                                                             }}
                                                                         >
-                                                                            Resource
-                                                                            Affected:
+                                                                            <Translate>
+                                                                                Resource
+                                                                                Affected:
+                                                                            </Translate>
                                                                         </span>{' '}
                                                                         <span
                                                                             className="ongoing__affectedmonitor--content"
@@ -284,7 +300,9 @@ class AnnouncementLogs extends Component {
                                                                             }
                                                                         >
                                                                             <span>
-                                                                                active
+                                                                                <Translate>
+                                                                                    active
+                                                                                </Translate>
                                                                             </span>
                                                                         </ShouldRender>
                                                                     </span>
@@ -301,10 +319,15 @@ class AnnouncementLogs extends Component {
                                                                 color: '#f00',
                                                             }}
                                                         >
-                                                            {error}
+                                                            <Translate>
+                                                                {error}
+                                                            </Translate>
                                                         </span>
                                                     ) : (
-                                                        'No announcements at this time.'
+                                                        <Translate>
+                                                            No announcements at
+                                                            this time.{' '}
+                                                        </Translate>
                                                     )}
                                                 </li>
                                             )}
@@ -316,7 +339,7 @@ class AnnouncementLogs extends Component {
                                                 className="more button-as-anchor anchor-centered"
                                                 onClick={() => this.more()}
                                             >
-                                                More
+                                                <Translate>More</Translate>
                                             </button>
                                         </ShouldRender>
                                     </div>

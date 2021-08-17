@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
@@ -155,7 +156,7 @@ class ScheduledEvent extends Component {
                                         fontSize: 14,
                                     }}
                                 >
-                                    Scheduled Event
+                                    <Translate> Scheduled Event</Translate>
                                 </span>
                                 {!fetchingEvent && scheduledEvent.name && (
                                     <>
@@ -239,10 +240,12 @@ class ScheduledEvent extends Component {
                                                             paddingTop: 7,
                                                         }}
                                                     >
-                                                        {capitalize(
-                                                            eventNotes[0]
-                                                                .event_state
-                                                        )}
+                                                        <Translate>
+                                                            {capitalize(
+                                                                eventNotes[0]
+                                                                    .event_state
+                                                            )}
+                                                        </Translate>
                                                     </span>
                                                 )}
                                         </span>
@@ -270,7 +273,10 @@ class ScheduledEvent extends Component {
                                                 fontWeight: 'bold',
                                             }}
                                         >
-                                            Scheduled Event Updates
+                                            <Translate>
+                                                {' '}
+                                                Scheduled Event Updates
+                                            </Translate>
                                         </span>
                                     </div>
                                 </ShouldRender>
@@ -328,7 +334,10 @@ class ScheduledEvent extends Component {
                                                                         'block',
                                                                 }}
                                                             >
-                                                                Posted on{' '}
+                                                                <Translate>
+                                                                    {' '}
+                                                                    Posted on
+                                                                </Translate>{' '}
                                                                 {moment(
                                                                     note.createdAt
                                                                 ).format(
@@ -374,8 +383,11 @@ class ScheduledEvent extends Component {
                                                             'rgb(76, 76, 76)',
                                                     }}
                                                 >
-                                                    No schedule event updates
-                                                    yet.
+                                                    <Translate>
+                                                        {' '}
+                                                        No schedule event
+                                                        updates yet.
+                                                    </Translate>
                                                 </span>
                                             </li>
                                         )}
@@ -392,7 +404,7 @@ class ScheduledEvent extends Component {
                                     className="more button-as-anchor anchor-centered"
                                     onClick={() => this.more()}
                                 >
-                                    More
+                                    <Translate> More</Translate>
                                 </button>
                             </ShouldRender>
                         </div>
@@ -440,7 +452,7 @@ class ScheduledEvent extends Component {
                                 cursor: 'pointer',
                             }}
                         >
-                            Back to status page
+                            <Translate> Back to status page</Translate>
                         </span>
                         <p>
                             <a
@@ -449,13 +461,15 @@ class ScheduledEvent extends Component {
                                 rel="noopener noreferrer"
                                 style={{ color: 'rgb(76, 76, 76)' }}
                             >
-                                Powered by Fyipe
+                                <Translate>Powered by</Translate> Fyipe
                             </a>
                         </p>
                     </div>
                     <ShouldRender if={error}>
                         <div id="app-loading">
-                            <div>{error}</div>
+                            <div>
+                                <Translate>{error}</Translate>
+                            </div>
                         </div>
                     </ShouldRender>
                 </div>

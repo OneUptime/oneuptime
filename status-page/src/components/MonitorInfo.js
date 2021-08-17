@@ -308,11 +308,13 @@ class MonitorInfo extends Component {
                                             style={monitorCategoryStyle}
                                         >
                                             <span>
-                                                <Translate>
-                                                    {resourceCategory
-                                                        ? resourceCategory.name
-                                                        : 'Uncategorized'}
-                                                </Translate>
+                                                {resourceCategory ? (
+                                                    resourceCategory.name
+                                                ) : (
+                                                    <Translate>
+                                                        Uncategorized
+                                                    </Translate>
+                                                )}
                                             </span>
                                         </div>
                                     </ShouldRender>
@@ -340,10 +342,8 @@ class MonitorInfo extends Component {
                                                     ?
                                                 </span>
                                                 <span className="tooltiptext tooltip1">
-                                                    <Translate>
-                                                        {selectedCharts &&
-                                                            selectedCharts.description}
-                                                    </Translate>
+                                                    {selectedCharts &&
+                                                        selectedCharts.description}
                                                 </span>
                                             </ShouldRender>
                                         </div>
@@ -367,14 +367,10 @@ class MonitorInfo extends Component {
                                     textTransform: 'capitalize',
                                 }}
                             >
-                                <Translate>
-                                    {this.props.ongoing &&
-                                    this.props.ongoing.length > 0
-                                        ? 'Ongoing Scheduled Event'
-                                        : this.handleMonitorStatus(
-                                              monitorStatus
-                                          )}
-                                </Translate>
+                                {this.props.ongoing &&
+                                this.props.ongoing.length > 0
+                                    ? 'Ongoing Scheduled Event'
+                                    : this.handleMonitorStatus(monitorStatus)}
                             </div>
                         </div>
                         <ShouldRender
@@ -519,11 +515,13 @@ class MonitorInfo extends Component {
                                         style={monitorCategoryStyle}
                                     >
                                         <span>
-                                            <Translate>
-                                                {resourceCategory
-                                                    ? resourceCategory.name
-                                                    : 'Uncategorized'}
-                                            </Translate>
+                                            {resourceCategory ? (
+                                                resourceCategory.name
+                                            ) : (
+                                                <Translate>
+                                                    Uncategorized
+                                                </Translate>
+                                            )}
                                         </span>
                                     </div>
                                 </ShouldRender>
@@ -551,10 +549,8 @@ class MonitorInfo extends Component {
                                                 wordWrap: 'break-word',
                                             }}
                                         >
-                                            <Translate>
-                                                {selectedCharts &&
-                                                    selectedCharts.description}
-                                            </Translate>
+                                            {selectedCharts &&
+                                                selectedCharts.description}
                                         </div>
                                     </div>
                                 </div>

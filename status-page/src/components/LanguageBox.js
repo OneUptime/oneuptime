@@ -1,29 +1,27 @@
 import React, { Component } from 'react';
+import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-//import Call from './Subscribe/Call';
-//import Message from './Subscribe/Message';
 import { translateLanguage } from '../actions/status';
 
-import { openSubscribeMenu, selectedMenu } from '../actions/subscribe';
-//import ShouldRender from './ShouldRender';
-//import ClickOutHandler from 'react-onclickout';
+import { openLanguageMenu } from '../actions/subscribe';
+
+import ClickOutHandler from 'react-onclickout';
 
 class LanguageBox extends Component {
     constructor(props) {
         super(props);
-        this.subscribebutton = this.subscribebutton.bind(this);
-        //this.selectbutton = this.selectbutton.bind(this);
+        this.translateButton = this.translateButton.bind(this);
         this.state = {
             language: 'english',
         };
     }
-    subscribebutton = () => {
+    translateButton = () => {
         if (this.props.theme) {
             this.props.handleCloseButtonClick();
         } else {
-            this.props.openSubscribeMenu();
+            this.props.openLanguageMenu();
         }
     };
     handleChange = event => {
@@ -35,76 +33,123 @@ class LanguageBox extends Component {
     };
     handleTranslate = () => {
         this.props.translateLanguage(this.state.language);
+        this.props.openLanguageMenu();
     };
     render() {
-        //const { statusPage } = this.props;
-        //const { emailNotification } = statusPage;
+        const { statusPage } = this.props;
+        const languages = statusPage.multipleLanguages;
         const theme = this.props.theme;
-        // eslint-disable-next-line no-console
-        console.log(theme);
         return (
             <div className="subscribe-overlay">
-                <div
-                    className={
-                        !theme ? 'white box subscribe-box' : 'bs-theme-shadow'
-                    }
-                    style={{
-                        height: 'auto',
-                        width: '300px',
-                        marginLeft: theme && '-100px',
-                    }}
+                <ClickOutHandler
+                    onClickOut={() => this.props.openLanguageMenu()}
                 >
-                    <div className="btn-group">
-                        <button
-                            id="updates-dropdown-close-btn"
-                            onClick={() => this.subscribebutton()}
-                            //disabled={this.props.subscribed.requesting}
-                            className="icon-container"
-                        >
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'flex-end',
-                                    alignItems: 'center',
-                                }}
-                            >
-                                <span className="sub-icon icon-close"></span>
-                            </div>
-                        </button>
-                    </div>
                     <div
                         className={
-                            theme
-                                ? 'subscribe-box-inner bs-new-bg'
-                                : 'subscribe-box-inner'
+                            !theme
+                                ? 'white box subscribe-box'
+                                : 'bs-theme-shadow'
                         }
+                        style={{
+                            height: 'auto',
+                            width: '300px',
+                            marginLeft: theme && '-100px',
+                        }}
                     >
-                        <select
-                            value={this.state.language}
-                            onChange={this.handleChange}
-                            name="country"
-                            className="select-full"
+                        <div
+                            className="btn-group"
+                            style={{
+                                background: '#fff',
+                                //justifyContent: 'flex-end',
+                            }}
                         >
-                            <option value="english">English</option>
-                            <option value="dutch">Dutch</option>
-                            <option value="french">French</option>
-                            <option value="spanish">Spanish</option>
-                        </select>
-                        <div style={{ marginTop: 10 }}>
                             <button
-                                className={
-                                    this.props.theme
-                                        ? 'subscribe-btn-full bs-theme-btn'
-                                        : 'subscribe-btn-full'
-                                }
-                                id="subscribe-btn-sms"
-                                onClick={() => this.handleTranslate()}
+                                id="updates-dropdown-atom-btn"
+                                style={{
+                                    cursor: 'default',
+                                    background: '#fff',
+                                }}
+                                className="icon-container"
                             >
-                                Translate Page
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        //justifyContent: 'center',
+                                        alignItems: 'center',
+                                        marginLeft: 15,
+                                    }}
+                                    className="title-wrapper"
+                                >
+                                    <span
+                                        className="title"
+                                        style={{
+                                            fontSize: 16,
+                                        }}
+                                    >
+                                        Choose Language
+                                    </span>
+                                </div>
+                            </button>
+
+                            <button
+                                id="updates-dropdown-close-btn"
+                                onClick={() => this.translateButton()}
+                                className="icon-container"
+                                style={{
+                                    width: '70px',
+                                    background: '#fff',
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                    }}
+                                >
+                                    <span className="sub-icon icon-close"></span>
+                                </div>
                             </button>
                         </div>
+                        <div
+                            className={
+                                theme
+                                    ? 'subscribe-box-inner bs-new-bg'
+                                    : 'subscribe-box-inner'
+                            }
+                            style={{ paddingTop: 0 }}
+                        >
+                            <select
+                                value={this.state.language}
+                                onChange={this.handleChange}
+                                name="country"
+                                className="select-full"
+                            >
+                                {languages.map(language => (
+                                    <option
+                                        value={language.toLowerCase()}
+                                        key={language}
+                                    >
+                                        {language}
+                                    </option>
+                                ))}
+                            </select>
+                            <div style={{ marginTop: 10 }}>
+                                <button
+                                    className={
+                                        this.props.theme
+                                            ? 'subscribe-btn-full bs-theme-btn'
+                                            : 'subscribe-btn-full'
+                                    }
+                                    id="subscribe-btn-sms"
+                                    onClick={() => this.handleTranslate()}
+                                >
+                                    <Translate>Translate Page</Translate>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </ClickOutHandler>
             </div>
         );
     }
@@ -119,18 +164,14 @@ const mapStateToProps = state => ({
 });
 
 const mapDispatchToProps = dispatch =>
-    bindActionCreators(
-        { openSubscribeMenu, selectedMenu, translateLanguage },
-        dispatch
-    );
+    bindActionCreators({ openLanguageMenu, translateLanguage }, dispatch);
 
 LanguageBox.propTypes = {
-    openSubscribeMenu: PropTypes.func,
-    //statusPage: PropTypes.object,
-    //language: PropTypes.object,
+    statusPage: PropTypes.object,
     theme: PropTypes.bool,
     handleCloseButtonClick: PropTypes.func,
     translateLanguage: PropTypes.func,
+    openLanguageMenu: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(LanguageBox);

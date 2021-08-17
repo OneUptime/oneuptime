@@ -42,6 +42,10 @@ export class StatusPageLayout extends Component {
                 key: 'anouncement',
             },
             {
+                name: 'Language',
+                key: 'language',
+            },
+            {
                 name: 'Ongoing Scheduled Events',
                 key: 'ongoingSchedule',
             },
@@ -140,6 +144,8 @@ export class StatusPageLayout extends Component {
         switch (type) {
             case 'anouncement':
                 return 'This is the announment section of the status page';
+            case 'language':
+                return 'On this section you can change the status page language(default is English)';
             case 'resources':
                 return 'This section contains information of the resources status';
             case 'services':
@@ -181,6 +187,10 @@ export class StatusPageLayout extends Component {
                 {
                     name: 'Active Announcement',
                     key: 'anouncement',
+                },
+                {
+                    name: 'Language',
+                    key: 'language',
                 },
                 {
                     name: 'Ongoing Scheduled Events',

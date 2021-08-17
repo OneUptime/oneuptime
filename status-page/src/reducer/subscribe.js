@@ -7,10 +7,12 @@ import {
     SUBSCRIBE_REQUEST,
     SUBSCRIBE_FAILURE,
     VALIDATION_ERROR,
+    OPEN_LANGUAGE_MENU,
 } from '../actions/subscribe';
 
 const INITIAL_STATE = {
     subscribeMenu: false,
+    languageMenu: false,
     selectedMenu: 1,
     openSelectedBox: false,
     userDetails: {},
@@ -39,7 +41,11 @@ export default (state = INITIAL_STATE, action) => {
                 selectedMenu: 1,
                 openSelectedBox: false,
             });
-
+        case OPEN_LANGUAGE_MENU:
+            return Object.assign({}, state, {
+                languageMenu: !state.languageMenu,
+                openSelectedBox: false,
+            });
         case SELECTED_MENU:
             return Object.assign({}, state, {
                 selectedMenu: action.payload,

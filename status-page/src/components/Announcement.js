@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-
 import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { getAnnouncements } from '../actions/status';
@@ -16,18 +15,6 @@ class Announcement extends Component {
         this.counter = 2;
         this.announcement = '';
     }
-
-    // async componentDidUpdate(prevProps) {
-    //     if (
-    //         prevProps.language !== this.props.language &&
-    //         this.props.language !== 'english'
-    //     ) {
-    //         const lang = await translate('es', 'ANNOUNCEMENT');
-    //         // eslint-disable-next-line no-console
-    //         console.log(lang, 'langg');
-    //         //this.setState({ announcement: lang });
-    //     }
-    // }
 
     handleRouting = announcementSlug => {
         const {
@@ -124,14 +111,12 @@ function AnnouncementBox({ announcement, monitorState, type }) {
         <>
             <div className="icon_ann">
                 <div className={type ? 'ann_title classic_font' : 'ann_title'}>
-                    <Translate>{announcement.name}</Translate>
+                    {announcement.name}
                 </div>
             </div>
             <div className="ann_desc">
                 {announcement?.description && (
-                    <Markdown>
-                        <Translate>{announcement.description}</Translate>
-                    </Markdown>
+                    <Markdown>{announcement.description}</Markdown>
                 )}
             </div>
             <ShouldRender if={announcement.monitors.length > 0}>
@@ -140,11 +125,9 @@ function AnnouncementBox({ announcement, monitorState, type }) {
                         <Translate>Resources Affected: </Translate>
                     </span>
                     <span>
-                        <Translate>
-                            {' '}
-                            {announcement &&
-                                handleResources(monitorState, announcement)}
-                        </Translate>
+                        {' '}
+                        {announcement &&
+                            handleResources(monitorState, announcement)}
                     </span>
                 </div>
             </ShouldRender>

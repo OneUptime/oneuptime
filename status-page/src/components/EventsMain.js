@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
@@ -122,7 +123,9 @@ class EventsMain extends Component {
                                         className="feed-title"
                                         style={subheading}
                                     >
-                                        Maintenance Events Scheduled
+                                        <Translate>
+                                            Maintenance Events Scheduled
+                                        </Translate>
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender
@@ -186,7 +189,9 @@ class EventsMain extends Component {
                                                 ...secondaryTextColor,
                                             }}
                                         >
-                                            No data available for this date.
+                                            <Translate>
+                                                No data available for this date.
+                                            </Translate>
                                         </span>
                                     </li>
                                 </ul>
@@ -220,7 +225,9 @@ class EventsMain extends Component {
                                                 ...secondaryTextColor,
                                             }}
                                         >
-                                            No Scheduled Events
+                                            <Translate>
+                                                No Scheduled Events
+                                            </Translate>
                                         </span>
                                     </li>
                                 </ul>
@@ -244,7 +251,7 @@ class EventsMain extends Component {
                                 className="more button-as-anchor anchor-centered"
                                 onClick={() => this.more()}
                             >
-                                More
+                                <Translate> More</Translate>
                             </button>
                         </ShouldRender>
 
@@ -267,7 +274,7 @@ class EventsMain extends Component {
                                     className="all__btn"
                                     onClick={() => this.getAll()}
                                 >
-                                    All Scheduled Events
+                                    <Translate> All Scheduled Events</Translate>
                                 </button>
                             </ShouldRender>
                         </div>

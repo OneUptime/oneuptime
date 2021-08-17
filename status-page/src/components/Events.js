@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { withRouter } from 'react-router-dom';
 import moment from 'moment';
@@ -19,7 +20,12 @@ class Events extends Component {
         return (
             <ShouldRender if={this.props.events}>
                 {this.props.events.map((event, i) => {
-                    if (!event) return <div>No event</div>;
+                    if (!event)
+                        return (
+                            <div>
+                                <Translate>No event</Translate>
+                            </div>
+                        );
                     return (
                         <li
                             className="scheduledEvent feed-item clearfix"

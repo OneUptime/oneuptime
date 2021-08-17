@@ -356,7 +356,15 @@ class StatusPage extends Component {
                                                                         <PrivateStatusPage />
                                                                     </div>
                                                                     <div className="Box-root Margin-bottom--12">
-                                                                        <StatusPageLanguage />
+                                                                        <StatusPageLanguage
+                                                                            multipleLanguages={
+                                                                                this
+                                                                                    .props
+                                                                                    .statusPage
+                                                                                    ?.status
+                                                                                    ?.multipleLanguages
+                                                                            }
+                                                                        />
                                                                     </div>
                                                                     <div className="Box-root Margin-bottom--12">
                                                                         <ExternalStatusPages
