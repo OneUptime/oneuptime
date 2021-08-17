@@ -143,10 +143,11 @@ module.exports = {
                     path: 'componentId',
                     select: 'name slug projectId',
                     populate: {
-                        path: 'projectId',
-                        select: 'name slug',
+                        path: 'projectId, resourceCategory',
+                        select: 'name slug, name',
                     },
                 },
+                { path: 'resourceCategory', select: 'name' },
             ];
 
             const selectAppLogs =
