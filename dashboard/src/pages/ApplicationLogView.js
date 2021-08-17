@@ -38,8 +38,8 @@ class ApplicationLogView extends Component {
         } = this.props;
         const projectId =
             this.props.currentProject && this.props.currentProject._id;
+        componentSlug && fetchComponent(projectId, componentSlug); // On Page Reload, the state is blank hence componentId is null. ComponentSlug present in URL bar is used to fetch component before the componentId is loaded alongside component.
         if (projectId && componentId) {
-            componentSlug && fetchComponent(projectId, componentSlug);
             componentId && fetchApplicationLogs(projectId, componentId);
         }
     };
