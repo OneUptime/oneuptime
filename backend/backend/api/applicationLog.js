@@ -346,7 +346,7 @@ router.put(
 
         const currentApplicationLog = await ApplicationLogService.findOneBy({
             query: { _id: applicationLogId },
-            select: ['_id'],
+            select: '_id', // Select should be a string and not array of strings
         });
         if (!currentApplicationLog) {
             return sendErrorResponse(req, res, {

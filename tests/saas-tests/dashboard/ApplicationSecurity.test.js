@@ -437,6 +437,7 @@ describe('Application Security Page', () => {
                 page,
                 `#moreApplicationSecurity_${newApplicationName}`
             );
+            await init.pageClick(page, '.advanced-options-tab');
             await init.pageWaitForSelector(
                 page,
                 '#deleteApplicationSecurityBtn',
@@ -455,7 +456,6 @@ describe('Application Security Page', () => {
                 }
             );
             await init.pageClick(page, '#deleteApplicationSecurityModalBtn');
-            await page.waitForNavigation();
 
             const applicationSecurity = await init.pageWaitForSelector(
                 page,

@@ -147,6 +147,7 @@ module.exports = {
                         select: 'name slug',
                     },
                 },
+                { path: 'resourceCategory', select: 'name' },
             ];
 
             const selectAppLogs =
