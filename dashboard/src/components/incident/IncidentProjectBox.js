@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
-import '@trendmicro/react-dropdown/dist/react-dropdown.css';
 import CreateIncident from '../modals/CreateIncident';
 import { FormLoader } from '../basic/Loader';
 import IncidentList from '../incident/IncidentList';
 import DataPathHoC from '../DataPathHoC';
+import DropDownMenu from '../basic/DropDownMenu';
 
 const IncidentProjectBox = props => {
     const [incidents, setIncidents] = useState({});
@@ -108,50 +107,35 @@ const IncidentProjectBox = props => {
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <span className="Margin-right--8">
-                                <Dropdown>
-                                    <Dropdown.Toggle
-                                        id="filterToggle"
-                                        title={filterOption}
-                                        className="bs-Button bs-DeprecatedButton"
-                                    />
-                                    <Dropdown.Menu>
-                                        <MenuItem
-                                            title="clear"
-                                            onClick={() => {
-                                                setFilterOption('Filter By');
-                                                return filterIncidentLogs(
-                                                    'clear'
-                                                );
-                                            }}
-                                        >
-                                            Clear Filters
-                                        </MenuItem>
-                                        <MenuItem
-                                            title="unacknowledged"
-                                            onClick={() => {
+                                <DropDownMenu
+                                    options={[
+                                        'Clear Filters',
+                                        'Unacknowledged',
+                                        'Unresolved',
+                                    ]}
+                                    value={filterOption}
+                                    updateState={val => {
+                                        switch (val) {
+                                            case 'Unacknowledged':
                                                 setFilterOption(
                                                     'Unacknowledged'
                                                 );
                                                 return filterIncidentLogs(
                                                     'unacknowledged'
                                                 );
-                                            }}
-                                        >
-                                            Unacknowledged
-                                        </MenuItem>
-                                        <MenuItem
-                                            title="unresolved"
-                                            onClick={() => {
+                                            case 'Unresolved':
                                                 setFilterOption('Unresolved');
                                                 return filterIncidentLogs(
                                                     'unresolved'
                                                 );
-                                            }}
-                                        >
-                                            Unresolved
-                                        </MenuItem>
-                                    </Dropdown.Menu>
-                                </Dropdown>
+                                            default:
+                                                setFilterOption('Filter By');
+                                                return filterIncidentLogs(
+                                                    'clear'
+                                                );
+                                        }
+                                    }}
+                                />
                             </span>
                             <button
                                 className={
