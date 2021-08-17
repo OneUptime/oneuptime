@@ -12,6 +12,7 @@ import StatusPageLayout from '../components/statusPage/StatusPageLayout';
 import Links from '../components/statusPage/Links';
 import DeleteBox from '../components/statusPage/DeleteBox';
 import DuplicateStatusBox from '../components/statusPage/DuplicateStatusPage';
+import ExternalStatusPages from '../components/statusPage/ExternalStatusPages';
 import PrivateStatusPage from '../components/statusPage/PrivateStatusPage';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import { LoadingState } from '../components/basic/Loader';
@@ -352,6 +353,22 @@ class StatusPage extends Component {
                                                                 >
                                                                     <div className="Box-root Margin-bottom--12">
                                                                         <PrivateStatusPage />
+                                                                    </div>
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <ExternalStatusPages
+                                                                            statusPageId={
+                                                                                this
+                                                                                    .props
+                                                                                    .statusPage
+                                                                                    .status
+                                                                                    ._id
+                                                                            }
+                                                                            subProjectId={
+                                                                                this
+                                                                                    .props
+                                                                                    .subProjectId
+                                                                            }
+                                                                        />
                                                                     </div>
                                                                     <div className="Box-root Margin-bottom--12">
                                                                         <DuplicateStatusBox

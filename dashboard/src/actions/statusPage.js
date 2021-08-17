@@ -1335,6 +1335,216 @@ export function fetchStatusPageSubscribers(
     };
 }
 
+export function createExternalStatusPageRequest() {
+    return {
+        type: types.CREATE_EXTERNAL_STATUSPAGE_REQUEST,
+    };
+}
+
+export function createExternalStatusPageSuccess(data) {
+    return {
+        type: types.CREATE_EXTERNAL_STATUSPAGE_SUCCESS,
+        payload: data,
+    };
+}
+
+export function createExternalStatusPageFailure(error) {
+    return {
+        type: types.CREATE_EXTERNAL_STATUSPAGE_FAILURE,
+        payload: error,
+    };
+}
+
+export function createExternalStatusPage(projectId, statusPageId, data) {
+    return function(dispatch) {
+        const promise = postApi(
+            `statusPage/${projectId}/createExternalStatusPage/${statusPageId}`,
+            data
+        );
+        dispatch(createExternalStatusPageRequest());
+        promise.then(
+            function(response) {
+                dispatch(createExternalStatusPageSuccess(response.data));
+                return response.data;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(createExternalStatusPageFailure(error));
+                return error;
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function updateExternalStatusPageRequest() {
+    return {
+        type: types.UPDATE_EXTERNAL_STATUSPAGE_REQUEST,
+    };
+}
+
+export function updateExternalStatusPageSuccess(data) {
+    return {
+        type: types.UPDATE_EXTERNAL_STATUSPAGE_SUCCESS,
+        payload: data,
+    };
+}
+
+export function updateExternalStatusPageFailure(error) {
+    return {
+        type: types.UPDATE_EXTERNAL_STATUSPAGE_FAILURE,
+        payload: error,
+    };
+}
+
+export function updateExternalStatusPage(
+    projectId,
+    externalStatusPageId,
+    data
+) {
+    return function(dispatch) {
+        const promise = postApi(
+            `statusPage/${projectId}/updateExternalStatusPage/${externalStatusPageId}`,
+            data
+        );
+        dispatch(updateExternalStatusPageRequest());
+        promise.then(
+            function(response) {
+                dispatch(updateExternalStatusPageSuccess(response.data));
+                return response.data;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(updateExternalStatusPageFailure(error));
+                return error;
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function fetchExternalStatusPagesRequest() {
+    return {
+        type: types.FETCH_EXTERNAL_STATUSPAGES_REQUEST,
+    };
+}
+
+export function fetchExternalStatusPagesSuccess(data) {
+    return {
+        type: types.FETCH_EXTERNAL_STATUSPAGES_SUCCESS,
+        payload: data,
+    };
+}
+
+export function fetchExternalStatusPagesFailure(error) {
+    return {
+        type: types.FETCH_EXTERNAL_STATUSPAGES_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchExternalStatusPages(projectId, statusPageId) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/fetchExternalStatusPages/${statusPageId}`
+        );
+        dispatch(fetchExternalStatusPagesRequest());
+        promise.then(
+            function(response) {
+                dispatch(fetchExternalStatusPagesSuccess(response.data));
+                return response.data;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchExternalStatusPagesFailure(error));
+                return error;
+            }
+        );
+
+        return promise;
+    };
+}
+
+export function deleteExternalStatusPageRequest() {
+    return {
+        type: types.DELETE_EXTERNAL_STATUSPAGE_REQUEST,
+    };
+}
+
+export function deleteExternalStatusPageSuccess(data) {
+    return {
+        type: types.DELETE_EXTERNAL_STATUSPAGE_SUCCESS,
+        payload: data,
+    };
+}
+
+export function deleteExternalStatusPageFailure(error) {
+    return {
+        type: types.DELETE_EXTERNAL_STATUSPAGE_FAILURE,
+        payload: error,
+    };
+}
+
+export function deleteExternalStatusPage(projectId, externalStatusPageId) {
+    return function(dispatch) {
+        const promise = postApi(
+            `statusPage/${projectId}/deleteExternalStatusPage/${externalStatusPageId}`
+        );
+        dispatch(deleteExternalStatusPageRequest());
+        promise.then(
+            function(response) {
+                dispatch(deleteExternalStatusPageSuccess(response.data));
+                return response.data;
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(deleteExternalStatusPageFailure(error));
+                return error;
+            }
+        );
+
+        return promise;
+    };
+}
+
 export function createAnnouncementRequest() {
     return {
         type: types.CREATE_ANNOUNCEMEMT_REQUEST,
