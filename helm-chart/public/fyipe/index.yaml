@@ -33,7 +33,7 @@ entries:
     - https://github.com/bitnami/bitnami-docker-mongodb
     - https://mongodb.org
     urls:
-    - charts/mongodb-10.9.1.tgz
+    - charts/mongodb-10.23.10.tgz
     version: 10.23.10
   nginx-ingress-controller:
   - annotations:
@@ -85,6 +85,6 @@ entries:
     sources:
     - https://github.com/bitnami/bitnami-docker-redis
     urls:
-    - charts/redis-10.5.11.tgz
+    - charts/redis-14.8.8.tgz
     version: 14.8.8
 generated: "2021-03-07T11:19:29.266593Z"

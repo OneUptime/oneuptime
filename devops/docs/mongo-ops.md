@@ -27,8 +27,6 @@ Important: Backup surving member. See backup section in this document for more i
 Resolution: Delete all statefulset and start again.
 
 ```
-kubectl delete statefulset fi-mongodb-arbiter fi-mongodb-primary fi-mongodb-secondary
-kubectl delete svc fi-mongodb fi-mongodb-arbiter-headless fi-mongodb-headless
 kubectl delete pvc datadir-fi-mongodb-primary-0 datadir-fi-mongodb-secondary-0
 
 # If staging
@@ -63,14 +61,16 @@ db.auditlogs.remove({})
 # Open MongoDB to the internet.
 
 sudo kubectl delete job fi-init-script
-sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.ingress.enabled=true fi ./helm-chart/public/fyipe
+
+sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.externalAccess.enabled=true --set mongodb.externalAccess.service.type=LoadBalancer --set externalAccess.service.port=27017 --set mongodb.externalAccess.autoDiscovery.enabled=true --set mongodb.serviceAccount.create=true --set mongodb.rbac.create=true fi ./helm-chart/public/fyipe
+
 ```
 
 Run
 
 `sudo kubectl get svc`
 
-and look for `mongo-ingress` resource. Copy External-IP address.
+and look for `mongo-x-external` resource, `x` can be any number from 0 and above. Copy External-IP address.
 
 **Step 2:** Copy MongoDB from source to destination
 
@@ -88,7 +88,9 @@ On source cluster:
 
 ```
 kubectl delete job fi-init-script
-helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.ingress.enabled=false fi ./helm-chart/public/fyipe
+
+sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.externalAccess.enabled=false --set mongodb.externalAccess.autoDiscovery.enabled=false --set mongodb.serviceAccount.create=false --set mongodb.rbac.create=false fi ./helm-chart/public/fyipe
+
 ```
 
 ## Method 2: Copy data locally and move to another MognoDB server.
@@ -145,14 +147,14 @@ Example:
 ## Misc commands
 
 Get into a MongoDB container with mongo shell:
-`sudo kubectl exec -it fi-mongodb-primary-0 mongo`
+`sudo kubectl exec -it fi-mongodb-0 mongo`
 
 ## Change / Rotate MongoDB Password
 
 Change root password:
 
 ```
-kubectl exec -it fi-mongodb-primary-0 mongo     # get into mongodb container.
+kubectl exec -it fi-mongodb-0 mongo     # get into mongodb container.
 db = db.getSiblingDB('admin')                   # Change to admin db
 db.auth("root", "<OLD-PASSWORD>")
 db.changeUserPassword("root", "<NEW-PASSWORD>")
@@ -162,7 +164,7 @@ exit                                            # This is important.
 Change user password:
 
 ```
-kubectl exec -it fi-mongodb-primary-0 mongo     # get into mongodb container.
+kubectl exec -it fi-mongodb-0 mongo     # get into mongodb container.
 db = db.getSiblingDB('admin')                   # Change to admin db
 db.auth("root", "<OLD-PASSWORD>")
 use fyipedb
@@ -173,7 +175,7 @@ exit                                            # This is important.
 ## Set a member as master admin of Fyipe.
 
 ```
-kubectl exec -it fi-mongodb-primary-0 mongo
+kubectl exec -it fi-mongodb-0 mongo
 use fyipedb
 db.auth('fyipe','password')
 db.users.find({email: 'admin@fyipe.com'}) # Master admin user. Should be already signed up.
