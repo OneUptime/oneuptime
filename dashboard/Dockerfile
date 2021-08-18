@@ -20,12 +20,12 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY package*.json /usr/src/app/
-RUN npm ci --only=production
+RUN npm ci --only=production --legacy-peer-deps
 
 # Copy app source
 COPY . /usr/src/app
 
-# Install purgecss to mame CSS files smaller. 
+# Install purgecss to make CSS files smaller. 
 RUN npm install purgecss -g
 
 # Bundle app source
