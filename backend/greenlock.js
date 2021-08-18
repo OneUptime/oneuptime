@@ -25,10 +25,14 @@ const greenlock = Gl.create({
 
 mongoose.connection.on('connected', () => {
     console.log('** greenlock **', greenlock);
-    // greenlock.manager.defaults({
-    //     agreeToTerms: true,
-    //     subscriberEmail: 'certs@fyipe.com',
-    // });
+    try {
+        greenlock.manager.defaults({
+            agreeToTerms: true,
+            subscriberEmail: 'certs@fyipe.com',
+        });
+    } catch (error) {
+        console.log('** error **', error);
+    }
 });
 
 module.exports = greenlock;
