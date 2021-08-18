@@ -345,7 +345,7 @@ const server = http.listen(app.get('port'), function() {
     console.log('Server Started on port ' + app.get('port'));
 });
 
-require('./greenlock');
+// require('./greenlock');
 
 module.exports = app;
 module.exports.close = function() {
