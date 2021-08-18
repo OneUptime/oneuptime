@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
@@ -88,8 +89,13 @@ class Webhook extends Component {
                 {this.props.subscribed &&
                 this.props.subscribed.success ? null : (
                     <div className="directions">
-                        Get webhook notifications when an incident is{' '}
-                        <b>created</b>.
+                        <Translate>
+                            Get webhook notifications when an incident is
+                        </Translate>{' '}
+                        <b>
+                            <Translate>created</Translate>
+                        </b>
+                        .
                     </div>
                 )}
                 <form
@@ -106,8 +112,10 @@ class Webhook extends Component {
                                 className="subscriber-success"
                                 id="monitor-subscribe-success-message"
                             >
-                                You have subscribed to this status page
-                                successfully
+                                <Translate>
+                                    You have subscribed to this status page
+                                    successfully
+                                </Translate>
                             </span>
                         </div>
                     ) : (
@@ -124,7 +132,9 @@ class Webhook extends Component {
                                 className="small"
                                 style={{ margin: '-5px 0px 5px 4px' }}
                             >
-                                The URL we should send the updates to.
+                                <Translate>
+                                    The URL we should send the updates to.
+                                </Translate>
                             </p>
                             <input
                                 type="text"
@@ -138,7 +148,10 @@ class Webhook extends Component {
                                 className="small"
                                 style={{ margin: '-5px 0px 10px 4px' }}
                             >
-                                We will send you email if your endpoint fails.
+                                <Translate>
+                                    We will send you email if your endpoint
+                                    fails.
+                                </Translate>
                             </p>
                         </>
                     )}
@@ -164,8 +177,10 @@ class Webhook extends Component {
                     <div className="validation-error">
                         <span className="validation-error-icon"></span>
                         <span className="error-text">
-                            {this.props.subscribed &&
-                                this.props.subscribed.error}
+                            <Translate>
+                                {this.props.subscribed &&
+                                    this.props.subscribed.error}
+                            </Translate>
                         </span>
                     </div>
                 </ShouldRender>

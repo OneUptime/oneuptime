@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { withRouter } from 'react-router-dom';
@@ -18,17 +19,25 @@ class Notes extends Component {
 
         if (incidentTimeline) {
             if (incident.resolved) {
-                timelineStatus = <span className="note_status">Resolved</span>;
+                timelineStatus = (
+                    <span className="note_status">
+                        <Translate>Resolved</Translate>{' '}
+                    </span>
+                );
             }
 
             if (incident.acknowledged && !incident.resolved) {
                 timelineStatus = (
-                    <span className="note_status">Acknowledged</span>
+                    <span className="note_status">
+                        <Translate>Acknowledged</Translate>{' '}
+                    </span>
                 );
             }
             if (!incident.resolved && !incident.acknowledged) {
                 timelineStatus = (
-                    <span className="note_status">Identified</span>
+                    <span className="note_status">
+                        <Translate>Identified</Translate>
+                    </span>
                 );
             }
 
@@ -37,7 +46,9 @@ class Notes extends Component {
                 incidentTimeline.status === 'investigation notes deleted'
             ) {
                 timelineStatus = (
-                    <span className="note_status">Deleted a note</span>
+                    <span className="note_status">
+                        <Translate>Deleted a note</Translate>
+                    </span>
                 );
             }
             if (incidentTimeline.incident_state) {
@@ -88,7 +99,12 @@ class Notes extends Component {
         return (
             <ShouldRender if={this.props.notes}>
                 {this.props.notes.map((note, i) => {
-                    if (!note) return <div>No note</div>;
+                    if (!note)
+                        return (
+                            <div>
+                                <Translate>No note</Translate>
+                            </div>
+                        );
 
                     return (
                         <li
@@ -164,7 +180,7 @@ class Notes extends Component {
                                     className="ongoing__affectedmonitor--title"
                                     style={{ color: 'rgba(76, 76, 76, 0.8)' }}
                                 >
-                                    Resource Affected:
+                                    <Translate>Resource Affected:</Translate>
                                 </span>{' '}
                                 <span
                                     className="ongoing__affectedmonitor--content"

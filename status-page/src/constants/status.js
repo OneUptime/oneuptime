@@ -138,3 +138,6 @@ export const FETCH_EXTERNAL_STATUSPAGES_FAILURE =
 
 //fetch all resources
 export const FETCH_ALL_RESOURCES_SUCCESS = 'FETCH_ALL_RESOURCES_SUCCESS';
+
+//handle language change
+export const TRANSLATE_LANGUAGE = 'TRANSLATE_LANGUAGE';

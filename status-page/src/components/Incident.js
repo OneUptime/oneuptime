@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
@@ -131,8 +132,13 @@ class Incident extends Component {
             if (!incident.acknowledged && !incident.resolved) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status: </span>
-                        <span style={{ marginLeft: 5 }}>Identified</span>
+                        <span style={incidentStatus}>
+                            {' '}
+                            <Translate>Incident Status: </Translate>{' '}
+                        </span>
+                        <span style={{ marginLeft: 5 }}>
+                            <Translate>Identified</Translate>
+                        </span>
                     </span>
                 );
             }
@@ -142,9 +148,14 @@ class Incident extends Component {
             ) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status: </span>
+                        <span style={incidentStatus}>
+                            {' '}
+                            <Translate>Incident Status:</Translate>{' '}
+                        </span>
                         <span className="time__wrapper">
-                            <span>Deleted a note</span>
+                            <span>
+                                <Translate>Deleted a note</Translate>{' '}
+                            </span>
                             {incident.acknowledged && incident.resolved && (
                                 <span
                                     title="Resolved"
@@ -164,7 +175,9 @@ class Incident extends Component {
             if (incident.acknowledged) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status:</span>
+                        <span style={incidentStatus}>
+                            <Translate>Incident Status:</Translate>
+                        </span>
                         <span className="time__wrapper">
                             This incident was acknowledged on{' '}
                             {moment(incident.acknowledgedAt).format(
@@ -181,7 +194,9 @@ class Incident extends Component {
             if (incident.resolved) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status:</span>
+                        <span style={incidentStatus}>
+                            <Translate>Incident Status:</Translate>{' '}
+                        </span>
                         <span className="time__wrapper">
                             This incident was resolved on{' '}
                             {moment(incident.resolvedAt).format(
@@ -198,7 +213,9 @@ class Incident extends Component {
             if (lastIncidentTimeline.incident_state) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status: </span>
+                        <span style={incidentStatus}>
+                            <Translate>Incident Status:</Translate>{' '}
+                        </span>
                         <span style={{ marginLeft: 5 }}>
                             {capitalize(lastIncidentTimeline.incident_state)}
                         </span>
@@ -208,7 +225,9 @@ class Incident extends Component {
             if (lastIncidentTimeline.incident_state && incident.acknowledged) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status:</span>
+                        <span style={incidentStatus}>
+                            <Translate>Incident Status:</Translate>
+                        </span>
                         <span className="time__wrapper">
                             <span>
                                 {capitalize(
@@ -226,7 +245,9 @@ class Incident extends Component {
             if (lastIncidentTimeline.incident_state && incident.resolved) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status:</span>
+                        <span style={incidentStatus}>
+                            <Translate>Incident Status:</Translate>
+                        </span>
                         <span className="time__wrapper">
                             <span>
                                 {capitalize(
@@ -345,7 +366,7 @@ class Incident extends Component {
                                         color: 'rgba(0, 0, 0, 0.8)',
                                     }}
                                 >
-                                    Resource Affected:
+                                    <Translate>Resource Affected:</Translate>
                                 </span>{' '}
                                 <span
                                     className="ongoing__affectedmonitor--content"
@@ -476,7 +497,9 @@ class Incident extends Component {
                                                 color: 'rgb(76, 76, 76)',
                                             }}
                                         >
-                                            No incident updates yet.
+                                            <Translate>
+                                                No incident updates yet.
+                                            </Translate>
                                         </span>
                                     </div>
                                 )}
@@ -532,7 +555,7 @@ class Incident extends Component {
                                                 marginLeft: 25,
                                             }}
                                         >
-                                            Incident
+                                            <Translate>Incident</Translate>
                                         </span>
                                         {!fetchingIncident && incident.title && (
                                             <>
@@ -577,7 +600,9 @@ class Incident extends Component {
                                                                 'rgba(76, 76, 76, 0.8)',
                                                         }}
                                                     >
-                                                        Resource Affected:
+                                                        <Translate>
+                                                            Resource Affected:
+                                                        </Translate>
                                                     </span>{' '}
                                                     <span
                                                         className="ongoing__affectedmonitor--content"
@@ -613,8 +638,11 @@ class Incident extends Component {
                                                     }}
                                                 >
                                                     <span>
-                                                        This incident was
-                                                        created on
+                                                        <Translate>
+                                                            {' '}
+                                                            This incident was
+                                                            created on
+                                                        </Translate>
                                                     </span>{' '}
                                                     <span className="time">
                                                         {moment(
@@ -657,7 +685,9 @@ class Incident extends Component {
                                                         fontWeight: 'bold',
                                                     }}
                                                 >
-                                                    Incident Updates
+                                                    <Translate>
+                                                        Incident Updates
+                                                    </Translate>
                                                 </span>
                                             </div>
                                         </ShouldRender>
@@ -774,7 +804,10 @@ class Incident extends Component {
                                                                     'rgb(76, 76, 76)',
                                                             }}
                                                         >
-                                                            No incident updates
+                                                            <Translate>
+                                                                No incident
+                                                                updates
+                                                            </Translate>
                                                             yet.
                                                         </span>
                                                     </li>
@@ -792,7 +825,7 @@ class Incident extends Component {
                                             className="more button-as-anchor anchor-centered"
                                             onClick={() => this.more()}
                                         >
-                                            More
+                                            <Translate>More</Translate>
                                         </button>
                                     </ShouldRender>
                                 </div>
@@ -846,7 +879,7 @@ class Incident extends Component {
                                 width: '100%',
                             }}
                         >
-                            Back to status page
+                            <Translate>Back to status page</Translate>
                         </span>
                         <p>
                             <a
@@ -855,7 +888,7 @@ class Incident extends Component {
                                 rel="noopener noreferrer"
                                 style={{ color: 'rgb(76, 76, 76)' }}
                             >
-                                Powered by Fyipe
+                                <Translate>Powered by</Translate> Fyipe
                             </a>
                         </p>
                     </div>

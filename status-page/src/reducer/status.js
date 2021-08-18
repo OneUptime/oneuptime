@@ -88,6 +88,7 @@ import {
     FETCH_EXTERNAL_STATUSPAGES_REQUEST,
     FETCH_EXTERNAL_STATUSPAGES_SUCCESS,
     FETCH_EXTERNAL_STATUSPAGES_FAILURE,
+    TRANSLATE_LANGUAGE,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -190,6 +191,7 @@ const INITIAL_STATE = {
     },
     moreIncidentNotes: false,
     moreIncidentNotesError: null,
+    language: 'english',
     lastIncidentTimeline: {
         requesting: false,
         success: false,
@@ -1924,6 +1926,12 @@ export default (state = INITIAL_STATE, action) => {
             return {
                 ...state,
                 showEventCard: action.payload,
+            };
+
+        case TRANSLATE_LANGUAGE:
+            return {
+                ...state,
+                language: action.payload,
             };
 
         case SHOW_INCIDENT_CARD:

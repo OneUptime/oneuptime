@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import SubscribeBox from './Subscribe/SubscribeBox';
+import { Translate } from 'react-auto-translate';
 
 const NewThemeSubscriber = () => {
     const [isShown, setIsShown] = useState(false);
@@ -32,7 +33,7 @@ const NewThemeSubscriber = () => {
     return (
         <div className="popup-menu-container" id="subscriber-button">
             <button className="subscribe_btn" onClick={handleToggleButtonClick}>
-                subscribe to updates
+                <Translate>subscribe to updates</Translate>
             </button>
             <div
                 className={`popup-menu ${isShown ? 'shown' : ''}`}

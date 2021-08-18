@@ -1490,3 +1490,9 @@ export function fetchExternalStatusPages(projectId, statusPageId) {
         return promise;
     };
 }
+export function translateLanguage(payload) {
+    return {
+        type: types.TRANSLATE_LANGUAGE,
+        payload,
+    };
+}

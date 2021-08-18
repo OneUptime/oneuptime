@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+//import { Translate } from 'react-auto-translate';
 import {
     ResponsiveContainer,
     AreaChart as Chart,
