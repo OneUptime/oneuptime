@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PropTypes } from 'prop-types';
+import ShouldRender from '../basic/ShouldRender';
 
-const DropDownMenu = ({ options, value, updateState }) => {
+const DropDownMenu = ({ options, value, updateState, id }) => {
     const [open, setOpen] = useState(false);
     const container = useRef(null);
 
@@ -30,6 +31,7 @@ const DropDownMenu = ({ options, value, updateState }) => {
             <button
                 type="button"
                 className="bs-Button bs-DeprecatedButton ddm-button"
+                id={id}
                 onClick={() => setOpen(!open)}
             >
                 <div>{value}</div>
@@ -38,14 +40,15 @@ const DropDownMenu = ({ options, value, updateState }) => {
             {open && (
                 <div className="ddm-dropdown-wrapper">
                     <ul className="ddm-dropdown-menu">
-                        {options.map((val, index) => (
-                            <li
-                                key={index}
-                                className="ddm-dropdown-menu__item"
-                                onClick={() => onClick(val)}
-                            >
-                                {val}
-                            </li>
+                        {options.map((data, index) => (
+                            <ShouldRender key={index} if={data.show}>
+                                <li
+                                    className="ddm-dropdown-menu__item"
+                                    onClick={() => onClick(data.value)}
+                                >
+                                    {data.value}
+                                </li>
+                            </ShouldRender>
                         ))}
                     </ul>
                 </div>
@@ -60,6 +63,7 @@ DropDownMenu.propTypes = {
     options: PropTypes.array,
     value: PropTypes.string,
     updateState: PropTypes.func,
+    id: PropTypes.string,
 };
 
 export default DropDownMenu;
