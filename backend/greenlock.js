@@ -1,4 +1,6 @@
 const Gl = require('greenlock');
+const mongoose = require('./backend/config/db');
+
 const greenlock = Gl.create({
     manager: 'fyipe-gl-manager',
     packageRoot: __dirname,
@@ -21,9 +23,11 @@ const greenlock = Gl.create({
     },
 });
 
-greenlock.manager.defaults({
-    agreeToTerms: true,
-    subscriberEmail: 'certs@fyipe.com',
-});
+mongoose.connection.on('connected', () =>
+    greenlock.manager.defaults({
+        agreeToTerms: true,
+        subscriberEmail: 'certs@fyipe.com',
+    })
+);
 
 module.exports = greenlock;
