@@ -452,8 +452,16 @@ class NewScript extends Component {
                                                     <div className="bs-Fieldset-fields">
                                                         <DropDownMenu
                                                             options={[
-                                                                'JavaScript',
-                                                                'Bash',
+                                                                {
+                                                                    value:
+                                                                        'JavaScript',
+                                                                    show: true,
+                                                                },
+                                                                {
+                                                                    value:
+                                                                        'Bash',
+                                                                    show: true,
+                                                                },
                                                             ]}
                                                             value={
                                                                 this.state.type

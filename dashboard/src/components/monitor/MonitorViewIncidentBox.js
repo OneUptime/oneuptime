@@ -143,9 +143,18 @@ export class MonitorViewIncidentBox extends Component {
                             <span className="Margin-right--8">
                                 <DropDownMenu
                                     options={[
-                                        'Clear Filters',
-                                        'Unacknowledged',
-                                        'Unresolved',
+                                        {
+                                            value: 'Clear Filters',
+                                            show: true,
+                                        },
+                                        {
+                                            value: 'Unacknowledged',
+                                            show: true,
+                                        },
+                                        {
+                                            value: 'Unresolved',
+                                            show: true,
+                                        },
                                     ]}
                                     value={filterOption}
                                     updateState={val => {
