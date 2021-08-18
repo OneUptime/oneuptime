@@ -16,16 +16,31 @@ router.get(
         try {
             const { projectId } = req.params;
             const { limit, skip } = req.query;
-            const allIncomingRequest = await IncomingRequestService.findBy(
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
                 {
-                    projectId,
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
                 },
-                limit,
-                skip
-            );
-            const count = await IncomingRequestService.countBy({
-                projectId,
-            });
+                { path: 'projectId', select: 'name' },
+            ];
+            const [allIncomingRequest, count] = await Promise.all([
+                IncomingRequestService.findBy({
+                    query: {
+                        projectId,
+                    },
+                    limit,
+                    skip,
+                    select,
+                    populate,
+                }),
+                IncomingRequestService.countBy({
+                    projectId,
+                }),
+            ]);
 
             return sendListResponse(req, res, allIncomingRequest, count);
         } catch (error) {
@@ -50,10 +65,21 @@ router.post(
                 error.code = 400;
                 throw error;
             }
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
             let incomingRequest = await IncomingRequestService.findOneBy({
-                name: data.name,
-                projectId,
+                query: { name: data.name, projectId },
+                select,
+                populate,
             });
             if (incomingRequest) {
                 const error = new Error(
@@ -94,10 +120,22 @@ router.put(
                 error.code = 400;
                 throw error;
             }
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
 
             let incomingRequest = await IncomingRequestService.findOneBy({
-                name: data.name,
-                projectId,
+                query: { name: data.name, projectId },
+                select,
+                populate,
             });
             if (
                 incomingRequest &&
@@ -183,5 +221,52 @@ router.get('/:projectId/request/:requestId', async function(req, res) {
         return sendErrorResponse(req, res, error);
     }
 });
+
+router.post(
+    '/:projectId/toggle/:requestId',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        try {
+            const { projectId, requestId } = req.params;
+            const data = req.body;
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
+
+            let incomingRequest = await IncomingRequestService.findOneBy({
+                query: { name: data.name, projectId },
+                select,
+                populate,
+            });
+            if (
+                incomingRequest &&
+                String(incomingRequest._id) !== String(requestId)
+            ) {
+                const error = new Error(
+                    'Incoming request with this name already exist'
+                );
+                error.code = 400;
+                throw error;
+            }
+
+            incomingRequest = await IncomingRequestService.updateOneBy(
+                { requestId, projectId },
+                data
+            );
+            return sendItemResponse(req, res, incomingRequest);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 module.exports = router;

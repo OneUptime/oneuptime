@@ -1,4 +1,5 @@
 #
+sudo dpkg --configure -a
 echo "Running Cleanup Script..."
 if [[ $(which helm) ]]
 then

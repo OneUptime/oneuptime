@@ -34,6 +34,7 @@ services:
             - REDIS_HOST=redis
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SCRIPT_RUNNER_URL=http://script-runner:3009
+            - CLUSTER_KEY=test
         depends_on:
             - mongo
             - redis
@@ -107,6 +108,32 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
         build: ./licensing
+    data-ingestor:
+        ports:
+            - '3200:3200'
+        build: ./data-ingestor
+        env_file:
+            - ./data-ingestor/.env
+        environment:
+            - SERVER_URL=http://backend:3002
+            - CLUSTER_KEY=test
+            - SCRIPT_RUNNER_URL=http://script-runner:3009
+            - MONGO_URL=mongodb://mongo:27017/fyipedb
+            - REALTIME_URL=http://realtime:3300
+        depends_on:
+            - mongo
+            - script-runner
+            - backend
+            - realtime
+    realtime:
+        ports:
+            - '3300:3300'
+        build: ./realtime
+        env_file:
+            - ./realtime/.env
+        environment:
+            - CLUSTER_KEY=test
+            - PORT=3300
     probe1:
         ports:
             - '3024:3024'
@@ -119,8 +146,11 @@ services:
             - PROBE_NAME=Probe 1
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
+            - DATA_INGESTOR_URL=http://data-ingestor:3200
         depends_on:
             - backend
+            - data-ingestor
     probe2:
         ports:
             - '3025:3025'
@@ -133,8 +163,11 @@ services:
             - PROBE_NAME=Probe 2
             - PROBE_KEY=test-key
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
+            - DATA_INGESTOR_URL=http://data-ingestor:3200
         depends_on:
             - backend
+            - data-ingestor
     api-docs:
         ports:
             - '1445:1445'
@@ -183,6 +216,7 @@ services:
         environment:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SERVER_URL=http://backend:3002
+            - CLUSTER_KEY=test
     application-scanner:
         ports:
             - '3005:3005'
@@ -193,6 +227,33 @@ services:
             - PORT=3005
             - SERVER_URL=http://backend:3002
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
+        depends_on:
+            - backend
+    container-scanner:
+        ports:
+            - '3055:3055'
+        build: ./container-scanner
+        env_file:
+            - ./container-scanner/.env
+        environment:
+            - PORT=3055
+            - SERVER_URL=http://backend:3002
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
+        depends_on:
+            - backend
+    lighthouse-runner:
+        ports:
+            - '3015:3015'
+        build: ./lighthouse-runner
+        env_file:
+            - ./lighthouse-runner/.env
+        environment:
+            - PORT=3015
+            - SERVER_URL=http://backend:3002
+            - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
+            - CLUSTER_KEY=test
         depends_on:
             - backend
 

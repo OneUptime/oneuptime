@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Translator, Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import UptimeLegend from './UptimeLegend';
 import NoMonitor from './NoMonitor';
@@ -13,6 +14,7 @@ import {
     getServiceStatus,
     filterProbeData,
     getMonitorStatus,
+    cacheProvider,
 } from '../config';
 import moment from 'moment';
 import { Helmet } from 'react-helmet';
@@ -23,17 +25,25 @@ import {
     selectedProbe,
     getScheduledEvent,
     getOngoingScheduledEvent,
+    getAllStatusPageResource,
 } from '../actions/status';
 import { getProbes } from '../actions/probe';
 import LineChartsContainer from './LineChartsContainer';
 import NewThemeEvent from './NewThemeEvent';
 import NewThemeSubscriber from './NewThemeSubscriber';
+import SelectLanguage from './SelectLanguage';
 import Announcement from './Announcement';
 import AnnouncementLogs from './AnnouncementLogs';
 import PastEvent from './PastEvent';
-import { fetchFutureEvents, fetchPastEvents } from '../actions/status';
+import {
+    fetchFutureEvents,
+    fetchPastEvents,
+    fetchTweets,
+} from '../actions/status';
 import OngoingSchedule from './OngoingSchedule';
 import Collapsible from './Collapsible/Collapsible';
+import Twitter from './Twitter';
+import ExternalStatusPages from './ExternalStatusPages';
 
 const greenBackground = {
     display: 'inline-block',
@@ -75,33 +85,11 @@ class Main extends Component {
         this.state = {
             now: Date.now(),
             nowHandler: null,
+            windowSize: window.innerWidth,
         };
     }
 
     componentDidUpdate(prevProps) {
-        const fetchData = (skip = 0, theme = false, limit = 5) => {
-            this.props.getOngoingScheduledEvent(
-                this.props.statusData.projectId._id,
-                this.props.statusData.slug,
-                skip,
-                theme,
-                limit
-            );
-            this.props.fetchFutureEvents(
-                this.props.statusData.projectId._id,
-                this.props.statusData.slug,
-                skip,
-                theme,
-                limit
-            );
-            this.props.fetchPastEvents(
-                this.props.statusData.slug,
-                this.props.statusData.slug,
-                skip,
-                theme,
-                limit
-            );
-        };
         if (
             JSON.stringify(prevProps.probes) !==
             JSON.stringify(this.props.probes)
@@ -112,11 +100,7 @@ class Main extends Component {
 
             this.setLastAlive();
         }
-        if (prevProps.statusData._id !== this.props.statusData._id) {
-            this.props.getProbes(this.props.statusData._id, 0, 10).then(() => {
-                this.selectbutton(this.props.activeProbe);
-            });
-        }
+
         if (
             prevProps.statusData.customJS !== this.props.statusData.customJS &&
             this.props.statusData.customJS
@@ -126,17 +110,15 @@ class Main extends Component {
                 .createContextualFragment(this.props.statusData.customJS);
             document.body.appendChild(javascript);
         }
+
         if (
-            JSON.stringify(prevProps.statusData.projectId) !==
-            JSON.stringify(this.props.statusData.projectId)
-        ) {
-            if (this.props.statusData.theme === 'Clean Theme') {
-                fetchData(0, true, this.props.scheduleHistoryDays || 14);
-            }
-            if (this.props.statusData.theme === 'Classic Theme') {
-                fetchData(0, false, 5);
-            }
-        }
+            !prevProps?.status?.statusPage?.twitterHandle &&
+            this.props.status?.statusPage?.twitterHandle
+        )
+            this.props.fetchTweets(
+                this.props.status?.statusPage?.twitterHandle,
+                this.props.status?.statusPage?.projectId?._id
+            );
     }
 
     setLastAlive = () => {
@@ -176,21 +158,34 @@ class Main extends Component {
             statusPageSlug = 'null';
             url = window.location.host;
         }
-        if (this.props.statusData._id) {
-            this.props.getProbes(this.props.statusData._id, 0, 10).then(() => {
-                this.selectbutton(this.props.activeProbe);
+
+        window.addEventListener('resize', () => {
+            this.setState({
+                windowSize: window.innerWidth,
             });
-        }
-
-        this.props.getStatusPage(statusPageSlug, url).catch(err => {
-            if (err.message === 'Request failed with status code 401') {
-                const { loginRequired } = this.props.login;
-                if (loginRequired) {
-                    window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
-                }
-            }
         });
-
+        let range;
+        const { windowSize } = this.state;
+        if (windowSize <= 600) {
+            range = 30;
+        }
+        if (windowSize > 600 && windowSize < 1000) {
+            range = 60;
+        }
+        if (windowSize >= 1000) {
+            range = 90;
+        }
+        this.props
+            .getAllStatusPageResource(statusPageSlug, url, range)
+            .catch(err => {
+                if (err.message === 'Request failed with status code 401') {
+                    const { loginRequired } = this.props.login;
+                    if (loginRequired) {
+                        window.location = `${ACCOUNTS_URL}/login?statusPage=true&statusPageURL=${window.location.href}`;
+                    }
+                    this.selectbutton(this.props.activeProbe);
+                }
+            });
         this.setLastAlive();
     }
 
@@ -207,7 +202,7 @@ class Main extends Component {
         return collectionArray;
     }
 
-    groupedMonitors = () => {
+    groupedMonitors = range => {
         if (
             this.props.statusData &&
             this.props.statusData.monitorsData !== undefined &&
@@ -237,12 +232,17 @@ class Main extends Component {
 
                         return this.CollapsableGroup(
                             categoryName,
-                            filteredResource
+                            filteredResource,
+                            range
                         );
                     })}
                     {uncategorized &&
                         uncategorized.length > 0 &&
-                        this.CollapsableGroup('Uncategorized', uncategorized)}
+                        this.CollapsableGroup(
+                            'Uncategorized',
+                            uncategorized,
+                            range
+                        )}
                 </div>
             );
         } else {
@@ -250,7 +250,7 @@ class Main extends Component {
         }
     };
 
-    CollapsableGroup = (categoryName, monitors) => {
+    CollapsableGroup = (categoryName, monitors, range) => {
         const { probes, activeProbe, statusData } = this.props;
         const theme = statusData.theme === 'Clean Theme' ? true : false;
 
@@ -307,15 +307,17 @@ class Main extends Component {
                 openIconClass="sp__icon sp__icon--up"
                 statusColorStyle={{
                     borderRadius: ' 100px',
-                    height: '8px',
-                    width: '8px',
+                    height: '10px',
+                    width: '10px',
                     backgroundColor: categoryStatusBk,
+                    marginRight: 8,
                 }}
             >
                 {monitors.map((monitor, i) => {
                     return (
                         <>
                             <MonitorInfo
+                                range={range}
                                 monitor={monitor}
                                 selectedCharts={
                                     this.props.monitors.filter(
@@ -331,6 +333,15 @@ class Main extends Component {
                                     'Clean Theme'
                                         ? true
                                         : false
+                                }
+                                onlineText={
+                                    statusData.onlineText || 'Operational'
+                                }
+                                offlineText={
+                                    statusData.offlineText || 'Offline'
+                                }
+                                degradedText={
+                                    statusData.degradedText || 'Degraded'
                                 }
                             />
                             {this.props.monitors.some(
@@ -395,6 +406,11 @@ class Main extends Component {
         if (this.state.nowHandler) {
             clearTimeout(this.state.nowHandler);
         }
+        window.removeEventListener('resize', () => {
+            this.setState({
+                windowSize: window.innerWidth,
+            });
+        });
     }
 
     render() {
@@ -403,6 +419,9 @@ class Main extends Component {
             footerHTML,
             customCSS,
             theme,
+            onlineText = 'operational',
+            offlineText = 'offline',
+            degradedText = 'degraded',
         } = this.props.statusData;
         const sanitizedCSS = customCSS ? customCSS.split('↵').join('') : '';
         const probes = this.props.probes;
@@ -476,36 +495,36 @@ class Main extends Component {
 
             if (serviceStatus === 'all') {
                 status = 'status-bubble status-up';
-                statusMessage = 'All services are online';
+                statusMessage = `All services are ${onlineText.toLowerCase()}`;
                 faviconurl = '/status-page/greenfavicon.ico';
-                newStatusMessage = 'All resources are operational';
+                newStatusMessage = `All resources are ${onlineText.toLowerCase()}`;
                 newbg =
                     uptimeColor.backgroundColor === 'rgba(108, 219, 86, 1)'
                         ? '#49c3b1'
                         : uptimeColor.backgroundColor;
             } else if (serviceStatus === 'some') {
                 status = 'status-bubble status-down';
-                statusMessage = 'Some services are offline';
+                statusMessage = `Some services are ${offlineText.toLowerCase()}`;
                 faviconurl = '/status-page/redfavicon.ico';
-                newStatusMessage = 'Some resources are offline';
+                newStatusMessage = `Some resources are ${offlineText.toLowerCase()}`;
                 newbg =
                     downtimeColor.backgroundColor === 'rgba(250, 109, 70, 1)'
                         ? '#FA6D46'
                         : downtimeColor.backgroundColor;
             } else if (serviceStatus === 'none') {
                 status = 'status-bubble status-down';
-                statusMessage = 'All services are offline';
+                statusMessage = `All services are ${offlineText.toLowerCase()}`;
                 faviconurl = '/status-page/redfavicon.ico';
-                newStatusMessage = 'All resources are offline';
+                newStatusMessage = `All resources are ${offlineText.toLowerCase()}`;
                 newbg =
                     downtimeColor.backgroundColor === 'rgba(250, 109, 70, 1)'
                         ? '#FA6D46'
                         : downtimeColor.backgroundColor;
             } else if (serviceStatus === 'some-degraded') {
                 status = 'status-bubble status-paused';
-                statusMessage = 'Some services are degraded';
+                statusMessage = `Some services are ${degradedText.toLowerCase()}`;
                 faviconurl = '/status-page/yellowfavicon.ico';
-                newStatusMessage = 'Some resources are degraded';
+                newStatusMessage = `Some resources are ${degradedText.toLowerCase()}`;
                 newbg =
                     degradedColor.backgroundColor === 'rgba(255, 222, 36, 1)'
                         ? '#e39f48'
@@ -552,10 +571,12 @@ class Main extends Component {
         const defaultLayout = {
             visible: [
                 { name: 'Header', key: 'header' },
+
                 {
                     name: 'Active Announcement',
                     key: 'anouncement',
                 },
+                { name: 'Language', key: 'language' },
                 {
                     name: 'Ongoing Scheduled Events',
                     key: 'ongoingSchedule',
@@ -569,6 +590,8 @@ class Main extends Component {
             ],
             invisible: [
                 { name: 'Scheduled Events Completed', key: 'pastEvents' },
+                { name: 'Twitter Updates', key: 'twitter' },
+                { name: 'External Status Pages', key: 'externalStatusPage' },
             ],
         };
 
@@ -577,6 +600,18 @@ class Main extends Component {
         //check if the layout has been set if not fall back to the default layout
         if (!visibleLayout) {
             visibleLayout = defaultLayout;
+        }
+
+        let range;
+        const { windowSize } = this.state;
+        if (windowSize <= 600) {
+            range = 30;
+        }
+        if (windowSize > 600 && windowSize < 1000) {
+            range = 60;
+        }
+        if (windowSize >= 1000) {
+            range = 90;
         }
 
         const layoutObj = {
@@ -655,14 +690,27 @@ class Main extends Component {
                                     </div>
                                 </ShouldRender>
                             </div>
-                            <ShouldRender
-                                if={
-                                    this.props.isSubscriberEnabled === true &&
-                                    showSubscriberOption
-                                }
-                            >
-                                <NewThemeSubscriber />
-                            </ShouldRender>
+                            <div style={{ display: 'flex' }}>
+                                <ShouldRender
+                                    if={
+                                        this.props.isSubscriberEnabled ===
+                                            true && showSubscriberOption
+                                    }
+                                >
+                                    <NewThemeSubscriber />
+                                </ShouldRender>
+                                <ShouldRender
+                                    if={
+                                        this.props.statusPage
+                                            .enableMultipleLanguage
+                                    }
+                                >
+                                    <SelectLanguage
+                                        theme={true}
+                                        languageMenu={this.props.languageMenu}
+                                    />
+                                </ShouldRender>
+                            </div>
                         </div>
                     </ShouldRender>
                 </>
@@ -688,9 +736,11 @@ class Main extends Component {
                     }}
                     id="status-note"
                 >
-                    {this.props.ongoing && this.props.ongoing.length > 0
-                        ? 'Ongoing Scheduled Maintenance Event'
-                        : newStatusMessage}
+                    <Translate>
+                        {this.props.ongoing && this.props.ongoing.length > 0
+                            ? 'Ongoing Scheduled Maintenance Event'
+                            : newStatusMessage}
+                    </Translate>
                 </div>
             ),
             services: (
@@ -739,7 +789,7 @@ class Main extends Component {
                                             padding: 0,
                                         }}
                                     >
-                                        {this.groupedMonitors()}
+                                        {this.groupedMonitors(range)}
                                     </div>
                                 ) : this.props.statusData &&
                                   this.props.statusData.monitorsData !==
@@ -765,6 +815,7 @@ class Main extends Component {
                                                 key={i}
                                             >
                                                 <MonitorInfo
+                                                    range={range}
                                                     monitor={
                                                         this.props.statusData.monitorsData.filter(
                                                             m =>
@@ -780,6 +831,21 @@ class Main extends Component {
                                                         isGroupedByMonitorCategory
                                                     }
                                                     theme={'clean'}
+                                                    onlineText={
+                                                        this.props.statusData
+                                                            .onlineText ||
+                                                        'Operational'
+                                                    }
+                                                    offlineText={
+                                                        this.props.statusData
+                                                            .offlineText ||
+                                                        'Offline'
+                                                    }
+                                                    degradedText={
+                                                        this.props.statusData
+                                                            .degradedText ||
+                                                        'Degraded'
+                                                    }
                                                 />
                                                 <LineChartsContainer
                                                     monitor={
@@ -822,7 +888,7 @@ class Main extends Component {
                     }}
                 >
                     <div className="font-largest" style={heading}>
-                        Incidents
+                        <Translate>Incidents</Translate>
                     </div>
                     <NotesMain
                         projectId={
@@ -875,7 +941,7 @@ class Main extends Component {
                         style={contentBackground}
                     >
                         <div className="font-largest" style={heading}>
-                            Scheduled Events Completed
+                            <Translate>Scheduled Events Completed</Translate>
                         </div>
                         <NewThemeEvent
                             projectId={
@@ -912,6 +978,28 @@ class Main extends Component {
                     />
                 </div>
             ),
+            externalStatusPage: (
+                <div
+                    className="new-theme-incident matop-40"
+                    style={{
+                        width: '100%',
+                        ...contentBackground,
+                    }}
+                >
+                    <div className="font-largest">External Status Pages</div>
+                    <ExternalStatusPages theme={theme} />
+                </div>
+            ),
+            twitter: (
+                <div>
+                    <Twitter
+                        theme={theme}
+                        tweets={this.props.tweetData}
+                        loading={this.props.status.tweets.requesting}
+                        error={this.props.status.tweets.error}
+                    />
+                </div>
+            ),
             footer: (
                 <div className="powered">
                     <FooterCard
@@ -932,6 +1020,29 @@ class Main extends Component {
                     heading={heading}
                     {...this.props}
                 />
+            ),
+            language: (
+                <div
+                    className="white box"
+                    style={{
+                        background: 'rgb(253, 253, 253)',
+                        marginTop: '50px',
+                        width: '100%',
+                        padding: 20,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingLeft: '40px',
+                        paddingRight: '40px',
+                    }}
+                >
+                    <div>
+                        <span>
+                            <Translate>Choose Language</Translate>
+                        </span>
+                    </div>
+                    <SelectLanguage languageMenu={this.props.languageMenu} />
+                </div>
             ),
             incidents: (
                 <NotesMain
@@ -983,18 +1094,22 @@ class Main extends Component {
                             ></span>
                             <div className="title-wrapper">
                                 <span className="title" style={heading}>
-                                    {this.props.ongoing &&
-                                    this.props.ongoing.length > 0
-                                        ? 'Ongoing Scheduled Maintenance Event'
-                                        : statusMessage}
+                                    <Translate>
+                                        {this.props.ongoing &&
+                                        this.props.ongoing.length > 0
+                                            ? 'Ongoing Scheduled Maintenance Event'
+                                            : statusMessage}
+                                    </Translate>
                                 </span>
                                 <label
                                     className="status-time"
                                     style={secondaryText}
                                 >
-                                    As of{' '}
+                                    <Translate>As of</Translate>{' '}
                                     <span className="current-time">
-                                        {moment(new Date()).format('LLLL')}
+                                        <Translate>
+                                            {moment(new Date()).format('LLLL')}
+                                        </Translate>
                                     </span>
                                 </label>
                             </div>
@@ -1073,6 +1188,7 @@ class Main extends Component {
                                             .map((monitor, i) => (
                                                 <>
                                                     <MonitorInfo
+                                                        range={range}
                                                         monitor={
                                                             this.props.statusData.monitorsData.filter(
                                                                 m =>
@@ -1087,6 +1203,24 @@ class Main extends Component {
                                                         id={`monitor${i}`}
                                                         isGroupedByMonitorCategory={
                                                             isGroupedByMonitorCategory
+                                                        }
+                                                        onlineText={
+                                                            this.props
+                                                                .statusData
+                                                                .onlineText ||
+                                                            'Operational'
+                                                        }
+                                                        offlineText={
+                                                            this.props
+                                                                .statusData
+                                                                .offlineText ||
+                                                            'Offline'
+                                                        }
+                                                        degradedText={
+                                                            this.props
+                                                                .statusData
+                                                                .degradedText ||
+                                                            'Degraded'
                                                         }
                                                     />
                                                     <LineChartsContainer
@@ -1250,6 +1384,22 @@ class Main extends Component {
                 ) : (
                     ''
                 ),
+            externalStatusPage: (
+                <div>
+                    {' '}
+                    <ExternalStatusPages theme={theme} />
+                </div>
+            ),
+            twitter: (
+                <div>
+                    <Twitter
+                        theme={theme}
+                        tweets={this.props.tweetData}
+                        loading={this.props.status.tweets.requesting}
+                        error={this.props.status.tweets.error}
+                    />
+                </div>
+            ),
             footer: (
                 <FooterCard
                     footerHTML={footerHTML}
@@ -1259,9 +1409,20 @@ class Main extends Component {
                 />
             ),
         };
-
+        const langObj = {
+            dutch: 'nl',
+            spanish: 'es',
+            french: 'fr',
+            english: 'en',
+            german: 'nl',
+        };
         return (
-            <>
+            <Translator
+                cacheProvider={cacheProvider}
+                from="en"
+                to={langObj[this.props.language]}
+                googleApiKey={process.env.REACT_APP_GOOGLE_TRANSLATE_API_KEY}
+            >
                 {theme === 'Clean Theme' ? (
                     <>
                         <div
@@ -1302,6 +1463,22 @@ class Main extends Component {
                                     visibleLayout.visible.map(layout => {
                                         if (layout.key === 'header') {
                                             return <>{theme2Obj[layout.key]}</>;
+                                        } else if (layout.key === 'language') {
+                                            if (
+                                                this.props.statusPage
+                                                    .enableMultipleLanguage
+                                            ) {
+                                                return (
+                                                    <div
+                                                        key={layout.key}
+                                                        className="innernew"
+                                                    >
+                                                        {theme2Obj[layout.key]}
+                                                    </div>
+                                                );
+                                            } else {
+                                                return null;
+                                            }
                                         } else {
                                             return (
                                                 <div
@@ -1397,7 +1574,7 @@ class Main extends Component {
                         </ShouldRender>
                     </div>
                 )}
-            </>
+            </Translator>
         );
     }
 }
@@ -1414,6 +1591,7 @@ const mapStateToProps = state => {
         );
     const futureEvents = state.status.futureEvents.events;
     const pastEvents = state.status.pastEvents.events;
+    const tweetData = state.status.tweets.tweetList;
     return {
         status: state.status,
         statusData: state.status.statusPage,
@@ -1427,9 +1605,12 @@ const mapStateToProps = state => {
         statusPage: state.status.statusPage,
         isSubscriberEnabled: state.status.statusPage.isSubscriberEnabled,
         scheduleHistoryDays: state.status.statusPage.scheduleHistoryDays,
+        languageMenu: state.subscribe.languageMenu,
         ongoing,
         futureEvents,
         pastEvents,
+        tweetData,
+        language: state.status.language,
     };
 };
 
@@ -1443,6 +1624,8 @@ const mapDispatchToProps = dispatch =>
             getOngoingScheduledEvent,
             fetchFutureEvents,
             fetchPastEvents,
+            getAllStatusPageResource,
+            fetchTweets,
         },
         dispatch
     );
@@ -1471,6 +1654,11 @@ Main.propTypes = {
     fetchPastEvents: PropTypes.func,
     futureEvents: PropTypes.func,
     pastEvents: PropTypes.func,
+    getAllStatusPageResource: PropTypes.func,
+    fetchTweets: PropTypes.func,
+    tweetData: PropTypes.array,
+    language: PropTypes.object,
+    languageMenu: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Main);

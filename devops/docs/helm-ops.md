@@ -63,15 +63,15 @@ helm uninstall fi --namespace=default
 Build and deploy all (with master tag, you can use any other tag):
 
 ```
-chmod +x ./ci/scripts/docker-build-all.sh
-sudo ./ci/scripts/docker-build-all.sh latest
+chmod +x ./ci/scripts/docker-build-all-and-push.sh
+sudo ./ci/scripts/docker-build-all-and-push.sh latest
 ```
 
 Build and deploy one:
 
 ```
-chmod +x ./ci/scripts/docker-build.sh
-sudo ./ci/scripts/docker-build.sh $repo $tag
+chmod +x ./ci/scripts/docker-build-and-push.sh
+sudo ./ci/scripts/docker-build-and-push.sh $repo $tag
 ```
 
 ### Package and deploy helm chart

@@ -1,5 +1,4 @@
 import React from 'react';
-import Dashboard from '../components/Dashboard';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
@@ -44,6 +43,8 @@ class IncidentLog extends React.Component {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > INCIDENT LOG');
         }
+
+        this.ready();
     }
 
     ready = () => {
@@ -343,40 +344,36 @@ class IncidentLog extends React.Component {
         const componentName = component ? component.name : '';
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <ShouldRender if={!pathname.endsWith('incidents')}>
-                        <BreadCrumbItem
-                            route={getParentRoute(pathname)}
-                            name={componentName}
-                        />
-                    </ShouldRender>
-                    <BreadCrumbItem route={pathname} name="Incidents" />
-                    <div id="incidentLogs">
-                        <div>
-                            <div className="db-RadarRulesLists-page">
-                                <ShouldRender
-                                    if={this.props.tutorialStat.incident.show}
-                                >
-                                    <TutorialBox
-                                        type="incident"
-                                        currentProjectId={
-                                            this.props.currentProject?._id
-                                        }
-                                    />
-                                </ShouldRender>
+            <Fade>
+                <ShouldRender if={!pathname.endsWith('incidents')}>
+                    <BreadCrumbItem
+                        route={getParentRoute(pathname)}
+                        name={componentName}
+                    />
+                </ShouldRender>
+                <BreadCrumbItem route={pathname} name="Incidents" />
+                <div id="incidentLogs">
+                    <div>
+                        <div className="db-RadarRulesLists-page">
+                            <ShouldRender
+                                if={this.props.tutorialStat.incident.show}
+                            >
+                                <TutorialBox
+                                    type="incident"
+                                    currentProjectId={
+                                        this.props.currentProject?._id
+                                    }
+                                />
+                            </ShouldRender>
 
-                                {allIncidents}
-                                <ShouldRender
-                                    if={this.props.incidents.requesting}
-                                >
-                                    <LoadingState />
-                                </ShouldRender>
-                            </div>
+                            {allIncidents}
+                            <ShouldRender if={this.props.incidents.requesting}>
+                                <LoadingState />
+                            </ShouldRender>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

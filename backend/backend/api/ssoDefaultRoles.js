@@ -10,9 +10,25 @@ const SsoDefaultRolesService = require('../services/ssoDefaultRolesService');
 router.get('/', getUser, isUserMasterAdmin, async function(req, res) {
     const skip = req.query.skip || 0;
     const limit = req.query.limit || 10;
+
+    const populateDefaultRoleSso = [
+        { path: 'domain', select: '_id domain' },
+        { path: 'project', select: '_id name' },
+    ];
+
+    const selectDefaultRoleSso =
+        '_id domain project role createdAt deleted deletedAt deletedById';
     try {
-        const ssos = await SsoDefaultRolesService.findBy({}, limit, skip);
-        const count = await SsoDefaultRolesService.countBy();
+        const [ssos, count] = await Promise.all([
+            SsoDefaultRolesService.findBy({
+                query: {},
+                limit,
+                skip,
+                select: selectDefaultRoleSso,
+                populate: populateDefaultRoleSso,
+            }),
+            SsoDefaultRolesService.countBy(),
+        ]);
         return sendListResponse(req, res, ssos, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -43,8 +59,17 @@ router.post('/', getUser, isUserMasterAdmin, async function(req, res) {
 
 router.get('/:id', getUser, isUserMasterAdmin, async function(req, res) {
     try {
+        const populateDefaultRoleSso = [
+            { path: 'domain', select: '_id domain' },
+            { path: 'project', select: '_id name' },
+        ];
+
+        const selectDefaultRoleSso =
+            '_id domain project role createdAt deleted deletedAt deletedById';
         const sso = await SsoDefaultRolesService.findOneBy({
-            _id: req.params.id,
+            query: { _id: req.params.id },
+            select: selectDefaultRoleSso,
+            populate: populateDefaultRoleSso,
         });
         if (!sso) {
             const error = new Error("Requested resource doesn't exist.");

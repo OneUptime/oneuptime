@@ -45,7 +45,14 @@ router.post('/:projectId', getUser, isAuthorized, async function(req, res) {
 router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const projectId = req.params.projectId;
-        const smsSmtp = await SmsSmtpService.findOneBy({ projectId });
+        const populate = [{ path: 'projectId', select: 'name' }];
+        const select =
+            'projectId accountSid authToken phoneNumber iv enabled createdAt deletedById';
+        const smsSmtp = await SmsSmtpService.findOneBy({
+            query: { projectId },
+            select,
+            populate,
+        });
         return sendItemResponse(req, res, smsSmtp || {});
     } catch (error) {
         return sendErrorResponse(req, res, error);

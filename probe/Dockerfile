@@ -5,17 +5,11 @@
 # Pull base image nodejs image.
 FROM node:16
 
+#Use bash shell by default
+SHELL ["/bin/bash", "-c"]
+
 #SET ENV Variables
 ENV PRODUCTION=true
-ENV CHROME_PATH=/usr/bin/google-chrome
-
-# Install Chrome.
-RUN \
-  wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
-  echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
-  apt-get update && \
-  apt-get install -y google-chrome-stable && \
-  rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /usr/src/app
 
@@ -25,7 +19,10 @@ WORKDIR /usr/src/app
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 # Install kubectl for kubernetes monitor scanning
-RUN curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+RUN OS_ARCHITECTURE="amd64"
+RUN if [[ "$(uname -m)" -eq "aarch64" ]] ; then OS_ARCHITECTURE="arm64" ; fi
+RUN if [[ "$(uname -m)" -eq "arm64" ]] ; then OS_ARCHITECTURE="arm64" ; fi
+RUN curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/$(OS_ARCHITECTURE)/kubectl"
 RUN chmod +x ./kubectl
 RUN mv ./kubectl /usr/local/bin/kubectl && \
   chown root: /usr/local/bin/kubectl

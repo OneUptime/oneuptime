@@ -29,10 +29,12 @@ async function run() {
                         name: 'Future Scheduled Events',
                         key: 'maintenance',
                     },
+
                     { name: 'Footer', key: 'footer' },
                 ],
                 invisible: [
                     { name: 'Scheduled Events Completed', key: 'pastEvents' },
+                    { name: 'Twitter Updates', key: 'twitter' },
                 ],
             },
         }

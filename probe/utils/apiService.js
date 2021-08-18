@@ -45,4 +45,16 @@ module.exports = {
     ping: async function(monitorId, data) {
         return await postApi(`probe/ping/${monitorId}`, data);
     },
+    setScanStatus: async function(monitorIds, status) {
+        return await postApi('probe/set-scan-status', {
+            scanning: status,
+            monitorIds,
+        });
+    },
+    addProbeScan: async function(monitorIds) {
+        return await postApi('probe/add-probe-scan', { monitorIds });
+    },
+    removeProbeScan: async function(monitorIds) {
+        return await postApi('probe/remove-probe-scan', { monitorIds });
+    },
 };

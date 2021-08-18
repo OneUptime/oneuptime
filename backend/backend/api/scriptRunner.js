@@ -40,9 +40,10 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
             successReasons: upSuccessReasons,
             failedReasons: upFailedReasons,
             matchedCriterion: matchedUpCriterion,
-        } = await (monitor && monitor.criteria && monitor.criteria.up
-            ? ProbeService.scriptConditions(resp, monitor.criteria.up)
-            : { stat: false, successReasons: [], failedReasons: [] });
+        } =
+            monitor && monitor.criteria && monitor.criteria.up
+                ? await ProbeService.scriptConditions(resp, monitor.criteria.up)
+                : { stat: false, successReasons: [], failedReasons: [] };
 
         // determine if monitor is down and reasons therefore
         const {
@@ -50,13 +51,14 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
             successReasons: downSuccessReasons,
             failedReasons: downFailedReasons,
             matchedCriterion: matchedDownCriterion,
-        } = await (monitor && monitor.criteria && monitor.criteria.down
-            ? ProbeService.scriptConditions(resp, [
-                  ...monitor.criteria.down.filter(
-                      criterion => criterion.default !== true
-                  ),
-              ])
-            : { stat: false, successReasons: [], failedReasons: [] });
+        } =
+            monitor && monitor.criteria && monitor.criteria.down
+                ? await ProbeService.scriptConditions(resp, [
+                      ...monitor.criteria.down.filter(
+                          criterion => criterion.default !== true
+                      ),
+                  ])
+                : { stat: false, successReasons: [], failedReasons: [] };
 
         // determine if monitor is degraded and reasons therefore
         const {
@@ -64,9 +66,13 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
             successReasons: degradedSuccessReasons,
             failedReasons: degradedFailedReasons,
             matchedCriterion: matchedDegradedCriterion,
-        } = await (monitor && monitor.criteria && monitor.criteria.degraded
-            ? ProbeService.scriptConditions(resp, monitor.criteria.degraded)
-            : { stat: false, successReasons: [], failedReasons: [] });
+        } =
+            monitor && monitor.criteria && monitor.criteria.degraded
+                ? await ProbeService.scriptConditions(
+                      resp,
+                      monitor.criteria.degraded
+                  )
+                : { stat: false, successReasons: [], failedReasons: [] };
 
         // normalize response
         if (validUp) {
@@ -101,14 +107,7 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
         }
 
         // update monitor to save the last matched criterion
-        await MonitorService.updateOneBy(
-            {
-                _id: monitor._id,
-            },
-            {
-                lastMatchedCriterion: matchedCriterion,
-            }
-        );
+        await MonitorService.updateCriterion(monitor._id, matchedCriterion);
 
         // aggregate data for logging
         data = req.body;
@@ -140,15 +139,16 @@ router.post('/ping/:monitorId', isAuthorizedService, async function(req, res) {
             monitor && monitor.criteria && monitor.criteria.degraded;
 
         // save monitor log
-        const log = await ProbeService.saveMonitorLog(data);
-
         // update script run status
-        await MonitorService.updateBy(
-            { _id: monitor._id },
-            {
-                scriptRunStatus: 'completed',
-            }
-        );
+        const [log] = await Promise.all([
+            ProbeService.saveMonitorLog(data),
+            MonitorService.updateBy(
+                { _id: monitor._id },
+                {
+                    scriptRunStatus: 'completed',
+                }
+            ),
+        ]);
 
         return sendItemResponse(req, res, log);
     } catch (error) {

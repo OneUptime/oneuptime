@@ -68,20 +68,29 @@ router.post(
 
             data.componentId = componentId;
 
-            const errorTracker = await ErrorTrackerService.create(data);
-            const component = await ComponentService.findOneBy({
-                _id: componentId,
-            });
+            const populateComponent = [{ path: 'projectId', select: 'name' }];
+            const selectComponent = ' projectId ';
+            const [errorTracker, component, user] = await Promise.all([
+                ErrorTrackerService.create(data),
+                ComponentService.findOneBy({
+                    query: { _id: componentId },
+                    select: selectComponent,
+                    populate: populateComponent,
+                }),
+                UserService.findOneBy({
+                    query: { _id: req.user.id },
+                    select: 'name _id',
+                }),
+            ]);
 
-            const user = await UserService.findOneBy({ _id: req.user.id });
-
-            await NotificationService.create(
+            NotificationService.create(
                 component.projectId._id,
                 `A New Error Tracker was Created with name ${errorTracker.name} by ${user.name}`,
                 user._id,
                 'errortrackeraddremove'
             );
-            await RealTimeService.sendErrorTrackerCreated(errorTracker);
+            // run in the background
+            RealTimeService.sendErrorTrackerCreated(errorTracker);
             return sendItemResponse(req, res, errorTracker);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -150,9 +159,17 @@ router.post(
     isUserAdmin,
     async function(req, res) {
         const errorTrackerId = req.params.errorTrackerId;
+        const select =
+            'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+        const populate = [
+            { path: 'componentId', select: 'name' },
+            { path: 'resourceCategory', select: 'name' },
+        ];
 
         const currentErrorTracker = await ErrorTrackerService.findOneBy({
-            _id: errorTrackerId,
+            query: { _id: errorTrackerId },
+            select,
+            populate,
         });
         if (!currentErrorTracker) {
             return sendErrorResponse(req, res, {
@@ -201,9 +218,16 @@ router.put(
                 message: 'New Error Tracker Name is required.',
             });
         }
+        const select =
+            'componentId name slug key showQuickStart resourceCategory createdById createdAt';
 
         const currentErrorTracker = await ErrorTrackerService.findOneBy({
-            _id: errorTrackerId,
+            query: { _id: errorTrackerId },
+            select,
+            populate: [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ],
         });
         if (!currentErrorTracker) {
             return sendErrorResponse(req, res, {
@@ -220,9 +244,18 @@ router.put(
         if (data.resourceCategory != '') {
             existingQuery.resourceCategory = data.resourceCategory;
         }
-        const existingErrorTracking = await ErrorTrackerService.findBy(
-            existingQuery
-        );
+        const existingErrorTracking = await ErrorTrackerService.findBy({
+            query: existingQuery,
+            select,
+            populate: [
+                {
+                    path: 'componentId',
+                    select: 'name slug projectId',
+                    populate: [{ path: 'projectId', select: 'name' }],
+                },
+                { path: 'resourceCategory', select: 'name' },
+            ],
+        });
 
         if (
             existingErrorTracking &&
@@ -249,10 +282,12 @@ router.put(
         if (!data.resourceCategory || data.resourceCategory === '') {
             unsetData = { resourceCategory: '' };
         } else {
-            const resourceCategoryModel = await ResourceCategoryService.findBy({
-                _id: data.resourceCategory,
-            });
-            if (resourceCategoryModel) {
+            const resourceCategoryCount = await ResourceCategoryService.countBy(
+                {
+                    _id: data.resourceCategory,
+                }
+            );
+            if (resourceCategoryCount && resourceCategoryCount > 0) {
                 errorTrackerUpdate.resourceCategory = data.resourceCategory;
             } else {
                 unsetData = { resourceCategory: '' };
@@ -322,7 +357,8 @@ router.post('/:errorTrackerId/track', isErrorTrackerValid, async function(
 
         issue = errorTrackerIssue.totalErrorEvents[0];
 
-        await RealTimeService.sendErrorEventCreated({ errorEvent, issue });
+        // run in the background
+        RealTimeService.sendErrorEventCreated({ errorEvent, issue });
         return sendItemResponse(req, res, errorEvent);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -338,9 +374,17 @@ router.post(
         try {
             const { skip, limit, startDate, endDate, filters } = req.body;
             const errorTrackerId = req.params.errorTrackerId;
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
+                query: { _id: errorTrackerId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
@@ -392,10 +436,22 @@ router.post(
                 });
             }
             const errorTrackerId = req.params.errorTrackerId;
+            const select =
+                'errorTrackerId issueId content type timeline tags sdk fingerprint fingerprintHash device createdAt';
+            const populate = [
+                { path: 'errorTrackerId', select: 'name' },
+                {
+                    path: 'issueId',
+                    select: '_id name description type ignored resolved',
+                },
+                { path: 'resolvedById', select: 'name' },
+                { path: 'ignoredById', select: 'name' },
+            ];
 
             const currentErrorEvent = await ErrorEventService.findOneBy({
-                _id: errorEventId,
-                errorTrackerId,
+                query: { _id: errorEventId, errorTrackerId },
+                select,
+                populate,
             });
             if (!currentErrorEvent) {
                 return sendErrorResponse(req, res, {
@@ -432,9 +488,19 @@ router.post(
             }
             const errorTrackerId = req.params.errorTrackerId;
 
+            const populateIssue = [
+                { path: 'errorTrackerId', select: 'name' },
+                { path: 'resolvedById', select: 'name' },
+                { path: 'ignoredById', select: 'name' },
+            ];
+
+            const selectIssue =
+                'name description errorTrackerId type fingerprint fingerprintHash createdAt deleted deletedAt deletedById resolved resolvedAt resolvedById ignored ignoredAt ignoredById';
+
             const issue = await IssueService.findOneBy({
-                _id: issueId,
-                errorTrackerId,
+                query: { _id: issueId, errorTrackerId },
+                select: selectIssue,
+                populate: populateIssue,
             });
             if (!issue) {
                 return sendErrorResponse(req, res, {
@@ -502,10 +568,17 @@ router.post(
                     message: 'Error Tracker ID is required',
                 });
             }
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
-                componentId,
+                query: { _id: errorTrackerId, componentId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
@@ -559,13 +632,8 @@ router.post(
                     _id: currentIssueId,
                     errorTrackerId,
                 };
-                const currentIssue = await IssueService.findOneBy(query);
-                if (currentIssue) {
-                    let issue = await IssueService.updateOneBy(
-                        query,
-                        updateData
-                    );
-
+                const currentIssue = await IssueService.countBy(query);
+                if (currentIssue && currentIssue > 0) {
                     // add action to timeline for this particular issue
                     const timelineData = {
                         issueId: currentIssueId,
@@ -573,18 +641,31 @@ router.post(
                         status: action,
                     };
 
-                    await IssueTimelineService.create(timelineData);
+                    let [issue] = await Promise.all([
+                        IssueService.updateOneBy(query, updateData),
+                        IssueTimelineService.create(timelineData),
+                    ]);
                     issue = JSON.parse(JSON.stringify(issue));
 
                     // get the timeline attahced to this issue annd add it to the issue
 
+                    const populateIssueTimeline = [
+                        { path: 'issueId', select: 'name' },
+                        { path: 'createdById', select: 'name' },
+                    ];
+
+                    const selectIssueTimeline =
+                        'issueId createdById createdAt status deleted';
+
                     issue.timeline = await IssueTimelineService.findBy({
-                        issueId: currentIssueId,
+                        query: { issueId: currentIssueId },
+                        select: selectIssueTimeline,
+                        populate: populateIssueTimeline,
                     });
                     issues.push(issue);
 
                     // update a timeline object
-                    await RealTimeService.sendIssueStatusChange(issue, action);
+                    RealTimeService.sendIssueStatusChange(issue, action);
                 }
             }
 
@@ -615,9 +696,17 @@ router.post(
                 });
             }
             const errorTrackerId = req.params.errorTrackerId;
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
+                query: { _id: errorTrackerId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
@@ -635,11 +724,13 @@ router.post(
             if (startDate && endDate)
                 query.createdAt = { $gte: startDate, $lte: endDate };
 
-            const errorEvents = await ErrorEventService.findBy(
+            const errorEvents = await ErrorEventService.findBy({
                 query,
-                limit || 10,
-                skip || 0
-            );
+                limit: limit || 10,
+                skip: skip || 0,
+                select,
+                populate: [{ path: 'errorTrackerId', select: 'name' }],
+            });
 
             return sendItemResponse(req, res, errorEvents);
         } catch (error) {
@@ -675,10 +766,17 @@ router.post(
                     message: 'Issue ID is required',
                 });
             }
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
-                componentId,
+                query: { _id: errorTrackerId, componentId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
@@ -687,20 +785,30 @@ router.post(
                 });
             }
 
-            const currentIssue = await IssueService.findOneBy({
+            const currentIssue = await IssueService.countBy({
                 _id: issueId,
                 errorTrackerId,
             });
-            if (!currentIssue) {
+            if (!currentIssue || currentIssue === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
                     message: 'Issue not found',
                 });
             }
 
+            const selectIssueMember =
+                'issueId userId createdAt createdById removed removedAt removedById';
+
+            const populateIssueMember = [
+                { path: 'issueId', select: 'name' },
+
+                { path: 'userId', select: 'name email' },
+            ];
+
             const issueMembers = await IssueMemberService.findBy({
-                issueId,
-                removed: false,
+                query: { issueId, removed: false },
+                select: selectIssueMember,
+                populate: populateIssueMember,
             });
             return sendItemResponse(req, res, { issueId, issueMembers });
         } catch (error) {
@@ -757,10 +865,17 @@ router.post(
                     message: 'Issue ID is required',
                 });
             }
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
-                componentId,
+                query: { _id: errorTrackerId, componentId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
@@ -769,11 +884,11 @@ router.post(
                 });
             }
 
-            const currentIssue = await IssueService.findOneBy({
+            const currentIssue = await IssueService.countBy({
                 _id: issueId,
                 errorTrackerId,
             });
-            if (!currentIssue) {
+            if (!currentIssue || currentIssue === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
                     message: 'Issue not found',
@@ -828,10 +943,19 @@ router.post(
                     }
                 })
             );
+            const selectIssueMember =
+                'issueId userId createdAt createdById removed removedAt removedById';
+
+            const populateIssueMember = [
+                { path: 'issueId', select: 'name' },
+
+                { path: 'userId', select: 'name email' },
+            ];
 
             const members = await IssueMemberService.findBy({
-                issueId,
-                removed: false,
+                query: { issueId, removed: false },
+                select: selectIssueMember,
+                populate: populateIssueMember,
             });
             return sendItemResponse(req, res, { issueId, members });
         } catch (error) {
@@ -888,10 +1012,17 @@ router.post(
                     message: 'Issue ID is required',
                 });
             }
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
-                componentId,
+                query: { _id: errorTrackerId, componentId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {
@@ -900,11 +1031,11 @@ router.post(
                 });
             }
 
-            const currentIssue = await IssueService.findOneBy({
+            const currentIssue = await IssueService.countBy({
                 _id: issueId,
                 errorTrackerId,
             });
-            if (!currentIssue) {
+            if (!currentIssue || currentIssue === 0) {
                 return sendErrorResponse(req, res, {
                     code: 404,
                     message: 'Issue not found',
@@ -945,9 +1076,18 @@ router.post(
                 })
             );
 
+            const selectIssueMember =
+                'issueId userId createdAt createdById removed removedAt removedById';
+
+            const populateIssueMember = [
+                { path: 'issueId', select: 'name' },
+
+                { path: 'userId', select: 'name email' },
+            ];
             const members = await IssueMemberService.findBy({
-                issueId,
-                removed: false,
+                query: { issueId, removed: false },
+                select: selectIssueMember,
+                populate: populateIssueMember,
             });
             return sendItemResponse(req, res, { issueId, members });
         } catch (error) {
@@ -983,10 +1123,17 @@ router.delete(
                     message: 'Issue ID is required',
                 });
             }
+            const select =
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+            const populate = [
+                { path: 'componentId', select: 'name' },
+                { path: 'resourceCategory', select: 'name' },
+            ];
 
             const currentErrorTracker = await ErrorTrackerService.findOneBy({
-                _id: errorTrackerId,
-                componentId,
+                query: { _id: errorTrackerId, componentId },
+                select,
+                populate,
             });
             if (!currentErrorTracker) {
                 return sendErrorResponse(req, res, {

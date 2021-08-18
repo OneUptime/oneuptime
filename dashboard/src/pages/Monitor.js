@@ -3,7 +3,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { destroy } from 'redux-form';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import ComponentSummary from '../components/component/ComponentSummary';
 import NewMonitor from '../components/monitor/NewMonitor';
 import MonitorList from '../components/monitor/MonitorList';
@@ -33,12 +32,12 @@ import {
     fetchIncidentTemplates,
     fetchDefaultTemplate,
 } from '../actions/incidentBasicsSettings';
-import { API_URL } from '../config';
+import { REALTIME_URL } from '../config';
 import io from 'socket.io-client';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
 
-const socket = io.connect(API_URL.replace('/api', ''), {
-    path: '/api/socket.io',
+const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+    path: '/realtime/socket.io',
     transports: ['websocket', 'polling'],
 });
 class DashboardView extends Component {
@@ -49,16 +48,8 @@ class DashboardView extends Component {
                 'PAGE VIEW: DASHBOARD > PROJECT > COMPONENT > MONITOR LIST'
             );
         }
-        if (
-            this.props.currentProject &&
-            this.props.currentProject._id &&
-            this.props.componentSlug
-        ) {
-            this.props.fetchComponent(
-                this.props.currentProject._id,
-                this.props.componentSlug
-            );
-        }
+
+        this.ready();
     }
 
     fetchMonitorResources = () => {
@@ -329,207 +320,193 @@ class DashboardView extends Component {
         const componentName = component ? component.name : '';
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem route={pathname} name={componentName} />
-                    <BreadCrumbItem route={pathname + '#'} name="Monitors" />
-                    <div className="Box-root">
+            <Fade>
+                <BreadCrumbItem route={pathname} name={componentName} />
+                <BreadCrumbItem route={pathname + '#'} name="Monitors" />
+                <div className="Box-root">
+                    <div>
                         <div>
-                            <div>
-                                <div className="db-BackboneViewContainer">
-                                    <div className="dashboard-home-view react-view">
+                            <div className="db-BackboneViewContainer">
+                                <div className="dashboard-home-view react-view">
+                                    <div>
                                         <div>
-                                            <div>
-                                                <span>
+                                            <span>
+                                                <ShouldRender
+                                                    if={
+                                                        !this.props.monitor
+                                                            .monitorsList
+                                                            .requesting
+                                                    }
+                                                >
+                                                    {/* Here, component notifier */}
+                                                    <CustomTutorial
+                                                        monitors={allMonitors}
+                                                        slug={
+                                                            currentProjectSlug
+                                                        }
+                                                        tutorialStat={
+                                                            this.props
+                                                                .tutorialStat
+                                                        }
+                                                        currentProjectId={
+                                                            currentProjectId
+                                                        }
+                                                        hideActionButton={true}
+                                                    />
                                                     <ShouldRender
                                                         if={
-                                                            !this.props.monitor
-                                                                .monitorsList
-                                                                .requesting
+                                                            (!this.props
+                                                                .tutorialStat
+                                                                .monitorCustom
+                                                                .show ||
+                                                                allMonitors.length >
+                                                                    0) &&
+                                                            this.props
+                                                                .tutorialStat
+                                                                .monitor.show
                                                         }
                                                     >
-                                                        {/* Here, component notifier */}
-                                                        <CustomTutorial
-                                                            monitors={
-                                                                allMonitors
-                                                            }
-                                                            slug={
-                                                                currentProjectSlug
-                                                            }
-                                                            tutorialStat={
-                                                                this.props
-                                                                    .tutorialStat
-                                                            }
+                                                        <TutorialBox
+                                                            type="monitor"
                                                             currentProjectId={
                                                                 currentProjectId
                                                             }
-                                                            hideActionButton={
-                                                                true
-                                                            }
                                                         />
-                                                        <ShouldRender
-                                                            if={
-                                                                (!this.props
-                                                                    .tutorialStat
-                                                                    .monitorCustom
-                                                                    .show ||
-                                                                    allMonitors.length >
-                                                                        0) &&
-                                                                this.props
-                                                                    .tutorialStat
-                                                                    .monitor
-                                                                    .show
-                                                            }
-                                                        >
-                                                            <TutorialBox
-                                                                type="monitor"
-                                                                currentProjectId={
-                                                                    currentProjectId
-                                                                }
-                                                            />
-                                                        </ShouldRender>
-
-                                                        <ShouldRender
-                                                            if={
-                                                                monitors &&
-                                                                monitors.length &&
-                                                                monitors[0] !==
-                                                                    false
-                                                            }
-                                                        >
-                                                            <ComponentSummary
-                                                                projectId={
-                                                                    currentProjectId
-                                                                }
-                                                                componentId={
-                                                                    componentId
-                                                                }
-                                                                fetchSummary={
-                                                                    fetchComponentSummary
-                                                                }
-                                                                summary={
-                                                                    componentSummaryObj.data
-                                                                }
-                                                                loading={
-                                                                    componentSummaryObj.requesting
-                                                                }
-                                                            />
-                                                        </ShouldRender>
-
-                                                        {monitors}
-
-                                                        <RenderIfSubProjectAdmin>
-                                                            <NewMonitor
-                                                                index={1000}
-                                                                formKey="NewMonitorForm"
-                                                                componentId={
-                                                                    this.props
-                                                                        .componentId
-                                                                }
-                                                                componentSlug={
-                                                                    this.props
-                                                                        .component &&
-                                                                    this.props
-                                                                        .component
-                                                                        .slug
-                                                                }
-                                                            />
-                                                        </RenderIfSubProjectAdmin>
-                                                        <RenderIfSubProjectMember>
-                                                            <ShouldRender
-                                                                if={
-                                                                    !this.props
-                                                                        .monitor
-                                                                        .monitorsList
-                                                                        .requesting &&
-                                                                    allMonitors.length ===
-                                                                        0
-                                                                }
-                                                            >
-                                                                <div
-                                                                    id="app-loading"
-                                                                    style={{
-                                                                        position:
-                                                                            'fixed',
-                                                                        top:
-                                                                            '0',
-                                                                        bottom:
-                                                                            '0',
-                                                                        left:
-                                                                            '0',
-                                                                        right:
-                                                                            '0',
-                                                                        backgroundColor:
-                                                                            '#fdfdfd',
-                                                                        zIndex:
-                                                                            '999',
-                                                                        display:
-                                                                            'flex',
-                                                                        justifyContent:
-                                                                            'center',
-                                                                        alignItems:
-                                                                            'center',
-                                                                        flexDirection:
-                                                                            'column',
-                                                                    }}
-                                                                >
-                                                                    <div
-                                                                        className="db-SideNav-icon db-SideNav-icon--atlas "
-                                                                        style={{
-                                                                            backgroundRepeat:
-                                                                                'no-repeat',
-                                                                            backgroundSize:
-                                                                                '50px',
-                                                                            height:
-                                                                                '50px',
-                                                                            width:
-                                                                                '50px',
-                                                                        }}
-                                                                    ></div>
-                                                                    <div
-                                                                        style={{
-                                                                            marginTop:
-                                                                                '20px',
-                                                                            fontSize:
-                                                                                '16px',
-                                                                        }}
-                                                                    >
-                                                                        No
-                                                                        monitors
-                                                                        are
-                                                                        added to
-                                                                        this
-                                                                        project.
-                                                                        Please
-                                                                        contact
-                                                                        your
-                                                                        project
-                                                                        admin.
-                                                                    </div>
-                                                                </div>
-                                                            </ShouldRender>
-                                                        </RenderIfSubProjectMember>
                                                     </ShouldRender>
 
                                                     <ShouldRender
                                                         if={
-                                                            this.props.monitor
-                                                                .monitorsList
-                                                                .requesting
+                                                            monitors &&
+                                                            monitors.length &&
+                                                            monitors[0] !==
+                                                                false
                                                         }
                                                     >
-                                                        <LoadingState />
+                                                        <ComponentSummary
+                                                            projectId={
+                                                                currentProjectId
+                                                            }
+                                                            componentId={
+                                                                componentId
+                                                            }
+                                                            fetchSummary={
+                                                                fetchComponentSummary
+                                                            }
+                                                            summary={
+                                                                componentSummaryObj.data
+                                                            }
+                                                            loading={
+                                                                componentSummaryObj.requesting
+                                                            }
+                                                        />
                                                     </ShouldRender>
-                                                </span>
-                                            </div>
+
+                                                    {monitors}
+
+                                                    <RenderIfSubProjectAdmin>
+                                                        <NewMonitor
+                                                            index={1000}
+                                                            formKey="NewMonitorForm"
+                                                            componentId={
+                                                                this.props
+                                                                    .componentId
+                                                            }
+                                                            componentSlug={
+                                                                this.props
+                                                                    .component &&
+                                                                this.props
+                                                                    .component
+                                                                    .slug
+                                                            }
+                                                        />
+                                                    </RenderIfSubProjectAdmin>
+                                                    <RenderIfSubProjectMember>
+                                                        <ShouldRender
+                                                            if={
+                                                                !this.props
+                                                                    .monitor
+                                                                    .monitorsList
+                                                                    .requesting &&
+                                                                allMonitors.length ===
+                                                                    0
+                                                            }
+                                                        >
+                                                            <div
+                                                                id="app-loading"
+                                                                style={{
+                                                                    position:
+                                                                        'fixed',
+                                                                    top: '0',
+                                                                    bottom: '0',
+                                                                    left: '0',
+                                                                    right: '0',
+                                                                    backgroundColor:
+                                                                        '#fdfdfd',
+                                                                    zIndex:
+                                                                        '999',
+                                                                    display:
+                                                                        'flex',
+                                                                    justifyContent:
+                                                                        'center',
+                                                                    alignItems:
+                                                                        'center',
+                                                                    flexDirection:
+                                                                        'column',
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className="db-SideNav-icon db-SideNav-icon--atlas "
+                                                                    style={{
+                                                                        backgroundRepeat:
+                                                                            'no-repeat',
+                                                                        backgroundSize:
+                                                                            '50px',
+                                                                        height:
+                                                                            '50px',
+                                                                        width:
+                                                                            '50px',
+                                                                    }}
+                                                                ></div>
+                                                                <div
+                                                                    style={{
+                                                                        marginTop:
+                                                                            '20px',
+                                                                        fontSize:
+                                                                            '16px',
+                                                                    }}
+                                                                >
+                                                                    No monitors
+                                                                    are added to
+                                                                    this
+                                                                    project.
+                                                                    Please
+                                                                    contact your
+                                                                    project
+                                                                    admin.
+                                                                </div>
+                                                            </div>
+                                                        </ShouldRender>
+                                                    </RenderIfSubProjectMember>
+                                                </ShouldRender>
+
+                                                <ShouldRender
+                                                    if={
+                                                        this.props.monitor
+                                                            .monitorsList
+                                                            .requesting
+                                                    }
+                                                >
+                                                    <LoadingState />
+                                                </ShouldRender>
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

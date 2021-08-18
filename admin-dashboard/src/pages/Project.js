@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import ShouldRender from '../components/basic/ShouldRender';
 import ProjectDetails from '../components/project/ProjectDetails';
@@ -20,7 +19,7 @@ import ProjectBalance from '../components/project/ProjectBalance';
 import ProjectDomain from '../components/project/ProjectDomain';
 
 class Project extends Component {
-    componentDidMount() {
+    componentDidMount = async () => {
         if (window.location.href.indexOf('localhost') <= -1) {
             this.context.mixpanel.track('Project page Loaded');
         }
@@ -28,7 +27,13 @@ class Project extends Component {
         if (this.props.project._id) {
             this.props.fetchProjectTeam(this.props.project._id);
         }
-    }
+
+        const { fetchProject, slug, fetchProjectTeam, project } = this.props;
+        fetchProject(slug);
+        if (project._id) {
+            fetchProjectTeam(project._id);
+        }
+    };
 
     componentDidUpdate(prevProps) {
         if (prevProps.project._id !== this.props.project._id) {
@@ -38,205 +43,176 @@ class Project extends Component {
         }
     }
 
-    ready = async () => {
-        const { fetchProject, slug, fetchProjectTeam, project } = this.props;
-        fetchProject(slug);
-        if (project._id) {
-            fetchProjectTeam(project._id);
-        }
-    };
-
     render() {
         return (
-            <Dashboard ready={this.ready}>
-                <div className="Box-root Margin-vertical--12">
+            <div className="Box-root Margin-vertical--12">
+                <div>
                     <div>
-                        <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="react-settings-view react-view">
-                                    <span data-reactroot="">
-                                        <div>
-                                            <div className="Box-root Margin-bottom--12">
-                                                <ProjectDetails />
-                                            </div>
-                                            <div className="Box-root Margin-bottom--12">
-                                                <AdminNotes
-                                                    id={
-                                                        this.props.project &&
-                                                        this.props.project._id
-                                                    }
-                                                    addNote={
-                                                        this.props
-                                                            .addProjectNote
-                                                    }
-                                                    initialValues={
-                                                        this.props.initialValues
-                                                    }
-                                                />
-                                            </div>
-                                            <div className="Box-root Margin-bottom--12">
-                                                <ProjectUsers
-                                                    paginate={
-                                                        this.props.paginate
-                                                    }
-                                                    projectName={
-                                                        this.props.project &&
-                                                        this.props.project.name
-                                                    }
-                                                    users={
-                                                        this.props
-                                                            .projectUsers &&
-                                                        this.props.projectUsers
-                                                            .team
-                                                    }
-                                                    projectId={
-                                                        this.props.project &&
-                                                        this.props.project._id
-                                                    }
-                                                    pages={
-                                                        this.props
-                                                            .projectUsers &&
-                                                        this.props.projectUsers
-                                                            .page
-                                                    }
-                                                    membersPerPage={10}
-                                                    count={
-                                                        this.props
-                                                            .projectUsers &&
-                                                        this.props.projectUsers
-                                                            .team &&
-                                                        this.props.projectUsers
-                                                            .team.count
-                                                    }
-                                                    page={
-                                                        this.props
-                                                            .projectUsers &&
-                                                        this.props.projectUsers
-                                                            .page
-                                                    }
-                                                    canPaginateBackward={
-                                                        this.props
-                                                            .projectUsers &&
-                                                        this.props.projectUsers
-                                                            .page > 1
-                                                            ? true
-                                                            : false
-                                                    }
-                                                    canPaginateForward={
-                                                        this.props
-                                                            .projectUsers &&
-                                                        this.props.projectUsers
-                                                            .team &&
-                                                        this.props.projectUsers
-                                                            .team.count >
-                                                            this.props
-                                                                .projectUsers
-                                                                .page *
-                                                                10
-                                                            ? true
-                                                            : false
-                                                    }
-                                                />
-                                            </div>
-                                            <div className="Box-root Margin-bottom--12">
-                                                <ProjectDomain
-                                                    projectId={
-                                                        this.props.project &&
-                                                        this.props.project._id
-                                                    }
-                                                />
-                                            </div>
-                                            <div className="Box-root Margin-bottom--12">
-                                                <ProjectBalance
-                                                    balance={
-                                                        this.props.project &&
-                                                        this.props.project
-                                                            .balance
-                                                    }
-                                                    projectId={
-                                                        this.props.project &&
-                                                        this.props.project._id
-                                                    }
-                                                />
-                                            </div>
-                                            <ShouldRender
-                                                if={
-                                                    this.props.project &&
-                                                    !this.props.project
-                                                        .deleted &&
-                                                    !this.props.project
-                                                        .isBlocked &&
-                                                    IS_SAAS_SERVICE
-                                                }
-                                            >
-                                                <div className="Box-root Margin-bottom--12">
-                                                    <ProjectUpgrade />
-                                                </div>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={
-                                                    this.props.project &&
-                                                    !this.props.project
-                                                        .deleted &&
-                                                    !this.props.project
-                                                        .isBlocked
-                                                }
-                                            >
-                                                <div className="Box-root Margin-bottom--12">
-                                                    <ProjectBlockBox />
-                                                </div>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={
-                                                    this.props.project &&
-                                                    this.props.project
-                                                        .alertLimitReached
-                                                }
-                                            >
-                                                <div className="Box-root Margin-bottom--12">
-                                                    <ProjectAlertLimitBox />
-                                                </div>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={
-                                                    this.props.project &&
-                                                    !this.props.project
-                                                        .deleted &&
-                                                    this.props.project.isBlocked
-                                                }
-                                            >
-                                                <div className="Box-root Margin-bottom--12">
-                                                    <ProjectUnblockBox />
-                                                </div>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={
-                                                    this.props.project &&
-                                                    !this.props.project.deleted
-                                                }
-                                            >
-                                                <div className="Box-root Margin-bottom--12">
-                                                    <ProjectDeleteBox />
-                                                </div>
-                                            </ShouldRender>
-                                            <ShouldRender
-                                                if={
-                                                    this.props.project &&
-                                                    this.props.project.deleted
-                                                }
-                                            >
-                                                <div className="Box-root Margin-bottom--12">
-                                                    <ProjectRestoreBox />
-                                                </div>
-                                            </ShouldRender>
+                        <div className="db-BackboneViewContainer">
+                            <div className="react-settings-view react-view">
+                                <span data-reactroot="">
+                                    <div>
+                                        <div className="Box-root Margin-bottom--12">
+                                            <ProjectDetails />
                                         </div>
-                                    </span>
-                                </div>
+                                        <div className="Box-root Margin-bottom--12">
+                                            <AdminNotes
+                                                id={
+                                                    this.props.project &&
+                                                    this.props.project._id
+                                                }
+                                                addNote={
+                                                    this.props.addProjectNote
+                                                }
+                                                initialValues={
+                                                    this.props.initialValues
+                                                }
+                                            />
+                                        </div>
+                                        <div className="Box-root Margin-bottom--12">
+                                            <ProjectUsers
+                                                paginate={this.props.paginate}
+                                                projectName={
+                                                    this.props.project &&
+                                                    this.props.project.name
+                                                }
+                                                users={
+                                                    this.props.projectUsers &&
+                                                    this.props.projectUsers.team
+                                                }
+                                                projectId={
+                                                    this.props.project &&
+                                                    this.props.project._id
+                                                }
+                                                pages={
+                                                    this.props.projectUsers &&
+                                                    this.props.projectUsers.page
+                                                }
+                                                membersPerPage={10}
+                                                count={
+                                                    this.props.projectUsers &&
+                                                    this.props.projectUsers
+                                                        .team &&
+                                                    this.props.projectUsers.team
+                                                        .count
+                                                }
+                                                page={
+                                                    this.props.projectUsers &&
+                                                    this.props.projectUsers.page
+                                                }
+                                                canPaginateBackward={
+                                                    this.props.projectUsers &&
+                                                    this.props.projectUsers
+                                                        .page > 1
+                                                        ? true
+                                                        : false
+                                                }
+                                                canPaginateForward={
+                                                    this.props.projectUsers &&
+                                                    this.props.projectUsers
+                                                        .team &&
+                                                    this.props.projectUsers.team
+                                                        .count >
+                                                        this.props.projectUsers
+                                                            .page *
+                                                            10
+                                                        ? true
+                                                        : false
+                                                }
+                                            />
+                                        </div>
+                                        <div className="Box-root Margin-bottom--12">
+                                            <ProjectDomain
+                                                projectId={
+                                                    this.props.project &&
+                                                    this.props.project._id
+                                                }
+                                            />
+                                        </div>
+                                        <div className="Box-root Margin-bottom--12">
+                                            <ProjectBalance
+                                                balance={
+                                                    this.props.project &&
+                                                    this.props.project.balance
+                                                }
+                                                projectId={
+                                                    this.props.project &&
+                                                    this.props.project._id
+                                                }
+                                            />
+                                        </div>
+                                        <ShouldRender
+                                            if={
+                                                this.props.project &&
+                                                !this.props.project.deleted &&
+                                                !this.props.project.isBlocked &&
+                                                IS_SAAS_SERVICE
+                                            }
+                                        >
+                                            <div className="Box-root Margin-bottom--12">
+                                                <ProjectUpgrade />
+                                            </div>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                this.props.project &&
+                                                !this.props.project.deleted &&
+                                                !this.props.project.isBlocked
+                                            }
+                                        >
+                                            <div className="Box-root Margin-bottom--12">
+                                                <ProjectBlockBox />
+                                            </div>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                this.props.project &&
+                                                this.props.project
+                                                    .alertLimitReached
+                                            }
+                                        >
+                                            <div className="Box-root Margin-bottom--12">
+                                                <ProjectAlertLimitBox />
+                                            </div>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                this.props.project &&
+                                                !this.props.project.deleted &&
+                                                this.props.project.isBlocked
+                                            }
+                                        >
+                                            <div className="Box-root Margin-bottom--12">
+                                                <ProjectUnblockBox />
+                                            </div>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                this.props.project &&
+                                                !this.props.project.deleted
+                                            }
+                                        >
+                                            <div className="Box-root Margin-bottom--12">
+                                                <ProjectDeleteBox />
+                                            </div>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={
+                                                this.props.project &&
+                                                this.props.project.deleted
+                                            }
+                                        >
+                                            <div className="Box-root Margin-bottom--12">
+                                                <ProjectRestoreBox />
+                                            </div>
+                                        </ShouldRender>
+                                    </div>
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
-            </Dashboard>
+            </div>
         );
     }
 }

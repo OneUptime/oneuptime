@@ -2,6 +2,7 @@ import { getApi, postApi } from '../api';
 import * as types from '../constants/status';
 import errors from '../errors';
 import { loginRequired, loginError } from '../actions/login';
+import { probeRequest } from './probe';
 
 export const statusPageSuccess = data => {
     return {
@@ -62,6 +63,62 @@ export const getStatusPage = (statusPageSlug, url) => {
     };
 };
 
+// Calls the API to get all status page resources
+export const getAllStatusPageResource = (statusPageSlug, url, range) => {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/resources/${statusPageSlug}?url=${url}&range=${range}`
+        );
+        dispatch(statusPageRequest());
+        dispatch(getAnnouncementsRequest());
+        dispatch(fetchMonitorStatusesRequest());
+        dispatch(fetchMonitorLogsRequest());
+        dispatch(fetchLastIncidentTimelinesRequest());
+        dispatch(statusPageNoteRequest());
+        dispatch(fetchAnnouncementLogsRequest());
+        dispatch(probeRequest());
+        dispatch(ongoingEventRequest());
+        dispatch(futureEventsRequest());
+        dispatch(pastEventsRequest());
+        promise.then(
+            Data => {
+                const data = Data.data;
+                dispatch(getAllStatusPageSuccess(data));
+            },
+            error => {
+                if (
+                    error &&
+                    error.response &&
+                    error.response.status &&
+                    error.response.status === 401
+                ) {
+                    dispatch(loginRequired(statusPageSlug));
+                }
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                }
+                if (error.length > 100) {
+                    error = 'Network Error';
+                }
+                dispatch(statusPageFailure(errors(error)));
+                dispatch(loginError(errors(error)));
+            }
+        );
+        return promise;
+    };
+};
+
+export const getAllStatusPageSuccess = data => {
+    return {
+        type: types.FETCH_ALL_RESOURCES_SUCCESS,
+        payload: data,
+    };
+};
 export const statusPageNoteSuccess = data => {
     return {
         type: types.STATUSPAGE_NOTES_SUCCESS,
@@ -667,6 +724,7 @@ export function fetchMonitorStatuses(projectId, monitorId, startDate, endDate) {
         dispatch(fetchMonitorStatusesRequest(monitorId));
 
         promise.then(
+            // eslint-disable-next-line no-unused-vars
             function(monitorStatuses) {
                 dispatch(
                     fetchMonitorStatusesSuccess({
@@ -1331,5 +1389,110 @@ export function calculateTime(statuses, start, range, monitorId) {
             }
         );
         return promise;
+    };
+}
+
+export function fetchTweetsRequest(monitorId) {
+    return {
+        type: types.FETCH_TWEETS_REQUEST,
+        payload: monitorId,
+    };
+}
+
+export function fetchTweetsSuccess(payload) {
+    return {
+        type: types.FETCH_TWEETS_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchTweetsFailure(error) {
+    return {
+        type: types.FETCH_TWEETS_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchTweets(handle, projectId) {
+    return function(dispatch) {
+        const promise = postApi(`statusPage/${projectId}/tweets`, {
+            handle,
+        });
+
+        dispatch(fetchTweetsRequest());
+        promise.then(
+            function(response) {
+                dispatch(fetchTweetsSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchTweetsFailure(error));
+            }
+        );
+        return promise;
+    };
+}
+
+export function fetchExternalStatusPagesRequest() {
+    return {
+        type: types.FETCH_EXTERNAL_STATUSPAGES_REQUEST,
+    };
+}
+
+export function fetchExternalStatusPagesSuccess(payload) {
+    return {
+        type: types.FETCH_EXTERNAL_STATUSPAGES_SUCCESS,
+        payload,
+    };
+}
+
+export function fetchExternalStatusPagesFailure(error) {
+    return {
+        type: types.FETCH_EXTERNAL_STATUSPAGES_FAILURE,
+        payload: error,
+    };
+}
+
+export function fetchExternalStatusPages(projectId, statusPageId) {
+    return function(dispatch) {
+        const promise = getApi(
+            `statusPage/${projectId}/fetchExternalStatusPages/${statusPageId}`
+        );
+
+        dispatch(fetchExternalStatusPagesRequest());
+        promise.then(
+            function(response) {
+                dispatch(fetchExternalStatusPagesSuccess(response.data));
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+                dispatch(fetchExternalStatusPagesFailure(error));
+            }
+        );
+        return promise;
+    };
+}
+export function translateLanguage(payload) {
+    return {
+        type: types.TRANSLATE_LANGUAGE,
+        payload,
     };
 }

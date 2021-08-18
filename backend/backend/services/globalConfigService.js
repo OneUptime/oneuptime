@@ -150,7 +150,9 @@ module.exports = {
             let globalConfigs = await GlobalConfigModel.updateMany(query, {
                 $set: data,
             });
-            globalConfigs = await this.findBy(query);
+
+            const selectConfig = 'name value createdAt';
+            globalConfigs = await this.findBy({ query, select: selectConfig });
 
             return globalConfigs;
         } catch (error) {
@@ -159,7 +161,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, populate, select }) {
         try {
             if (!skip) skip = 0;
             if (!limit) limit = 0;
@@ -171,12 +173,16 @@ module.exports = {
                 query = {};
             }
 
-            const globalConfigs = await GlobalConfigModel.find(query)
+            let globalConfigsQuery = GlobalConfigModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
 
+            globalConfigsQuery = handleSelect(select, globalConfigsQuery);
+            globalConfigsQuery = handlePopulate(populate, globalConfigsQuery);
+
+            const globalConfigs = await globalConfigsQuery;
             for (const globalConfig of globalConfigs) {
                 if (globalConfig.name === 'twilio') {
                     globalConfig.value[
@@ -209,13 +215,19 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
-            const globalConfig = await GlobalConfigModel.findOne(query).lean();
+            // we won't use lean here because of iv that should be a buffer
+            let globalConfigQuery = GlobalConfigModel.findOne(query);
+
+            globalConfigQuery = handleSelect(select, globalConfigQuery);
+            globalConfigQuery = handlePopulate(populate, globalConfigQuery);
+
+            const globalConfig = await globalConfigQuery;
 
             if (globalConfig && globalConfig.name === 'twilio') {
                 globalConfig.value[
@@ -275,3 +287,5 @@ const Crypto = require('crypto');
 const GlobalConfigModel = require('../models/globalConfig');
 const ErrorService = require('./errorService');
 const EncryptDecrypt = require('../config/encryptDecrypt');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

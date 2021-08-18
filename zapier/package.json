@@ -18,13 +18,13 @@
     },
     "resolutions": {},
     "dependencies": {
-        "zapier-platform-core": "10.2.0"
+        "zapier-platform-core": "^11.1.0"
     },
     "devDependencies": {
         "babel-preset-react": "^6.24.1",
         "depcheck": "^0.9.2",
         "mocha": "^8.1.1",
-        "should": "11.2.1",
-        "npm-force-resolutions": "0.0.3"
+        "npm-force-resolutions": "0.0.3",
+        "should": "11.2.1"
     }
 }

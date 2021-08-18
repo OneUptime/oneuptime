@@ -74,6 +74,10 @@ const statusSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    multipleNotificationTypes: {
+        type: Boolean,
+        default: false,
+    },
     // show or hide resolved incident on the status page
     hideResolvedIncident: {
         type: Boolean,
@@ -122,7 +126,12 @@ const statusSchema = new Schema({
     incidentHistoryDays: { type: Number, default: 14 },
     scheduleHistoryDays: { type: Number, default: 14 },
     announcementLogsHistory: { type: Number, default: 14 },
-
+    onlineText: { type: String, default: 'Operational' },
+    offlineText: { type: String, default: 'Offline' },
+    degradedText: { type: String, default: 'Degraded' },
+    twitterHandle: { type: String },
+    enableMultipleLanguage: { type: Boolean, default: false },
+    multipleLanguages: { type: Array, default: [] },
     deletedAt: {
         type: Date,
     },

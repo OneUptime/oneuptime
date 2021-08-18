@@ -6,21 +6,34 @@ const ApplicationSecurityLogService = require('./applicationSecurityLogService')
 const GitCredentialService = require('./gitCredentialService');
 const ResourceCategoryService = require('./resourceCategoryService');
 const getSlug = require('../utils/getSlug');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
+const RealTimeService = require('./realTimeService');
 
 module.exports = {
     create: async function(data) {
         try {
-            const applicationNameExist = await this.findOneBy({
-                name: data.name,
-                componentId: data.componentId,
-            });
-            const gitRepositoryUrlExist = await this.findOneBy({
-                gitRepositoryUrl: data.gitRepositoryUrl,
-                componentId: data.componentId,
-            });
-            const gitCredentialExist = await GitCredentialService.findOneBy({
-                _id: data.gitCredential,
-            });
+            const [
+                applicationNameExist,
+                gitRepositoryUrlExist,
+                gitCredentialExist,
+            ] = await Promise.all([
+                this.findOneBy({
+                    query: { name: data.name, componentId: data.componentId },
+                    select: '_id',
+                }),
+                this.findOneBy({
+                    query: {
+                        gitRepositoryUrl: data.gitRepositoryUrl,
+                        componentId: data.componentId,
+                    },
+                    select: '_id',
+                }),
+                GitCredentialService.findOneBy({
+                    query: { _id: data.gitCredential },
+                    select: '_id',
+                }),
+            ]);
 
             if (applicationNameExist) {
                 const error = new Error(
@@ -45,10 +58,12 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
-            const resourceCategory = await ResourceCategoryService.findBy({
-                _id: data.resourceCategory,
-            });
-            if (!resourceCategory) {
+            const resourceCategoryCount = await ResourceCategoryService.countBy(
+                {
+                    _id: data.resourceCategory,
+                }
+            );
+            if (!resourceCategoryCount || resourceCategoryCount === 0) {
                 delete data.resourceCategory;
             }
             data.slug = getSlug(data.name);
@@ -61,27 +76,35 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, populate, select }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
             // won't be using lean() here because of iv cypher for password
-            const applicationSecurity = await ApplicationSecurityModel.findOne(
+            let applicationSecurityQuery = ApplicationSecurityModel.findOne(
                 query
-            )
-                .populate('componentId')
-                .populate('resourceCategory', 'name')
-                .populate('gitCredential');
+            );
 
+            applicationSecurityQuery = handleSelect(
+                select,
+                applicationSecurityQuery
+            );
+
+            applicationSecurityQuery = handlePopulate(
+                populate,
+                applicationSecurityQuery
+            );
+
+            const applicationSecurity = await applicationSecurityQuery;
             return applicationSecurity;
         } catch (error) {
             ErrorService.log('applicationSecurityService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -96,16 +119,23 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             // won't be using lean() here because of iv cypher for password
-            const applicationSecurities = await ApplicationSecurityModel.find(
+            let applicationSecuritiesQuery = ApplicationSecurityModel.find(
                 query
             )
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('componentId')
-                .populate('resourceCategory', 'name')
-                .populate('gitCredential');
+                .skip(skip);
 
+            applicationSecuritiesQuery = handleSelect(
+                select,
+                applicationSecuritiesQuery
+            );
+            applicationSecuritiesQuery = handlePopulate(
+                populate,
+                applicationSecuritiesQuery
+            );
+
+            const applicationSecurities = await applicationSecuritiesQuery;
             return applicationSecurities;
         } catch (error) {
             ErrorService.log('applicationSecurityService.findBy', error);
@@ -145,8 +175,23 @@ module.exports = {
                 throw error;
             }
 
+            const populateApplicationSecurity = [
+                { path: 'componentId', select: '_id slug name slug' },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             applicationSecurity = this.findOneBy({
-                _id: applicationSecurity._id,
+                query: { _id: applicationSecurity._id },
+                populate: populateApplicationSecurity,
+                select: selectApplicationSecurity,
             });
             return applicationSecurity;
         } catch (error) {
@@ -156,7 +201,7 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let applicationSecurity = await this.findOneBy(query);
+            let applicationSecurity = await this.countBy(query);
 
             if (!applicationSecurity) {
                 const error = new Error(
@@ -167,7 +212,8 @@ module.exports = {
             }
 
             const securityLog = await ApplicationSecurityLogService.findOneBy({
-                securityId: applicationSecurity._id,
+                query: { securityId: applicationSecurity._id },
+                select: '_id',
             });
 
             // delete log associated with this application security
@@ -182,9 +228,23 @@ module.exports = {
                 deletedAt: Date.now(),
             });
 
+            const populateApplicationSecurity = [
+                { path: 'componentId', select: '_id slug name slug' },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             applicationSecurity = await this.findOneBy({
-                ...query,
-                deleted: true,
+                query: { ...query, deleted: true },
+                populate: populateApplicationSecurity,
+                select: selectApplicationSecurity,
             });
             return applicationSecurity;
         } catch (error) {
@@ -206,9 +266,30 @@ module.exports = {
             const oneDay = moment()
                 .subtract(1, 'days')
                 .toDate();
+
+            const populateApplicationSecurity = [
+                {
+                    path: 'componentId',
+                    select: '_id slug name slug',
+                },
+
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'gitCredential',
+                    select: 'gitUsername gitPassword iv projectId deleted',
+                },
+            ];
+
+            const selectApplicationSecurity =
+                '_id name slug gitRepositoryUrl gitCredential componentId resourceCategory lastScan scanned scanning deleted';
+
             const securities = await this.findBy({
-                $or: [{ lastScan: { $lt: oneDay } }, { scanned: false }],
-                scanning: false,
+                query: {
+                    $or: [{ lastScan: { $lt: oneDay } }, { scanned: false }],
+                    scanning: false,
+                },
+                select: selectApplicationSecurity,
+                populate: populateApplicationSecurity,
             });
             return securities;
         } catch (error) {
@@ -246,10 +327,8 @@ module.exports = {
                 scanned: true,
                 scanning: false,
             });
-            global.io.emit(
-                `security_${applicationSecurity._id}`,
-                applicationSecurity
-            );
+
+            RealTimeService.handleScanning({ security: applicationSecurity });
             return applicationSecurity;
         } catch (error) {
             ErrorService.log(

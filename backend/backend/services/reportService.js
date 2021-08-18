@@ -1,5 +1,3 @@
-/* eslint-disable quotes */
-
 /**
  *
  * Copyright HackerBay, Inc.
@@ -78,7 +76,8 @@ module.exports = {
             );
             for (const member of filterMembers) {
                 const response = await UserService.findOneBy({
-                    _id: member._id,
+                    query: { _id: member._id },
+                    select: 'name',
                 });
 
                 const result = {
@@ -174,7 +173,8 @@ module.exports = {
             const wrapper = {};
             for (const monitor of result[0].monitors) {
                 let response = await MonitorService.findOneBy({
-                    _id: monitor._id,
+                    query: { _id: monitor._id },
+                    select: 'name',
                 });
 
                 if (!response) response = {};

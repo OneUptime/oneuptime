@@ -49,14 +49,13 @@ class ChangeMonitorComponent extends React.Component {
         this.props.closeModal({
             id: this.state.changeMonitorComponentModalId,
         });
-
         const newComponent = monitor.componentId;
         const { projectId } = monitor;
 
         // get component from component list
         let componentWithProjects;
         this.props.components.find(subCompo => {
-            const belongsToProject = subCompo._id === projectId._id;
+            const belongsToProject = subCompo._id === projectId;
             if (!belongsToProject) return false;
 
             return subCompo.components.find(compo => {
@@ -105,7 +104,7 @@ class ChangeMonitorComponent extends React.Component {
 
     submitForm = values => {
         const { data, changeMonitorComponent } = this.props;
-        const projectId = data.monitor.projectId._id;
+        const projectId = data.monitor.projectId;
         const monitorId = data.monitor._id;
         const { oldComponentId } = data;
         const { newComponentId } = values;
@@ -151,7 +150,7 @@ class ChangeMonitorComponent extends React.Component {
             data,
         } = this.props;
 
-        const projectId = data.monitor.projectId._id;
+        const projectId = data.monitor.projectId;
         const oldComponentId = data.monitor.componentId._id;
 
         return (

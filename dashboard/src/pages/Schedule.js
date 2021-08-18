@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import DeleteBox from '../components/schedule/DeleteBox';
 import MonitorBox from '../components/schedule/MonitorBox';
 import RenameScheduleBox from '../components/schedule/RenameScheduleBox';
@@ -80,6 +79,7 @@ class Schedule extends Component {
             subProjectId,
             location: { pathname },
             schedule,
+            groups,
         } = this.props;
         const name = schedule ? schedule.name : null;
         if (error) {
@@ -87,80 +87,74 @@ class Schedule extends Component {
         }
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="On-Call Duty"
-                    />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name={name}
-                        pageTitle="Schedule"
-                        containerType="Call Duty"
-                    />
-                    <div className="Box-root">
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="On-Call Duty"
+                />
+                <BreadCrumbItem
+                    route={pathname}
+                    name={name}
+                    pageTitle="Schedule"
+                    containerType="Call Duty"
+                />
+                <div className="Box-root">
+                    <div>
                         <div>
-                            <div>
-                                <div className="db-BackboneViewContainer">
-                                    <div className="react-settings-view react-view">
-                                        <span>
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <span>
+                                        <div>
                                             <div>
-                                                <div>
-                                                    <RenameScheduleBox />
-                                                    <MonitorBox
-                                                        schedule={schedule}
-                                                    />
+                                                <RenameScheduleBox />
+                                                <MonitorBox
+                                                    schedule={schedule}
+                                                />
 
-                                                    {!editSchedule &&
-                                                        escalations.length >
-                                                            0 && (
-                                                            <EscalationSummary
-                                                                onEditClicked={() => {
-                                                                    this.setState(
-                                                                        {
-                                                                            editSchedule: true,
-                                                                        }
-                                                                    );
-                                                                }}
-                                                                escalations={
-                                                                    escalations
-                                                                }
-                                                                teamMembers={
-                                                                    teamMembers
-                                                                }
-                                                            />
-                                                        )}
-
-                                                    {(editSchedule ||
-                                                        escalations.length ===
-                                                            0) && (
-                                                        <OnCallAlertBox
-                                                            afterSave={() => {
+                                                {!editSchedule &&
+                                                    escalations.length > 0 && (
+                                                        <EscalationSummary
+                                                            onEditClicked={() => {
                                                                 this.setState({
-                                                                    editSchedule: false,
+                                                                    editSchedule: true,
                                                                 });
                                                             }}
+                                                            escalations={
+                                                                escalations
+                                                            }
+                                                            teamMembers={
+                                                                teamMembers
+                                                            }
+                                                            groups={groups}
                                                         />
                                                     )}
 
-                                                    <RenderIfSubProjectAdmin
-                                                        subProjectId={
-                                                            subProjectId
-                                                        }
-                                                    >
-                                                        <DeleteBox />
-                                                    </RenderIfSubProjectAdmin>
-                                                </div>
+                                                {(editSchedule ||
+                                                    escalations.length ===
+                                                        0) && (
+                                                    <OnCallAlertBox
+                                                        afterSave={() => {
+                                                            this.setState({
+                                                                editSchedule: false,
+                                                            });
+                                                        }}
+                                                    />
+                                                )}
+
+                                                <RenderIfSubProjectAdmin
+                                                    subProjectId={subProjectId}
+                                                >
+                                                    <DeleteBox />
+                                                </RenderIfSubProjectAdmin>
                                             </div>
-                                        </span>
-                                    </div>
+                                        </div>
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }
@@ -194,6 +188,7 @@ const mapStateToProps = (state, props) => {
         subProjectId: schedule && schedule.projectId._id,
         scheduleId: schedule && schedule._id,
         teamMembers: state.team.teamMembers,
+        groups: state.groups.oncallDuty?.groups,
     };
 };
 
@@ -207,6 +202,7 @@ Schedule.propTypes = {
     teamLoading: PropTypes.func.isRequired,
     escalations: PropTypes.array.isRequired,
     teamMembers: PropTypes.array.isRequired,
+    groups: PropTypes.array,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),

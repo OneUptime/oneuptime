@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 const data = require('./data/user');
@@ -29,7 +27,7 @@ describe('Email SMTP Api Test', function() {
 
         const project = res.body.project;
         projectId = project._id;
-        userId = res.body.id;
+        const userId = res.body.id;
 
         const verificationToken = await VerificationTokenModel.findOne({
             userId,
@@ -69,7 +67,10 @@ describe('Email SMTP Api Test', function() {
 
     it('should send test smtp email to the provided email address', async () => {
         const authorization = `Basic ${jwtToken}`;
-        const { value } = await GlobalConfigService.findOneBy({ name: 'smtp' });
+        const { value } = await GlobalConfigService.findOneBy({
+            query: { name: 'smtp' },
+            select: 'value name',
+        });
         const payload = {
             user: value.email,
             pass: value.password,
@@ -91,7 +92,10 @@ describe('Email SMTP Api Test', function() {
 
     it('should not send test smtp email when user or pass is not valid', async () => {
         const authorization = `Basic ${jwtToken}`;
-        const { value } = await GlobalConfigService.findOneBy({ name: 'smtp' });
+        const { value } = await GlobalConfigService.findOneBy({
+            query: { name: 'smtp' },
+            select: 'value name',
+        });
 
         value.email = 'randomemail@gmail.com';
         const payload = {
@@ -113,7 +117,10 @@ describe('Email SMTP Api Test', function() {
 
     it('should not send test smtp email when host or port is invalid', async () => {
         const authorization = `Basic ${jwtToken}`;
-        const { value } = await GlobalConfigService.findOneBy({ name: 'smtp' });
+        const { value } = await GlobalConfigService.findOneBy({
+            query: { name: 'smtp' },
+            select: 'value',
+        });
 
         value['smtp-server'] = 'random.host';
         const payload = {

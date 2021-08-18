@@ -34,7 +34,7 @@ const SecurityDetail = ({
             >
                 <div className="block-chart-side line-chart">
                     {vulnerabilities ? (
-                        <div className="db-TrendRow">
+                        <div className="db-TrendRow" id="vulnerabilities">
                             <div className="db-Trend-colInformation">
                                 <div
                                     className="db-Trend-rowTitle"

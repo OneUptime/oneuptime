@@ -61,12 +61,14 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
         }
 
         const query = { projectId };
-        const incidentNoteTemplates = await IncidentNoteTemplateService.findBy({
-            query,
-            skip,
-            limit,
-        });
-        const count = await IncidentNoteTemplateService.countBy(query);
+        const [incidentNoteTemplates, count] = await Promise.all([
+            IncidentNoteTemplateService.findBy({
+                query,
+                skip,
+                limit,
+            }),
+            IncidentNoteTemplateService.countBy(query),
+        ]);
 
         return sendListResponse(req, res, incidentNoteTemplates, count);
     } catch (error) {

@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 const data = require('./data/user');
@@ -482,7 +480,10 @@ describe('User API', function() {
             .set('Authorization', authorization)
             .end(async function(_err, res) {
                 expect(res).to.have.status(200);
-                const user = await UserService.findOneBy({ _id: userId });
+                const user = await UserService.findOneBy({
+                    query: { _id: userId },
+                    select: 'backupCodes',
+                });
                 expect(user).to.not.eql(null);
                 expect(user.backupCodes).to.be.an('array');
                 expect(user.backupCodes.length).to.eql(8);

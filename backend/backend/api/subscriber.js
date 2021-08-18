@@ -26,6 +26,7 @@ router.post('/:projectId/:statusPageId', async function(req, res) {
         const data = {};
         data.projectId = req.params.projectId;
         data.statusPageId = req.params.statusPageId;
+        data.notificationType = body.notificationType;
 
         if (!body.userDetails) {
             return sendErrorResponse(req, res, {
@@ -269,9 +270,12 @@ router.post('/:projectId/subscribe/:monitorId', async function(req, res) {
             let subscriber;
             if (data.alertVia === 'email') {
                 const subscriberExist = await SubscriberService.findByOne({
-                    monitorId: data.monitorId,
-                    contactEmail: data.contactEmail,
-                    subscribed: false,
+                    query: {
+                        monitorId: data.monitorId,
+                        contactEmail: data.contactEmail,
+                        subscribed: false,
+                    },
+                    select: '_id',
                 });
                 if (subscriberExist) {
                     subscriber = await SubscriberService.updateOneBy(
@@ -302,12 +306,11 @@ router.get('/:projectId', async function(req, res) {
         const projectId = req.params.projectId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const subscribers = await SubscriberService.findBy(
-            { projectId: projectId },
-            skip,
-            limit
-        );
-        const count = await SubscriberService.countBy({ projectId: projectId });
+
+        const [subscribers, count] = await Promise.all([
+            SubscriberService.findBy({ projectId: projectId }, skip, limit),
+            SubscriberService.countBy({ projectId: projectId }),
+        ]);
         return sendListResponse(req, res, subscribers, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -322,12 +325,23 @@ router.get('/:projectId/monitor/:monitorId', async function(req, res) {
         const monitorId = req.params.monitorId;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
-        const subscribers = await SubscriberService.findBy(
-            { monitorId: monitorId, subscribed: true },
-            skip,
-            limit
-        );
-        const count = await SubscriberService.countBy({ monitorId: monitorId });
+        const populate = [
+            { path: 'projectId', select: 'name _id' },
+            { path: 'monitorId', select: 'name _id' },
+            { path: 'statusPageId', select: 'name _id' },
+        ];
+        const select =
+            '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
+        const [subscribers, count] = await Promise.all([
+            SubscriberService.findBy({
+                query: { monitorId: monitorId, subscribed: true },
+                skip,
+                limit,
+                select,
+                populate,
+            }),
+            SubscriberService.countBy({ monitorId: monitorId }),
+        ]);
         return sendListResponse(req, res, subscribers, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -342,12 +356,19 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
         const subscriberId = req.params.subscriberId;
 
         const subscriber = await SubscriberService.findBy({
-            _id: subscriberId,
+            query: { _id: subscriberId },
+            select: 'contactEmail',
         });
 
+        const select =
+            '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
+
         const subscriptions = await SubscriberService.findBy({
-            contactEmail: subscriber[0].contactEmail,
-            subscribed: true,
+            query: {
+                contactEmail: subscriber[0].contactEmail,
+                subscribed: true,
+            },
+            select,
         });
 
         const monitorIds = subscriptions.map(
@@ -355,8 +376,8 @@ router.get('/monitorList/:subscriberId', async function(req, res) {
         );
 
         const subscriberMonitors = await MonitorService.findBy({
-            _id: { $in: monitorIds },
-            deleted: false,
+            query: { _id: { $in: monitorIds }, deleted: false },
+            select: '_id',
         });
 
         const filteredSubscriptions = [];
@@ -387,9 +408,16 @@ router.get('/:projectId/:subscriberId', async function(req, res) {
     try {
         const projectId = req.params.projectId;
         const subscriberId = req.params.subscriberId;
+        const populate = [
+            { path: 'projectId', select: 'name _id' },
+            { path: 'monitorId', select: 'name _id' },
+        ];
+        const select =
+            '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
         const subscriber = await SubscriberService.findByOne({
-            _id: subscriberId,
-            projectId: projectId,
+            query: { _id: subscriberId, projectId: projectId },
+            select,
+            populate,
         });
         return sendItemResponse(req, res, subscriber);
     } catch (error) {

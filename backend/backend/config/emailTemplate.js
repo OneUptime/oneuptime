@@ -1633,7 +1633,8 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
             '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
         ],
         emailType: 'Investigation note is created',
-        subject: 'An update on an active incident for {{monitorName}}',
+        subject:
+            'An update on an active incident {{#if monitorName}} for {{monitorName}} {{/if}}',
         body: `
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
     <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
@@ -1941,11 +1942,13 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
             <tbody>
               <tr style="border-collapse:collapse">
                 <td align="left" style="padding:0;Margin:0;padding-top:30px">   
+                {{#if monitorName}}
                   <p
                     style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                     <strong>Monitor Name: </strong>
                     <span>{{monitorName}}</span><br>
                   </p>
+                  {{/if}}
                   <p
                     style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                     <strong>Incident Id: </strong>
@@ -1984,11 +1987,11 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
 
         {{#if statusPageUrl}}
             You can view the status of the incident 
-            <a href={{statusPageUrl}}{{/if}}
+            <a href={{statusPageUrl}}
               style="color:#222b35;font-family:sans-serif;font-size:16px;font-weight:bold;line-height:30px;text-align:center;text-decoration:none;-webkit-text-size-adjust:none;mso-hide:all;">
               here
             </a>
-
+        {{/if}}
         </td>
         <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
           <div class="st-Spacer st-Spacer--filler"></div>
@@ -4241,7 +4244,7 @@ Fyipe Team.
             '{{announcementDescription}} : Description of the scheduled event.',
             '{{unsubscribeUrl}} : URL to unsubscribe from the monitor',
             '{{projectName}} : Name of project on which announcement is created',
-            '{{resourcesAffected}} : List of monitors affected by scheduled maintenance event',
+            '{{monitorName}} : List of monitors affected by scheduled maintenance event',
         ],
         emailType: 'Subscriber Announcement Notification Created',
         subject: `Announcement Notification for {{projectName}}`,
@@ -4560,10 +4563,10 @@ width="500" style="min-width: 500px;margin: 40px 50px;">
                       <strong>Content: </strong>
                       <span>"{{announcementDescription}}"</span><br></p>
                       
-                    {{#if resourcesAffected}}
+                    {{#if monitorName}}
                       <p style="Margin:0;font-size:16px;font-family:'inter','helvetica neue',helvetica,arial,sans-serif;line-height:30px;color:#424761">
                       <strong>Resource Affected: </strong>
-                      <span>{{resourcesAffected}}</span><br></p> 
+                      <span>{{monitorName}}</span><br></p> 
                     {{/if}}                                   
                   </td>
                 </tr>

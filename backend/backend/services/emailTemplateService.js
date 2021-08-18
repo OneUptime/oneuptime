@@ -54,7 +54,12 @@ module.exports = {
             let updatedData = await EmailTemplateModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const select = 'projectId subject body emailType allowedVariables';
+            updatedData = await this.findBy({
+                query,
+                select,
+                populate: [{ path: 'projectId', select: 'nmae' }],
+            });
             return updatedData;
         } catch (error) {
             ErrorService.log('EmailTemplateService.updateMany', error);
@@ -84,7 +89,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -103,31 +108,37 @@ module.exports = {
             }
 
             query.deleted = false;
-            const emailTemplates = await EmailTemplateModel.find(query)
+            let emailTemplates = EmailTemplateModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId', 'name');
-            return emailTemplates;
+                .skip(skip);
+            emailTemplates = handleSelect(select, emailTemplates);
+            emailTemplates = handlePopulate(populate, emailTemplates);
+            const result = await emailTemplates;
+
+            return result;
         } catch (error) {
             ErrorService.log('emailTemplateService.findBy', error);
             throw error;
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const emailTemplate = await EmailTemplateModel.findOne(query)
+            let emailTemplate = EmailTemplateModel.findOne(query)
                 .lean()
-                .sort([['createdAt', -1]])
-                .populate('projectId', 'name');
-            return emailTemplate;
+                .sort([['createdAt', -1]]);
+
+            emailTemplate = handleSelect(select, emailTemplate);
+            emailTemplate = handlePopulate(populate, emailTemplate);
+            const result = await emailTemplate;
+            return result;
         } catch (error) {
             ErrorService.log('emailTemplateService.findOneBy', error);
             throw error;
@@ -151,11 +162,16 @@ module.exports = {
 
     getTemplates: async function(projectId) {
         const _this = this;
+        const select = 'projectId subject body emailType allowedVariables';
         const templates = await Promise.all(
             defaultTemplate.map(async template => {
                 const emailTemplate = await _this.findOneBy({
-                    projectId: projectId,
-                    emailType: template.emailType,
+                    query: {
+                        projectId: projectId,
+                        emailType: template.emailType,
+                    },
+                    select,
+                    populate: [{ path: 'projectId', select: 'nmae' }],
                 });
                 return emailTemplate != null && emailTemplate != undefined
                     ? emailTemplate
@@ -167,7 +183,12 @@ module.exports = {
 
     resetTemplate: async function(projectId, templateId) {
         const _this = this;
-        const oldTemplate = await _this.findOneBy({ _id: templateId });
+        const select = 'projectId subject body emailType allowedVariables';
+        const oldTemplate = await _this.findOneBy({
+            query: { _id: templateId },
+            select,
+            populate: [{ path: 'projectId', select: 'nmae' }],
+        });
         const newTemplate = defaultTemplate.filter(
             template => template.emailType === oldTemplate.emailType
         )[0];
@@ -200,3 +221,5 @@ const EmailTemplateModel = require('../models/emailTemplate');
 const ErrorService = require('./errorService');
 const emailTemplateVariables = require('../config/emailTemplateVariables');
 const defaultTemplate = require('../config/emailTemplate');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

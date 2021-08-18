@@ -41,6 +41,12 @@ spec:
                             key: encryptionkey
                       - name: MONGO_URL
                         value: {{ template "fyipe.mongodbConnectionString" . }}
+                      {{- if eq .Values.mongodb.architecture "replicaset" }}
+                      - name: IS_MONGO_REPLICA_SET
+                        value: {{ true | quote }}
+                      - name: MONGO_REPLICA_SET_NAME
+                        value: {{ .Values.mongodb.replicaSetName }}
+                      {{- end }}
                       - name: REDIS_HOST
                         value: {{ template "fyipe.redisHost" . }}
                       - name: FYIPE_HOST
@@ -63,6 +69,8 @@ spec:
                         value: {{ .Values.pushNotification.url }}
                       - name: SCRIPT_RUNNER_URL
                         value: {{ template "fyipe.scriptRunnerUrl" $ }}
+                      - name: REALTIME_URL
+                        value: {{ template "fyipe.realtimeUrl" $ }}
                       - name: NODE_ENV
                         value: 'production'
                       - name: IS_TESTING

@@ -50,8 +50,16 @@ router.get(
         try {
             const { projectId } = req.params;
 
+            const selectGitCredentials =
+                'gitUsername gitPassword iv projectId deleted';
+
+            const populateGitCredentials = [
+                { path: 'projectId', select: 'name slug' },
+            ];
             const gitCredentials = await GitCredentialService.findBy({
-                projectId,
+                query: { projectId },
+                select: selectGitCredentials,
+                populate: populateGitCredentials,
             });
             return sendItemResponse(req, res, gitCredentials);
         } catch (error) {

@@ -19,7 +19,7 @@ const _this = {
         return new Promise((resolve, reject) => {
             axios({
                 method: 'POST',
-                url: `${config.serverUrl}/${url}`,
+                url: `${config.dataIngestorUrl}/${url}`,
                 headers,
                 data,
             })
@@ -42,7 +42,7 @@ const _this = {
         return new Promise((resolve, reject) => {
             axios({
                 method: 'GET',
-                url: `${config.serverUrl}/${url}`,
+                url: `${config.dataIngestorUrl}/${url}`,
                 headers,
             })
                 .then(function(response) {
@@ -64,7 +64,7 @@ const _this = {
         return new Promise((resolve, reject) => {
             axios({
                 method: 'PUT',
-                url: `${config.serverUrl}/${url}`,
+                url: `${config.dataIngestorUrl}/${url}`,
                 headers,
                 data,
             })
@@ -87,7 +87,7 @@ const _this = {
         return new Promise((resolve, reject) => {
             axios({
                 method: 'DELETE',
-                url: `${config.serverUrl}/${url}`,
+                url: `${config.dataIngestorUrl}/${url}`,
                 headers,
                 data,
             })

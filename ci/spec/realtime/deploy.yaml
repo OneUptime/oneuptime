@@ -1,0 +1,59 @@
+production_realtime:
+    stage: Deploy
+    retry: 2
+    allow_failure: true
+    script:
+        - chmod +x ./ci/scripts/version-setup.sh
+        - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
+        - chmod +x ./ci/scripts/deployment-production-setup.sh
+        - bash ./ci/scripts/deployment-production-setup.sh
+        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker build -t fyipeproject/realtime:latest ./realtime
+        - sudo docker tag fyipeproject/realtime:latest fyipeproject/realtime:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/realtime:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/realtime:latest
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-realtime fi-realtime=fyipeproject/realtime:3.0.$CI_PIPELINE_IID
+        # Cleanup
+        - chmod +x ./ci/scripts/deployment-cleanup.sh
+        - ./ci/scripts/deployment-cleanup.sh
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - release
+            - hotfix-release
+    environment:
+        name: production
+
+# DEPLOYMENT STAGE - REALTIME
+staging_realtime:
+    stage: Deploy
+    retry: 2
+    allow_failure: true
+    script:
+        - chmod +x ./ci/scripts/version-setup.sh
+        - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
+        - chmod +x ./ci/scripts/deployment-staging-setup.sh
+        - bash ./ci/scripts/deployment-staging-setup.sh
+        # Build and deploy realtime.
+        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker build -t fyipeproject/realtime:master ./realtime
+        - sudo docker tag fyipeproject/realtime:master fyipeproject/realtime:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/realtime:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/realtime:master
+        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-realtime fi-realtime=fyipeproject/realtime:3.0.$CI_PIPELINE_IID
+        # Cleanup
+        - chmod +x ./ci/scripts/deployment-cleanup.sh
+        - ./ci/scripts/deployment-cleanup.sh
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - master
+            - hotfix-master
+    environment:
+        name: staging

@@ -4,7 +4,7 @@
 Expand the name of the chart.
 */}}
 {{- define "fyipe.mongodbConnectionString" -}}
-{{ printf "mongodb://%s:%s@%s-%s.%s.%s:%s/%s?replicaSet=%s" $.Values.mongodb.mongodbUsername $.Values.mongodb.mongodbPassword $.Release.Name "mongodb" $.Release.Namespace "svc.cluster.local" "27017" $.Values.mongodb.mongodbDatabase $.Values.mongodb.replicaSet.name }}
+{{ printf "mongodb://%s:%s@%s-%s.%s.%s:%s/%s?replicaSet=%s" $.Values.mongodb.auth.username $.Values.mongodb.auth.password $.Release.Name "mongodb-headless" $.Release.Namespace "svc.cluster.local" "27017" $.Values.mongodb.auth.database $.Values.mongodb.replicaSetName }}
 {{- end -}}
 
 {{- define "fyipe.internalSmtpServer" -}}
@@ -28,5 +28,13 @@ Expand the name of the chart.
 {{- end -}}
 
 {{- define "fyipe.scriptRunnerUrl" -}}
-{{ printf "http://%s-runner.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
+{{ printf "http://%s-script.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
+{{- end -}}
+
+{{- define "fyipe.dataIngestorUrl" -}}
+{{ printf "http://%s-ingestor.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
+{{- end -}}
+
+{{- define "fyipe.realtimeUrl" -}}
+{{ printf "http://%s-realtime.%s.%s" $.Release.Name $.Release.Namespace "svc.cluster.local" }}
 {{- end -}}

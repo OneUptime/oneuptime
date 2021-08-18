@@ -83,12 +83,12 @@ const _this = {
                 });
             }
             // try to get the error tracker by the ID and key
-            const errorTracker = await ErrorTrackerService.findOneBy({
+            const errorTrackerCount = await ErrorTrackerService.countBy({
                 _id: errorTrackerId,
                 key: data.errorTrackerKey,
             });
             // send an error if the error tracker doesnt exist
-            if (!errorTracker) {
+            if (errorTrackerCount === 0) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Error Tracker does not exist.',

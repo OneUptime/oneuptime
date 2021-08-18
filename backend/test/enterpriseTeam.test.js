@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 const userData = require('./data/user');
@@ -56,7 +54,7 @@ describe('Enterprise Team API', function() {
                 role: 'Member',
             })
             .end(function(err, res) {
-                anotherUser = res.body[0].team[0].userId;
+                expect(res.body[0].team[0].userId).to.be.truthy();
                 expect(res).to.have.status(200);
                 expect(res.body).to.be.an('array');
                 done();

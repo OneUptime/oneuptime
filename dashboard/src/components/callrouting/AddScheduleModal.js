@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unused-state */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -386,7 +385,7 @@ export class AddScheduleModal extends Component {
                                             schedules={schedules}
                                             data={data}
                                             changeButton={this.changeButton}
-                                            stateData={this.state}
+                                            stateData={{ ...this.state }}
                                             backup={false}
                                             disabled={disabled}
                                             changeBackupButton={

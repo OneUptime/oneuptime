@@ -1,19 +1,19 @@
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Unhandled rejection in process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -25,7 +25,7 @@ const compression = require('compression');
 app.use(compression());
 
 app.use('/', (req, res, next) => {
-    //eslint-disable-next-line
+    // eslint-disable-next-line no-console
     console.log(req.method, ' ', req.originalUrl);
     return next();
 });
@@ -55,6 +55,6 @@ app.get('/*', function(req, res) {
 });
 
 const PORT = process.env.PORT || 3003;
-/* eslint-disable no-console */
+// eslint-disable-next-line no-console
 console.log(`This project is running on port ${PORT}`);
 app.listen(PORT);

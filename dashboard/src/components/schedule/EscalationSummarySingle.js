@@ -7,6 +7,7 @@ const EscalationSummarySingle = ({
     isActiveTeam,
     isNextActiveTeam,
     teamMemberList,
+    groups: groupList,
     escalation,
     hasNextEscalationPolicy,
     currentEscalationPolicyCount,
@@ -235,7 +236,7 @@ const EscalationSummarySingle = ({
                             }).length > 0 && (
                                 <span>
                                     {' '}
-                                    Team Memmbers: <br />
+                                    Team Members: <br />
                                     <br />{' '}
                                 </span>
                             )}
@@ -250,14 +251,16 @@ const EscalationSummarySingle = ({
                                     );
                                 })
                                 .map(member => {
-                                    let membersFromList = teamMemberList.filter(
-                                        memberFromList => {
+                                    let membersFromList = teamMemberList
+                                        .concat(groupList || [])
+                                        .filter(memberFromList => {
                                             return (
                                                 memberFromList.userId ===
-                                                member.userId
+                                                    member.userId ||
+                                                memberFromList._id ===
+                                                    member.groupId
                                             );
-                                        }
-                                    );
+                                        });
 
                                     if (membersFromList.length > 0) {
                                         membersFromList = membersFromList[0];
@@ -269,11 +272,18 @@ const EscalationSummarySingle = ({
                                             className="Box-root Margin-right--16 pointer"
                                         >
                                             <img
-                                                src="/dashboard/assets/img/profile-user.svg"
+                                                src={
+                                                    member.groupId
+                                                        ? '/dashboard/assets/img/group-image.png'
+                                                        : '/dashboard/assets/img/profile-user.svg'
+                                                }
                                                 className="userIcon"
                                                 alt=""
                                             />
-                                            <span>{membersFromList.name}</span>
+                                            <span>
+                                                {membersFromList.name ||
+                                                    membersFromList.email}
+                                            </span>
                                             <span>
                                                 {' '}
                                                 <br />
@@ -398,6 +408,7 @@ EscalationSummarySingle.propTypes = {
     isActiveTeam: PropTypes.bool.isRequired,
     isNextActiveTeam: PropTypes.bool.isRequired,
     teamMemberList: PropTypes.array.isRequired,
+    groups: PropTypes.array,
     escalation: PropTypes.object.isRequired,
     hasNextEscalationPolicy: PropTypes.bool.isRequired,
     currentEscalationPolicyCount: PropTypes.number.isRequired,

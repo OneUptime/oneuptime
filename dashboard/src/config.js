@@ -12,6 +12,7 @@ const dJSON = require('dirty-json');
 let apiUrl = window.location.origin + '/api';
 let dashboardUrl = window.location.origin + '/dashboard';
 let accountsUrl = window.location.origin + '/accounts';
+let realtimeUrl = window.location.origin + '/realtime';
 
 const isLocalhost =
     window &&
@@ -30,6 +31,7 @@ if (isLocalhost) {
     apiUrl = window.location.protocol + `//${address}:3002/api`;
     dashboardUrl = window.location.protocol + `//${address}:3000/dashboard`;
     accountsUrl = window.location.protocol + `//${address}:3003/accounts`;
+    realtimeUrl = `${window.location.protocol}//${address}:3300/realtime`;
 }
 
 export function env(value) {
@@ -41,6 +43,8 @@ export function env(value) {
 }
 
 export const API_URL = apiUrl;
+
+export const REALTIME_URL = realtimeUrl;
 
 export const DASHBOARD_URL = dashboardUrl;
 

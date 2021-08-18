@@ -2,9 +2,9 @@ staging_rollback_status-page:
     stage: RollbackIfTestsFail
     script:
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
-        - ./ci/scripts/deployment-staging-setup.sh
+        - bash ./ci/scripts/deployment-staging-setup.sh
         # Rollback status-page
         - chmod +x ./ci/scripts/job-status.sh
         - export smoke_test_staging_status=`./ci/scripts/job-status.sh smoke_test_staging`
@@ -22,9 +22,9 @@ production_rollback_status-page:
     stage: RollbackIfTestsFail
     script:
         - chmod +x ./ci/scripts/deployment-setup.sh
-        - ./ci/scripts/deployment-setup.sh
+        - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
-        - ./ci/scripts/deployment-production-setup.sh
+        - bash ./ci/scripts/deployment-production-setup.sh
         # Rollback status-page
         - chmod +x ./ci/scripts/job-status.sh
         - export smoke_test_production_status=`./ci/scripts/job-status.sh smoke_test_production`

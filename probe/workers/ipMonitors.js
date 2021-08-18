@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const ping = require('ping');
@@ -6,7 +5,7 @@ const ping = require('ping');
 // checks if the IP Address of the IP monitor is up or down
 // creates incident if a IP Address is down and resolves it when they come back up
 module.exports = {
-    ping: async monitor => {
+    ping: async ({ monitor }) => {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.IPAddress) {

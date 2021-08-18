@@ -3,7 +3,6 @@
  * Copyright HackerBay, Inc.
  *
  */
-
 const express = require('express');
 const StatusPageService = require('../services/statusPageService');
 const MonitorService = require('../services/monitorService');
@@ -34,7 +33,9 @@ const uuid = require('uuid');
 const defaultStatusPageColors = require('../config/statusPageColors');
 const SubscriberService = require('../services/subscriberService');
 const ScheduledEventService = require('../services/scheduledEventService');
-
+const axios = require('axios');
+const bearer = process.env.TWITTER_BEARER_TOKEN;
+const cheerio = require('cheerio');
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
 // Returns: response status page, error message
@@ -62,6 +63,25 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     }
 });
 
+//fetch tweets from user twitter handle
+router.post('/:projectId/tweets', checkUser, async (req, res) => {
+    try {
+        const { handle } = req.body;
+        if (!handle || (handle && handle.trim().length === 0)) {
+            return sendErrorResponse(req, res, {
+                code: 400,
+                message: 'handle is required',
+            });
+        }
+
+        const response = await StatusPageService.fetchTweets(handle);
+
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
 router.put(
     '/:projectId/:statusPageId/resetBubbleId',
     getUser,
@@ -75,11 +95,33 @@ router.put(
                 { projectId, _id: statusPageId },
                 { statusBubbleId: newStatusBubbleId }
             );
-            const updatedStatusPage = await StatusPageService.getStatusPage(
-                { _id: statusPage._id },
-                req.user.id
-            );
-            await RealTimeService.statusPageEdit(updatedStatusPage);
+            const populateStatusPage = [
+                {
+                    path: 'projectId',
+                    select: 'name parentProjectId',
+                    populate: { path: 'parentProjectId', select: '_id' },
+                },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+            ];
+
+            const selectStatusPage =
+                'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+
+            const updatedStatusPage = await StatusPageService.getStatusPage({
+                query: { _id: statusPage._id },
+                userId: req.user.id,
+                populate: populateStatusPage,
+                select: selectStatusPage,
+            });
+            // run in the background
+            RealTimeService.statusPageEdit(updatedStatusPage);
             return sendItemResponse(req, res, updatedStatusPage);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -95,11 +137,33 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
             { projectId, _id: statusPageId },
             { theme }
         );
-        const updatedStatusPage = await StatusPageService.getStatusPage(
-            { _id: statusPageId },
-            req.user.id
-        );
-        await RealTimeService.statusPageEdit(updatedStatusPage);
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'projectId domains monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+
+        const updatedStatusPage = await StatusPageService.getStatusPage({
+            query: { _id: statusPage._id },
+            userId: req.user.id,
+            populate: populateStatusPage,
+            select: selectStatusPage,
+        });
+        // run in the background
+        RealTimeService.statusPageEdit(updatedStatusPage);
         return sendItemResponse(req, res, statusPage);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -322,10 +386,17 @@ router.get('/tlsCredential', async function(req, res) {
             });
         }
 
-        const statusPage = await StatusPageService.getStatusPage(
-            { domains: { $elemMatch: { domain } } },
-            user
-        );
+        const statusPage = await StatusPageService.getStatusPage({
+            query: { domains: { $elemMatch: { domain } } },
+            userId: user,
+            select: 'domains',
+            populate: [
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain',
+                },
+            ],
+        });
 
         let domainObj = {};
         statusPage &&
@@ -464,7 +535,8 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         let statusPage;
         if (data._id) {
             statusPage = await StatusPageService.findOneBy({
-                _id: data._id,
+                query: { _id: data._id },
+                select: 'faviconPath logoPath bannerPath',
             });
             const imagesPath = {
                 faviconPath: statusPage.faviconPath,
@@ -510,11 +582,44 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 data
             );
 
-            const updatedStatusPage = await StatusPageService.getStatusPage(
-                { _id: statusPage._id },
-                req.user.id
-            );
-            await RealTimeService.statusPageEdit(updatedStatusPage);
+            const populateStatusPage = [
+                {
+                    path: 'projectId',
+                    select: 'name parentProjectId',
+                    populate: { path: 'parentProjectId', select: '_id' },
+                },
+                {
+                    path: 'domains.domainVerificationToken',
+                    select: 'domain verificationToken verified ',
+                },
+                {
+                    path: 'monitors.monitor',
+                    select: 'name',
+                },
+            ];
+
+            const selectStatusPage =
+                'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+
+            const updatedStatusPage = await StatusPageService.getStatusPage({
+                query: { _id: statusPage._id },
+                userId: req.user.id,
+                populate: populateStatusPage,
+                select: selectStatusPage,
+            });
+
+            RealTimeService.statusPageEdit(updatedStatusPage);
+
+            if (updatedStatusPage?.twitterHandle) {
+                const tweets = await StatusPageService.fetchTweets(
+                    updatedStatusPage.twitterHandle
+                );
+                RealTimeService.updateTweets(
+                    tweets,
+                    updatedStatusPage._id,
+                    updatedStatusPage.projectId
+                );
+            }
 
             return sendItemResponse(req, res, statusPage);
         } catch (error) {
@@ -527,7 +632,14 @@ router.get('/statusBubble', async function(req, res) {
     const statusPageId = req.query.statusPageId;
     const statusBubbleId = req.query.statusBubbleId;
     try {
-        const probes = await ProbeService.findBy({}, 0, 0);
+        const selectProbe =
+            'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
+        const probes = await ProbeService.findBy({
+            query: {},
+            limit: 0,
+            skip: 0,
+            select: selectProbe,
+        });
         if (!statusPageId) {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -540,9 +652,30 @@ router.get('/statusBubble', async function(req, res) {
                 message: 'StatusBubble Id is required',
             });
         }
+
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+
         const statusPages = await StatusPageService.findBy({
-            _id: statusPageId,
-            statusBubbleId,
+            query: { _id: statusPageId, statusBubbleId },
+            populate: populateStatusPage,
+            select: selectStatusPage,
         });
         if (!(statusPages && statusPages.length)) {
             return sendErrorResponse(req, res, {
@@ -574,12 +707,35 @@ router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
     const projectId = req.params.projectId;
     try {
         // Call the StatusPageService.
-        const statusPages = await StatusPageService.findBy(
-            { projectId: projectId },
-            req.query.skip || 0,
-            req.query.limit || 10
-        );
-        const count = await StatusPageService.countBy({ projectId: projectId });
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage';
+
+        const [statusPages, count] = await Promise.all([
+            StatusPageService.findBy({
+                query: { projectId: projectId },
+                skip: req.query.skip || 0,
+                limit: req.query.limit || 10,
+                select: selectStatusPage,
+                populate: populateStatusPage,
+            }),
+            StatusPageService.countBy({ projectId: projectId }),
+        ]);
         return sendListResponse(req, res, statusPages, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -611,13 +767,37 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
     res
 ) {
     const projectId = req.params.projectId;
+
     try {
-        const statusPage = await StatusPageService.findBy(
-            { projectId },
-            req.query.skip || 0,
-            req.query.limit || 10
-        );
-        const count = await StatusPageService.countBy({ projectId });
+        const populateStatusPage = [
+            {
+                path: 'projectId',
+                select: 'name parentProjectId',
+                populate: { path: 'parentProjectId', select: '_id' },
+            },
+            {
+                path: 'domains.domainVerificationToken',
+                select: 'domain verificationToken verified ',
+            },
+            {
+                path: 'monitors.monitor',
+                select: 'name',
+            },
+        ];
+
+        const selectStatusPage =
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+
+        const [statusPage, count] = await Promise.all([
+            StatusPageService.findBy({
+                query: { projectId },
+                skip: req.query.skip || 0,
+                limit: req.query.limit || 10,
+                select: selectStatusPage,
+                populate: populateStatusPage,
+            }),
+            StatusPageService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, statusPage, count); // frontend expects sendListResponse
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -633,18 +813,41 @@ router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
     const url = req.query.url;
     const user = req.user;
     let statusPage = {};
+    const populateStatusPage = [
+        {
+            path: 'projectId',
+            select: 'name parentProjectId',
+            populate: { path: 'parentProjectId', select: '_id' },
+        },
+        {
+            path: 'domains.domainVerificationToken',
+            select: 'domain verificationToken verified ',
+        },
+        {
+            path: 'monitors.monitor',
+            select: 'name',
+        },
+    ];
+
+    const selectStatusPage =
+        'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+
     try {
         // Call the StatusPageService.
         if (url && url !== 'null') {
-            statusPage = await StatusPageService.getStatusPage(
-                { domains: { $elemMatch: { domain: url } } },
-                user
-            );
+            statusPage = await StatusPageService.getStatusPage({
+                query: { domains: { $elemMatch: { domain: url } } },
+                userId: user,
+                populate: populateStatusPage,
+                select: selectStatusPage,
+            });
         } else if ((!url || url === 'null') && statusPageSlug) {
-            statusPage = await StatusPageService.getStatusPage(
-                { slug: statusPageSlug },
-                user
-            );
+            statusPage = await StatusPageService.getStatusPage({
+                query: { slug: statusPageSlug },
+                userId: user,
+                populate: populateStatusPage,
+                select: selectStatusPage,
+            });
         } else {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -670,18 +873,21 @@ router.get('/:statusPageId/rss', checkUser, async function(req, res) {
     const url = req.query.url;
     const user = req.user;
     let statusPage = {};
+
     try {
         // Call the StatusPageService.
         if (url && url !== 'null') {
-            statusPage = await StatusPageService.getStatusPage(
-                { domains: { $elemMatch: { domain: url } } },
-                user
-            );
+            statusPage = await StatusPageService.getStatusPage({
+                query: { domains: { $elemMatch: { domain: url } } },
+                userId: user,
+                select: 'name isPrivate monitors projectId',
+            });
         } else if ((!url || url === 'null') && statusPageId) {
-            statusPage = await StatusPageService.getStatusPage(
-                { _id: statusPageId },
-                user
-            );
+            statusPage = await StatusPageService.getStatusPage({
+                query: { _id: statusPageId },
+                userId: user,
+                select: 'name isPrivate monitors projectId',
+            });
         } else {
             return sendErrorResponse(req, res, {
                 code: 400,
@@ -820,8 +1026,8 @@ router.get('/:projectId/incident/:incidentId', checkUser, async function(
         const { incidentId, projectId } = req.params;
 
         const incidentData = await IncidentService.findOneBy({
-            projectId,
-            idNumber: incidentId,
+            query: { projectId, idNumber: incidentId },
+            select: '_id',
         });
 
         const incident = await StatusPageService.getIncident({
@@ -841,8 +1047,8 @@ router.get('/:projectId/:incidentId/incidentNotes', checkUser, async function(
         const { incidentId, projectId } = req.params;
 
         const incident = await IncidentService.findOneBy({
-            projectId,
-            idNumber: incidentId,
+            query: { projectId, idNumber: incidentId },
+            select: '_id',
         });
         const { skip, limit, postOnStatusPage } = req.query;
 
@@ -1035,8 +1241,10 @@ router.get('/:projectId/notes/:scheduledEventSlug', checkUser, async function(
 ) {
     const { scheduledEventSlug } = req.params;
     const { skip, limit, type } = req.query;
+
     const scheduledEventId = await ScheduledEventService.findOneBy({
-        slug: scheduledEventSlug,
+        query: { slug: scheduledEventSlug },
+        select: '_id',
     });
 
     try {
@@ -1191,8 +1399,17 @@ router.get('/:projectId/probes', checkUser, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
-        const probes = await ProbeService.findBy({}, limit, skip);
-        const count = await ProbeService.countBy({});
+        const selectProbe =
+            'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
+        const [probes, count] = await Promise.all([
+            ProbeService.findBy({
+                query: {},
+                limit,
+                skip,
+                select: selectProbe,
+            }),
+            ProbeService.countBy({}),
+        ]);
         return sendListResponse(req, res, probes, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1228,19 +1445,29 @@ router.get('/:projectId/timeline/:incidentId', checkUser, async function(
         const { incidentId, projectId } = req.params;
 
         const incidentData = await IncidentService.findOneBy({
-            projectId,
-            idNumber: incidentId,
+            query: { projectId, idNumber: incidentId },
+            select: '_id',
         });
         // setting limit to one
         // since the frontend only need the last content (current content)
         // of incident timeline
         const { skip = 0, limit = 1 } = req.query;
-
-        const timeline = await IncidentTimelineService.findBy(
-            { incidentId: incidentData._id },
+        const populateIncTimeline = [
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'probeId',
+                select: 'probeName probeImage',
+            },
+        ];
+        const selectIncTimeline =
+            'incidentId createdById probeId createdByZapier createdAt status incident_state';
+        const timeline = await IncidentTimelineService.findBy({
+            query: { incidentId: incidentData._id },
             skip,
-            limit
-        );
+            limit,
+            populate: populateIncTimeline,
+            select: selectIncTimeline,
+        });
         return sendItemResponse(req, res, timeline);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -1279,25 +1506,271 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
         const { statusPageId } = req.params;
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 10;
+        const populateStatusPage = [
+            { path: 'monitors.monitor', select: '_id' },
+        ];
+
         const statusPage = await StatusPageService.findOneBy({
-            _id: statusPageId,
+            query: { _id: statusPageId },
+            select: 'monitors',
+            populate: populateStatusPage,
         });
+
         const monitors = statusPage.monitors.map(mon => mon.monitor._id);
-        const subscribers = await SubscriberService.findBy(
-            {
+        const populate = [
+            { path: 'projectId', select: 'name _id' },
+            { path: 'monitorId', select: 'name _id' },
+            { path: 'statusPageId', select: 'name _id' },
+        ];
+        const select =
+            '_id projectId monitorId statusPageId createdAt alertVia contactEmail contactPhone countryCode contactWebhook webhookMethod';
+
+        const [subscribers, count] = await Promise.all([
+            SubscriberService.findBy({
+                query: {
+                    monitorId: monitors,
+                },
+                skip,
+                limit,
+                select,
+                populate,
+            }),
+            SubscriberService.countBy({
                 monitorId: monitors,
-            },
-            skip,
-            limit
-        );
-        const count = await SubscriberService.countBy({
-            monitorId: monitors,
-        });
+            }),
+        ]);
         return sendItemResponse(req, res, { subscribers, skip, limit, count });
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
 });
+
+router.post(
+    '/:projectId/createExternalStatusPage/:statusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageId } = req.params;
+            const { name, url } = req.body;
+            const data = {};
+
+            data.name = name;
+            data.url = url;
+
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Values can't be null",
+                });
+            }
+
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Name is required.',
+                });
+            }
+            if (!data.url || !data.url.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page url is required.',
+                });
+            }
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            // To confirm the name and url is not created already
+            const nameQuery = { name };
+            const urlQuery = { url };
+            const existingExternalStatusPageId = await StatusPageService.getExternalStatusPage(
+                nameQuery
+            );
+            const existingExternalStatusPageUrl = await StatusPageService.getExternalStatusPage(
+                urlQuery
+            );
+            if (existingExternalStatusPageId.length > 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Name is already present',
+                });
+            }
+            if (existingExternalStatusPageUrl.length > 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Url is already present',
+                });
+            }
+            // This scrapes the External Status Page
+            try {
+                const res = await axios.get(`${data.url}`);
+                const $ = cheerio.load(res.data);
+                const status = $('span.status.font-large')
+                    .text()
+                    .replace(/\s\s+/g, ''); // To remove empty spaces
+                if (status === 'All Systems Operational') {
+                    data.description = status;
+                } else {
+                    data.description = 'Some Systems Are Down';
+                }
+            } catch (err) {
+                data.description = 'Invalid URL';
+            }
+
+            data.createdById = req.user ? req.user.id : null;
+            data.projectId = projectId;
+            data.statusPageId = statusPageId;
+
+            await StatusPageService.createExternalStatusPage(data);
+            const response = await StatusPageService.getExternalStatusPage();
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.post(
+    '/:projectId/updateExternalStatusPage/:externalStatusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, externalStatusPageId } = req.params;
+            const { name, url } = req.body;
+            const data = {};
+            data.name = name;
+            data.url = url;
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Values can't be null",
+                });
+            }
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Name is required.',
+                });
+            }
+            if (!data.url || !data.url.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page url is required.',
+                });
+            }
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            if (!externalStatusPageId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Status Page ID is required.',
+                });
+            }
+            // This scrapes the External Status Page
+            try {
+                const res = await axios.get(`${data.url}`);
+                const $ = cheerio.load(res.data);
+                const status = $('span.status.font-large')
+                    .text()
+                    .replace(/\s\s+/g, ''); // To remove empty spaces
+                if (status === 'All Systems Operational') {
+                    data.description = status;
+                } else {
+                    data.description = 'Some Systems Are Down';
+                }
+            } catch (err) {
+                data.description = 'Invalid URL';
+            }
+
+            await StatusPageService.updateExternalStatusPage(
+                projectId,
+                externalStatusPageId,
+                data
+            );
+            const response = await StatusPageService.getExternalStatusPage();
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get(
+    '/:projectId/fetchExternalStatusPages/:statusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageId } = req.params;
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            if (!statusPageId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Status Page ID is required.',
+                });
+            }
+
+            // To fetch all created external statuspages
+            const query = { projectId, statusPageId };
+
+            const response = await StatusPageService.getExternalStatusPage(
+                query
+            );
+
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.post(
+    '/:projectId/deleteExternalStatusPage/:externalStatusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, externalStatusPageId } = req.params;
+            const userId = req.user ? req.user.id : null;
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            if (!externalStatusPageId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page ID is required.',
+                });
+            }
+
+            // Deleting the external Id
+            await StatusPageService.deleteExternalStatusPage(
+                projectId,
+                externalStatusPageId,
+                userId
+            );
+
+            const response = await StatusPageService.getExternalStatusPage();
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 router.post('/:projectId/announcement/:statusPageId', checkUser, async function(
     req,
@@ -1433,17 +1906,19 @@ router.get(
         try {
             const { statusPageId } = req.params;
             const { skip, limit, theme } = req.query;
-            let announcementLogs = await StatusPageService.getAnnouncementLogs(
-                {
+            const [logs, count] = await Promise.all([
+                StatusPageService.getAnnouncementLogs(
+                    {
+                        statusPageId,
+                    },
+                    skip,
+                    limit
+                ),
+                StatusPageService.countAnnouncementLogs({
                     statusPageId,
-                },
-                skip,
-                limit
-            );
-
-            const count = await StatusPageService.countAnnouncementLogs({
-                statusPageId,
-            });
+                }),
+            ]);
+            let announcementLogs = logs;
 
             if ((theme && typeof theme === 'boolean') || theme === 'true') {
                 const updatedLogs = [];
@@ -1476,13 +1951,10 @@ router.get('/:projectId/announcement/:statusPageId', checkUser, async function(
         const query = { projectId, statusPageId };
         if (show) query.hideAnnouncement = false;
 
-        const allAnnouncements = await StatusPageService.getAnnouncements(
-            query,
-            skip,
-            limit
-        );
-
-        const count = await StatusPageService.countAnnouncements(query);
+        const [allAnnouncements, count] = await Promise.all([
+            StatusPageService.getAnnouncements(query, skip, limit),
+            StatusPageService.countAnnouncements(query),
+        ]);
 
         return sendItemResponse(req, res, {
             allAnnouncements,
@@ -1502,7 +1974,8 @@ router.get(
         try {
             const { projectId, statusPageSlug, announcementSlug } = req.params;
             const { _id } = await StatusPageService.findOneBy({
-                slug: statusPageSlug,
+                query: { slug: statusPageSlug },
+                select: '_id',
             });
             const response = await StatusPageService.getSingleAnnouncement({
                 projectId,
@@ -1625,4 +2098,454 @@ function handleMonitorList(monitors) {
     }
 }
 
+//load all status page resources
+router.get('/resources/:statusPageSlug', checkUser, ipWhitelist, async function(
+    req,
+    res
+) {
+    try {
+        const { statusPageSlug } = req.params;
+        const { range } = req.query;
+        const response = {};
+        //get status pages
+        const statusPage = await getStatusPage(req, statusPageSlug);
+        if (statusPage.error) {
+            return sendErrorResponse(req, res, statusPage.data);
+        }
+
+        const { _id: statusPageId, monitors, projectId } = statusPage;
+
+        //get all resources.
+        const [
+            ongoingEvents,
+            futureEvents,
+            pastEvents,
+            probes,
+            monitorLogs,
+            announcement,
+            monitorStatus,
+            timelines,
+            statusPageNote,
+            announcementLogs,
+        ] = await Promise.allSettled([
+            //get ongoing events.
+            getOngoingScheduledEvents(req, statusPageSlug),
+
+            //get future events
+            getFutureEvents(req, statusPageSlug),
+
+            //get past events.
+            getPastEvents(req, statusPageSlug),
+
+            //get probes.
+            getProbes(req),
+
+            getMonitorLogs(req, monitors),
+
+            getAnnouncements(req, statusPageId, projectId),
+
+            getMonitorStatuses(req, monitors),
+
+            getMonitorTimelines(statusPageSlug),
+
+            getStatusPageNote(req, statusPageSlug, statusPage.theme),
+
+            getAnnouncementLogs(statusPage),
+        ]);
+
+        response.ongoingEvents = ongoingEvents.value || {};
+
+        response.futureEvents = futureEvents.value || {};
+
+        response.pastEvents = pastEvents.value || {};
+
+        response.probes = probes.value || {};
+
+        response.monitorLogs = monitorLogs.value || {};
+
+        response.announcement = announcement.value || {};
+
+        response.monitorStatus = monitorStatus.value || [];
+
+        response.timelines = timelines.value || {};
+
+        response.statusPageNote = statusPageNote.value || {};
+
+        response.announcementLogs = announcementLogs.value || {};
+
+        statusPage.monitorsData.map(data => {
+            const statusData = response.monitorStatus.find(
+                status => status[data._id]
+            );
+            data.statuses = statusData[data._id];
+            return data;
+        });
+        response.statusPages = statusPage;
+        const time = await calculateTime(
+            statusPage,
+            monitorStatus.value,
+            probes.value,
+            range
+        );
+        response.time = time || {};
+        return sendItemResponse(req, res, response);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+async function getStatusPage(req, statusPageSlug) {
+    const url = req.query.url;
+    const user = req.user;
+    let statusPage = {};
+    const populateStatusPage = [
+        {
+            path: 'projectId',
+            select: 'name parentProjectId',
+            populate: { path: 'parentProjectId', select: '_id' },
+        },
+        {
+            path: 'domains.domainVerificationToken',
+            select: 'domain verificationToken verified ',
+        },
+        {
+            path: 'monitors.monitor',
+            select: 'name',
+        },
+    ];
+
+    const selectStatusPage =
+        'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
+
+    // Call the StatusPageService.
+    if (url && url !== 'null') {
+        statusPage = await StatusPageService.getStatusPage({
+            query: { domains: { $elemMatch: { domain: url } } },
+            userId: user,
+            populate: populateStatusPage,
+            select: selectStatusPage,
+        });
+    } else if ((!url || url === 'null') && statusPageSlug) {
+        statusPage = await StatusPageService.getStatusPage({
+            query: { slug: statusPageSlug },
+            userId: user,
+            populate: populateStatusPage,
+            select: selectStatusPage,
+        });
+    } else {
+        return {
+            error: true,
+            data: {
+                code: 400,
+                message: 'StatusPage Slug or Url required',
+            },
+        };
+    }
+
+    if (statusPage.isPrivate && !req.user) {
+        return {
+            error: true,
+            data: {
+                code: 401,
+                message: 'You are unauthorized to access the page.',
+            },
+        };
+    } else {
+        return statusPage;
+    }
+}
+
+async function getOngoingScheduledEvents(req, statusPageSlug) {
+    const { skip = 0, limit = 5, theme = false } = req.query;
+    // Call the StatusPageService.
+    const response = await StatusPageService.getEvents(
+        { slug: statusPageSlug },
+        skip,
+        limit,
+        theme
+    );
+
+    let events = response.events;
+    const count = response.count;
+    if ((theme && typeof theme === 'boolean') || theme === 'true') {
+        const results = await fetchNotes(events, limit);
+        events = results;
+    }
+    return { events, count };
+}
+async function getFutureEvents(req, statusPageSlug) {
+    const { skip = 0, limit = 5, theme = false } = req.query;
+    const response = await StatusPageService.getFutureEvents(
+        { slug: statusPageSlug },
+        skip,
+        limit
+    );
+    if ((theme && typeof theme === 'boolean') || theme === 'true') {
+        const results = await fetchNotes(response.events, limit);
+        response.events = results;
+    }
+    return response;
+}
+async function getPastEvents(req, statusPageSlug) {
+    const { skip = 0, limit = 5, theme = false } = req.query;
+
+    const response = await StatusPageService.getPastEvents(
+        { slug: statusPageSlug },
+        skip,
+        limit
+    );
+    if ((theme && typeof theme === 'boolean') || theme === 'true') {
+        const results = await fetchNotes(response.events, limit);
+        response.events = results;
+    }
+
+    return response;
+}
+async function getProbes(req) {
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 0;
+    const selectProbe =
+        'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
+    const probes = await ProbeService.findBy({
+        query: {},
+        limit,
+        skip,
+        select: selectProbe,
+    });
+    const count = await ProbeService.countBy({});
+    return { probes, count };
+}
+async function getMonitorLogs(req, monitors) {
+    const logs = [];
+    await Promise.all(
+        monitors.map(async monitor => {
+            const endDate = moment(Date.now());
+            const startDate = moment(endDate).subtract(90, 'days');
+            const {
+                memory,
+                cpu,
+                storage,
+                responseTime,
+                temperature,
+                monitor: monitorId,
+            } = monitor;
+            const filter = {
+                ...(!memory && {
+                    maxMemoryUsed: 0,
+                    memoryUsed: 0,
+                }),
+                ...(!cpu && {
+                    maxCpuLoad: 0,
+                    cpuLoad: 0,
+                }),
+                ...(!storage && {
+                    maxStorageUsed: 0,
+                    storageUsed: 0,
+                }),
+                ...(!responseTime && {
+                    maxResponseTime: 0,
+                    responseTime: 0,
+                }),
+                ...(!temperature && {
+                    maxMainTemp: 0,
+                    mainTemp: 0,
+                }),
+            };
+
+            const monitorLogs = await MonitorService.getMonitorLogsByDay(
+                monitorId._id,
+                startDate,
+                endDate,
+                filter
+            );
+            logs.push({
+                logs: monitorLogs,
+                monitorId: monitorId._id,
+                count: monitorLogs.length,
+            });
+        })
+    );
+    return logs;
+}
+
+async function getAnnouncements(req, statusPageId, projectId) {
+    const { skip, limit, show = true } = req.query;
+    const query = { projectId, statusPageId };
+    if (show) query.hideAnnouncement = false;
+
+    const allAnnouncements = await StatusPageService.getAnnouncements(
+        query,
+        skip,
+        limit
+    );
+
+    const count = await StatusPageService.countAnnouncements(query);
+
+    return {
+        allAnnouncements,
+        skip,
+        limit,
+        count,
+    };
+}
+//get monitor status
+async function getMonitorStatuses(req, monitors) {
+    const status = [];
+    const endDate = moment(Date.now());
+    const startDate = moment(Date.now()).subtract(90, 'days');
+    await Promise.all(
+        monitors.map(async data => {
+            const monitorId = data.monitor._id;
+            const monitorStatuses = await MonitorService.getMonitorStatuses(
+                monitorId,
+                startDate,
+                endDate
+            );
+            return status.push({ [monitorId]: monitorStatuses });
+        })
+    );
+
+    return status;
+}
+//get timelines
+async function getMonitorTimelines(statusPageSlug) {
+    const incidents = await StatusPageService.getNotes({
+        slug: statusPageSlug,
+    });
+    const response = await IncidentTimelineService.getIncidentLastTimelines(
+        incidents.notes
+    );
+    return response;
+}
+//get status page notes
+async function getStatusPageNote(req, statusPageSlug, theme) {
+    let result;
+    const skip = req.query.skip || 0;
+    const limit = req.query.limit || 10;
+    const days = req.query.days || 14;
+    const newTheme = theme === 'Clean Theme';
+    // Call the StatusPageService.
+    const response = await StatusPageService.getNotes(
+        { slug: statusPageSlug },
+        skip,
+        limit
+    );
+    const notes = response.notes;
+    const count = response.count;
+    const updatedNotes = [];
+    if (newTheme) {
+        if (notes.length > 0) {
+            for (const note of notes) {
+                const statusPageNote = await StatusPageService.getIncidentNotes(
+                    { incidentId: note._id, postOnStatusPage: true },
+                    skip,
+                    limit
+                );
+
+                const sortMsg = statusPageNote.message.reverse();
+
+                updatedNotes.push({
+                    ...note,
+                    message: sortMsg,
+                });
+            }
+        }
+        result = formatNotes(updatedNotes, days);
+        result = checkDuplicateDates(result);
+    } else {
+        result = notes;
+    }
+    return { result, count };
+}
+//get announcement logs
+async function getAnnouncementLogs(statusPage, limit = 5, skip = 0) {
+    const theme = statusPage.theme === 'Clean Theme';
+    if (theme) {
+        limit = statusPage.announcementLogsHistory || 14;
+    }
+    let announcementLogs = await StatusPageService.getAnnouncementLogs(
+        {
+            statusPageId: statusPage._id,
+        },
+        skip,
+        limit
+    );
+
+    const count = await StatusPageService.countAnnouncementLogs({
+        statusPageId: statusPage._id,
+    });
+
+    if ((theme && typeof theme === 'boolean') || theme === 'true') {
+        const updatedLogs = [];
+        for (const log of announcementLogs) {
+            updatedLogs.push({ ...log });
+        }
+        announcementLogs = formatNotes(updatedLogs, 20);
+        announcementLogs = checkDuplicateDates(announcementLogs);
+    }
+
+    return {
+        announcementLogs,
+        skip,
+        limit,
+        count,
+    };
+}
+//calculate time
+
+async function calculateTime(statusPage, monitorStatus, probeData, range) {
+    const result = {};
+    const start = Date.now();
+    const theme = statusPage.theme === 'Clean Theme';
+    if (!theme) {
+        range = 90;
+    }
+
+    await Promise.all(
+        statusPage.monitors.map(async data => {
+            const monitorId = data.monitor._id;
+
+            const monitorData = statusPage.monitorsData.find(
+                a => String(a._id) === String(monitorId)
+            );
+            const probe = probeData?.probes.filter(
+                probe =>
+                    String(probe._id) === String(monitorData.statuses[0]?._id)
+            );
+            const statuses = filterProbeData(
+                monitorData,
+                probe[0],
+                monitorStatus[monitorId]
+            );
+
+            const time = await MonitorService.calcTime(statuses, start, range);
+            result[monitorId] = time;
+        })
+    );
+    return result;
+}
+
+const filterProbeData = (monitor, probe, backupStatus) => {
+    const monitorStatuses = monitor.statuses || backupStatus;
+    const probesStatus =
+        monitorStatuses && monitorStatuses.length > 0
+            ? probe
+                ? monitorStatuses.filter(probeStatuses => {
+                      return (
+                          probeStatuses._id === null ||
+                          String(probeStatuses._id) === String(probe._id)
+                      );
+                  })
+                : monitorStatuses
+            : [];
+    const statuses =
+        probesStatus &&
+        probesStatus[0] &&
+        probesStatus[0].statuses &&
+        probesStatus[0].statuses.length > 0
+            ? probesStatus[0].statuses
+            : [];
+
+    return statuses;
+};
 module.exports = router;

@@ -69,7 +69,7 @@ module.exports = {
         }
     },
 
-    async findBy(query, limit, skip) {
+    async findBy({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -87,12 +87,16 @@ module.exports = {
                 query = {};
             }
 
-            const lighthouseLogs = await LighthouseLogModel.find(query)
+            let lighthouseLogsQuery = LighthouseLogModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('probeId');
+                .skip(skip);
+
+            lighthouseLogsQuery = handleSelect(select, lighthouseLogsQuery);
+            lighthouseLogsQuery = handlePopulate(populate, lighthouseLogsQuery);
+
+            const lighthouseLogs = await lighthouseLogsQuery;
 
             return lighthouseLogs;
         } catch (error) {
@@ -101,15 +105,20 @@ module.exports = {
         }
     },
 
-    async findOneBy(query) {
+    async findOneBy({ query, populate, select }) {
         try {
             if (!query) {
                 query = {};
             }
 
-            const lighthouseLog = await LighthouseLogModel.findOne(query)
+            let lighthouseLogQuery = LighthouseLogModel.findOne(query)
                 .lean()
                 .populate('probeId');
+
+            lighthouseLogQuery = handleSelect(select, lighthouseLogQuery);
+            lighthouseLogQuery = handlePopulate(populate, lighthouseLogQuery);
+
+            const lighthouseLog = await lighthouseLogQuery;
 
             return lighthouseLog;
         } catch (error) {
@@ -136,26 +145,54 @@ module.exports = {
             let siteUrls;
 
             const monitor = await MonitorService.findOneBy({
-                _id: monitorId,
+                query: { _id: monitorId },
+                select: 'siteUrls',
             });
 
+            const selectLighthouseLogs =
+                'monitorId probeId data url performance accessibility bestPractices seo pwa createdAt scanning';
+
+            const populateLighthouseLogs = [
+                {
+                    path: 'probeId',
+                    select:
+                        'probeName probeKey version lastAlive deleted probeImage',
+                },
+            ];
             if (url) {
-                if (monitor.siteUrls && monitor.siteUrls.includes(url)) {
+                if (
+                    monitor &&
+                    monitor.siteUrls &&
+                    monitor.siteUrls.includes(url)
+                ) {
                     siteUrls = [url];
-                    let log = await this.findBy({ monitorId, url }, 1, 0);
+
+                    let log = await this.findBy({
+                        query: { monitorId, url },
+                        limit: 1,
+                        skip: 0,
+                        select: selectLighthouseLogs,
+                        populate: populateLighthouseLogs,
+                    });
                     if (!log || (log && log.length === 0)) {
                         log = [{ url }];
                     }
                     lighthouseLogs = log;
                 }
             } else {
-                siteUrls = monitor.siteUrls || [];
+                siteUrls = monitor ? monitor.siteUrls || [] : [];
                 if (siteUrls.length > 0) {
                     for (const url of siteUrls.slice(
                         skip,
                         limit < siteUrls.length - skip ? limit : siteUrls.length
                     )) {
-                        let log = await this.findBy({ monitorId, url }, 1, 0);
+                        let log = await this.findBy({
+                            query: { monitorId, url },
+                            limit: 1,
+                            skip: 0,
+                            select: selectLighthouseLogs,
+                            populate: populateLighthouseLogs,
+                        });
                         if (!log || (log && log.length === 0)) {
                             log = [{ url }];
                         }
@@ -192,10 +229,13 @@ module.exports = {
     async sendLighthouseLog(data) {
         try {
             const monitor = await MonitorService.findOneBy({
-                _id: data.monitorId,
+                query: { _id: data.monitorId },
+                select: 'projectId',
+                populate: [{ path: 'projectId', select: '_id' }],
             });
             if (monitor && monitor.projectId && monitor.projectId._id) {
-                await RealTimeService.updateLighthouseLog(
+                // run in the background
+                RealTimeService.updateLighthouseLog(
                     data,
                     monitor.projectId._id
                 );
@@ -233,3 +273,5 @@ const MonitorService = require('./monitorService');
 const RealTimeService = require('./realTimeService');
 const probeService = require('./probeService');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

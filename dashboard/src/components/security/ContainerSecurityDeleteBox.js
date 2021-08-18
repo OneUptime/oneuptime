@@ -63,6 +63,7 @@ export class ContainerSecurityDeleteBox extends Component {
                                 <div>
                                     <button
                                         className="bs-Button bs-Button--red Box-background--red"
+                                        id="deleteContainerSecurityBtn"
                                         disabled={deleting}
                                         onClick={() =>
                                             this.handleDelete({

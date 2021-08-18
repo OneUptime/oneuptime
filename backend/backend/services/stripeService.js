@@ -7,12 +7,17 @@ const Services = {
                     : chargeAttemptCount === 2
                     ? 'second'
                     : 'third';
-            const user = await UserService.findOneBy({
-                stripeCustomerId: customerId,
-            });
-            const project = await ProjectService.findOneBy({
-                stripeSubscriptionId: subscriptionId,
-            });
+
+            const [user, project] = await Promise.all([
+                UserService.findOneBy({
+                    query: { stripeCustomerId: customerId },
+                    select: 'email name _id',
+                }),
+                ProjectService.findOneBy({
+                    query: { stripeSubscriptionId: subscriptionId },
+                    select: 'name',
+                }),
+            ]);
 
             MailService.sendPaymentFailedEmail(
                 project.name,
@@ -36,7 +41,10 @@ const Services = {
 
     charges: async function(userId) {
         try {
-            const user = await UserService.findOneBy({ _id: userId });
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'stripeCustomerId',
+            });
             const stripeCustomerId = user.stripeCustomerId;
             const charges = await stripe.charges.list({
                 customer: stripeCustomerId,
@@ -51,8 +59,10 @@ const Services = {
     creditCard: {
         create: async function(tok, userId) {
             try {
-                const tokenCard = await stripe.tokens.retrieve(tok);
-                const cards = await this.get(userId);
+                const [tokenCard, cards] = await Promise.all([
+                    stripe.tokens.retrieve(tok),
+                    this.get(userId),
+                ]);
                 let duplicateCard = false;
 
                 if (
@@ -72,7 +82,10 @@ const Services = {
                 if (!duplicateCard) {
                     const testChargeValue = 100;
                     const description = 'Verify if card is billable';
-                    const user = await UserService.findOneBy({ _id: userId });
+                    const user = await UserService.findOneBy({
+                        query: { _id: userId },
+                        select: 'stripeCustomerId',
+                    });
                     const stripeCustomerId = user.stripeCustomerId;
                     const card = await stripe.customers.createSource(
                         stripeCustomerId,
@@ -103,7 +116,10 @@ const Services = {
 
         update: async function(userId, cardId) {
             try {
-                const user = await UserService.findOneBy({ _id: userId });
+                const user = await UserService.findOneBy({
+                    query: { _id: userId },
+                    select: 'stripeCustomerId',
+                });
                 const stripeCustomerId = user.stripeCustomerId;
                 const card = await stripe.customers.update(stripeCustomerId, {
                     default_source: cardId,
@@ -117,7 +133,10 @@ const Services = {
 
         delete: async function(cardId, userId) {
             try {
-                const user = await UserService.findOneBy({ _id: userId });
+                const user = await UserService.findOneBy({
+                    query: { _id: userId },
+                    select: 'stripeCustomerId',
+                });
                 const stripeCustomerId = user.stripeCustomerId;
                 const cards = await this.get(userId);
                 if (cards.data.length === 1) {
@@ -138,7 +157,10 @@ const Services = {
 
         get: async function(userId, cardId) {
             try {
-                const user = await UserService.findOneBy({ _id: userId });
+                const user = await UserService.findOneBy({
+                    query: { _id: userId },
+                    select: 'stripeCustomerId',
+                });
                 const stripeCustomerId = user.stripeCustomerId;
                 const customer = await stripe.customers.retrieve(
                     stripeCustomerId
@@ -179,7 +201,10 @@ const Services = {
     ) {
         const description = 'Recharge balance';
         const stripechargeAmount = chargeAmount * 100;
-        const user = await UserService.findOneBy({ _id: userId });
+        const user = await UserService.findOneBy({
+            query: { _id: userId },
+            select: 'stripeCustomerId',
+        });
         const stripeCustomerId = user.stripeCustomerId;
         let metadata;
         if (alertOptions) {
@@ -280,7 +305,10 @@ const Services = {
         try {
             const description = 'Recharge balance';
             const stripechargeAmount = chargeAmount * 100;
-            const user = await UserService.findOneBy({ _id: userId });
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'stripeCustomerId',
+            });
             const stripeCustomerId = user.stripeCustomerId;
             const metadata = {
                 projectId,

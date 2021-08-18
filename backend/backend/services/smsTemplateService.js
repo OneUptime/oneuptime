@@ -16,6 +16,19 @@ module.exports = {
         }
     },
 
+    createMany: async function(allData) {
+        try {
+            allData = allData.map(data => {
+                data.allowedVariables = smsTemplateVariables[data.smsType];
+                return data;
+            });
+            return await SmsTemplateModel.insertMany(allData);
+        } catch (error) {
+            ErrorService.log('smsTemplateService.createMany', error);
+            throw error;
+        }
+    },
+
     updateOneBy: async function(query, data) {
         if (!query) {
             query = {};
@@ -49,7 +62,9 @@ module.exports = {
             let updatedData = await SmsTemplateModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const populate = [{ path: 'projectId', select: 'name' }];
+            const select = 'projectId body smsType allowedVariables';
+            updatedData = await this.findBy({ query, select, populate });
             return updatedData;
         } catch (error) {
             ErrorService.log('smsTemplateService.updateMany', error);
@@ -79,7 +94,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, skip, limit) {
+    findBy: async function({ query, skip, limit, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -98,12 +113,17 @@ module.exports = {
             }
 
             query.deleted = false;
-            const smsTemplates = await SmsTemplateModel.find(query)
+
+            let smsTemplateQuery = SmsTemplateModel.find(query)
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId', 'name');
+                .skip(skip);
+
+            smsTemplateQuery = handleSelect(select, smsTemplateQuery);
+            smsTemplateQuery = handlePopulate(populate, smsTemplateQuery);
+
+            const smsTemplates = await smsTemplateQuery;
             return smsTemplates;
         } catch (error) {
             ErrorService.log('smsTemplateService.findBy', error);
@@ -111,17 +131,22 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const smsTemplate = await SmsTemplateModel.findOne(query)
+
+            let smsTemplateQuery = SmsTemplateModel.findOne(query)
                 .lean()
-                .sort([['createdAt', -1]])
-                .populate('projectId', 'name');
+                .sort([['createdAt', -1]]);
+
+            smsTemplateQuery = handleSelect(select, smsTemplateQuery);
+            smsTemplateQuery = handlePopulate(populate, smsTemplateQuery);
+
+            const smsTemplate = await smsTemplateQuery;
             return smsTemplate;
         } catch (error) {
             ErrorService.log('smsTemplateService.findOneBy', error);
@@ -147,11 +172,17 @@ module.exports = {
     getTemplates: async function(projectId) {
         try {
             const _this = this;
+            const populate = [{ path: 'projectId', select: 'name' }];
+            const select = 'projectId body smsType allowedVariables';
             const templates = await Promise.all(
                 defaultSmsTemplate.map(async template => {
                     const smsTemplate = await _this.findOneBy({
-                        projectId: projectId,
-                        smsType: template.smsType,
+                        query: {
+                            projectId: projectId,
+                            smsType: template.smsType,
+                        },
+                        select,
+                        populate,
                     });
                     return smsTemplate != null && smsTemplate != undefined
                         ? smsTemplate
@@ -167,7 +198,10 @@ module.exports = {
 
     resetTemplate: async function(projectId, templateId) {
         const _this = this;
-        const oldTemplate = await _this.findOneBy({ _id: templateId });
+        const oldTemplate = await _this.findOneBy({
+            query: { _id: templateId },
+            select: 'smsType _id',
+        });
         const newTemplate = defaultSmsTemplate.filter(
             template => template.smsType === oldTemplate.smsType
         )[0];
@@ -199,3 +233,5 @@ const SmsTemplateModel = require('../models/smsTemplate');
 const ErrorService = require('./errorService');
 const smsTemplateVariables = require('../config/smsTemplateVariables');
 const defaultSmsTemplate = require('../config/smsTemplate');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

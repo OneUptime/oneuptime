@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import {
     fetchProjectSchedule,
     fetchSubProjectSchedules,
@@ -28,14 +27,8 @@ export class OnCall extends Component {
     }
 
     ready() {
-        const {
-            subProjectSchedules,
-            fetchSubProjectSchedules,
-            currentProjectId,
-        } = this.props;
-        if (subProjectSchedules.length === 0 && currentProjectId) {
-            fetchSubProjectSchedules(currentProjectId);
-        }
+        const { fetchSubProjectSchedules, currentProjectId } = this.props;
+        fetchSubProjectSchedules(currentProjectId);
         if (SHOULD_LOG_ANALYTICS) {
             logEvent('PAGE VIEW: DASHBOARD > PROJECT > CALL SCHEDULE LIST');
         }
@@ -43,11 +36,15 @@ export class OnCall extends Component {
 
     componentDidMount() {
         if (this.props.currentProjectId) {
-            this.props
-                .fetchSubProjectSchedules(this.props.currentProjectId)
-                .then(() => {
-                    this.ready();
-                });
+            this.ready();
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (
+            prevProps?.currentProject?._id !== this.props?.currentProject?._id
+        ) {
+            this.ready();
         }
     }
 
@@ -285,36 +282,31 @@ export class OnCall extends Component {
         allSchedules && allSchedules.unshift(projectSchedule);
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem route={pathname} name="On-Call Duty" />
-                    <div
-                        id="onCallSchedulePage"
-                        tabIndex="0"
-                        onKeyDown={this.handleKeyBoard}
-                    >
+            <Fade>
+                <BreadCrumbItem route={pathname} name="On-Call Duty" />
+                <div
+                    id="onCallSchedulePage"
+                    tabIndex="0"
+                    onKeyDown={this.handleKeyBoard}
+                >
+                    <div>
                         <div>
-                            <div>
-                                <ShouldRender
-                                    if={
-                                        this.props.tutorialStat.callSchedule
-                                            .show
+                            <ShouldRender
+                                if={this.props.tutorialStat.callSchedule.show}
+                            >
+                                <TutorialBox
+                                    type="call-schedule"
+                                    currentProjectId={
+                                        this.props.currentProjectId
                                     }
-                                >
-                                    <TutorialBox
-                                        type="call-schedule"
-                                        currentProjectId={
-                                            this.props.currentProjectId
-                                        }
-                                    />
-                                </ShouldRender>
+                                />
+                            </ShouldRender>
 
-                                {allSchedules}
-                            </div>
+                            {allSchedules}
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
@@ -14,7 +15,11 @@ import ShouldRender from '../ShouldRender';
 class Monitors extends Component {
     constructor(props) {
         super(props);
-        this.state = {};
+        this.state = {
+            announcement: false,
+            incident: false,
+            scheduledEvent: false,
+        };
 
         this.handleChange = this.handleChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
@@ -40,6 +45,9 @@ class Monitors extends Component {
         this.setState(monitors);
     }
     handleSubmit = event => {
+        event.preventDefault();
+        const { announcement, incident, scheduledEvent } = this.state;
+        const notificationType = { announcement, incident, scheduledEvent };
         const projectId =
             this.props.statuspage &&
             this.props.statuspage.projectId &&
@@ -52,19 +60,21 @@ class Monitors extends Component {
             monitors = monitors.map(monitor =>
                 this.props.monitors.find(el => el.name === monitor)
             );
-            monitors = monitors.map(monitor => monitor._id);
+            monitors = monitors
+                .map(monitor => monitor && monitor._id)
+                .filter(monitor => monitor);
             if (monitors && monitors.length) {
                 this.props.subscribeUser(
                     this.props.userDetails,
                     monitors,
                     projectId,
-                    statusPageId
+                    statusPageId,
+                    notificationType
                 );
             } else {
                 this.props.validationError('please select a monitor');
             }
         }
-        event.preventDefault();
     };
 
     handleClose = () => {
@@ -72,17 +82,29 @@ class Monitors extends Component {
         this.props.openSubscribeMenu();
     };
     render() {
+        const multipleNotificationTypes =
+            this.props.statuspage &&
+            this.props.statuspage.multipleNotificationTypes;
         return (
             <div>
                 {this.props.subscribed.success ? (
                     <div style={{ textAlign: 'center', margin: '15px 0' }}>
-                        <span id="monitor-subscribe-success-message">
-                            You have subscribed to this status page successfully
+                        <span
+                            className="subscriber-success"
+                            id="monitor-subscribe-success-message"
+                        >
+                            <Translate>
+                                {' '}
+                                You have subscribed to this status page
+                                successfully
+                            </Translate>
                         </span>
                     </div>
                 ) : (
                     <div className="directions">
-                        Select the monitors to get updates.
+                        <Translate>
+                            Select the monitors to get updates.
+                        </Translate>
                     </div>
                 )}
                 <form
@@ -98,20 +120,99 @@ class Monitors extends Component {
                         : this.state &&
                           Object.keys(this.state).map((monitor, i) => {
                               return (
-                                  <label className="container-checkbox" key={i}>
-                                      <span className="check-label">
-                                          {monitor}
-                                      </span>
-                                      <input
-                                          type="checkbox"
-                                          name={monitor}
-                                          onChange={this.handleChange}
-                                          checked={this.state[monitor]}
-                                      />
-                                      <span className="checkmark"></span>
-                                  </label>
+                                  <>
+                                      <ShouldRender
+                                          if={
+                                              monitor !== 'announcement' &&
+                                              monitor !== 'scheduledEvent' &&
+                                              monitor !== 'incident'
+                                          }
+                                      >
+                                          <label
+                                              className="container-checkbox"
+                                              key={i}
+                                          >
+                                              <span className="check-label">
+                                                  {monitor}
+                                              </span>
+                                              <input
+                                                  type="checkbox"
+                                                  name={monitor}
+                                                  onChange={this.handleChange}
+                                                  checked={this.state[monitor]}
+                                              />
+                                              <span className="checkmark"></span>
+                                          </label>
+                                      </ShouldRender>
+                                  </>
                               );
                           })}
+                    {this.props.subscribed.success
+                        ? null
+                        : multipleNotificationTypes &&
+                          this.state && (
+                              <>
+                                  <div className="bs-notificationType">
+                                      <div style={{ marginBottom: '10px' }}>
+                                          <Translate>
+                                              Select notification type.
+                                          </Translate>
+                                      </div>
+                                      {Object.keys(this.state).map(
+                                          (value, i) => {
+                                              return (
+                                                  <>
+                                                      <ShouldRender
+                                                          if={
+                                                              value ===
+                                                                  'announcement' ||
+                                                              value ===
+                                                                  'scheduledEvent' ||
+                                                              value ===
+                                                                  'incident'
+                                                          }
+                                                      >
+                                                          <label
+                                                              className="container-checkbox"
+                                                              key={i}
+                                                          >
+                                                              <span className="check-label">
+                                                                  {value ===
+                                                                  'scheduledEvent'
+                                                                      ? 'Schedule Event'
+                                                                      : value
+                                                                            .charAt(
+                                                                                0
+                                                                            )
+                                                                            .toUpperCase() +
+                                                                        value.slice(
+                                                                            1
+                                                                        )}
+                                                              </span>
+                                                              <input
+                                                                  type="checkbox"
+                                                                  name={value}
+                                                                  onChange={
+                                                                      this
+                                                                          .handleChange
+                                                                  }
+                                                                  checked={
+                                                                      this
+                                                                          .state[
+                                                                          value
+                                                                      ]
+                                                                  }
+                                                              />
+                                                              <span className="checkmark"></span>
+                                                          </label>
+                                                      </ShouldRender>
+                                                  </>
+                                              );
+                                          }
+                                      )}
+                                  </div>
+                              </>
+                          )}
                     <button
                         type="submit"
                         className="subscribe-btn-full"
@@ -119,9 +220,11 @@ class Monitors extends Component {
                     >
                         <ShouldRender if={!this.props.subscribed.requesting}>
                             <span>
-                                {this.props.subscribed.success
-                                    ? 'Close'
-                                    : 'Subscribe'}
+                                <Translate>
+                                    {this.props.subscribed.success
+                                        ? 'Close'
+                                        : 'Subscribe'}
+                                </Translate>
                             </span>
                         </ShouldRender>
                         <ShouldRender
@@ -141,8 +244,10 @@ class Monitors extends Component {
                         <div className="validation-error">
                             <span className="validation-error-icon"></span>
                             <span className="error-text">
-                                {this.props.subscribed &&
-                                    this.props.subscribed.error}
+                                <Translate>
+                                    {this.props.subscribed &&
+                                        this.props.subscribed.error}
+                                </Translate>
                             </span>
                         </div>
                     </ShouldRender>

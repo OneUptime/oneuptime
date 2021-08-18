@@ -4,8 +4,6 @@
  *
  */
 
-/* eslint-disable quotes */
-
 const ProjectService = require('../services/projectService');
 const ErrorService = require('../services/errorService');
 const url = require('url');
@@ -40,27 +38,39 @@ module.exports = {
                 }
                 // Calls the ProjectService
                 const project = await ProjectService.findOneBy({
-                    _id: projectId,
+                    query: { _id: projectId },
+                    select: '_id users',
                 });
+
                 let isUserPresentInProject = false;
 
                 if (project) {
-                    const subProjects = await ProjectService.findBy({
-                        parentProjectId: project._id,
-                    });
-                    let projectUsers = project.users;
-                    if (subProjects && subProjects.length > 0) {
-                        const subProjectUsers = subProjects.map(
-                            subProject => subProject.users
-                        );
-                        subProjectUsers.forEach(users => {
-                            projectUsers = projectUsers.concat(users);
-                        });
-                    }
+                    const projectUsers = project.users;
+
                     for (let i = 0; i < projectUsers.length; i++) {
                         if (projectUsers[i].userId === userId) {
                             isUserPresentInProject = true;
-                            break;
+                            return next();
+                        }
+                    }
+
+                    // if not in project, look at subprojects.
+
+                    const subProjects = await ProjectService.findBy({
+                        query: { parentProjectId: project._id },
+                        select: 'users _id',
+                    });
+
+                    if (subProjects && subProjects.length > 0) {
+                        for (const subProject in subProjects) {
+                            const subProjectUsers = subProject.users;
+
+                            for (let i = 0; i < subProjectUsers.length; i++) {
+                                if (subProjectUsers[i].userId === userId) {
+                                    isUserPresentInProject = true;
+                                    return next();
+                                }
+                            }
                         }
                     }
                 } else {
@@ -113,14 +123,19 @@ module.exports = {
                     );
                 }
             }
+
             // authorize if user is master-admin
+            //
             if (req.authorizationType === 'MASTER-ADMIN') {
                 return next();
             } else {
                 const userId = req.user ? req.user.id : null;
                 const project = await ProjectService.findOneBy({
-                    'users.userId': userId,
-                    _id: req.params.projectId,
+                    query: {
+                        'users.userId': userId,
+                        _id: req.params.projectId,
+                    },
+                    select: 'users',
                 });
                 if (project) {
                     let role;
@@ -163,8 +178,11 @@ module.exports = {
             } else {
                 const UserId = req.user ? req.user.id : null;
                 const project = await ProjectService.findOneBy({
-                    'users.userId': UserId,
-                    _id: req.params.projectId,
+                    query: {
+                        'users.userId': UserId,
+                        _id: req.params.projectId,
+                    },
+                    select: 'users',
                 });
                 if (project) {
                     let role;

@@ -11,9 +11,13 @@ module.exports = {
         try {
             const self = this;
             let response;
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProject _id slug name',
+            });
             if (project && project.parentProjectId) {
-                projectId = project.parentProjectId._id;
+                projectId =
+                    project.parentProjectId._id || project.parentProjectId;
             }
             let query = {
                 projectId: projectId,
@@ -38,7 +42,22 @@ module.exports = {
             } else {
                 return;
             }
-            const integrations = await IntegrationService.findBy(query);
+            const select =
+                'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+            ];
+            const integrations = await IntegrationService.findBy({
+                query,
+                select,
+                populate,
+            });
 
             for (const integration of integrations) {
                 response = await self.notify(
@@ -205,9 +224,13 @@ module.exports = {
         try {
             const self = this;
             let response;
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProject _id slug',
+            });
             if (project && project.parentProjectId) {
-                projectId = project.parentProjectId._id;
+                projectId =
+                    project.parentProjectId._id || project.parentProjectId;
             }
 
             const query = {
@@ -217,7 +240,23 @@ module.exports = {
                 'notificationOptions.incidentNoteAdded': true,
             };
 
-            const integrations = await IntegrationService.findBy(query);
+            const select =
+                'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+            ];
+
+            const integrations = await IntegrationService.findBy({
+                query,
+                select,
+                populate,
+            });
 
             for (const integration of integrations) {
                 response = await self.noteNotify(

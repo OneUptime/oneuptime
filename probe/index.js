@@ -1,5 +1,5 @@
 // if new relic license key exists. Then load the key.
-if(process.env.NEW_RELIC_LICENSE_KEY){
+if (process.env.NEW_RELIC_LICENSE_KEY) {
     require('newrelic');
 }
 
@@ -11,21 +11,21 @@ if (!NODE_ENV || NODE_ENV === 'development') {
 }
 
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Probe Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Unhandled rejection in probe process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in probe process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -38,7 +38,6 @@ const cron = require('node-cron');
 const config = require('./utils/config');
 
 const cronMinuteStartTime = Math.floor(Math.random() * 50);
-const cronContainerSecurityStartTime = Math.floor(Math.random() * 50);
 
 app.use(cors());
 app.set('port', process.env.PORT || 3008);
@@ -54,7 +53,9 @@ http.listen(app.get('port'), function() {
     );
 });
 
-app.get('/', function(req, res) {
+const monitorStore = {};
+
+app.get('/status', function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send(
         JSON.stringify({
@@ -65,24 +66,27 @@ app.get('/', function(req, res) {
     );
 });
 
+app.get('/monitorCount', function(req, res) {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(
+        JSON.stringify({
+            monitorCount: Object.keys(monitorStore).length,
+            monitors: monitorStore,
+        })
+    );
+});
+
 //App Version
 app.get(['/probe/version', '/version'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send({ probeVersion: process.env.npm_package_version });
 });
 
-// This cron runs every other minute.
+// This cron runs every second minute.
 cron.schedule('*/2 * * * *', () => {
     setTimeout(() => {
-        Main.runJob();
+        Main.runJob(monitorStore);
     }, cronMinuteStartTime * 1000);
-});
-
-// Run this cron at 6 AM once a day.
-cron.schedule('0 6 * * *', () => {
-    setTimeout(() => {
-        Main.runContainerScan();
-    }, cronContainerSecurityStartTime * 1000);
 });
 
 module.exports = app;

@@ -5,13 +5,14 @@
  */
 
 const express = require('express');
-const ApplicationScannerService = require('../services/applicationScannerService');
 const ApplicationSecurityService = require('../services/applicationSecurityService');
+const ApplicationSecurityLogService = require('../services//applicationSecurityLogService');
 const router = express.Router();
 const isAuthorizedApplicationScanner = require('../middlewares/applicationScannerAuthorization')
     .isAuthorizedApplicationScanner;
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
+const RealtimeService = require('../services/realTimeService');
 
 // Route
 // Description: Updating profile setting.
@@ -32,19 +33,85 @@ router.get(
     }
 );
 
-router.post('/scan/git', isAuthorizedApplicationScanner, async function(
+router.post('/scanning', isAuthorizedApplicationScanner, async function(
     req,
     res
 ) {
     try {
-        let { security } = req.body;
-
-        security = await ApplicationSecurityService.decryptPassword(security);
-        const securityLog = await ApplicationScannerService.scanApplicationSecurity(
-            security
+        const security = req.body.security;
+        const applicationSecurity = await ApplicationSecurityService.updateOneBy(
+            {
+                _id: security._id,
+            },
+            { scanning: true }
         );
-        global.io.emit(`securityLog_${security._id}`, securityLog);
+
+        RealtimeService.handleScanning({ security: applicationSecurity });
+        return sendItemResponse(req, res, applicationSecurity);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+router.post('/failed', isAuthorizedApplicationScanner, async function(
+    req,
+    res
+) {
+    try {
+        const security = req.body;
+        const applicationSecurity = await ApplicationSecurityService.updateOneBy(
+            {
+                _id: security._id,
+            },
+            { scanning: false }
+        );
+        return sendItemResponse(req, res, applicationSecurity);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
+    try {
+        const security = req.body;
+        const securityLog = await ApplicationSecurityLogService.create({
+            securityId: security.securityId,
+            componentId: security.componentId,
+            data: security.data,
+        });
+
+        const populateApplicationSecurityLog = [
+            { path: 'componentId', select: '_id slug name slug' },
+            {
+                path: 'securityId',
+                select:
+                    '_id slug name slug gitRepositoryUrl gitCredential componentId resourceCategory deleted deletedAt lastScan scanned scanning',
+            },
+        ];
+
+        const selectApplicationSecurityLog = '_id securityId componentId data';
+
+        const findLog = await ApplicationSecurityLogService.findOneBy({
+            query: { _id: securityLog._id },
+            populate: populateApplicationSecurityLog,
+            select: selectApplicationSecurityLog,
+        });
+
+        RealtimeService.handleLog({
+            securityId: securityLog.securityId,
+            securityLog: findLog,
+        });
         return sendItemResponse(req, res, securityLog);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/time', isAuthorizedApplicationScanner, async function(req, res) {
+    try {
+        const security = req.body;
+        const updatedTime = await ApplicationSecurityService.updateScanTime({
+            _id: security._id,
+        });
+        return sendItemResponse(req, res, updatedTime);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

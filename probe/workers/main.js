@@ -9,58 +9,70 @@ const UrlMonitors = require('./urlMonitors');
 const IPMonitors = require('./ipMonitors');
 const ServerMonitors = require('./serverMonitors');
 const ErrorService = require('../utils/errorService');
-const ContainerSecurity = require('./containerSecurity');
 const IncomingHttpRequestMonitors = require('./incomingHttpRequestMonitors');
 const KubernetesMonitors = require('./kubernetesMonitors');
+// const ApiService = require('../utils/apiService');
+
+/**
+ *
+ * Investigation:
+ *   - Log every request and kubectl log the backend.
+ *
+ *  If backend is normal then optimize code.
+ *
+ *  - Queuing system on probes.
+ *  - Sharing of monitors in probes. (We can run multiple deployment of a single probe)
+ *  - if criteria is request body , then curl otherwise ICMP ping which is a LOT faster.
+ */
 
 module.exports = {
-    runJob: async function() {
+    runJob: async function(monitorStore) {
         try {
             let monitors = await getApi('probe/monitors');
             monitors = JSON.parse(monitors.data); // parse the stringified data
-            await Promise.all(
-                monitors.map(monitor => {
+
+            // add monitor to store
+            monitors.forEach(monitor => {
+                if (!monitorStore[monitor._id]) {
+                    monitorStore[monitor._id] = monitor;
+                }
+            });
+
+            // update all monitors to have scanning set to true
+            // const monitorIds = monitors.map(monitor => monitor._id);
+            // await ApiService.addProbeScan(monitorIds);
+
+            // loop over the monitor
+            for (const [key, monitor] of Object.entries(monitorStore)) {
+                try {
                     if (monitor.type === 'api') {
-                        return ApiMonitors.ping(monitor);
+                        await ApiMonitors.ping({ monitor });
                     } else if (monitor.type === 'url') {
-                        return UrlMonitors.ping(monitor);
+                        await UrlMonitors.ping({ monitor });
                     } else if (monitor.type === 'ip') {
-                        return IPMonitors.ping(monitor);
+                        await IPMonitors.ping({ monitor });
                     } else if (
                         monitor.type === 'server-monitor' &&
                         monitor.agentlessConfig
                     ) {
-                        return ServerMonitors.run(monitor);
+                        await ServerMonitors.run({ monitor });
                     } else if (monitor.type === 'incomingHttpRequest') {
-                        return IncomingHttpRequestMonitors.run(monitor);
+                        await IncomingHttpRequestMonitors.run({ monitor });
                     } else if (monitor.type === 'kubernetes') {
-                        return KubernetesMonitors.run(monitor);
+                        await KubernetesMonitors.run({ monitor });
                     }
 
-                    return null;
-                })
-            );
-        } catch (error) {
-            ErrorService.log('getApi', error);
-        }
-    },
-
-    runContainerScan: async function() {
-        try {
-            const securities = await getApi('probe/containerSecurities');
-            if (securities && securities.length > 0) {
-                await Promise.all(
-                    securities.map(security => {
-                        // send a stringified json over the network
-                        // fix issue with iv key on the collection (obj.toObject is not a function)
-                        return ContainerSecurity.scan(JSON.stringify(security));
-                    })
-                );
+                    // delete the monitor from store
+                    delete monitorStore[key];
+                } catch (e) {
+                    ErrorService.log('Main.runJob', e);
+                }
             }
 
-            return;
+            // update all monitor scan status to false
+            // await ApiService.removeProbeScan(monitorIds);
         } catch (error) {
-            ErrorService.log('runContainerScan.getApi', error);
+            ErrorService.log('getApi', error);
         }
     },
 };

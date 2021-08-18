@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { capitalize } from '../../config';
+import { Translate } from 'react-auto-translate';
 
 const AffectedResources = ({ event, monitorState, colorStyle }) => {
     const affectedMonitors = [];
@@ -35,7 +36,7 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
                             : {}
                     }
                 >
-                    Resources Affected:{' '}
+                    <Translate>Resources Affected:</Translate>{' '}
                 </span>
                 <span
                     className="ongoing__affectedmonitor--content"
@@ -45,7 +46,7 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
                             : {}
                     }
                 >
-                    All resources are affected
+                    <Translate> All resources are affected</Translate>
                 </span>
             </>
         );
@@ -60,7 +61,7 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
                             : {}
                     }
                 >
-                    Resources Affected:{' '}
+                    <Translate>Resources Affected:</Translate>{' '}
                 </span>
                 <span
                     className="ongoing__affectedmonitor--content"

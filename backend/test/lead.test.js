@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 const chai = require('chai');
@@ -21,6 +19,8 @@ const leadData = {
     message: 'Testing',
     type: 'demo',
 };
+const selectEmailStatus =
+    'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
 describe('Lead API', function() {
     this.timeout(20000);
@@ -53,7 +53,10 @@ describe('Lead API', function() {
             .end(async function(err, res) {
                 expect(res).to.have.status(200);
                 leadService.hardDeleteBy({ _id: res.body._id });
-                const emailStatuses = await EmailStatusService.findBy({});
+                const emailStatuses = await EmailStatusService.findBy({
+                    query: {},
+                    select: selectEmailStatus,
+                });
                 if (emailStatuses[0].subject.includes('New Lead')) {
                     expect(emailStatuses[0].subject).to.equal('New Lead Added');
                     expect(emailStatuses[0].status).to.equal(

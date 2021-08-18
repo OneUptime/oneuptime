@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { Translate } from 'react-auto-translate';
+import { withRouter } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
@@ -23,21 +25,6 @@ class NotesMain extends Component {
         this.getAll = this.getAll.bind(this);
         this.more = this.more.bind(this);
         this.subscribebutton = this.subscribebutton.bind(this);
-    }
-
-    componentDidMount() {
-        this.props.fetchLastIncidentTimelines(
-            this.props.projectId,
-            this.props.statusPageSlug
-        );
-        this.props.getStatusPageNote(
-            this.props.projectId,
-            this.props.statusPageSlug,
-            0,
-            this.props.theme && countNum,
-            this.props.incidentHistoryDays || 14,
-            this.props.theme === 'Clean Theme'
-        );
     }
 
     componentDidUpdate(prevProps) {
@@ -167,16 +154,6 @@ class NotesMain extends Component {
             return result;
         };
 
-        const formatMsg = data => {
-            const result = data.reduce(function(r, a) {
-                r[a.incident_state] = r[a.incident_state] || [];
-                r[a.incident_state].push(a);
-                return r;
-            }, Object.create({}));
-
-            return result;
-        };
-
         const incidentNoteData = this.props.noteData;
         if (
             this.props.theme === 'Clean Theme' &&
@@ -232,7 +209,9 @@ class NotesMain extends Component {
                                     className="date-big"
                                     style={{ margin: 10 }}
                                 >
-                                    {moment(note.createdAt).format('LL')}
+                                    <Translate>
+                                        {moment(note.createdAt).format('LL')}
+                                    </Translate>
                                 </div>
                             </ShouldRender>
                             <ShouldRender if={!note.style}>
@@ -245,7 +224,15 @@ class NotesMain extends Component {
                                         display: 'inline-block',
                                     }}
                                 >
-                                    <div className="list_k">
+                                    <div
+                                        className="list_k"
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={() =>
+                                            this.props.history.push(
+                                                `/status-page/${this.props.statusPageSlug}/incident/${note.idNumber}`
+                                            )
+                                        }
+                                    >
                                         <b>{note.title}</b>
                                     </div>
                                     <div className="incident_desc" id="note">
@@ -255,94 +242,15 @@ class NotesMain extends Component {
                                         className="incident-date"
                                         style={{ marginBottom: 12 }}
                                     >
-                                        <span>Created at</span>{' '}
+                                        <span>
+                                            <Translate>Created at</Translate>
+                                        </span>{' '}
                                         <span>
                                             {moment(note.createdAt).format(
                                                 'LT'
                                             )}
                                         </span>
                                     </div>
-                                    {note &&
-                                        note.message &&
-                                        note.message.length > 0 &&
-                                        Object.keys(
-                                            formatMsg(note.message)
-                                        ).map((key, index) => {
-                                            return (
-                                                <div
-                                                    className="new-mb-12"
-                                                    key={index}
-                                                >
-                                                    <div className="items_dis">
-                                                        <div className="incident-info">
-                                                            <span className="list_k">
-                                                                {key}
-                                                            </span>
-                                                            -{' '}
-                                                        </div>
-                                                        <div className="list_items">
-                                                            {formatMsg(
-                                                                note.message
-                                                            )[key].map(
-                                                                (item, i) => {
-                                                                    return (
-                                                                        <div
-                                                                            className="incident-brief"
-                                                                            key={
-                                                                                i
-                                                                            }
-                                                                        >
-                                                                            {formatMsg(
-                                                                                note.message
-                                                                            )[
-                                                                                key
-                                                                            ]
-                                                                                .length >
-                                                                                1 && (
-                                                                                <span className="big_dot">
-                                                                                    &#9679;
-                                                                                </span>
-                                                                            )}
-                                                                            {
-                                                                                item.content
-                                                                            }
-                                                                        </div>
-                                                                    );
-                                                                }
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="incident-date">
-                                                        <span>
-                                                            {formatMsg(
-                                                                note.message
-                                                            )[key].map(
-                                                                (time, i) => {
-                                                                    return (
-                                                                        <>
-                                                                            {i ===
-                                                                                0 && (
-                                                                                <div
-                                                                                    key={
-                                                                                        i
-                                                                                    }
-                                                                                >
-                                                                                    {moment(
-                                                                                        time.createdAt
-                                                                                    ).format(
-                                                                                        'LLL'
-                                                                                    )}
-                                                                                </div>
-                                                                            )}
-                                                                        </>
-                                                                    );
-                                                                }
-                                                            )}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
                                 </span>
                             ) : (
                                 <div
@@ -352,7 +260,7 @@ class NotesMain extends Component {
                                         display: 'inline-block',
                                     }}
                                 >
-                                    No incident reported
+                                    <Translate>No incident reported</Translate>
                                 </div>
                             )}
                         </div>
@@ -376,7 +284,9 @@ class NotesMain extends Component {
                     {typeof this.props.notesmessage === 'string' ? (
                         this.props.notesmessage
                     ) : (
-                        <div>No incident available</div>
+                        <div>
+                            <Translate> No incident available</Translate>
+                        </div>
                     )}
                 </div>
             );
@@ -413,7 +323,7 @@ class NotesMain extends Component {
                                                 className="feed-title"
                                                 style={subheading}
                                             >
-                                                Incidents
+                                                <Translate>Incidents</Translate>
                                             </span>
                                         </ShouldRender>
                                         <ShouldRender
@@ -504,7 +414,7 @@ class NotesMain extends Component {
                                         className="feed-title"
                                         style={subheading}
                                     >
-                                        Incidents
+                                        <Translate>Incidents</Translate>
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender if={this.props.individualnote}>
@@ -535,7 +445,9 @@ class NotesMain extends Component {
                                         type="submit"
                                         onClick={() => this.subscribebutton()}
                                     >
-                                        <span>Subscribe</span>
+                                        <span>
+                                            <Translate>Subscribe</Translate>
+                                        </span>
                                     </button>
                                 </ShouldRender>
                             </div>
@@ -588,9 +500,13 @@ class NotesMain extends Component {
                                                 ...secondaryTextColor,
                                             }}
                                         >
-                                            {this.props.notesmessage
-                                                ? this.props.notesmessage
-                                                : 'No incidents yet'}
+                                            {this.props.notesmessage ? (
+                                                this.props.notesmessage
+                                            ) : (
+                                                <Translate>
+                                                    No incidents yet
+                                                </Translate>
+                                            )}
                                             .
                                         </span>
                                     </li>
@@ -615,7 +531,7 @@ class NotesMain extends Component {
                                 className="more button-as-anchor anchor-centered"
                                 onClick={() => this.more()}
                             >
-                                More
+                                <Translate>More</Translate>
                             </button>
                         </ShouldRender>
 
@@ -638,7 +554,7 @@ class NotesMain extends Component {
                                     className="all__btn"
                                     onClick={() => this.getAll()}
                                 >
-                                    All Incidents
+                                    <Translate>All Incidents</Translate>
                                 </button>
                             </ShouldRender>
                         </div>
@@ -749,7 +665,6 @@ NotesMain.propTypes = {
     subscribed: PropTypes.bool,
     skip: PropTypes.number,
     count: PropTypes.number,
-    incidentHistoryDays: PropTypes.number,
     statusPageId: PropTypes.string,
     isSubscriberEnabled: PropTypes.bool.isRequired,
     statusPage: PropTypes.object,
@@ -759,6 +674,10 @@ NotesMain.propTypes = {
     showIncidentCard: PropTypes.func,
     showIncidentCardState: PropTypes.bool,
     theme: PropTypes.string,
+    history: PropTypes.object,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(NotesMain);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(withRouter(NotesMain));

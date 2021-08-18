@@ -9,10 +9,17 @@ export const SUBSCRIBE_SUCCESS = 'SUBSCRIBE_SUCCESS';
 export const SUBSCRIBE_REQUEST = 'SUBSCRIBE_REQUEST';
 export const SUBSCRIBE_FAILURE = 'SUBSCRIBE_FAILURE';
 export const VALIDATION_ERROR = 'VALIDATION_ERROR';
+export const OPEN_LANGUAGE_MENU = 'OPEN_LANGUAGE_MENU';
 
 export const openSubscribeMenu = () => {
     return {
         type: OPEN_SUBSCRIBE_MENU,
+    };
+};
+
+export const openLanguageMenu = () => {
+    return {
+        type: OPEN_LANGUAGE_MENU,
     };
 };
 
@@ -66,12 +73,14 @@ export const subscribeUser = (
     userDetails,
     monitors,
     projectId,
-    statusPageId
+    statusPageId,
+    notificationType
 ) => {
     return function(dispatch) {
         const promise = postApi(`subscriber/${projectId}/${statusPageId}`, {
             userDetails,
             monitors,
+            notificationType,
         });
 
         dispatch(subscribeRequest());

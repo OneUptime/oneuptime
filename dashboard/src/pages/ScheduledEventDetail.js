@@ -3,7 +3,6 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import {
     fetchscheduledEvent,
@@ -19,14 +18,15 @@ import { LoadingState } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
 import ScheduledEventDescription from '../components/scheduledEvent/ScheduledEventDescription';
 import ScheduledEventNote from '../components/scheduledEvent/ScheduledEventNote';
-import { API_URL } from '../config';
+import { REALTIME_URL } from '../config';
 import io from 'socket.io-client';
 import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import ScheduleEventDeleteBox from '../components/scheduledEvent/ScheduleEventDeleteBox';
 
-// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(API_URL.replace('/api', ''), {
-    path: '/api/socket.io',
+// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
+// '/realtime' is set as socket io namespace, so remove
+const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+    path: '/realtime/socket.io',
     transports: ['websocket', 'polling'],
 });
 
@@ -42,6 +42,11 @@ class ScheduledEvent extends Component {
         const tabSlider = document.getElementById('tab-slider');
         tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
     };
+
+    componentDidMount() {
+        this.ready();
+    }
+
     componentDidUpdate(prevProps) {
         if (
             String(prevProps.scheduledEventId) !==
@@ -123,150 +128,145 @@ class ScheduledEvent extends Component {
         const eventName = scheduledEvent ? scheduledEvent.name : '';
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={getParentRoute(pathname)}
-                        name="Scheduled Maintenance Event"
-                    />
-                    <BreadCrumbItem
-                        route={pathname}
-                        name={eventName}
-                        pageTitle="Scheduled Event Detail"
-                        containerType="Scheduled Maintenance Event"
-                    />
-                    <ShouldRender if={requesting}>
-                        <LoadingState />
-                    </ShouldRender>
-                    <ShouldRender if={!requesting}>
-                        <Tabs
-                            selectedTabClassName={'custom-tab-selected'}
-                            onSelect={tabIndex => this.tabSelected(tabIndex)}
-                        >
-                            <div className="Flex-flex Flex-direction--columnReverse">
-                                <TabList
-                                    id="customTabList"
-                                    className={'custom-tab-list'}
+            <Fade>
+                <BreadCrumbItem
+                    route={getParentRoute(pathname)}
+                    name="Scheduled Maintenance Event"
+                />
+                <BreadCrumbItem
+                    route={pathname}
+                    name={eventName}
+                    pageTitle="Scheduled Event Detail"
+                    containerType="Scheduled Maintenance Event"
+                />
+                <ShouldRender if={requesting}>
+                    <LoadingState />
+                </ShouldRender>
+                <ShouldRender if={!requesting}>
+                    <Tabs
+                        selectedTabClassName={'custom-tab-selected'}
+                        onSelect={tabIndex => this.tabSelected(tabIndex)}
+                    >
+                        <div className="Flex-flex Flex-direction--columnReverse">
+                            <TabList
+                                id="customTabList"
+                                className={'custom-tab-list'}
+                            >
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-3 basic-tab'
+                                    }
                                 >
-                                    <Tab
-                                        className={
-                                            'custom-tab custom-tab-3 basic-tab'
-                                        }
-                                    >
-                                        Basic
-                                    </Tab>
-                                    <Tab
-                                        className={
-                                            'custom-tab custom-tab-3 timeline-tab'
-                                        }
-                                    >
-                                        Timeline
-                                    </Tab>
-                                    <Tab
-                                        className={
-                                            'custom-tab custom-tab-3 advanced-options-tab'
-                                        }
-                                    >
-                                        Advanced Options
-                                    </Tab>
-                                    <div
-                                        id="tab-slider"
-                                        className="custom-tab-3"
-                                    ></div>
-                                </TabList>
-                            </div>
-                            <TabPanel>
-                                <Fade>
-                                    <ShouldRender if={scheduledEvent}>
+                                    Basic
+                                </Tab>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-3 timeline-tab'
+                                    }
+                                >
+                                    Timeline
+                                </Tab>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-3 advanced-options-tab'
+                                    }
+                                >
+                                    Advanced Options
+                                </Tab>
+                                <div
+                                    id="tab-slider"
+                                    className="custom-tab-3"
+                                ></div>
+                            </TabList>
+                        </div>
+                        <TabPanel>
+                            <Fade>
+                                <ShouldRender if={scheduledEvent}>
+                                    <div>
                                         <div>
-                                            <div>
-                                                <div className="db-BackboneViewContainer">
-                                                    <div className="react-settings-view react-view">
-                                                        <span>
-                                                            <div>
-                                                                <ScheduledEventDescription
-                                                                    scheduledEvent={
-                                                                        scheduledEvent
-                                                                    }
-                                                                    monitorList={
-                                                                        monitorList
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </span>
-                                                    </div>
+                                            <div className="db-BackboneViewContainer">
+                                                <div className="react-settings-view react-view">
+                                                    <span>
+                                                        <div>
+                                                            <ScheduledEventDescription
+                                                                scheduledEvent={
+                                                                    scheduledEvent
+                                                                }
+                                                                monitorList={
+                                                                    monitorList
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
-                                    </ShouldRender>
-                                </Fade>
-                            </TabPanel>
-                            <TabPanel>
-                                <Fade>
-                                    <ShouldRender
-                                        if={internalNotesList.requesting}
-                                    >
-                                        <LoadingState />
-                                    </ShouldRender>
-                                    <ShouldRender
-                                        if={!internalNotesList.requesting}
-                                    >
+                                    </div>
+                                </ShouldRender>
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <ShouldRender if={internalNotesList.requesting}>
+                                    <LoadingState />
+                                </ShouldRender>
+                                <ShouldRender
+                                    if={!internalNotesList.requesting}
+                                >
+                                    <div>
                                         <div>
-                                            <div>
-                                                <div className="db-BackboneViewContainer">
-                                                    <div className="react-settings-view react-view">
-                                                        <div className="Box-root Margin-bottom--12">
-                                                            <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                                                <ScheduledEventNote
-                                                                    type="Internal"
-                                                                    notes={
-                                                                        internalNotesList.scheduledEventNotes
-                                                                    }
-                                                                    count={
-                                                                        internalNotesList.count
-                                                                    }
-                                                                    projectId={
-                                                                        this
-                                                                            .props
-                                                                            .projectId
-                                                                    }
-                                                                    scheduledEventId={
-                                                                        scheduledEventId
-                                                                    }
-                                                                    scheduledEvent={
-                                                                        scheduledEvent
-                                                                    }
-                                                                    skip={
-                                                                        internalNotesList.skip
-                                                                    }
-                                                                    limit={
-                                                                        internalNotesList.limit
-                                                                    }
-                                                                />
-                                                            </div>
+                                            <div className="db-BackboneViewContainer">
+                                                <div className="react-settings-view react-view">
+                                                    <div className="Box-root Margin-bottom--12">
+                                                        <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                                            <ScheduledEventNote
+                                                                type="Internal"
+                                                                notes={
+                                                                    internalNotesList.scheduledEventNotes
+                                                                }
+                                                                count={
+                                                                    internalNotesList.count
+                                                                }
+                                                                projectId={
+                                                                    this.props
+                                                                        .projectId
+                                                                }
+                                                                scheduledEventId={
+                                                                    scheduledEventId
+                                                                }
+                                                                scheduledEvent={
+                                                                    scheduledEvent
+                                                                }
+                                                                skip={
+                                                                    internalNotesList.skip
+                                                                }
+                                                                limit={
+                                                                    internalNotesList.limit
+                                                                }
+                                                            />
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </ShouldRender>
-                                </Fade>
-                            </TabPanel>
-                            <TabPanel>
-                                <Fade>
-                                    <ShouldRender if={scheduledEvent}>
-                                        <ScheduleEventDeleteBox
-                                            projectId={this.props.projectId}
-                                            scheduledEventId={scheduledEventId}
-                                            scheduledEvent={scheduledEvent}
-                                        />
-                                    </ShouldRender>
-                                </Fade>
-                            </TabPanel>
-                        </Tabs>
-                    </ShouldRender>
-                </Fade>
-            </Dashboard>
+                                    </div>
+                                </ShouldRender>
+                            </Fade>
+                        </TabPanel>
+                        <TabPanel>
+                            <Fade>
+                                <ShouldRender if={scheduledEvent}>
+                                    <ScheduleEventDeleteBox
+                                        projectId={this.props.projectId}
+                                        scheduledEventId={scheduledEventId}
+                                        scheduledEvent={scheduledEvent}
+                                    />
+                                </ShouldRender>
+                            </Fade>
+                        </TabPanel>
+                    </Tabs>
+                </ShouldRender>
+            </Fade>
         );
     }
 }

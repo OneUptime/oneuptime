@@ -16,11 +16,15 @@ const _this = {
                 statusPageSlug !== 'null'
             ) {
                 statusPage = await StatusPageService.findOneBy({
-                    slug: statusPageSlug,
+                    query: { slug: statusPageSlug },
+                    select: 'enableIpWhitelist ipWhitelist ',
                 });
             } else {
                 statusPage = await StatusPageService.findOneBy({
-                    domains: { $elemMatch: { domain: statusPageUrl } },
+                    query: {
+                        domains: { $elemMatch: { domain: statusPageUrl } },
+                    },
+                    select: 'enableIpWhitelist ipWhitelist ',
                 });
             }
             if (statusPage === null) {

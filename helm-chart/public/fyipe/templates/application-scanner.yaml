@@ -31,6 +31,11 @@ spec:
                       value: {{ template "fyipe.serverUrl" $ }}
                     - name: IS_SAAS_SERVICE
                       value: 'true'
+                    - name: CLUSTER_KEY
+                      valueFrom:
+                        configMapKeyRef:
+                          name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
+                          key: clusterkey
                 ports:
                     - containerPort: {{ .Values.host.applicationScannerPort }}
                       hostPort: {{ .Values.host.applicationScannerPort }}

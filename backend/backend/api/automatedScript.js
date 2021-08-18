@@ -18,12 +18,17 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
         const { skip, limit } = req.query;
-        const scripts = await AutomatedScriptService.findBy(
-            { projectId },
-            skip,
-            limit
-        );
-        const count = await AutomatedScriptService.countBy({ projectId });
+        const selectScript =
+            'name script scriptType slug projectId successEvent failureEvent';
+        const [scripts, count] = await Promise.all([
+            AutomatedScriptService.findBy({
+                query: { projectId },
+                skip,
+                limit,
+                select: selectScript,
+            }),
+            AutomatedScriptService.countBy({ projectId }),
+        ]);
         return sendListResponse(req, res, scripts, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -38,16 +43,15 @@ router.get(
         try {
             const { automatedSlug } = req.params;
             const { skip, limit } = req.query;
+
+            const selectScript =
+                'name script scriptType slug projectId successEvent failureEvent';
+            const populateScript = [{ path: 'createdById', select: 'name' }];
             const details = await AutomatedScriptService.findOneBy({
-                slug: automatedSlug,
+                query: { slug: automatedSlug },
+                select: selectScript,
+                populate: populateScript,
             });
-            const logs = await AutomatedScriptService.getAutomatedLogs(
-                {
-                    automationScriptId: details._id,
-                },
-                skip,
-                limit
-            );
 
             if (details.successEvent.length > 0) {
                 details.successEvent = formatEvent(details.successEvent);
@@ -57,9 +61,18 @@ router.get(
                 details.failureEvent = formatEvent(details.failureEvent);
             }
 
-            const count = await AutomatedScriptService.countLogsBy({
-                automationScriptId: details._id,
-            });
+            const [logs, count] = await Promise.all([
+                AutomatedScriptService.getAutomatedLogs(
+                    {
+                        automationScriptId: details._id,
+                    },
+                    skip,
+                    limit
+                ),
+                AutomatedScriptService.countLogsBy({
+                    automationScriptId: details._id,
+                }),
+            ]);
             const response = {
                 details,
                 logs,
@@ -107,12 +120,12 @@ router.post('/:projectId', getUser, isAuthorized, async (req, res) => {
         }
 
         // check if name already exists
-        const uniqueName = await AutomatedScriptService.findOneBy({
+        const uniqueName = await AutomatedScriptService.countBy({
             projectId: data.projectId,
             name: data.name,
         });
 
-        if (uniqueName) {
+        if (uniqueName && uniqueName > 0) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'Script name already exists',
@@ -171,19 +184,14 @@ router.put(
                 });
             }
 
-            // check former name
-            const formerName = await AutomatedScriptService.findOneBy({
-                projectId: data.projectId,
-                _id: automatedScriptId,
-            });
-
-            // check if name already exists
-            const uniqueName = await AutomatedScriptService.findOneBy({
+            // check if name already exist
+            const scriptCount = await AutomatedScriptService.countBy({
                 projectId: data.projectId,
                 name: data.name,
+                _id: { $ne: automatedScriptId },
             });
 
-            if (data.name !== formerName.name && uniqueName) {
+            if (scriptCount && scriptCount > 0) {
                 return sendErrorResponse(req, res, {
                     code: 400,
                     message: 'Script name already exists',
@@ -233,7 +241,18 @@ router.delete(
     isAuthorized,
     async function(req, res) {
         try {
-            const { automatedSlug } = req.params;
+            const { projectId, automatedSlug } = req.params;
+            const query = {
+                slug: automatedSlug,
+            };
+            const populate = [{ path: 'createdById', select: 'name' }];
+            const select =
+                'name script scriptType slug projectId successEvent failureEvent';
+            const { _id } = await AutomatedScriptService.findOneBy({
+                query,
+                select,
+                populate,
+            });
             const userId = req.user ? req.user.id : null;
             const response = await AutomatedScriptService.deleteBy(
                 {
@@ -241,6 +260,10 @@ router.delete(
                 },
                 userId
             );
+            await AutomatedScriptService.removeScriptFromEvent({
+                projectId,
+                id: _id,
+            });
             return sendItemResponse(req, res, response);
         } catch (error) {
             return sendErrorResponse(req, res, error);

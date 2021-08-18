@@ -15,7 +15,10 @@
         "es6": true,
         "jest": true
     },
-    "plugins": ["react", "jsx-a11y"],
+    "plugins": [
+        "react",
+        "jsx-a11y"
+    ],
     "extends": [
         "eslint:recommended",
         "plugin:react/recommended",
@@ -23,6 +26,18 @@
         "prettier",
         "prettier/react"
     ],
+    "globals": {
+        "describe" :true,
+        "context" :true,
+        "before" :true,
+        "beforeEach" :true,
+        "after" :true,
+        "afterEach" :true,
+        "it" :true,
+        "expect" :true,
+        "workbox" :true,
+        "importScripts" :true
+    },
     "parser": "babel-eslint",
     "rules": {
         "no-fallthrough": "error",
@@ -31,7 +46,10 @@
         "valid-typeof": "error",
         "no-func-assign": "error",
         "no-extra-semi": "error",
-        "linebreak-style": ["error", "unix"],
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
         "no-unused-vars": "error",
         "no-console": "error",
         "no-undef": "error",
@@ -63,7 +81,9 @@
         "react/prop-types": "error",
         "react/react-in-jsx-scope": "error",
         "react/no-string-refs": "error",
-        "jsx-a11y/href-no-hash": [0],
+        "jsx-a11y/href-no-hash": [
+            0
+        ],
         "react/no-unescaped-entities": "error",
         "react/display-name": "error",
         "react/jsx-pascal-case": "error",

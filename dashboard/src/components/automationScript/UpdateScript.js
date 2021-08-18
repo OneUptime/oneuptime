@@ -114,6 +114,7 @@ class UpdateScript extends Component {
 
     renderSuccessEvent = ({ fields }) => {
         const { script, schedules, successEventValues } = this.props;
+        const currentScript = this.props.details._id;
         const scheduleOption =
             schedules && schedules.length > 0
                 ? schedules.map(schedule => ({
@@ -123,10 +124,12 @@ class UpdateScript extends Component {
                 : [];
         const scriptOption =
             script && script.length > 0
-                ? script.map(s => ({
-                      value: s._id,
-                      label: s.name,
-                  }))
+                ? script
+                      .filter(s => s._id !== currentScript)
+                      .map(s => ({
+                          value: s._id,
+                          label: s.name,
+                      }))
                 : [];
         if (fields.length === 0) {
             fields.push();
@@ -264,6 +267,7 @@ class UpdateScript extends Component {
 
     renderFailureEvent = ({ fields }) => {
         const { script, schedules, failureEventValues } = this.props;
+        const currentScript = this.props.details._id;
         const scheduleOption =
             schedules && schedules.length > 0
                 ? schedules.map(schedule => ({
@@ -273,10 +277,12 @@ class UpdateScript extends Component {
                 : [];
         const scriptOption =
             script && script.length > 0
-                ? script.map(s => ({
-                      value: s._id,
-                      label: s.name,
-                  }))
+                ? script
+                      .filter(s => s._id !== currentScript)
+                      .map(s => ({
+                          value: s._id,
+                          label: s.name,
+                      }))
                 : [];
         if (fields.length === 0) {
             fields.push();

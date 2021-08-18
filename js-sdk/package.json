@@ -27,7 +27,7 @@
     "author": "HackerBay, Inc.",
     "license": "ISC",
     "devDependencies": {
-        "@babel/cli": "^7.13.10",
+        "@babel/cli": "^7.14.8",
         "@babel/core": "^7.10.2",
         "@babel/plugin-proposal-class-properties": "^7.10.1",
         "@babel/plugin-proposal-private-methods": "^7.10.1",

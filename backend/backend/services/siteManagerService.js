@@ -1,5 +1,7 @@
 const SiteManagerModel = require('../models/siteManager');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 
 module.exports = {
     create: async function(data) {
@@ -11,22 +13,25 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const siteManager = await SiteManagerModel.findOne(query)
-                .select('-_id -__v -createdAt -updatedAt')
-                .lean();
+            let siteManagerQuery = SiteManagerModel.findOne(query).lean();
+
+            siteManagerQuery = handleSelect(select, siteManagerQuery);
+            siteManagerQuery = handlePopulate(populate, siteManagerQuery);
+
+            const siteManager = await siteManagerQuery;
             return siteManager;
         } catch (error) {
             ErrorService.log('siteManagerService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -40,13 +45,16 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const siteManagers = await SiteManagerModel.find(query)
+            let siteManagerQuery = SiteManagerModel.find(query)
                 .lean()
-                .select('-_id -createdAt -updatedAt -__v')
                 .sort([['createdAt', -1]])
                 .limit(limit)
                 .skip(skip);
 
+            siteManagerQuery = handleSelect(select, siteManagerQuery);
+            siteManagerQuery = handlePopulate(populate, siteManagerQuery);
+
+            const siteManagers = await siteManagerQuery;
             return siteManagers;
         } catch (error) {
             ErrorService.log('siteManagerService.findBy', error);

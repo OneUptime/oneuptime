@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import PropTypes from 'prop-types';
@@ -12,6 +11,12 @@ import NewScript from '../components/automationScript/NewScript';
 import AutomatedTabularList from '../components/automationScript/AutomatedTabularList';
 
 class AutomationScript extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            toggleNewScript: false,
+        };
+    }
     componentDidMount() {
         const projectId = this.props.currentProject
             ? this.props.currentProject._id
@@ -34,15 +39,22 @@ class AutomationScript extends Component {
         } = this.props;
 
         return (
-            <Dashboard>
-                <Fade>
-                    <BreadCrumbItem
-                        route={pathname}
-                        name="Automation Scripts"
-                    />
-                    <div id="automationScriptsPage">
-                        <AutomatedTabularList {...this.props} />
-                    </div>
+            <Fade>
+                <BreadCrumbItem route={pathname} name="Automation Scripts" />
+                <div id="automationScriptsPage">
+                    <ShouldRender if={!this.state.toggleNewScript}>
+                        <AutomatedTabularList
+                            {...this.props}
+                            toggleNewScript={() =>
+                                this.setState({
+                                    toggleNewScript: !this.state
+                                        .toggleNewScript,
+                                })
+                            }
+                        />
+                    </ShouldRender>
+                </div>
+                <ShouldRender if={this.state.toggleNewScript}>
                     <div className="Box-root">
                         <div>
                             <div>
@@ -52,7 +64,15 @@ class AutomationScript extends Component {
                                             <div>
                                                 <span>
                                                     <ShouldRender if={true}>
-                                                        <NewScript />
+                                                        <NewScript
+                                                            toggleNewScript={() =>
+                                                                this.setState({
+                                                                    toggleNewScript: !this
+                                                                        .state
+                                                                        .toggleNewScript,
+                                                                })
+                                                            }
+                                                        />
                                                     </ShouldRender>
 
                                                     <ShouldRender if={false}>
@@ -66,8 +86,8 @@ class AutomationScript extends Component {
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </ShouldRender>
+            </Fade>
         );
     }
 }

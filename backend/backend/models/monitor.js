@@ -96,6 +96,7 @@ const monitorSchema = new Schema({
             'kubernetes',
             'ip',
         ],
+        index: true,
     }, //type can be 'url', 'process', 'machine'. We can monitor URL, a process in a machine or a server itself.
     agentlessConfig: Object,
     kubernetesConfig: Schema.Types.Mixed,
@@ -103,6 +104,7 @@ const monitorSchema = new Schema({
     resourceCategory: {
         type: String,
         ref: 'ResourceCategory',
+        index: true,
     },
     createdAt: {
         type: Date,
@@ -110,14 +112,17 @@ const monitorSchema = new Schema({
     },
     pollTime: {
         type: Array,
+        index: true,
     },
     lastPingTime: {
         type: Date,
         default: Date.now,
+        index: true,
     },
     updateTime: {
         type: Date,
         default: Date.now,
+        index: true,
     },
     criteria: {
         up: { type: [criterionEventSchema], default: [] },
@@ -139,11 +144,11 @@ const monitorSchema = new Schema({
 
     deletedById: { type: String, ref: 'User' },
     scriptRunStatus: String,
-    scriptRunBy: { type: String, ref: 'Probe' },
+    scriptRunBy: { type: String, ref: 'Probe', index: true },
 
-    lighthouseScannedAt: { type: Date },
+    lighthouseScannedAt: { type: Date, index: true },
     lighthouseScanStatus: String,
-    lighthouseScannedBy: { type: String, ref: 'Probe' },
+    lighthouseScannedBy: { type: String, ref: 'Probe', index: true },
     siteUrls: [String],
     incidentCommunicationSla: {
         type: Schema.Types.ObjectId,
@@ -167,6 +172,8 @@ const monitorSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    scanning: { type: Boolean, default: false },
+    probeScanning: [String],
 });
 
 monitorSchema.virtual('project', {

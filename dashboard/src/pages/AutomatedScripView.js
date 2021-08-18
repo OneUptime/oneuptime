@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Dashboard from '../components/Dashboard';
 import Fade from 'react-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import PropTypes from 'prop-types';
@@ -100,548 +99,553 @@ const AutomatedScripView = props => {
     const projectId = props.currentProject?._id;
 
     return (
-        <Dashboard>
-            <Fade>
-                <BreadCrumbItem route={parentRoute} name="Automation Scripts" />
-                <BreadCrumbItem
-                    route={history.location.pathname}
-                    name={scriptName}
-                    pageTitle="Automation Scripts"
-                />
-                <Tabs
-                    selectedTabClassName={'custom-tab-selected'}
-                    onSelect={tab => tabSelected(tab)}
-                    selectedIndex={tabIndex}
-                >
-                    <div className="Flex-flex Flex-direction--columnReverse">
-                        <TabList
-                            id="customTabList"
-                            className={'custom-tab-list'}
+        <Fade>
+            <BreadCrumbItem route={parentRoute} name="Automation Scripts" />
+            <BreadCrumbItem
+                route={history.location.pathname}
+                name={scriptName}
+                pageTitle="Automation Scripts"
+            />
+            <Tabs
+                selectedTabClassName={'custom-tab-selected'}
+                onSelect={tab => tabSelected(tab)}
+                selectedIndex={tabIndex}
+            >
+                <div className="Flex-flex Flex-direction--columnReverse">
+                    <TabList id="customTabList" className={'custom-tab-list'}>
+                        <Tab
+                            className={
+                                'custom-tab custom-tab-6 basic-tab bs-automate-tab'
+                            }
                         >
-                            <Tab
-                                className={
-                                    'custom-tab custom-tab-6 basic-tab bs-automate-tab'
-                                }
-                            >
-                                Basic
-                            </Tab>
-                            <Tab
-                                className={
-                                    'custom-tab custom-tab-6 advanced-options-tab bs-automate-tab'
-                                }
-                            >
-                                Advanced Options
-                            </Tab>
-                            <div
-                                id="tab-slider"
-                                className="custom-tab-6 status-tab bs-automate-slider"
-                            ></div>
-                        </TabList>
-                    </div>
+                            Basic
+                        </Tab>
+                        <Tab
+                            className={
+                                'custom-tab custom-tab-6 advanced-options-tab bs-automate-tab'
+                            }
+                        >
+                            Advanced Options
+                        </Tab>
+                        <div
+                            id="tab-slider"
+                            className="custom-tab-6 status-tab bs-automate-slider"
+                        ></div>
+                    </TabList>
+                </div>
 
-                    <div className="Box-root">
+                <div className="Box-root">
+                    <div>
                         <div>
-                            <div>
-                                <div className="db-BackboneViewContainer">
-                                    <div className="react-settings-view react-view">
-                                        <span data-reactroot="">
+                            <div className="db-BackboneViewContainer">
+                                <div className="react-settings-view react-view">
+                                    <span data-reactroot="">
+                                        <div>
                                             <div>
-                                                <div>
-                                                    <ShouldRender if={true}>
-                                                        <TabPanel>
-                                                            <Fade>
-                                                                <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
-                                                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                                            <div className="bs-script-display">
-                                                                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                    <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                                        <span>
-                                                                                            {
-                                                                                                scriptName
-                                                                                            }
-                                                                                        </span>
-                                                                                    </span>
-                                                                                    <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                                        <span>
-                                                                                            {
-                                                                                                scriptType
-                                                                                            }
-                                                                                        </span>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <div className="db-ListViewItem-cellContent Box-root Padding-all--8 bs-table-display-end">
-                                                                                    <ShouldRender
-                                                                                        if={
-                                                                                            !showUpdate
+                                                <ShouldRender if={true}>
+                                                    <TabPanel>
+                                                        <Fade>
+                                                            <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
+                                                                <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                                    <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                                        <div className="bs-script-display">
+                                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                                                    <span>
+                                                                                        {
+                                                                                            scriptName
                                                                                         }
-                                                                                    >
-                                                                                        <button
-                                                                                            className="bs-Button bs-Button--icon bs-Button--play"
-                                                                                            title="run"
-                                                                                            disabled={
-                                                                                                false
-                                                                                            }
-                                                                                            onClick={() =>
-                                                                                                props.openModal(
-                                                                                                    {
-                                                                                                        id: automatedId,
-                                                                                                        content: DataPathHoC(
-                                                                                                            RunAutomationScript,
-                                                                                                            {
-                                                                                                                automatedScriptId:
-                                                                                                                    details?._id,
-                                                                                                                projectId,
-                                                                                                                automatedSlug:
-                                                                                                                    details?.slug,
-                                                                                                            }
-                                                                                                        ),
-                                                                                                    }
-                                                                                                )
-                                                                                            }
-                                                                                        >
-                                                                                            <span>
-                                                                                                Run
-                                                                                            </span>
-                                                                                        </button>
-                                                                                    </ShouldRender>
+                                                                                    </span>
+                                                                                </span>
+                                                                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                    <span>
+                                                                                        {
+                                                                                            scriptType
+                                                                                        }
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="db-ListViewItem-cellContent Box-root Padding-all--8 bs-table-display-end">
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        !showUpdate
+                                                                                    }
+                                                                                >
                                                                                     <button
-                                                                                        className="bs-Button bs-Button--icon bs-Button--settings"
-                                                                                        title="edit"
+                                                                                        className="bs-Button bs-Button--icon bs-Button--play"
+                                                                                        title="run"
                                                                                         disabled={
                                                                                             false
                                                                                         }
                                                                                         onClick={() =>
-                                                                                            setShowUpdate(
-                                                                                                !showUpdate
+                                                                                            props.openModal(
+                                                                                                {
+                                                                                                    id: automatedId,
+                                                                                                    content: DataPathHoC(
+                                                                                                        RunAutomationScript,
+                                                                                                        {
+                                                                                                            automatedScriptId:
+                                                                                                                details?._id,
+                                                                                                            projectId,
+                                                                                                            automatedSlug:
+                                                                                                                details?.slug,
+                                                                                                        }
+                                                                                                    ),
+                                                                                                }
                                                                                             )
                                                                                         }
                                                                                     >
                                                                                         <span>
-                                                                                            <ShouldRender
-                                                                                                if={
-                                                                                                    !showUpdate
-                                                                                                }
-                                                                                            >
-                                                                                                Edit
-                                                                                            </ShouldRender>
-                                                                                            <ShouldRender
-                                                                                                if={
-                                                                                                    showUpdate
-                                                                                                }
-                                                                                            >
-                                                                                                Hide
-                                                                                                update
-                                                                                            </ShouldRender>
+                                                                                            Run
                                                                                         </span>
                                                                                     </button>
+                                                                                </ShouldRender>
+                                                                                <button
+                                                                                    className="bs-Button bs-Button--icon bs-Button--settings"
+                                                                                    title="edit"
+                                                                                    disabled={
+                                                                                        false
+                                                                                    }
+                                                                                    onClick={() =>
+                                                                                        setShowUpdate(
+                                                                                            !showUpdate
+                                                                                        )
+                                                                                    }
+                                                                                >
+                                                                                    <span>
+                                                                                        <ShouldRender
+                                                                                            if={
+                                                                                                !showUpdate
+                                                                                            }
+                                                                                        >
+                                                                                            Edit
+                                                                                        </ShouldRender>
+                                                                                        <ShouldRender
+                                                                                            if={
+                                                                                                showUpdate
+                                                                                            }
+                                                                                        >
+                                                                                            Hide
+                                                                                            update
+                                                                                        </ShouldRender>
+                                                                                    </span>
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <ShouldRender
+                                                                if={!showUpdate}
+                                                            >
+                                                                <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
+                                                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
+                                                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
+                                                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
+                                                                                <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
+                                                                                    <span>
+                                                                                        Automated
+                                                                                        Script
+                                                                                        Logs
+                                                                                    </span>
+                                                                                </span>
+                                                                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                    <span>
+                                                                                        Here&#39;s
+                                                                                        a
+                                                                                        log
+                                                                                        of
+                                                                                        the
+                                                                                        automated
+                                                                                        scripts
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="bs-ContentSection-content Box-root">
+                                                                        <div className="bs-ObjectList db-UserList">
+                                                                            <div
+                                                                                style={{
+                                                                                    overflow:
+                                                                                        'hidden',
+                                                                                    overflowX:
+                                                                                        'auto',
+                                                                                }}
+                                                                            >
+                                                                                <div
+                                                                                    id="automatedList"
+                                                                                    className="bs-ObjectList-rows"
+                                                                                >
+                                                                                    <header className="bs-ObjectList-row bs-ObjectList-row--header">
+                                                                                        <div className="bs-ObjectList-cell">
+                                                                                            Triggered
+                                                                                            by
+                                                                                        </div>
+                                                                                        <div className="bs-ObjectList-cell">
+                                                                                            Execution
+                                                                                            time
+                                                                                        </div>
+                                                                                        <div
+                                                                                            className="bs-ObjectList-cell"
+                                                                                            style={{
+                                                                                                marginRight:
+                                                                                                    '10px',
+                                                                                            }}
+                                                                                        >
+                                                                                            Status
+                                                                                        </div>
+                                                                                        <div
+                                                                                            className="bs-ObjectList-cell"
+                                                                                            style={{
+                                                                                                marginRight:
+                                                                                                    '10px',
+                                                                                            }}
+                                                                                        >
+                                                                                            Ran
+                                                                                            At
+                                                                                        </div>
+                                                                                        <div
+                                                                                            className="bs-ObjectList-cell"
+                                                                                            style={{
+                                                                                                float:
+                                                                                                    'right',
+                                                                                            }}
+                                                                                        >
+                                                                                            Action
+                                                                                        </div>
+                                                                                    </header>
+                                                                                    {scriptLogs &&
+                                                                                        scriptLogs.log &&
+                                                                                        scriptLogs
+                                                                                            .log
+                                                                                            .length >
+                                                                                            0 &&
+                                                                                        scriptLogs.log.map(
+                                                                                            (
+                                                                                                log,
+                                                                                                index
+                                                                                            ) => {
+                                                                                                return (
+                                                                                                    <div
+                                                                                                        key={
+                                                                                                            index
+                                                                                                        }
+                                                                                                        className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
+                                                                                                        style={{
+                                                                                                            backgroundColor:
+                                                                                                                'white',
+                                                                                                            cursor:
+                                                                                                                'pointer',
+                                                                                                        }}
+                                                                                                    >
+                                                                                                        <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
+                                                                                                            <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
+                                                                                                                <ShouldRender
+                                                                                                                    if={
+                                                                                                                        log.triggerByUser
+                                                                                                                    }
+                                                                                                                >
+                                                                                                                    {
+                                                                                                                        log
+                                                                                                                            .triggerByUser
+                                                                                                                            ?.name
+                                                                                                                    }
+                                                                                                                </ShouldRender>
+                                                                                                                <ShouldRender
+                                                                                                                    if={
+                                                                                                                        log.triggerByScript
+                                                                                                                    }
+                                                                                                                >
+                                                                                                                    {
+                                                                                                                        log
+                                                                                                                            .triggerByScript
+                                                                                                                            ?.name
+                                                                                                                    }
+                                                                                                                </ShouldRender>
+                                                                                                                <ShouldRender
+                                                                                                                    if={
+                                                                                                                        log.triggerByIncident
+                                                                                                                    }
+                                                                                                                >
+                                                                                                                    Incident
+                                                                                                                    #
+                                                                                                                    {
+                                                                                                                        log
+                                                                                                                            .triggerByIncident
+                                                                                                                            ?.idNumber
+                                                                                                                    }
+                                                                                                                </ShouldRender>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                                                            <div
+                                                                                                                className="bs-ObjectList-cell-row"
+                                                                                                                id={`monitor`}
+                                                                                                            >
+                                                                                                                {parseInt(
+                                                                                                                    log.executionTime
+                                                                                                                )}
+                                                                                                                ms
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                                                            <div className="Box-root">
+                                                                                                                {log.status ===
+                                                                                                                'success' ? (
+                                                                                                                    <Badge color="green">
+                                                                                                                        {
+                                                                                                                            log.status
+                                                                                                                        }
+                                                                                                                    </Badge>
+                                                                                                                ) : log.status ===
+                                                                                                                  'running' ? (
+                                                                                                                    <Badge color="yellow">
+                                                                                                                        {
+                                                                                                                            log.status
+                                                                                                                        }
+                                                                                                                    </Badge>
+                                                                                                                ) : log.status ===
+                                                                                                                  'failed' ? (
+                                                                                                                    log.error ===
+                                                                                                                    'stackoverflow' ? (
+                                                                                                                        <Badge color="red">
+                                                                                                                            {
+                                                                                                                                log.error
+                                                                                                                            }
+                                                                                                                        </Badge>
+                                                                                                                    ) : (
+                                                                                                                        <Badge color="red">
+                                                                                                                            {
+                                                                                                                                log.status
+                                                                                                                            }
+                                                                                                                        </Badge>
+                                                                                                                    )
+                                                                                                                ) : null}
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <div className="bs-ObjectList-cell bs-u-v-middle">
+                                                                                                            <div className="Box-root">
+                                                                                                                {moment(
+                                                                                                                    log.createdAt
+                                                                                                                ).format(
+                                                                                                                    'MMMM Do YYYY, h:mm a'
+                                                                                                                )}
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                        <div
+                                                                                                            className="bs-ObjectList-cell bs-u-v-middle"
+                                                                                                            style={{
+                                                                                                                display:
+                                                                                                                    'flex',
+                                                                                                                justifyContent:
+                                                                                                                    'flex-end',
+                                                                                                                alignItems:
+                                                                                                                    'center',
+                                                                                                                paddingTop:
+                                                                                                                    '20px',
+                                                                                                            }}
+                                                                                                        >
+                                                                                                            <div className="Box-root">
+                                                                                                                <button
+                                                                                                                    title="view log"
+                                                                                                                    id={`automated_log_json_`}
+                                                                                                                    disabled={
+                                                                                                                        false
+                                                                                                                    }
+                                                                                                                    className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                                                                                    type="button"
+                                                                                                                    onClick={() =>
+                                                                                                                        props.openModal(
+                                                                                                                            {
+                                                                                                                                id: viewJsonModalId,
+                                                                                                                                content: DataPathHoC(
+                                                                                                                                    ViewScriptLogs,
+                                                                                                                                    {
+                                                                                                                                        viewJsonModalId,
+                                                                                                                                        consoleLogs:
+                                                                                                                                            log.consoleLogs,
+                                                                                                                                        title: `Automated Script Log`,
+                                                                                                                                        rootName:
+                                                                                                                                            'automatedScript',
+                                                                                                                                    }
+                                                                                                                                ),
+                                                                                                                            }
+                                                                                                                        )
+                                                                                                                    }
+                                                                                                                >
+                                                                                                                    <span>
+                                                                                                                        View
+                                                                                                                        Log
+                                                                                                                    </span>
+                                                                                                                </button>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                );
+                                                                                            }
+                                                                                        )}
+                                                                                </div>
+                                                                                <ShouldRender
+                                                                                    if={
+                                                                                        (scriptLogs &&
+                                                                                            scriptLogs.log &&
+                                                                                            scriptLogs
+                                                                                                .log
+                                                                                                .length ===
+                                                                                                0) ||
+                                                                                        !scriptLogs
+                                                                                    }
+                                                                                >
+                                                                                    <div
+                                                                                        style={{
+                                                                                            textAlign:
+                                                                                                'center',
+                                                                                            padding:
+                                                                                                '12px',
+                                                                                        }}
+                                                                                    >
+                                                                                        No
+                                                                                        logs
+                                                                                        available
+                                                                                        for
+                                                                                        this
+                                                                                        script
+                                                                                        because
+                                                                                        it
+                                                                                        never
+                                                                                        ran.
+                                                                                    </div>
+                                                                                </ShouldRender>
+                                                                                <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
+                                                                                    <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
+                                                                                        <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                            <span>
+                                                                                                <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
+                                                                                                    <ShouldRender
+                                                                                                        if={
+                                                                                                            count
+                                                                                                        }
+                                                                                                    >
+                                                                                                        <span id="numberOfLogs">
+                                                                                                            {
+                                                                                                                count
+                                                                                                            }
+                                                                                                        </span>{' '}
+                                                                                                        {count &&
+                                                                                                        count >
+                                                                                                            1
+                                                                                                            ? 'Logs'
+                                                                                                            : 'Log'}
+                                                                                                    </ShouldRender>
+                                                                                                </span>
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
+                                                                                        <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
+                                                                                            <div className="Box-root Margin-right--8">
+                                                                                                <button
+                                                                                                    id="btnPrevSubscriber"
+                                                                                                    onClick={
+                                                                                                        prevClicked
+                                                                                                    }
+                                                                                                    className={
+                                                                                                        'Button bs-ButtonLegacy'
+                                                                                                    }
+                                                                                                    disabled={
+                                                                                                        !canPrev
+                                                                                                    }
+                                                                                                    data-db-analytics-name="list_view.pagination.previous"
+                                                                                                    type="button"
+                                                                                                >
+                                                                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                                                            <span>
+                                                                                                                Previous
+                                                                                                            </span>
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                </button>
+                                                                                            </div>
+                                                                                            <div className="Box-root">
+                                                                                                <button
+                                                                                                    id="btnNextSubscriber"
+                                                                                                    onClick={
+                                                                                                        nextClicked
+                                                                                                    }
+                                                                                                    className={
+                                                                                                        'Button bs-ButtonLegacy'
+                                                                                                    }
+                                                                                                    disabled={
+                                                                                                        !canNext
+                                                                                                    }
+                                                                                                    data-db-analytics-name="list_view.pagination.next"
+                                                                                                    type="button"
+                                                                                                >
+                                                                                                    <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
+                                                                                                        <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
+                                                                                                            <span>
+                                                                                                                Next
+                                                                                                            </span>
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                                                                <ShouldRender
-                                                                    if={
-                                                                        !showUpdate
-                                                                    }
-                                                                >
-                                                                    <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
-                                                                        <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                                                            <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                                                                <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                                                    <span className="ContentHeader-title Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
-                                                                                        <span>
-                                                                                            Automated
-                                                                                            Script
-                                                                                            Logs
-                                                                                        </span>
-                                                                                    </span>
-                                                                                    <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                                        <span>
-                                                                                            Here&#39;s
-                                                                                            a
-                                                                                            log
-                                                                                            of
-                                                                                            the
-                                                                                            automated
-                                                                                            scripts
-                                                                                        </span>
-                                                                                    </span>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="bs-ContentSection-content Box-root">
-                                                                            <div className="bs-ObjectList db-UserList">
-                                                                                <div
-                                                                                    style={{
-                                                                                        overflow:
-                                                                                            'hidden',
-                                                                                        overflowX:
-                                                                                            'auto',
-                                                                                    }}
-                                                                                >
-                                                                                    <div
-                                                                                        id="automatedList"
-                                                                                        className="bs-ObjectList-rows"
-                                                                                    >
-                                                                                        <header className="bs-ObjectList-row bs-ObjectList-row--header">
-                                                                                            <div className="bs-ObjectList-cell">
-                                                                                                Triggered
-                                                                                                by
-                                                                                            </div>
-                                                                                            <div className="bs-ObjectList-cell">
-                                                                                                Execution
-                                                                                                time
-                                                                                            </div>
-                                                                                            <div
-                                                                                                className="bs-ObjectList-cell"
-                                                                                                style={{
-                                                                                                    marginRight:
-                                                                                                        '10px',
-                                                                                                }}
-                                                                                            >
-                                                                                                Status
-                                                                                            </div>
-                                                                                            <div
-                                                                                                className="bs-ObjectList-cell"
-                                                                                                style={{
-                                                                                                    marginRight:
-                                                                                                        '10px',
-                                                                                                }}
-                                                                                            >
-                                                                                                Ran
-                                                                                                At
-                                                                                            </div>
-                                                                                            <div
-                                                                                                className="bs-ObjectList-cell"
-                                                                                                style={{
-                                                                                                    float:
-                                                                                                        'right',
-                                                                                                }}
-                                                                                            >
-                                                                                                Action
-                                                                                            </div>
-                                                                                        </header>
-                                                                                        {scriptLogs &&
-                                                                                            scriptLogs.length >
-                                                                                                0 &&
-                                                                                            scriptLogs.map(
-                                                                                                (
-                                                                                                    log,
-                                                                                                    index
-                                                                                                ) => {
-                                                                                                    return (
-                                                                                                        <div
-                                                                                                            key={
-                                                                                                                index
-                                                                                                            }
-                                                                                                            className="scheduled-event-list-item bs-ObjectList-row db-UserListRow db-UserListRow--withName"
-                                                                                                            style={{
-                                                                                                                backgroundColor:
-                                                                                                                    'white',
-                                                                                                                cursor:
-                                                                                                                    'pointer',
-                                                                                                            }}
-                                                                                                        >
-                                                                                                            <div className="bs-ObjectList-cell bs-u-v-middle bs-ActionsParent">
-                                                                                                                <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted">
-                                                                                                                    <ShouldRender
-                                                                                                                        if={
-                                                                                                                            log.triggerByUser
-                                                                                                                        }
-                                                                                                                    >
-                                                                                                                        {
-                                                                                                                            log
-                                                                                                                                .triggerByUser
-                                                                                                                                ?.name
-                                                                                                                        }
-                                                                                                                    </ShouldRender>
-                                                                                                                    <ShouldRender
-                                                                                                                        if={
-                                                                                                                            log.triggerByScript
-                                                                                                                        }
-                                                                                                                    >
-                                                                                                                        {
-                                                                                                                            log
-                                                                                                                                .triggerByScript
-                                                                                                                                ?.name
-                                                                                                                        }
-                                                                                                                    </ShouldRender>
-                                                                                                                    <ShouldRender
-                                                                                                                        if={
-                                                                                                                            log.triggerByIncident
-                                                                                                                        }
-                                                                                                                    >
-                                                                                                                        Incident
-                                                                                                                        #
-                                                                                                                        {
-                                                                                                                            log
-                                                                                                                                .triggerByIncident
-                                                                                                                                ?.idNumber
-                                                                                                                        }
-                                                                                                                    </ShouldRender>
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                                                                                <div
-                                                                                                                    className="bs-ObjectList-cell-row"
-                                                                                                                    id={`monitor`}
-                                                                                                                >
-                                                                                                                    {parseInt(
-                                                                                                                        log.executionTime
-                                                                                                                    )}
-                                                                                                                    ms
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                                                                                <div className="Box-root">
-                                                                                                                    {log.status ===
-                                                                                                                    'success' ? (
-                                                                                                                        <Badge color="green">
-                                                                                                                            {
-                                                                                                                                log.status
-                                                                                                                            }
-                                                                                                                        </Badge>
-                                                                                                                    ) : log.status ===
-                                                                                                                      'running' ? (
-                                                                                                                        <Badge color="yellow">
-                                                                                                                            {
-                                                                                                                                log.status
-                                                                                                                            }
-                                                                                                                        </Badge>
-                                                                                                                    ) : log.status ===
-                                                                                                                      'failed' ? (
-                                                                                                                        log.error ===
-                                                                                                                        'stackoverflow' ? (
-                                                                                                                            <Badge color="red">
-                                                                                                                                {
-                                                                                                                                    log.error
-                                                                                                                                }
-                                                                                                                            </Badge>
-                                                                                                                        ) : (
-                                                                                                                            <Badge color="red">
-                                                                                                                                {
-                                                                                                                                    log.status
-                                                                                                                                }
-                                                                                                                            </Badge>
-                                                                                                                        )
-                                                                                                                    ) : null}
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                            <div className="bs-ObjectList-cell bs-u-v-middle">
-                                                                                                                <div className="Box-root">
-                                                                                                                    {moment(
-                                                                                                                        log.createdAt
-                                                                                                                    ).format(
-                                                                                                                        'MMMM Do YYYY, h:mm a'
-                                                                                                                    )}
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                            <div
-                                                                                                                className="bs-ObjectList-cell bs-u-v-middle"
-                                                                                                                style={{
-                                                                                                                    display:
-                                                                                                                        'flex',
-                                                                                                                    justifyContent:
-                                                                                                                        'flex-end',
-                                                                                                                    alignItems:
-                                                                                                                        'center',
-                                                                                                                    paddingTop:
-                                                                                                                        '20px',
-                                                                                                                }}
-                                                                                                            >
-                                                                                                                <div className="Box-root">
-                                                                                                                    <button
-                                                                                                                        title="view log"
-                                                                                                                        id={`automated_log_json_`}
-                                                                                                                        disabled={
-                                                                                                                            false
-                                                                                                                        }
-                                                                                                                        className="bs-Button bs-DeprecatedButton Margin-left--8"
-                                                                                                                        type="button"
-                                                                                                                        onClick={() =>
-                                                                                                                            props.openModal(
-                                                                                                                                {
-                                                                                                                                    id: viewJsonModalId,
-                                                                                                                                    content: DataPathHoC(
-                                                                                                                                        ViewScriptLogs,
-                                                                                                                                        {
-                                                                                                                                            viewJsonModalId,
-                                                                                                                                            consoleLogs:
-                                                                                                                                                log.consoleLogs,
-                                                                                                                                            title: `Automated Script Log`,
-                                                                                                                                            rootName:
-                                                                                                                                                'automatedScript',
-                                                                                                                                        }
-                                                                                                                                    ),
-                                                                                                                                }
-                                                                                                                            )
-                                                                                                                        }
-                                                                                                                    >
-                                                                                                                        <span>
-                                                                                                                            View
-                                                                                                                            Log
-                                                                                                                        </span>
-                                                                                                                    </button>
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                        </div>
-                                                                                                    );
-                                                                                                }
-                                                                                            )}
-                                                                                    </div>
-                                                                                    <ShouldRender
-                                                                                        if={
-                                                                                            (scriptLogs &&
-                                                                                                scriptLogs.length ===
-                                                                                                    0) ||
-                                                                                            !scriptLogs
-                                                                                        }
-                                                                                    >
-                                                                                        <div
-                                                                                            style={{
-                                                                                                textAlign:
-                                                                                                    'center',
-                                                                                                padding:
-                                                                                                    '12px',
-                                                                                            }}
-                                                                                        >
-                                                                                            You&#39;ve
-                                                                                            no
-                                                                                            log
-                                                                                            currently
-                                                                                        </div>
-                                                                                    </ShouldRender>
-                                                                                    <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
-                                                                                        <div className="Box-root Flex-flex Flex-alignItems--center Padding-all--20">
-                                                                                            <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                                                <span>
-                                                                                                    <span className="Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                                                        <ShouldRender
-                                                                                                            if={
-                                                                                                                count
-                                                                                                            }
-                                                                                                        >
-                                                                                                            <span id="numberOfLogs">
-                                                                                                                {
-                                                                                                                    count
-                                                                                                                }
-                                                                                                            </span>{' '}
-                                                                                                            {count &&
-                                                                                                            count >
-                                                                                                                1
-                                                                                                                ? 'Logs'
-                                                                                                                : 'Log'}
-                                                                                                        </ShouldRender>
-                                                                                                    </span>
-                                                                                                </span>
-                                                                                            </span>
-                                                                                        </div>
-                                                                                        <div className="Box-root Padding-horizontal--20 Padding-vertical--16">
-                                                                                            <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart">
-                                                                                                <div className="Box-root Margin-right--8">
-                                                                                                    <button
-                                                                                                        id="btnPrevSubscriber"
-                                                                                                        onClick={
-                                                                                                            prevClicked
-                                                                                                        }
-                                                                                                        className={
-                                                                                                            'Button bs-ButtonLegacy'
-                                                                                                        }
-                                                                                                        disabled={
-                                                                                                            !canPrev
-                                                                                                        }
-                                                                                                        data-db-analytics-name="list_view.pagination.previous"
-                                                                                                        type="button"
-                                                                                                    >
-                                                                                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                                                            <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                                                                <span>
-                                                                                                                    Previous
-                                                                                                                </span>
-                                                                                                            </span>
-                                                                                                        </div>
-                                                                                                    </button>
-                                                                                                </div>
-                                                                                                <div className="Box-root">
-                                                                                                    <button
-                                                                                                        id="btnNextSubscriber"
-                                                                                                        onClick={
-                                                                                                            nextClicked
-                                                                                                        }
-                                                                                                        className={
-                                                                                                            'Button bs-ButtonLegacy'
-                                                                                                        }
-                                                                                                        disabled={
-                                                                                                            !canNext
-                                                                                                        }
-                                                                                                        data-db-analytics-name="list_view.pagination.next"
-                                                                                                        type="button"
-                                                                                                    >
-                                                                                                        <div className="Button-fill bs-ButtonLegacy-fill Box-root Box-background--white Flex-inlineFlex Flex-alignItems--center Flex-direction--row Padding-horizontal--8 Padding-vertical--4">
-                                                                                                            <span className="Button-label Text-color--default Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--noWrap">
-                                                                                                                <span>
-                                                                                                                    Next
-                                                                                                                </span>
-                                                                                                            </span>
-                                                                                                        </div>
-                                                                                                    </button>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </ShouldRender>
-                                                                <ShouldRender
-                                                                    if={
-                                                                        details &&
-                                                                        showUpdate
-                                                                    }
-                                                                >
-                                                                    <div>
-                                                                        <UpdateScript
-                                                                            details={
-                                                                                details
-                                                                            }
-                                                                        />
-                                                                    </div>
-                                                                </ShouldRender>
-                                                            </Fade>
-                                                        </TabPanel>
-                                                        <TabPanel>
-                                                            <Fade>
-                                                                <DeleteScriptBox
-                                                                    {...props}
-                                                                    name={
-                                                                        scriptName
-                                                                    }
-                                                                    parentRoute={
-                                                                        parentRoute
-                                                                    }
-                                                                    automatedSlug={
-                                                                        automatedSlug
-                                                                    }
-                                                                />
-                                                            </Fade>
-                                                        </TabPanel>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={false}>
-                                                        <LoadingState />
-                                                    </ShouldRender>
-                                                </div>
+                                                            </ShouldRender>
+                                                            <ShouldRender
+                                                                if={
+                                                                    details &&
+                                                                    showUpdate
+                                                                }
+                                                            >
+                                                                <div>
+                                                                    <UpdateScript
+                                                                        details={
+                                                                            details
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </ShouldRender>
+                                                        </Fade>
+                                                    </TabPanel>
+                                                    <TabPanel>
+                                                        <Fade>
+                                                            <DeleteScriptBox
+                                                                {...props}
+                                                                name={
+                                                                    scriptName
+                                                                }
+                                                                parentRoute={
+                                                                    parentRoute
+                                                                }
+                                                                automatedSlug={
+                                                                    automatedSlug
+                                                                }
+                                                            />
+                                                        </Fade>
+                                                    </TabPanel>
+                                                </ShouldRender>
+                                                <ShouldRender if={false}>
+                                                    <LoadingState />
+                                                </ShouldRender>
                                             </div>
-                                        </span>
-                                    </div>
+                                        </div>
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </Tabs>
-            </Fade>
-        </Dashboard>
+                </div>
+            </Tabs>
+        </Fade>
     );
 };
 
@@ -659,7 +663,7 @@ AutomatedScripView.propTypes = {
 
 const mapStateToProps = state => ({
     currentProject: state.project.currentProject,
-    script: state.automatedScripts.individualScript.log,
+    script: state.automatedScripts.individualScript,
     details: state.automatedScripts.individualScript.details,
     requesting: state.automatedScripts.individualScript.requesting,
 });

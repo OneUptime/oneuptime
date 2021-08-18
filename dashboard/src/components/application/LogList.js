@@ -10,12 +10,13 @@ import { ListLoader } from '../basic/Loader';
 import { getLogSuccess } from '../../actions/applicationLog';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
-import { API_URL } from '../../config';
+import { REALTIME_URL } from '../../config';
 import io from 'socket.io-client';
 
-// Important: Below `/api` is also needed because `io` constructor strips out the path from the url.
-const socket = io.connect(API_URL.replace('/api', ''), {
-    path: '/api/socket.io',
+// Important: Below `/realtime` is also needed because `io` constructor strips out the path from the url.
+// '/realtime' is set as socket io namespace, so remove
+const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
+    path: '/realtime/socket.io',
     transports: ['websocket', 'polling'],
 });
 
@@ -35,17 +36,17 @@ class LogList extends Component {
     };
 
     displayTags = tags => {
-        return (
-            tags &&
-            tags.map(tag => {
-                return (
-                    <span className="tag" key={tag}>
-                        {' '}
-                        {tag}{' '}
-                    </span>
-                );
-            })
-        );
+        if (!Array.isArray(tags)) {
+            return '';
+        }
+        return tags.map(tag => {
+            return (
+                <span className="tag" key={tag}>
+                    {' '}
+                    {tag}{' '}
+                </span>
+            );
+        });
     };
 
     openModalFunc = content => {

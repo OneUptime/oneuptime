@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -83,8 +84,14 @@ class Message extends Component {
                 {this.props.subscribed &&
                 this.props.subscribed.success ? null : (
                     <div className="directions">
-                        Get email notifications when an incident is{' '}
-                        <b>created</b>.
+                        <Translate>
+                            {' '}
+                            Get email notifications when an incident is
+                        </Translate>{' '}
+                        <b>
+                            <Translate>created</Translate>
+                        </b>
+                        .
                     </div>
                 )}
                 <form
@@ -103,9 +110,14 @@ class Message extends Component {
                                 color: '#000',
                             }}
                         >
-                            <span id="monitor-subscribe-success-message">
-                                You have subscribed to this status page
-                                successfully
+                            <span
+                                className="subscriber-success"
+                                id="monitor-subscribe-success-message"
+                            >
+                                <Translate>
+                                    You have subscribed to this status page
+                                    successfully
+                                </Translate>
                             </span>
                         </div>
                     ) : (
@@ -139,8 +151,10 @@ class Message extends Component {
                     <div className="validation-error">
                         <span className="validation-error-icon"></span>
                         <span className="error-text">
-                            {this.props.subscribed &&
-                                this.props.subscribed.error}
+                            <Translate>
+                                {this.props.subscribed &&
+                                    this.props.subscribed.error}
+                            </Translate>
                         </span>
                     </div>
                 </ShouldRender>

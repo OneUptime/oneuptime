@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const ApiService = require('../utils/apiService');
 const ErrorService = require('../utils/errorService');
 const fetch = require('node-fetch');
@@ -9,19 +8,20 @@ const httpsAgent = new https.Agent({
     rejectUnauthorized: false,
 });
 const httpAgent = new http.Agent();
+
 // it collects all monitors then ping them one by one to store their response
 // checks if the website of the url in the monitors is up or down
 // creates incident if a website is down and resolves it when they come back up
 module.exports = {
-    ping: async monitor => {
+    ping: async ({ monitor }) => {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {
-                    const headers = await ApiService.headers(
+                    const headers = ApiService.headers(
                         monitor.headers,
                         monitor.bodyType
                     );
-                    const body = await ApiService.body(
+                    const body = ApiService.body(
                         monitor && monitor.text && monitor.text.length
                             ? monitor.text
                             : monitor.formData,
@@ -158,7 +158,7 @@ const pingfetch = async (url, method, body, headers) => {
     }
 
     // this hard coded value will be removed soon
-    res = res / 250;
+    // res = res / 250;
 
     return {
         res,

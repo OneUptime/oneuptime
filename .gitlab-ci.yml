@@ -65,6 +65,10 @@ include:
   # - '/ci/spec/init-script/audit.yaml'
   # - '/ci/spec/init-script/deploy.yaml'
 
+  # # LIGHTHOUSE RUNNER
+  # - '/ci/spec/lighthouse-runner/audit.yaml'
+  # - '/ci/spec/lighthouse-runner/deploy.yaml'
+
   # # LICENSING
   # - '/ci/spec/licensing/audit.yaml'
   # - '/ci/spec/licensing/build-n-test.yaml'
@@ -120,11 +124,6 @@ include:
   # - '/ci/spec/ruby-sdk/build-n-test.yaml'
   # - '/ci/spec/ruby-sdk/deploy.yaml'
 
-  # # GO-SDK
-  - '/ci/spec/go-sdk/audit.yaml'
-  # - '/ci/spec/go-sdk/build-n-test.yaml'
-  # - '/ci/spec/go-sdk/deploy.yaml'
-
   # # HARAKA
   # - '/ci/spec/haraka/deploy.yaml'
 
@@ -141,4 +140,23 @@ include:
   # - '/ci/spec/application-scanner/deploy.yaml'
 
   # #  Script Runner
+  # - '/ci/spec/script-runner/audit.yaml'
   # - '/ci/spec/script-runner/deploy.yaml'
+
+  # #  Container Scanner
+  # - '/ci/spec/container-scanner/deploy.yaml'
+
+  # # realtime
+  # - '/ci/spec/realtime/audit.yaml'
+  # - '/ci/spec/realtime/deploy.yaml'
+  # - '/ci/spec/realtime/rollback.yaml'
+
+  # # data-ingestor
+  # - '/ci/spec/data-ingestor/audit.yaml'
+  # - '/ci/spec/data-ingestor/deploy.yaml'
+  # - '/ci/spec/data-ingestor/rollback.yaml'
+
+  # # GO-SDK
+  - '/ci/spec/go-sdk/audit.yaml'
+  # - '/ci/spec/go-sdk/build-n-test.yaml'
+  # - '/ci/spec/go-sdk/deploy.yaml'

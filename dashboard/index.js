@@ -1,19 +1,19 @@
 process.on('exit', () => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.log('Shutting Shutdown');
 });
 
 process.on('unhandledRejection', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Unhandled rejection in process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
 process.on('uncaughtException', err => {
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error('Uncaught exception in process occurred');
-    /* eslint-disable no-console */
+    // eslint-disable-next-line no-console
     console.error(err);
 });
 
@@ -29,7 +29,7 @@ fs.readdir(directory, function(err, files) {
     const chunkRegex = /2\.(.+)\.chunk\.(js)$/;
     const mainChunkRegex = /main\.(.+)\.chunk\.(js)$/;
     if (err) {
-        /* eslint-disable no-console */
+        // eslint-disable-next-line no-console
         console.log('Unable to scan directory: ', err);
     }
     for (let i = 0; i < files.length; i++) {
@@ -68,6 +68,7 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
         global.homeHost = 'https://' + req.host;
         global.accountsHost = 'https://' + req.host + '/accounts';
         global.backendHost = 'https://' + req.host + '/api';
+        global.realtimeHost = 'https://' + req.host + '/realtime';
     }
     if (req.host.includes('localhost')) {
         if (req.get('host').includes('localhost:')) {
@@ -76,11 +77,13 @@ app.get(['/env.js', '/dashboard/env.js'], function(req, res) {
             global.accountsHost = 'http://' + req.host + ':' + 3003;
             global.homeHost = 'http://' + req.host + ':' + 1444;
             global.backendHost = 'http://' + req.host + ':' + 3002;
+            global.realtimeHost = 'http://' + req.host + ':' + 3300;
         } else if (!isClustLocal) {
             global.dashboardHost = 'http://' + req.host + '/dashboard';
             global.accountsHost = 'http://' + req.host + '/accounts';
             global.homeHost = 'http://' + req.host;
             global.backendHost = 'http://' + req.host + '/api';
+            global.realtimeHost = 'http://' + req.host + '/realtime';
         }
     }
 

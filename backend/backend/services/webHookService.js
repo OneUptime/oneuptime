@@ -10,13 +10,20 @@ module.exports = {
         { note, incidentState, statusNoteStatus } = {}
     ) {
         try {
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const [project, monitorStatus] = await Promise.all([
+                ProjectService.findOneBy({
+                    query: { _id: projectId },
+                    select: 'parentProjectId slug name _id',
+                }),
+                MonitorStatusService.findOneBy({
+                    query: { monitorId: monitor._id },
+                    select: 'status',
+                }),
+            ]);
             if (project && project.parentProjectId) {
-                projectId = project.parentProjectId._id;
+                projectId =
+                    project.parentProjectId._id || project.parentProjectId;
             }
-            const monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: monitor._id,
-            });
 
             return await this.notify(
                 project,
@@ -49,9 +56,13 @@ module.exports = {
         try {
             const self = this;
             let response;
-            const project = await ProjectService.findOneBy({ _id: projectId });
+            const project = await ProjectService.findOneBy({
+                query: { _id: projectId },
+                select: 'parentProjectId slug name _id',
+            });
             if (project && project.parentProjectId) {
-                projectId = project.parentProjectId._id;
+                projectId =
+                    project.parentProjectId._id || project.parentProjectId;
             }
             let query = {
                 projectId: projectId,
@@ -76,10 +87,24 @@ module.exports = {
             } else {
                 return;
             }
-            const integrations = await IntegrationService.findBy(query);
-            const monitorStatus = await MonitorStatusService.findOneBy({
-                monitorId: monitor._id,
-            });
+            const select =
+                'webHookName projectId createdById integrationType data monitors createdAt notificationOptions';
+            const populate = [
+                { path: 'createdById', select: 'name' },
+                { path: 'projectId', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+            ];
+            const [integrations, monitorStatus] = await Promise.all([
+                IntegrationService.findBy({ query, select, populate }),
+                MonitorStatusService.findOneBy({
+                    query: { monitorId: monitor._id },
+                    select: 'status',
+                }),
+            ]);
             // if (integrations.length === 0) deferred.resolve('no webhook added for this to notify');
             for (const integration of integrations) {
                 response = await self.notify(

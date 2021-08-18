@@ -1,5 +1,5 @@
 ## DEPLOYMENT STAGE - RUBY SDK
-deploy_staging_ruby-sdk:
+staging_ruby-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -40,7 +40,7 @@ deploy_staging_ruby-sdk:
     environment:
         name: staging
 
-deploy_production_ruby-sdk:
+production_ruby-sdk:
     stage: Deploy
     allow_failure: true
     retry: 2
@@ -56,7 +56,7 @@ deploy_production_ruby-sdk:
         - bundle install
         - git init
         - git add .
-        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
+        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID" || echo "Nothing to update because no changes to sdk was made" && exit 0
         - pwd -P
         - git checkout -f master
         - pwd -P
@@ -74,7 +74,7 @@ deploy_production_ruby-sdk:
         - gem build fyipe.gemspec
         - gem push fyipe-3.0.$CI_PIPELINE_IID.gem -k fyipegem
         # - git add .
-        # - git commit -m "production commit version 3.0.$CI_PIPELINE_IID"
+        # - git commit -m "production commit version 3.0.$CI_PIPELINE_IID" || echo "Nothing to update because no changes to sdk was made" && exit 0
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/ruby-sdk.git master --force
         - cd ..
         - cd ..

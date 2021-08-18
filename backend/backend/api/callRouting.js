@@ -21,8 +21,11 @@ const callForward = async (req, res) => {
     try {
         const body = req.body;
         const to = body['To'];
+        const select =
+            'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
         const data = await CallRoutingService.findOneBy({
-            phoneNumber: to,
+            query: { phoneNumber: to },
+            select,
         });
         const response = await CallRoutingService.getCallResponse(
             data,
@@ -41,8 +44,11 @@ const backupCallForward = async (req, res) => {
     try {
         const body = req.body;
         const to = body['To'];
+        const select =
+            'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
         const data = await CallRoutingService.findOneBy({
-            phoneNumber: to,
+            query: { phoneNumber: to },
+            select,
         });
         const response = await CallRoutingService.getCallResponse(
             data,
@@ -61,8 +67,11 @@ const callStatus = async (req, res) => {
     try {
         const body = req.body;
         const to = body['To'];
+        const select =
+            'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
         const data = await CallRoutingService.findOneBy({
-            phoneNumber: to,
+            query: { phoneNumber: to },
+            select,
         });
         const response = await CallRoutingService.chargeRoutedCall(
             data.projectId,
@@ -93,12 +102,19 @@ router.get('/:projectId', getUser, isAuthorized, async (req, res) => {
         if (typeof skip === 'string') skip = parseInt(skip);
         if (typeof limit === 'string') limit = parseInt(limit);
 
-        const numbers = await CallRoutingService.findBy(
-            { projectId },
-            skip,
-            limit
-        );
-        const count = await CallRoutingService.countBy({ projectId });
+        const populate = [{ path: 'projectId', select: 'name slug _id' }];
+        const select =
+            'projectId deleted phoneNumber locality region capabilities routingSchema sid price priceUnit countryCode numberType stripeSubscriptionId';
+        const [numbers, count] = await Promise.all([
+            CallRoutingService.findBy({
+                query: { projectId },
+                skip,
+                limit,
+                select,
+                populate,
+            }),
+            CallRoutingService.countBy({ projectId }),
+        ]);
 
         return sendItemResponse(req, res, { numbers, count, skip, limit });
     } catch (error) {
@@ -263,7 +279,8 @@ router.delete(
                 });
             }
             let routingSchema = await CallRoutingService.findOneBy({
-                _id: callRoutingId,
+                query: { _id: callRoutingId },
+                select: 'routingSchema',
             });
             routingSchema = routingSchema.routingSchema;
             const query = {};
@@ -276,11 +293,13 @@ router.delete(
                 routingSchema.introAudio = null;
                 routingSchema.introAudioName = '';
             }
-            await FileService.deleteOneBy(query);
-            const data = await CallRoutingService.updateOneBy(
-                { _id: callRoutingId },
-                { routingSchema }
-            );
+            const [data] = await Promise.all([
+                CallRoutingService.updateOneBy(
+                    { _id: callRoutingId },
+                    { routingSchema }
+                ),
+                FileService.deleteOneBy(query),
+            ]);
             return sendItemResponse(req, res, data);
         } catch (error) {
             return sendErrorResponse(req, res, error);

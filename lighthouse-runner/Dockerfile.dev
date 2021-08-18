@@ -1,0 +1,41 @@
+#
+# Fyipe-backend Dockerfile
+#
+
+# Pull base image nodejs image.
+FROM node:16
+
+#Use bash shell by default
+SHELL ["/bin/bash", "-c"]
+
+#SET ENV Variables
+ENV CHROME_PATH=/usr/bin/google-chrome
+
+WORKDIR /usr/src/app
+
+# Install Chrome.
+RUN \
+  wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+  echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
+  apt-get update && \
+  apt-get install -y google-chrome-stable && \
+  rm -rf /var/lib/apt/lists/*
+
+
+# Install app dependencies
+RUN cd /usr/src/app
+
+# Copy package.json files
+COPY ./package.json /usr/src/app/package.json
+COPY ./package-lock.json /usr/src/app/package-lock.json
+
+
+RUN npm ci
+
+# Expose ports.
+#   - 3015: Lighthouse Runner
+EXPOSE 3015
+
+#Run the app
+CMD [ "npm", "run", "dev"]
+

@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 const puppeteer = require('puppeteer');
 const should = require('should');
 const utils = require('./test-utils');

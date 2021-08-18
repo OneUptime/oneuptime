@@ -12,16 +12,27 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const { projectId } = req.params;
         const { limit, skip } = req.query;
-        const incidentSlas = await IncidentCommunicationSlaService.findBy(
-            {
+
+        const selectIncidentComSla =
+            'name projectId isDefault alertTime alertTime deleted';
+
+        const populateIncidentComSla = [
+            { path: 'projectId', select: 'name slug' },
+        ];
+        const [incidentSlas, count] = await Promise.all([
+            IncidentCommunicationSlaService.findBy({
+                query: {
+                    projectId,
+                },
+                limit,
+                skip,
+                select: selectIncidentComSla,
+                populate: populateIncidentComSla,
+            }),
+            IncidentCommunicationSlaService.countBy({
                 projectId,
-            },
-            limit,
-            skip
-        );
-        const count = await IncidentCommunicationSlaService.countBy({
-            projectId,
-        });
+            }),
+        ]);
 
         return sendListResponse(req, res, incidentSlas, count);
     } catch (error) {
@@ -154,9 +165,17 @@ router.get(
     async function(req, res) {
         try {
             const { projectId } = req.params;
+
+            const selectIncidentComSla =
+                'name projectId isDefault alertTime alertTime deleted';
+
+            const populateIncidentComSla = [
+                { path: 'projectId', select: 'name slug' },
+            ];
             const defaultSla = await IncidentCommunicationSlaService.findOneBy({
-                projectId,
-                isDefault: true,
+                query: { projectId, isDefault: true },
+                select: selectIncidentComSla,
+                populate: populateIncidentComSla,
             });
 
             return sendItemResponse(req, res, defaultSla);

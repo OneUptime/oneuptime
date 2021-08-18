@@ -34,7 +34,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Create Incident<span class="requestType">POST</span></h3>
     <p>
-      <p>Create Incident by Project ID and Monitor ID.</p>
+      <p>Create Incident by Project ID and Monitor IDs.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -45,7 +45,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span>https://fyipe.com/api/incident/:projectId/:monitorId</span>
+                <span>https://fyipe.com/api/incident/:projectId/create-incident</span>
               </div>
             </div>
           </div>
@@ -90,7 +90,7 @@
       </ul>
     </div>
 
-    <!-- <div class="attribute-parameter-container">
+    <div class="attribute-parameter-container">
       <h3>Body</h3>
 
       <ul class="doc-item-detail-container">
@@ -98,13 +98,13 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>monitorId</span>
-                <span class="item-type">string</span>
+                <span>monitors</span>
+                <span class="item-type">array</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>The monitor id of the project monitor.</p>
+                <p>Array of monitor id(s)</p>
               </div>
             </div>
           </div>
@@ -113,19 +113,64 @@
           <div class="cf-grid-row">
             <div class="col-lg-third-1 pull-left">
               <div class="item-title">
-                <span>api-key</span>
+                <span>incidentType</span>
                 <span class="item-type">string</span>
               </div>
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>API Key for the project or sub project</p>
+                <p>Type of incident to be created</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>title</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Title for the created incident</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>description</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Descriptive details for the created incident</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incidentPriority</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>ID of the incident priority to be used</p>
               </div>
             </div>
           </div>
         </li>
       </ul>
-    </div> -->
+    </div>
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -135,16 +180,17 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://fyipe.com/api/incident/5e089f94b400211639928c94/5e08a21b25c59a1c8033c7e7</p>
+          <p class="url">https://fyipe.com/api/incident/5e089f94b400211639928c94/create-incident</p>
 
           <p>Request Body</p>
           <pre>
             <code class="language-json">
               <p>
 {
-  "monitorId": "5e1633101b8ae81859214adf",
-  "projectId": "5e089f94b400211639928c94",
-  "incidentType": "offline"
+  "monitors": ["5e1633101b8ae81859214adf"],
+  "incidentType": "offline",
+  "title": "Google Home monitor is offline",
+  "description": "Google Home monitor database volume is exhausted",
 }                
               </p>
             </code>
@@ -159,6 +205,8 @@
             <code class="language-json">
               <p>
 {
+  "title": "Google Home monitor is offline",
+  "description": "Google Home monitor database volume is exhausted",
   "acknowledged": false,
   "acknowledgedByZapier": false,
   "resolved": false,
@@ -177,10 +225,13 @@
   "probes": [],
   "createdAt": "2020-01-13T21:29:02.315Z",
   "projectId": "5e089f94b400211639928c94",
-  "monitorId": {
-    "_id": "5e08a21b25c59a1c8033c7e7",
-    "name": "Google Home"
-  },
+  "monitors": [
+    "monitorId": {
+      "_id": "5e1633101b8ae81859214adf",
+      "name": "Google Home",
+      "slug": "google-home-123456"
+    },
+  ]
   "createdById": {
     "_id": "5e089f88b400211639928c92",
     "name": "Nawaz Dhandala"
@@ -912,7 +963,7 @@
 
 <article id="get-all-monitor-incidents" class="cf-grid-container dev-doc-item-container">
   <section class="col-lg-half col-md-half dev-doc-item">
-    <h3>Get All Monitor Incidents<span class="requestType">GET</span></h3>
+    <h3>Get All Monitor Incidents<span class="requestType">POST</span></h3>
     <p>
       <p>Get All Monitor Incidents by Project ID and Monitor ID. Return by skipping and limiting the number of results.
       </p>
@@ -1007,6 +1058,43 @@
         </li>
       </ul>
     </div>
+
+    <div class="attribute-parameter-container">
+      <h3>Body</h3>
+
+      <ul class="doc-item-detail-container">
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>startDate</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Date to start from</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="path">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>endDate</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>Date to end</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
   </section>
 
   <section class="col-lg-half col-md-half dev-doc-example">
@@ -1030,40 +1118,42 @@
 {
   "data": [
     {
-      "acknowledged": true,
-      "acknowledgedByZapier": null,
-      "resolved": true,
-      "resolvedByZapier": null,
+      "title": "Google Home monitor is offline",
+      "description": "Google Home monitor database volume is exhausted",
+      "acknowledged": false,
+      "acknowledgedByZapier": false,
+      "resolved": false,
+      "resolvedByZapier": false,
       "internalNote": "",
       "investigationNote": "",
       "createdByZapier": false,
       "notClosedBy": [
-        "5e162d9f1b8ae8185921498f"
+        "5e1b7f0f41127144f8144abb",
+        "5e162d9f1b8ae8185921498f",
+        "5e089f88b400211639928c92"
       ],
       "manuallyCreated": true,
-      "_id": "5e1776861f31a13e98acdd1a",
+      "deleted": false,
+      "_id": "5e1ce11ee6a04216343592bb",
+      "idNumber": 2,
       "probes": [],
-      "createdAt": "2020-01-09T18:52:54.432Z",
+      "createdAt": "2020-01-13T21:29:02.315Z",
       "projectId": "5e089f94b400211639928c94",
-      "monitorId": {
-        "_id": "5e08a21b25c59a1c8033c7e7",
-        "name": "Google Home"
-      },
+      "monitors": [
+        { 
+          "monitorId": {
+            "_id": "5e1633101b8ae81859214adf",
+            "name": "Google Home",
+            "slug": "google-home-123456"
+          }
+        }
+      ]
       "createdById": {
         "_id": "5e089f88b400211639928c92",
         "name": "Nawaz Dhandala"
       },
       "incidentType": "offline",
-      "acknowledgedAt": "2020-01-09T18:53:04.687Z",
-      "acknowledgedBy": {
-        "_id": "5e089f88b400211639928c92",
-        "name": "Nawaz Dhandala"
-      },
-      "resolvedAt": "2020-01-09T18:53:04.687Z",
-      "resolvedBy": {
-        "_id": "5e089f88b400211639928c92",
-        "name": "Nawaz Dhandala"
-      }
+      "__v": 0
     }
   ],
   "count": 1,
@@ -1145,6 +1235,8 @@
               <p>
 [
   {
+    "title": "CYZ monitor is offline",
+    "description": "CYZ monitor database volume is exhausted",
     "acknowledged": false,
     "acknowledgedByZapier": false,
     "resolved": false,
@@ -1158,19 +1250,27 @@
       "5e089f88b400211639928c92"
     ],
     "manuallyCreated": true,
-    "_id": "5e1c5713bc3b9e1ec8cbde31",
+    "deleted": false,
+    "_id": "5e1ce11ee6a04216343592bb",
+    "idNumber": 2,
     "probes": [],
-    "createdAt": "2020-01-13T11:40:03.720Z",
+    "createdAt": "2020-01-13T21:29:02.315Z",
     "projectId": "5e089f94b400211639928c94",
-    "monitorId": {
-      "_id": "5e139b39a55da96da8d14968",
-      "name": "Mello"
-    },
+    "monitors": [
+      {
+        "monitorId": {
+          "_id": "5e1633101b8ae81859214adf",
+          "name": "CYZ",
+          "slug": "cyz-123456"
+        },
+      }
+    ]
     "createdById": {
       "_id": "5e089f88b400211639928c92",
       "name": "Nawaz Dhandala"
     },
-    "incidentType": "offline"
+    "incidentType": "offline",
+    "__v": 0
   }
 ]              
               </p>
@@ -1186,7 +1286,7 @@
   <section class="col-lg-half col-md-half dev-doc-item">
     <h3>Get Incident<span class="requestType">GET</span></h3>
     <p>
-      <p>Get Single Incident by Project ID and Incident ID.</p>
+      <p>Get Single Incident by Project ID and Incident ID Number.</p>
     </p>
 
     <div class="attribute-parameter-container">
@@ -1234,7 +1334,7 @@
             </div>
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
-                <p>The incident id of the monitor incident.</p>
+                <p>The incident id number of the monitor incident.</p>
               </div>
             </div>
           </div>
@@ -1250,7 +1350,7 @@
 
         <div class="example-code example-response">
           <p>Request URL</p>
-          <p class="url">https://fyipe.com/api/incident/5e089f94b400211639928c94/incident/5e1ce11ee6a04216343592bb</p>
+          <p class="url">https://fyipe.com/api/incident/5e089f94b400211639928c94/incident/2</p>
         </div>
       </div>
 
@@ -1261,42 +1361,42 @@
             <code class="language-json">
               <p>
 {
-  "acknowledged": true,
-  "acknowledgedByZapier": null,
-  "resolved": true,
-  "resolvedByZapier": null,
+  "title": "Google Home monitor is offline",
+  "description": "Google Home monitor database volume is exhausted",
+  "acknowledged": false,
+  "acknowledgedByZapier": false,
+  "resolved": false,
+  "resolvedByZapier": false,
   "internalNote": "",
   "investigationNote": "",
   "createdByZapier": false,
   "notClosedBy": [
-    "5e162d9f1b8ae8185921498f"
+    "5e1b7f0f41127144f8144abb",
+    "5e162d9f1b8ae8185921498f",
+    "5e089f88b400211639928c92"
   ],
   "manuallyCreated": true,
   "deleted": false,
-  "_id": "5e1725db1f31a13e98acd8d9",
+  "_id": "5e1ce11ee6a04216343592bb",
+  "idNumber": 2,
   "probes": [],
-  "createdAt": "2020-01-09T13:08:43.790Z",
+  "createdAt": "2020-01-13T21:29:02.315Z",
   "projectId": "5e089f94b400211639928c94",
-  "monitorId": {
-    "_id": "5e1633101b8ae81859214adf",
-    "name": "Cello"
-  },
+  "monitors": [
+    { 
+      "monitorId": {
+        "_id": "5e1633101b8ae81859214adf",
+        "name": "Google Home",
+        "slug": "google-home-123456"
+      }
+    }
+  ]
   "createdById": {
     "_id": "5e089f88b400211639928c92",
     "name": "Nawaz Dhandala"
   },
   "incidentType": "offline",
-  "__v": 0,
-  "acknowledgedAt": "2020-01-09T13:10:42.766Z",
-  "acknowledgedBy": {
-    "_id": "5e089f88b400211639928c92",
-    "name": "Nawaz Dhandala"
-  },
-  "resolvedAt": "2020-01-09T13:10:42.766Z",
-  "resolvedBy": {
-    "_id": "5e089f88b400211639928c92",
-    "name": "Nawaz Dhandala"
-  }
+  "__v": 0
 }                
               </p>
             </code>
@@ -1366,7 +1466,7 @@
       </ul>
     </div>
     <div class="attribute-parameter-container">
-      <h3>Note </h3>
+      <h3>Body </h3>
 
       <ul class="doc-item-detail-container">
         <li data-location="body">
@@ -1380,6 +1480,36 @@
             <div class="col-lg-third-2 pull-left">
               <div class="item-description">
                 <p>type can be only be 'internal' or 'investigation'</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="body">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>content</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>What should be inside the note</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li data-location="body">
+          <div class="cf-grid-row">
+            <div class="col-lg-third-1 pull-left">
+              <div class="item-title">
+                <span>incident_state</span>
+                <span class="item-type">string</span>
+              </div>
+            </div>
+            <div class="col-lg-third-2 pull-left">
+              <div class="item-description">
+                <p>State of the incident note added to an incident</p>
               </div>
             </div>
           </div>
@@ -1403,7 +1533,7 @@
               <p>
 {
   "content": "This is a note",
-  "type": "investigation",
+  "type": "internal",
   "incident_state": "creation"
 }                   
               </p>
@@ -1574,7 +1704,7 @@
           <div class="cf-grid-row">
             <div class="col-full">
               <div class="item-title">
-                <span>https://fyipe.com/api/incident/:projectId/incident/:incidentId/message/incidentMessageId</span>
+                <span>https://fyipe.com/api/incident/:projectId/incident/:incidentId/message/:incidentMessageId</span>
               </div>
             </div>
           </div>
@@ -1775,7 +1905,11 @@
   "probes": [],
   "createdAt": "2020-01-13T21:29:02.315Z",
   "projectId": "5e089f94b400211639928c94",
-  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "monitors": [
+    {
+      "monitorId": "5e08a21b25c59a1c8033c7e7",
+    }
+  ]
   "createdById": "5e089f88b400211639928c92",
   "incidentType": "offline",
   "__v": 0,
@@ -1914,10 +2048,14 @@
   "probes": [],
   "createdAt": "2020-01-13T21:29:02.315Z",
   "projectId": "5e089f94b400211639928c94",
-  "monitorId": {
-    "_id": "5e08a21b25c59a1c8033c7e7",
-    "name": "Google Home"
-  },
+  "monitors": [
+    {
+      "monitorId": {
+        "_id": "5e08a21b25c59a1c8033c7e7",
+        "name": "Google Home"
+      },
+    }
+  ],
   "createdById": {
     "_id": "5e089f88b400211639928c92",
     "name": "Nawaz Dhandala"
@@ -2059,10 +2197,14 @@
   "probes": [],
   "createdAt": "2020-01-13T21:29:02.315Z",
   "projectId": "5e089f94b400211639928c94",
-  "monitorId": {
-    "_id": "5e08a21b25c59a1c8033c7e7",
-    "name": "Google Home"
-  },
+  "monitors": [
+    {
+      "monitorId": {
+        "_id": "5e08a21b25c59a1c8033c7e7",
+        "name": "Google Home"
+      },
+    }
+  ],
   "createdById": {
     "_id": "5e089f88b400211639928c92",
     "name": "Nawaz Dhandala"
@@ -2209,7 +2351,11 @@
   "probes": [],
   "createdAt": "2020-01-13T21:29:02.315Z",
   "projectId": "5e089f94b400211639928c94",
-  "monitorId": "5e08a21b25c59a1c8033c7e7",
+  "monitors": [
+    {
+      "monitorId": "5e08a21b25c59a1c8033c7e7",
+    }
+  ],
   "createdById": "5e089f88b400211639928c92",
   "incidentType": "offline",
   "__v": 0,

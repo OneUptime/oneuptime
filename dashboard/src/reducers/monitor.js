@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import {
     FETCH_MONITORS_SUCCESS,
     FETCH_MONITORS_FAILURE,
@@ -323,7 +322,7 @@ export default function monitor(state = INITIAL_STATE, action) {
                             );
                         const isSubProjectMonitor = monitorIndex > -1;
 
-                        if (subProject._id === newMonitor.projectId._id) {
+                        if (subProject._id === newMonitor.projectId) {
                             if (isSubProjectMonitor) {
                                 const oldMonitor = Object.assign(
                                     {},
@@ -844,7 +843,13 @@ export default function monitor(state = INITIAL_STATE, action) {
                                                         .map(a => a._id)
                                                         .includes(
                                                             logData.probeId
-                                                        ) || !logData.probeId
+                                                                ._id ||
+                                                                logData.probeId
+                                                        ) ||
+                                                    !(
+                                                        logData.probeId._id ||
+                                                        logData.probeId
+                                                    )
                                                       ? monitor.logs.map(
                                                             probeLogs => {
                                                                 const probeId =
@@ -852,9 +857,17 @@ export default function monitor(state = INITIAL_STATE, action) {
 
                                                                 if (
                                                                     probeId ===
-                                                                        logData.probeId ||
+                                                                        (logData
+                                                                            .probeId
+                                                                            ._id ||
+                                                                            logData.probeId) ||
                                                                     (!probeId &&
-                                                                        !logData.probeId)
+                                                                        !(
+                                                                            logData
+                                                                                .probeId
+                                                                                ._id ||
+                                                                            logData.probeId
+                                                                        ))
                                                                 ) {
                                                                     if (
                                                                         probeLogs.logs &&
@@ -930,6 +943,9 @@ export default function monitor(state = INITIAL_STATE, action) {
                                                             ...monitor.logs,
                                                             {
                                                                 _id:
+                                                                    logData
+                                                                        .probeId
+                                                                        ._id ||
                                                                     logData.probeId ||
                                                                     null,
                                                                 logs: [logData],
@@ -938,6 +954,8 @@ export default function monitor(state = INITIAL_STATE, action) {
                                                   : [
                                                         {
                                                             _id:
+                                                                logData.probeId
+                                                                    ._id ||
                                                                 logData.probeId ||
                                                                 null,
                                                             logs: [logData],
@@ -1653,9 +1671,24 @@ export default function monitor(state = INITIAL_STATE, action) {
                                                   if (incidents.length > 2) {
                                                       incidents.splice(-1, 1);
                                                   }
-                                                  incidents.unshift(
-                                                      action.payload
-                                                  );
+                                                  let found = false;
+                                                  for (const incident of incidents) {
+                                                      if (
+                                                          String(
+                                                              incident._id
+                                                          ) ===
+                                                          String(
+                                                              action.payload._id
+                                                          )
+                                                      ) {
+                                                          found = true;
+                                                          return;
+                                                      }
+                                                  }
+                                                  !found &&
+                                                      incidents.unshift(
+                                                          action.payload
+                                                      );
                                               } else {
                                                   incidents = [action.payload];
                                               }

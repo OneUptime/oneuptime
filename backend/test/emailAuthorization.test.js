@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 process.env.PORT = 3020;
 const expect = require('chai').expect;
 const userData = require('./data/user');
@@ -18,6 +16,9 @@ const sleep = waitTimeInMs =>
     new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
 let userId, projectId;
+
+const selectEmailStatus =
+    'from to subject body createdAt template status content error deleted deletedAt deletedById replyTo smtpServer';
 
 describe('Email verification API', function() {
     this.timeout(20000);
@@ -51,7 +52,11 @@ describe('Email verification API', function() {
 
     it('should send email verification', async function() {
         await sleep(10000);
-        const emailStatuses = await EmailStatusService.findBy({});
+
+        const emailStatuses = await EmailStatusService.findBy({
+            query: {},
+            select: selectEmailStatus,
+        });
         expect(emailStatuses[0].subject).to.equal('Welcome to Fyipe.');
         expect(emailStatuses[0].status).to.equal('Email not enabled.');
     });
@@ -73,7 +78,10 @@ describe('Email verification API', function() {
             await request.get(`/user/confirmation/${token.token}`).redirects(0);
         } catch (error) {
             expect(error).to.have.status(302);
-            const user = await UserService.findOneBy({ _id: userId });
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: 'isVerified',
+            });
             expect(user.isVerified).to.be.equal(true);
         }
     });

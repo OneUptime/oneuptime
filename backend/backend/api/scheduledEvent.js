@@ -179,8 +179,8 @@ router.put('/:projectId/:eventId', getUser, isAuthorized, async function(
         }
 
         const existingScheduledEvent = await ScheduledEventService.findOneBy({
-            name: data.name,
-            projectId,
+            query: { name: data.name, projectId },
+            select: '_id createdById',
         });
 
         if (
@@ -216,7 +216,8 @@ router.put(
             const { eventId } = req.params;
 
             const scheduledEvent = await ScheduledEventService.findOneBy({
-                _id: eventId,
+                query: { _id: eventId },
+                select: 'startDate createdById',
             });
             const startDate = moment(scheduledEvent.startDate).format();
             const currentDate = moment().format();
@@ -278,7 +279,8 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
         const { eventId } = req.params;
 
         const fetchEvent = await ScheduledEventService.findOneBy({
-            _id: eventId,
+            query: { _id: eventId },
+            select: 'resolved cancelled monitorDuringEvent monitors',
         });
 
         if (fetchEvent.resolved) {
@@ -296,16 +298,11 @@ router.put('/:projectId/:eventId/cancel', getUser, isAuthorized, async function(
         }
 
         if (fetchEvent && !fetchEvent.monitorDuringEvent) {
-            for (const monitor of fetchEvent.monitors) {
-                await MonitorService.updateOneBy(
-                    {
-                        _id: monitor.monitorId._id || monitor.monitorId,
-                    },
-                    {
-                        shouldNotMonitor: false,
-                    }
-                );
-            }
+            await MonitorService.markMonitorsAsShouldMonitor(
+                fetchEvent.monitors.map(monitor => {
+                    return monitor.monitorId._id || monitor.monitorId;
+                })
+            );
         }
 
         const event = await ScheduledEventService.updateBy(
@@ -365,18 +362,33 @@ router.get('/:projectId/ongoingEvent', getUser, isAuthorized, async function(
             });
         }
 
-        const events = await ScheduledEventService.findBy({
+        const populate = [
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: { path: 'componentId', select: 'name slug' },
+            },
+        ];
+        const select =
+            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
+        const query = {
             projectId,
             startDate: { $lte: currentDate },
             endDate: { $gt: currentDate },
             resolved: false,
-        });
-        const count = await ScheduledEventService.countBy({
-            projectId,
-            startDate: { $lte: currentDate },
-            endDate: { $gt: currentDate },
-            resolved: false,
-        });
+        };
+        const [events, count] = await Promise.all([
+            ScheduledEventService.findBy({
+                query,
+                select,
+                populate,
+            }),
+            ScheduledEventService.countBy(query),
+        ]);
         return sendListResponse(req, res, events, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -448,8 +460,26 @@ router.get('/:projectId/:eventId', getUser, isAuthorized, async function(
             });
         }
 
+        const populate = [
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: {
+                    path: 'componentId',
+                    select: 'name slug',
+                },
+            },
+        ];
+        const select =
+            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
         const scheduledEvent = await ScheduledEventService.findOneBy({
-            _id: eventId,
+            query: { _id: eventId },
+            select,
+            populate,
         });
         return sendItemResponse(req, res, scheduledEvent);
     } catch (error) {
@@ -477,14 +507,31 @@ router.get('/:projectId', getUser, isAuthorized, async function(req, res) {
             });
         }
 
-        const events = await ScheduledEventService.findBy(
-            { projectId },
-            query.limit,
-            query.skip
-        );
-        const count = await ScheduledEventService.countBy({
-            projectId,
-        });
+        const populate = [
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: { path: 'componentId', select: 'name slug' },
+            },
+        ];
+        const select =
+            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
+        const [events, count] = await Promise.all([
+            ScheduledEventService.findBy({
+                query: { projectId },
+                Limit: query.limit,
+                skip: query.skip,
+                populate,
+                select,
+            }),
+            ScheduledEventService.countBy({
+                projectId,
+            }),
+        ]);
         return sendListResponse(req, res, events, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -521,7 +568,7 @@ router.get(
             const projectId = req.params.projectId;
             const monitorId = req.params.monitorId;
 
-            const query = req.query;
+            const { limit, skip } = req.query;
 
             if (!projectId) {
                 return sendErrorResponse(req, res, {
@@ -550,16 +597,38 @@ router.get(
                     message: 'Monitor ID is not of string type.',
                 });
             }
-            const events = await ScheduledEventService.findBy(
-                { projectId, monitorId, showEventOnStatusPage: true },
-                query.limit,
-                query.skip
-            );
-            const count = await ScheduledEventService.countBy({
+
+            const populate = [
+                { path: 'resolvedBy', select: 'name' },
+                { path: 'projectId', select: 'name slug' },
+                { path: 'createdById', select: 'name' },
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name',
+                    populate: {
+                        path: 'componentId',
+                        select: 'name slug',
+                    },
+                },
+            ];
+            const select =
+                'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
+            const query = {
                 projectId,
                 monitorId,
                 showEventOnStatusPage: true,
-            });
+            };
+            const [events, count] = await Promise.all([
+                ScheduledEventService.findBy({
+                    query,
+                    limit,
+                    skip,
+                    select,
+                    populate,
+                }),
+                ScheduledEventService.countBy(query),
+            ]);
             return sendListResponse(req, res, events, count);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -673,15 +742,33 @@ router.get('/:projectId/:eventId/notes', getUser, isAuthorized, async function(
         const { eventId } = req.params;
         const { limit, skip } = req.query;
 
-        const eventNotes = await ScheduledEventNoteService.findBy(
-            { scheduledEventId: eventId },
-            limit,
-            skip
-        );
+        const populate = [
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'scheduledEventId',
+                select: 'name monitors alertSubscriber projectId',
+                populate: {
+                    path: 'projectId',
+                    select: 'name replyAddress',
+                },
+            },
+        ];
+        const selectFields =
+            'updated content type event_state createdAt updatedAt createdById scheduledEventId';
 
-        const count = await ScheduledEventNoteService.countBy({
-            scheduledEventId: eventId,
-        });
+        const [eventNotes, count] = await Promise.all([
+            ScheduledEventNoteService.findBy({
+                query: { scheduledEventId: eventId },
+                limit,
+                skip,
+                populate,
+                select: selectFields,
+            }),
+            ScheduledEventNoteService.countBy({
+                scheduledEventId: eventId,
+            }),
+        ]);
+
         return sendListResponse(req, res, eventNotes, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -803,8 +890,26 @@ router.get('/:projectId/slug/:slug', getUser, isAuthorized, async function(
 ) {
     try {
         const { slug } = req.params;
+        const populate = [
+            { path: 'resolvedBy', select: 'name' },
+            { path: 'projectId', select: 'name slug' },
+            { path: 'createdById', select: 'name' },
+            {
+                path: 'monitors.monitorId',
+                select: 'name',
+                populate: {
+                    path: 'componentId',
+                    select: 'name slug',
+                },
+            },
+        ];
+        const select =
+            'cancelled showEventOnStatusPage callScheduleOnEvent monitorDuringEvent monitorDuringEvent recurring interval alertSubscriber resolved monitors name startDate endDate description createdById projectId slug createdAt ';
+
         const scheduledEvent = await ScheduledEventService.findOneBy({
-            slug,
+            query: { slug },
+            populate,
+            select,
         });
 
         return sendItemResponse(req, res, scheduledEvent);

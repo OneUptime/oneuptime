@@ -1,5 +1,5 @@
 module.exports = {
-    async findBy(query, skip, limit) {
+    async findBy({ query, skip, limit, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -18,21 +18,16 @@ module.exports = {
             }
 
             query.deleted = false;
-            const notifications = await NotificationModel.find(query)
+            let notificationsQuery = NotificationModel.find(query)
                 .lean()
                 .limit(limit)
                 .skip(skip)
-                .sort({ createdAt: -1 })
-                .populate({
-                    path: 'meta.incidentId',
-                    model: 'Incident',
-                    select: '_id idNumber',
-                })
-                .populate({
-                    path: 'meta.componentId',
-                    model: 'Component',
-                    select: '_id slug',
-                });
+                .sort({ createdAt: -1 });
+
+            notificationsQuery = handleSelect(select, notificationsQuery);
+            notificationsQuery = handlePopulate(populate, notificationsQuery);
+
+            const notifications = await notificationsQuery;
             return notifications;
         } catch (error) {
             ErrorService.log('notificationService.findBy', error);
@@ -60,6 +55,22 @@ module.exports = {
             if (!meta) {
                 meta = {};
             }
+            const populateNotification = [
+                { path: 'projectId', select: 'name _id' },
+                {
+                    path: 'meta.incidentId',
+                    model: 'Incident',
+                    select: '_id idNumber',
+                },
+                {
+                    path: 'meta.componentId',
+                    model: 'Component',
+                    select: '_id slug',
+                },
+            ];
+
+            const selectNotification =
+                'projectId createdAt createdBy message read closed icon meta deleted deletedAt deletedById';
             let notification = new NotificationModel();
             notification.projectId = projectId;
             notification.message = message;
@@ -67,9 +78,18 @@ module.exports = {
             notification.createdBy = userId;
             notification.meta = meta;
             notification = await notification.save();
-            notification = await this.findOneBy({ _id: notification._id });
-            await RealTimeService.sendNotification(notification);
-            return notification;
+            const populatedNotification = await this.findOneBy({
+                query: { _id: notification._id },
+                select: selectNotification,
+                populate: populateNotification,
+            });
+
+            // run this in the background
+            RealTimeService.sendNotification(
+                populatedNotification || notification
+            );
+
+            return populatedNotification || notification;
         } catch (error) {
             ErrorService.log('notificationService.create', error);
             throw error;
@@ -96,7 +116,10 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            let notification = await _this.findOneBy(query);
+            let notification = await _this.findOneBy({
+                query,
+                select: 'read closed',
+            });
 
             if (data.read) {
                 const read = notification.read;
@@ -172,26 +195,20 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const notification = await NotificationModel.findOne(query)
-                .lean()
-                .populate('projectId', 'name')
-                .populate({
-                    path: 'meta.incidentId',
-                    model: 'Incident',
-                    select: '_id idNumber',
-                })
-                .populate({
-                    path: 'meta.componentId',
-                    model: 'Component',
-                    select: '_id slug',
-                });
+            let notificationQuery = NotificationModel.findOne(query).lean();
+
+            notificationQuery = handleSelect(select, notificationQuery);
+            notificationQuery = handlePopulate(populate, notificationQuery);
+
+            const notification = await notificationQuery;
+
             return notification;
         } catch (error) {
             ErrorService.log('notificationService.findOneBy', error);
@@ -203,3 +220,5 @@ module.exports = {
 const NotificationModel = require('../models/notification');
 const RealTimeService = require('../services/realTimeService');
 const ErrorService = require('../services/errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

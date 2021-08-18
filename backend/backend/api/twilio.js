@@ -38,7 +38,10 @@ router.get('/voice/status', async (req, res) => {
             To,
             redialCount,
         } = req.query;
-        const incident = await IncidentService.findOneBy({ _id: incidentId });
+        const incident = await IncidentService.findOneBy({
+            query: { _id: incidentId },
+            select: 'acknowledged',
+        });
         const newRedialCount = parseInt(redialCount) + 1;
 
         switch (CallStatus) {
@@ -148,12 +151,15 @@ router.post('/sms/verify', getUser, isAuthorized, async function(req, res) {
         }
         const tempAlertPhoneNumber = to.startsWith('+') ? to : `+${to}`;
         const user = await UserService.findOneBy({
-            _id: userId,
-            tempAlertPhoneNumber,
-            alertPhoneVerificationCode: code,
-            alertPhoneVerificationCodeRequestTime: {
-                $gte: new Date(new Date().getTime() - 5 * 60 * 1000),
+            query: {
+                _id: userId,
+                tempAlertPhoneNumber,
+                alertPhoneVerificationCode: code,
+                alertPhoneVerificationCodeRequestTime: {
+                    $gte: new Date(new Date().getTime() - 5 * 60 * 1000),
+                },
             },
+            select: '_id',
         });
         if (!user) {
             throw new Error('Invalid code !');

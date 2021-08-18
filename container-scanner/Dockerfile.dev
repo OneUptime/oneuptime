@@ -1,0 +1,29 @@
+#
+# Fyipe-backend Dockerfile
+#
+
+# Pull base image nodejs image.
+FROM node:16
+
+#Use bash shell by default
+SHELL ["/bin/bash", "-c"]
+
+WORKDIR /usr/src/app
+
+# Install app dependencies
+RUN cd /usr/src/app
+
+# Copy package.json files
+COPY ./package.json /usr/src/app/package.json
+COPY ./package-lock.json /usr/src/app/package-lock.json
+
+
+RUN npm ci
+
+# Expose ports.
+#   - 3055: Container Scanner
+EXPOSE 3055
+
+#Run the app
+CMD [ "npm", "run", "dev"]
+

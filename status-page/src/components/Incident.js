@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
@@ -106,14 +107,23 @@ class Incident extends Component {
         } = this.props;
         let timelineStatus = null;
         const styles = {
-            display: 'flex',
+            display:
+                this.props.statusData.theme === 'Classic Theme'
+                    ? 'flex'
+                    : 'block',
             alignItems: 'flex-start',
             fontSize: 14,
-            color: 'rgba(0, 0, 0, 0.5)',
+            color:
+                this.props.statusData.theme === 'Classic Theme'
+                    ? 'rgba(0, 0, 0, 0.5)'
+                    : 'rgba(0, 0, 0, 0.6)',
             paddingTop: 7,
         };
         const incidentStatus = {
-            color: 'rgba(76, 76, 76, 0.8)',
+            color:
+                this.props.statusData.theme === 'Classic Theme'
+                    ? 'rgba(76, 76, 76, 0.8)'
+                    : 'rgba(0, 0, 0, 0.7)',
             fontWeight: 600,
             minWidth: 110,
         };
@@ -122,8 +132,13 @@ class Incident extends Component {
             if (!incident.acknowledged && !incident.resolved) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status: </span>
-                        <span style={{ marginLeft: 5 }}>Identified</span>
+                        <span style={incidentStatus}>
+                            {' '}
+                            <Translate>Incident Status: </Translate>{' '}
+                        </span>
+                        <span style={{ marginLeft: 5 }}>
+                            <Translate>Identified</Translate>
+                        </span>
                     </span>
                 );
             }
@@ -133,9 +148,14 @@ class Incident extends Component {
             ) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status: </span>
+                        <span style={incidentStatus}>
+                            {' '}
+                            <Translate>Incident Status:</Translate>{' '}
+                        </span>
                         <span className="time__wrapper">
-                            <span>Deleted a note</span>
+                            <span>
+                                <Translate>Deleted a note</Translate>{' '}
+                            </span>
                             {incident.acknowledged && incident.resolved && (
                                 <span
                                     title="Resolved"
@@ -155,7 +175,9 @@ class Incident extends Component {
             if (incident.acknowledged) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status:</span>
+                        <span style={incidentStatus}>
+                            <Translate>Incident Status:</Translate>
+                        </span>
                         <span className="time__wrapper">
                             This incident was acknowledged on{' '}
                             {moment(incident.acknowledgedAt).format(
@@ -172,7 +194,9 @@ class Incident extends Component {
             if (incident.resolved) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status:</span>
+                        <span style={incidentStatus}>
+                            <Translate>Incident Status:</Translate>{' '}
+                        </span>
                         <span className="time__wrapper">
                             This incident was resolved on{' '}
                             {moment(incident.resolvedAt).format(
@@ -189,7 +213,9 @@ class Incident extends Component {
             if (lastIncidentTimeline.incident_state) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status: </span>
+                        <span style={incidentStatus}>
+                            <Translate>Incident Status:</Translate>{' '}
+                        </span>
                         <span style={{ marginLeft: 5 }}>
                             {capitalize(lastIncidentTimeline.incident_state)}
                         </span>
@@ -199,7 +225,9 @@ class Incident extends Component {
             if (lastIncidentTimeline.incident_state && incident.acknowledged) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status:</span>
+                        <span style={incidentStatus}>
+                            <Translate>Incident Status:</Translate>
+                        </span>
                         <span className="time__wrapper">
                             <span>
                                 {capitalize(
@@ -217,7 +245,9 @@ class Incident extends Component {
             if (lastIncidentTimeline.incident_state && incident.resolved) {
                 timelineStatus = (
                     <span style={styles}>
-                        <span style={incidentStatus}>Incident Status:</span>
+                        <span style={incidentStatus}>
+                            <Translate>Incident Status:</Translate>
+                        </span>
                         <span className="time__wrapper">
                             <span>
                                 {capitalize(
@@ -300,297 +330,508 @@ class Incident extends Component {
                 className="page-main-wrapper"
                 style={{ background: 'rgb(247, 247, 247)' }}
             >
-                <div className="innernew">
+                {this.props.statusData.theme === 'Clean Theme' && (
                     <div
-                        id="incident"
-                        className="twitter-feed white box"
-                        style={{ overflow: 'visible' }}
+                        className="new-main-container"
+                        style={{
+                            maxWidth: 600,
+                            margin: 'auto',
+                            marginTop: 70,
+                            marginBottom: 70,
+                        }}
                     >
-                        <div
-                            className="messages"
-                            style={{
-                                position: 'relative',
-                            }}
-                        >
-                            <div
-                                className="box-inner"
-                                style={{ paddingTop: 20, paddingBottom: 20 }}
+                        <div style={{ marginBottom: 50 }}>
+                            <header
+                                className="feed-title"
+                                style={{
+                                    fontWeight: 'bold',
+                                    marginBottom: 10,
+                                    fontSize: 30,
+                                    // textTransform: 'unset',
+                                }}
                             >
-                                {!this.props.requestingStatus &&
-                                    !fetchingIncident &&
-                                    incident.incidentType && (
-                                        <div
-                                            className="incident-bubble"
-                                            style={{
-                                                backgroundColor:
-                                                    incident.incidentType ===
-                                                    'online'
-                                                        ? uptimeColor.backgroundColor
-                                                        : incident.incidentType ===
-                                                          'offline'
-                                                        ? downtimeColor.backgroundColor
-                                                        : degradedColor.backgroundColor,
-                                            }}
-                                        ></div>
-                                    )}
+                                {incident.title}
+                            </header>
+                            <span
+                                style={{
+                                    color: 'rgba(0, 0, 0, 0.6)',
+                                }}
+                            >
+                                {incident.description}
+                            </span>
+                            <div className="ongoing__affectedmonitor">
                                 <span
+                                    className="ongoing__affectedmonitor--title"
                                     style={{
-                                        color: 'rgba(76, 76, 76, 0.52)',
-                                        textTransform: 'uppercase',
-                                        fontWeight: '700',
-                                        display: 'inline-block',
-                                        marginBottom: 20,
-                                        fontSize: 14,
-                                        marginLeft: 25,
+                                        color: 'rgba(0, 0, 0, 0.8)',
                                     }}
                                 >
-                                    Incident
+                                    <Translate>Resource Affected:</Translate>
+                                </span>{' '}
+                                <span
+                                    className="ongoing__affectedmonitor--content"
+                                    style={{
+                                        color: 'rgba(0, 0, 0, 0.5)',
+                                    }}
+                                >
+                                    {this.handleMonitorList(incident.monitors)}
                                 </span>
-                                {!fetchingIncident && incident.title && (
-                                    <>
-                                        <div
-                                            className="individual-header"
-                                            style={{
-                                                marginBottom: incident.description
-                                                    ? 25
-                                                    : 10,
-                                            }}
-                                        >
-                                            <span
-                                                className="feed-title"
-                                                style={{
-                                                    color:
-                                                        'rgba(76, 76, 76, 0.8)',
-                                                    fontWeight: 'bold',
-                                                    marginBottom: 10,
-                                                    textTransform: 'unset',
-                                                }}
-                                            >
-                                                {incident.title}
-                                            </span>
-                                            <span
-                                                style={{
-                                                    color: 'rgba(0, 0, 0, 0.5)',
-                                                }}
-                                            >
-                                                {incident.description}
-                                            </span>
-                                        </div>
-                                        <div
-                                            className="ongoing__affectedmonitor"
-                                            style={{ marginTop: 0 }}
-                                        >
-                                            <span
-                                                className="ongoing__affectedmonitor--title"
-                                                style={{
-                                                    color:
-                                                        'rgba(76, 76, 76, 0.8)',
-                                                }}
-                                            >
-                                                Resource Affected:
-                                            </span>{' '}
-                                            <span
-                                                className="ongoing__affectedmonitor--content"
-                                                style={{
-                                                    color: 'rgba(0, 0, 0, 0.5)',
-                                                }}
-                                            >
-                                                {this.handleMonitorList(
-                                                    incident.monitors
-                                                )}
-                                            </span>
-                                        </div>
-                                    </>
-                                )}
-                                {!fetchingIncident &&
-                                    lastIncidentTimeline &&
-                                    lastIncidentTimeline.status &&
-                                    this.handleIncidentStatus()}
-                                <ShouldRender if={fetchingIncident}>
-                                    <ListLoader />
-                                </ShouldRender>
-                                {!fetchingIncidentNotes &&
-                                    !fetchingIncident &&
-                                    incident.createdAt && (
-                                        <span
-                                            style={{
-                                                fontSize: 14,
-                                                color: 'rgba(0, 0, 0, 0.5)',
-                                                paddingTop: 7,
-                                                display: 'block',
-                                            }}
-                                        >
-                                            <span>
-                                                This incident was created on
-                                            </span>{' '}
-                                            <span className="time">
-                                                {moment(
-                                                    incident.createdAt
-                                                ).format(
-                                                    'MMMM Do YYYY, h:mm a'
-                                                )}
-                                            </span>
-                                        </span>
-                                    )}
                             </div>
-                        </div>
-                    </div>
-
-                    <div
-                        id="incidentNotes"
-                        className="twitter-feed white box"
-                        style={{ overflow: 'visible' }}
-                    >
-                        <div
-                            className="messages"
-                            style={{ position: 'relative' }}
-                        >
-                            <div className="box-inner">
-                                <ShouldRender if={!fetchingIncidentNotes}>
-                                    <div
-                                        className="individual-header"
+                            {!fetchingIncident &&
+                                lastIncidentTimeline &&
+                                lastIncidentTimeline.status &&
+                                this.handleIncidentStatus()}
+                            <ShouldRender if={fetchingIncident}>
+                                <ListLoader />
+                            </ShouldRender>
+                            {!fetchingIncidentNotes &&
+                                !fetchingIncident &&
+                                incident.createdAt && (
+                                    <span
                                         style={{
-                                            flexDirection: 'row',
-                                            flexWrap: 'nowrap',
+                                            fontSize: 14,
+                                            color: '#AAA',
+                                            paddingTop: 7,
+                                            display: 'block',
                                         }}
                                     >
-                                        <span
-                                            className="feed-title"
-                                            style={{
-                                                color: 'rgba(76, 76, 76, 0.8)',
-                                                fontWeight: 'bold',
-                                            }}
-                                        >
-                                            Incident Updates
+                                        <span>
+                                            This incident was created on
+                                        </span>{' '}
+                                        <span className="time">
+                                            {moment(incident.createdAt).format(
+                                                'MMMM Do YYYY, h:mm a'
+                                            )}
                                         </span>
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender if={fetchingIncidentNotes}>
-                                    <ListLoader />
-                                </ShouldRender>
-                                <ul className="feed-contents plain">
-                                    {!fetchingIncidentNotes &&
-                                        incidentNotes &&
-                                        incidentNotes.length > 0 &&
-                                        incidentNotes.map(note => (
-                                            <li
-                                                key={note._id}
-                                                className="feed-item clearfix"
-                                            >
-                                                <div
-                                                    className="message"
-                                                    style={{
-                                                        width: '100%',
-                                                        marginLeft: 0,
-                                                        background:
-                                                            'rgb(247, 247, 247)',
-                                                    }}
-                                                >
-                                                    <div className="note__wrapper">
-                                                        <span
-                                                            style={{
-                                                                color:
-                                                                    'rgba(0, 0, 0, 0.5)',
-                                                                fontSize: 14,
-                                                                display:
-                                                                    'block',
-                                                                textAlign:
-                                                                    'justify',
-                                                            }}
-                                                        >
-                                                            {note.content && (
-                                                                <Markdown>
-                                                                    {
-                                                                        note.content
-                                                                    }
-                                                                </Markdown>
-                                                            )}
-                                                        </span>
-                                                        <span
-                                                            style={{
-                                                                display: 'flex',
-                                                                marginTop: 15,
-                                                                alignItems:
-                                                                    'center',
-                                                            }}
-                                                        >
-                                                            <span
-                                                                style={{
-                                                                    color:
-                                                                        'rgba(0, 0, 0, 0.5)',
-                                                                    fontSize: 12,
-                                                                    display:
-                                                                        'block',
-                                                                }}
-                                                            >
-                                                                Posted on{' '}
-                                                                {moment(
-                                                                    note.createdAt
-                                                                ).format(
-                                                                    'MMMM Do YYYY, h:mm a'
-                                                                )}
-                                                            </span>
-                                                            <span
-                                                                style={{
-                                                                    marginLeft: 15,
-                                                                }}
-                                                                className="note-badge badge badge__color--green"
-                                                            >
-                                                                {
-                                                                    note.incident_state
-                                                                }
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </li>
-                                        ))}
-
-                                    {!fetchingIncidentNotes &&
-                                        incidentNotes &&
-                                        incidentNotes.length === 0 && (
-                                            <li
-                                                className="feed-item clearfix"
+                                    </span>
+                                )}
+                        </div>
+                        <div>
+                            <ShouldRender if={fetchingIncidentNotes}>
+                                <ListLoader />
+                            </ShouldRender>
+                            {!fetchingIncidentNotes &&
+                                incidentNotes &&
+                                incidentNotes.length > 0 &&
+                                incidentNotes.reverse().map(note => (
+                                    <div
+                                        key={note._id}
+                                        style={{
+                                            width: '100%',
+                                            display: 'grid',
+                                            gridTemplateColumns: '1fr 3fr',
+                                            gridColumnGap: 10,
+                                            marginTop: 20,
+                                        }}
+                                    >
+                                        <div>
+                                            <span
                                                 style={{
-                                                    minHeight: '5px',
-                                                    marginBottom: '10px',
+                                                    display: 'block',
+                                                    fontWeight: 'bold',
+                                                }}
+                                            >
+                                                {note.incident_state}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.6)',
+                                                    fontSize: 14,
+                                                    display: 'block',
+                                                    textAlign: 'justify',
+                                                }}
+                                            >
+                                                {note.content && (
+                                                    <Markdown>
+                                                        {note.content}
+                                                    </Markdown>
+                                                )}
+                                            </span>
+                                            <span
+                                                style={{
                                                     display: 'flex',
-                                                    flexDirection: 'row',
-                                                    flexWrap: 'nowrap',
-                                                    justifyContent: 'center',
+                                                    marginTop: 10,
+                                                    alignItems: 'center',
                                                 }}
                                             >
                                                 <span
-                                                    className="time"
                                                     style={{
-                                                        fontSize: '0.8em',
-                                                        marginLeft: '0px',
-                                                        color:
-                                                            'rgb(76, 76, 76)',
+                                                        color: '#AAA',
+                                                        fontSize: 12,
+                                                        display: 'block',
                                                     }}
                                                 >
-                                                    No incident updates yet.
+                                                    Posted on{' '}
+                                                    {moment(
+                                                        note.createdAt
+                                                    ).format(
+                                                        'MMMM Do YYYY, h:mm a'
+                                                    )}
                                                 </span>
-                                            </li>
-                                        )}
-                                </ul>
-                            </div>
-                            <ShouldRender
-                                if={
-                                    incidentNotes.length &&
-                                    count > incidentNotes.length &&
-                                    !fetchingIncidentNotes
-                                }
-                            >
-                                <button
-                                    className="more button-as-anchor anchor-centered"
-                                    onClick={() => this.more()}
-                                >
-                                    More
-                                </button>
-                            </ShouldRender>
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+
+                            {!fetchingIncidentNotes &&
+                                incidentNotes &&
+                                incidentNotes.length === 0 && (
+                                    <div
+                                        className="feed-item clearfix"
+                                        style={{
+                                            minHeight: '5px',
+                                            marginBottom: '10px',
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            flexWrap: 'nowrap',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        <span
+                                            className="time"
+                                            style={{
+                                                fontSize: '0.8em',
+                                                marginLeft: '0px',
+                                                color: 'rgb(76, 76, 76)',
+                                            }}
+                                        >
+                                            <Translate>
+                                                No incident updates yet.
+                                            </Translate>
+                                        </span>
+                                    </div>
+                                )}
                         </div>
                     </div>
+                )}
+                <div className="innernew">
+                    {this.props.statusData.theme === 'Classic Theme' && (
+                        <>
+                            <div
+                                id="incident"
+                                className="twitter-feed white box"
+                                style={{ overflow: 'visible' }}
+                            >
+                                <div
+                                    className="messages"
+                                    style={{
+                                        position: 'relative',
+                                    }}
+                                >
+                                    <div
+                                        className="box-inner"
+                                        style={{
+                                            paddingTop: 20,
+                                            paddingBottom: 20,
+                                        }}
+                                    >
+                                        {!this.props.requestingStatus &&
+                                            !fetchingIncident &&
+                                            incident.incidentType && (
+                                                <div
+                                                    className="incident-bubble"
+                                                    style={{
+                                                        backgroundColor:
+                                                            incident.incidentType ===
+                                                            'online'
+                                                                ? uptimeColor.backgroundColor
+                                                                : incident.incidentType ===
+                                                                  'offline'
+                                                                ? downtimeColor.backgroundColor
+                                                                : degradedColor.backgroundColor,
+                                                    }}
+                                                ></div>
+                                            )}
+                                        <span
+                                            style={{
+                                                color: 'rgba(76, 76, 76, 0.52)',
+                                                textTransform: 'uppercase',
+                                                fontWeight: '700',
+                                                display: 'inline-block',
+                                                marginBottom: 20,
+                                                fontSize: 14,
+                                                marginLeft: 25,
+                                            }}
+                                        >
+                                            <Translate>Incident</Translate>
+                                        </span>
+                                        {!fetchingIncident && incident.title && (
+                                            <>
+                                                <div
+                                                    className="individual-header"
+                                                    style={{
+                                                        marginBottom: incident.description
+                                                            ? 25
+                                                            : 10,
+                                                    }}
+                                                >
+                                                    <span
+                                                        className="feed-title"
+                                                        style={{
+                                                            color:
+                                                                'rgba(76, 76, 76, 0.8)',
+                                                            fontWeight: 'bold',
+                                                            marginBottom: 10,
+                                                            textTransform:
+                                                                'unset',
+                                                        }}
+                                                    >
+                                                        {incident.title}
+                                                    </span>
+                                                    <span
+                                                        style={{
+                                                            color:
+                                                                'rgba(0, 0, 0, 0.5)',
+                                                        }}
+                                                    >
+                                                        {incident.description}
+                                                    </span>
+                                                </div>
+                                                <div
+                                                    className="ongoing__affectedmonitor"
+                                                    style={{ marginTop: 0 }}
+                                                >
+                                                    <span
+                                                        className="ongoing__affectedmonitor--title"
+                                                        style={{
+                                                            color:
+                                                                'rgba(76, 76, 76, 0.8)',
+                                                        }}
+                                                    >
+                                                        <Translate>
+                                                            Resource Affected:
+                                                        </Translate>
+                                                    </span>{' '}
+                                                    <span
+                                                        className="ongoing__affectedmonitor--content"
+                                                        style={{
+                                                            color:
+                                                                'rgba(0, 0, 0, 0.5)',
+                                                        }}
+                                                    >
+                                                        {this.handleMonitorList(
+                                                            incident.monitors
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        )}
+                                        {!fetchingIncident &&
+                                            lastIncidentTimeline &&
+                                            lastIncidentTimeline.status &&
+                                            this.handleIncidentStatus()}
+                                        <ShouldRender if={fetchingIncident}>
+                                            <ListLoader />
+                                        </ShouldRender>
+                                        {!fetchingIncidentNotes &&
+                                            !fetchingIncident &&
+                                            incident.createdAt && (
+                                                <span
+                                                    style={{
+                                                        fontSize: 14,
+                                                        color:
+                                                            'rgba(0, 0, 0, 0.5)',
+                                                        paddingTop: 7,
+                                                        display: 'block',
+                                                    }}
+                                                >
+                                                    <span>
+                                                        <Translate>
+                                                            {' '}
+                                                            This incident was
+                                                            created on
+                                                        </Translate>
+                                                    </span>{' '}
+                                                    <span className="time">
+                                                        {moment(
+                                                            incident.createdAt
+                                                        ).format(
+                                                            'MMMM Do YYYY, h:mm a'
+                                                        )}
+                                                    </span>
+                                                </span>
+                                            )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                id="incidentNotes"
+                                className="twitter-feed white box"
+                                style={{ overflow: 'visible' }}
+                            >
+                                <div
+                                    className="messages"
+                                    style={{ position: 'relative' }}
+                                >
+                                    <div className="box-inner">
+                                        <ShouldRender
+                                            if={!fetchingIncidentNotes}
+                                        >
+                                            <div
+                                                className="individual-header"
+                                                style={{
+                                                    flexDirection: 'row',
+                                                    flexWrap: 'nowrap',
+                                                }}
+                                            >
+                                                <span
+                                                    className="feed-title"
+                                                    style={{
+                                                        color:
+                                                            'rgba(76, 76, 76, 0.8)',
+                                                        fontWeight: 'bold',
+                                                    }}
+                                                >
+                                                    <Translate>
+                                                        Incident Updates
+                                                    </Translate>
+                                                </span>
+                                            </div>
+                                        </ShouldRender>
+                                        <ShouldRender
+                                            if={fetchingIncidentNotes}
+                                        >
+                                            <ListLoader />
+                                        </ShouldRender>
+                                        <ul className="feed-contents plain">
+                                            {!fetchingIncidentNotes &&
+                                                incidentNotes &&
+                                                incidentNotes.length > 0 &&
+                                                incidentNotes.map(note => (
+                                                    <li
+                                                        key={note._id}
+                                                        className="feed-item clearfix"
+                                                    >
+                                                        <div
+                                                            className="message"
+                                                            style={{
+                                                                width: '100%',
+                                                                marginLeft: 0,
+                                                                background:
+                                                                    'rgb(247, 247, 247)',
+                                                            }}
+                                                        >
+                                                            <div className="note__wrapper">
+                                                                <span
+                                                                    style={{
+                                                                        color:
+                                                                            'rgba(0, 0, 0, 0.5)',
+                                                                        fontSize: 14,
+                                                                        display:
+                                                                            'block',
+                                                                        textAlign:
+                                                                            'justify',
+                                                                    }}
+                                                                >
+                                                                    {note.content && (
+                                                                        <Markdown>
+                                                                            {
+                                                                                note.content
+                                                                            }
+                                                                        </Markdown>
+                                                                    )}
+                                                                </span>
+                                                                <span
+                                                                    style={{
+                                                                        display:
+                                                                            'flex',
+                                                                        marginTop: 15,
+                                                                        alignItems:
+                                                                            'center',
+                                                                    }}
+                                                                >
+                                                                    <span
+                                                                        style={{
+                                                                            color:
+                                                                                'rgba(0, 0, 0, 0.5)',
+                                                                            fontSize: 12,
+                                                                            display:
+                                                                                'block',
+                                                                        }}
+                                                                    >
+                                                                        Posted
+                                                                        on{' '}
+                                                                        {moment(
+                                                                            note.createdAt
+                                                                        ).format(
+                                                                            'MMMM Do YYYY, h:mm a'
+                                                                        )}
+                                                                    </span>
+                                                                    <span
+                                                                        style={{
+                                                                            marginLeft: 15,
+                                                                        }}
+                                                                        className="note-badge badge badge__color--green"
+                                                                    >
+                                                                        {
+                                                                            note.incident_state
+                                                                        }
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                ))}
+
+                                            {!fetchingIncidentNotes &&
+                                                incidentNotes &&
+                                                incidentNotes.length === 0 && (
+                                                    <li
+                                                        className="feed-item clearfix"
+                                                        style={{
+                                                            minHeight: '5px',
+                                                            marginBottom:
+                                                                '10px',
+                                                            display: 'flex',
+                                                            flexDirection:
+                                                                'row',
+                                                            flexWrap: 'nowrap',
+                                                            justifyContent:
+                                                                'center',
+                                                        }}
+                                                    >
+                                                        <span
+                                                            className="time"
+                                                            style={{
+                                                                fontSize:
+                                                                    '0.8em',
+                                                                marginLeft:
+                                                                    '0px',
+                                                                color:
+                                                                    'rgb(76, 76, 76)',
+                                                            }}
+                                                        >
+                                                            <Translate>
+                                                                No incident
+                                                                updates
+                                                            </Translate>
+                                                            yet.
+                                                        </span>
+                                                    </li>
+                                                )}
+                                        </ul>
+                                    </div>
+                                    <ShouldRender
+                                        if={
+                                            incidentNotes.length &&
+                                            count > incidentNotes.length &&
+                                            !fetchingIncidentNotes
+                                        }
+                                    >
+                                        <button
+                                            className="more button-as-anchor anchor-centered"
+                                            onClick={() => this.more()}
+                                        >
+                                            <Translate>More</Translate>
+                                        </button>
+                                    </ShouldRender>
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     <ShouldRender if={fetchingIncident}>
                         <div
@@ -625,16 +866,20 @@ class Incident extends Component {
                             </div>
                         </div>
                     </ShouldRender>
-                    <div id="footer">
+                    <div
+                        id="footer"
+                        style={{ display: 'flex', alignItems: 'center' }}
+                    >
                         <span
                             onClick={() => history.goBack()}
                             className="sp__icon sp__icon--back"
                             style={{
                                 color: 'rgb(76, 76, 76)',
                                 cursor: 'pointer',
+                                width: '100%',
                             }}
                         >
-                            Back to status page
+                            <Translate>Back to status page</Translate>
                         </span>
                         <p>
                             <a
@@ -643,7 +888,7 @@ class Incident extends Component {
                                 rel="noopener noreferrer"
                                 style={{ color: 'rgb(76, 76, 76)' }}
                             >
-                                Powered by Fyipe
+                                <Translate>Powered by</Translate> Fyipe
                             </a>
                         </p>
                     </div>

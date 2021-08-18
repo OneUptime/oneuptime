@@ -22,7 +22,8 @@
         "ejs": "^2.6.2",
         "express": "^4.17.1",
         "minify": "^5.1.1",
-        "try-to-catch": "^3.0.0"
+        "try-to-catch": "^3.0.0",
+        "xmlbuilder2": "^2.4.1"
     },
     "resolutions": {},
     "devDependencies": {
@@ -30,7 +31,7 @@
         "commander": "^4.0.1",
         "depcheck": "^0.9.2",
         "jest": "^26.2.2",
-        "lighthouse": "^6.2.0",
+        "lighthouse": "^8.3.0",
         "nodemon": "^2.0.4",
         "npm-force-resolutions": "0.0.3",
         "ora": "^4.0.3",

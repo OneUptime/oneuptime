@@ -1,27 +1,31 @@
-/* eslint-disable */
 process.env.PORT = 3020;
-let expect = require('chai').expect;
-let userData = require('./data/user');
-let chai = require('chai');
+const expect = require('chai').expect;
+const userData = require('./data/user');
+const chai = require('chai');
 chai.use(require('chai-http'));
 chai.use(require('chai-subset'));
-let app = require('../server');
-let GlobalConfig = require('./utils/globalConfig');
-let request = chai.request.agent(app);
-let { createUser } = require('./utils/userSignUp');
-let UserService = require('../backend/services/userService');
-let ProjectService = require('../backend/services/projectService');
-let ComponentService = require('../backend/services/componentService');
-let NotificationService = require('../backend/services/notificationService');
-let AirtableService = require('../backend/services/airtableService');
+const app = require('../server');
+const GlobalConfig = require('./utils/globalConfig');
+const request = chai.request.agent(app);
+const { createUser } = require('./utils/userSignUp');
+const UserService = require('../backend/services/userService');
+const ProjectService = require('../backend/services/projectService');
+const ComponentService = require('../backend/services/componentService');
+const NotificationService = require('../backend/services/notificationService');
+const AirtableService = require('../backend/services/airtableService');
 const gitCredential = require('./data/gitCredential');
 const GitCredentialService = require('../backend/services/gitCredentialService');
 const dockerCredential = require('./data/dockerCredential');
 const DockerCredentialService = require('../backend/services/dockerCredentialService');
 
-let VerificationTokenModel = require('../backend/models/verificationToken');
+const VerificationTokenModel = require('../backend/models/verificationToken');
 
-let token, userId, projectId, componentId, monitorId, resourceCount = 0;
+let token,
+    userId,
+    projectId,
+    componentId,
+    monitorId,
+    resourceCount = 0;
 
 describe('Component API', function() {
     this.timeout(30000);
@@ -30,7 +34,7 @@ describe('Component API', function() {
         this.timeout(80000);
         GlobalConfig.initTestConfig().then(function() {
             createUser(request, userData.user, function(err, res) {
-                let project = res.body.project;
+                const project = res.body.project;
                 projectId = project._id;
                 userId = res.body.id;
 
@@ -71,7 +75,7 @@ describe('Component API', function() {
     });
 
     it('should not create a component when the `name` field is null', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/component/${projectId}`)
             .set('Authorization', authorization)
@@ -85,7 +89,7 @@ describe('Component API', function() {
     });
 
     it('should create a new component when the correct data is given by an authenticated user', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/component/${projectId}`)
             .set('Authorization', authorization)
@@ -101,7 +105,7 @@ describe('Component API', function() {
     });
 
     it('should update a component when the correct data is given by an authenticated user', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .put(`/component/${projectId}/${componentId}`)
             .set('Authorization', authorization)
@@ -116,7 +120,7 @@ describe('Component API', function() {
     });
 
     it('should get components for an authenticated user by ProjectId', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .get(`/component/${projectId}/component`)
             .set('Authorization', authorization)
@@ -130,7 +134,7 @@ describe('Component API', function() {
     });
 
     it('should get a component for an authenticated user with valid componentId', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .get(`/component/${projectId}/component/${componentId}`)
             .set('Authorization', authorization)
@@ -143,7 +147,7 @@ describe('Component API', function() {
     });
 
     it('should create a new monitor when `componentId` is given`', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/monitor/${projectId}`)
             .set('Authorization', authorization)
@@ -177,7 +181,7 @@ describe('Component API', function() {
     });
 
     it('should create a new application log when `componentId` is given then get list of resources`', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/application-log/${projectId}/${componentId}/create`)
             .set('Authorization', authorization)
@@ -200,13 +204,15 @@ describe('Component API', function() {
                         expect(res.body.totalResources[1].status).to.be.equal(
                             'No logs yet'
                         );
-                        expect(res.body.totalResources).to.have.lengthOf(resourceCount); // one application log and one monitor
+                        expect(res.body.totalResources).to.have.lengthOf(
+                            resourceCount
+                        ); // one application log and one monitor
                         done();
                     });
             });
     });
     it('should create a new application log then creater a log when `componentId` is given then get list of resources`', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/application-log/${projectId}/${componentId}/create`)
             .set('Authorization', authorization)
@@ -262,7 +268,6 @@ describe('Component API', function() {
             gitPassword: gitCredential.gitPassword,
             projectId,
         }).then(function(credential) {
-            credentialId = credential._id;
             const data = {
                 name: 'Test',
                 gitRepositoryUrl: gitCredential.gitRepositoryUrl,
@@ -274,7 +279,6 @@ describe('Component API', function() {
                 .set('Authorization', authorization)
                 .send(data)
                 .end(function(err, res) {
-                    applicationSecurityId = res.body._id;
                     expect(res).to.have.status(200);
                     resourceCount++; // Increment Resource Count
                     expect(res.body.componentId).to.be.equal(componentId);
@@ -291,7 +295,9 @@ describe('Component API', function() {
                         .end(function(err, res) {
                             expect(res).to.have.status(200);
                             expect(res.body.totalResources).to.be.an('array');
-                            expect(res.body.totalResources).to.have.lengthOf(resourceCount); // two application logs, one monitor and one application log security
+                            expect(res.body.totalResources).to.have.lengthOf(
+                                resourceCount
+                            ); // two application logs, one monitor and one application log security
                             done();
                         });
                 });
@@ -307,7 +313,6 @@ describe('Component API', function() {
             dockerRegistryUrl: dockerCredential.dockerRegistryUrl,
             projectId,
         }).then(function(credential) {
-            credentialId = credential._id;
             const data = {
                 name: 'Test Container',
                 dockerCredential: credential._id,
@@ -320,7 +325,6 @@ describe('Component API', function() {
                 .set('Authorization', authorization)
                 .send(data)
                 .end(function(err, res) {
-                    containerSecurityId = res.body._id;
                     expect(res).to.have.status(200);
                     resourceCount++; // Increment Resource Count
                     expect(res.body.componentId).to.be.equal(componentId);
@@ -333,7 +337,9 @@ describe('Component API', function() {
                         .end(function(err, res) {
                             expect(res).to.have.status(200);
                             expect(res.body.totalResources).to.be.an('array');
-                            expect(res.body.totalResources).to.have.lengthOf(resourceCount); // tws application logs, one monitor, one application log security and one container security
+                            expect(res.body.totalResources).to.have.lengthOf(
+                                resourceCount
+                            ); // tws application logs, one monitor, one application log security and one container security
                             done();
                         });
                 });
@@ -341,7 +347,7 @@ describe('Component API', function() {
     });
 
     it('should delete a component and its monitor when componentId is valid', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .delete(`/component/${projectId}/${componentId}`)
             .set('Authorization', authorization)
@@ -373,7 +379,7 @@ describe('Component API with Sub-Projects', function() {
     this.timeout(30000);
     before(function(done) {
         this.timeout(30000);
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         // create a subproject for parent project
         GlobalConfig.initTestConfig().then(function() {
             request
@@ -384,7 +390,7 @@ describe('Component API with Sub-Projects', function() {
                     subProjectId = res.body[0]._id;
                     // sign up second user (subproject user)
                     createUser(request, userData.newUser, function(err, res) {
-                        let project = res.body.project;
+                        const project = res.body.project;
                         newProjectId = project._id;
                         newUserId = res.body.id;
 
@@ -408,7 +414,7 @@ describe('Component API with Sub-Projects', function() {
                                                 newUserToken =
                                                     res.body.tokens
                                                         .jwtAccessToken;
-                                                let authorization = `Basic ${token}`;
+                                                const authorization = `Basic ${token}`;
                                                 // add second user to subproject
                                                 request
                                                     .post(
@@ -465,7 +471,7 @@ describe('Component API with Sub-Projects', function() {
 
     it('should not create a component for user not present in project', function(done) {
         createUser(request, userData.anotherUser, function(err, res) {
-            let project = res.body.project;
+            const project = res.body.project;
             otherProjectId = project._id;
             otherUserId = res.body.id;
 
@@ -484,7 +490,7 @@ describe('Component API with Sub-Projects', function() {
                                 password: userData.anotherUser.password,
                             })
                             .end(function(err, res) {
-                                let authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
+                                const authorization = `Basic ${res.body.tokens.jwtAccessToken}`;
                                 request
                                     .post(`/component/${projectId}`)
                                     .set('Authorization', authorization)
@@ -503,7 +509,7 @@ describe('Component API with Sub-Projects', function() {
     });
 
     it('should not create a component for user that is not `admin` in project.', function(done) {
-        let authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request
             .post(`/component/${subProjectId}`)
             .set('Authorization', authorization)
@@ -520,7 +526,7 @@ describe('Component API with Sub-Projects', function() {
     });
 
     it('should create a component in parent project by valid admin.', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/component/${projectId}`)
             .set('Authorization', authorization)
@@ -536,7 +542,7 @@ describe('Component API with Sub-Projects', function() {
     });
 
     it('should not create a component with exisiting name in sub-project.', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/component/${subProjectId}`)
             .set('Authorization', authorization)
@@ -553,7 +559,7 @@ describe('Component API with Sub-Projects', function() {
     });
 
     it('should create a component in sub-project.', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .post(`/component/${subProjectId}`)
             .set('Authorization', authorization)
@@ -569,7 +575,7 @@ describe('Component API with Sub-Projects', function() {
     });
 
     it("should get only sub-project's components for valid sub-project user", function(done) {
-        let authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request
             .get(`/component/${subProjectId}/component`)
             .set('Authorization', authorization)
@@ -585,7 +591,7 @@ describe('Component API with Sub-Projects', function() {
     });
 
     it('should get both project and sub-project components for valid parent project user.', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .get(`/component/${projectId}`)
             .set('Authorization', authorization)
@@ -601,7 +607,7 @@ describe('Component API with Sub-Projects', function() {
     });
 
     it('should not delete a component for user that is not `admin` in sub-project.', function(done) {
-        let authorization = `Basic ${newUserToken}`;
+        const authorization = `Basic ${newUserToken}`;
         request
             .delete(`/component/${subProjectId}/${subProjectComponentId}`)
             .set('Authorization', authorization)
@@ -615,7 +621,7 @@ describe('Component API with Sub-Projects', function() {
     });
 
     it('should delete sub-project component', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .delete(`/component/${subProjectId}/${subProjectComponentId}`)
             .set('Authorization', authorization)
@@ -626,7 +632,7 @@ describe('Component API with Sub-Projects', function() {
     });
 
     it('should delete project component', function(done) {
-        let authorization = `Basic ${token}`;
+        const authorization = `Basic ${token}`;
         request
             .delete(`/component/${projectId}/${newComponentId}`)
             .set('Authorization', authorization)

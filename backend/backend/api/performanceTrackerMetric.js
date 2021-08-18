@@ -269,11 +269,24 @@ router.get('/:appId/key/:key', isValidAPIKey, async function(req, res) {
             type,
             createdAt: { $gte: startDate, $lte: endDate },
         };
+        const populate = [
+            {
+                path: 'performanceTrackerId',
+                select: 'componentId name slug key',
+                populate: { path: 'componentId', select: 'name slug _id' },
+            },
+        ];
+        const select =
+            '_id type metrics callIdentifier method performanceTrackerId createdAt updatedAt';
         const performanceTrackerMetrics = await PerformanceTrackerMetricService.mergeMetrics(
-            query,
-            limit,
-            skip,
-            'metrics.avgTime'
+            {
+                query,
+                limit,
+                skip,
+                sortCriteria: 'metrics.avgTime',
+                populate,
+                select,
+            }
         );
 
         return sendItemResponse(req, res, performanceTrackerMetrics);

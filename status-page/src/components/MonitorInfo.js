@@ -1,5 +1,6 @@
 import React, { Component, createRef } from 'react';
 import PropTypes from 'prop-types';
+import { Translate } from 'react-auto-translate';
 import BlockChart from './BlockChart';
 import moment from 'moment';
 import { connect } from 'react-redux';
@@ -37,7 +38,7 @@ class MonitorInfo extends Component {
     componentDidMount() {
         const { monitor } = this.props;
 
-        if (monitor && !monitor.statuses) {
+        if (monitor) {
             const endDate = moment(Date.now());
             const startDate = moment(Date.now()).subtract(90, 'days');
 
@@ -68,41 +69,55 @@ class MonitorInfo extends Component {
             monitorStatus,
         } = this.props;
 
-        if (
-            JSON.stringify(prevProps.probes) !== JSON.stringify(probes) ||
-            JSON.stringify(prevProps.monitorStatus) !==
-                JSON.stringify(this.props.monitorStatus)
-        ) {
-            let range = !this.props.theme && 90;
-            const now = Date.now();
+        let { range } = this.props;
 
-            if (this.props.theme) {
-                const { windowSize } = this.state;
-                if (windowSize <= 600) {
-                    range = 30;
-                }
-                if (windowSize > 600 && windowSize < 1000) {
-                    range = 60;
-                }
-                if (windowSize >= 1000) {
-                    range = 90;
-                }
-            }
+        let currentProbe =
+            probes && probes.length > 0
+                ? probes[probes.length < 2 ? 0 : activeProbe]
+                : null;
+        const prevProbe =
+            prevProps.probes && prevProps.probes.length > 0
+                ? prevProps.probes[
+                      prevProps.probes.length < 2 ? 0 : activeProbe
+                  ]
+                : null;
+
+        if (
+            prevProbe?._id !== currentProbe?._id ||
+            JSON.stringify(prevProps.monitorStatus) !==
+                JSON.stringify(this.props.monitorStatus) ||
+            prevProps.range !== range
+        ) {
+            range = !this.props.theme ? 90 : range;
+
+            const now = Date.now();
 
             const monitorData = monitorState.find(
                 a => String(a._id) === String(monitor._id)
             );
 
-            const probe =
-                probes && probes.length > 0
-                    ? probes[probes.length < 2 ? 0 : activeProbe]
-                    : null;
-            const statuses = filterProbeData(monitorData, probe, monitorStatus);
+            //this fixes the problem if the monitor is just created and its an api monitor
+            if (monitorData?.statuses?.length === 1) {
+                currentProbe =
+                    probes && probes.length > 0
+                        ? probes.filter(
+                              probe =>
+                                  String(probe._id) ===
+                                  String(monitorData.statuses[0]._id)
+                          )[0]
+                        : null;
+            }
+
+            const statuses = filterProbeData(
+                monitorData,
+                currentProbe,
+                monitorStatus
+            );
             calculateTime(statuses, now, range, monitor._id);
         }
 
         if (JSON.stringify(prevProps.monitor) !== JSON.stringify(monitor)) {
-            if (monitor && !monitor.statuses) {
+            if (monitor) {
                 const endDate = moment(Date.now());
                 const startDate = moment(Date.now()).subtract(90, 'days');
                 this.props.fetchMonitorStatuses(
@@ -152,6 +167,15 @@ class MonitorInfo extends Component {
                 scrollContent.clientWidth - scrollWrapper.clientWidth;
         }, 400);
     }
+
+    handleMonitorStatus = status => {
+        const { onlineText, offlineText, degradedText } = this.props;
+        return status === 'online'
+            ? onlineText
+            : status === 'degraded'
+            ? degradedText
+            : offlineText;
+    };
 
     render() {
         const {
@@ -284,9 +308,13 @@ class MonitorInfo extends Component {
                                             style={monitorCategoryStyle}
                                         >
                                             <span>
-                                                {resourceCategory
-                                                    ? resourceCategory.name
-                                                    : 'Uncategorized'}
+                                                {resourceCategory ? (
+                                                    resourceCategory.name
+                                                ) : (
+                                                    <Translate>
+                                                        Uncategorized
+                                                    </Translate>
+                                                )}
                                             </span>
                                         </div>
                                     </ShouldRender>
@@ -342,9 +370,7 @@ class MonitorInfo extends Component {
                                 {this.props.ongoing &&
                                 this.props.ongoing.length > 0
                                     ? 'Ongoing Scheduled Event'
-                                    : monitorStatus === 'online'
-                                    ? 'operational'
-                                    : monitorStatus}
+                                    : this.handleMonitorStatus(monitorStatus)}
                             </div>
                         </div>
                         <ShouldRender
@@ -370,7 +396,11 @@ class MonitorInfo extends Component {
                                     >
                                         {loadingData ? (
                                             <div ref={this.scrollContent}>
-                                                loading...
+                                                <Translate>
+                                                    {statuses.length === 0
+                                                        ? 'calculating...'
+                                                        : 'loading...'}
+                                                </Translate>
                                             </div>
                                         ) : (
                                             <div
@@ -392,7 +422,7 @@ class MonitorInfo extends Component {
                                                 : subheading
                                         }
                                     >
-                                        {range} days ago
+                                        {range} <Translate>days ago</Translate>
                                     </div>
                                     <div
                                         style={
@@ -413,7 +443,9 @@ class MonitorInfo extends Component {
                                                 style={
                                                     subheading.color ===
                                                     'rgba(76, 76, 76, 1)'
-                                                        ? { color: '#aaaaaa' }
+                                                        ? {
+                                                              color: '#aaaaaa',
+                                                          }
                                                         : subheading
                                                 }
                                             >
@@ -424,11 +456,14 @@ class MonitorInfo extends Component {
                                                 style={
                                                     subheading.color ===
                                                     'rgba(76, 76, 76, 1)'
-                                                        ? { color: '#aaaaaa' }
+                                                        ? {
+                                                              color: '#aaaaaa',
+                                                          }
                                                         : subheading
                                                 }
                                             >
-                                                {uptime}% uptime
+                                                {uptime}%{' '}
+                                                <Translate>uptime</Translate>
                                             </div>
                                         )}
                                     </ShouldRender>
@@ -453,7 +488,7 @@ class MonitorInfo extends Component {
                                                 : subheading
                                         }
                                     >
-                                        Today
+                                        <Translate>Today</Translate>
                                     </div>
                                 </div>
                             </div>
@@ -480,9 +515,13 @@ class MonitorInfo extends Component {
                                         style={monitorCategoryStyle}
                                     >
                                         <span>
-                                            {resourceCategory
-                                                ? resourceCategory.name
-                                                : 'Uncategorized'}
+                                            {resourceCategory ? (
+                                                resourceCategory.name
+                                            ) : (
+                                                <Translate>
+                                                    Uncategorized
+                                                </Translate>
+                                            )}
                                         </span>
                                     </div>
                                 </ShouldRender>
@@ -548,7 +587,11 @@ class MonitorInfo extends Component {
                             >
                                 {loadingData ? (
                                     <div ref={this.scrollContent}>
-                                        Loading...
+                                        <Translate>
+                                            {statuses.length === 0
+                                                ? 'calculating...'
+                                                : 'loading...'}
+                                        </Translate>
                                     </div>
                                 ) : (
                                     <div
@@ -624,6 +667,10 @@ MonitorInfo.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
+    onlineText: PropTypes.string,
+    offlineText: PropTypes.string,
+    degradedText: PropTypes.string,
+    range: PropTypes.string,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(MonitorInfo);

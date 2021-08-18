@@ -7,9 +7,7 @@
 const express = require('express');
 const ProbeService = require('../services/probeService');
 const MonitorService = require('../services/monitorService');
-const ProjectService = require('../services/projectService');
 const LighthouseLogService = require('../services/lighthouseLogService');
-const ContainerSecurityService = require('../services/containerSecurityService');
 const router = express.Router();
 const isAuthorizedAdmin = require('../middlewares/clusterAuthorization')
     .isAuthorizedAdmin;
@@ -35,8 +33,17 @@ router.get('/', getUser, isAuthorizedAdmin, async function(req, res) {
     try {
         const skip = req.query.skip || 0;
         const limit = req.query.limit || 0;
-        const probe = await ProbeService.findBy({}, limit, skip);
-        const count = await ProbeService.countBy({});
+        const selectProbe =
+            'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
+        const [probe, count] = await Promise.all([
+            ProbeService.findBy({
+                query: {},
+                limit,
+                skip,
+                select: selectProbe,
+            }),
+            ProbeService.countBy({}),
+        ]);
         return sendListResponse(req, res, probe, count);
     } catch (error) {
         return sendErrorResponse(req, res, error);
@@ -77,27 +84,7 @@ router.get('/monitors', isAuthorizedProbe, async function(req, res) {
             req.probe.id,
             new Date(new Date().getTime() - 60 * 1000)
         );
-        //Update the lastAlive in the probe servers list located in the status pages.
-        if (monitors.length > 0) {
-            const projectIds = {};
-            for (const monitor of monitors) {
-                const project = await ProjectService.findOneBy({
-                    _id: monitor.projectId,
-                });
-                const projectId = project
-                    ? project.parentProjectId
-                        ? project.parentProjectId._id
-                        : project._id
-                    : monitor.projectId;
-                projectIds[projectId] = true;
-            }
-            for (const projectId of Object.keys(projectIds)) {
-                const probe = await ProbeService.findOneBy({
-                    _id: req.probe.id,
-                });
-                global.io.emit(`updateProbe-${projectId}`, probe);
-            }
-        }
+
         return sendListResponse(
             req,
             res,
@@ -133,8 +120,10 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
         if (type === 'incomingHttpRequest') {
             const newMonitor = await MonitorService.findOneBy({
-                _id: monitor._id,
+                query: { _id: monitor._id },
+                select: 'lastPingTime _id criteria',
             });
+
             const probeId = req.probe && req.probe.id ? req.probe.id : null;
             log = await ProbeService.probeHttpRequest(newMonitor, probeId);
         } else {
@@ -144,49 +133,62 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     successReasons: upSuccessReasons,
                     failedReasons: upFailedReasons,
                     matchedCriterion: matchedUpCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.up
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.up,
-                          res,
-                          resp,
-                          rawResp
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.up
+                        ? ProbeService.conditions(
+                              monitor.type,
+                              monitor.criteria.up,
+                              res,
+                              resp,
+                              rawResp
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
                 const {
                     stat: validDegraded,
                     successReasons: degradedSuccessReasons,
                     failedReasons: degradedFailedReasons,
                     matchedCriterion: matchedDegradedCriterion,
-                } = await (monitor &&
-                monitor.criteria &&
-                monitor.criteria.degraded
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.degraded,
-                          res,
-                          resp,
-                          rawResp
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.degraded
+                        ? ProbeService.conditions(
+                              monitor.type,
+                              monitor.criteria.degraded,
+                              res,
+                              resp,
+                              rawResp
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
                 const {
                     stat: validDown,
                     successReasons: downSuccessReasons,
                     failedReasons: downFailedReasons,
                     matchedCriterion: matchedDownCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.down
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          [
-                              ...monitor.criteria.down.filter(
-                                  criterion => criterion.default !== true
-                              ),
-                          ],
-                          res,
-                          resp,
-                          rawResp
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.down
+                        ? ProbeService.conditions(
+                              monitor.type,
+                              [
+                                  ...monitor.criteria.down.filter(
+                                      criterion => criterion.default !== true
+                                  ),
+                              ],
+                              res,
+                              resp,
+                              rawResp
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
 
                 if (validUp) {
                     status = 'online';
@@ -226,33 +228,43 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     successReasons: upSuccessReasons,
                     failedReasons: upFailedReasons,
                     matchedCriterion: matchedUpCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.up
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.up,
-                          res,
-                          resp,
-                          rawResp
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.up
+                        ? ProbeService.conditions(
+                              monitor.type,
+                              monitor.criteria.up,
+                              res,
+                              resp,
+                              rawResp
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
                 const {
                     stat: validDown,
                     successReasons: downSuccessReasons,
                     failedReasons: downFailedReasons,
                     matchedCriterion: matchedDownCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.down
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          [
-                              ...monitor.criteria.down.filter(
-                                  criterion => criterion.default !== true
-                              ),
-                          ],
-                          res,
-                          resp,
-                          rawResp
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.down
+                        ? ProbeService.conditions(
+                              monitor.type,
+                              [
+                                  ...monitor.criteria.down.filter(
+                                      criterion => criterion.default !== true
+                                  ),
+                              ],
+                              res,
+                              resp,
+                              rawResp
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
                 if (validUp) {
                     status = 'online';
                     reason = upSuccessReasons;
@@ -279,36 +291,52 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     successReasons: upSuccessReasons,
                     failedReasons: upFailedReasons,
                     matchedCriterion: matchedUpCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.up
-                    ? ProbeService.scriptConditions(resp, monitor.criteria.up)
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.up
+                        ? ProbeService.scriptConditions(
+                              resp,
+                              monitor.criteria.up
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
 
                 const {
                     stat: validDown,
                     successReasons: downSuccessReasons,
                     failedReasons: downFailedReasons,
                     matchedCriterion: matchedDownCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.down
-                    ? ProbeService.scriptConditions(resp, [
-                          ...monitor.criteria.down.filter(
-                              criterion => criterion.default !== true
-                          ),
-                      ])
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.down
+                        ? ProbeService.scriptConditions(resp, [
+                              ...monitor.criteria.down.filter(
+                                  criterion => criterion.default !== true
+                              ),
+                          ])
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
 
                 const {
                     stat: validDegraded,
                     successReasons: degradedSuccessReasons,
                     failedReasons: degradedFailedReasons,
                     matchedCriterion: matchedDegradedCriterion,
-                } = await (monitor &&
-                monitor.criteria &&
-                monitor.criteria.degraded
-                    ? ProbeService.scriptConditions(
-                          resp,
-                          monitor.criteria.degraded
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.degraded
+                        ? ProbeService.scriptConditions(
+                              resp,
+                              monitor.criteria.degraded
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
 
                 if (validUp) {
                     status = 'online';
@@ -350,43 +378,56 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     successReasons: upSuccessReasons,
                     failedReasons: upFailedReasons,
                     matchedCriterion: matchedUpCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.up
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.up,
-                          data
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.up
+                        ? ProbeService.conditions(
+                              monitor.type,
+                              monitor.criteria.up,
+                              data
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
                 const {
                     stat: validDegraded,
                     successReasons: degradedSuccessReasons,
                     failedReasons: degradedFailedReasons,
                     matchedCriterion: matchedDegradedCriterion,
-                } = await (monitor &&
-                monitor.criteria &&
-                monitor.criteria.degraded
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.degraded,
-                          data
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.degraded
+                        ? ProbeService.conditions(
+                              monitor.type,
+                              monitor.criteria.degraded,
+                              data
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
                 const {
                     stat: validDown,
                     successReasons: downSuccessReasons,
                     failedReasons: downFailedReasons,
                     matchedCriterion: matchedDownCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.down
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          [
-                              ...monitor.criteria.down.filter(
-                                  criterion => criterion.default !== true
-                              ),
-                          ],
-                          data
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.down
+                        ? ProbeService.conditions(
+                              monitor.type,
+                              [
+                                  ...monitor.criteria.down.filter(
+                                      criterion => criterion.default !== true
+                                  ),
+                              ],
+                              data
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
 
                 if (validUp) {
                     data.status = 'online';
@@ -453,45 +494,58 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     successReasons: upSuccessReasons,
                     failedReasons: upFailedReasons,
                     matchedCriterion: matchedUpCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.up
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.up,
-                          data.kubernetesData
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.up
+                        ? ProbeService.conditions(
+                              monitor.type,
+                              monitor.criteria.up,
+                              data.kubernetesData
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
 
                 const {
                     stat: validDegraded,
                     successReasons: degradedSuccessReasons,
                     failedReasons: degradedFailedReasons,
                     matchedCriterion: matchedDegradedCriterion,
-                } = await (monitor &&
-                monitor.criteria &&
-                monitor.criteria.degraded
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          monitor.criteria.degraded,
-                          data.kubernetesData
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.degraded
+                        ? ProbeService.conditions(
+                              monitor.type,
+                              monitor.criteria.degraded,
+                              data.kubernetesData
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
 
                 const {
                     stat: validDown,
                     successReasons: downSuccessReasons,
                     failedReasons: downFailedReasons,
                     matchedCriterion: matchedDownCriterion,
-                } = await (monitor && monitor.criteria && monitor.criteria.down
-                    ? ProbeService.conditions(
-                          monitor.type,
-                          [
-                              ...monitor.criteria.down.filter(
-                                  criterion => criterion.default !== true
-                              ),
-                          ],
-                          data.kubernetesData
-                      )
-                    : { stat: false, successReasons: [], failedReasons: [] });
+                } =
+                    monitor && monitor.criteria && monitor.criteria.down
+                        ? ProbeService.conditions(
+                              monitor.type,
+                              [
+                                  ...monitor.criteria.down.filter(
+                                      criterion => criterion.default !== true
+                                  ),
+                              ],
+                              data.kubernetesData
+                          )
+                        : {
+                              stat: false,
+                              successReasons: [],
+                              failedReasons: [],
+                          };
 
                 if (validUp) {
                     data.status = 'online';
@@ -538,14 +592,9 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
             data.matchedCriterion = matchedCriterion;
             // update monitor to save the last matched criterion
-            await MonitorService.updateOneBy(
-                {
-                    _id: monitor._id,
-                },
-                {
-                    lastMatchedCriterion: matchedCriterion,
-                }
-            );
+
+            await MonitorService.updateCriterion(monitor._id, matchedCriterion);
+
             data.monitorId = req.params.monitorId || monitor._id;
             data.probeId = req.probe && req.probe.id ? req.probe.id : null;
             data.reason =
@@ -564,28 +613,25 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                           )
                         : data.reason;
             }
+
             if (data.lighthouseScanStatus) {
                 if (data.lighthouseScanStatus === 'scanning') {
-                    await MonitorService.updateOneBy(
-                        { _id: data.monitorId },
-                        {
-                            lighthouseScanStatus: data.lighthouseScanStatus,
-                        },
-                        { fetchLightHouse: true }
-                    );
-                    await LighthouseLogService.updateAllLighthouseLogs(
-                        data.monitor.projectId,
-                        data.monitorId,
-                        { scanning: true }
-                    );
+                    await Promise.all([
+                        MonitorService.updateLighthouseScanStatus(
+                            data.monitorId,
+                            'scanning'
+                        ),
+                        LighthouseLogService.updateAllLighthouseLogs(
+                            data.monitorId,
+                            { scanning: true }
+                        ),
+                    ]);
                 } else {
-                    await MonitorService.updateOneBy(
-                        { _id: data.monitorId },
-                        {
-                            lighthouseScannedAt: Date.now(),
-                            lighthouseScanStatus: data.lighthouseScanStatus, // scanned || failed
-                            lighthouseScannedBy: data.probeId,
-                        }
+                    // when this is scanned success or failed.
+                    await MonitorService.updateLighthouseScanStatus(
+                        data.monitorId,
+                        data.lighthouseScanStatus,
+                        data.probeId
                     );
                 }
             } else {
@@ -603,13 +649,12 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                         monitor.criteria.degraded;
 
                     log = await ProbeService.saveMonitorLog(data);
+
                     if (type === 'script') {
-                        await MonitorService.updateBy(
-                            { _id: req.params.monitorId },
-                            {
-                                scriptRunStatus: 'completed',
-                                scriptRunBy: req.probe.id,
-                            }
+                        await MonitorService.updateScriptStatus(
+                            req.params.monitorId,
+                            'completed',
+                            req.probe.id
                         );
                     }
                 }
@@ -618,10 +663,6 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
         return sendItemResponse(req, response, log);
     } catch (error) {
         return sendErrorResponse(req, response, error);
-    } finally {
-        // if (release) {
-        //     release();
-        // }
     }
 });
 
@@ -656,33 +697,18 @@ router.get('/:projectId/probes', getUser, isAuthorized, async function(
     try {
         const limit = req.query.limit || null;
         const skip = req.query.skip || null;
-        const probe = await ProbeService.findBy({}, limit, skip);
-        const count = await ProbeService.countBy({});
+        const selectProbe =
+            'createdAt probeKey probeName version lastAlive deleted deletedAt probeImage';
+        const [probe, count] = await Promise.all([
+            ProbeService.findBy({
+                query: {},
+                limit,
+                skip,
+                select: selectProbe,
+            }),
+            ProbeService.countBy({}),
+        ]);
         return sendListResponse(req, res, probe, count);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.get('/containerSecurities', isAuthorizedProbe, async function(req, res) {
-    try {
-        const response = await ContainerSecurityService.getSecuritiesToScan();
-        return sendItemResponse(req, res, response);
-    } catch (error) {
-        return sendErrorResponse(req, res, error);
-    }
-});
-
-router.post('/scan/docker', isAuthorizedProbe, async function(req, res) {
-    try {
-        let { security } = req.body;
-
-        security = JSON.parse(security); // always parse the JSON
-        security = await ContainerSecurityService.decryptPassword(security);
-
-        const securityLog = await ProbeService.scanContainerSecurity(security);
-        global.io.emit(`securityLog_${security._id}`, securityLog);
-        return sendItemResponse(req, res, securityLog);
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }

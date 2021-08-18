@@ -1,16 +1,18 @@
 const IncidentCommunicationSlaModel = require('../models/incidentCommunicationSla');
 const MonitorService = require('./monitorService');
 const ErrorService = require('./errorService');
+const handlePopulate = require('../utils/populate');
+const handleSelect = require('../utils/select');
 
 module.exports = {
     create: async function(data) {
         try {
-            const incidentCommunicationSla = await this.findOneBy({
+            const incidentCommunicationSla = await this.countBy({
                 name: data.name,
                 projectId: data.projectId,
             });
 
-            if (incidentCommunicationSla) {
+            if (incidentCommunicationSla && incidentCommunicationSla > 0) {
                 const error = new Error(
                     'Incident communication SLA with the same name already exist'
                 );
@@ -37,15 +39,10 @@ module.exports = {
             if (data.monitors && data.monitors.length > 0) {
                 let monitorIds = [...data.monitors];
                 monitorIds = [...new Set(monitorIds)];
-                for (const monitorId of monitorIds) {
-                    await MonitorService.updateOneBy(
-                        { _id: monitorId },
-                        {
-                            incidentCommunicationSla:
-                                createdIncidentCommunicationSla._id,
-                        }
-                    );
-                }
+                await MonitorService.updateManyIncidentCommunicationSla(
+                    monitorIds,
+                    createdIncidentCommunicationSla._id
+                );
             }
 
             return createdIncidentCommunicationSla;
@@ -54,18 +51,27 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
-            const incidentCommunicationSla = await IncidentCommunicationSlaModel.findOne(
+            let incidentCommunicationSlaQuery = IncidentCommunicationSlaModel.findOne(
                 query
-            )
-                .populate('projectId')
-                .lean();
+            ).lean();
 
+            incidentCommunicationSlaQuery = handleSelect(
+                select,
+                incidentCommunicationSlaQuery
+            );
+
+            incidentCommunicationSlaQuery = handlePopulate(
+                populate,
+                incidentCommunicationSlaQuery
+            );
+
+            const incidentCommunicationSla = await incidentCommunicationSlaQuery;
             return incidentCommunicationSla;
         } catch (error) {
             ErrorService.log(
@@ -75,7 +81,7 @@ module.exports = {
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -89,15 +95,25 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const incidentCommunicationSla = await IncidentCommunicationSlaModel.find(
+            let incidentCommunicationSlaQuery = IncidentCommunicationSlaModel.find(
                 query
             )
                 .lean()
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('projectId');
+                .skip(skip);
 
+            incidentCommunicationSlaQuery = handleSelect(
+                select,
+                incidentCommunicationSlaQuery
+            );
+
+            incidentCommunicationSlaQuery = handlePopulate(
+                populate,
+                incidentCommunicationSlaQuery
+            );
+
+            const incidentCommunicationSla = await incidentCommunicationSlaQuery;
             return incidentCommunicationSla;
         } catch (error) {
             ErrorService.log('incidentCommunicationSlaService.findBy', error);
@@ -112,10 +128,11 @@ module.exports = {
 
             // check if we are only setting default sla
             // or using update modal for editing the details
+
             if (!data.handleDefault) {
                 const incidentCommunicationSla = await this.findOneBy({
-                    name: data.name,
-                    projectId: query.projectId,
+                    query: { name: data.name, projectId: query.projectId },
+                    select: '_id',
                 });
 
                 if (
@@ -130,7 +147,8 @@ module.exports = {
                 }
 
                 const monitors = await MonitorService.findBy({
-                    incidentCommunicationSla: query._id,
+                    query: { incidentCommunicationSla: query._id },
+                    select: '_id',
                 });
                 const initialMonitorIds = monitors.map(monitor => monitor._id);
 
@@ -144,43 +162,34 @@ module.exports = {
                             removedMonitors.push(monitorId);
                         }
                     });
-                    for (const monitorId of monitorIds) {
-                        await MonitorService.updateOneBy(
-                            { _id: monitorId },
-                            {
-                                incidentCommunicationSla: query._id,
-                            }
-                        );
-                    }
+
+                    await MonitorService.updateManyIncidentCommunicationSla(
+                        monitorIds,
+                        query._id
+                    );
                 } else {
                     // unset incidentCommunicationSla for removed monitors
                     // at this point all the monitors were removed
-                    for (const monitorId of initialMonitorIds) {
-                        await MonitorService.updateOneBy(
-                            { _id: monitorId },
-                            null,
-                            { incidentCommunicationSla: query._id }
-                        );
-                    }
+                    await MonitorService.unsetColumnsOfManyMonitors(
+                        initialMonitorIds,
+                        { incidentCommunicationSla: true }
+                    );
                 }
 
                 // unset incidentCommunicationSla for removed monitors
                 if (removedMonitors && removedMonitors.length > 0) {
-                    for (const monitorId of removedMonitors) {
-                        await MonitorService.updateOneBy(
-                            { _id: monitorId },
-                            null,
-                            { incidentCommunicationSla: query._id }
-                        );
-                    }
+                    await MonitorService.unsetColumnsOfManyMonitors(
+                        removedMonitors,
+                        { incidentCommunicationSla: true }
+                    );
                 }
             }
 
             let incidentSla;
             if (data.isDefault) {
                 incidentSla = await this.findOneBy({
-                    projectId: query.projectId,
-                    isDefault: true,
+                    query: { projectId: query.projectId, isDefault: true },
+                    select: '_id',
                 });
             }
 
@@ -207,7 +216,18 @@ module.exports = {
                 throw error;
             }
 
-            updatedIncidentCommunicationSla = await this.findOneBy(query);
+            const selectIncidentComSla =
+                'name projectId isDefault alertTime alertTime deleted';
+
+            const populateIncidentComSla = [
+                { path: 'projectId', select: 'name slug' },
+            ];
+
+            updatedIncidentCommunicationSla = await this.findOneBy({
+                query,
+                select: selectIncidentComSla,
+                populate: populateIncidentComSla,
+            });
 
             return updatedIncidentCommunicationSla;
         } catch (error) {

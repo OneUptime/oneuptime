@@ -4,7 +4,6 @@ const { isAuthorized } = require('../middlewares/authorization');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const ContainerSecurityService = require('../services/containerSecurityService');
-const ProbeService = require('../services/probeService');
 const RealTimeService = require('../services/realTimeService');
 const ResourceCategoryService = require('../services/resourceCategoryService');
 
@@ -113,12 +112,12 @@ router.put(
             if (!resourceCategory || resourceCategory === '') {
                 unsetData = { resourceCategory: '' };
             } else {
-                const resourceCategoryModel = await ResourceCategoryService.findBy(
+                const resourceCategoryCount = await ResourceCategoryService.countBy(
                     {
                         _id: resourceCategory,
                     }
                 );
-                if (resourceCategoryModel) {
+                if (resourceCategoryCount && resourceCategoryCount > 0) {
                     data.resourceCategory = resourceCategory;
                 } else {
                     unsetData = { resourceCategory: '' };
@@ -148,8 +147,21 @@ router.get(
     async (req, res) => {
         try {
             const { componentId } = req.params;
+            const populate = [
+                { path: 'componentId', select: 'name slug _id' },
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'dockerCredential',
+                    select:
+                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                },
+            ];
+            const select =
+                'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
             const containerSecurities = await ContainerSecurityService.findBy({
-                componentId,
+                query: { componentId },
+                select,
+                populate,
             });
 
             return sendItemResponse(req, res, containerSecurities);
@@ -170,8 +182,21 @@ router.get(
     async (req, res) => {
         try {
             const { containerSecurityId } = req.params;
+            const populate = [
+                { path: 'componentId', select: 'name slug _id' },
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'dockerCredential',
+                    select:
+                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                },
+            ];
+            const select =
+                'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
             const containerSecurity = await ContainerSecurityService.findOneBy({
-                _id: containerSecurityId,
+                query: { _id: containerSecurityId },
+                select,
+                populate,
             });
 
             if (!containerSecurity) {
@@ -199,8 +224,21 @@ router.get(
     async (req, res) => {
         try {
             const { containerSecuritySlug } = req.params;
+            const populate = [
+                { path: 'componentId', select: 'name slug _id' },
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'dockerCredential',
+                    select:
+                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                },
+            ];
+            const select =
+                'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
             const containerSecurity = await ContainerSecurityService.findOneBy({
-                slug: containerSecuritySlug,
+                query: { slug: containerSecuritySlug },
+                select,
+                populate,
             });
 
             if (!containerSecurity) {
@@ -272,8 +310,21 @@ router.get(
     async (req, res) => {
         try {
             const { credentialId } = req.params;
+            const populate = [
+                { path: 'componentId', select: 'name slug _id' },
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'dockerCredential',
+                    select:
+                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                },
+            ];
+            const select =
+                'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
             const response = await ContainerSecurityService.findBy({
-                dockerCredential: credentialId,
+                query: { dockerCredential: credentialId },
+                select,
+                populate,
             });
 
             return sendItemResponse(req, res, response);
@@ -294,8 +345,9 @@ router.post(
     async (req, res) => {
         try {
             const { containerSecurityId } = req.params;
-            let containerSecurity = await ContainerSecurityService.findOneBy({
-                _id: containerSecurityId,
+            const containerSecurity = await ContainerSecurityService.findOneBy({
+                query: { _id: containerSecurityId },
+                select: '_id',
             });
 
             if (!containerSecurity) {
@@ -306,17 +358,14 @@ router.post(
                 return sendErrorResponse(req, res, error);
             }
 
-            // decrypt password
-            containerSecurity = await ContainerSecurityService.decryptPassword(
-                containerSecurity
-            );
+            const updatedContainerSecurity = await ContainerSecurityService.updateOneBy(
+                { _id: containerSecurityId },
+                { scanned: false }
+            ); //This helps the container scanner to pull the container
 
-            const securityLog = await ProbeService.scanContainerSecurity(
-                containerSecurity
-            );
-
-            global.io.emit(`securityLog_${containerSecurity._id}`, securityLog);
-            return sendItemResponse(req, res, securityLog);
+            RealTimeService.handleScanning({
+                security: updatedContainerSecurity,
+            });
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }

@@ -22,7 +22,8 @@ router.get('/challenge/:token', async (req, res) => {
     try {
         const { token } = req.params;
         const acmeChallenge = await SslService.findOneBy({
-            token,
+            query: { token },
+            select: 'token keyAuthorization challengeUrl deleted deletedAt',
         });
 
         return sendItemResponse(req, res, acmeChallenge);
@@ -36,7 +37,10 @@ router.get('/challenge/:token', async (req, res) => {
 router.get('/challenge/authorization/:token', async (req, res) => {
     try {
         const { token } = req.params;
-        const acmeChallenge = await SslService.findOneBy({ token });
+        const acmeChallenge = await SslService.findOneBy({
+            query: { token },
+            select: 'token keyAuthorization challengeUrl deleted deletedAt',
+        });
         if (!acmeChallenge) {
             return sendItemResponse(req, res, '');
         }

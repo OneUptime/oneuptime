@@ -1,10 +1,10 @@
+/*eslint-disable*/
 import React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import { openModal } from '../../actions/modal';
-import DeleteContainerSecurity from '../modals/DeleteContainerSecurity';
 import ConfirmScanModal from '../modals/ConfirmScanModal';
 import SecurityDetail from './SecurityDetail';
 import Badge from '../common/Badge';
@@ -15,7 +15,6 @@ import EditContainerSecurity from '../modals/EditContainerSecurity';
 import threatLevel from '../../utils/threatLevel';
 
 const ContainerSecurityView = ({
-    isRequesting,
     containerSecurityId,
     containerSecuritySlug,
     projectId,
@@ -27,28 +26,8 @@ const ContainerSecurityView = ({
     containerSecurity,
     scanError,
     activeContainerSecurity,
+    scannedStatus
 }) => {
-    const handleDelete = ({
-        projectId,
-        componentId,
-        containerSecurityId,
-        containerSecuritySlug,
-    }) => {
-        openModal({
-            id: containerSecurityId,
-            content: DeleteContainerSecurity,
-            propArr: [
-                {
-                    projectId,
-                    componentId,
-                    containerSecurityId,
-                    containerSecuritySlug,
-                    componentSlug,
-                },
-            ],
-        });
-    };
-
     const handleSubmit = ({ projectId, containerSecurityId }) => {
         openModal({
             id: containerSecurityId,
@@ -62,7 +41,7 @@ const ContainerSecurityView = ({
             ],
         });
     };
-
+       
     const handleEdit = ({
         projectId,
         componentId,
@@ -197,7 +176,8 @@ const ContainerSecurityView = ({
                                                     activeContainerSecurity
                                                 )) ||
                                         containerSecurity.scanning ||
-                                        !containerSecurity.lastScan
+                                        !containerSecurity.lastScan ||
+                                        scannedStatus === false
                                     }
                                 >
                                     <button
@@ -205,7 +185,8 @@ const ContainerSecurityView = ({
                                         disabled={
                                             scanning ||
                                             containerSecurity.scanning ||
-                                            !containerSecurity.lastScan
+                                            !containerSecurity.lastScan || 
+                                            scannedStatus === false
                                         }
                                         id={`scanning_${containerSecurity.name}`}
                                     >
@@ -223,7 +204,8 @@ const ContainerSecurityView = ({
                                                     activeContainerSecurity
                                                 )) &&
                                         !containerSecurity.scanning &&
-                                        containerSecurity.lastScan
+                                        containerSecurity.lastScan && 
+                                        scannedStatus === true
                                     }
                                 >
                                     <button
@@ -260,21 +242,6 @@ const ContainerSecurityView = ({
                                     }
                                 >
                                     <span>Edit</span>
-                                </button>
-                                <button
-                                    id="deleteContainerSecurityBtn"
-                                    className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete"
-                                    disabled={isRequesting}
-                                    onClick={() =>
-                                        handleDelete({
-                                            projectId,
-                                            componentId,
-                                            containerSecurityId,
-                                            containerSecuritySlug,
-                                        })
-                                    }
-                                >
-                                    <span>Delete</span>
                                 </button>
                             </div>
                         </div>
@@ -324,7 +291,6 @@ const ContainerSecurityView = ({
 ContainerSecurityView.displayName = 'Container Security View';
 
 ContainerSecurityView.propTypes = {
-    isRequesting: PropTypes.bool,
     containerSecurityId: PropTypes.string,
     containerSecuritySlug: PropTypes.string,
     projectId: PropTypes.string,
@@ -339,6 +305,7 @@ ContainerSecurityView.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     activeContainerSecurity: PropTypes.string,
+    scannedStatus: PropTypes.string,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -351,11 +318,11 @@ const mapDispatchToProps = dispatch =>
 
 const mapStateToProps = state => {
     return {
-        isRequesting: state.security.deleteContainer.requesting,
         scanning: state.security.scanContainerSecurity.requesting,
         securityLog: state.security.containerSecurityLog || {},
         scanError: state.security.scanContainerSecurity.error,
         activeContainerSecurity: state.security.activeContainerSecurity,
+        scannedStatus: state.security.containerSecurity.scanned,
     };
 };
 

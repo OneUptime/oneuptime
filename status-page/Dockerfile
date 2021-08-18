@@ -5,6 +5,9 @@
 # Pull base image nodejs image.
 FROM node:16
 
+#Use bash shell by default
+SHELL ["/bin/bash", "-c"]
+
 #SET ENV Variables. 
 ENV PRODUCTION=true
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
@@ -16,7 +19,7 @@ WORKDIR /usr/src/app
 # Install app dependencies
 COPY package*.json /usr/src/app/
 
-RUN npm ci --only=production
+RUN npm ci --only=production --legacy-peer-deps
 RUN npm install -g serve
 RUN npm install -g eslint
 

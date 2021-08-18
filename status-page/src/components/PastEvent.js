@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import moment from 'moment';
@@ -17,14 +18,6 @@ class PastEvent extends Component {
 
         this.getAll = this.getAll.bind(this);
         this.more = this.more.bind(this);
-    }
-
-    componentDidMount() {
-        this.props.fetchPastEvents(
-            this.props.projectId,
-            this.props.statusPageSlug,
-            0
-        );
     }
 
     getAll = () => {
@@ -130,7 +123,9 @@ class PastEvent extends Component {
                                         className="feed-title"
                                         style={subheading}
                                     >
-                                        Scheduled Events Completed
+                                        <Translate>
+                                            Scheduled Events Completed
+                                        </Translate>
                                     </span>
                                 </ShouldRender>
                                 <ShouldRender
@@ -140,18 +135,21 @@ class PastEvent extends Component {
                                         className="feed-title"
                                         style={primaryTextColor}
                                     >
-                                        Scheduled Events for{' '}
-                                        {this.props.individualEvents.monitorName
-                                            ? this.props.individualEvents
-                                                  .monitorName
-                                            : ''}{' '}
-                                        on{' '}
-                                        {this.props.individualEvents.date
-                                            ? moment(
-                                                  this.props.individualEvents
-                                                      .date
-                                              ).format('LL')
-                                            : ''}
+                                        <Translate>
+                                            Scheduled Events for{' '}
+                                            {this.props.individualEvents
+                                                .monitorName
+                                                ? this.props.individualEvents
+                                                      .monitorName
+                                                : ''}{' '}
+                                            on{' '}
+                                            {this.props.individualEvents.date
+                                                ? moment(
+                                                      this.props
+                                                          .individualEvents.date
+                                                  ).format('LL')
+                                                : ''}
+                                        </Translate>
                                     </span>
                                 </ShouldRender>
                             </div>
@@ -194,7 +192,9 @@ class PastEvent extends Component {
                                                 ...secondaryTextColor,
                                             }}
                                         >
-                                            No data available for this date.
+                                            <Translate>
+                                                No data available for this date.
+                                            </Translate>
                                         </span>
                                     </li>
                                 </ul>
@@ -227,7 +227,9 @@ class PastEvent extends Component {
                                                 ...secondaryTextColor,
                                             }}
                                         >
-                                            No Scheduled Events
+                                            <Translate>
+                                                No Scheduled Events
+                                            </Translate>
                                         </span>
                                     </li>
                                 </ul>
@@ -251,7 +253,7 @@ class PastEvent extends Component {
                                 className="more button-as-anchor anchor-centered"
                                 onClick={() => this.more()}
                             >
-                                More
+                                <Translate>More</Translate>
                             </button>
                         </ShouldRender>
 
@@ -274,7 +276,7 @@ class PastEvent extends Component {
                                     className="all__btn"
                                     onClick={() => this.getAll()}
                                 >
-                                    All Scheduled Events
+                                    <Translate>All Scheduled Events</Translate>
                                 </button>
                             </ShouldRender>
                         </div>

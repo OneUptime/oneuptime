@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { getSingleAnnouncement, getStatusPage } from '../actions/status';
 import { bindActionCreators } from 'redux';
@@ -59,7 +60,9 @@ class SingleAnnouncement extends Component {
                                                 fontSize: 12,
                                             }}
                                         >
-                                            Announcement Info
+                                            <Translate>
+                                                Announcement Info
+                                            </Translate>
                                         </span>
                                         <div
                                             className="individual-header"
@@ -84,9 +87,13 @@ class SingleAnnouncement extends Component {
                                                     color: 'rgba(0, 0, 0, 0.5)',
                                                 }}
                                             >
-                                                <Markdown>
-                                                    {announcement?.description}
-                                                </Markdown>
+                                                {announcement.description && (
+                                                    <Markdown>
+                                                        {
+                                                            announcement.description
+                                                        }
+                                                    </Markdown>
+                                                )}
                                             </span>
                                         </div>
                                         <ShouldRender
@@ -105,7 +112,9 @@ class SingleAnnouncement extends Component {
                                                             'rgba(76, 76, 76, 0.8)',
                                                     }}
                                                 >
-                                                    Resource Affected:
+                                                    <Translate>
+                                                        Resource Affected:
+                                                    </Translate>
                                                 </span>{' '}
                                                 <span
                                                     className="ongoing__affectedmonitor--content"

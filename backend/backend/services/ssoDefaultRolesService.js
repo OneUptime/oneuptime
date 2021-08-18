@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -13,7 +13,7 @@ module.exports = {
 
             if (!query.deleted) query.deleted = false;
 
-            const ssos = await ssoDefaultRolesModel
+            let ssosQuery = ssoDefaultRolesModel
                 .find(query, {
                     _id: 1,
                     project: 1,
@@ -22,11 +22,14 @@ module.exports = {
                     createdAt: 1,
                 })
                 .lean()
-                .populate('domain', ['_id', 'domain'])
-                .populate('project', ['_id', 'name'])
-                .sort([['domaine', -1]])
+                .sort([['domain', -1]])
                 .skip(skip)
                 .limit(limit);
+
+            ssosQuery = handleSelect(select, ssosQuery);
+            ssosQuery = handlePopulate(populate, ssosQuery);
+
+            const ssos = await ssosQuery;
             return ssos;
         } catch (error) {
             ErrorService.log('ssoDefaultRolesService.findBy', error);
@@ -94,7 +97,10 @@ module.exports = {
         const { domain, project } = data;
         const query = { domain, project };
 
-        const sso = await SsoService.findOneBy({ _id: domain });
+        const sso = await SsoService.findOneBy({
+            query: { _id: domain },
+            select: '_id',
+        });
         if (!sso) {
             const error = new Error("Domain doesn't exist.");
             error.code = 400;
@@ -102,7 +108,10 @@ module.exports = {
             throw error;
         }
 
-        const projectObj = await ProjectService.findOneBy({ _id: project });
+        const projectObj = await ProjectService.findOneBy({
+            query: { _id: project },
+            select: 'users _id',
+        });
         if (!projectObj) {
             const error = new Error("Project doesn't exist.");
             error.code = 400;
@@ -110,9 +119,9 @@ module.exports = {
             throw error;
         }
 
-        const search = await this.findBy(query);
+        const search = await this.countBy(query);
 
-        if (search.length) {
+        if (search && search > 0) {
             const error = new Error(
                 '[Domain-Project] are already associated to a default role.'
             );
@@ -130,7 +139,10 @@ module.exports = {
             const savedSso = await ssoDefaultRole.save();
             //Add existing users to the project.
             const { _id: ssoId } = sso;
-            const existingSsoUsers = await UserService.findBy({ sso: ssoId });
+            const existingSsoUsers = await UserService.findBy({
+                query: { sso: ssoId },
+                select: '_id',
+            });
             for (const ssoUser of existingSsoUsers) {
                 const { users, _id: projectId } = projectObj;
                 if (
@@ -154,7 +166,7 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
@@ -163,11 +175,13 @@ module.exports = {
             if (!query.deleted) {
                 query.deleted = false;
             }
-            const sso = await ssoDefaultRolesModel
-                .findOne(query)
-                .lean()
-                .populate('domain', ['_id', 'domain'])
-                .populate('project', ['_id', 'name']);
+            let ssoQuery = ssoDefaultRolesModel.findOne(query).lean();
+
+            ssoQuery = handleSelect(select, ssoQuery);
+            ssoQuery = handlePopulate(populate, ssoQuery);
+
+            const sso = await ssoQuery;
+
             return sso;
         } catch (error) {
             ErrorService.log('ssoDefaultRolesService.findOneBy', error);
@@ -230,7 +244,11 @@ module.exports = {
                 throw error;
             }
 
-            const search = await this.findOneBy({ domain, project });
+            const search = await this.findOneBy({
+                query: { domain, project },
+                select: '_id',
+            });
+
             if (!search) {
                 const error = new Error("Record doesn't exist.");
                 error.code = 400;
@@ -249,7 +267,19 @@ module.exports = {
             await ssoDefaultRolesModel.updateOne(query, {
                 $set: payload,
             });
-            const ssodefaultRole = await this.findOneBy(query);
+
+            const populateDefaultRoleSso = [
+                { path: 'domain', select: '_id domain' },
+                { path: 'project', select: '_id name' },
+            ];
+
+            const selectDefaultRoleSso =
+                '_id domain project role createdAt deleted deletedAt deletedById';
+            const ssodefaultRole = await this.findOneBy({
+                query,
+                select: selectDefaultRoleSso,
+                populate: populateDefaultRoleSso,
+            });
             return ssodefaultRole;
         } catch (error) {
             ErrorService.log('ssoDefaultRolesService.updateById', error);
@@ -268,14 +298,24 @@ module.exports = {
         return count;
     },
     addUserToDefaultProjects: async function({ domain, userId }) {
-        const ssoDefaultRoles = await this.findBy({ domain });
+        const populateDefaultRoleSso = [
+            { path: 'domain', select: '_id domain' },
+            { path: 'project', select: '_id name' },
+        ];
+
+        const ssoDefaultRoles = await this.findBy({
+            query: { domain },
+            select: 'project role',
+            populate: populateDefaultRoleSso,
+        });
         if (!ssoDefaultRoles.length) return;
 
         for (const ssoDefaultRole of ssoDefaultRoles) {
             const { project, role } = ssoDefaultRole;
             const { _id: projectId } = project;
             const projectObj = await ProjectService.findOneBy({
-                _id: projectId,
+                query: { _id: projectId },
+                select: 'users',
             });
             if (!projectObj) continue;
 
@@ -304,3 +344,5 @@ const ErrorService = require('./errorService');
 const ProjectService = require('./projectService');
 const SsoService = require('./ssoService');
 const UserService = require('./userService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

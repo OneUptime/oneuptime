@@ -80,12 +80,13 @@ module.exports = {
                 // because if the applicationScanner key does not match, we can update applicationScanner key later
                 // without updating mongodb database manually.
                 applicationScanner = await ApplicationScannerService.findOneBy({
-                    applicationScannerName,
+                    query: { applicationScannerName },
+                    select: '_id applicationScannerKey',
                 });
             } else {
                 applicationScanner = await ApplicationScannerService.findOneBy({
-                    applicationScannerKey,
-                    applicationScannerName,
+                    query: { applicationScannerKey, applicationScannerName },
+                    select: '_id applicationScannerKey',
                 });
             }
 
@@ -123,17 +124,16 @@ module.exports = {
             }
             req.applicationScanner = {};
             req.applicationScanner.id = applicationScanner._id;
-            await ApplicationScannerService.updateApplicationScannerStatus(
-                applicationScanner._id
-            );
 
-            //Update applicationScanner version
-            const applicationScannerValue = await ApplicationScannerService.findOneBy(
-                {
-                    applicationScannerKey,
-                    applicationScannerName,
-                }
-            );
+            const [applicationScannerValue] = await Promise.all([
+                ApplicationScannerService.findOneBy({
+                    query: { applicationScannerKey, applicationScannerName },
+                    select: 'version',
+                }),
+                ApplicationScannerService.updateApplicationScannerStatus(
+                    applicationScanner._id
+                ),
+            ]);
 
             if (
                 !applicationScannerValue.version ||

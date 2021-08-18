@@ -1,5 +1,5 @@
 module.exports = {
-    findBy: async function({ query, skip, limit, sort }) {
+    findBy: async function({ query, skip, limit, sort, populate, select }) {
         try {
             if (!skip) skip = 0;
 
@@ -24,15 +24,15 @@ module.exports = {
             }
 
             if (!query.deleted) query.deleted = false;
-            const items = await OnCallScheduleStatusModel.find(query)
+            let itemsQuery = OnCallScheduleStatusModel.find(query)
                 .lean()
                 .limit(limit)
-                .skip(skip)
-                .populate('project')
-                .populate('incidentId')
-                .populate('scheduleId')
-                .populate('schedule', ['_id', 'name', 'slug'])
-                .populate('activeEscalationId');
+                .skip(skip);
+
+            itemsQuery = handleSelect(select, itemsQuery);
+            itemsQuery = handlePopulate(populate, itemsQuery);
+
+            const items = await itemsQuery;
 
             return items;
         } catch (error) {
@@ -115,7 +115,25 @@ module.exports = {
             await OnCallScheduleStatusModel.updateMany(query, {
                 $set: data,
             });
-            const items = await this.findBy(query);
+
+            const selectOnCallScheduleStatus =
+                'escalations createdAt project schedule activeEscalation activeEscalation incident incidentAcknowledged alertedEveryone isOnDuty deleted deletedAt deletedById';
+
+            const populateOnCallScheduleStatus = [
+                { path: 'incidentId', select: 'name slug' },
+                { path: 'project', select: 'name slug' },
+                { path: 'scheduleId', select: 'name slug' },
+                { path: 'schedule', select: '_id name slug' },
+                {
+                    path: 'activeEscalationId',
+                    select: 'projectId teams scheduleId',
+                },
+            ];
+            const items = await this.findBy({
+                query,
+                select: selectOnCallScheduleStatus,
+                populate: populateOnCallScheduleStatus,
+            });
             return items;
         } catch (error) {
             ErrorService.log('OnCallScheduleStatusService.updateMany', error);
@@ -162,3 +180,5 @@ module.exports = {
 
 const OnCallScheduleStatusModel = require('../models/onCallScheduleStatus');
 const ErrorService = require('./errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');

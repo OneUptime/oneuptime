@@ -315,7 +315,9 @@ export class IncidentStatus extends Component {
 
     render() {
         const isUserSubProjectId =
-            this.props.incident.projectId._id ?? this.props.incident.projectId;
+            this.props.incident.projectId &&
+            (this.props.incident.projectId._id ||
+                this.props.incident.projectId);
         const subProject =
             this.props.subProjects &&
             this.props.subProjects.filter(
@@ -965,6 +967,11 @@ export class IncidentStatus extends Component {
                                                                             ) : this
                                                                                   .props
                                                                                   .incident
+                                                                                  .createdByApi ? (
+                                                                                'API'
+                                                                            ) : this
+                                                                                  .props
+                                                                                  .incident
                                                                                   .probes &&
                                                                               this
                                                                                   .props
@@ -1200,6 +1207,11 @@ export class IncidentStatus extends Component {
                                                                                             : this
                                                                                                   .props
                                                                                                   .incident
+                                                                                                  .acknowledgedByApi
+                                                                                            ? 'API'
+                                                                                            : this
+                                                                                                  .props
+                                                                                                  .incident
                                                                                                   .acknowledgedByIncomingHttpRequest
                                                                                             ? `Incoming HTTP Request ${this.props.incident.acknowledgedByIncomingHttpRequest.name}`
                                                                                             : 'Fyipe'}
@@ -1344,6 +1356,11 @@ export class IncidentStatus extends Component {
                                                                                                 .incident
                                                                                                 .resolvedByZapier
                                                                                                 ? 'Zapier'
+                                                                                                : this
+                                                                                                      .props
+                                                                                                      .incident
+                                                                                                      .resolvedByApi
+                                                                                                ? `API`
                                                                                                 : this
                                                                                                       .props
                                                                                                       .incident

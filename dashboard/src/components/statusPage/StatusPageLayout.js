@@ -42,6 +42,10 @@ export class StatusPageLayout extends Component {
                 key: 'anouncement',
             },
             {
+                name: 'Language',
+                key: 'language',
+            },
+            {
                 name: 'Ongoing Scheduled Events',
                 key: 'ongoingSchedule',
             },
@@ -55,7 +59,12 @@ export class StatusPageLayout extends Component {
             },
             { name: 'Footer', key: 'footer' },
         ],
-        invisible: [{ name: 'Scheduled Events Completed', key: 'pastEvents' }],
+        invisible: [
+            { name: 'Scheduled Events Completed', key: 'pastEvents' },
+
+            { name: 'Twitter Updates', key: 'twitter' },
+            { name: 'External Status Pages', key: 'externalStatusPage' },
+        ],
         confirmResetModalId: uuidv4(),
     };
 
@@ -135,6 +144,8 @@ export class StatusPageLayout extends Component {
         switch (type) {
             case 'anouncement':
                 return 'This is the announment section of the status page';
+            case 'language':
+                return 'On this section you can change the status page language(default is English)';
             case 'resources':
                 return 'This section contains information of the resources status';
             case 'services':
@@ -152,10 +163,14 @@ export class StatusPageLayout extends Component {
                 return 'This section displays the announcement logs in the status page';
             case 'ongoingSchedule':
                 return 'This section contains the scheduled events that are ongoing';
+            case 'twitter':
+                return 'This section displays the most recent tweets for any twitter handle entered in advanced options';
             case 'footer':
                 return 'This section displays the footer of the status page and can not be hidden';
             case 'header':
                 return 'This section displays the header of the status page and can not be hidden';
+            case 'externalStatusPage':
+                return 'This section displays external status pages';
             default:
                 return '';
         }
@@ -174,6 +189,10 @@ export class StatusPageLayout extends Component {
                     key: 'anouncement',
                 },
                 {
+                    name: 'Language',
+                    key: 'language',
+                },
+                {
                     name: 'Ongoing Scheduled Events',
                     key: 'ongoingSchedule',
                 },
@@ -185,10 +204,13 @@ export class StatusPageLayout extends Component {
                     name: 'Future Scheduled Events',
                     key: 'maintenance',
                 },
+
                 { name: 'Footer', key: 'footer' },
             ],
             invisible: [
                 { name: 'Scheduled Events Completed', key: 'pastEvents' },
+                { name: 'Twitter Updates', key: 'twitter' },
+                { name: 'External Status Pages', key: 'externalStatusPage' },
             ],
         };
         await this.props

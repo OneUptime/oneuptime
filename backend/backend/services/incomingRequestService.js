@@ -1,6 +1,7 @@
 const IncomingRequestModel = require('../models/incomingRequest');
 const IncidentService = require('../services/incidentService');
 const MonitorService = require('../services/monitorService');
+const AlertService = require('../services/alertService');
 const ErrorService = require('../services/errorService');
 const createDOMPurify = require('dompurify');
 const jsdom = require('jsdom').jsdom;
@@ -11,29 +12,31 @@ const IncidentMessageService = require('../services/incidentMessageService');
 const IncidentPrioritiesService = require('../services/incidentPrioritiesService');
 const IncidentSettingsService = require('../services/incidentSettingsService');
 const joinNames = require('../utils/joinNames');
+const vm = require('vm');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
 // const RealTimeService = require('./realTimeService');
 
 module.exports = {
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
 
             query.deleted = false;
-            const incomingRequest = await IncomingRequestModel.findOne(query)
-                .populate({
-                    path: 'monitors.monitorId',
-                    select: 'name customFields componentId deleted',
-                    populate: {
-                        path: 'componentId',
-                        select: 'name',
-                    },
-                })
-                .populate('projectId', 'name')
-                .lean();
+            let incomingRequestQuery = IncomingRequestModel.findOne(
+                query
+            ).lean();
 
-            return incomingRequest;
+            incomingRequestQuery = handleSelect(select, incomingRequestQuery);
+            incomingRequestQuery = handlePopulate(
+                populate,
+                incomingRequestQuery
+            );
+            const result = await incomingRequestQuery;
+
+            return result;
         } catch (error) {
             ErrorService.log('incomingRequestService.findOneBy', error);
             throw error;
@@ -116,13 +119,27 @@ module.exports = {
                             : DOMPurify.sanitize(field.fieldValue),
                 }));
             }
+            data.enabled = true;
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
 
             let incomingRequest = await IncomingRequestModel.create({
                 ...data,
             });
 
             incomingRequest = await _this.findOneBy({
-                _id: incomingRequest._id,
+                query: { _id: incomingRequest._id },
+                select,
+                populate,
             });
 
             // await RealTimeService.addScheduledEvent(incomingRequest);
@@ -319,9 +336,22 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
 
             updatedIncomingRequest = await _this.findOneBy({
-                _id: query.requestId,
+                query: { _id: query.requestId },
+                select,
+                populate,
             });
 
             // await RealTimeService.updateScheduledEvent(updatedIncomingRequest);
@@ -350,7 +380,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip || isNaN(skip)) skip = 0;
 
@@ -369,22 +399,17 @@ module.exports = {
             }
 
             query.deleted = false;
-            const allIncomingRequest = await IncomingRequestModel.find(query)
+            let allIncomingRequest = IncomingRequestModel.find(query)
                 .limit(limit)
                 .skip(skip)
                 .sort({ createdAt: -1 })
-                .populate({
-                    path: 'monitors.monitorId',
-                    select: 'name customFields componentId deleted',
-                    populate: {
-                        path: 'componentId',
-                        select: 'name',
-                    },
-                })
-                .populate('projectId', 'name')
                 .lean();
 
-            return allIncomingRequest;
+            allIncomingRequest = handleSelect(select, allIncomingRequest);
+            allIncomingRequest = handlePopulate(populate, allIncomingRequest);
+            const result = await allIncomingRequest;
+
+            return result;
         } catch (error) {
             ErrorService.log('incomingRequestService.findBy', error);
             throw error;
@@ -448,7 +473,23 @@ module.exports = {
                     $set: data,
                 }
             );
-            updateIncomingRequest = await this.findBy(query);
+
+            const select =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
+
+            const populate = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
+            updateIncomingRequest = await this.findBy({
+                query,
+                select,
+                populate,
+            });
             return updateIncomingRequest;
         } catch (error) {
             ErrorService.log('incomingRequestService.updateMany', error);
@@ -475,7 +516,8 @@ module.exports = {
     removeMonitor: async function(monitorId) {
         try {
             const allIncomingRequest = await this.findBy({
-                'monitors.monitorId': monitorId,
+                query: { 'monitors.monitorId': monitorId },
+                select: 'monitors',
             });
 
             await Promise.all(
@@ -483,7 +525,9 @@ module.exports = {
                     // remove the monitor from incomingRequest monitors list
                     incomingRequest.monitors = incomingRequest.monitors.filter(
                         monitor =>
-                            String(monitor.monitorId._id) !== String(monitorId)
+                            String(
+                                monitor.monitorId._id || monitor.monitorId
+                            ) !== String(monitorId)
                     );
 
                     if (incomingRequest.monitors.length > 0) {
@@ -539,23 +583,62 @@ module.exports = {
     handleIncomingRequestAction: async function(data) {
         const _this = this;
         try {
-            const incidentPriorities = await IncidentPrioritiesService.findBy({
-                projectId: data.projectId,
-            });
-            const incidentSettings = await IncidentSettingsService.findOne({
-                projectId: data.projectId,
-                isDefault: true,
-            });
+            const selectIncPriority =
+                'projectId name color createdAt deletedAt deleted deletedById';
+            const selectIncSettings =
+                'projectId title description incidentPriority isDefault name createdAt';
+            const selectInRequest =
+                'name projectId monitors isDefault selectAllMonitors createIncident acknowledgeIncident resolveIncident updateIncidentNote updateInternalNote noteContent incidentState url enabled incidentTitle incidentType incidentPriority incidentDescription customFields filterMatch filters createSeparateIncident post_statuspage deleted';
 
-            const incomingRequest = await _this.findOneBy({
-                _id: data.requestId,
-                projectId: data.projectId,
-            });
+            const populateInRequest = [
+                {
+                    path: 'monitors.monitorId',
+                    select: 'name customFields componentId deleted',
+                    populate: [{ path: 'componentId', select: 'name' }],
+                },
+                { path: 'projectId', select: 'name' },
+            ];
+            const [
+                incidentPriorities,
+                incidentSettings,
+                incomingRequest,
+            ] = await Promise.all([
+                IncidentPrioritiesService.findBy({
+                    query: { projectId: data.projectId },
+                    select: selectIncPriority,
+                }),
+                IncidentSettingsService.findOne({
+                    query: {
+                        projectId: data.projectId,
+                        isDefault: true,
+                    },
+                    select: selectIncSettings,
+                }),
+                _this.findOneBy({
+                    query: { _id: data.requestId, projectId: data.projectId },
+                    select: selectInRequest,
+                    populate: populateInRequest,
+                }),
+            ]);
 
+            // grab value for posting to status page
+            data.post_statuspage = incomingRequest.post_statuspage
+                ? true
+                : false;
             const filterMatch = incomingRequest.filterMatch;
             const filters = incomingRequest.filters;
 
-            if (incomingRequest && incomingRequest.createIncident) {
+            if (incomingRequest && incomingRequest.enabled === false) {
+                return {
+                    status: 'disabled',
+                };
+            }
+
+            if (
+                incomingRequest &&
+                incomingRequest.createIncident &&
+                incomingRequest.enabled
+            ) {
                 const incidentResponse = [],
                     monitorsWithIncident = [];
 
@@ -583,7 +666,12 @@ module.exports = {
                 let monitors = [];
                 if (incomingRequest.selectAllMonitors) {
                     monitors = await MonitorService.findBy({
-                        projectId: data.projectId,
+                        query: { projectId: data.projectId },
+                        select: '_id customFields componentId projectId name',
+                        populate: [
+                            { path: 'componentId', select: 'name' },
+                            { path: 'projectId', select: 'name' },
+                        ],
                     });
                 } else {
                     monitors = incomingRequest.monitors
@@ -599,7 +687,7 @@ module.exports = {
                             const dataConfig = {
                                 request: data.request,
                             };
-                            filter.filterText = handleVariable(
+                            filter.filterText = analyseVariable(
                                 filter.filterText,
                                 dataConfig
                             );
@@ -719,30 +807,35 @@ module.exports = {
                                 ) {
                                     _incident = await IncidentService.findOneBy(
                                         {
-                                            customFields: {
-                                                $elemMatch: {
-                                                    fieldName: field.fieldName,
-                                                    fieldType: field.fieldType,
-                                                    uniqueField:
-                                                        field.uniqueField,
-                                                    fieldValue: handleVariable(
-                                                        field.fieldValue,
-                                                        dataConfig
-                                                    ),
+                                            query: {
+                                                customFields: {
+                                                    $elemMatch: {
+                                                        fieldName:
+                                                            field.fieldName,
+                                                        fieldType:
+                                                            field.fieldType,
+                                                        uniqueField:
+                                                            field.uniqueField,
+                                                        fieldValue: analyseVariable(
+                                                            field.fieldValue,
+                                                            dataConfig
+                                                        ),
+                                                    },
                                                 },
                                             },
+                                            select: '_id',
                                         }
                                     );
                                 }
                             }
                         }
 
-                        data.title = handleVariable(data.title, dataConfig);
-                        data.description = handleVariable(
+                        data.title = analyseVariable(data.title, dataConfig);
+                        data.description = analyseVariable(
                             data.description,
                             dataConfig
                         );
-                        const incidentType = handleVariable(
+                        const incidentType = analyseVariable(
                             data.incidentType,
                             dataConfig
                         ).toLowerCase();
@@ -754,7 +847,7 @@ module.exports = {
                             ? incidentType
                             : 'offline';
 
-                        const incidentPriority = handleVariable(
+                        const incidentPriority = analyseVariable(
                             data.incidentPriority,
                             dataConfig
                         ).toLowerCase();
@@ -770,7 +863,7 @@ module.exports = {
 
                         data.customFields = data.customFields.map(field => ({
                             ...field,
-                            fieldValue: handleVariable(
+                            fieldValue: analyseVariable(
                                 String(field.fieldValue),
                                 dataConfig
                             ),
@@ -824,29 +917,34 @@ module.exports = {
                                 ) {
                                     _incident = await IncidentService.findOneBy(
                                         {
-                                            customFields: {
-                                                $elemMatch: {
-                                                    fieldName: field.fieldName,
-                                                    fieldType: field.fieldType,
-                                                    uniqueField:
-                                                        field.uniqueField,
-                                                    fieldValue: handleVariable(
-                                                        field.fieldValue,
-                                                        dataConfig
-                                                    ),
+                                            query: {
+                                                customFields: {
+                                                    $elemMatch: {
+                                                        fieldName:
+                                                            field.fieldName,
+                                                        fieldType:
+                                                            field.fieldType,
+                                                        uniqueField:
+                                                            field.uniqueField,
+                                                        fieldValue: analyseVariable(
+                                                            field.fieldValue,
+                                                            dataConfig
+                                                        ),
+                                                    },
                                                 },
                                             },
+                                            select: '_id',
                                         }
                                     );
                                 }
                             }
                         }
-                        data.title = handleVariable(data.title, dataConfig);
-                        data.description = handleVariable(
+                        data.title = analyseVariable(data.title, dataConfig);
+                        data.description = analyseVariable(
                             data.description,
                             dataConfig
                         );
-                        const incidentType = handleVariable(
+                        const incidentType = analyseVariable(
                             data.incidentType,
                             dataConfig
                         ).toLowerCase();
@@ -858,7 +956,7 @@ module.exports = {
                             ? incidentType
                             : 'offline';
 
-                        const incidentPriority = handleVariable(
+                        const incidentPriority = analyseVariable(
                             data.incidentPriority,
                             dataConfig
                         ).toLowerCase();
@@ -874,7 +972,7 @@ module.exports = {
 
                         data.customFields = data.customFields.map(field => ({
                             ...field,
-                            fieldValue: handleVariable(
+                            fieldValue: analyseVariable(
                                 String(field.fieldValue),
                                 dataConfig
                             ),
@@ -905,6 +1003,7 @@ module.exports = {
 
             if (
                 incomingRequest &&
+                incomingRequest.enabled &&
                 (incomingRequest.updateIncidentNote ||
                     incomingRequest.updateInternalNote)
             ) {
@@ -919,9 +1018,36 @@ module.exports = {
 
                 let incidents = [],
                     updatedFilters = [];
+                const populate = [
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name slug componentId projectId type',
+                        populate: [
+                            { path: 'componentId', select: 'name slug' },
+                            { path: 'projectId', select: 'name slug' },
+                        ],
+                    },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'acknowledgedBy', select: 'name' },
+                    { path: 'incidentPriority', select: 'name color' },
+                    {
+                        path: 'acknowledgedByIncomingHttpRequest',
+                        select: 'name',
+                    },
+                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                    { path: 'createdByIncomingHttpRequest', select: 'name' },
+                    { path: 'probes.probeId', select: 'name _id' },
+                ];
+                const select =
+                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
                 if (!filters || filters.length === 0) {
                     incidents = await IncidentService.findBy({
-                        projectId: incomingRequest.projectId,
+                        query: { projectId: incomingRequest.projectId },
+                        select,
+                        populate,
                     });
                 } else {
                     updatedFilters = filters.map(filter => {
@@ -929,7 +1055,7 @@ module.exports = {
                             const dataConfig = {
                                 request: data.request,
                             };
-                            filter.filterText = handleVariable(
+                            filter.filterText = analyseVariable(
                                 filter.filterText,
                                 dataConfig
                             );
@@ -974,18 +1100,28 @@ module.exports = {
                                     filterCriteria === 'incidentId'
                                 ) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: data.incidentId,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            idNumber: data.incidentId,
+                                        },
+                                        select,
+                                        populate,
                                     });
                                 }
 
                                 if (data.fieldName && data.fieldValue) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue':
-                                            data.fieldValue,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            'customFields.fieldName':
+                                                data.fieldName,
+                                            'customFields.fieldValue':
+                                                data.fieldValue,
+                                        },
+                                        select,
+                                        populate,
                                     });
                                 }
                             }
@@ -996,19 +1132,29 @@ module.exports = {
                                     filterCriteria === 'incidentId'
                                 ) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: { $ne: data.incidentId },
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            idNumber: { $ne: data.incidentId },
+                                        },
+                                        select,
+                                        populate,
                                     });
                                 }
 
                                 if (data.fieldName && data.fieldValue) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue': {
-                                            $ne: data.fieldValue,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            'customFields.fieldName':
+                                                data.fieldName,
+                                            'customFields.fieldValue': {
+                                                $ne: data.fieldValue,
+                                            },
                                         },
+                                        select,
+                                        populate,
                                     });
                                 }
                             }
@@ -1024,11 +1170,15 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $lt: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $lt: data.incidentId,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1036,13 +1186,17 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $lt: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $lt: data.fieldValue,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1053,11 +1207,15 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $gt: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $gt: data.incidentId,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1065,13 +1223,17 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $gt: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $gt: data.fieldValue,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1084,11 +1246,15 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $lte: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $lte: data.incidentId,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1096,13 +1262,17 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $lte: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $lte: data.fieldValue,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1115,11 +1285,15 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $gte: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $gte: data.incidentId,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1127,13 +1301,17 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $gte: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $gte: data.fieldValue,
+                                                    },
                                                 },
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1276,12 +1454,53 @@ module.exports = {
 
                 if (incidents && incidents.length > 0) {
                     for (const incident of incidents) {
+                        const monitors = incident.monitors.map(
+                            monitorObj => monitorObj.monitorId
+                        );
+                        const monitorNames = monitors.map(
+                            monitor => monitor.name
+                        );
+                        const componentNames = [];
+                        monitors.forEach(monitor => {
+                            if (
+                                !componentNames.includes(
+                                    monitor.componentId.name
+                                )
+                            ) {
+                                componentNames.push(monitor.componentId.name);
+                            }
+                        });
+                        const dataConfig = {
+                            monitorName: joinNames(monitorNames),
+                            projectName: incomingRequest.projectId.name,
+                            componentName: joinNames(componentNames),
+                            request: data.request,
+                        };
+
+                        // update the data with actual values (only for templates)
+                        data.content = analyseVariable(
+                            data.content,
+                            dataConfig
+                        );
+                        data.incident_state = analyseVariable(
+                            data.incident_state,
+                            dataConfig
+                        );
+
                         data.incidentId = incident._id;
                         if (!incidentsWithNote.includes(String(incident._id))) {
                             data.monitors = incident.monitors.map(
                                 monitor => monitor.monitorId
                             );
                             await IncidentMessageService.create(data);
+                            if (data.post_statuspage) {
+                                AlertService.sendInvestigationNoteToSubscribers(
+                                    incident,
+                                    data,
+                                    'created',
+                                    data.projectId
+                                );
+                            }
                             noteResponse.push(incident);
                             incidentsWithNote.push(String(incident._id));
                         } else {
@@ -1289,6 +1508,14 @@ module.exports = {
                                 monitor => monitor.monitorId
                             );
                             await IncidentMessageService.create(data);
+                            if (data.post_statuspage) {
+                                AlertService.sendInvestigationNoteToSubscribers(
+                                    incident,
+                                    data,
+                                    'created',
+                                    data.projectId
+                                );
+                            }
                             noteResponse.push(incident);
                         }
                     }
@@ -1302,6 +1529,7 @@ module.exports = {
 
             if (
                 incomingRequest &&
+                incomingRequest.enabled &&
                 (incomingRequest.acknowledgeIncident ||
                     incomingRequest.resolveIncident)
             ) {
@@ -1322,10 +1550,39 @@ module.exports = {
 
                 let incidents = [],
                     updatedFilters = [];
+                const populate = [
+                    {
+                        path: 'monitors.monitorId',
+                        select: 'name slug componentId projectId type',
+                        populate: [
+                            { path: 'componentId', select: 'name slug' },
+                            { path: 'projectId', select: 'name slug' },
+                        ],
+                    },
+                    { path: 'createdById', select: 'name' },
+                    { path: 'projectId', select: 'name slug' },
+                    { path: 'resolvedBy', select: 'name' },
+                    { path: 'acknowledgedBy', select: 'name' },
+                    { path: 'incidentPriority', select: 'name color' },
+                    {
+                        path: 'acknowledgedByIncomingHttpRequest',
+                        select: 'name',
+                    },
+                    { path: 'resolvedByIncomingHttpRequest', select: 'name' },
+                    { path: 'createdByIncomingHttpRequest', select: 'name' },
+                    { path: 'probes.probeId', select: 'name _id' },
+                ];
+                const select =
+                    'notifications acknowledgedByIncomingHttpRequest resolvedByIncomingHttpRequest _id monitors createdById projectId createdByIncomingHttpRequest incidentType resolved resolvedBy acknowledged acknowledgedBy title description incidentPriority criterionCause probes acknowledgedAt resolvedAt manuallyCreated deleted customFields idNumber';
+
                 if (!filters || filters.length === 0) {
                     incidents = await IncidentService.findBy({
-                        projectId: incomingRequest.projectId,
-                        ...incidentQuery,
+                        query: {
+                            projectId: incomingRequest.projectId,
+                            ...incidentQuery,
+                        },
+                        select,
+                        populate,
                     });
                 } else {
                     updatedFilters = filters.map(filter => {
@@ -1333,7 +1590,7 @@ module.exports = {
                             const dataConfig = {
                                 request: data.request,
                             };
-                            filter.filterText = handleVariable(
+                            filter.filterText = analyseVariable(
                                 filter.filterText,
                                 dataConfig
                             );
@@ -1375,20 +1632,30 @@ module.exports = {
                             if (filterCondition === 'equalTo') {
                                 if (data.incidentId) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: data.incidentId,
-                                        ...incidentQuery,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            idNumber: data.incidentId,
+                                            ...incidentQuery,
+                                        },
+                                        select,
+                                        populate,
                                     });
                                 }
 
                                 if (data.fieldName && data.fieldValue) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue':
-                                            data.fieldValue,
-                                        ...incidentQuery,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            'customFields.fieldName':
+                                                data.fieldName,
+                                            'customFields.fieldValue':
+                                                data.fieldValue,
+                                            ...incidentQuery,
+                                        },
+                                        select,
+                                        populate,
                                     });
                                 }
                             }
@@ -1396,21 +1663,31 @@ module.exports = {
                             if (filterCondition === 'notEqualTo') {
                                 if (data.incidentId) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        idNumber: { $ne: data.incidentId },
-                                        ...incidentQuery,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            idNumber: { $ne: data.incidentId },
+                                            ...incidentQuery,
+                                        },
+                                        select,
+                                        populate,
                                     });
                                 }
 
                                 if (data.fieldName && data.fieldValue) {
                                     incidents = await IncidentService.findBy({
-                                        projectId: incomingRequest.projectId,
-                                        'customFields.fieldName':
-                                            data.fieldName,
-                                        'customFields.fieldValue': {
-                                            $ne: data.fieldValue,
+                                        query: {
+                                            projectId:
+                                                incomingRequest.projectId,
+                                            'customFields.fieldName':
+                                                data.fieldName,
+                                            'customFields.fieldValue': {
+                                                $ne: data.fieldValue,
+                                            },
+                                            ...incidentQuery,
                                         },
-                                        ...incidentQuery,
+                                        select,
+                                        populate,
                                     });
                                 }
                             }
@@ -1426,12 +1703,16 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $lt: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $lt: data.incidentId,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1439,14 +1720,18 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $lt: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $lt: data.fieldValue,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1457,12 +1742,16 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $gt: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $gt: data.incidentId,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1470,14 +1759,18 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $gt: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $gt: data.fieldValue,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1490,12 +1783,16 @@ module.exports = {
                                     ) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $lte: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $lte: data.incidentId,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1503,14 +1800,18 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $lte: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $lte: data.fieldValue,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1520,12 +1821,16 @@ module.exports = {
                                     if (data.incidentId) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                idNumber: {
-                                                    $gte: data.incidentId,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    idNumber: {
+                                                        $gte: data.incidentId,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1533,14 +1838,18 @@ module.exports = {
                                     if (data.fieldName && data.fieldValue) {
                                         incidents = await IncidentService.findBy(
                                             {
-                                                projectId:
-                                                    incomingRequest.projectId,
-                                                'customFields.fieldName':
-                                                    data.fieldName,
-                                                'customFields.fieldValue': {
-                                                    $gte: data.fieldValue,
+                                                query: {
+                                                    projectId:
+                                                        incomingRequest.projectId,
+                                                    'customFields.fieldName':
+                                                        data.fieldName,
+                                                    'customFields.fieldValue': {
+                                                        $gte: data.fieldValue,
+                                                    },
+                                                    ...incidentQuery,
                                                 },
-                                                ...incidentQuery,
+                                                select,
+                                                populate,
                                             }
                                         );
                                     }
@@ -1812,54 +2121,49 @@ function isArrayUnique(myArray) {
  * @param {string} variable template like string eg: {{request.body.name}}
  * @param {object} data an object containing the key-value pairs to work with
  */
-function handleVariable(variable, data) {
-    const regex = /\{\{([^}]+)\}\}/g;
 
-    if (regex.test(variable)) {
-        variable = variable.replace(regex, function(match) {
-            // Remove the wrapping curly braces
+// if for example request.body.name is passed without the double curly braces,
+// it should work as expected and return the value
+function analyseVariable(variable, data) {
+    try {
+        const matchRegex = /[^{{]+(?=}\})/g;
+        const replaceRegex = /\{\{([^}]+)\}\}/g;
+
+        const matched = variable.match(matchRegex);
+        if (!matched || matched.length === 0) {
+            // handles the part where variable is passed without double curly braces
+            return variable;
+        }
+
+        let ctx = Object.create(null); // fix against prototype vulnerability
+        ctx = { ...data };
+
+        const processedValues = matched.map(item =>
+            vm.runInNewContext(item, ctx)
+        );
+
+        if (!processedValues || processedValues.length === 0) {
+            // empty value means that the probable value(s) are not available in the data object
+            // therefore return the original variable back
+            return variable;
+        }
+
+        // remove any double currly braces from variable
+        variable = variable.replace(replaceRegex, function(match) {
             match = match.slice(2, -2);
-
-            // Check if the item has sub-properties
-            const sub = match.split('.');
-
-            // If the item has a sub-property, loop through until you get it
-            if (sub.length > 1) {
-                let temp = data;
-                const altSub = [];
-                sub.forEach(item => {
-                    if (item.indexOf('[') >= 0) {
-                        const key = item.slice(0, item.indexOf('['));
-                        const arrayIndex = item.slice(item.indexOf('['));
-
-                        altSub.push(key);
-                        // grab all the numeric values from the index
-                        const index = arrayIndex
-                            .replace(/[[\]]+/g, '')
-                            .split('');
-                        altSub.push(...index);
-                    } else {
-                        altSub.push(item);
-                    }
-                });
-
-                altSub.forEach(function(item) {
-                    // Make sure the item exists
-                    if (!temp[item]) {
-                        temp = '{{' + match + '}}';
-                        return;
-                    }
-
-                    // Update temp
-                    temp = temp[item];
-                });
-
-                return temp;
-            } else {
-                if (!data[match]) return '{{' + match + '}}';
-                return data[match];
-            }
+            return match;
         });
+
+        // replace variable with processedValues
+        let currentValue = variable;
+        matched.forEach((item, index) => {
+            currentValue = currentValue.replace(item, processedValues[index]);
+        });
+
+        return currentValue;
+    } catch (error) {
+        // at this point it was unable to resolve this
+        // return the variable back
+        return variable;
     }
-    return variable;
 }

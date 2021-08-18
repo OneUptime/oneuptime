@@ -6,21 +6,34 @@ const ContainerSecurityLogService = require('./containerSecurityLogService');
 const DockerCredentialService = require('./dockerCredentialService');
 const ResourceCategoryService = require('./resourceCategoryService');
 const getSlug = require('../utils/getSlug');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
+const RealTimeService = require('./realTimeService');
 
 module.exports = {
     create: async function(data) {
         try {
-            const containerNameExist = await this.findOneBy({
-                name: data.name,
-                componentId: data.componentId,
-            });
-            const imagePathExist = await this.findOneBy({
-                imagePath: data.imagePath,
-                componentId: data.componentId,
-            });
-            const dockerCredentialExist = await DockerCredentialService.findOneBy(
-                { _id: data.dockerCredential }
-            );
+            const [
+                containerNameExist,
+                imagePathExist,
+                dockerCredentialExist,
+            ] = await Promise.all([
+                this.findOneBy({
+                    query: { name: data.name, componentId: data.componentId },
+                    select: '_id',
+                }),
+                this.findOneBy({
+                    query: {
+                        imagePath: data.imagePath,
+                        componentId: data.componentId,
+                    },
+                    select: '_id',
+                }),
+                DockerCredentialService.findOneBy({
+                    query: { _id: data.dockerCredential },
+                    select: '_id',
+                }),
+            ]);
 
             if (containerNameExist) {
                 const error = new Error(
@@ -45,10 +58,12 @@ module.exports = {
                 error.code = 400;
                 throw error;
             }
-            const resourceCategory = await ResourceCategoryService.findBy({
-                _id: data.resourceCategory,
-            });
-            if (!resourceCategory) {
+            const resourceCategoryCount = await ResourceCategoryService.countBy(
+                {
+                    _id: data.resourceCategory,
+                }
+            );
+            if (!resourceCategoryCount || resourceCategoryCount === 0) {
                 delete data.resourceCategory;
             }
             data.slug = getSlug(data.name);
@@ -59,27 +74,31 @@ module.exports = {
             throw error;
         }
     },
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) query = {};
 
             if (!query.deleted) query.deleted = false;
 
             // won't be using lean() here because of iv cypher for password
-            const containerSecurity = await ContainerSecurityModel.findOne(
-                query
-            )
-                .populate('componentId')
-                .populate('resourceCategory', 'name')
-                .populate('dockerCredential');
+            let containerSecurityQuery = ContainerSecurityModel.findOne(query);
+            containerSecurityQuery = handleSelect(
+                select,
+                containerSecurityQuery
+            );
+            containerSecurityQuery = handlePopulate(
+                populate,
+                containerSecurityQuery
+            );
 
+            const containerSecurity = await containerSecurityQuery;
             return containerSecurity;
         } catch (error) {
             ErrorService.log('containerSecurityService.findOneBy', error);
             throw error;
         }
     },
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -94,14 +113,20 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
 
             // won't be using lean() here because of iv cypher for password
-            const containerSecurities = await ContainerSecurityModel.find(query)
+            let containerSecurityQuery = ContainerSecurityModel.find(query)
                 .sort([['createdAt', -1]])
                 .limit(limit)
-                .skip(skip)
-                .populate('componentId')
-                .populate('resourceCategory', 'name')
-                .populate('dockerCredential');
+                .skip(skip);
+            containerSecurityQuery = handleSelect(
+                select,
+                containerSecurityQuery
+            );
+            containerSecurityQuery = handlePopulate(
+                populate,
+                containerSecurityQuery
+            );
 
+            const containerSecurities = await containerSecurityQuery;
             return containerSecurities;
         } catch (error) {
             ErrorService.log('containerSecurityService.findBy', error);
@@ -145,8 +170,21 @@ module.exports = {
                 throw error;
             }
 
+            const populate = [
+                { path: 'componentId', select: 'name slug _id' },
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'dockerCredential',
+                    select:
+                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                },
+            ];
+            const select =
+                'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
             containerSecurity = this.findOneBy({
-                _id: containerSecurity._id,
+                query: { _id: containerSecurity._id },
+                select,
+                populate,
             });
             return containerSecurity;
         } catch (error) {
@@ -156,7 +194,10 @@ module.exports = {
     },
     deleteBy: async function(query) {
         try {
-            let containerSecurity = await this.findOneBy(query);
+            let containerSecurity = await this.findOneBy({
+                query,
+                select: '_id',
+            });
 
             if (!containerSecurity) {
                 const error = new Error(
@@ -167,7 +208,8 @@ module.exports = {
             }
 
             const securityLog = await ContainerSecurityLogService.findOneBy({
-                securityId: containerSecurity._id,
+                query: { securityId: containerSecurity._id },
+                select: '_id',
             });
 
             if (securityLog) {
@@ -182,8 +224,8 @@ module.exports = {
             });
 
             containerSecurity = await this.findOneBy({
-                ...query,
-                deleted: true,
+                query: { ...query, deleted: true },
+                select: '_id name slug',
             });
             return containerSecurity;
         } catch (error) {
@@ -205,9 +247,24 @@ module.exports = {
             const oneDay = moment()
                 .subtract(1, 'days')
                 .toDate();
+            const populate = [
+                { path: 'componentId', select: 'name slug _id' },
+                { path: 'resourceCategory', select: 'name' },
+                {
+                    path: 'dockerCredential',
+                    select:
+                        'dockerRegistryUrl dockerUsername dockerPassword iv projectId',
+                },
+            ];
+            const select =
+                'componentId resourceCategory dockerCredential name slug imagePath imageTags lastScan scanned scanning';
             const securities = await this.findBy({
-                $or: [{ lastScan: { $lt: oneDay } }, { scanned: false }],
-                scanning: false,
+                query: {
+                    $or: [{ lastScan: { $lt: oneDay } }, { scanned: false }],
+                    scanning: false,
+                },
+                select,
+                populate,
             });
             return securities;
         } catch (error) {
@@ -242,10 +299,8 @@ module.exports = {
                 scanned: true,
                 scanning: false,
             });
-            global.io.emit(
-                `security_${containerSecurity._id}`,
-                containerSecurity
-            );
+
+            RealTimeService.handleScanning({ security: containerSecurity });
             return containerSecurity;
         } catch (error) {
             ErrorService.log('containerSecurityService.updateScanTime', error);

@@ -4,7 +4,15 @@ module.exports = {
             const query = {};
             if (data.monitorId) query.monitorId = data.monitorId;
             if (data.probeId) query.probeId = data.probeId;
-            const previousMonitorStatus = await this.findOneBy(query);
+
+            const select = '_id status lastStatus';
+            let previousMonitorStatus = await this.findBy({
+                query,
+                limit: 1,
+                select,
+            });
+            previousMonitorStatus = previousMonitorStatus[0];
+
             if (
                 !previousMonitorStatus ||
                 (previousMonitorStatus &&
@@ -53,6 +61,68 @@ module.exports = {
         }
     },
 
+    // allData is an array of object
+    // to be bulk written to the db
+    createMany: async function(allData) {
+        try {
+            const dataList = [];
+            for (const data of allData) {
+                const query = {};
+                if (data.monitorId) query.monitorId = data.monitorId;
+                if (data.probeId) query.probeId = data.probeId;
+
+                const select = '_id status lastStatus';
+                let previousMonitorStatus = await this.findBy({
+                    query,
+                    limit: 1,
+                    select,
+                });
+                previousMonitorStatus = previousMonitorStatus[0];
+
+                if (
+                    !previousMonitorStatus ||
+                    (previousMonitorStatus &&
+                        previousMonitorStatus.status !== data.status)
+                ) {
+                    // check if monitor has a previous status
+                    // check if previous status is different from the current status
+                    // if different, end the previous status and create a new monitor status
+                    if (previousMonitorStatus) {
+                        if (
+                            data.status === 'enable' &&
+                            previousMonitorStatus.status === 'disabled' &&
+                            previousMonitorStatus.lastStatus
+                        ) {
+                            data.status = previousMonitorStatus.lastStatus;
+                        }
+                        await this.updateOneBy(
+                            {
+                                _id: previousMonitorStatus._id,
+                            },
+                            {
+                                endTime: Date.now(),
+                            }
+                        );
+                    }
+
+                    dataList.push(data);
+                }
+            }
+            const _this = this;
+            if (dataList.length > 0) {
+                const docs = await MonitorStatusModel.insertMany(dataList);
+                // we don't want to await this ):
+                docs.forEach(doc => _this.sendMonitorStatus(doc));
+
+                return docs;
+            }
+            return null;
+        } catch (error) {
+            ErrorService.log('MonitorStatusService.createMany', error);
+            throw error;
+        }
+    },
+
     updateOneBy: async function(query, data) {
         try {
             if (!query) {
@@ -85,7 +155,9 @@ module.exports = {
             let updatedData = await MonitorStatusModel.updateMany(query, {
                 $set: data,
             });
-            updatedData = await this.findBy(query);
+            const select =
+                '_id monitorId probeId incidentId status manuallyCreated startTime endTime lastStatus createdAt deleted';
+            updatedData = await this.findBy({ query, select });
             return updatedData;
         } catch (error) {
             ErrorService.log('MonitorStatusService.updateMany', error);
@@ -93,7 +165,7 @@ module.exports = {
         }
     },
 
-    findBy: async function(query, limit, skip) {
+    findBy: async function({ query, limit, skip, select, populate }) {
         try {
             if (!skip) skip = 0;
 
@@ -110,13 +182,22 @@ module.exports = {
             if (!query) {
                 query = {};
             }
-            query.deleted = false;
 
-            const monitorStatus = await MonitorStatusModel.find(query)
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
+
+            let monitorStatusQuery = MonitorStatusModel.find(query)
                 .lean()
                 .sort({ createdAt: -1 })
                 .limit(limit)
                 .skip(skip);
+            monitorStatusQuery = handleSelect(select, monitorStatusQuery);
+            monitorStatusQuery = handlePopulate(populate, monitorStatusQuery);
+
+            const monitorStatus = await monitorStatusQuery;
             return monitorStatus;
         } catch (error) {
             ErrorService.log('monitorStatusService.findBy', error);
@@ -124,20 +205,22 @@ module.exports = {
         }
     },
 
-    findOneBy: async function(query) {
+    findOneBy: async function({ query, select, populate }) {
         try {
             if (!query) {
                 query = {};
             }
-            query.deleted = false;
+            if (!query.deleted)
+                query.$or = [
+                    { deleted: false },
+                    { deleted: { $exists: false } },
+                ];
 
-            const monitorStatus = await MonitorStatusModel.findOne(
-                query,
-                {},
-                {
-                    sort: { createdAt: -1 },
-                }
-            ).lean();
+            let monitorStatusQuery = MonitorStatusModel.findOne(query).lean();
+            monitorStatusQuery = handleSelect(select, monitorStatusQuery);
+            monitorStatusQuery = handlePopulate(populate, monitorStatusQuery);
+
+            const monitorStatus = await monitorStatusQuery;
             return monitorStatus;
         } catch (error) {
             ErrorService.log('MonitorStatusService.findOneBy', error);
@@ -148,10 +231,13 @@ module.exports = {
     async sendMonitorStatus(data) {
         try {
             const monitor = await MonitorService.findOneBy({
-                _id: data.monitorId,
+                query: { _id: data.monitorId },
+                select: 'projectId',
+                populate: [{ path: 'projectId', select: '_id' }],
             });
             if (monitor) {
-                await RealTimeService.updateMonitorStatus(
+                // run in the background
+                RealTimeService.updateMonitorStatus(
                     data,
                     monitor.projectId._id
                 );
@@ -214,3 +300,5 @@ const MonitorStatusModel = require('../models/monitorStatus');
 const MonitorService = require('../services/monitorService');
 const RealTimeService = require('./realTimeService');
 const ErrorService = require('../services/errorService');
+const handleSelect = require('../utils/select');
+const handlePopulate = require('../utils/populate');
