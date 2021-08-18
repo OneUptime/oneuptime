@@ -23,11 +23,13 @@ router.get('/:userId', getUser, isAuthorized, async function(req, res) {
         if (!limit) {
             limit = 10;
         }
-        const historyLogs = await loginHistoryService.findBy(
-            { userId },
+        const select = 'userId createdAt ipLocation device status';
+        const historyLogs = await loginHistoryService.findBy({
+            query: { userId },
             skip,
-            limit
-        );
+            limit,
+            select,
+        });
 
         return sendItemResponse(req, res, historyLogs);
     } catch (error) {

@@ -3,10 +3,9 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { reduxForm } from 'redux-form';
 import { connect } from 'react-redux';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 import moment from 'moment';
 import { history } from '../../store';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 import {
     teamDelete,
@@ -20,14 +19,14 @@ import ProjectRemoveUserModal from './ProjectRemoveUserModal';
 import ShouldRender from '../basic/ShouldRender';
 import DataPathHoC from '../DataPathHoC';
 import { TeamListLoader } from '../basic/Loader';
-import '@trendmicro/react-dropdown/dist/react-dropdown.css';
+import DropDownMenu from '../basic/DropDownMenu';
 
 class ProjectUser extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            addUserId: uuid.v4(),
-            removeUserModalId: uuid.v4(),
+            addUserId: uuidv4(),
+            removeUserModalId: uuidv4(),
         };
     }
     handleClick = () => {
@@ -49,7 +48,7 @@ class ProjectUser extends Component {
         } else {
             data.role = to;
         }
-        const { changeUserProjectRole, projectId, userUpdateRole } = this.props;
+        const { projectId, changeUserProjectRole, userUpdateRole } = this.props;
         userUpdateRole(projectId, data).then(team =>
             changeUserProjectRole(team.data)
         );
@@ -147,123 +146,115 @@ class ProjectUser extends Component {
                                         }
                                     >
                                         <div className="Flex-flex Flex-alignContent--spaceBetween">
-                                            <Dropdown
-                                                disabled={
-                                                    updateUsers.requesting &&
-                                                    updateUsers.updating.includes(
-                                                        user.userId
+                                            <ShouldRender
+                                                if={
+                                                    !(
+                                                        updateUsers.requesting &&
+                                                        updateUsers.updating.includes(
+                                                            user.userId
+                                                        )
                                                     )
                                                 }
                                             >
-                                                {!(
-                                                    updateUsers.requesting &&
-                                                    updateUsers.updating.includes(
-                                                        user.userId
-                                                    )
-                                                ) && (
-                                                    <Dropdown.Toggle
-                                                        id={`changeRole_${
-                                                            user.email.split(
-                                                                '@'
-                                                            )[0]
-                                                        }`}
-                                                        title="Change Role"
-                                                        className="bs-Button bs-DeprecatedButton"
-                                                    />
-                                                )}
-                                                {updateUsers.requesting &&
-                                                    updateUsers.updating.includes(
-                                                        user.userId
-                                                    ) && (
-                                                        <button
-                                                            disabled={
-                                                                updateUsers.requesting &&
-                                                                updateUsers.updating.includes(
-                                                                    user.userId
-                                                                )
-                                                            }
-                                                            className="bs-Button bs-DeprecatedButton Margin-left--8"
-                                                            type="button"
-                                                        >
-                                                            <TeamListLoader />
-                                                        </button>
-                                                    )}
-
-                                                <Dropdown.Menu>
-                                                    <MenuItem
-                                                        title="Owner"
-                                                        onClick={handleSubmit(
-                                                            values =>
+                                                <DropDownMenu
+                                                    options={[
+                                                        {
+                                                            value: 'Owner',
+                                                            show: true,
+                                                        },
+                                                        {
+                                                            value:
+                                                                'Administrator',
+                                                            show: true,
+                                                        },
+                                                        {
+                                                            value: 'Member',
+                                                            show: true,
+                                                        },
+                                                        {
+                                                            value: 'Viewer',
+                                                            show: true,
+                                                        },
+                                                    ]}
+                                                    value={'Change Role'}
+                                                    id={`changeRole_${
+                                                        user.email.split('@')[0]
+                                                    }`}
+                                                    title="Change Role"
+                                                    updateState={val => {
+                                                        switch (val) {
+                                                            case 'Owner':
                                                                 this.updateTeamMemberRole(
                                                                     {
-                                                                        ...values,
                                                                         role:
                                                                             user.role,
                                                                         userId:
                                                                             user.userId,
                                                                     },
                                                                     'Owner'
-                                                                )
-                                                        )}
-                                                    >
-                                                        Owner
-                                                    </MenuItem>
-                                                    <MenuItem
-                                                        title="Administrator"
-                                                        onClick={handleSubmit(
-                                                            values =>
+                                                                );
+                                                                break;
+                                                            case 'Administrator':
                                                                 this.updateTeamMemberRole(
                                                                     {
-                                                                        ...values,
                                                                         role:
                                                                             user.role,
                                                                         userId:
                                                                             user.userId,
                                                                     },
                                                                     'Administrator'
-                                                                )
-                                                        )}
-                                                    >
-                                                        Administrator
-                                                    </MenuItem>
-                                                    <MenuItem
-                                                        title="Member"
-                                                        onClick={handleSubmit(
-                                                            values =>
+                                                                );
+                                                                break;
+                                                            case 'Member':
                                                                 this.updateTeamMemberRole(
                                                                     {
-                                                                        ...values,
                                                                         role:
                                                                             user.role,
                                                                         userId:
                                                                             user.userId,
                                                                     },
                                                                     'Member'
-                                                                )
-                                                        )}
-                                                    >
-                                                        Member
-                                                    </MenuItem>
-                                                    <MenuItem
-                                                        title="Viewer"
-                                                        onClick={handleSubmit(
-                                                            values =>
+                                                                );
+                                                                break;
+                                                            case 'Viewer':
                                                                 this.updateTeamMemberRole(
                                                                     {
-                                                                        ...values,
                                                                         role:
                                                                             user.role,
                                                                         userId:
                                                                             user.userId,
                                                                     },
                                                                     'Viewer'
-                                                                )
-                                                        )}
-                                                    >
-                                                        Viewer
-                                                    </MenuItem>
-                                                </Dropdown.Menu>
-                                            </Dropdown>
+                                                                );
+                                                                break;
+                                                            default:
+                                                                null;
+                                                                break;
+                                                        }
+                                                    }}
+                                                />
+                                            </ShouldRender>
+                                            <ShouldRender
+                                                if={
+                                                    updateUsers.requesting &&
+                                                    updateUsers.updating.includes(
+                                                        user.userId
+                                                    )
+                                                }
+                                            >
+                                                <button
+                                                    disabled={
+                                                        updateUsers.requesting &&
+                                                        updateUsers.updating.includes(
+                                                            user.userId
+                                                        )
+                                                    }
+                                                    className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                                    type="button"
+                                                >
+                                                    <TeamListLoader />
+                                                </button>
+                                            </ShouldRender>
                                             <button
                                                 id={`removeMember__${
                                                     user.email.split('@')[0]

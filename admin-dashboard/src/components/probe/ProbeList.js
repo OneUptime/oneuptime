@@ -9,7 +9,7 @@ import ShouldRender from '../basic/ShouldRender';
 import { openModal, closeModal } from '../../actions/modal';
 import { updateProbe } from '../../actions/probe';
 import ProbeDeleteModal from './ProbeDeleteModal';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { reduxForm, Field } from 'redux-form';
 import { UploadFile } from '../basic/UploadFile';
 import { API_URL } from '../../config';
@@ -18,7 +18,7 @@ export class ProbeList extends Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = { deleteModalId: uuid.v4(), selectedProbe: '' };
+        this.state = { deleteModalId: uuidv4(), selectedProbe: '' };
     }
 
     handleClick = probeId => {
