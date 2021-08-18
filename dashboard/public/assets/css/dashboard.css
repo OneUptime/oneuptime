@@ -35490,7 +35490,6 @@ padding-left:20px
   position: absolute;
   top: 100%;
   left: 0;
-  width: 150px;
   z-index: 5;
   border: 1px solid rgba(0, 0, 0, 0.04);
   box-shadow: 0 0 0 2px rgba(50, 50, 93, 0.1), 0 2px 5px 0 rgba(50, 50, 93, 0.08), 0 1px 1.5px 0 rgba(0, 0, 0, 0.07), 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 0 0 0 transparent;
@@ -35500,10 +35499,10 @@ padding-left:20px
   list-style: none;
   padding: 0;
   margin: 0;
-
 }
 
 .ddm-dropdown-menu__item {
+  display: flex;
   padding: 8px 12px;
 }
 
