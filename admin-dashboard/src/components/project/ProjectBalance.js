@@ -10,7 +10,7 @@ import { RenderField } from '../basic/RenderField';
 import PropTypes from 'prop-types';
 import { openModal } from '../../actions/modal';
 import MessageBox from '../modals/MessageBox';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import ConfirmBalanceTopUp from '../modals/ConfirmBalanceTopUp';
 import DataPathHoC from '../DataPathHoC';
 
@@ -30,8 +30,8 @@ function validate(value) {
 
 class ProjectBalance extends Component {
     state = {
-        MessageBoxId: uuid.v4(),
-        createTopUpModalId: uuid.v4(),
+        MessageBoxId: uuidv4(),
+        createTopUpModalId: uuidv4(),
     };
     submitForm = values => {
         const { openModal } = this.props;

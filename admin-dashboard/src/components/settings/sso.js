@@ -2,7 +2,7 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { fetchSsos, deleteSso, fetchSso } from '../../actions/sso';
 import { fetchSsoDefaultRoles } from '../../actions/ssoDefaultRoles';
 import moment from 'moment';
@@ -13,7 +13,7 @@ import ShouldRender from '../basic/ShouldRender';
 
 export class Component extends React.Component {
     state = {
-        ssoModalId: uuid.v4(),
+        ssoModalId: uuidv4(),
         page: 1,
     };
 

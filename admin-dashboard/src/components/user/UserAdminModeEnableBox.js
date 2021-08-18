@@ -1,5 +1,5 @@
-import uuid from 'uuid';
 import React, { Component } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -12,7 +12,7 @@ import { openModal, closeModal } from '../../actions/modal';
 export class UserAdminModeEnableBox extends Component {
     constructor(props) {
         super(props);
-        this.state = { AdminModeModalId: uuid.v4() };
+        this.state = { AdminModeModalId: uuidv4() };
     }
 
     handleClick = () => {

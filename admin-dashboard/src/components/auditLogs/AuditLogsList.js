@@ -2,8 +2,7 @@ import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import uuid from 'uuid';
-
+import { v4 as uuidv4 } from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import { openModal, closeModal } from '../../actions/modal';
 import AuditLogsJsonViewModal from './AuditLogsJsonViewModal';
@@ -13,7 +12,7 @@ import ShouldRender from '../basic/ShouldRender';
 export class AuditLogsList extends Component {
     constructor(props) {
         super(props);
-        this.state = { deleteModalId: uuid.v4() };
+        this.state = { deleteModalId: uuidv4() };
     }
 
     handleDelete = () => {
@@ -230,7 +229,7 @@ export class AuditLogsList extends Component {
                                                                         onClick={() => {
                                                                             this.props.openModal(
                                                                                 {
-                                                                                    id: uuid.v4(),
+                                                                                    id: uuidv4(),
                                                                                     onConfirm: () => {
                                                                                         return Promise.resolve();
                                                                                     },

@@ -2,7 +2,7 @@ import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 
 import { ListLoader } from '../basic/Loader';
@@ -17,7 +17,7 @@ import { history } from '../../store';
 export class SmsLogsList extends Component {
     constructor(props) {
         super(props);
-        this.state = { deleteModalId: uuid.v4() };
+        this.state = { deleteModalId: uuidv4() };
     }
 
     handleDelete = () => {
@@ -343,7 +343,7 @@ export class SmsLogsList extends Component {
                                                                         onClick={() => {
                                                                             this.props.openModal(
                                                                                 {
-                                                                                    id: uuid.v4(),
+                                                                                    id: uuidv4(),
                                                                                     onConfirm: () => {
                                                                                         return Promise.resolve();
                                                                                     },
@@ -371,7 +371,7 @@ export class SmsLogsList extends Component {
                                                                             onClick={() => {
                                                                                 this.props.openModal(
                                                                                     {
-                                                                                        id: uuid.v4(),
+                                                                                        id: uuidv4(),
                                                                                         onConfirm: () => {
                                                                                             return Promise.resolve();
                                                                                         },
