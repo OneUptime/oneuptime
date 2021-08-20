@@ -23,6 +23,11 @@ spec:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "data-ingestor" .Values.image.tag }}
                   name: {{ printf "%s-%s" .Release.Name "ingestor"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  resources:
+                    requests:
+                      cpu: 250m
+                    limits:
+                      cpu: 500m
                   env:
                       - name: SERVER_URL
                         value: {{ template "fyipe.serverUrl" $ }}

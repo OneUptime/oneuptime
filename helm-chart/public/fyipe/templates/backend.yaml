@@ -28,6 +28,11 @@ spec:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "backend" .Values.image.tag }}
                   name: {{ printf "%s-%s" .Release.Name "backend"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  resources:
+                    requests:
+                      cpu: 250m
+                    limits:
+                      cpu: 500m
                   env:
                       - name: JWT_SECRET
                         valueFrom:
@@ -137,6 +142,11 @@ spec:
                 {{- if $.Values.saas.isRunningOnGCPMarketplace }}
                 - name: ubbagent
                   image: $imageUbbagent
+                  resources:
+                    requests:
+                      cpu: 250m
+                    limits:
+                      cpu: 500m
                   env:
                   - name: AGENT_CONFIG_FILE
                     value: "/etc/ubbagent/config.yaml"
