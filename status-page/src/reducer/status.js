@@ -85,6 +85,10 @@ import {
     FETCH_TWEETS_SUCCESS,
     FETCH_TWEETS_FAILURE,
     FETCH_ALL_RESOURCES_SUCCESS,
+    FETCH_EXTERNAL_STATUSPAGES_REQUEST,
+    FETCH_EXTERNAL_STATUSPAGES_SUCCESS,
+    FETCH_EXTERNAL_STATUSPAGES_FAILURE,
+    TRANSLATE_LANGUAGE,
 } from '../constants/status';
 import moment from 'moment';
 
@@ -187,6 +191,7 @@ const INITIAL_STATE = {
     },
     moreIncidentNotes: false,
     moreIncidentNotesError: null,
+    language: 'english',
     lastIncidentTimeline: {
         requesting: false,
         success: false,
@@ -227,10 +232,10 @@ const INITIAL_STATE = {
         info: {},
     },
     tweets: {
-        requesting: {},
-        success: {},
+        requesting: false,
+        success: false,
         error: null,
-        tweetList: {},
+        tweetList: [],
     },
 };
 
@@ -1923,6 +1928,12 @@ export default (state = INITIAL_STATE, action) => {
                 showEventCard: action.payload,
             };
 
+        case TRANSLATE_LANGUAGE:
+            return {
+                ...state,
+                language: action.payload,
+            };
+
         case SHOW_INCIDENT_CARD:
             return {
                 ...state,
@@ -2007,7 +2018,49 @@ export default (state = INITIAL_STATE, action) => {
                 },
             };
 
+        case 'UPDATE_TWEETS':
+            return {
+                ...state,
+                tweets: {
+                    requesting: false,
+                    success: true,
+                    error: null,
+                    tweetList: action.payload,
+                },
+            };
+
         default:
             return state;
+
+        case FETCH_EXTERNAL_STATUSPAGES_REQUEST:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+        case FETCH_EXTERNAL_STATUSPAGES_SUCCESS:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.cexternalStatusPages,
+                    externalStatusPagesList: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case FETCH_EXTERNAL_STATUSPAGES_FAILURE: {
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+        }
     }
 };

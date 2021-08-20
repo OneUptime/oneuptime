@@ -30,6 +30,9 @@ async function updateMany(collection, query, value) {
     return global.db.collection(collection).updateMany(query, { $set: value });
 }
 
+async function customUpdate(collection, query, value) {
+    return global.db.collection(collection).updateMany(query, value);
+}
 async function removeMany(collection, query) {
     return global.db.collection(collection).remove(query, { multi: true });
 }
@@ -94,4 +97,5 @@ module.exports = {
     removeMany,
     removeFieldsFromMany,
     deleteDatabase,
+    customUpdate,
 };

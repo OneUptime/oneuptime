@@ -109,6 +109,21 @@ import {
     FETCH_ANNOUNCEMEMTLOGS_SUCCESS,
     FETCH_ANNOUNCEMEMTLOGS_FAILURE,
     UPDATE_STATUSPAGE_SUCCESS,
+    CREATE_EXTERNAL_STATUSPAGE_REQUEST,
+    CREATE_EXTERNAL_STATUSPAGE_SUCCESS,
+    CREATE_EXTERNAL_STATUSPAGE_FAILURE,
+    FETCH_EXTERNAL_STATUSPAGES_REQUEST,
+    FETCH_EXTERNAL_STATUSPAGES_SUCCESS,
+    FETCH_EXTERNAL_STATUSPAGES_FAILURE,
+    DELETE_EXTERNAL_STATUSPAGE_REQUEST,
+    DELETE_EXTERNAL_STATUSPAGE_SUCCESS,
+    DELETE_EXTERNAL_STATUSPAGE_FAILURE,
+    UPDATE_EXTERNAL_STATUSPAGE_REQUEST,
+    UPDATE_EXTERNAL_STATUSPAGE_SUCCESS,
+    UPDATE_EXTERNAL_STATUSPAGE_FAILURE,
+    UPDATE_MULTIPLE_LANGUAGE_FAILURE,
+    UPDATE_MULTIPLE_LANGUAGE_REQUEST,
+    UPDATE_MULTIPLE_LANGUAGE_SUCCESS,
 } from '../constants/statusPage';
 
 import {
@@ -227,6 +242,11 @@ const INITIAL_STATE = {
         success: false,
         error: null,
     },
+    updateMultipleLanguage: {
+        requesting: false,
+        success: false,
+        error: null,
+    },
     //this is for main status page object.
     error: null,
     requesting: false,
@@ -310,6 +330,12 @@ const INITIAL_STATE = {
     },
     announcementLogs: {
         logsList: [],
+        requesting: false,
+        success: false,
+        error: null,
+    },
+    externalStatusPages: {
+        externalStatusPagesList: [],
         requesting: false,
         success: false,
         error: null,
@@ -515,6 +541,129 @@ export default function statusPage(state = INITIAL_STATE, action) {
                     error: action.payload,
                 },
             });
+        case CREATE_EXTERNAL_STATUSPAGE_REQUEST:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+        case CREATE_EXTERNAL_STATUSPAGE_SUCCESS:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.cexternalStatusPages,
+                    externalStatusPagesList: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case CREATE_EXTERNAL_STATUSPAGE_FAILURE: {
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+        }
+
+        case UPDATE_EXTERNAL_STATUSPAGE_REQUEST:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+        case UPDATE_EXTERNAL_STATUSPAGE_SUCCESS:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.cexternalStatusPages,
+                    externalStatusPagesList: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case UPDATE_EXTERNAL_STATUSPAGE_FAILURE: {
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+        }
+
+        case FETCH_EXTERNAL_STATUSPAGES_REQUEST:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+        case FETCH_EXTERNAL_STATUSPAGES_SUCCESS:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.cexternalStatusPages,
+                    externalStatusPagesList: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case FETCH_EXTERNAL_STATUSPAGES_FAILURE: {
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+        }
+
+        case DELETE_EXTERNAL_STATUSPAGE_REQUEST:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: true,
+                    success: false,
+                    error: null,
+                },
+            });
+        case DELETE_EXTERNAL_STATUSPAGE_SUCCESS:
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.cexternalStatusPages,
+                    externalStatusPagesList: action.payload,
+                    requesting: false,
+                    success: true,
+                    error: null,
+                },
+            });
+
+        case DELETE_EXTERNAL_STATUSPAGE_FAILURE: {
+            return Object.assign({}, state, {
+                externalStatusPages: {
+                    ...state.externalStatusPages,
+                    requesting: false,
+                    success: false,
+                    error: action.payload,
+                },
+            });
+        }
 
         case FETCH_SUBSCRIBER_REQUEST:
             return Object.assign({}, state, {
@@ -1523,6 +1672,35 @@ export default function statusPage(state = INITIAL_STATE, action) {
         case RESET_STATUS_BUBBLE_ID_FAILURE:
             return Object.assign({}, state, {
                 statusBubble: {
+                    requesting: false,
+                    error: action.payload,
+                    success: false,
+                },
+            });
+
+        case UPDATE_MULTIPLE_LANGUAGE_REQUEST:
+            return Object.assign({}, state, {
+                updateMultipleLanguage: {
+                    requesting: true,
+                    error: null,
+                    success: false,
+                },
+            });
+
+        case UPDATE_MULTIPLE_LANGUAGE_SUCCESS:
+            status = action.payload;
+            return Object.assign({}, state, {
+                updateMultipleLanguage: {
+                    requesting: false,
+                    error: null,
+                    success: true,
+                },
+                status,
+            });
+
+        case UPDATE_MULTIPLE_LANGUAGE_FAILURE:
+            return Object.assign({}, state, {
+                updateMultipleLanguage: {
                     requesting: false,
                     error: action.payload,
                     success: false,

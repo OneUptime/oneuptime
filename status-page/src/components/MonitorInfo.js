@@ -1,5 +1,6 @@
 import React, { Component, createRef } from 'react';
 import PropTypes from 'prop-types';
+import { Translate } from 'react-auto-translate';
 import BlockChart from './BlockChart';
 import moment from 'moment';
 import { connect } from 'react-redux';
@@ -307,9 +308,13 @@ class MonitorInfo extends Component {
                                             style={monitorCategoryStyle}
                                         >
                                             <span>
-                                                {resourceCategory
-                                                    ? resourceCategory.name
-                                                    : 'Uncategorized'}
+                                                {resourceCategory ? (
+                                                    resourceCategory.name
+                                                ) : (
+                                                    <Translate>
+                                                        Uncategorized
+                                                    </Translate>
+                                                )}
                                             </span>
                                         </div>
                                     </ShouldRender>
@@ -391,9 +396,11 @@ class MonitorInfo extends Component {
                                     >
                                         {loadingData ? (
                                             <div ref={this.scrollContent}>
-                                                {statuses.length === 0
-                                                    ? 'calculating...'
-                                                    : 'loading...'}
+                                                <Translate>
+                                                    {statuses.length === 0
+                                                        ? 'calculating...'
+                                                        : 'loading...'}
+                                                </Translate>
                                             </div>
                                         ) : (
                                             <div
@@ -415,7 +422,7 @@ class MonitorInfo extends Component {
                                                 : subheading
                                         }
                                     >
-                                        {range} days ago
+                                        {range} <Translate>days ago</Translate>
                                     </div>
                                     <div
                                         style={
@@ -455,7 +462,8 @@ class MonitorInfo extends Component {
                                                         : subheading
                                                 }
                                             >
-                                                {uptime}% uptime
+                                                {uptime}%{' '}
+                                                <Translate>uptime</Translate>
                                             </div>
                                         )}
                                     </ShouldRender>
@@ -480,7 +488,7 @@ class MonitorInfo extends Component {
                                                 : subheading
                                         }
                                     >
-                                        Today
+                                        <Translate>Today</Translate>
                                     </div>
                                 </div>
                             </div>
@@ -507,9 +515,13 @@ class MonitorInfo extends Component {
                                         style={monitorCategoryStyle}
                                     >
                                         <span>
-                                            {resourceCategory
-                                                ? resourceCategory.name
-                                                : 'Uncategorized'}
+                                            {resourceCategory ? (
+                                                resourceCategory.name
+                                            ) : (
+                                                <Translate>
+                                                    Uncategorized
+                                                </Translate>
+                                            )}
                                         </span>
                                     </div>
                                 </ShouldRender>
@@ -575,9 +587,11 @@ class MonitorInfo extends Component {
                             >
                                 {loadingData ? (
                                     <div ref={this.scrollContent}>
-                                        {statuses.length === 0
-                                            ? 'calculating...'
-                                            : 'loading...'}
+                                        <Translate>
+                                            {statuses.length === 0
+                                                ? 'calculating...'
+                                                : 'loading...'}
+                                        </Translate>
                                     </div>
                                 ) : (
                                     <div

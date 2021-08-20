@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { Field, reduxForm } from 'redux-form';
 import ClickOutside from 'react-click-outside';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import {
     userCreate,
     userCreateRequest,
@@ -35,7 +35,7 @@ export class FormModal extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            messageModalId: uuid.v4(),
+            messageModalId: uuidv4(),
         };
     }
     componentDidMount() {

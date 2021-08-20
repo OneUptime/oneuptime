@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Translate } from 'react-auto-translate';
 import AffectedResources from './basic/AffectedResources';
 import PropTypes from 'prop-types';
 import moment from 'moment';
@@ -60,7 +61,9 @@ class OngoingSchedule extends Component {
                                                     }}
                                                     id="ongoing-event"
                                                 >
-                                                    Ongoing Scheduled Event
+                                                    <Translate>
+                                                        Ongoing Scheduled Event
+                                                    </Translate>
                                                 </div>
                                                 <div className="ongoing__scheduleitem">
                                                     <span

@@ -5,14 +5,14 @@ import { connect } from 'react-redux';
 import { User } from '../../config';
 import { hideProfileMenu } from '../../actions/profile';
 import { logoutUser } from '../../actions/logout';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import About from '../modals/About';
 import { openModal, closeModal } from '../../actions/modal';
 
 export class ProfileMenu extends Component {
     constructor(props) {
         super(props);
-        this.state = { aboutId: uuid.v4() };
+        this.state = { aboutId: uuidv4() };
     }
 
     logout() {

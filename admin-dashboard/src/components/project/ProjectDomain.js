@@ -6,7 +6,7 @@ import { bindActionCreators } from 'redux';
 import { openModal } from '../../actions/modal';
 import DeleteDomain from './DeleteDomain';
 import DataPathHoC from '../DataPathHoC';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { ListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import ProjectVerifyDomain from './ProjectVerifyDomain';
@@ -18,7 +18,7 @@ class ProjectDomain extends Component {
         super();
         this.limit = 10;
         this.state = {
-            removeUserModalId: uuid.v4(),
+            removeUserModalId: uuidv4(),
         };
     }
 

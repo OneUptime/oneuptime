@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
@@ -92,12 +93,18 @@ class Monitors extends Component {
                             className="subscriber-success"
                             id="monitor-subscribe-success-message"
                         >
-                            You have subscribed to this status page successfully
+                            <Translate>
+                                {' '}
+                                You have subscribed to this status page
+                                successfully
+                            </Translate>
                         </span>
                     </div>
                 ) : (
                     <div className="directions">
-                        Select the monitors to get updates.
+                        <Translate>
+                            Select the monitors to get updates.
+                        </Translate>
                     </div>
                 )}
                 <form
@@ -147,7 +154,9 @@ class Monitors extends Component {
                               <>
                                   <div className="bs-notificationType">
                                       <div style={{ marginBottom: '10px' }}>
-                                          Select notification type.
+                                          <Translate>
+                                              Select notification type.
+                                          </Translate>
                                       </div>
                                       {Object.keys(this.state).map(
                                           (value, i) => {
@@ -211,9 +220,11 @@ class Monitors extends Component {
                     >
                         <ShouldRender if={!this.props.subscribed.requesting}>
                             <span>
-                                {this.props.subscribed.success
-                                    ? 'Close'
-                                    : 'Subscribe'}
+                                <Translate>
+                                    {this.props.subscribed.success
+                                        ? 'Close'
+                                        : 'Subscribe'}
+                                </Translate>
                             </span>
                         </ShouldRender>
                         <ShouldRender
@@ -233,8 +244,10 @@ class Monitors extends Component {
                         <div className="validation-error">
                             <span className="validation-error-icon"></span>
                             <span className="error-text">
-                                {this.props.subscribed &&
-                                    this.props.subscribed.error}
+                                <Translate>
+                                    {this.props.subscribed &&
+                                        this.props.subscribed.error}
+                                </Translate>
                             </span>
                         </div>
                     </ShouldRender>

@@ -168,3 +168,11 @@ export function resolvescheduledeventbysocket(event) {
         });
     };
 }
+export function updatestweetsbysocket(tweets) {
+    return function(dispatch) {
+        dispatch({
+            type: 'UPDATE_TWEETS',
+            payload: tweets,
+        });
+    };
+}

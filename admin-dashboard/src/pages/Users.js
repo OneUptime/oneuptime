@@ -6,7 +6,7 @@ import UserList from '../components/user/UserList';
 import { fetchUsers, searchUsers } from '../actions/user';
 import { ListLoader } from '../components/basic/Loader';
 import ShouldRender from '../components/basic/ShouldRender';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import UserAddModal from '../components/user/UserAddModal';
 
@@ -15,7 +15,7 @@ class Users extends Component {
         super(props);
         this.state = {
             searchBox: null,
-            addModalId: uuid.v4(),
+            addModalId: uuidv4(),
             page: 1,
         };
     }

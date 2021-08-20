@@ -19,7 +19,7 @@ WORKDIR /usr/src/app
 # Install app dependencies
 COPY package*.json /usr/src/app/
 
-RUN npm ci --only=production
+RUN npm ci --only=production --legacy-peer-deps
 RUN npm install -g serve
 RUN npm install -g eslint
 

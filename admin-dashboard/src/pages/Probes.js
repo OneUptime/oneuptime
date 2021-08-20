@@ -6,7 +6,7 @@ import ProbeList from '../components/probe/ProbeList';
 import { getProbes } from '../actions/probe';
 import ShouldRender from '../components/basic/ShouldRender';
 import { FormLoader } from '../components/basic/Loader';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../actions/modal';
 import ProbeAddModal from '../components/probe/ProbeAddModal';
 
@@ -14,7 +14,7 @@ class Probes extends React.Component {
     constructor(props) {
         super(props);
 
-        this.state = { addModalId: uuid.v4(), page: 1 };
+        this.state = { addModalId: uuidv4(), page: 1 };
     }
 
     componentDidMount() {

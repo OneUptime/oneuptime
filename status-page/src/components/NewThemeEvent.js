@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import ShouldRender from './ShouldRender';
@@ -38,7 +39,7 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
                             : {}
                     }
                 >
-                    Resources Affected:{' '}
+                    <Translate>Resources Affected:</Translate>
                 </span>
                 <span
                     className="ongoing__affectedmonitor--content"
@@ -48,7 +49,7 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
                             : {}
                     }
                 >
-                    All resources are affected
+                    <Translate>All resources are affected</Translate>
                 </span>
             </>
         );
@@ -63,7 +64,7 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
                             : {}
                     }
                 >
-                    Resources Affected:{' '}
+                    <Translate>Resources Affected</Translate>:{' '}
                 </span>
                 <span
                     className="ongoing__affectedmonitor--content"
@@ -162,7 +163,9 @@ class NewThemeEvent extends Component {
                                         >
                                             <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                 <span id="ongoing-event">
-                                                    Cancelled
+                                                    <Translate>
+                                                        Cancelled
+                                                    </Translate>
                                                 </span>
                                             </span>
                                         </div>
@@ -175,7 +178,9 @@ class NewThemeEvent extends Component {
                                         >
                                             <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                 <span id="ongoing-event">
-                                                    Completed
+                                                    <Translate>
+                                                        Completed
+                                                    </Translate>
                                                 </span>
                                             </span>
                                         </div>
@@ -190,7 +195,9 @@ class NewThemeEvent extends Component {
                                         >
                                             <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                 <span id="ongoing-event">
-                                                    Ongoing
+                                                    <Translate>
+                                                        Ongoing
+                                                    </Translate>
                                                 </span>
                                             </span>
                                         </div>
@@ -204,7 +211,9 @@ class NewThemeEvent extends Component {
                                         >
                                             <span className="Badge-text Text-color--default Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                 <span id="ongoing-event">
-                                                    Scheduled
+                                                    <Translate>
+                                                        Scheduled
+                                                    </Translate>
                                                 </span>
                                             </span>
                                         </div>
@@ -219,7 +228,9 @@ class NewThemeEvent extends Component {
                                             >
                                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                     <span id="ongoing-event">
-                                                        Ended
+                                                        <Translate>
+                                                            Ended
+                                                        </Translate>
                                                     </span>
                                                 </span>
                                             </div>
@@ -357,7 +368,7 @@ class NewThemeEvent extends Component {
                                 className="bs-no-report"
                                 style={{ margin: 10, display: 'inline-block' }}
                             >
-                                No Event added
+                                <Translate>No Event added</Translate>
                             </div>
                         )}
                     </div>
@@ -370,7 +381,9 @@ class NewThemeEvent extends Component {
                         {moment(this.props.filteredEvents.date).format('LL')}
                     </div>
                 </ShouldRender>
-                <div className="no_monitor">No event available</div>
+                <div className="no_monitor">
+                    <Translate>No event available</Translate>
+                </div>
             </>
         );
     }

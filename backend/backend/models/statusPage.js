@@ -130,7 +130,8 @@ const statusSchema = new Schema({
     offlineText: { type: String, default: 'Offline' },
     degradedText: { type: String, default: 'Degraded' },
     twitterHandle: { type: String },
-
+    enableMultipleLanguage: { type: Boolean, default: false },
+    multipleLanguages: { type: Array, default: [] },
     deletedAt: {
         type: Date,
     },
