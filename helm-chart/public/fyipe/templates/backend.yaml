@@ -30,9 +30,9 @@ spec:
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   resources:
                     requests:
-                      cpu: 250m
+                      cpu: 450m
                     limits:
-                      cpu: 500m
+                      cpu: 700m
                   env:
                       - name: JWT_SECRET
                         valueFrom:
