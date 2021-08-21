@@ -17,17 +17,16 @@ test_go-sdk:
         - sudo docker ps
         - wget https://dl.google.com/go/go1.16.4.linux-amd64.tar.gz
         - sudo tar -xvf go1.16.4.linux-amd64.tar.gz
-        - mv go /usr/local || true # just continue is go already exist in the location
+        - sudo mv go /usr/local || true # just continue is go already exist in the location
         - export GOROOT=/usr/local/go
         - export GOPATH=$HOME/go-sdk/fyipe
         - export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
         - go version
-        - cd go-sdk/fyipe
+        - cd go-sdk
         - go get -d ./...
         - go test -v
         # - go test -coverprofile=cover.txt
         # - go tool cover -html=cover.txt -o cover.html
-        - cd ..
         - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh test_go-sdk go-sdk backend

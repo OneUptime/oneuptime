@@ -158,5 +158,5 @@ include:
 
   # # GO-SDK
   - '/ci/spec/go-sdk/audit.yaml'
-  # - '/ci/spec/go-sdk/build-n-test.yaml'
+  - '/ci/spec/go-sdk/build-n-test.yaml'
   # - '/ci/spec/go-sdk/deploy.yaml'
