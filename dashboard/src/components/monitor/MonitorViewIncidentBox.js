@@ -13,8 +13,7 @@ import { createNewIncident } from '../../actions/incident';
 import CreateManualIncident from '../modals/CreateManualIncident';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
-import '@trendmicro/react-dropdown/dist/react-dropdown.css';
+import DropDownMenu from '../basic/DropDownMenu';
 
 export class MonitorViewIncidentBox extends Component {
     constructor(props) {
@@ -142,29 +141,25 @@ export class MonitorViewIncidentBox extends Component {
                         </div>
                         <div className="ContentHeader-end Box-root Flex-flex Flex-alignItems--center Margin-left--16">
                             <span className="Margin-right--8">
-                                <Dropdown>
-                                    <Dropdown.Toggle
-                                        id="filterToggle"
-                                        title={filterOption}
-                                        className="bs-Button bs-DeprecatedButton"
-                                    />
-                                    <Dropdown.Menu>
-                                        <MenuItem
-                                            title="clear"
-                                            onClick={() => {
-                                                this.setState({
-                                                    filterOption: 'Filter By',
-                                                });
-                                                this.filterIncidentLogs(
-                                                    'clear'
-                                                );
-                                            }}
-                                        >
-                                            Clear Filters
-                                        </MenuItem>
-                                        <MenuItem
-                                            title="unacknowledged"
-                                            onClick={() => {
+                                <DropDownMenu
+                                    options={[
+                                        {
+                                            value: 'Clear Filters',
+                                            show: true,
+                                        },
+                                        {
+                                            value: 'Unacknowledged',
+                                            show: true,
+                                        },
+                                        {
+                                            value: 'Unresolved',
+                                            show: true,
+                                        },
+                                    ]}
+                                    value={filterOption}
+                                    updateState={val => {
+                                        switch (val) {
+                                            case 'Unacknowledged':
                                                 this.setState({
                                                     filterOption:
                                                         'Unacknowledged',
@@ -172,25 +167,26 @@ export class MonitorViewIncidentBox extends Component {
                                                 this.filterIncidentLogs(
                                                     'unacknowledged'
                                                 );
-                                            }}
-                                        >
-                                            Unacknowledged
-                                        </MenuItem>
-                                        <MenuItem
-                                            title="unresolved"
-                                            onClick={() => {
+                                                break;
+                                            case 'Unresolved':
                                                 this.setState({
                                                     filterOption: 'Unresolved',
                                                 });
                                                 this.filterIncidentLogs(
                                                     'unresolved'
                                                 );
-                                            }}
-                                        >
-                                            Unresolved
-                                        </MenuItem>
-                                    </Dropdown.Menu>
-                                </Dropdown>
+                                                break;
+                                            default:
+                                                this.setState({
+                                                    filterOption: 'Filter By',
+                                                });
+                                                this.filterIncidentLogs(
+                                                    'clear'
+                                                );
+                                                break;
+                                        }
+                                    }}
+                                />
                             </span>
                             <button
                                 className={

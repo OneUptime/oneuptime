@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
 import { updateTwoFactorAuthToken, setTwoFactorAuth } from '../../actions/user';
@@ -13,7 +13,7 @@ export class UserSetting extends Component {
         super(props);
         this.props = props;
         this.state = {
-            messageModalId: uuid.v4(),
+            messageModalId: uuidv4(),
         };
     }
 

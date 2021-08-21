@@ -46,8 +46,8 @@ module.exports = {
                 .limit(limit)
                 .skip(skip);
 
-            logsQuery = await handleSelect(select, logsQuery);
-            logsQuery = await handlePopulate(populate, logsQuery);
+            logsQuery = handleSelect(select, logsQuery);
+            logsQuery = handlePopulate(populate, logsQuery);
 
             const [logs, count] = await Promise.all([
                 logsQuery,

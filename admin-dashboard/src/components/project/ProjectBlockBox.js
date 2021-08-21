@@ -1,5 +1,5 @@
-import uuid from 'uuid';
 import React, { Component } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -13,7 +13,7 @@ export class ProjectBlockBox extends Component {
     constructor(props) {
         super(props);
         this.props = props;
-        this.state = { blockModalId: uuid.v4() };
+        this.state = { blockModalId: uuidv4() };
     }
 
     handleClick = () => {
