@@ -21,7 +21,6 @@ audit_go-sdk:
         - cd go-sdk
         - go build
         - cd ..
-        - cd ..
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh audit_go-sdk go-sdk
         - chmod +x ./ci/scripts/cleanup.sh
