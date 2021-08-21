@@ -10,11 +10,11 @@ deploy_staging_go-sdk:
         - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
         - wget https://dl.google.com/go/go1.16.4.linux-amd64.tar.gz
         - sudo tar -xvf go1.16.4.linux-amd64.tar.gz
-        - mv go /usr/local || true # just continue is go already exist in the location
+        - sudo mv go /usr/local || true # just continue is go already exist in the location
         - export GOROOT=/usr/local/go
         - export GOPATH=$HOME/go-sdk/fyipe
         - export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
-        - cd go-sdk/fyipe
+        - cd go-sdk
         - go get -d ./...
         - git init
         - git add .
@@ -24,7 +24,6 @@ deploy_staging_go-sdk:
         # - git checkout staging || git checkout -b staging
         # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/go-sdk.git staging --force
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/go-sdk.git v3.0.$CI_PIPELINE_IID-qa --force
-        - cd ..
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
