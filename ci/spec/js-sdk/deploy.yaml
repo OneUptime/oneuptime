@@ -69,5 +69,6 @@ production_js-sdk:
         refs:
             - release
             - hotfix-release
+            - feature-go-sdk
     environment:
         name: production
