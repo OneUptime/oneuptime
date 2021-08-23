@@ -4,7 +4,8 @@ test_backend:
         - chmod +x ./ci/scripts/checkhash.sh
         - export next_stage=`./ci/scripts/checkhash.sh test_backend backend init-script probe http-test-server`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
-        - curl -sSL https://get.docker.com/ | sh #Install docker.
+        - chmod +x ./ci/scripts/docker-install.sh
+        - ./ci/scripts/docker-install.sh
         - sudo apt-get install wget apt-transport-https gnupg lsb-release
         - wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
         - echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
@@ -44,7 +45,8 @@ test_enterprise_backend:
         - chmod +x ./ci/scripts/checkhash.sh
         - export next_stage=`./ci/scripts/checkhash.sh test_enterprise_backend backend`
         - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
-        - curl -sSL https://get.docker.com/ | sh #Install docker.
+        - chmod +x ./ci/scripts/docker-install.sh
+        - ./ci/scripts/docker-install.sh
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
