@@ -923,6 +923,8 @@ class Main extends Component {
                                 this.props.statusData.projectId._id
                             }
                             statusPageId={this.props.statusData._id}
+                            statusPageSlug={this.props.statusData.slug}
+                            history={this.props.history}
                             noteBackgroundColor={noteBackgroundColor}
                             type={'future'}
                         />
@@ -950,6 +952,8 @@ class Main extends Component {
                                 this.props.statusData.projectId._id
                             }
                             statusPageId={this.props.statusData._id}
+                            statusPageSlug={this.props.statusData.slug}
+                            history={this.props.history}
                             noteBackgroundColor={noteBackgroundColor}
                             type={'past'}
                         />

@@ -1244,7 +1244,7 @@ router.get('/:projectId/notes/:scheduledEventSlug', checkUser, async function(
 
     const scheduledEventId = await ScheduledEventService.findOneBy({
         query: { slug: scheduledEventSlug },
-        select: '_id',
+        select: '_id createdById',
     });
 
     try {

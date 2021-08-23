@@ -40,7 +40,7 @@ const AffectedResources = ({ event, monitorState, colorStyle }) => {
                     }
                 >
                     <Translate>Resources Affected:</Translate>
-                </span>
+                </span>{' '}
                 <span
                     className="ongoing__affectedmonitor--content"
                     style={
@@ -151,7 +151,15 @@ class NewThemeEvent extends Component {
                                 style={{ margin: 10, display: 'inline-block' }}
                             >
                                 <div className="list_k">
-                                    <b id={`event-name-${event.name}`}>
+                                    <b
+                                        id={`event-name-${event.name}`}
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={() =>
+                                            this.props.history.push(
+                                                `/status-page/${this.props.statusPageSlug}/scheduledEvent/${event.slug}`
+                                            )
+                                        }
+                                    >
                                         {event.name}
                                     </b>
                                     {event.cancelled ? (
@@ -396,6 +404,8 @@ NewThemeEvent.propTypes = {
     filteredEvents: PropTypes.object,
     noteBackgroundColor: PropTypes.object,
     monitorState: PropTypes.array,
+    statusPageSlug: PropTypes.string,
+    history: PropTypes.object,
 };
 
 const mapStateToProps = (state, ownProps) => {
