@@ -51,7 +51,7 @@ production_js-sdk:
         - sudo npm install -g json
         - git init
         - git add .
-        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID" || echo "Nothing to update because no changes to sdk was made"
+        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID" || echo "Nothing to update because no changes to sdk was made" && exit 0
         - git checkout -f master
         - chmod +x ../ci/scripts/version-setup.sh
         - ../ci/scripts/version-setup.sh
@@ -60,7 +60,7 @@ production_js-sdk:
         - npm run build
         - npm publish
         - git add .
-        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID" || echo "Nothing to update because no changes to sdk was made"
+        - git commit -m "production commit version 3.0.$CI_PIPELINE_IID" || echo "Nothing to update because no changes to sdk was made" && exit 0
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/Fyipe/js-sdk.git master --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
@@ -69,6 +69,5 @@ production_js-sdk:
         refs:
             - release
             - hotfix-release
-            - feature-go-sdk
     environment:
         name: production
