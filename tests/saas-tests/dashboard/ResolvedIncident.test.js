@@ -74,17 +74,12 @@ describe('Incident Reports API', () => {
     );
 
     test(
-        'should close all resolved incidents at once',
+        'should notice that all resolved incidents are closed on navigation to dashboard',
         async done => {
+            // Resolved Incidents are closed on page reload or navigation to dashboard.
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
-            await init.pageWaitForSelector(page, '#incidents-close-all-btn');
-            await init.pageClick(page, '#incidents-close-all-btn');
-            await init.pageWaitForSelector(page, '#closeIncidentButton_0', {
-                hidden: true,
-            });
-            await page.reload({ waitUntil: 'networkidle2' });
 
             const closedResolvedIncidents = await init.pageWaitForSelector(
                 page,
