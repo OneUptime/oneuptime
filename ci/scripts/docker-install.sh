@@ -1,6 +1,6 @@
 #Install Docker and setup registry and insecure access to it.
 #IF docker is already installed, do not install docker.
-if [[  $(which docker) ]]
+if [[ ! $(which docker) ]]
 then
     echo "INSTALLING DOCKER"
     sudo apt-get update
