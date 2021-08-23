@@ -2234,7 +2234,8 @@ const uuid = require('uuid');
 const greenlock = require('../../greenlock');
 const CertificateStoreService = require('./certificateStoreService');
 const AnnouncementModel = require('../models/announcements');
-const ExternalStatusPageModel = require('../models/externalstatuspage');
+
+const ExternalStatusPageModel = require('../models/externalStatusPage');
 const getSlug = require('../utils/getSlug');
 const AnnouncementLogModel = require('../models/announcementLogs');
 const handleSelect = require('../utils/select');
