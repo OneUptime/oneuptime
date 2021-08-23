@@ -76,6 +76,7 @@ describe('Incident Reports API', () => {
     test(
         'should notice that all resolved incidents are closed on navigation to dashboard',
         async done => {
+            // Resolved Incidents are closed on page reload or navigation to dashboard.
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
             });
