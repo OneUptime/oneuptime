@@ -122,8 +122,12 @@ class ScheduledEvent extends Component {
             count,
             history,
             monitorState,
+            match,
         } = this.props;
         const error = this.renderError();
+
+        const { params } = match;
+        const statusPageUrl = `/status-page/${params.statusPageSlug}`;
 
         return (
             <div
@@ -445,7 +449,7 @@ class ScheduledEvent extends Component {
                     </ShouldRender>
                     <div id="footer">
                         <span
-                            onClick={() => history.goBack()}
+                            onClick={() => history.replace(statusPageUrl)}
                             className="sp__icon sp__icon--back"
                             style={{
                                 color: 'rgb(76, 76, 76)',
