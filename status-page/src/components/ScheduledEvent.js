@@ -875,13 +875,17 @@ class ScheduledEvent extends Component {
                             </div>
                         </div>
                     </ShouldRender>
-                    <div id="footer">
+                    <div
+                        id="footer"
+                        style={{ display: 'flex', alignItems: 'center' }}
+                    >
                         <span
                             onClick={() => history.replace(statusPageUrl)}
                             className="sp__icon sp__icon--back"
                             style={{
                                 color: 'rgb(76, 76, 76)',
                                 cursor: 'pointer',
+                                width: '100%',
                             }}
                         >
                             <Translate> Back to status page</Translate>
