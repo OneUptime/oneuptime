@@ -132,6 +132,35 @@ class ScheduledEvent extends Component {
 
         const currentTime = moment();
 
+        // eslint-disable-next-line no-console
+        console.log('** scheduled event **', scheduledEvent);
+        // eslint-disable-next-line no-console
+        console.log(
+            '** isSameOrAfter **',
+            currentTime.isSameOrAfter(moment(scheduledEvent.startDate))
+        );
+        // eslint-disable-next-line no-console
+        console.log(
+            '** logic **',
+            currentTime.isSameOrAfter(moment(scheduledEvent.startDate)) &&
+                currentTime.isBefore(moment(scheduledEvent.endDate))
+        );
+        // eslint-disable-next-line no-console
+        console.log(
+            '** isAfter **',
+            currentTime.isAfter(moment(scheduledEvent.startDate))
+        );
+        // eslint-disable-next-line no-console
+        console.log(
+            '** isSameOrBefore **',
+            currentTime.isSameOrBefore(moment(scheduledEvent.startDate))
+        );
+        // eslint-disable-next-line no-console
+        console.log(
+            '** isBefore **',
+            currentTime.isBefore(moment(scheduledEvent.startDate))
+        );
+
         return (
             <div
                 className="page-main-wrapper"
@@ -165,65 +194,27 @@ class ScheduledEvent extends Component {
                                 >
                                     {scheduledEvent.name}
                                 </header>
-                                {scheduledEvent.cancelled ? (
-                                    <div
-                                        style={{
-                                            marginLeft: 15,
-                                        }}
-                                        className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                    >
-                                        <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                            <span id="ongoing-event">
-                                                <Translate>Cancelled</Translate>
+                                {!fetchingNotes &&
+                                eventNotes &&
+                                !fetchingEvent &&
+                                scheduledEvent.startDate &&
+                                scheduledEvent.endDate ? (
+                                    scheduledEvent.cancelled ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    <Translate>
+                                                        Cancelled
+                                                    </Translate>
+                                                </span>
                                             </span>
-                                        </span>
-                                    </div>
-                                ) : scheduledEvent.resolved ? (
-                                    <div
-                                        style={{
-                                            marginLeft: 15,
-                                        }}
-                                        className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                    >
-                                        <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                            <span id="ongoing-event">
-                                                <Translate>Completed</Translate>
-                                            </span>
-                                        </span>
-                                    </div>
-                                ) : currentTime >=
-                                      moment(scheduledEvent.startDate) &&
-                                  currentTime <
-                                      moment(scheduledEvent.endDate) ? (
-                                    <div
-                                        style={{
-                                            marginLeft: 15,
-                                        }}
-                                        className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                    >
-                                        <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                            <span id="ongoing-event">
-                                                <Translate>Ongoing</Translate>
-                                            </span>
-                                        </span>
-                                    </div>
-                                ) : currentTime <
-                                  moment(scheduledEvent.startDate) ? (
-                                    <div
-                                        style={{
-                                            marginLeft: 15,
-                                        }}
-                                        className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                    >
-                                        <span className="Badge-text Text-color--default Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                            <span id="ongoing-event">
-                                                <Translate>Scheduled</Translate>
-                                            </span>
-                                        </span>
-                                    </div>
-                                ) : (
-                                    currentTime >=
-                                        moment(scheduledEvent.endDate) && (
+                                        </div>
+                                    ) : scheduledEvent.resolved ? (
                                         <div
                                             style={{
                                                 marginLeft: 15,
@@ -232,12 +223,70 @@ class ScheduledEvent extends Component {
                                         >
                                             <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                 <span id="ongoing-event">
-                                                    <Translate>Ended</Translate>
+                                                    <Translate>
+                                                        Completed
+                                                    </Translate>
                                                 </span>
                                             </span>
                                         </div>
+                                    ) : currentTime.isSameOrAfter(
+                                          moment(scheduledEvent.startDate)
+                                      ) &&
+                                      currentTime.isBefore(
+                                          moment(scheduledEvent.endDate)
+                                      ) ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    <Translate>
+                                                        Ongoing
+                                                    </Translate>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ) : currentTime.isBefore(
+                                          moment(scheduledEvent.startDate)
+                                      ) ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--default Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    <Translate>
+                                                        Scheduled
+                                                    </Translate>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        currentTime.isSameOrAfter(
+                                            moment(scheduledEvent.endDate)
+                                        ) && (
+                                            <div
+                                                style={{
+                                                    marginLeft: 15,
+                                                }}
+                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                            >
+                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span id="ongoing-event">
+                                                        <Translate>
+                                                            Ended
+                                                        </Translate>
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        )
                                     )
-                                )}
+                                ) : null}
                             </div>
                             <span
                                 style={{
@@ -541,14 +590,16 @@ class ScheduledEvent extends Component {
                                                                 </span>
                                                             </span>
                                                         </div>
-                                                    ) : currentTime >=
+                                                    ) : currentTime.isSameOrAfter(
                                                           moment(
                                                               scheduledEvent.startDate
-                                                          ) &&
-                                                      currentTime <
+                                                          )
+                                                      ) &&
+                                                      currentTime.isBefore(
                                                           moment(
                                                               scheduledEvent.endDate
-                                                          ) ? (
+                                                          )
+                                                      ) ? (
                                                         <div
                                                             style={{
                                                                 marginLeft: 15,
@@ -567,9 +618,10 @@ class ScheduledEvent extends Component {
                                                                 </span>
                                                             </span>
                                                         </div>
-                                                    ) : currentTime <
-                                                      moment(
-                                                          scheduledEvent.startDate
+                                                    ) : currentTime.isBefore(
+                                                          moment(
+                                                              scheduledEvent.startDate
+                                                          )
                                                       ) ? (
                                                         <div
                                                             style={{
@@ -590,10 +642,11 @@ class ScheduledEvent extends Component {
                                                             </span>
                                                         </div>
                                                     ) : (
-                                                        currentTime >=
+                                                        currentTime.isSameOrAfter(
                                                             moment(
                                                                 scheduledEvent.endDate
-                                                            ) && (
+                                                            )
+                                                        ) && (
                                                             <div
                                                                 style={{
                                                                     marginLeft: 15,
