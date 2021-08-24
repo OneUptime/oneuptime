@@ -197,8 +197,8 @@ describe('Team API With SubProjects', () => {
                 `#changeRole_${emailSelector}`
             );
             await init.pageClick(page, `#changeRole_${emailSelector}`);
-            await init.pageWaitForSelector(page, `div[title="${newRole}"]`);
-            await init.pageClick(page, `div[title="${newRole}"]`);
+            await init.pageWaitForSelector(page, `#${newRole}`);
+            await init.pageClick(page, `#${newRole}`);
 
             const member = await init.pageWaitForSelector(
                 page,
@@ -338,8 +338,8 @@ describe('Team API With SubProjects', () => {
             expect(oldOwnerRole).toEqual('Owner');
 
             await init.pageClick(page, `#changeRole_${memberEmailSelector}`);
-            await init.pageWaitForSelector(page, `div[title="${newRole}"]`);
-            await init.pageClick(page, `div[title="${newRole}"]`);
+            await init.pageWaitForSelector(page, `#${newRole}`);
+            await init.pageClick(page, `#${newRole}`);
             await init.pageWaitForSelector(page, '#confirmRoleChange');
             await init.pageClick(page, '#confirmRoleChange');
 
