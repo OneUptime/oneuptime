@@ -163,6 +163,7 @@ function ScheduleCalender({ escalations, requestingEscalations }) {
                                         onNavigate={(date, view, action) =>
                                             handleNavigate(date, view, action)
                                         }
+                                        popup={true}
                                     />
                                 </div>
                             </div>
