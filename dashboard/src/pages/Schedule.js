@@ -81,6 +81,7 @@ class Schedule extends Component {
             location: { pathname },
             schedule,
             groups,
+            requestingEscalations,
         } = this.props;
         const name = schedule ? schedule.name : null;
         if (error) {
@@ -109,6 +110,9 @@ class Schedule extends Component {
                                             <div>
                                                 <ScheduleCalender
                                                     escalations={escalations}
+                                                    requestingEscalations={
+                                                        requestingEscalations
+                                                    }
                                                 />
                                                 <RenameScheduleBox />
                                                 <MonitorBox
@@ -193,6 +197,7 @@ const mapStateToProps = (state, props) => {
         scheduleId: schedule && schedule._id,
         teamMembers: state.team.teamMembers,
         groups: state.groups.oncallDuty?.groups,
+        requestingEscalations: state.schedule.escalation.requesting,
     };
 };
 
@@ -213,6 +218,7 @@ Schedule.propTypes = {
     schedule: PropTypes.shape({
         name: PropTypes.string,
     }),
+    requestingEscalations: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Schedule);

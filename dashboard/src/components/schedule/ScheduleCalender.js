@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
+import { ListLoader } from '../basic/Loader';
 
-function ScheduleCalender({ escalations }) {
+function ScheduleCalender({ escalations, requestingEscalations }) {
     const [dayOffset, setDayOffset] = useState(47);
     const [defaultDate, setDefaultDate] = useState(new Date());
 
@@ -120,32 +121,53 @@ function ScheduleCalender({ escalations }) {
                             </div>
                         </div>
                     </div>
-                    <div className="bs-ContentSection-content Box-root">
-                        <div
-                            className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2"
-                            style={{
-                                backgroundColor: '#f7f7f7',
-                            }}
-                        >
-                            <div>
-                                <Calendar
-                                    date={defaultDate}
-                                    getNow={() => new Date()}
-                                    localizer={localizer}
-                                    events={extendedSchedule}
-                                    startAccessor="start"
-                                    endAccessor="end"
-                                    style={{ height: 500 }}
-                                    views={['month', 'week', 'day', 'agenda']}
-                                    showMultiDayTimes={true}
-                                    onView={view => handleView(view)}
-                                    onNavigate={(date, view, action) =>
-                                        handleNavigate(date, view, action)
-                                    }
-                                />
+                    {requestingEscalations && (
+                        <div className="bs-ContentSection-content Box-root">
+                            <div
+                                className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2"
+                                style={{ backgroundColor: '#f7f7f7' }}
+                            >
+                                <div>
+                                    <div className="bs-Fieldset-row flex-center">
+                                        <ListLoader />
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
+                    {!requestingEscalations && (
+                        <div className="bs-ContentSection-content Box-root">
+                            <div
+                                className="bs-ContentSection-content Box-root Box-background--offset Box-divider--surface-bottom-1 Padding-horizontal--8 Padding-vertical--2"
+                                style={{
+                                    backgroundColor: '#f7f7f7',
+                                }}
+                            >
+                                <div>
+                                    <Calendar
+                                        date={defaultDate}
+                                        getNow={() => new Date()}
+                                        localizer={localizer}
+                                        events={extendedSchedule}
+                                        startAccessor="start"
+                                        endAccessor="end"
+                                        style={{ height: 500 }}
+                                        views={[
+                                            'month',
+                                            'week',
+                                            'day',
+                                            'agenda',
+                                        ]}
+                                        showMultiDayTimes={true}
+                                        onView={view => handleView(view)}
+                                        onNavigate={(date, view, action) =>
+                                            handleNavigate(date, view, action)
+                                        }
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
                         <div className="bs-Tail-copy">
@@ -167,6 +189,7 @@ ScheduleCalender.displayName = 'ScheduleCalender';
 
 ScheduleCalender.propTypes = {
     escalations: PropTypes.array,
+    requestingEscalations: PropTypes.bool,
 };
 
 export default ScheduleCalender;
