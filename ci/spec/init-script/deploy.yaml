@@ -6,6 +6,8 @@ staging_init-script:
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/install-helm.sh
+        - ./ci/scripts/install-helm.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -37,6 +39,8 @@ production_init-script:
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/install-helm.sh
+        - ./ci/scripts/install-helm.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
