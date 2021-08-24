@@ -178,7 +178,7 @@ class Consulting extends Component {
                                             >
                                                 We&#39;ll have a call with you
                                                 and update you every day on
-                                                Slack or Skype on work we&#39;ve
+                                                Slack or Zoom on work we&#39;ve
                                                 done.
                                             </div>
                                         </div>
