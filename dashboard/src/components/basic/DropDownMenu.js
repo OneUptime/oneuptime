@@ -45,6 +45,7 @@ const DropDownMenu = ({ options, value, updateState, id }) => {
                                 <li
                                     className="ddm-dropdown-menu__item"
                                     onClick={() => onClick(data.value)}
+                                    id={data.value}
                                 >
                                     {data.value}
                                 </li>
