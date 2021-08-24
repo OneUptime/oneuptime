@@ -23,16 +23,19 @@ const Twitter = ({ tweets, theme, loading, error }) => {
                             className="feed-header"
                         >
                             <span className="feed-title">Twitter Updates</span>
-                            <span className="feed-title">
-                                <span className="feed-icon"></span>
-                            </span>
 
                             {loading ? (
                                 <p>Loading Tweets...</p>
                             ) : tweets?.length === 0 ? (
-                                <p>No tweets at this time</p>
+                                <p style={{ color: 'rgb(250, 109, 70)' }}>
+                                    Twitter handle not set. Go to status page
+                                    advanced options to set it now.
+                                </p>
                             ) : (
-                                <ul className="feed-contents plain">
+                                <ul
+                                    className="feed-contents plain"
+                                    style={{ marginTop: '35px' }}
+                                >
                                     {tweets?.length &&
                                         tweets.map((tweet, i) =>
                                             TweetList(tweet, i)
@@ -71,7 +74,10 @@ const Twitter = ({ tweets, theme, loading, error }) => {
                         {loading ? (
                             <p>Loading Tweets...</p>
                         ) : tweets?.length === 0 ? (
-                            <p>No tweets at this time</p>
+                            <p style={{ color: 'rgb(250, 109, 70)' }}>
+                                Twitter handle not set. Go to status page
+                                advanced options to set it now.
+                            </p>
                         ) : (
                             <ul className="feed-contents plain">
                                 {tweets?.length &&
@@ -111,7 +117,10 @@ const TweetList = (tweet, index) => {
             }}
             key={index}
         >
-            <span className="feed-icon" style={{ width: '5%' }}></span>
+            <span
+                className="feed-icon"
+                style={{ width: '5%', marginTop: 5 }}
+            ></span>
             <div
                 style={{
                     display: 'flex',
