@@ -14,6 +14,7 @@ import { getEscalation } from '../actions/schedule';
 import { teamLoading } from '../actions/team';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import ScheduleCalender from '../components/schedule/ScheduleCalender';
 class Schedule extends Component {
     constructor(props) {
         super(props);
@@ -106,6 +107,9 @@ class Schedule extends Component {
                                     <span>
                                         <div>
                                             <div>
+                                                <ScheduleCalender
+                                                    escalations={escalations}
+                                                />
                                                 <RenameScheduleBox />
                                                 <MonitorBox
                                                     schedule={schedule}
