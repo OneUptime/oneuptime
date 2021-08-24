@@ -124,6 +124,8 @@ spec:
                         value: {{ .Values.saas.stripe.privateKey }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'
+                      - name: TWITTER_BEARER_TOKEN
+                        value: {{ .Values.saas.twitter.bearertoken }}
                       - name: AIRTABLE_API_KEY
                         value: {{ .Values.saas.airtable.key }}
                       - name: AIRTABLE_BASE_ID
