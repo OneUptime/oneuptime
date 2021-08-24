@@ -207,7 +207,7 @@ class NotesMain extends Component {
                             <ShouldRender if={note.style}>
                                 <div
                                     className="date-big"
-                                    style={{ margin: 10 }}
+                                    style={{ margin: 10, marginLeft: 0 }}
                                 >
                                     <Translate>
                                         {moment(note.createdAt).format('LL')}
@@ -215,12 +215,16 @@ class NotesMain extends Component {
                                 </div>
                             </ShouldRender>
                             <ShouldRender if={!note.style}>
-                                <div className="border-width-90"></div>
+                                <div
+                                    className="border-width-90"
+                                    style={{ width: '100%' }}
+                                ></div>
                             </ShouldRender>
                             {note.idNumber ? (
                                 <span
                                     style={{
                                         margin: 10,
+                                        marginLeft: 0,
                                         display: 'inline-block',
                                     }}
                                 >
