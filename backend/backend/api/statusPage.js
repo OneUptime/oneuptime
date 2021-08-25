@@ -34,7 +34,6 @@ const defaultStatusPageColors = require('../config/statusPageColors');
 const SubscriberService = require('../services/subscriberService');
 const ScheduledEventService = require('../services/scheduledEventService');
 const axios = require('axios');
-const bearer = process.env.TWITTER_BEARER_TOKEN;
 const cheerio = require('cheerio');
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
