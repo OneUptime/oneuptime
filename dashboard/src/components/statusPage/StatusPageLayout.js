@@ -42,10 +42,6 @@ export class StatusPageLayout extends Component {
                 key: 'anouncement',
             },
             {
-                name: 'Language',
-                key: 'language',
-            },
-            {
                 name: 'Ongoing Scheduled Events',
                 key: 'ongoingSchedule',
             },
@@ -187,10 +183,6 @@ export class StatusPageLayout extends Component {
                 {
                     name: 'Active Announcement',
                     key: 'anouncement',
-                },
-                {
-                    name: 'Language',
-                    key: 'language',
                 },
                 {
                     name: 'Ongoing Scheduled Events',
