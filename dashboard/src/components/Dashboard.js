@@ -107,6 +107,38 @@ export class DashboardApp extends Component {
             location.pathname === '/dashboard/profile/changePassword' ||
             location.pathname === '/dashboard/profile/advanced';
 
+        const profileFunc = () => {
+            let val;
+            if (location.pathname === '/dashboard/profile/billing') {
+                const path = location.pathname.split('/');
+                val = {
+                    route: path[path.length - 1],
+                    name: 'Billing',
+                };
+            } else if (location.pathname === '/dashboard/profile/settings') {
+                const path = location.pathname.split('/');
+                val = {
+                    route: path[path.length - 1],
+                    name: 'Profile Settings',
+                };
+            } else if (
+                location.pathname === '/dashboard/profile/changePassword'
+            ) {
+                const path = location.pathname.split('/');
+                val = {
+                    route: path[path.length - 1],
+                    name: 'Change Password',
+                };
+            } else if (location.pathname === '/dashboard/profile/advanced') {
+                const path = location.pathname.split('/');
+                val = {
+                    route: path[path.length - 1],
+                    name: 'Advanced',
+                };
+            }
+            return val;
+        };
+
         // forcing children to re-render on dashboard redraw
         // when projectId is changed/switched in user profile pages
         // * usually children components are unmounted/remounted when project is switched
@@ -121,7 +153,10 @@ export class DashboardApp extends Component {
         return (
             <Fragment>
                 {userProfile ? (
-                    <BreadCrumbItem route="#" name="Account" />
+                    <BreadCrumbItem
+                        route={profileFunc().route}
+                        name={profileFunc().name}
+                    />
                 ) : (
                     <BreadCrumbItem
                         route="/"

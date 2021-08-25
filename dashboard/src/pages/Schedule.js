@@ -14,6 +14,7 @@ import { getEscalation } from '../actions/schedule';
 import { teamLoading } from '../actions/team';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import ScheduleCalender from '../components/schedule/ScheduleCalender';
 class Schedule extends Component {
     constructor(props) {
         super(props);
@@ -80,6 +81,7 @@ class Schedule extends Component {
             location: { pathname },
             schedule,
             groups,
+            requestingEscalations,
         } = this.props;
         const name = schedule ? schedule.name : null;
         if (error) {
@@ -106,6 +108,12 @@ class Schedule extends Component {
                                     <span>
                                         <div>
                                             <div>
+                                                <ScheduleCalender
+                                                    escalations={escalations}
+                                                    requestingEscalations={
+                                                        requestingEscalations
+                                                    }
+                                                />
                                                 <RenameScheduleBox />
                                                 <MonitorBox
                                                     schedule={schedule}
@@ -189,6 +197,7 @@ const mapStateToProps = (state, props) => {
         scheduleId: schedule && schedule._id,
         teamMembers: state.team.teamMembers,
         groups: state.groups.oncallDuty?.groups,
+        requestingEscalations: state.schedule.escalation.requesting,
     };
 };
 
@@ -209,6 +218,7 @@ Schedule.propTypes = {
     schedule: PropTypes.shape({
         name: PropTypes.string,
     }),
+    requestingEscalations: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Schedule);

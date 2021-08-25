@@ -16,6 +16,7 @@ import { setUserId, setUserProperties, identify, logEvent } from './analytics';
 import { SHOULD_LOG_ANALYTICS } from './config';
 import Dashboard from './components/Dashboard';
 import { LoadingState } from './components/basic/Loader';
+import 'react-big-calendar/lib/sass/styles.scss';
 
 if (!isServer) {
     history.listen(location => {
