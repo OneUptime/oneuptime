@@ -422,6 +422,8 @@ class Search extends Component {
                 return 'db-SideNav-icon--password';
             case 'play':
                 return 'db-SideNav-icon--play';
+            case 'receipt':
+                return 'db-SideNav-icon--receipt';
             default:
                 return '';
         }
