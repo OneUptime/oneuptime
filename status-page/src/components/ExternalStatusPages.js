@@ -54,6 +54,19 @@ class ExternalStatusPages extends Component {
                                                         'translateY(-50%)',
                                                 }}
                                             >
+                                                {link.name}
+                                            </span>
+                                            <span
+                                                style={{
+                                                    fontWeight: '500',
+                                                    color: 'grey',
+                                                    left: '35%',
+                                                    position: 'absolute',
+                                                    top: '50%',
+                                                    transform:
+                                                        'translateY(-50%)',
+                                                }}
+                                            >
                                                 {link.url}
                                             </span>
                                             <span
@@ -88,7 +101,7 @@ class ExternalStatusPages extends Component {
                         >
                             {' '}
                             <div className="nt_list">
-                                You don&#39;t have any external status page.
+                                You don&#39;t have any external service.
                             </div>
                         </ShouldRender>
                     </div>

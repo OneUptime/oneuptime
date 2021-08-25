@@ -3,6 +3,7 @@
  * Copyright HackerBay, Inc.
  *
  */
+/*eslint-disable*/
 const express = require('express');
 const StatusPageService = require('../services/statusPageService');
 const MonitorService = require('../services/monitorService');
@@ -36,6 +37,7 @@ const ScheduledEventService = require('../services/scheduledEventService');
 const axios = require('axios');
 const bearer = process.env.TWITTER_BEARER_TOKEN;
 const cheerio = require('cheerio');
+const component = require('../models/component');
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
 // Returns: response status page, error message
@@ -1611,13 +1613,31 @@ router.post(
                 const status = $('span.status.font-large')
                     .text()
                     .replace(/\s\s+/g, ''); // To remove empty spaces
+                const atlassianStatuspage = $('a.color-secondary').text(); // This verifies that we are working with StatusPages Powered by Atlassian.
+                console.log(atlassianStatuspage)
+                
+                if(atlassianStatuspage !== 'Powered by Statuspage'){
+                   return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'External Status Page Url is Invalid',
+                    }); 
+                }
                 if (status === 'All Systems Operational') {
                     data.description = status;
                 } else {
-                    data.description = 'Some Systems Are Down';
+                    $('div.component-container.border-color').each((i, el)=>{
+                        const componentStatus = $(el).find('.component-status').text().replace(/\s\s+/g, '')
+                        console.log(componentStatus)
+                        if (componentStatus !== 'Operational' ){
+                            data.description = componentStatus;
+                        }
+                    })
                 }
             } catch (err) {
-                data.description = 'Invalid URL';
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Url is Invalid',
+                }); 
             }
 
             data.createdById = req.user ? req.user.id : null;

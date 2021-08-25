@@ -105,7 +105,7 @@ class EditExternalStatusPagesModal extends Component {
                                             </div>
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
-                                                    Url
+                                                    Status Page Url
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <Field
