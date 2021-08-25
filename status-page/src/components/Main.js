@@ -677,6 +677,7 @@ class Main extends Component {
                                 <span
                                     style={{
                                         fontWeight: 'bold',
+                                        color: '#fff',
                                     }}
                                 >
                                     {this.props.statusData.title}
