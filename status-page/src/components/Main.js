@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, useState } from 'react';
 import { Translator, Translate } from 'react-auto-translate';
 import PropTypes from 'prop-types';
 import UptimeLegend from './UptimeLegend';
@@ -576,7 +576,6 @@ class Main extends Component {
                     name: 'Active Announcement',
                     key: 'anouncement',
                 },
-                { name: 'Language', key: 'language' },
                 {
                     name: 'Ongoing Scheduled Events',
                     key: 'ongoingSchedule',
@@ -698,17 +697,6 @@ class Main extends Component {
                                     }
                                 >
                                     <NewThemeSubscriber />
-                                </ShouldRender>
-                                <ShouldRender
-                                    if={
-                                        this.props.statusPage
-                                            .enableMultipleLanguage
-                                    }
-                                >
-                                    <SelectLanguage
-                                        theme={true}
-                                        languageMenu={this.props.languageMenu}
-                                    />
                                 </ShouldRender>
                             </div>
                         </div>
@@ -1011,6 +999,7 @@ class Main extends Component {
                         statusData={this.props.statusData}
                         primaryText={primaryText}
                         secondaryText={secondaryText}
+                        theme={true}
                     />
                 </div>
             ),
@@ -1024,29 +1013,6 @@ class Main extends Component {
                     heading={heading}
                     {...this.props}
                 />
-            ),
-            language: (
-                <div
-                    className="white box"
-                    style={{
-                        background: 'rgb(253, 253, 253)',
-                        marginTop: '50px',
-                        width: '100%',
-                        padding: 20,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        paddingLeft: '40px',
-                        paddingRight: '40px',
-                    }}
-                >
-                    <div>
-                        <span>
-                            <Translate>Choose Language</Translate>
-                        </span>
-                    </div>
-                    <SelectLanguage languageMenu={this.props.languageMenu} />
-                </div>
             ),
             incidents: (
                 <NotesMain
@@ -1467,22 +1433,6 @@ class Main extends Component {
                                     visibleLayout.visible.map(layout => {
                                         if (layout.key === 'header') {
                                             return <>{theme2Obj[layout.key]}</>;
-                                        } else if (layout.key === 'language') {
-                                            if (
-                                                this.props.statusPage
-                                                    .enableMultipleLanguage
-                                            ) {
-                                                return (
-                                                    <div
-                                                        key={layout.key}
-                                                        className="innernew"
-                                                    >
-                                                        {theme2Obj[layout.key]}
-                                                    </div>
-                                                );
-                                            } else {
-                                                return null;
-                                            }
                                         } else {
                                             return (
                                                 <div
@@ -1784,10 +1734,23 @@ Probes.propTypes = {
     theme: PropTypes.string,
 };
 
-const FooterCard = ({ footerHTML, statusData, primaryText, secondaryText }) => {
+const FooterCard = ({
+    footerHTML,
+    statusData,
+    primaryText,
+    secondaryText,
+    theme,
+}) => {
+    const [isShown, setIsShown] = useState(false);
+
     return (
         <>
             <div id="footer">
+                <SelectLanguage
+                    isShown={isShown}
+                    setIsShown={setIsShown}
+                    theme={theme}
+                />
                 <ul>
                     <ShouldRender if={statusData && statusData.copyright}>
                         <li>
@@ -1831,14 +1794,26 @@ const FooterCard = ({ footerHTML, statusData, primaryText, secondaryText }) => {
                 </ShouldRender>
 
                 <p>
-                    <a
-                        href="https://fyipe.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={secondaryText}
+                    <span>
+                        <a
+                            href="https://fyipe.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={secondaryText}
+                        >
+                            <Translate>Powered by</Translate> Fyipe
+                        </a>
+                    </span>
+                    <span
+                        style={{
+                            color: 'rgb(76, 76, 76)',
+                            cursor: 'pointer',
+                        }}
+                        onClick={() => setIsShown(!isShown)}
                     >
-                        Powered by Fyipe
-                    </a>
+                        {' '}
+                        | <Translate>Language</Translate>
+                    </span>
                 </p>
             </div>
         </>
@@ -1852,6 +1827,7 @@ FooterCard.propTypes = {
     statusData: PropTypes.object,
     primaryText: PropTypes.object,
     secondaryText: PropTypes.object,
+    theme: PropTypes.bool,
 };
 
 const HelemtCard = ({ statusData, faviconurl }) => {

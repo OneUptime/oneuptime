@@ -18,14 +18,9 @@ class LanguageBox extends Component {
         };
     }
     translateButton = () => {
-        if (this.props.theme) {
-            this.props.handleCloseButtonClick();
-        } else {
-            this.props.openLanguageMenu();
-        }
+        this.props.handleCloseButtonClick();
     };
     handleChange = event => {
-        // eslint-disable-next-line no-console
         this.setState({
             ...this.state,
             language: event.target.value,
@@ -33,7 +28,7 @@ class LanguageBox extends Component {
     };
     handleTranslate = () => {
         this.props.translateLanguage(this.state.language);
-        this.props.openLanguageMenu();
+        this.translateButton();
     };
     render() {
         const { statusPage } = this.props;
@@ -41,15 +36,9 @@ class LanguageBox extends Component {
         const theme = this.props.theme;
         return (
             <div className="subscribe-overlay">
-                <ClickOutHandler
-                    onClickOut={() => this.props.openLanguageMenu()}
-                >
+                <ClickOutHandler onClickOut={() => this.translateButton()}>
                     <div
-                        className={
-                            !theme
-                                ? 'white box subscribe-box'
-                                : 'bs-theme-shadow'
-                        }
+                        className={'white box subscribe-box'}
                         style={{
                             height: 'auto',
                             width: '300px',
@@ -60,7 +49,6 @@ class LanguageBox extends Component {
                             className="btn-group"
                             style={{
                                 background: '#fff',
-                                //justifyContent: 'flex-end',
                             }}
                         >
                             <button
@@ -74,7 +62,7 @@ class LanguageBox extends Component {
                                 <div
                                     style={{
                                         display: 'flex',
-                                        //justifyContent: 'center',
+
                                         alignItems: 'center',
                                         marginLeft: 15,
                                     }}
@@ -171,7 +159,6 @@ LanguageBox.propTypes = {
     theme: PropTypes.bool,
     handleCloseButtonClick: PropTypes.func,
     translateLanguage: PropTypes.func,
-    openLanguageMenu: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(LanguageBox);
