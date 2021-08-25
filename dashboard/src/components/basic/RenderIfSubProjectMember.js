@@ -6,8 +6,7 @@ import { User } from '../../config';
 // params 1: props
 // returns JSX.Element or NULL
 function RenderIfSubProjectMember(props) {
-    const { currentProject, subProjects, children } = props;
-    const userId = User.getUserId();
+    const { currentProject, subProjects, children, userId } = props;
     let renderItems = null;
     if (
         userId &&
@@ -46,6 +45,10 @@ function RenderIfSubProjectMember(props) {
     }
     return renderItems;
 }
+
+RenderIfSubProjectMember.defaultProps = {
+    userId: User.getUserId(),
+};
 
 function mapStateToProps(state) {
     return {
