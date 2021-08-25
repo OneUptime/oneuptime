@@ -48,7 +48,6 @@ export class StatusPageLayout extends Component {
             { name: 'Overall Status of Resources', key: 'resources' },
             { name: 'Resource List', key: 'services' },
             { name: 'Incidents List', key: 'incidents' },
-            { name: 'Past Announcements List', key: 'AnnouncementLogs' },
             {
                 name: 'Future Scheduled Events',
                 key: 'maintenance',
@@ -57,7 +56,7 @@ export class StatusPageLayout extends Component {
         ],
         invisible: [
             { name: 'Scheduled Events Completed', key: 'pastEvents' },
-
+            { name: 'Past Announcements List', key: 'AnnouncementLogs' },
             { name: 'Twitter Updates', key: 'twitter' },
             { name: 'External Status Pages', key: 'externalStatusPage' },
         ],
@@ -191,7 +190,6 @@ export class StatusPageLayout extends Component {
                 { name: 'Overall Status of Resources', key: 'resources' },
                 { name: 'Resource List', key: 'services' },
                 { name: 'Incidents List', key: 'incidents' },
-                { name: 'Past Announcements List', key: 'AnnouncementLogs' },
                 {
                     name: 'Future Scheduled Events',
                     key: 'maintenance',
@@ -200,6 +198,7 @@ export class StatusPageLayout extends Component {
                 { name: 'Footer', key: 'footer' },
             ],
             invisible: [
+                { name: 'Past Announcements List', key: 'AnnouncementLogs' },
                 { name: 'Scheduled Events Completed', key: 'pastEvents' },
                 { name: 'Twitter Updates', key: 'twitter' },
                 { name: 'External Status Pages', key: 'externalStatusPage' },
