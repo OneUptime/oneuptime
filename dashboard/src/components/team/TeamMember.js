@@ -8,7 +8,7 @@ import {
     teamUpdateRole,
     resetTeamDelete,
 } from '../../actions/team';
-import { changeProjectRoles } from '../../actions/project';
+import { changeProjectRoles, exitProject } from '../../actions/project';
 import { TeamListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
@@ -21,6 +21,8 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import ConfirmChangeRoleModal from '../modals/ConfirmChangeRole';
 import DropDownMenu from '../basic/DropDownMenu';
+import ExitProjectModal from '../settings/ExitProjectModal';
+import RenderIfSubProjectMember from '../basic/RenderIfSubProjectMember';
 
 export class TeamMember extends Component {
     constructor(props) {
@@ -82,6 +84,36 @@ export class TeamMember extends Component {
         }
     }
 
+    exitProject = () => {
+        const {
+            projectId,
+            userId,
+            nextProject,
+            exitProject,
+            dispatch,
+        } = this.props;
+        this.props.openModal({
+            id: uuidv4(),
+            onConfirm: () => {
+                return exitProject(projectId, userId).then(function() {
+                    window.location.reload();
+                    !nextProject && dispatch({ type: 'CLEAR_STORE' });
+
+                    if (SHOULD_LOG_ANALYTICS) {
+                        logEvent(
+                            'EVENT: DASHBOARD > PROJECT > USER EXITED PROJECT',
+                            {
+                                projectId,
+                                userId,
+                            }
+                        );
+                    }
+                });
+            },
+            content: ExitProjectModal,
+        });
+    };
+
     render() {
         const {
             handleSubmit,
@@ -89,6 +121,7 @@ export class TeamMember extends Component {
             deleting,
             team: { subProjectTeamMembers },
             updating,
+            exitingProject,
         } = this.props;
         let teamMembers = subProjectTeamMembers.map(teamMembers => {
             return teamMembers.teamMembers;
@@ -189,6 +222,20 @@ export class TeamMember extends Component {
                 <div className="bs-ObjectList-cell bs-u-v-middle"></div>
                 <div className="bs-ObjectList-cell bs-u-right bs-u-shrink bs-u-v-middle Flex-alignContent--spaceBetween">
                     <div>
+                        <RenderIfSubProjectMember userId={userId}>
+                            <button
+                                id={`memberExit__${
+                                    this.props.email.split('@')[0]
+                                }`}
+                                title="exit"
+                                disabled={exitingProject}
+                                className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                type="button"
+                                onClick={this.exitProject}
+                            >
+                                Exit Project
+                            </button>
+                        </RenderIfSubProjectMember>
                         <ShouldRender if={isAdmin || isOwner}>
                             <div className="Flex-flex Flex-alignContent--spaceBetween">
                                 <ShouldRender if={!updating}>
@@ -348,6 +395,14 @@ TeamMember.propTypes = {
     teamUpdateRole: PropTypes.func.isRequired,
     updating: PropTypes.oneOf([null, false, true]),
     userId: PropTypes.string.isRequired,
+    exitingProject: PropTypes.bool,
+    exitProject: PropTypes.func,
+    nextProject: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    dispatch: PropTypes.func.isRequired,
+    projectId: PropTypes.string,
 };
 
 const TeamMemberForm = reduxForm({
@@ -363,12 +418,27 @@ const mapDispatchToProps = dispatch => {
             openModal,
             closeModal,
             resetTeamDelete,
+            exitProject,
         },
         dispatch
     );
 };
 
 function mapStateToProps(state, props) {
+    const userId = User.getUserId();
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
+
+    const { projects } = state.project.projects;
+
+    const nextProject =
+        projects.length > 0
+            ? projects.find(
+                  project =>
+                      project._id !== projectId &&
+                      project.users.some(user => user.userId === userId)
+              )
+            : null;
     return {
         team: state.team,
         deleting: state.team.teamdelete.deleting.some(
@@ -379,6 +449,9 @@ function mapStateToProps(state, props) {
         ),
         currentProject: state.project.currentProject,
         subProjects: state.subProject.subProjects.subProjects,
+        exitingProject: state.project.exitProject.requesting,
+        nextProject,
+        projectId,
     };
 }
 
