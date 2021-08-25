@@ -622,11 +622,11 @@ module.exports = {
         try {
             const _this = this;
             let teamMember = {};
-            const userProjects = await _this.findOneBy({
+            const userProject = await _this.findOneBy({
                 query: { _id: projectId },
                 select: 'users',
             });
-            teamMember = userProjects.users.find(
+            teamMember = userProject.users.find(
                 user => String(user.userId) === String(userId)
             );
             let subProject = null;

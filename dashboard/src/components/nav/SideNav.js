@@ -37,16 +37,17 @@ class SideNav extends Component {
             JSON.stringify(prevProps.currentProject) !==
             JSON.stringify(this.props.currentProject)
         ) {
-            this.props
-                .getSubProjects(this.props.currentProject._id)
-                .then(res => {
-                    this.props.switchToProjectViewer(
-                        User.getUserId(),
-                        res.data.data,
-                        this.props.currentProject
-                    );
-                    this.updateNavLoading('projectShow');
-                });
+            this.props.currentProject &&
+                this.props
+                    .getSubProjects(this.props.currentProject._id)
+                    .then(res => {
+                        this.props.switchToProjectViewer(
+                            User.getUserId(),
+                            res.data.data,
+                            this.props.currentProject
+                        );
+                        this.updateNavLoading('projectShow');
+                    });
         }
     }
     updateNavLoading = option => this.setState({ navLoading: option });

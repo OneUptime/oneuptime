@@ -11,6 +11,7 @@ import ExitProjectModal from './ExitProjectModal';
 import { openModal, closeModal } from '../../actions/modal';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
+import { history } from '../../store';
 
 export class ExitProjectBox extends Component {
     handleClick = () => {
@@ -25,8 +26,15 @@ export class ExitProjectBox extends Component {
             id: uuidv4(),
             onConfirm: () => {
                 return exitProject(projectId, userId).then(function() {
+                    if (nextProject) {
+                        window.location.reload();
+                        switchProject(nextProject);
+                    } else {
+                        history.push('/');
+                    }
                     !nextProject && dispatch({ type: 'CLEAR_STORE' });
                     getProjects(false);
+
                     if (SHOULD_LOG_ANALYTICS) {
                         logEvent('EVENT: DASHBOARD > PROJECT > USER REMOVED', {
                             projectId,
