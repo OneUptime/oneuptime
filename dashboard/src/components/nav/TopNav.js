@@ -59,9 +59,10 @@ class TopContent extends Component {
 
     componentDidUpdate(prevProps) {
         if (prevProps.currentProject !== this.props.currentProject) {
-            this.props.fetchSubProjectOngoingScheduledEvents(
-                this.props.currentProject._id
-            );
+            this.props.currentProject &&
+                this.props.fetchSubProjectOngoingScheduledEvents(
+                    this.props.currentProject._id
+                );
         }
         if (
             (!prevProps.user.id &&
