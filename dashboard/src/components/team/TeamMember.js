@@ -86,16 +86,16 @@ export class TeamMember extends Component {
 
     exitProject = () => {
         const {
-            projectId,
             userId,
             nextProject,
             exitProject,
             dispatch,
+            subProjectId,
         } = this.props;
         this.props.openModal({
             id: uuidv4(),
             onConfirm: () => {
-                return exitProject(projectId, userId).then(function() {
+                return exitProject(subProjectId, userId).then(function() {
                     window.location.reload();
                     !nextProject && dispatch({ type: 'CLEAR_STORE' });
 
@@ -103,7 +103,7 @@ export class TeamMember extends Component {
                         logEvent(
                             'EVENT: DASHBOARD > PROJECT > USER EXITED PROJECT',
                             {
-                                projectId,
+                                subProjectId,
                                 userId,
                             }
                         );
@@ -402,7 +402,6 @@ TeamMember.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     dispatch: PropTypes.func.isRequired,
-    projectId: PropTypes.string,
 };
 
 const TeamMemberForm = reduxForm({
@@ -451,7 +450,6 @@ function mapStateToProps(state, props) {
         subProjects: state.subProject.subProjects.subProjects,
         exitingProject: state.project.exitProject.requesting,
         nextProject,
-        projectId,
     };
 }
 
