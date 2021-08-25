@@ -990,7 +990,7 @@ class Main extends Component {
                         ...contentBackground,
                     }}
                 >
-                    <div className="font-largest">External Status Pages</div>
+                    <div className="font-largest">External Services</div>
                     <ExternalStatusPages theme={theme} />
                 </div>
             ),
