@@ -222,7 +222,7 @@ export class TeamMember extends Component {
                 <div className="bs-ObjectList-cell bs-u-v-middle"></div>
                 <div className="bs-ObjectList-cell bs-u-right bs-u-shrink bs-u-v-middle Flex-alignContent--spaceBetween">
                     <div>
-                        <RenderIfSubProjectMember userId={userId}>
+                        <RenderIfSubProjectMember currentUserId={userId}>
                             <button
                                 id={`memberExit__${
                                     this.props.email.split('@')[0]

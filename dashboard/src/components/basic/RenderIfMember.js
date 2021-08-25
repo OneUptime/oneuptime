@@ -6,10 +6,13 @@ import { User } from '../../config';
 // params 1: props
 // returns JSX.Element or NULL
 function RenderIfMember(props) {
-    const { currentProject, children, userId } = props;
+    const { currentProject, children, currentUserId } = props;
+    const userId = User.getUserId();
+
     let renderItems = null;
     if (
         userId &&
+        userId === currentUserId &&
         currentProject &&
         currentProject.users &&
         currentProject.users.length > 0 &&
@@ -26,10 +29,6 @@ function RenderIfMember(props) {
 
     return renderItems;
 }
-
-RenderIfMember.defaultProps = {
-    userId: User.getUserId(),
-};
 
 function mapStateToProps(state) {
     return {
