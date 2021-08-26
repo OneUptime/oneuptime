@@ -11,10 +11,13 @@ export async function getUserAgent() {
 }
 
 export async function getTheSubscription() {
-    const subscription = await registerService.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
-    });
+    let subscription;
+    if (registerService) {
+        subscription = await registerService.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
+        });
+    }
     return subscription;
 }
 
