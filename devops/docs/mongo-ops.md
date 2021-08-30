@@ -27,7 +27,7 @@ Important: Backup surving member. See backup section in this document for more i
 Resolution: Delete all statefulset and start again.
 
 ```
-kubectl delete pvc datadir-fi-mongodb-primary-0 datadir-fi-mongodb-secondary-0
+kubectl delete pvc datadir-fi-mongodb-0 datadir-fi-mongodb-0
 
 # If staging
 sudo helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
@@ -51,7 +51,7 @@ Example:
 ```
 # Delete audit logs (optional, but recommended)
 
-sudo kubectl exec -it fi-mongodb-primary-0 -- bash
+sudo kubectl exec -it fi-mongodb-0 -- bash
 mongo
 use fyipedb
 db.auth('fyipe', 'password')
@@ -77,7 +77,7 @@ and look for `mongo-x-external` resource, `x` can be any number from 0 and above
 On the destination cluster:
 
 ```
-kubectl exec -it fi-mongodb-primary-0 -- bash
+kubectl exec -it fi-mongodb-0 -- bash
 mongodump --uri="mongodb://fyipe:password@<EXTERNAL-IP-ADDRESS-FROM-STEP-1>:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
 mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
 ```
@@ -107,7 +107,7 @@ Syntax:
 
 Example:
 
-`sudo kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
+`sudo kubectl exec fi-mongodb-0 -- mongodump --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
 
 **Step 2**: Copy file from conatiner to local machine.
 
@@ -117,7 +117,7 @@ Syntax:
 
 Example:
 
-`sudo kubectl cp fi-mongodb-primary-0:/bitnami/mongodb/fyipedata.archive /Volumes/DataDrive/Projects/Fyipe/app/backup.archive`
+`sudo kubectl cp fi-mongodb-0:/bitnami/mongodb/fyipedata.archive /Volumes/DataDrive/Projects/Fyipe/app/backup.archive`
 
 ## Restore
 
@@ -132,7 +132,7 @@ Syntax:
 `sudo kubectl cp <localfilePath> <pod>:<filepath>`
 
 Example:
-`sudo kubectl cp /Volumes/DataDrive/Projects/Fyipe/app/backup.archive fi-mongodb-primary-0:/bitnami/mongodb/fyipedata.archive`
+`sudo kubectl cp /Volumes/DataDrive/Projects/Fyipe/app/backup.archive fi-mongodb-0:/bitnami/mongodb/fyipedata.archive`
 
 **Step 2**: Mongorestore on the container.
 
@@ -142,7 +142,7 @@ Syntax:
 
 Example:
 
-`sudo kubectl exec fi-mongodb-primary-0 -- mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
+`sudo kubectl exec fi-mongodb-0 -- mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
 
 ## Misc commands
 
