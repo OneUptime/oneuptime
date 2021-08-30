@@ -10215,10 +10215,8 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
 .db-World-sideNavContainer {
     bottom: 0;
     justify-content: flex-end;
-    left: calc(50vw - 1350px / 2);
     overflow-x: hidden;
     overflow-y: auto;
-    position: absolute;
     top: 0;
     width: 240px;
     z-index: 5;
@@ -10269,15 +10267,8 @@ html.db-NewChrome .bs-ContentSection .bs-Tail--short {
     width: 12px;
 }
 .db-World-mainPane {
-    bottom: 0;
-    left: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    padding-left: calc((50vw - 1390px / 2 + 278px));
-    padding-right: calc((50vw - 1390px / 2 ));
-    position: absolute;
-    right: 0;
-    top: 0;
     z-index: 0;
 }
 .db-World-contentPane {

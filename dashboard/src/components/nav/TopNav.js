@@ -423,7 +423,7 @@ class TopContent extends Component {
                         <Search />
                     </div>
                 </ShouldRender>
-                <div>
+                <div style={{ marginRight: '15px' }}>
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                         <div
                             className="Box-root"
