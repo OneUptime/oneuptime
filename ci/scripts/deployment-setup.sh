@@ -19,6 +19,24 @@ unzip awscliv2.zip
 sudo ./aws/install
 aws --version # confirm installation
 
+sudo mkdir ~/.aws || echo "Directory already created"
+
+echo "Setup AWS Credentials"
+credentials=~/.aws/credentials
+sudo cat <<-EOF > $credentials
+[default]
+aws_access_key_id = $AWS_ACCESS_KEY_ID
+aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
+EOF
+
+echo "Setup AWS Config"
+config=~/.aws/config
+sudo cat <<-EOF > $config
+[default]
+region = $AWS_DEFAULT_REGION
+output = json
+EOF
+
 # Make .config folder
 sudo mkdir /root/.config || echo "Directory already created."
 sudo mkdir /root/.kube || echo "Directory already created."
