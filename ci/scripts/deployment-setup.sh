@@ -20,22 +20,20 @@ sudo ./aws/install
 aws --version # confirm installation
 
 sudo mkdir ~/.aws || echo "Directory already created"
+sudo rm ~/.aws/credentials || echo "credentials file not there"
+sudo rm ~/.aws/config || echo "config file not there"
 sudo touch ~/.aws/credentials
 sudo touch ~/.aws/config
-ls ~/.aws
-sudo ls ~/.aws
 
 echo "Setup AWS Credentials"
-credentials=~/.aws/credentials
-sudo cat <<-EOF > $credentials
+sudo cat <<-EOF >>/home/gitlab-runner/.aws/credentials
 [default]
 aws_access_key_id = $AWS_ACCESS_KEY_ID
 aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
 EOF
 
 echo "Setup AWS Config"
-config=~/.aws/config
-sudo cat <<-EOF > $config
+sudo cat <<-EOF >>/home/gitlab-runner/.aws/config
 [default]
 region = $AWS_DEFAULT_REGION
 output = json
