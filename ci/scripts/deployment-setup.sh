@@ -23,6 +23,9 @@ aws --version # confirm installation
 sudo mkdir /root/.config || echo "Directory already created."
 sudo mkdir /root/.kube || echo "Directory already created."
 
+echo  "All available environment variables"
+printenv
+
 #Init auth
 # echo "Auth doctl"
 # sudo doctl auth init -t $DIGITALOCEAN_TOKEN
