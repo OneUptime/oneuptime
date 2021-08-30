@@ -19,25 +19,12 @@ unzip awscliv2.zip
 sudo ./aws/install
 aws --version # confirm installation
 
-sudo mkdir ~/.aws || echo "Directory already created"
-sudo rm ~/.aws/credentials || echo "credentials file not there"
-sudo rm ~/.aws/config || echo "config file not there"
-sudo touch ~/.aws/credentials
-sudo touch ~/.aws/config
+sudo rm -rf ~/.aws || echo "Directory already deleted"
 
-echo "Setup AWS Credentials"
-sudo cat <<-EOF >>/home/gitlab-runner/.aws/credentials
-[default]
-aws_access_key_id = $AWS_ACCESS_KEY_ID
-aws_secret_access_key = $AWS_SECRET_ACCESS_KEY
-EOF
-
-echo "Setup AWS Config"
-sudo cat <<-EOF >>/home/gitlab-runner/.aws/config
-[default]
-region = $AWS_DEFAULT_REGION
-output = json
-EOF
+sudo aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+sudo aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+sudo aws configure set default.region $AWS_DEFAULT_REGION
+sudo aws configure set default.output json
 
 # Make .config folder
 sudo mkdir /root/.config || echo "Directory already created."
