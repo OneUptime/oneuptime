@@ -290,8 +290,6 @@ describe('Incident Timeline API', () => {
 
             await init.pageWaitForSelector(page, `#incident_0`);
             await init.page$Eval(page, `#incident_0`, e => e.click());
-            // click on incident notes tab
-            await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
 
             await init.pageWaitForSelector(
                 page,
