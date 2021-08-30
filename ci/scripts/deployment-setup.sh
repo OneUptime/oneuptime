@@ -20,6 +20,10 @@ sudo ./aws/install
 aws --version # confirm installation
 
 sudo mkdir ~/.aws || echo "Directory already created"
+sudo touch ~/.aws/credentials
+sudo touch ~/.aws/config
+ls ~/.aws
+sudo ls ~/.aws
 
 echo "Setup AWS Credentials"
 credentials=~/.aws/credentials
