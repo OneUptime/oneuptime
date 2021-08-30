@@ -56,6 +56,7 @@ staging_accounts:
         - sudo cat /home/gitlab-runner/.kube/config
         - sudo kubectl --kubeconfig=/home/gitlab-runner/.kube/config config get-contexts
         - aws configure list
+        - aws eks list-clusters
         - sudo kubectl --kubeconfig=/home/gitlab-runner/.kube/config set image deployment/fi-accounts fi-accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
