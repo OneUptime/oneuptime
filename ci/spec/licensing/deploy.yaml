@@ -16,7 +16,7 @@ staging_licensing:
         - sudo docker tag fyipeproject/licensing:master fyipeproject/licensing:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/licensing:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/licensing:master
-        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+        - sudo kubectl set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -45,7 +45,7 @@ production_licensing:
         - sudo docker tag fyipeproject/licensing:latest fyipeproject/licensing:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/licensing:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/licensing:latest
-        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
+        - sudo kubectl set image deployment/fi-licensing fi-licensing=fyipeproject/licensing:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
