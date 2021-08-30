@@ -35549,8 +35549,7 @@ padding-left:20px
   }
   .db-World-mainPane {
       width: 100% !important;
-      padding-left: 0px;
-      padding-right: 0%;
+      padding: 5px;
   }
   .db-World-topContent {
       width: calc(100% - 240px - 3%) !important;
