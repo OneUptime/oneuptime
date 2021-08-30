@@ -16,7 +16,7 @@ staging_application-scanner:
         - sudo docker tag fyipeproject/application-scanner:master fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/application-scanner:master
-        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-app-scan fi-app-scan=fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID
+        - sudo kubectl set image deployment/fi-app-scan fi-app-scan=fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -45,7 +45,7 @@ production_application-scanner:
         - sudo docker tag fyipeproject/application-scanner:latest fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/application-scanner:latest
-        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-app-scan fi-app-scan=fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID
+        - sudo kubectl set image deployment/fi-app-scan fi-app-scan=fyipeproject/application-scanner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
