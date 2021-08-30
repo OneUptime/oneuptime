@@ -52,6 +52,8 @@ staging_accounts:
         - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
         - export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
         - sudo kubectl config get-contexts
+        - aws configure list
+        - cat /root/.kube/config
         - sudo kubectl set image deployment/fi-accounts fi-accounts=fyipeproject/accounts:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
