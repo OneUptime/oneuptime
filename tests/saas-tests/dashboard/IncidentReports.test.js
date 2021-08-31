@@ -81,7 +81,7 @@ describe('Incident Reports API', () => {
             await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle2' }); // Incident Status is present on Dashboard and Incident Detail Page
             await init.pageWaitForSelector(page, '#closeIncident_0', {
                 visible: true,
-                timeout: 300000,
+                timeout: 100000,
             });
             let incidentReportElement = await init.pageWaitForSelector(
                 page,
@@ -124,9 +124,9 @@ describe('Incident Reports API', () => {
 
             // Navigate to Component details
             await page.goto(utils.DASHBOARD_URL, { waitUntil: 'networkidle2' });
-            await init.pageWaitForSelector(page, '#closeIncident_0', {
+            await init.pageWaitForSelector(page, '#closeIncident_1', {
                 visible: true,
-                timeout: 300000,
+                timeout: 100000,
             });
             let incidentReportElement = await init.pageWaitForSelector(
                 page,

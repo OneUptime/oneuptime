@@ -441,8 +441,7 @@ export class IncidentStatus extends Component {
             teamMembers = [];
         }
         const team = teamMembers.filter(member => member.userId);
-        /*eslint-disable*/
-        console.log('Incident: ', this.props.incident)
+
         return (
             <>
                 <ShouldRender
