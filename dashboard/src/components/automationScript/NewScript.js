@@ -37,7 +37,16 @@ class NewScript extends Component {
 
     componentDidMount() {
         this.props.resetScripts();
+        window.addEventListener('keydown', this.handleKeyBoard);
     }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        if (e.key === 'Escape') this.props.toggleNewScript();
+    };
 
     setAutomatedScript = value => {
         this.setState({ ...this.state, script: value });
@@ -735,6 +744,9 @@ class NewScript extends Component {
                                         onClick={this.props.toggleNewScript}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="addComponentButton"
