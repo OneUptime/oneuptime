@@ -84,6 +84,8 @@ class ApplicationLog extends Component {
             location: { pathname },
             component,
             componentId,
+            currentProject,
+            switchToProjectViewerNav,
             applicationLog: appLogs,
         } = this.props;
 
@@ -115,8 +117,17 @@ class ApplicationLog extends Component {
             );
 
         const componentName = component ? component.name : '';
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name={componentName}
@@ -204,6 +215,7 @@ const mapStateToProps = (state, props) => {
         applicationLog,
         currentProject,
         tutorialStat,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 ApplicationLog.propTypes = {
@@ -226,5 +238,6 @@ ApplicationLog.propTypes = {
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
     ]),
+    switchToProjectViewerNav: PropTypes.bool,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ApplicationLog);

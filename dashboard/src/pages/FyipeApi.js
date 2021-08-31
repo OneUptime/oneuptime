@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
@@ -7,15 +8,24 @@ import APISettings from '../components/settings/APISettings';
 import TutorialBox from '../components/tutorial/TutorialBox';
 import RenderIfOwner from '../components/basic/RenderIfOwner';
 import RenderIfSubProjectMember from '../components/basic/RenderIfSubProjectMember';
-
 class FyipeApi extends Component {
     render() {
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Project Settings"
@@ -86,6 +96,14 @@ FyipeApi.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    currentProject: PropTypes.object,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
-export default FyipeApi;
+const mapStateToProps = state => {
+    return {
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+    };
+};
+export default connect(mapStateToProps)(FyipeApi);

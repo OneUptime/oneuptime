@@ -82,14 +82,24 @@ class Schedule extends Component {
             schedule,
             groups,
             requestingEscalations,
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
         const name = schedule ? schedule.name : null;
         if (error) {
             return <div></div>;
         }
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="On-Call Duty"
@@ -198,6 +208,8 @@ const mapStateToProps = (state, props) => {
         teamMembers: state.team.teamMembers,
         groups: state.groups.oncallDuty?.groups,
         requestingEscalations: state.schedule.escalation.requesting,
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -219,6 +231,8 @@ Schedule.propTypes = {
         name: PropTypes.string,
     }),
     requestingEscalations: PropTypes.bool,
+    currentProject: PropTypes.object.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Schedule);

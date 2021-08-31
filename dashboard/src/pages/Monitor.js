@@ -208,6 +208,7 @@ class DashboardView extends Component {
             component,
             fetchComponentSummary,
             componentSummaryObj,
+            switchToProjectViewerNav,
         } = this.props;
 
         if (this.props.currentProject) {
@@ -318,9 +319,17 @@ class DashboardView extends Component {
 
         monitors && monitors.unshift(projectMonitor);
         const componentName = component ? component.name : '';
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem route={pathname} name={componentName} />
                 <BreadCrumbItem route={pathname + '#'} name="Monitors" />
                 <div className="Box-root">
@@ -582,6 +591,7 @@ const mapStateToProps = (state, ownProps) => {
         tutorialStat,
         componentSummaryObj: state.component.componentSummary,
         componentSlug,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -625,6 +635,7 @@ DashboardView.propTypes = {
     fetchComponent: PropTypes.func,
     componentSlug: PropTypes.string,
     fetchDefaultTemplate: PropTypes.func,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 DashboardView.displayName = 'DashboardView';

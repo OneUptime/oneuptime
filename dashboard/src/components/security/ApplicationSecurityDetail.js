@@ -156,6 +156,8 @@ class ApplicationSecurityDetail extends Component {
             components,
             scanApplicationSecuritySuccess,
             getApplicationSecuritySuccess,
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
 
         socket.on(`security_${applicationSecurityId}`, data => {
@@ -168,9 +170,17 @@ class ApplicationSecurityDetail extends Component {
 
         const componentName =
             components.length > 0 ? components[0].name : 'loading...';
+        const projectName = currentProject ? currentProject.name : '';
 
         return (
             <div className="Box-root Margin-bottom--12">
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId || ''}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname, null, 'component')}
                     name={componentName}
@@ -346,6 +356,8 @@ ApplicationSecurityDetail.propTypes = {
     ),
     scanApplicationSecuritySuccess: PropTypes.func,
     getApplicationSecuritySuccess: PropTypes.func,
+    switchToProjectViewerNav: PropTypes.bool,
+    currentProject: PropTypes.object,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -393,6 +405,7 @@ const mapStateToProps = (state, ownProps) => {
         fetchLogError: state.security.getApplicationSecurityLog.error,
         fetchCredentialError: state.credential.getCredential.error,
         components,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 

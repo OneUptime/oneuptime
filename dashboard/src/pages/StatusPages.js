@@ -21,10 +21,19 @@ class StatusPage extends Component {
         const {
             projectId,
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem route={pathname} name="Status Pages" />
                 <ShouldRender if={this.props.tutorialStat.statusPage.show}>
                     <TutorialBox
@@ -64,12 +73,17 @@ function mapStateToProps(state) {
         statusPage: state.statusPage,
         projectId,
         tutorialStat,
+        currentProject:
+            state.project.currentProject && state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 }
 
 StatusPage.propTypes = {
     projectId: PropTypes.string.isRequired,
     tutorialStat: PropTypes.object,
+    switchToProjectViewerNav: PropTypes.bool,
+    currentProject: PropTypes.object,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),

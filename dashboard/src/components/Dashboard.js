@@ -89,9 +89,7 @@ export class DashboardApp extends Component {
             notification: {
                 notifications: { notifications },
             },
-            switchToProjectViewerNav,
         } = this.props;
-        const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
         const incidentNotifications = notifications.filter(
             notification =>
@@ -152,18 +150,10 @@ export class DashboardApp extends Component {
 
         return (
             <Fragment>
-                {userProfile ? (
+                {userProfile && (
                     <BreadCrumbItem
                         route={profileFunc().route}
                         name={profileFunc().name}
-                    />
-                ) : (
-                    <BreadCrumbItem
-                        route="/"
-                        name={projectName}
-                        projectId={projectId}
-                        slug={currentProject ? currentProject.slug : null}
-                        switchToProjectViewerNav={switchToProjectViewerNav}
                     />
                 )}
                 <CreateProjectModal />
@@ -380,7 +370,6 @@ DashboardApp.propTypes = {
     currentModal: PropTypes.object,
     closeModal: PropTypes.func,
     pageName: PropTypes.string,
-    switchToProjectViewerNav: PropTypes.bool,
 };
 
 const mapStateToProps = state => ({

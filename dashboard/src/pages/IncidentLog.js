@@ -209,6 +209,7 @@ class IncidentLog extends React.Component {
             componentId,
             location: { pathname },
             component,
+            switchToProjectViewerNav,
         } = this.props;
         const currentProjectId = currentProject ? currentProject._id : null;
 
@@ -342,9 +343,18 @@ class IncidentLog extends React.Component {
 
         allIncidents && allIncidents.unshift(projectIncident);
         const componentName = component ? component.name : '';
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
 
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <ShouldRender if={!pathname.endsWith('incidents')}>
                     <BreadCrumbItem
                         route={getParentRoute(pathname)}
@@ -423,6 +433,7 @@ const mapStateToProps = (state, ownProps) => {
         modalList: state.modal.modals,
         projectId,
         componentSlug,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -482,6 +493,7 @@ IncidentLog.propTypes = {
         PropTypes.oneOf([null, undefined]),
     ]),
     fetchDefaultTemplate: PropTypes.func,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 IncidentLog.displayName = 'IncidentLog';
