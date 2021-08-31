@@ -219,6 +219,8 @@ describe('Incident Settings API', () => {
                 `#monitorCreateIncident_${monitorName}`
             );
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
+            await init.pageClick(page, '#title', { clickCount: 3 });
+            await init.pageType(page, '#title', changedTitle);
             await init.pageWaitForSelector(page, '#createIncident');
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {
