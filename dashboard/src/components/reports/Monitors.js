@@ -57,8 +57,6 @@ class Monitors extends Component {
         }
 
         if (prevState.monitors !== activeMonitors.monitors) {
-            // eslint-disable-next-line no-console
-            console.log(activeMonitors, 'monitors');
             this.setState({
                 monitors: activeMonitors.monitors,
             });
@@ -120,8 +118,7 @@ class Monitors extends Component {
                 this.props.activeMonitors && this.props.activeMonitors.count
             ) / 10
         );
-        // eslint-disable-next-line no-console
-        console.log(this.state.monitors, 'monitors');
+
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
