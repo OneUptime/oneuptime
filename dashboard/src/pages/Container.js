@@ -100,6 +100,8 @@ class Container extends Component {
             component,
             scanContainerSecuritySuccess,
             getContainerSecuritySuccess,
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
 
         socket.on(`createContainerSecurity-${componentId}`, data => {
@@ -123,9 +125,16 @@ class Container extends Component {
             });
 
         const componentName = component ? component.name : '';
-
+        const projectName = currentProject ? currentProject.name : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname, null, 'component')}
                     name={componentName}
@@ -240,6 +249,8 @@ Container.propTypes = {
     component: PropTypes.object,
     scanContainerSecuritySuccess: PropTypes.func,
     getContainerSecuritySuccess: PropTypes.func,
+    currentProject: PropTypes.object.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -259,6 +270,8 @@ const mapStateToProps = (state, ownProps) => {
         component:
             state.component && state.component.currentComponent.component,
         componentSlug,
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 

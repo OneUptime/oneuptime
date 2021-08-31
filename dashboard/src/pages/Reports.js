@@ -167,10 +167,20 @@ export class Reports extends Component {
     render() {
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem route={pathname} name="Reports" />
                 <div className="Box-root Margin-vertical--12">
                     <div>
@@ -646,6 +656,8 @@ const mapStateToProps = state => {
     return {
         currentProjectId:
             state.project.currentProject && state.project.currentProject._id,
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -654,6 +666,8 @@ Reports.propTypes = {
         pathname: PropTypes.string,
     }),
     currentProjectId: PropTypes.string,
+    currentProject: PropTypes.object,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 Reports.displayName = 'Reports';

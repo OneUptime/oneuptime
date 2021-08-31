@@ -72,10 +72,20 @@ class Groups extends Component {
     render() {
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Project Settings"
@@ -109,6 +119,8 @@ Groups.propTypes = {
     getGroups: PropTypes.func,
     projectGroups: PropTypes.object,
     subProjectTeamLoading: PropTypes.func,
+    currentProject: PropTypes.object,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 Groups.displayName = 'Groups';
@@ -119,6 +131,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         projectGroups: state.groups.groups,
         modalList: state.modal.modals,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 

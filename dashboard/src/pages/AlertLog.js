@@ -73,6 +73,7 @@ class AlertLog extends Component {
             isRequesting,
             error,
             location: { pathname },
+            switchToProjectViewerNav,
         } = this.props;
         // SubProject Alert List
         const allAlerts =
@@ -237,9 +238,17 @@ class AlertLog extends Component {
                 false
             );
         allAlerts && allAlerts.unshift(projectAlert);
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId || ''}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="On-Call Duty"
@@ -283,6 +292,7 @@ const mapStateToProps = state => {
         error: state.alert.alerts.error,
         currentProject: state.project.currentProject,
         subProjects,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -306,6 +316,7 @@ AlertLog.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 AlertLog.displayName = 'AlertLog';

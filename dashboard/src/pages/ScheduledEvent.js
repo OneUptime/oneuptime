@@ -11,10 +11,20 @@ class ScheduledEvent extends Component {
     render() {
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={pathname}
                     name="Scheduled Maintenance Event"
@@ -39,6 +49,8 @@ const mapStateToProps = state => {
         projectId:
             state.project.currentProject && state.project.currentProject._id,
         requesting: state.scheduledEvent.scheduledEventList.requesting,
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -48,6 +60,8 @@ ScheduledEvent.propTypes = {
         pathname: PropTypes.string,
     }),
     requesting: PropTypes.bool,
+    currentProject: PropTypes.object.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 export default connect(mapStateToProps)(ScheduledEvent);

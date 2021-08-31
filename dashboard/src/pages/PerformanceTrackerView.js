@@ -149,11 +149,21 @@ class PerformanceTrackerView extends Component {
             currentProject,
             trackerObj,
             resetTrackerObj,
+            switchToProjectViewerNav,
         } = this.props;
         const componentName = component ? component.name : '';
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <>
+                    <BreadCrumbItem
+                        route="/"
+                        name={projectName}
+                        projectId={projectId}
+                        slug={currentProject ? currentProject.slug : null}
+                        switchToProjectViewerNav={switchToProjectViewerNav}
+                    />
                     <BreadCrumbItem
                         route={getParentRoute(
                             pathname,
@@ -347,6 +357,7 @@ const mapStateToProps = (state, ownProps) => {
             state.performanceTracker.fetchPerformanceTracker.performanceTracker,
         trackerObj: state.performanceTracker.fetchPerformanceTracker,
         resetTrackerObj: state.performanceTracker.resetPerformanceTrackerKey,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 PerformanceTrackerView.propTypes = {
@@ -368,6 +379,7 @@ PerformanceTrackerView.propTypes = {
     resetPerformanceTrackerKeyReset: PropTypes.func,
     resetTrackerObj: PropTypes.object,
     updateErrorMetrics: PropTypes.func,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 export default connect(
     mapStateToProps,

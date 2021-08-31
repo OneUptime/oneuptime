@@ -26,6 +26,8 @@ function TeamMemberProfile({
     projectId,
     match,
     getTeamMember,
+    currentProject,
+    switchToProjectViewerNav,
 }) {
     if (!projectId) {
         projectId = User.getCurrentProjectId();
@@ -53,9 +55,17 @@ function TeamMemberProfile({
             />
         );
     }
+    const projectName = currentProject ? currentProject.name : '';
 
     return (
         <Fade>
+            <BreadCrumbItem
+                route="/"
+                name={projectName}
+                projectId={projectId}
+                slug={currentProject ? currentProject.slug : null}
+                switchToProjectViewerNav={switchToProjectViewerNav}
+            />
             <BreadCrumbItem
                 route={getParentRoute(match.url, projectId)}
                 name="Team Members"
@@ -295,6 +305,9 @@ function mapStateToProps(state) {
         error: state.team.teamMember.error,
         teamMember: state.team.teamMember.member,
         projectId: projectId,
+        currentProject:
+            state.project.currentProject && state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 }
 
@@ -309,6 +322,8 @@ TeamMemberProfile.propTypes = {
     projectId: PropTypes.string,
     match: PropTypes.object,
     getTeamMember: PropTypes.func,
+    currentProject: PropTypes.object,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TeamMemberProfile);
