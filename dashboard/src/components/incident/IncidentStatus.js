@@ -441,6 +441,8 @@ export class IncidentStatus extends Component {
             teamMembers = [];
         }
         const team = teamMembers.filter(member => member.userId);
+        /*eslint-disable*/
+        console.log('Incident: ', this.props.incident)
         return (
             <>
                 <ShouldRender
@@ -1944,8 +1946,8 @@ export class IncidentStatus extends Component {
                                                                     className="bs-content-inside"
                                                                     id={`${monitorName}_IncidentReport_${this.props.count}`}
                                                                 >
-                                                                    <ReactMarkdown
-                                                                        source={`${
+                                                                    <ReactMarkdown>
+                                                                        {`${
                                                                             incidentReason &&
                                                                             incidentReason.length >
                                                                                 1
@@ -2020,7 +2022,7 @@ export class IncidentStatus extends Component {
                                                                                       }
                                                                                   )
                                                                         }`}
-                                                                    />
+                                                                    </ReactMarkdown>
                                                                 </div>
                                                                 {this.props
                                                                     .incident
