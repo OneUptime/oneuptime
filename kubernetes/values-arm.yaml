@@ -24,9 +24,7 @@ mongodb:
 
 saas:
     isSaasService: true
-    isMongoPrimaryBackupServiceEnabled: true
     exposeInitScriptContainer: true
-    isMongoSecondaryBackupServiceEnabled: true
     slackErrorLog:
         webhook: https://hooks.slack.com/services/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
         channel: fyipe-engineering
