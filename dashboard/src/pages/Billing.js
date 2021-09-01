@@ -35,10 +35,19 @@ class Billing extends Component {
             location: { pathname },
             alertEnable,
             currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Project Settings"
@@ -76,6 +85,7 @@ const mapStateToProps = state => {
             state.form.AlertAdvanceOption &&
             state.form.AlertAdvanceOption.values.alertEnable,
         currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -96,6 +106,7 @@ Billing.propTypes = {
     currentProject: PropTypes.object,
     currentProjectId: PropTypes.string.isRequired,
     getSmtpConfig: PropTypes.func.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Billing);

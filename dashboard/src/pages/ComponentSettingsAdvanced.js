@@ -46,12 +46,24 @@ class ComponentSettingsAdvanced extends Component {
         const {
             location: { pathname },
             component,
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
 
         const { deleteComponentModalId } = this.state;
         const componentName = component && component.name;
+
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem route={pathname} name="Advanced" />
                 <div>
                     <div id="advancedPage">
@@ -144,6 +156,8 @@ ComponentSettingsAdvanced.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    currentProject: PropTypes.object.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 const mapStateToProps = state => {
@@ -151,6 +165,8 @@ const mapStateToProps = state => {
         component:
             state.component && state.component.currentComponent.component,
         slug: state.project.currentProject && state.project.currentProject.slug,
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 

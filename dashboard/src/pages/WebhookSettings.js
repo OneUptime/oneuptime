@@ -26,10 +26,21 @@ class WebhookSettings extends Component {
         const {
             location: { pathname },
             icon,
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
 
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Project Settings"
@@ -53,6 +64,8 @@ WebhookSettings.propTypes = {
         pathname: PropTypes.string,
     }),
     icon: PropTypes.string,
+    currentProject: PropTypes.object,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 const mapDispatchToProps = dispatch =>
@@ -61,6 +74,7 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 

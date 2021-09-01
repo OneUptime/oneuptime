@@ -120,6 +120,7 @@ export class OnCall extends Component {
             subProjectSchedules,
             subProjects,
             currentProject,
+            switchToProjectViewerNav,
             location: { pathname },
         } = this.props;
 
@@ -280,9 +281,17 @@ export class OnCall extends Component {
             );
 
         allSchedules && allSchedules.unshift(projectSchedule);
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem route={pathname} name="On-Call Duty" />
                 <div
                     id="onCallSchedulePage"
@@ -398,6 +407,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         tutorialStat,
         modalList: state.modal.modals,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -422,6 +432,7 @@ OnCall.propTypes = {
         pathname: PropTypes.string,
     }),
     modalList: PropTypes.array,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 OnCall.displayName = 'OnCall';

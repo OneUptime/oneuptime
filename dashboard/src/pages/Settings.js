@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
 import ProjectSettings from '../components/settings/ProjectSettings';
 import SubProjects from '../components/settings/SubProjects';
@@ -19,10 +20,20 @@ class Settings extends Component {
     render() {
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem route={pathname} name="Project Settings" />
                 <div className="Margin-vertical--12">
                     <div>
@@ -54,8 +65,17 @@ Settings.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    currentProject: PropTypes.object.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 Settings.displayName = 'Settings';
 
-export default Settings;
+const mapStateToProps = state => {
+    return {
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+    };
+};
+
+export default connect(mapStateToProps)(Settings);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { openModal } from '../../actions/modal';
@@ -16,6 +16,20 @@ const AutomatedTabularList = props => {
     let { skip, limit } = props.scriptsObj;
     const projectId = props.currentProject && props.currentProject._id;
     const pathName = props.history.location.pathname;
+
+    const handleNewScript = e => {
+        if (e.keyCode === 78) {
+            props.toggleNewScript();
+        }
+    };
+
+    useEffect(() => {
+        window.addEventListener('keydown', handleNewScript);
+
+        return () => {
+            window.removeEventListener('keydown', handleNewScript);
+        };
+    }, [handleNewScript]);
 
     if (skip && typeof skip === 'string') {
         skip = parseInt(skip, 10);
@@ -87,6 +101,7 @@ const AutomatedTabularList = props => {
                                     onClick={props.toggleNewScript}
                                 >
                                     <span>New Script</span>
+                                    <span className="new-btn__keycode">N</span>
                                 </button>
                             </div>
                         </div>

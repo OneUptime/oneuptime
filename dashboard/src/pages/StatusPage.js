@@ -126,6 +126,8 @@ class StatusPage extends Component {
         const {
             location: { pathname },
             statusPage: { status },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
         const pageName = status ? status.name : null;
         const data = {
@@ -134,9 +136,17 @@ class StatusPage extends Component {
                 status.projectId && (status.projectId._id || status.projectId),
             theme: status.theme,
         };
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Status Pages"
@@ -491,6 +501,7 @@ function mapStateToProps(state, props) {
         subProjects: state.subProject.subProjects.subProjects,
         currentProject:
             state.project.currentProject && state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 }
 
@@ -507,6 +518,7 @@ StatusPage.propTypes = {
     subProjectId: PropTypes.string,
     currentProject: PropTypes.object,
     subProjects: PropTypes.array,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 StatusPage.displayName = 'StatusPage';

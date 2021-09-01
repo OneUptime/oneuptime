@@ -118,6 +118,7 @@ class Monitors extends Component {
                 this.props.activeMonitors && this.props.activeMonitors.count
             ) / 10
         );
+
         return (
             <div>
                 <div style={{ overflow: 'hidden', overflowX: 'auto' }}>
@@ -202,6 +203,7 @@ class Monitors extends Component {
                                     averageAcknowledgeTime,
                                     averageResolved,
                                 } = monitor;
+
                                 return (
                                     <tr
                                         key={monitorId}

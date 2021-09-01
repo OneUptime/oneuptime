@@ -52,10 +52,20 @@ class MonitorSettings extends React.Component {
     render() {
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Project Settings"
@@ -127,10 +137,12 @@ MonitorSettings.propTypes = {
     location: PropTypes.object.isRequired,
     fetchCustomFields: PropTypes.func,
     currentProject: PropTypes.object,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 const mapDispatchToProps = dispatch =>

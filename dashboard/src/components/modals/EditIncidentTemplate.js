@@ -109,6 +109,7 @@ class EditIncidentTemplate extends React.Component {
                     <div
                         className="bs-Modal bs-Modal--medium"
                         style={{ width: 570 }}
+                        id="editTemplateForm"
                     >
                         <ClickOutside onClickOutside={this.closeAndClearError}>
                             <div className="bs-Modal-header">
@@ -199,6 +200,7 @@ class EditIncidentTemplate extends React.Component {
                                                                     component={
                                                                         RenderField
                                                                     }
+                                                                    id="title"
                                                                     name="title"
                                                                     validate={
                                                                         ValidateField.text

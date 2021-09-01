@@ -124,11 +124,21 @@ class ScheduledEvent extends Component {
             scheduledEventId,
             internalNotesList,
             monitorList,
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
         const eventName = scheduledEvent ? scheduledEvent.name : '';
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Scheduled Maintenance Event"
@@ -290,6 +300,8 @@ ScheduledEvent.propTypes = {
     deleteScheduledEventNoteSuccess: PropTypes.func,
     createScheduledEventNoteSuccess: PropTypes.func,
     monitorList: PropTypes.array,
+    currentProject: PropTypes.object.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 const mapStateToProps = (state, props) => {
@@ -318,6 +330,8 @@ const mapStateToProps = (state, props) => {
         scheduledEventId:
             state.scheduledEvent.currentScheduledEvent.scheduledEvent &&
             state.scheduledEvent.currentScheduledEvent.scheduledEvent._id,
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 

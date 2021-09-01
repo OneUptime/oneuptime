@@ -121,13 +121,23 @@ class ErrorEventView extends Component {
             componentSlug,
             componentId,
             currentProject,
+            switchToProjectViewerNav,
         } = this.props;
 
         const componentName = component ? component.name : '';
         const errorTrackerName =
             errorTracker.length > 0 ? errorTracker[0].name : null;
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname, null, 'error-tracker')}
                     name={componentName}
@@ -225,6 +235,7 @@ const mapStateToProps = (state, ownProps) => {
             state.component.currentComponent.component._id,
         errorEvent,
         currentErrorEvent,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 ErrorEventView.propTypes = {
@@ -240,5 +251,6 @@ ErrorEventView.propTypes = {
     fetchErrorTrackers: PropsType.func,
     errorEvent: PropsType.object,
     setCurrentErrorEvent: PropsType.func,
+    switchToProjectViewerNav: PropsType.bool,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorEventView);

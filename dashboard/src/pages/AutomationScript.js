@@ -36,10 +36,21 @@ class AutomationScript extends Component {
     render() {
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
 
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem route={pathname} name="Automation Scripts" />
                 <div id="automationScriptsPage">
                     <ShouldRender if={!this.state.toggleNewScript}>
@@ -104,6 +115,7 @@ const mapDispatchToProps = dispatch => {
 const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -114,6 +126,7 @@ AutomationScript.propTypes = {
         pathname: PropTypes.string,
     }),
     currentProject: PropTypes.object,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 AutomationScript.displayName = 'AutomationScript';

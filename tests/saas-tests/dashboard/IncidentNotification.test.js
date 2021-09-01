@@ -391,14 +391,10 @@ describe('Incident Created test', () => {
             await init.pageWaitForSelector(page, '#backToMonitorView');
             await init.page$Eval(page, '#backToMonitorView', e => e.click());
 
-            await init.pageWaitForSelector(page, 'button[id=filterToggle]');
-            await init.page$Eval(page, 'button[id=filterToggle]', e =>
-                e.click()
-            );
-            await init.pageWaitForSelector(page, 'div[title=unacknowledged]');
-            await init.page$Eval(page, 'div[title=unacknowledged]', e =>
-                e.click()
-            );
+            await init.pageWaitForSelector(page, '#filterToggle');
+            await init.page$Eval(page, '#filterToggle', e => e.click());
+            await init.pageWaitForSelector(page, '#Unacknowledged');
+            await init.page$Eval(page, '#Unacknowledged', e => e.click());
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
             const filteredIncidents = await init.page$$(
@@ -437,14 +433,10 @@ describe('Incident Created test', () => {
             await init.pageWaitForSelector(page, '#incidents');
             await init.page$Eval(page, '#incidents', e => e.click());
 
-            await init.pageWaitForSelector(page, 'button[id=filterToggle]');
-            await init.page$Eval(page, 'button[id=filterToggle]', e =>
-                e.click()
-            );
-            await init.pageWaitForSelector(page, 'div[title=unacknowledged]');
-            await init.page$Eval(page, 'div[title=unacknowledged]', e =>
-                e.click()
-            );
+            await init.pageWaitForSelector(page, '#filterToggle');
+            await init.page$Eval(page, '#filterToggle', e => e.click());
+            await init.pageWaitForSelector(page, '#Unacknowledged');
+            await init.page$Eval(page, '#Unacknowledged', e => e.click());
 
             let filteredIncidents = await init.page$(
                 page,
@@ -477,12 +469,10 @@ describe('Incident Created test', () => {
                 e => e.click()
             );
 
-            await init.pageWaitForSelector(page, 'button[id=filterToggle]');
-            await init.page$Eval(page, 'button[id=filterToggle]', e =>
-                e.click()
-            );
-            await init.pageWaitForSelector(page, 'div[title=unresolved]');
-            await init.page$Eval(page, 'div[title=unresolved]', e => e.click());
+            await init.pageWaitForSelector(page, '#filterToggle');
+            await init.page$Eval(page, '#filterToggle', e => e.click());
+            await init.pageWaitForSelector(page, '#Unresolved');
+            await init.page$Eval(page, '#Unresolved', e => e.click());
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
             const filteredIncidents = await init.page$$(
@@ -513,12 +503,10 @@ describe('Incident Created test', () => {
                 e => e.click()
             );
 
-            await init.pageWaitForSelector(page, 'button[id=filterToggle]');
-            await init.page$Eval(page, 'button[id=filterToggle]', e =>
-                e.click()
-            );
-            await init.pageWaitForSelector(page, 'div[title=clear]');
-            await init.page$Eval(page, 'div[title=clear]', e => e.click());
+            await init.pageWaitForSelector(page, '#filterToggle');
+            await init.page$Eval(page, '#filterToggle', e => e.click());
+            await init.pageWaitForSelector(page, '#clear');
+            await init.page$Eval(page, '#clear', e => e.click());
 
             await init.pageWaitForSelector(page, 'tr.createdIncidentListItem');
             const filteredIncidents = await init.page$$(

@@ -266,7 +266,7 @@ describe('Incident Priority API', () => {
                 elems[0].click()
             );
             // default priority
-            await init.pageWaitForSelector(page, '#priority_High_0', {
+            await init.pageWaitForSelector(page, '#priorities', {
                 visible: true,
                 timeout: init.timeout,
             });
@@ -282,7 +282,7 @@ describe('Incident Priority API', () => {
                 e => e.textContent
             );
             expect(incidentPrioritiesCount).toMatch(
-                'Page 1 of 1 (2 Priorities'
+                'Page 1 of 1 (2 Priorities)'
             );
 
             for (let i = 0; i < 11; i++) {
@@ -317,7 +317,7 @@ describe('Incident Priority API', () => {
             );
 
             // default priority
-            await init.pageWaitForSelector(page, '#priority_High_0', {
+            await init.pageWaitForSelector(page, '#priorities', {
                 visible: true,
                 timeout: init.timeout,
             });

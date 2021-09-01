@@ -48,10 +48,19 @@ class DockerCredential extends Component {
             getError,
             isRequesting,
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Project Settings"
@@ -99,6 +108,8 @@ DockerCredential.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    currentProject: PropTypes.object.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 const mapStateToProps = state => {
@@ -108,6 +119,8 @@ const mapStateToProps = state => {
         dockerCredentials: state.credential.dockerCredentials,
         getError: state.credential.getCredential.error,
         isRequesting: state.credential.getCredential.requesting,
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 

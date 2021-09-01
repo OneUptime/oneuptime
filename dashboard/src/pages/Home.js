@@ -114,6 +114,8 @@ class Home extends Component {
         const {
             escalations,
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
 
         const userSchedules = _.flattenDeep(
@@ -366,8 +368,17 @@ class Home extends Component {
             );
         }
 
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem route={pathname} name="Home" />
                 <ShouldRender
                     if={this.props.monitors && this.props.monitors.length > 0}
@@ -655,6 +666,8 @@ Home.propTypes = {
     fetchErrorTrackersByProject: PropTypes.func,
     errorTrackers: PropTypes.array,
     fetchUnresolvedIncidents: PropTypes.func,
+    switchToProjectViewerNav: PropTypes.bool,
+    currentProject: PropTypes.object,
 };
 
 const mapStateToProps = state => {
@@ -711,6 +724,8 @@ const mapStateToProps = state => {
         closingSla: state.monitor.closeBreachedMonitorSla.requesting,
         errorTrackers: state.errorTracker.errorTrackersList.errorTrackers,
         slug: state.project.currentProject && state.project.currentProject.slug,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        currentProject: state.project.currentProject,
     };
 };
 
