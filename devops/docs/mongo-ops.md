@@ -12,7 +12,7 @@ Admin mongodb username is: `root`
 
 ## MongoDB common issues.
 
-MongoDB has will give you a lot of issues like:
+MongoDB will give you a lot of issues like:
 
 #### MongoDB Crashloop Backoff
 
@@ -27,7 +27,7 @@ Important: Backup surving member. See backup section in this document for more i
 Resolution: Delete all statefulset and start again.
 
 ```
-kubectl delete pvc datadir-fi-mongodb-0 datadir-fi-mongodb-0
+kubectl delete pvc datadir-fi-mongodb-0 datadir-fi-mongodb-1
 
 # If staging
 sudo helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
@@ -49,16 +49,8 @@ Run these on source cluster:
 Example:
 
 ```
-# Delete audit logs (optional, but recommended)
-
-sudo kubectl exec -it fi-mongodb-0 -- bash
-mongo
-use fyipedb
-db.auth('fyipe', 'password')
-db.auditlogs.remove({})
-
-
 # Open MongoDB to the internet.
+# Only run this when MongoDB is not open to the internet
 
 sudo kubectl delete job fi-init-script
 
@@ -78,7 +70,7 @@ On the destination cluster:
 
 ```
 kubectl exec -it fi-mongodb-0 -- bash
-mongodump --uri="mongodb://fyipe:password@<EXTERNAL-IP-ADDRESS-FROM-STEP-1>:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
+mongodump --uri="mongodb://fyipe:password@<EXTERNAL-IP-ADDRESS-FROM-STEP-1>:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive" --excludeCollection=auditlogs --excludeCollection=monitorlogs
 mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
 ```
 
@@ -103,7 +95,7 @@ sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.externa
 
 Syntax:
 
-`sudo kubectl exec <pod> -- mongodump --uri="mongodb://<mongousername>:<mongopassword>@localhost:27017/<databasename>" --archive="<export-filepath>"`
+`sudo kubectl exec <pod> -- mongodump --uri="mongodb://<mongousername>:<mongopassword>@localhost:27017/<databasename>" --archive="<export-filepath>" --excludeCollection=auditlogs --excludeCollection=monitorlogs`
 
 Example:
 
