@@ -3,7 +3,6 @@
 ## This is for Fyipe SaaS service. This will deploy all the SaaS env vars
 ################################################################################## 
 saas:
-  isMongoPrimaryBackupServiceEnabled: false
   isMongoSecondaryBackupServiceEnabled: false
   exposeInitScriptContainer: false
   isSaasService: false
