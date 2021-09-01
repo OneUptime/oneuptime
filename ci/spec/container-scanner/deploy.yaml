@@ -16,7 +16,7 @@ staging_container-scanner:
         - sudo docker tag fyipeproject/container-scanner:master fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/container-scanner:master
-        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-cont-scan fi-cont-scan=fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
+        - sudo kubectl set image deployment/fi-cont-scan fi-cont-scan=fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -45,7 +45,7 @@ production_container-scanner:
         - sudo docker tag fyipeproject/container-scanner:latest fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/container-scanner:latest
-        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-cont-scan fi-cont-scan=fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
+        - sudo kubectl set image deployment/fi-cont-scan fi-cont-scan=fyipeproject/container-scanner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
