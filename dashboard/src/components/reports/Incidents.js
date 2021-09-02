@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { ResponsiveBar } from '@nivo/bar';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -9,7 +10,6 @@ import {
     getIncidentsRequest,
     getIncidentsSuccess,
 } from '../../actions/reports';
-import { Chart } from 'react-google-charts';
 
 const noDataStyle = {
     display: 'flex',
@@ -67,82 +67,139 @@ class Incidents extends Component {
     render() {
         const { incidents } = this.state;
         const { incidentReports, filter } = this.props;
-        const chartData = [
-            [
-                filter ? filter.charAt(0).toUpperCase() + filter.slice(1) : '',
-                'Incidents',
-                {
-                    role: 'tooltip',
-                    type: 'string',
-                    p: { html: true },
-                },
-            ],
-        ];
+
+        const chartData = [];
         incidents.map(element => {
-            const value = [
-                element[filter],
-                element.incidents,
-                `<div class="custom-tooltip"> <h3>${
-                    element[filter]
-                } </h3> <p class="label"> ${element.incidents} ${
-                    element.incidents > 1 ? 'Incidents' : 'Incident'
-                } </p></div>`,
-            ];
+            const value = {};
+            value.resolveTime = element.incidents;
+            value.date = element[filter];
             chartData.push(value);
             return element;
         });
 
-        // calculate each columns' width in the chart
-        // for 9 or more columns, use 90%
-        // for less, subtract 10% for each step-down
-        const barGroupWidth = `${90 - (9 - incidents.length) * 10}%`;
-
         if (incidents && incidents.length > 0) {
             return (
-                <Chart
-                    width={'100%'}
-                    height={'400px'}
-                    chartType="ColumnChart"
-                    loader={<Loader />}
-                    data={chartData}
-                    options={{
-                        animation: {
-                            startup: true,
-                        },
-                        bar: {
-                            groupWidth: barGroupWidth,
-                        },
-                        bars: 'vertical',
-                        chartArea: { left: '5%', width: '100%' },
-                        hAxis: {
-                            title: 'Date',
-                            textStyle: {
-                                color: '#797979',
+                <>
+                    <div style={{ height: 400 }}>
+                        <ResponsiveBar
+                            data={chartData}
+                            keys={['resolveTime']}
+                            indexBy="date"
+                            margin={{
+                                top: 50,
+                                right: 50,
+                                bottom: 50,
+                                left: 60,
+                            }}
+                            borderColor={{
+                                from: 'color',
+                                modifiers: [['darker', 1.6]],
+                            }}
+                            defs={[
+                                {
+                                    id: 'dots',
+                                    type: 'patternDots',
+                                    background: 'inherit',
+                                    color: '#38bcb2',
+                                    size: 4,
+                                    padding: 1,
+                                    stagger: true,
+                                },
+                                {
+                                    id: 'lines',
+                                    type: 'patternLines',
+                                    background: 'inherit',
+                                    color: '#eed312',
+                                    rotation: -45,
+                                    lineWidth: 6,
+                                    spacing: 10,
+                                },
+                            ]}
+                            padding={0.6}
+                            valueScale={{ type: 'linear' }}
+                            colors="#45b2e8"
+                            tooltip={point => {
+                                return (
+                                    <div className="custom-tooltip">
+                                        {' '}
+                                        <h3>{point.indexValue} </h3>{' '}
+                                        <p className="label">
+                                            {' '}
+                                            {point.value}{' '}
+                                            {point.value > 1
+                                                ? 'Incidents'
+                                                : 'Incident'}{' '}
+                                        </p>
+                                    </div>
+                                );
+                            }}
+                            animate={true}
+                            enableLabel={false}
+                            axisTop={null}
+                            axisRight={null}
+                            axisBottom={{
+                                tickSize: 5,
+                                tickPadding: 5,
+                                tickRotation: 0,
+                                legend: 'Date',
+                                legendPosition: 'middle',
+                                legendOffset: 40,
+                            }}
+                            axisLeft={{
+                                tickSize: 5,
+                                tickPadding: 5,
+                                tickRotation: 0,
+                                legend: 'Number of Incidents',
+                                legendPosition: 'middle',
+                                legendOffset: -40,
+                            }}
+                        />
+                    </div>
+                    {/* <Chart
+                        width={'100%'}
+                        height={'400px'}
+                        chartType="ColumnChart"
+                        loader={<Loader />}
+                        data={chartData}
+                        options={{
+                            animation: {
+                                startup: true,
                             },
-                        },
-                        vAxis: {
-                            title: 'Number of Incidents',
-                            minValue: 0,
-                            gridlines: {
-                                minSpacing: 20,
-                                count: 5,
+                            bar: {
+                                groupWidth: barGroupWidth,
                             },
-                            minorGridlines: {
-                                count: 0,
+                            bars: 'vertical',
+                            chartArea: { left: '5%', width: '100%' },
+                            hAxis: {
+                                title: 'Date',
+                                textStyle: {
+                                    color: '#797979',
+                                },
                             },
-                            textStyle: {
-                                color: '#797979',
+                            vAxis: {
+                                title: 'Number of Incidents',
+                                minValue: 0,
+                                gridlines: {
+                                    minSpacing: 20,
+                                    count: 5,
+                                },
+                                minorGridlines: {
+                                    count: 0,
+                                },
+                                textStyle: {
+                                    color: '#797979',
+                                },
                             },
-                        },
-                        colors: ['#000000'],
-                        legend: {
-                            position: 'top',
-                            alignment: 'center',
-                            textStyle: { color: '#757575', fontSize: 16 },
-                        },
-                        tooltip: { isHtml: true },
-                    }}
-                />
+                            colors: ['#000000'],
+                            legend: {
+                                position: 'top',
+                                alignment: 'center',
+                                textStyle: { color: '#757575', fontSize: 16 },
+                            },
+                            tooltip: { isHtml: true },
+                        }}
+                    /> */}
+                </>
             );
         } else {
             return (
