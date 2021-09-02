@@ -5,7 +5,7 @@ import valid from 'card-validator';
 import FileSaver from 'file-saver';
 import moment from 'moment';
 import { isEmpty } from 'lodash';
-import { emaildomains } from './constants/emaildomains';
+// import { emaildomains } from './constants/emaildomains';
 // import booleanParser from './utils/booleanParser';
 const dJSON = require('dirty-json');
 
@@ -183,21 +183,24 @@ export const Validate = {
         return false;
     },
 
+    //eslint-disable-next-line
     isValidBusinessEmail(email) {
-        return emaildomains.test(email);
+        //return emaildomains.test(email);
+        return true;
     },
 
+    //eslint-disable-next-line
     isValidBusinessEmails(emails) {
-        let valid = true;
-        if (emails && emails.length > 0) {
-            for (let i = 0; i < emails.length; i++) {
-                if (!emaildomains.test(emails[i])) {
-                    valid = false;
-                    break;
-                }
-            }
-        }
-        return valid;
+        // let valid = true;
+        // if (emails && emails.length > 0) {
+        //     for (let i = 0; i < emails.length; i++) {
+        //         if (!emaildomains.test(emails[i])) {
+        //             valid = false;
+        //             break;
+        //         }
+        //     }
+        // }
+        return true;
     },
 
     compare(text1, text2) {
