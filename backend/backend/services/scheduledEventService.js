@@ -80,13 +80,17 @@ module.exports = {
                 if (!data.monitorDuringEvent) {
                     if (data.monitors && data.monitors.length > 0) {
                         await MonitorService.markMonitorsAsShouldNotMonitor(
-                            data.monitors.map(i => i.monitorId)
+                            data.monitors.map(
+                                i => i.monitorId._id || i.monitorId
+                            )
                         );
                     }
                 } else {
                     if (data.monitors && data.monitors.length > 0) {
                         await MonitorService.markMonitorsAsShouldMonitor(
-                            data.monitors.map(i => i.monitorId)
+                            data.monitors.map(
+                                i => i.monitorId._id || i.monitorId
+                            )
                         );
                     }
                 }
@@ -104,17 +108,9 @@ module.exports = {
             if (endTime <= currentTime) {
                 // revert monitor to monitoring state
                 if (!data.monitorDuringEvent) {
-                    for (const monitor of data.monitors) {
-                        // handle this in the background
-                        MonitorService.updateOneBy(
-                            {
-                                _id: monitor.monitorId,
-                            },
-                            {
-                                shouldNotMonitor: false,
-                            }
-                        );
-                    }
+                    await MonitorService.markMonitorsAsShouldMonitor(
+                        data.monitors.map(i => i.monitorId._id || i.monitorId)
+                    );
                 }
 
                 await ScheduledEventNoteService.create({
@@ -173,11 +169,11 @@ module.exports = {
 
             if (!data.monitorDuringEvent) {
                 await MonitorService.markMonitorsAsShouldNotMonitor(
-                    data.monitors.map(i => i.monitorId)
+                    data.monitors.map(i => i.monitorId._id || i.monitorId)
                 );
             } else {
                 await MonitorService.markMonitorsAsShouldMonitor(
-                    data.monitors.map(i => i.monitorId)
+                    data.monitors.map(i => i.monitorId._id || i.monitorId)
                 );
             }
 
@@ -698,7 +694,7 @@ module.exports = {
                 },
                 limit: 0,
                 skip: 0,
-                select: '_id',
+                select: '_id monitorDuringEvent monitors',
             });
 
             scheduledEventList.map(async scheduledEvent => {
@@ -768,7 +764,7 @@ module.exports = {
                 },
                 limit: 0,
                 skip: 0,
-                select: '_id',
+                select: '_id monitorDuringEvent monitors',
             });
             scheduledEventList.map(async scheduledEvent => {
                 const scheduledEventId = scheduledEvent._id;
