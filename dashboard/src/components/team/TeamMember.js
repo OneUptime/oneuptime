@@ -2,14 +2,13 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
 import { reduxForm } from 'redux-form';
 import {
     teamDelete,
     teamUpdateRole,
     resetTeamDelete,
 } from '../../actions/team';
-import { changeProjectRoles } from '../../actions/project';
+import { changeProjectRoles, exitProject } from '../../actions/project';
 import { TeamListLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { User } from '../../config';
@@ -18,11 +17,12 @@ import DataPathHoC from '../DataPathHoC';
 import RemoveTeamUserModal from '../modals/RemoveTeamUserModal.js';
 import { openModal, closeModal } from '../../actions/modal';
 import { history } from '../../store';
-
-import '@trendmicro/react-dropdown/dist/react-dropdown.css';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import ConfirmChangeRoleModal from '../modals/ConfirmChangeRole';
+import DropDownMenu from '../basic/DropDownMenu';
+import ExitProjectModal from '../settings/ExitProjectModal';
+import RenderIfSubProjectMember from '../basic/RenderIfSubProjectMember';
 
 export class TeamMember extends Component {
     constructor(props) {
@@ -84,6 +84,36 @@ export class TeamMember extends Component {
         }
     }
 
+    exitProject = () => {
+        const {
+            userId,
+            nextProject,
+            exitProject,
+            dispatch,
+            subProjectId,
+        } = this.props;
+        this.props.openModal({
+            id: uuidv4(),
+            onConfirm: () => {
+                return exitProject(subProjectId, userId).then(function() {
+                    window.location.reload();
+                    !nextProject && dispatch({ type: 'CLEAR_STORE' });
+
+                    if (SHOULD_LOG_ANALYTICS) {
+                        logEvent(
+                            'EVENT: DASHBOARD > PROJECT > USER EXITED PROJECT',
+                            {
+                                subProjectId,
+                                userId,
+                            }
+                        );
+                    }
+                });
+            },
+            content: ExitProjectModal,
+        });
+    };
+
     render() {
         const {
             handleSubmit,
@@ -91,6 +121,7 @@ export class TeamMember extends Component {
             deleting,
             team: { subProjectTeamMembers },
             updating,
+            exitingProject,
         } = this.props;
         let teamMembers = subProjectTeamMembers.map(teamMembers => {
             return teamMembers.teamMembers;
@@ -191,116 +222,115 @@ export class TeamMember extends Component {
                 <div className="bs-ObjectList-cell bs-u-v-middle"></div>
                 <div className="bs-ObjectList-cell bs-u-right bs-u-shrink bs-u-v-middle Flex-alignContent--spaceBetween">
                     <div>
+                        <RenderIfSubProjectMember currentUserId={userId}>
+                            <button
+                                id={`memberExit__${
+                                    this.props.email.split('@')[0]
+                                }`}
+                                title="exit"
+                                disabled={exitingProject}
+                                className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                type="button"
+                                onClick={this.exitProject}
+                            >
+                                Exit Project
+                            </button>
+                        </RenderIfSubProjectMember>
                         <ShouldRender if={isAdmin || isOwner}>
                             <div className="Flex-flex Flex-alignContent--spaceBetween">
-                                <Dropdown disabled={updating}>
-                                    {!updating && (
-                                        <Dropdown.Toggle
-                                            id={`changeRole_${
-                                                this.props.email.split('@')[0]
-                                            }`}
-                                            title="Change Role"
-                                            className="bs-Button bs-DeprecatedButton"
-                                        />
-                                    )}
-                                    {updating && (
-                                        <button
-                                            disabled={updating}
-                                            className="bs-Button bs-DeprecatedButton Margin-left--8"
-                                            type="button"
-                                        >
-                                            <TeamListLoader />
-                                        </button>
-                                    )}
-
-                                    <Dropdown.Menu>
-                                        <ShouldRender if={loggedInUserIsOwner}>
-                                            <MenuItem
-                                                title="Owner"
-                                                onClick={handleSubmit(
-                                                    values => {
-                                                        this.props.openModal({
-                                                            id: this.state
-                                                                .ConfirmationDialogId,
-                                                            content: DataPathHoC(
-                                                                ConfirmChangeRoleModal,
-                                                                {
-                                                                    ConfirmationDialogId: this
-                                                                        .state
-                                                                        .ConfirmationDialogId,
-                                                                    name:
-                                                                        this
-                                                                            .props
-                                                                            .name ||
-                                                                        this
-                                                                            .props
-                                                                            .email,
-                                                                    values,
-                                                                    role: this
-                                                                        .props
-                                                                        .role,
-                                                                    userId: userId,
-                                                                    newRole:
-                                                                        'Owner',
-                                                                    updating,
-                                                                    updateTeamMemberRole: this
-                                                                        .updateTeamMemberRole,
-                                                                }
-                                                            ),
-                                                        });
-                                                    }
-                                                )}
-                                            >
-                                                Owner
-                                            </MenuItem>
-                                        </ShouldRender>
-                                        <MenuItem
-                                            title="Administrator"
-                                            onClick={handleSubmit(values =>
-                                                this.updateTeamMemberRole(
-                                                    {
-                                                        ...values,
-                                                        role: this.props.role,
-                                                        userId: userId,
-                                                    },
-                                                    'Administrator'
-                                                )
-                                            )}
-                                        >
-                                            Administrator
-                                        </MenuItem>
-                                        <MenuItem
-                                            title="Member"
-                                            onClick={handleSubmit(values =>
-                                                this.updateTeamMemberRole(
-                                                    {
-                                                        ...values,
-                                                        role: this.props.role,
-                                                        userId: userId,
-                                                    },
-                                                    'Member'
-                                                )
-                                            )}
-                                        >
-                                            Member
-                                        </MenuItem>
-                                        <MenuItem
-                                            title="Viewer"
-                                            onClick={handleSubmit(values =>
-                                                this.updateTeamMemberRole(
-                                                    {
-                                                        ...values,
-                                                        role: this.props.role,
-                                                        userId: userId,
-                                                    },
-                                                    'Viewer'
-                                                )
-                                            )}
-                                        >
-                                            Viewer
-                                        </MenuItem>
-                                    </Dropdown.Menu>
-                                </Dropdown>
+                                <ShouldRender if={!updating}>
+                                    <DropDownMenu
+                                        options={[
+                                            {
+                                                value: 'Owner',
+                                                show: loggedInUserIsOwner,
+                                            },
+                                            {
+                                                value: 'Administrator',
+                                                show: true,
+                                            },
+                                            { value: 'Member', show: true },
+                                            { value: 'Viewer', show: true },
+                                        ]}
+                                        value={'Change Role'}
+                                        id={`changeRole_${
+                                            this.props.email.split('@')[0]
+                                        }`}
+                                        updateState={val => {
+                                            switch (val) {
+                                                case 'Owner':
+                                                    this.props.openModal({
+                                                        id: this.state
+                                                            .ConfirmationDialogId,
+                                                        content: DataPathHoC(
+                                                            ConfirmChangeRoleModal,
+                                                            {
+                                                                ConfirmationDialogId: this
+                                                                    .state
+                                                                    .ConfirmationDialogId,
+                                                                name:
+                                                                    this.props
+                                                                        .name ||
+                                                                    this.props
+                                                                        .email,
+                                                                role: this.props
+                                                                    .role,
+                                                                userId: userId,
+                                                                newRole:
+                                                                    'Owner',
+                                                                updating,
+                                                                updateTeamMemberRole: this
+                                                                    .updateTeamMemberRole,
+                                                            }
+                                                        ),
+                                                    });
+                                                    break;
+                                                case 'Administrator':
+                                                    this.updateTeamMemberRole(
+                                                        {
+                                                            role: this.props
+                                                                .role,
+                                                            userId: userId,
+                                                        },
+                                                        'Administrator'
+                                                    );
+                                                    break;
+                                                case 'Member':
+                                                    this.updateTeamMemberRole(
+                                                        {
+                                                            role: this.props
+                                                                .role,
+                                                            userId: userId,
+                                                        },
+                                                        'Member'
+                                                    );
+                                                    break;
+                                                case 'Viewer':
+                                                    this.updateTeamMemberRole(
+                                                        {
+                                                            role: this.props
+                                                                .role,
+                                                            userId: userId,
+                                                        },
+                                                        'Viewer'
+                                                    );
+                                                    break;
+                                                default:
+                                                    null;
+                                                    break;
+                                            }
+                                        }}
+                                    />
+                                </ShouldRender>
+                                <ShouldRender if={updating}>
+                                    <button
+                                        disabled={updating}
+                                        className="bs-Button bs-DeprecatedButton Margin-left--8"
+                                        type="button"
+                                    >
+                                        <TeamListLoader />
+                                    </button>
+                                </ShouldRender>
                                 <button
                                     id={`removeMember__${
                                         this.props.email.split('@')[0]
@@ -309,7 +339,7 @@ export class TeamMember extends Component {
                                     disabled={deleting}
                                     className="bs-Button bs-DeprecatedButton Margin-left--8"
                                     type="button"
-                                    onClick={handleSubmit(values =>
+                                    onClick={handleSubmit(values => {
                                         this.props.openModal({
                                             id: this.state.removeUserModalId,
                                             content: DataPathHoC(
@@ -329,8 +359,8 @@ export class TeamMember extends Component {
                                                         .removeTeamMember,
                                                 }
                                             ),
-                                        })
-                                    )}
+                                        });
+                                    })}
                                 >
                                     {!deleting && <span>Remove</span>}
                                 </button>
@@ -365,6 +395,13 @@ TeamMember.propTypes = {
     teamUpdateRole: PropTypes.func.isRequired,
     updating: PropTypes.oneOf([null, false, true]),
     userId: PropTypes.string.isRequired,
+    exitingProject: PropTypes.bool,
+    exitProject: PropTypes.func,
+    nextProject: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.oneOf([null, undefined]),
+    ]),
+    dispatch: PropTypes.func.isRequired,
 };
 
 const TeamMemberForm = reduxForm({
@@ -380,12 +417,27 @@ const mapDispatchToProps = dispatch => {
             openModal,
             closeModal,
             resetTeamDelete,
+            exitProject,
         },
         dispatch
     );
 };
 
 function mapStateToProps(state, props) {
+    const userId = User.getUserId();
+    const projectId =
+        state.project.currentProject && state.project.currentProject._id;
+
+    const { projects } = state.project.projects;
+
+    const nextProject =
+        projects.length > 0
+            ? projects.find(
+                  project =>
+                      project._id !== projectId &&
+                      project.users.some(user => user.userId === userId)
+              )
+            : null;
     return {
         team: state.team,
         deleting: state.team.teamdelete.deleting.some(
@@ -396,6 +448,8 @@ function mapStateToProps(state, props) {
         ),
         currentProject: state.project.currentProject,
         subProjects: state.subProject.subProjects.subProjects,
+        exitingProject: state.project.exitProject.requesting,
+        nextProject,
     };
 }
 

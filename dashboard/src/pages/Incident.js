@@ -382,6 +382,7 @@ class Incident extends React.Component {
             monitors,
             allMonitors,
             componentSlug,
+            switchToProjectViewerNav,
         } = this.props;
         const slug = currentProject ? currentProject.slug : null;
         const redirectTo = `/dashboard/project/${slug}/on-call`;
@@ -712,9 +713,17 @@ class Incident extends React.Component {
             );
         }
         const componentName = component ? component.name : '';
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 {componentSlug && componentName ? (
                     <>
                         <BreadCrumbItem
@@ -843,6 +852,7 @@ const mapStateToProps = (state, props) => {
         monitors,
         allMonitors,
         projectSlug,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -919,6 +929,7 @@ Incident.propTypes = {
     requestingIncident: PropTypes.bool,
     errorIncident: PropTypes.bool,
     successIncident: PropTypes.bool,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 Incident.displayName = 'Incident';

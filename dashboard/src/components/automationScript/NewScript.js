@@ -16,8 +16,7 @@ import { RenderSelect } from '../basic/RenderSelect';
 import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/theme-github';
-import Dropdown, { MenuItem } from '@trendmicro/react-dropdown';
-import '@trendmicro/react-dropdown/dist/react-dropdown.css';
+import DropDownMenu from '../basic/DropDownMenu';
 
 const defaultScript =
     '// To inspect your script or add comments, use console.log\n\n' +
@@ -38,7 +37,16 @@ class NewScript extends Component {
 
     componentDidMount() {
         this.props.resetScripts();
+        window.addEventListener('keydown', this.handleKeyBoard);
     }
+
+    componentWillUnmount() {
+        window.removeEventListener('keydown', this.handleKeyBoard);
+    }
+
+    handleKeyBoard = e => {
+        if (e.key === 'Escape') this.props.toggleNewScript();
+    };
 
     setAutomatedScript = value => {
         this.setState({ ...this.state, script: value });
@@ -93,6 +101,7 @@ class NewScript extends Component {
                     type: 'JavaScript',
                     script: defaultScript,
                 });
+                this.props.toggleNewScript();
             });
     };
 
@@ -450,48 +459,28 @@ class NewScript extends Component {
                                                         Script Type
                                                     </label>
                                                     <div className="bs-Fieldset-fields">
-                                                        <Dropdown>
-                                                            <Dropdown.Toggle
-                                                                id="filterToggle"
-                                                                title={
-                                                                    this.state
-                                                                        .type
-                                                                }
-                                                                className="bs-Button bs-DeprecatedButton"
-                                                                style={{
-                                                                    textTransform:
-                                                                        'capitalize',
-                                                                }}
-                                                            />
-                                                            <Dropdown.Menu>
-                                                                <MenuItem
-                                                                    title="JavaScript"
-                                                                    onClick={() => {
-                                                                        this.setState(
-                                                                            {
-                                                                                type:
-                                                                                    'JavaScript',
-                                                                            }
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    JavaScript
-                                                                </MenuItem>
-                                                                <MenuItem
-                                                                    title="Bash"
-                                                                    onClick={() => {
-                                                                        this.setState(
-                                                                            {
-                                                                                type:
-                                                                                    'Bash',
-                                                                            }
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    Bash
-                                                                </MenuItem>
-                                                            </Dropdown.Menu>
-                                                        </Dropdown>
+                                                        <DropDownMenu
+                                                            options={[
+                                                                {
+                                                                    value:
+                                                                        'JavaScript',
+                                                                    show: true,
+                                                                },
+                                                                {
+                                                                    value:
+                                                                        'Bash',
+                                                                    show: true,
+                                                                },
+                                                            ]}
+                                                            value={
+                                                                this.state.type
+                                                            }
+                                                            updateState={val =>
+                                                                this.setState({
+                                                                    type: val,
+                                                                })
+                                                            }
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
@@ -755,6 +744,9 @@ class NewScript extends Component {
                                         onClick={this.props.toggleNewScript}
                                     >
                                         <span>Cancel</span>
+                                        <span className="cancel-btn__keycode">
+                                            Esc
+                                        </span>
                                     </button>
                                     <button
                                         id="addComponentButton"

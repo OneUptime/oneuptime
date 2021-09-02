@@ -90,7 +90,7 @@ module.exports = {
                 },
             ];
             const selectStatusPage =
-                'domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
 
             const newStatusPage = await this.findOneBy({
                 _id: statusPage._id,
@@ -620,7 +620,7 @@ module.exports = {
             ];
 
             const selectStatusPage =
-                'domains projectId monitors twitterHandle links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+                'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
 
             updatedStatusPage = await this.findOneBy({
                 query: { _id: updatedStatusPage._id },
@@ -1556,7 +1556,7 @@ module.exports = {
         ];
 
         const selectStatusPage =
-            'domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme enableMultipleLanguage multipleLanguages twitterHandle';
 
         const subProjectStatusPages = await Promise.all(
             subProjectIds.map(async id => {
@@ -1725,6 +1725,94 @@ module.exports = {
             return true;
         } catch (error) {
             ErrorService.log('statusPageService.doesDomainExist', error);
+            throw error;
+        }
+    },
+
+    createExternalStatusPage: async function(data) {
+        try {
+            const externalStatusPage = new ExternalStatusPageModel();
+            externalStatusPage.url = data.url || null;
+            externalStatusPage.name = data.name || null;
+            externalStatusPage.description = data.description || null;
+            externalStatusPage.projectId = data.projectId || null;
+            externalStatusPage.statusPageId = data.statusPageId || null;
+            externalStatusPage.createdById = data.createdById || null;
+            const newExternalStatusPage = await externalStatusPage.save();
+
+            return newExternalStatusPage;
+        } catch (error) {
+            ErrorService.log('statusPageService.externalStatusPage', error);
+            throw error;
+        }
+    },
+    getExternalStatusPage: async function(query, skip, limit) {
+        try {
+            if (!skip) skip = 0;
+
+            if (!limit) limit = 0;
+
+            if (typeof skip === 'string') {
+                skip = Number(skip);
+            }
+
+            if (typeof limit === 'string') {
+                limit = Number(limit);
+            }
+
+            if (!query) {
+                query = {};
+            }
+
+            query.deleted = false;
+            const externalStatusPages = await ExternalStatusPageModel.find(
+                query
+            );
+            return externalStatusPages;
+        } catch (error) {
+            ErrorService.log('statusPageService.getExternalStatusPage', error);
+            throw error;
+        }
+    },
+    updateExternalStatusPage: async function(projectId, _id, data) {
+        const query = { projectId, _id };
+
+        try {
+            const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
+                query,
+                {
+                    $set: data,
+                },
+                {
+                    new: true,
+                }
+            );
+            return externalStatusPages;
+        } catch (error) {
+            ErrorService.log('statusPageService.getExternalStatusPage', error);
+            throw error;
+        }
+    },
+    deleteExternalStatusPage: async function(projectId, _id, userId) {
+        const query = { projectId, _id };
+
+        try {
+            const externalStatusPages = await ExternalStatusPageModel.findOneAndUpdate(
+                query,
+                {
+                    $set: {
+                        deleted: true,
+                        deletedById: userId,
+                        deletedAt: Date.now(),
+                    },
+                },
+                {
+                    new: true,
+                }
+            );
+            return externalStatusPages;
+        } catch (error) {
+            ErrorService.log('statusPageService.getExternalStatusPage', error);
             throw error;
         }
     },
@@ -2022,6 +2110,40 @@ module.exports = {
             throw error;
         }
     },
+
+    fetchTweets: async handle => {
+        try {
+            const userData = await axios.get(
+                `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${bearer}`,
+                    },
+                }
+            );
+
+            const userId = userData?.data?.data?.id || false;
+            let response = '';
+
+            if (userId) {
+                const tweetData = await axios.get(
+                    `https://api.twitter.com/2/users/${userId}/tweets?tweet.fields=created_at&exclude=retweets,replies`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${bearer}`,
+                        },
+                    }
+                );
+
+                response = tweetData.data.data;
+            }
+
+            return response;
+        } catch (error) {
+            ErrorService.log('statusPageService.fetchTweets', error);
+            throw error;
+        }
+    },
 };
 
 // handle the unique pagination for scheduled events on status page
@@ -2112,7 +2234,11 @@ const uuid = require('uuid');
 const greenlock = require('../../greenlock');
 const CertificateStoreService = require('./certificateStoreService');
 const AnnouncementModel = require('../models/announcements');
+
+const ExternalStatusPageModel = require('../models/externalStatusPage');
 const getSlug = require('../utils/getSlug');
 const AnnouncementLogModel = require('../models/announcementLogs');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
+const axios = require('axios');
+const bearer = process.env.TWITTER_BEARER_TOKEN;

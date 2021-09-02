@@ -3,7 +3,6 @@
  * Copyright HackerBay, Inc.
  *
  */
-
 const express = require('express');
 const StatusPageService = require('../services/statusPageService');
 const MonitorService = require('../services/monitorService');
@@ -35,8 +34,7 @@ const defaultStatusPageColors = require('../config/statusPageColors');
 const SubscriberService = require('../services/subscriberService');
 const ScheduledEventService = require('../services/scheduledEventService');
 const axios = require('axios');
-const bearer = process.env.TWITTER_BEARER_TOKEN;
-
+const cheerio = require('cheerio');
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
 // Returns: response status page, error message
@@ -68,38 +66,14 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 router.post('/:projectId/tweets', checkUser, async (req, res) => {
     try {
         const { handle } = req.body;
-
-        if (!handle) {
+        if (!handle || (handle && handle.trim().length === 0)) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message: 'handle is required',
             });
         }
 
-        const userData = await axios.get(
-            `https://api.twitter.com/2/users/by/username/${handle}?user.fields=id`,
-            {
-                headers: {
-                    Authorization: `Bearer ${bearer}`,
-                },
-            }
-        );
-
-        const userId = userData?.data?.data?.id || false;
-        let response = '';
-
-        if (userId) {
-            const tweetData = await axios.get(
-                `https://api.twitter.com/2/users/${userId}/tweets?tweet.fields=created_at&exclude=retweets,replies`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${bearer}`,
-                    },
-                }
-            );
-
-            response = tweetData.data.data;
-        }
+        const response = await StatusPageService.fetchTweets(handle);
 
         return sendItemResponse(req, res, response);
     } catch (error) {
@@ -137,7 +111,7 @@ router.put(
             ];
 
             const selectStatusPage =
-                'projectId domains monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+                'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
 
             const updatedStatusPage = await StatusPageService.getStatusPage({
                 query: { _id: statusPage._id },
@@ -624,7 +598,7 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             ];
 
             const selectStatusPage =
-                'projectId domains monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+                'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
 
             const updatedStatusPage = await StatusPageService.getStatusPage({
                 query: { _id: statusPage._id },
@@ -632,8 +606,19 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                 populate: populateStatusPage,
                 select: selectStatusPage,
             });
-            // run in the background
+
             RealTimeService.statusPageEdit(updatedStatusPage);
+
+            if (updatedStatusPage?.twitterHandle) {
+                const tweets = await StatusPageService.fetchTweets(
+                    updatedStatusPage.twitterHandle
+                );
+                RealTimeService.updateTweets(
+                    tweets,
+                    updatedStatusPage._id,
+                    updatedStatusPage.projectId
+                );
+            }
 
             return sendItemResponse(req, res, statusPage);
         } catch (error) {
@@ -684,7 +669,7 @@ router.get('/statusBubble', async function(req, res) {
         ];
 
         const selectStatusPage =
-            'domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
 
         const statusPages = await StatusPageService.findBy({
             query: { _id: statusPageId, statusBubbleId },
@@ -738,7 +723,7 @@ router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
         ];
 
         const selectStatusPage =
-            'domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage';
 
         const [statusPages, count] = await Promise.all([
             StatusPageService.findBy({
@@ -800,7 +785,7 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
         ];
 
         const selectStatusPage =
-            'domains projectId monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+            'domains projectId monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
 
         const [statusPage, count] = await Promise.all([
             StatusPageService.findBy({
@@ -844,7 +829,7 @@ router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
     ];
 
     const selectStatusPage =
-        'projectId domains monitors links twitterHandle twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+        'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
 
     try {
         // Call the StatusPageService.
@@ -1258,7 +1243,7 @@ router.get('/:projectId/notes/:scheduledEventSlug', checkUser, async function(
 
     const scheduledEventId = await ScheduledEventService.findOneBy({
         query: { slug: scheduledEventSlug },
-        select: '_id',
+        select: '_id createdById',
     });
 
     try {
@@ -1558,6 +1543,273 @@ router.get('/:projectId/monitor/:statusPageId', checkUser, async function(
         return sendErrorResponse(req, res, error);
     }
 });
+
+router.post(
+    '/:projectId/createExternalStatusPage/:statusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageId } = req.params;
+            const { name, url } = req.body;
+            const data = {};
+
+            data.name = name;
+            data.url = url;
+
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Values can't be null",
+                });
+            }
+
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Name is required.',
+                });
+            }
+            if (!data.url || !data.url.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page url is required.',
+                });
+            }
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            // To confirm the name and url is not created already
+            const nameQuery = { name };
+            const urlQuery = { url };
+            const existingExternalStatusPageId = await StatusPageService.getExternalStatusPage(
+                nameQuery
+            );
+            const existingExternalStatusPageUrl = await StatusPageService.getExternalStatusPage(
+                urlQuery
+            );
+            if (existingExternalStatusPageId.length > 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Name is already present',
+                });
+            }
+            if (existingExternalStatusPageUrl.length > 0) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Url is already present',
+                });
+            }
+            // This scrapes the External Status Page
+            try {
+                const res = await axios.get(`${data.url}`);
+                const $ = cheerio.load(res.data);
+                const status = $('span.status.font-large')
+                    .text()
+                    .replace(/\s\s+/g, ''); // To remove empty spaces
+                const atlassianStatuspage = $(
+                    '.powered-by a.color-secondary'
+                ).text(); // This verifies that we are working with StatusPages Powered by Atlassian.
+                if (atlassianStatuspage !== 'Powered by Statuspage') {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'External Status Page Url is Invalid',
+                    });
+                }
+                if (status === 'All Systems Operational') {
+                    data.description = status;
+                } else {
+                    $('div.component-container.border-color').each((i, el) => {
+                        const componentStatus = $(el)
+                            .find('.component-status')
+                            .text()
+                            .replace(/\s\s+/g, '');
+                        if (componentStatus !== 'Operational') {
+                            data.description = componentStatus;
+                        }
+                    });
+                }
+            } catch (err) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Url is Invalid',
+                });
+            }
+
+            data.createdById = req.user ? req.user.id : null;
+            data.projectId = projectId;
+            data.statusPageId = statusPageId;
+
+            await StatusPageService.createExternalStatusPage(data);
+            const response = await StatusPageService.getExternalStatusPage();
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.post(
+    '/:projectId/updateExternalStatusPage/:externalStatusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, externalStatusPageId } = req.params;
+            const { name, url } = req.body;
+            const data = {};
+            data.name = name;
+            data.url = url;
+            if (!data) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: "Values can't be null",
+                });
+            }
+            if (!data.name || !data.name.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Name is required.',
+                });
+            }
+            if (!data.url || !data.url.trim()) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page url is required.',
+                });
+            }
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            if (!externalStatusPageId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Status Page ID is required.',
+                });
+            }
+            // This scrapes the External Status Page
+            try {
+                const res = await axios.get(`${data.url}`);
+                const $ = cheerio.load(res.data);
+                const status = $('span.status.font-large')
+                    .text()
+                    .replace(/\s\s+/g, ''); // To remove empty spaces
+                const atlassianStatuspage = $(
+                    '.powered-by a.color-secondary'
+                ).text();
+                if (atlassianStatuspage !== 'Powered by Statuspage') {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'External Status Page Url is Invalid',
+                    });
+                }
+                if (status === 'All Systems Operational') {
+                    data.description = status;
+                } else {
+                    $('div.component-container.border-color').each((i, el) => {
+                        const componentStatus = $(el)
+                            .find('.component-status')
+                            .text()
+                            .replace(/\s\s+/g, '');
+                        if (componentStatus !== 'Operational') {
+                            data.description = componentStatus;
+                        }
+                    });
+                }
+            } catch (err) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Url is Invalid',
+                });
+            }
+
+            await StatusPageService.updateExternalStatusPage(
+                projectId,
+                externalStatusPageId,
+                data
+            );
+            const response = await StatusPageService.getExternalStatusPage();
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.get(
+    '/:projectId/fetchExternalStatusPages/:statusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, statusPageId } = req.params;
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            if (!statusPageId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Status Page ID is required.',
+                });
+            }
+
+            // To fetch all created external statuspages
+            const query = { projectId, statusPageId };
+
+            const response = await StatusPageService.getExternalStatusPage(
+                query
+            );
+
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
+
+router.post(
+    '/:projectId/deleteExternalStatusPage/:externalStatusPageId',
+    checkUser,
+    async function(req, res) {
+        try {
+            const { projectId, externalStatusPageId } = req.params;
+            const userId = req.user ? req.user.id : null;
+
+            if (!projectId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'Project ID is required.',
+                });
+            }
+            if (!externalStatusPageId) {
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page ID is required.',
+                });
+            }
+
+            // Deleting the external Id
+            await StatusPageService.deleteExternalStatusPage(
+                projectId,
+                externalStatusPageId,
+                userId
+            );
+
+            const response = await StatusPageService.getExternalStatusPage();
+            return sendItemResponse(req, res, response);
+        } catch (error) {
+            return sendErrorResponse(req, res, error);
+        }
+    }
+);
 
 router.post('/:projectId/announcement/:statusPageId', checkUser, async function(
     req,
@@ -2002,7 +2254,7 @@ async function getStatusPage(req, statusPageSlug) {
     ];
 
     const selectStatusPage =
-        'projectId domains monitors links twitterHandle slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme';
+        'projectId domains monitors links slug title name isPrivate isSubscriberEnabled isGroupedByMonitorCategory showScheduledEvents moveIncidentToTheTop hideProbeBar hideUptime multipleNotifications hideResolvedIncident description copyright faviconPath logoPath bannerPath colors layout headerHTML footerHTML customCSS customJS statusBubbleId embeddedCss createdAt enableRSSFeed emailNotification smsNotification webhookNotification selectIndividualMonitors enableIpWhitelist ipWhitelist incidentHistoryDays scheduleHistoryDays announcementLogsHistory theme multipleLanguages enableMultipleLanguage twitterHandle';
 
     // Call the StatusPageService.
     if (url && url !== 'null') {

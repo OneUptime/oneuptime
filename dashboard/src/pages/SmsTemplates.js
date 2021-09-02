@@ -44,10 +44,20 @@ class SmsTemplates extends Component {
     render() {
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Project Settings"
@@ -65,6 +75,7 @@ SmsTemplates.propTypes = {
     getSmsTemplates: PropTypes.func.isRequired,
     currentProject: PropTypes.object.isRequired,
     getSmtpConfig: PropTypes.func.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
@@ -76,6 +87,7 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 

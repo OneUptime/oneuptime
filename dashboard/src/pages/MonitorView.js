@@ -254,6 +254,8 @@ class MonitorView extends React.Component {
             monitorId,
             history,
             defaultSchedule,
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
         const redirectTo = `/dashboard/project/${this.props.slug}/on-call`;
         let scheduleAlert;
@@ -312,8 +314,17 @@ class MonitorView extends React.Component {
         const defaultMonitorSla = monitorSlas.find(sla => sla.isDefault);
         const disabledMonitor =
             this.props.monitor && this.props.monitor.disabled;
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={componentMonitorsRoute}
                     name={componentName}
@@ -1155,6 +1166,7 @@ const mapStateToProps = (state, props) => {
         requestingMonitorSla: state.monitorSla.monitorSlas.requesting,
         monitorSlas: state.monitorSla.monitorSlas.slas,
         componentSlug,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -1212,6 +1224,7 @@ MonitorView.propTypes = {
     fetchComponent: PropTypes.func,
     requestingComponent: PropTypes.bool,
     fetchDefaultTemplate: PropTypes.func,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 MonitorView.displayName = 'MonitorView';

@@ -106,7 +106,7 @@ describe('Incident Settings API', () => {
                 '#editIncidentTemplateBtn_Default'
             );
             await init.pageClick(page, '#editIncidentTemplateBtn_Default');
-            await init.pageWaitForSelector(page, '#templateForm');
+            await init.pageWaitForSelector(page, '#editTemplateForm');
             await init.pageWaitForSelector(page, '#name');
             await init.pageClick(page, '#name', { clickCount: 3 });
             await page.keyboard.press('Backspace');
@@ -129,7 +129,7 @@ describe('Incident Settings API', () => {
                 newDefaultIncidentDescription
             );
             await init.pageClick(page, '#updateIncidentTemplate');
-            await init.pageWaitForSelector(page, '#templateForm', {
+            await init.pageWaitForSelector(page, '#editTemplateForm', {
                 hidden: true,
             });
             await page.reload({
@@ -138,10 +138,10 @@ describe('Incident Settings API', () => {
 
             await init.pageWaitForSelector(
                 page,
-                '#editIncidentTemplateBtn_Default'
+                `#editIncidentTemplateBtn_${newName}`
             );
-            await init.pageClick(page, '#editIncidentTemplateBtn_Default');
-            await init.pageWaitForSelector(page, '#templateForm');
+            await init.pageClick(page, `#editIncidentTemplateBtn_${newName}`);
+            await init.pageWaitForSelector(page, '#editTemplateForm');
             const priorityFieldValue = await init.page$Eval(
                 page,
                 '#incidentTemplatePriority',
@@ -219,6 +219,8 @@ describe('Incident Settings API', () => {
                 `#monitorCreateIncident_${monitorName}`
             );
             await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
+            await init.pageClick(page, '#title', { clickCount: 3 });
+            await init.pageType(page, '#title', changedTitle);
             await init.pageWaitForSelector(page, '#createIncident');
             await init.pageClick(page, '#createIncident');
             await init.pageWaitForSelector(page, '#createIncident', {

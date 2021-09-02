@@ -277,6 +277,12 @@ export class ProfileSetting extends Component {
         this.setState({ isBackendChecked: !isBackendChecked });
         const checked = e.target.checked;
         const subscription = await getTheSubscription();
+        if (!subscription) {
+            this.setState({
+                error: 'This works only on development build and production',
+            });
+            return;
+        }
         if (checked) {
             askUserPermission();
         }
@@ -1406,7 +1412,10 @@ export class ProfileSetting extends Component {
                                     <div className="bs-Fieldset-wrapper Box-root Margin-bottom--2">
                                         <fieldset className="bs-Fieldset">
                                             <div className="bs-Fieldset-row">
-                                                <label className="bs-Fieldset-label">
+                                                <label
+                                                    className="bs-Fieldset-label"
+                                                    style={{ marginTop: '7px' }}
+                                                >
                                                     Enable Push Notifications
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
@@ -1431,6 +1440,35 @@ export class ProfileSetting extends Component {
                                                         />
                                                         <span className="TogglerBtn-slider round"></span>
                                                     </label>
+                                                    <ShouldRender
+                                                        if={this.state.error}
+                                                    >
+                                                        <div
+                                                            style={{
+                                                                marginTop:
+                                                                    '10px',
+                                                                display: 'flex',
+                                                            }}
+                                                        >
+                                                            <div className="Box-root Margin-right--8">
+                                                                <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                            </div>
+                                                            <div className="Box-root">
+                                                                <span
+                                                                    style={{
+                                                                        color:
+                                                                            'red',
+                                                                    }}
+                                                                >
+                                                                    {
+                                                                        this
+                                                                            .state
+                                                                            .error
+                                                                    }
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </ShouldRender>
                                                 </div>
                                             </div>
                                         </fieldset>

@@ -165,11 +165,11 @@ export class SidebarNavItem extends Component {
             (location.pathname.match(
                 /project\/([A-Za-z0-9-]+)\/scheduledEvents/
             ) &&
-                route.title === 'Component Settings') ||
+                route.title === 'Scheduled Maintenance') ||
             (location.pathname.match(
                 /project\/([A-Za-z0-9-]+)\/component\/settings\/basic/
             ) &&
-                route.title === 'Scheduled Maintenance') ||
+                route.title === 'Component Settings') ||
             (location.pathname.match(/project\/([A-Za-z0-9-]+)\/consulting/) &&
                 route.title === 'Consulting & Services') ||
             (location.pathname.match(

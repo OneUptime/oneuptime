@@ -127,6 +127,7 @@ module.exports = {
             }
             // Use aggregate to process data
             const result = await IncidentModel.aggregate([
+                { $unwind: '$monitors' },
                 {
                     $match: {
                         $and: [
@@ -146,12 +147,12 @@ module.exports = {
                             $subtract: ['$acknowledgedAt', '$createdAt'],
                         },
                         createdAt: 1,
-                        monitorId: 1,
+                        monitors: 1,
                     },
                 },
                 {
                     $group: {
-                        _id: '$monitorId',
+                        _id: '$monitors.monitorId',
                         incidents: { $sum: 1 },
                         averageAcknowledge: { $avg: '$acknowledgeTime' },
                         averageResolved: { $avg: '$resolveTime' },

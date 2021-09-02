@@ -254,10 +254,8 @@ describe('Monitor Detail API', () => {
             const selector = `#incident_0`;
             await init.pageWaitForSelector(page, selector);
             await init.page$Eval(page, selector, e => e.click());
-
             // click on advance option tab
-            await init.gotoTab(utils.incidentTabIndexes.ADVANCE, page);
-
+            await init.pageClick(page, '.advanced-tab');
             await init.pageWaitForSelector(page, '#deleteIncidentButton', {
                 visible: true,
                 timeout: 100000,
@@ -275,8 +273,8 @@ describe('Monitor Detail API', () => {
                 timeout: init.timeout,
             });
 
-            // click on basic tab
-            await init.gotoTab(utils.incidentTabIndexes.BASIC, page);
+            //click on basic tab
+            await init.pageClick(page, '.basic-tab');
 
             let incidentCountSpanElement = await init.pageWaitForSelector(
                 page,

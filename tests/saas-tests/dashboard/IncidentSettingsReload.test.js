@@ -41,16 +41,7 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#more');
             await init.pageClick(page, '#incidentSettings');
             await init.pageClick(page, '.incident-priority-tab'); // Navigate to the Incident Priority Tab
-            await init.pageClick(page, '#priorityDefault_Low_1');
-            await init.pageClick(page, '#SetDefaultIncidentPriority');
-            await init.pageWaitForSelector(
-                page,
-                '#SetDefaultIncidentPriority',
-                {
-                    hidden: true,
-                }
-            );
-
+            await init.pageClick(page, '#priorities'); // IncidentPriority has been redesigned
             //To confirm no errors and stays on the same page on reload
             await page.reload({ waitUntil: 'networkidle2' });
             await init.pageWaitForSelector(page, '#cbProjectSettings', {

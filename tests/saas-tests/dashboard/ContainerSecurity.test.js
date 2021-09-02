@@ -169,7 +169,7 @@ describe('Container Security Page', () => {
             );
             const issueCount = await init.pageWaitForSelector(
                 page,
-                '#issueCount',
+                '#vulnerabilities',
                 {
                     visible: true,
                     timeout: init.timeout,
@@ -420,6 +420,7 @@ describe('Container Security Page', () => {
                 page,
                 `#moreContainerSecurity_${newContainerSecurityName}`
             );
+            await init.pageClick(page, '.advanced-options-tab');
             await init.pageWaitForSelector(
                 page,
                 '#deleteContainerSecurityBtn',

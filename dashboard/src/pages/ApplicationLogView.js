@@ -38,8 +38,8 @@ class ApplicationLogView extends Component {
         } = this.props;
         const projectId =
             this.props.currentProject && this.props.currentProject._id;
+        componentSlug && fetchComponent(projectId, componentSlug); // On Page Reload, the state is blank hence componentId is null. ComponentSlug present in URL bar is used to fetch component before the componentId is loaded alongside component.
         if (projectId && componentId) {
-            componentSlug && fetchComponent(projectId, componentSlug);
             componentId && fetchApplicationLogs(projectId, componentId);
         }
     };
@@ -95,13 +95,24 @@ class ApplicationLogView extends Component {
             component,
             componentId,
             applicationLog,
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
 
         const componentName = component ? component.name : '';
         const applicationLogName =
             applicationLog.length > 0 ? applicationLog[0].name : null;
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname, null, 'application-log')}
                     name={componentName}
@@ -172,6 +183,7 @@ const mapStateToProps = (state, props) => {
         component:
             state.component && state.component.currentComponent.component,
         currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -201,6 +213,7 @@ ApplicationLogView.propTypes = {
         })
     ),
     editApplicationLog: PropTypes.func,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(ApplicationLogView);

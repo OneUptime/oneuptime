@@ -306,7 +306,8 @@ export class IncidentList extends Component {
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
                                                         {incident.createdById ===
-                                                        null ? (
+                                                            null ||
+                                                        !incident.createdById ? (
                                                             incident.createdByZapier ? (
                                                                 <div className="Box-root Margin-right--16">
                                                                     <img
@@ -488,9 +489,9 @@ export class IncidentList extends Component {
                                                     className="db-ListViewItem-cellContent Box-root Padding-all--8"
                                                     id={`incident_title_${i}`}
                                                 >
-                                                    <ReactMarkdown
-                                                        source={incident.title}
-                                                    />
+                                                    <ReactMarkdown>
+                                                        {incident.title}
+                                                    </ReactMarkdown>
                                                 </div>
                                             </td>
                                             <td

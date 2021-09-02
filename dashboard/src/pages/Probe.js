@@ -56,10 +56,20 @@ class Probe extends React.Component {
     render() {
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Project Settings"
@@ -134,6 +144,7 @@ class Probe extends React.Component {
 const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
         probes: state.probe.probes,
     };
 };
@@ -145,6 +156,7 @@ const mapDispatchToProps = dispatch => {
 Probe.propTypes = {
     getProbes: PropTypes.func,
     currentProject: PropTypes.object,
+    switchToProjectViewerNav: PropTypes.bool,
     _id: PropTypes.string,
     probes: PropTypes.object,
     skip: PropTypes.number,

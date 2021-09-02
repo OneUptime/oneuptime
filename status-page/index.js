@@ -9,6 +9,7 @@ const fs = require('fs');
 const fetch = require('node-fetch');
 const { spawn } = require('child_process');
 const axios = require('axios');
+const cors = require('cors');
 
 // mongodb
 const MongoClient = require('mongodb').MongoClient;
@@ -43,6 +44,8 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /statuspage/.env
     require('dotenv').config();
 }
+
+app.use(cors());
 
 let apiHost = 'http://localhost:3002/api';
 if (process.env.BACKEND_URL) {

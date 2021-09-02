@@ -46,11 +46,22 @@ class ComponentSettings extends Component {
             location: { pathname },
             component,
             handleSubmit,
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
         const componentName = component ? component.name : '';
 
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname, null, 'basic')}
                     name={componentName}
@@ -197,6 +208,8 @@ ComponentSettings.propTypes = {
     projectId: PropTypes.string,
     projectSlug: PropTypes.string,
     editingComponent: PropTypes.object,
+    currentProject: PropTypes.object.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 const mapStateToProps = (state, props) => {
@@ -212,6 +225,8 @@ const mapStateToProps = (state, props) => {
             state.project.currentProject && state.project.currentProject._id,
         projectSlug:
             state.project.currentProject && state.project.currentProject.slug,
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 

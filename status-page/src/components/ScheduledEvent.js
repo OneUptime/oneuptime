@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import moment from 'moment';
@@ -11,7 +12,7 @@ import {
     fetchEvent,
     moreEventNote,
 } from '../actions/status';
-import { ACCOUNTS_URL, capitalize } from '../config';
+import { ACCOUNTS_URL } from '../config';
 import { ListLoader } from './basic/Loader';
 import AffectedResources from './basic/AffectedResources';
 
@@ -121,282 +122,725 @@ class ScheduledEvent extends Component {
             count,
             history,
             monitorState,
+            match,
+            statusData,
         } = this.props;
         const error = this.renderError();
+
+        const { params } = match;
+        const statusPageUrl = `/status-page/${params.statusPageSlug}`;
+
+        const currentTime = moment();
+
+        // eslint-disable-next-line no-console
+        console.log('** scheduled event **', scheduledEvent);
+        // eslint-disable-next-line no-console
+        console.log(
+            '** isSameOrAfter **',
+            currentTime.isSameOrAfter(moment(scheduledEvent.startDate))
+        );
+        // eslint-disable-next-line no-console
+        console.log(
+            '** logic **',
+            currentTime.isSameOrAfter(moment(scheduledEvent.startDate)) &&
+                currentTime.isBefore(moment(scheduledEvent.endDate))
+        );
+        // eslint-disable-next-line no-console
+        console.log(
+            '** isAfter **',
+            currentTime.isAfter(moment(scheduledEvent.startDate))
+        );
+        // eslint-disable-next-line no-console
+        console.log(
+            '** isSameOrBefore **',
+            currentTime.isSameOrBefore(moment(scheduledEvent.startDate))
+        );
+        // eslint-disable-next-line no-console
+        console.log(
+            '** isBefore **',
+            currentTime.isBefore(moment(scheduledEvent.startDate))
+        );
 
         return (
             <div
                 className="page-main-wrapper"
                 style={{ background: 'rgb(247, 247, 247)' }}
             >
-                <div className="innernew" id="scheduledEventPage">
+                {statusData.theme === 'Clean Theme' && (
                     <div
-                        id="scheduledEvents"
-                        className="twitter-feed white box"
-                        style={{ overflow: 'visible' }}
+                        className="new-main-container"
+                        style={{
+                            maxWidth: 600,
+                            margin: 'auto',
+                            marginTop: 70,
+                            marginBottom: 70,
+                        }}
                     >
-                        <div
-                            className="messages"
-                            style={{
-                                position: 'relative',
-                            }}
-                        >
+                        <div style={{ marginBottom: 50 }}>
                             <div
-                                className="box-inner"
-                                style={{ paddingTop: 20, paddingBottom: 20 }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                }}
                             >
-                                <span
+                                <header
+                                    className="feed-title"
                                     style={{
-                                        color: 'rgba(76, 76, 76, 0.52)',
-                                        textTransform: 'uppercase',
-                                        fontWeight: '700',
-                                        display: 'inline-block',
-                                        marginBottom: 20,
-                                        fontSize: 14,
+                                        fontWeight: 'bold',
+                                        marginBottom: 10,
+                                        fontSize: 30,
+                                        // textTransform: 'unset',
                                     }}
                                 >
-                                    Scheduled Event
-                                </span>
-                                {!fetchingEvent && scheduledEvent.name && (
-                                    <>
-                                        <div
-                                            className="individual-header"
-                                            style={{
-                                                marginBottom: scheduledEvent.description
-                                                    ? 25
-                                                    : 10,
-                                            }}
-                                        >
-                                            <span
-                                                className="feed-title"
-                                                style={{
-                                                    color:
-                                                        'rgba(76, 76, 76, 0.8)',
-                                                    fontWeight: 'bold',
-                                                    marginBottom: 10,
-                                                }}
-                                            >
-                                                {scheduledEvent.name}
-                                            </span>
-                                            <span
-                                                style={{
-                                                    color: 'rgba(0, 0, 0, 0.5)',
-                                                }}
-                                            >
-                                                {scheduledEvent.description}
-                                            </span>
-                                        </div>
-                                        <div
-                                            className="ongoing__affectedmonitor"
-                                            style={{ marginTop: 0 }}
-                                        >
-                                            <AffectedResources
-                                                event={scheduledEvent}
-                                                monitorState={monitorState}
-                                                colorStyle="grey"
-                                            />
-                                        </div>
-                                    </>
-                                )}
-                                <ShouldRender if={fetchingEvent}>
-                                    <ListLoader />
-                                </ShouldRender>
+                                    {scheduledEvent.name}
+                                </header>
                                 {!fetchingNotes &&
-                                    eventNotes &&
-                                    !fetchingEvent &&
-                                    scheduledEvent.startDate &&
-                                    scheduledEvent.endDate && (
-                                        <span style={{ fontSize: 12 }}>
-                                            <span
-                                                className="time"
-                                                style={{
-                                                    color: 'rgba(0, 0, 0, 0.5)',
-                                                }}
-                                            >
-                                                {moment(
-                                                    scheduledEvent.startDate
-                                                ).format(
-                                                    'MMMM Do YYYY, h:mm a'
-                                                )}
-                                                &nbsp;&nbsp;-&nbsp;&nbsp;
-                                                {moment(
-                                                    scheduledEvent.endDate
-                                                ).format(
-                                                    'MMMM Do YYYY, h:mm a'
-                                                )}
-                                            </span>
-                                            {eventNotes[0] &&
-                                                eventNotes[0].event_state && (
-                                                    <span
-                                                        className={'time'}
-                                                        style={{
-                                                            color:
-                                                                'rgba(0, 0, 0, 0.5)',
-                                                            marginLeft: 10,
-                                                            paddingBottom: 10,
-                                                            display:
-                                                                'inline-block',
-                                                            paddingTop: 7,
-                                                        }}
-                                                    >
-                                                        {capitalize(
-                                                            eventNotes[0]
-                                                                .event_state
-                                                        )}
-                                                    </span>
-                                                )}
-                                        </span>
-                                    )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        id="scheduledEventNotes"
-                        className="twitter-feed white box"
-                        style={{ overflow: 'visible' }}
-                    >
-                        <div
-                            className="messages"
-                            style={{ position: 'relative' }}
-                        >
-                            <div className="box-inner">
-                                <ShouldRender if={!fetchingNotes}>
-                                    <div className="individual-header">
-                                        <span
-                                            className="feed-title"
+                                eventNotes &&
+                                !fetchingEvent &&
+                                scheduledEvent.startDate &&
+                                scheduledEvent.endDate ? (
+                                    scheduledEvent.cancelled ? (
+                                        <div
                                             style={{
-                                                color: 'rgba(76, 76, 76, 0.8)',
-                                                fontWeight: 'bold',
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    <Translate>
+                                                        Cancelled
+                                                    </Translate>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ) : scheduledEvent.resolved ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    <Translate>
+                                                        Completed
+                                                    </Translate>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ) : currentTime.isSameOrAfter(
+                                          moment(scheduledEvent.startDate)
+                                      ) &&
+                                      currentTime.isBefore(
+                                          moment(scheduledEvent.endDate)
+                                      ) ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    <Translate>
+                                                        Ongoing
+                                                    </Translate>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ) : currentTime.isBefore(
+                                          moment(scheduledEvent.startDate)
+                                      ) ? (
+                                        <div
+                                            style={{
+                                                marginLeft: 15,
+                                            }}
+                                            className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                        >
+                                            <span className="Badge-text Text-color--default Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                <span id="ongoing-event">
+                                                    <Translate>
+                                                        Scheduled
+                                                    </Translate>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        currentTime.isSameOrAfter(
+                                            moment(scheduledEvent.endDate)
+                                        ) && (
+                                            <div
+                                                style={{
+                                                    marginLeft: 15,
+                                                }}
+                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                            >
+                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span id="ongoing-event">
+                                                        <Translate>
+                                                            Ended
+                                                        </Translate>
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        )
+                                    )
+                                ) : null}
+                            </div>
+                            <span
+                                style={{
+                                    color: 'rgba(0, 0, 0, 0.6)',
+                                }}
+                            >
+                                {scheduledEvent.description}
+                            </span>
+                            <div className="ongoing__affectedmonitor">
+                                <span
+                                    className="ongoing__affectedmonitor--content"
+                                    style={{
+                                        color: 'rgba(0, 0, 0, 0.5)',
+                                    }}
+                                >
+                                    <AffectedResources
+                                        event={scheduledEvent}
+                                        monitorState={monitorState}
+                                        colorStyle="grey"
+                                        cleanTheme={true}
+                                    />
+                                </span>
+                            </div>
+                            <ShouldRender if={fetchingEvent}>
+                                <ListLoader />
+                            </ShouldRender>
+                            {!fetchingNotes &&
+                                eventNotes &&
+                                !fetchingEvent &&
+                                scheduledEvent.startDate &&
+                                scheduledEvent.endDate && (
+                                    <span
+                                        style={{
+                                            fontSize: 14,
+                                            color: '#AAA',
+                                            display: 'block',
+                                        }}
+                                    >
+                                        <span
+                                            className="time"
+                                            style={{
+                                                color: 'rgba(0, 0, 0, 0.5)',
                                             }}
                                         >
-                                            Scheduled Event Updates
+                                            {moment(
+                                                scheduledEvent.startDate
+                                            ).format('MMMM Do YYYY, h:mm a')}
+                                            &nbsp;&nbsp;-&nbsp;&nbsp;
+                                            {moment(
+                                                scheduledEvent.endDate
+                                            ).format('MMMM Do YYYY, h:mm a')}
                                         </span>
-                                    </div>
-                                </ShouldRender>
-                                <ShouldRender if={fetchingNotes}>
-                                    <ListLoader />
-                                </ShouldRender>
-                                <ul className="feed-contents plain">
-                                    {!fetchingNotes &&
-                                        eventNotes &&
-                                        eventNotes.length > 0 &&
-                                        eventNotes.map(note => (
-                                            <li
-                                                key={note._id}
-                                                className="feed-item clearfix"
-                                            >
-                                                <div
-                                                    className="message"
-                                                    style={{
-                                                        width: '100%',
-                                                        marginLeft: 0,
-                                                        background:
-                                                            'rgb(247, 247, 247)',
-                                                    }}
-                                                >
-                                                    <div className="note__wrapper">
-                                                        <span
-                                                            style={{
-                                                                color:
-                                                                    'rgba(0, 0, 0, 0.5)',
-                                                                fontSize: 14,
-                                                                display:
-                                                                    'block',
-                                                                textAlign:
-                                                                    'justify',
-                                                            }}
-                                                        >
-                                                            <Markdown>
-                                                                {note.content}
-                                                            </Markdown>
-                                                        </span>
-                                                        <span
-                                                            style={{
-                                                                display: 'flex',
-                                                                alignItems:
-                                                                    'center',
-                                                                marginTop: 15,
-                                                            }}
-                                                        >
-                                                            <span
-                                                                style={{
-                                                                    color:
-                                                                        'rgba(0, 0, 0, 0.5)',
-                                                                    fontSize: 12,
-                                                                    display:
-                                                                        'block',
-                                                                }}
-                                                            >
-                                                                Posted on{' '}
-                                                                {moment(
-                                                                    note.createdAt
-                                                                ).format(
-                                                                    'MMMM Do YYYY, h:mm a'
-                                                                )}
-                                                            </span>
-                                                            <span
-                                                                style={{
-                                                                    marginLeft: 15,
-                                                                }}
-                                                                className="note-badge badge badge__color--green"
-                                                            >
-                                                                {
-                                                                    note.event_state
-                                                                }
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </li>
-                                        ))}
-
-                                    {!fetchingNotes &&
-                                        eventNotes &&
-                                        eventNotes.length === 0 && (
-                                            <li
-                                                className="feed-item clearfix"
+                                    </span>
+                                )}
+                        </div>
+                        <div>
+                            <ShouldRender if={fetchingNotes}>
+                                <ListLoader />
+                            </ShouldRender>
+                            {!fetchingNotes &&
+                                eventNotes &&
+                                eventNotes.length > 0 &&
+                                eventNotes.map(note => (
+                                    <div
+                                        key={note._id}
+                                        style={{
+                                            width: '100%',
+                                            display: 'grid',
+                                            gridTemplateColumns: '1fr 3fr',
+                                            gridColumnGap: 10,
+                                            marginTop: 20,
+                                        }}
+                                    >
+                                        <div>
+                                            <span
                                                 style={{
-                                                    minHeight: '5px',
-                                                    marginBottom: '10px',
+                                                    display: 'block',
+                                                    fontWeight: 'bold',
+                                                }}
+                                            >
+                                                {note.event_state}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span
+                                                style={{
+                                                    color: 'rgba(0, 0, 0, 0.6)',
+                                                    fontSize: 14,
+                                                    display: 'block',
+                                                    textAlign: 'justify',
+                                                }}
+                                            >
+                                                {note.content && (
+                                                    <Markdown>
+                                                        {note.content}
+                                                    </Markdown>
+                                                )}
+                                            </span>
+                                            <span
+                                                style={{
                                                     display: 'flex',
-                                                    flexDirection: 'row',
-                                                    flexWrap: 'nowrap',
-                                                    justifyContent: 'center',
+                                                    marginTop: 10,
+                                                    alignItems: 'center',
                                                 }}
                                             >
                                                 <span
-                                                    className="time"
                                                     style={{
-                                                        fontSize: '0.8em',
-                                                        marginLeft: '0px',
-                                                        color:
-                                                            'rgb(76, 76, 76)',
+                                                        color: '#AAA',
+                                                        fontSize: 12,
+                                                        display: 'block',
                                                     }}
                                                 >
-                                                    No schedule event updates
-                                                    yet.
+                                                    Posted on{' '}
+                                                    {moment(
+                                                        note.createdAt
+                                                    ).format(
+                                                        'MMMM Do YYYY, h:mm a'
+                                                    )}
                                                 </span>
-                                            </li>
-                                        )}
-                                </ul>
-                            </div>
-                            <ShouldRender
-                                if={
-                                    eventNotes.length &&
-                                    count > eventNotes.length &&
-                                    !fetchingNotes
-                                }
-                            >
-                                <button
-                                    className="more button-as-anchor anchor-centered"
-                                    onClick={() => this.more()}
-                                >
-                                    More
-                                </button>
-                            </ShouldRender>
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+
+                            {!fetchingNotes &&
+                                eventNotes &&
+                                eventNotes.length === 0 && (
+                                    <div
+                                        className="feed-item clearfix"
+                                        style={{
+                                            minHeight: '5px',
+                                            marginBottom: '10px',
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            flexWrap: 'nowrap',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        <span
+                                            className="time"
+                                            style={{
+                                                fontSize: '0.8em',
+                                                marginLeft: '0px',
+                                                color: 'rgb(76, 76, 76)',
+                                            }}
+                                        >
+                                            <Translate>
+                                                No scheduled event updates yet.
+                                            </Translate>
+                                        </span>
+                                    </div>
+                                )}
                         </div>
                     </div>
+                )}
+                <div className="innernew" id="scheduledEventPage">
+                    {statusData.theme === 'Classic Theme' && (
+                        <>
+                            <div
+                                id="scheduledEvents"
+                                className="twitter-feed white box"
+                                style={{ overflow: 'visible' }}
+                            >
+                                <div
+                                    className="messages"
+                                    style={{
+                                        position: 'relative',
+                                    }}
+                                >
+                                    <div
+                                        className="box-inner"
+                                        style={{
+                                            paddingTop: 20,
+                                            paddingBottom: 20,
+                                        }}
+                                    >
+                                        <span
+                                            style={{
+                                                color: 'rgba(76, 76, 76, 0.52)',
+                                                textTransform: 'uppercase',
+                                                fontWeight: '700',
+                                                display: 'inline-block',
+                                                marginBottom: 20,
+                                                fontSize: 14,
+                                            }}
+                                        >
+                                            <Translate>
+                                                {' '}
+                                                Scheduled Event
+                                            </Translate>
+                                        </span>
+                                        {!fetchingEvent && scheduledEvent.name && (
+                                            <>
+                                                <div
+                                                    className="individual-header"
+                                                    style={{
+                                                        marginBottom: scheduledEvent.description
+                                                            ? 25
+                                                            : 10,
+                                                    }}
+                                                >
+                                                    <span
+                                                        className="feed-title"
+                                                        style={{
+                                                            color:
+                                                                'rgba(76, 76, 76, 0.8)',
+                                                            fontWeight: 'bold',
+                                                            marginBottom: 10,
+                                                        }}
+                                                    >
+                                                        {scheduledEvent.name}
+                                                    </span>
+                                                    <span
+                                                        style={{
+                                                            color:
+                                                                'rgba(0, 0, 0, 0.5)',
+                                                        }}
+                                                    >
+                                                        {
+                                                            scheduledEvent.description
+                                                        }
+                                                    </span>
+                                                </div>
+                                                <div
+                                                    className="ongoing__affectedmonitor"
+                                                    style={{ marginTop: 0 }}
+                                                >
+                                                    <AffectedResources
+                                                        event={scheduledEvent}
+                                                        monitorState={
+                                                            monitorState
+                                                        }
+                                                        colorStyle="grey"
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
+                                        <ShouldRender if={fetchingEvent}>
+                                            <ListLoader />
+                                        </ShouldRender>
+                                        {!fetchingNotes &&
+                                            eventNotes &&
+                                            !fetchingEvent &&
+                                            scheduledEvent.startDate &&
+                                            scheduledEvent.endDate && (
+                                                <span style={{ fontSize: 12 }}>
+                                                    <span
+                                                        className="time"
+                                                        style={{
+                                                            color:
+                                                                'rgba(0, 0, 0, 0.5)',
+                                                        }}
+                                                    >
+                                                        {moment(
+                                                            scheduledEvent.startDate
+                                                        ).format(
+                                                            'MMMM Do YYYY, h:mm a'
+                                                        )}
+                                                        &nbsp;&nbsp;-&nbsp;&nbsp;
+                                                        {moment(
+                                                            scheduledEvent.endDate
+                                                        ).format(
+                                                            'MMMM Do YYYY, h:mm a'
+                                                        )}
+                                                    </span>
+                                                    {scheduledEvent.cancelled ? (
+                                                        <div
+                                                            style={{
+                                                                marginLeft: 15,
+                                                                padding:
+                                                                    '2px 10px',
+                                                                fontWeight:
+                                                                    '600',
+                                                            }}
+                                                            className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                        >
+                                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--10 Text-fontWeight--bold Text-lineHeight--14 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span id="ongoing-event">
+                                                                    <Translate>
+                                                                        Cancelled
+                                                                    </Translate>
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    ) : scheduledEvent.resolved ? (
+                                                        <div
+                                                            style={{
+                                                                marginLeft: 15,
+                                                                padding:
+                                                                    '2px 10px',
+                                                                fontWeight:
+                                                                    '600',
+                                                            }}
+                                                            className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                        >
+                                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--10 Text-fontWeight--bold Text-lineHeight--14 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span id="ongoing-event">
+                                                                    <Translate>
+                                                                        Completed
+                                                                    </Translate>
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    ) : currentTime.isSameOrAfter(
+                                                          moment(
+                                                              scheduledEvent.startDate
+                                                          )
+                                                      ) &&
+                                                      currentTime.isBefore(
+                                                          moment(
+                                                              scheduledEvent.endDate
+                                                          )
+                                                      ) ? (
+                                                        <div
+                                                            style={{
+                                                                marginLeft: 15,
+                                                                padding:
+                                                                    '2px 10px',
+                                                                fontWeight:
+                                                                    '600',
+                                                            }}
+                                                            className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                        >
+                                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--10 Text-fontWeight--bold Text-lineHeight--14 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span id="ongoing-event">
+                                                                    <Translate>
+                                                                        Ongoing
+                                                                    </Translate>
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    ) : currentTime.isBefore(
+                                                          moment(
+                                                              scheduledEvent.startDate
+                                                          )
+                                                      ) ? (
+                                                        <div
+                                                            style={{
+                                                                marginLeft: 15,
+                                                                padding:
+                                                                    '2px 10px',
+                                                                fontWeight:
+                                                                    '600',
+                                                            }}
+                                                            className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                        >
+                                                            <span className="Badge-text Text-color--default Text-display--inline Text-fontSize--10 Text-fontWeight--bold Text-lineHeight--14 Text-typeface--upper Text-wrap--noWrap">
+                                                                <span id="ongoing-event">
+                                                                    <Translate>
+                                                                        Scheduled
+                                                                    </Translate>
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        currentTime.isSameOrAfter(
+                                                            moment(
+                                                                scheduledEvent.endDate
+                                                            )
+                                                        ) && (
+                                                            <div
+                                                                style={{
+                                                                    marginLeft: 15,
+                                                                    padding:
+                                                                        '2px 10px',
+                                                                    fontWeight:
+                                                                        '600',
+                                                                }}
+                                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                            >
+                                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--10 Text-fontWeight--bold Text-lineHeight--14 Text-typeface--upper Text-wrap--noWrap">
+                                                                    <span id="ongoing-event">
+                                                                        <Translate>
+                                                                            Ended
+                                                                        </Translate>
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        )
+                                                    )}
+                                                </span>
+                                            )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                id="scheduledEventNotes"
+                                className="twitter-feed white box"
+                                style={{ overflow: 'visible' }}
+                            >
+                                <div
+                                    className="messages"
+                                    style={{ position: 'relative' }}
+                                >
+                                    <div className="box-inner">
+                                        <ShouldRender if={!fetchingNotes}>
+                                            <div className="individual-header">
+                                                <span
+                                                    className="feed-title"
+                                                    style={{
+                                                        color:
+                                                            'rgba(76, 76, 76, 0.8)',
+                                                        fontWeight: 'bold',
+                                                    }}
+                                                >
+                                                    <Translate>
+                                                        {' '}
+                                                        Scheduled Event Updates
+                                                    </Translate>
+                                                </span>
+                                            </div>
+                                        </ShouldRender>
+                                        <ShouldRender if={fetchingNotes}>
+                                            <ListLoader />
+                                        </ShouldRender>
+                                        <ul className="feed-contents plain">
+                                            {!fetchingNotes &&
+                                                eventNotes &&
+                                                eventNotes.length > 0 &&
+                                                eventNotes.map(note => (
+                                                    <li
+                                                        key={note._id}
+                                                        className="feed-item clearfix"
+                                                    >
+                                                        <div
+                                                            className="message"
+                                                            style={{
+                                                                width: '100%',
+                                                                marginLeft: 0,
+                                                                background:
+                                                                    'rgb(247, 247, 247)',
+                                                            }}
+                                                        >
+                                                            <div className="note__wrapper">
+                                                                <span
+                                                                    style={{
+                                                                        color:
+                                                                            'rgba(0, 0, 0, 0.5)',
+                                                                        fontSize: 14,
+                                                                        display:
+                                                                            'block',
+                                                                        textAlign:
+                                                                            'justify',
+                                                                    }}
+                                                                >
+                                                                    <Markdown>
+                                                                        {
+                                                                            note.content
+                                                                        }
+                                                                    </Markdown>
+                                                                </span>
+                                                                <span
+                                                                    style={{
+                                                                        display:
+                                                                            'flex',
+                                                                        alignItems:
+                                                                            'center',
+                                                                        marginTop: 15,
+                                                                    }}
+                                                                >
+                                                                    <span
+                                                                        style={{
+                                                                            color:
+                                                                                'rgba(0, 0, 0, 0.5)',
+                                                                            fontSize: 12,
+                                                                            display:
+                                                                                'block',
+                                                                        }}
+                                                                    >
+                                                                        <Translate>
+                                                                            {' '}
+                                                                            Posted
+                                                                            on
+                                                                        </Translate>{' '}
+                                                                        {moment(
+                                                                            note.createdAt
+                                                                        ).format(
+                                                                            'MMMM Do YYYY, h:mm a'
+                                                                        )}
+                                                                    </span>
+                                                                    <span
+                                                                        style={{
+                                                                            marginLeft: 15,
+                                                                        }}
+                                                                        className="note-badge badge badge__color--green"
+                                                                    >
+                                                                        {
+                                                                            note.event_state
+                                                                        }
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                ))}
+
+                                            {!fetchingNotes &&
+                                                eventNotes &&
+                                                eventNotes.length === 0 && (
+                                                    <li
+                                                        className="feed-item clearfix"
+                                                        style={{
+                                                            minHeight: '5px',
+                                                            marginBottom:
+                                                                '10px',
+                                                            display: 'flex',
+                                                            flexDirection:
+                                                                'row',
+                                                            flexWrap: 'nowrap',
+                                                            justifyContent:
+                                                                'center',
+                                                        }}
+                                                    >
+                                                        <span
+                                                            className="time"
+                                                            style={{
+                                                                fontSize:
+                                                                    '0.8em',
+                                                                marginLeft:
+                                                                    '0px',
+                                                                color:
+                                                                    'rgb(76, 76, 76)',
+                                                            }}
+                                                        >
+                                                            <Translate>
+                                                                {' '}
+                                                                No schedule
+                                                                event updates
+                                                                yet.
+                                                            </Translate>
+                                                        </span>
+                                                    </li>
+                                                )}
+                                        </ul>
+                                    </div>
+                                    <ShouldRender
+                                        if={
+                                            eventNotes.length &&
+                                            count > eventNotes.length &&
+                                            !fetchingNotes
+                                        }
+                                    >
+                                        <button
+                                            className="more button-as-anchor anchor-centered"
+                                            onClick={() => this.more()}
+                                        >
+                                            <Translate> More</Translate>
+                                        </button>
+                                    </ShouldRender>
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     <ShouldRender if={fetchingEvent}>
                         <div
@@ -431,16 +875,20 @@ class ScheduledEvent extends Component {
                             </div>
                         </div>
                     </ShouldRender>
-                    <div id="footer">
+                    <div
+                        id="footer"
+                        style={{ display: 'flex', alignItems: 'center' }}
+                    >
                         <span
-                            onClick={() => history.goBack()}
+                            onClick={() => history.replace(statusPageUrl)}
                             className="sp__icon sp__icon--back"
                             style={{
                                 color: 'rgb(76, 76, 76)',
                                 cursor: 'pointer',
+                                width: '100%',
                             }}
                         >
-                            Back to status page
+                            <Translate> Back to status page</Translate>
                         </span>
                         <p>
                             <a
@@ -449,13 +897,15 @@ class ScheduledEvent extends Component {
                                 rel="noopener noreferrer"
                                 style={{ color: 'rgb(76, 76, 76)' }}
                             >
-                                Powered by Fyipe
+                                <Translate>Powered by</Translate> Fyipe
                             </a>
                         </p>
                     </div>
                     <ShouldRender if={error}>
                         <div id="app-loading">
-                            <div>{error}</div>
+                            <div>
+                                <Translate>{error}</Translate>
+                            </div>
                         </div>
                     </ShouldRender>
                 </div>

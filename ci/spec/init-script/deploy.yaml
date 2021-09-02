@@ -6,6 +6,8 @@ staging_init-script:
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/install-helm.sh
+        - ./ci/scripts/install-helm.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
@@ -16,8 +18,8 @@ staging_init-script:
         - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/init-script:master
         ## You cannot update a Kubernetes job. They are immutable. Delete it and run helm again which will create a a new job. .
-        - sudo kubectl --kubeconfig=/root/.kube/config delete job fi-init-script || echo "Job not found"
-        - sudo helm upgrade --kubeconfig=/root/.kube/config --reuse-values fi ./helm-chart/public/fyipe
+        - sudo kubectl delete job fi-init-script || echo "Job not found"
+        - sudo helm upgrade --reuse-values fi ./helm-chart/public/fyipe
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -37,6 +39,8 @@ production_init-script:
     script:
         - chmod +x ./ci/scripts/version-setup.sh
         - ./ci/scripts/version-setup.sh
+        - chmod +x ./ci/scripts/install-helm.sh
+        - ./ci/scripts/install-helm.sh
         - chmod +x ./ci/scripts/deployment-setup.sh
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
@@ -47,8 +51,8 @@ production_init-script:
         - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/init-script:latest
         ## You cannot update a Kubernetes job. They are immutable. Delete it and run helm again which will create a a new job. .
-        - sudo kubectl --kubeconfig=/root/.kube/config delete job fi-init-script || echo "Job not found"
-        - sudo helm upgrade --kubeconfig=/root/.kube/config --reuse-values fi ./helm-chart/public/fyipe
+        - sudo kubectl delete job fi-init-script || echo "Job not found"
+        - sudo helm upgrade --reuse-values fi ./helm-chart/public/fyipe
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

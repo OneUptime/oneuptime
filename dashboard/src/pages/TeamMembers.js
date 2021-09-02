@@ -266,11 +266,22 @@ class TeamApp extends Component {
         const {
             team: { subProjectTeamLoading, teamMembers, pages },
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
         const { inviteModalId } = this.state;
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
 
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem route={pathname} name="Team Members" />
                 <div
                     onKeyDown={this.handleKeyBoard}
@@ -328,6 +339,7 @@ TeamApp.propTypes = {
         pathname: PropTypes.string,
     }),
     modalList: PropTypes.array,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 const mapStateToProps = state => {
@@ -347,6 +359,7 @@ const mapStateToProps = state => {
         currentProject: state.project.currentProject,
         subProjects,
         modalList: state.modal.modals,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 

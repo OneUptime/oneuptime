@@ -48,7 +48,6 @@ export class StatusPageLayout extends Component {
             { name: 'Overall Status of Resources', key: 'resources' },
             { name: 'Resource List', key: 'services' },
             { name: 'Incidents List', key: 'incidents' },
-            { name: 'Past Announcements List', key: 'AnnouncementLogs' },
             {
                 name: 'Future Scheduled Events',
                 key: 'maintenance',
@@ -57,8 +56,9 @@ export class StatusPageLayout extends Component {
         ],
         invisible: [
             { name: 'Scheduled Events Completed', key: 'pastEvents' },
-
+            { name: 'Past Announcements List', key: 'AnnouncementLogs' },
             { name: 'Twitter Updates', key: 'twitter' },
+            { name: 'External Status Pages', key: 'externalStatusPage' },
         ],
         confirmResetModalId: uuidv4(),
     };
@@ -139,6 +139,8 @@ export class StatusPageLayout extends Component {
         switch (type) {
             case 'anouncement':
                 return 'This is the announment section of the status page';
+            case 'language':
+                return 'On this section you can change the status page language(default is English)';
             case 'resources':
                 return 'This section contains information of the resources status';
             case 'services':
@@ -162,6 +164,8 @@ export class StatusPageLayout extends Component {
                 return 'This section displays the footer of the status page and can not be hidden';
             case 'header':
                 return 'This section displays the header of the status page and can not be hidden';
+            case 'externalStatusPage':
+                return 'This section displays external status pages';
             default:
                 return '';
         }
@@ -186,7 +190,6 @@ export class StatusPageLayout extends Component {
                 { name: 'Overall Status of Resources', key: 'resources' },
                 { name: 'Resource List', key: 'services' },
                 { name: 'Incidents List', key: 'incidents' },
-                { name: 'Past Announcements List', key: 'AnnouncementLogs' },
                 {
                     name: 'Future Scheduled Events',
                     key: 'maintenance',
@@ -195,8 +198,10 @@ export class StatusPageLayout extends Component {
                 { name: 'Footer', key: 'footer' },
             ],
             invisible: [
+                { name: 'Past Announcements List', key: 'AnnouncementLogs' },
                 { name: 'Scheduled Events Completed', key: 'pastEvents' },
                 { name: 'Twitter Updates', key: 'twitter' },
+                { name: 'External Status Pages', key: 'externalStatusPage' },
             ],
         };
         await this.props

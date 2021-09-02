@@ -209,18 +209,12 @@ router.put('/:projectId/:integrationId', getUser, isUserAdmin, async function(
 
         const existingWebhook = await IntegrationService.findOneBy({
             query: {
-                monitorId: data.monitorId,
-                'data.endpoint': data.endpoint,
-                ...(data.type === 'webhook' && {
-                    'data.endpointType': data.endpointType,
-                }),
-                integrationType: data.type,
+                _id: data._id, // If the data to be updated changes, it returns null as it does not exist in the DB. Quering by _id and deleted returns the correct value
                 deleted: { $ne: null },
             },
             select,
             populate,
         });
-
         if (
             existingWebhook &&
             existingWebhook._id.toString() !== integrationId

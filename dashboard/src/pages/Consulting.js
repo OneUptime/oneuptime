@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
 import { PropTypes } from 'prop-types';
 import Slider from 'react-slick';
@@ -48,9 +49,20 @@ class Consulting extends Component {
 
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={pathname}
                     name="Consulting &#38; Services"
@@ -178,7 +190,7 @@ class Consulting extends Component {
                                             >
                                                 We&#39;ll have a call with you
                                                 and update you every day on
-                                                Slack or Skype on work we&#39;ve
+                                                Slack or Zoom on work we&#39;ve
                                                 done.
                                             </div>
                                         </div>
@@ -492,6 +504,15 @@ Consulting.displayName = 'Consulting';
 
 Consulting.propTypes = {
     location: PropTypes.shape({ pathname: PropTypes.string }),
+    currentProject: PropTypes.object.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
-export default Consulting;
+const mapStateToProps = state => {
+    return {
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+    };
+};
+
+export default connect(mapStateToProps)(Consulting);

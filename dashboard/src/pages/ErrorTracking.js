@@ -87,6 +87,8 @@ class ErrorTracking extends Component {
             component,
             errorTracker,
             componentId,
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
 
         const errorTrackers =
@@ -116,8 +118,17 @@ class ErrorTracking extends Component {
             );
 
         const componentName = component ? component.name : '';
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name={componentName}
@@ -199,6 +210,7 @@ const mapStateToProps = (state, ownProps) => {
             state.component.currentComponent.component._id,
         errorTracker,
         tutorialStat,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 ErrorTracking.propTypes = {
@@ -211,5 +223,6 @@ ErrorTracking.propTypes = {
     fetchComponent: PropsType.func,
     tutorialStat: PropsType.object,
     errorTracker: PropsType.object,
+    switchToProjectViewerNav: PropsType.bool,
 };
 export default connect(mapStateToProps, mapDispatchToProps)(ErrorTracking);

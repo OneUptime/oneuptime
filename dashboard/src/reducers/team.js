@@ -207,12 +207,16 @@ export default (state = initialState, action) => {
                 // teamMembers: action.payload.data,
                 subProjectTeamMembers: state.subProjectTeamMembers.map(
                     subProject => {
-                        subProject.teamMembers = action.payload.find(
-                            team => team.projectId === subProject._id
-                        ).team;
-                        subProject.count = action.payload.find(
-                            team => team.projectId === subProject._id
-                        ).team.length;
+                        if (action.payload) {
+                            const projectObj = action.payload.find(
+                                team => team.projectId === subProject._id
+                            );
+
+                            if (projectObj) {
+                                subProject.teamMembers = projectObj.team;
+                                subProject.count = projectObj.team.length;
+                            }
+                        }
                         return subProject;
                     }
                 ),

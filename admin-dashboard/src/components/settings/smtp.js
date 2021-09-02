@@ -2,7 +2,7 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { reduxForm, Field } from 'redux-form';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { RenderField } from '../basic/RenderField';
 import { Validate, IS_INTERNAL_SMTP_DEPLOYED } from '../../config';
 import { FormLoader } from '../basic/Loader';
@@ -174,8 +174,8 @@ export class Component extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            testModalId: uuid.v4(),
-            messageModalId: uuid.v4(),
+            testModalId: uuidv4(),
+            messageModalId: uuidv4(),
         };
     }
 

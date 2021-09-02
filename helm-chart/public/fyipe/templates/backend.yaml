@@ -28,6 +28,11 @@ spec:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "backend" .Values.image.tag }}
                   name: {{ printf "%s-%s" .Release.Name "backend"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  resources:
+                    requests:
+                      cpu: 450m
+                    limits:
+                      cpu: 700m
                   env:
                       - name: JWT_SECRET
                         valueFrom:
@@ -41,11 +46,11 @@ spec:
                             key: encryptionkey
                       - name: MONGO_URL
                         value: {{ template "fyipe.mongodbConnectionString" . }}
-                      {{- if .Values.mongodb.replicaSet.enabled }}
+                      {{- if eq .Values.mongodb.architecture "replicaset" }}
                       - name: IS_MONGO_REPLICA_SET
-                        value: {{ .Values.mongodb.replicaSet.enabled | quote }}
+                        value: {{ true | quote }}
                       - name: MONGO_REPLICA_SET_NAME
-                        value: {{ .Values.mongodb.replicaSet.name }}
+                        value: {{ .Values.mongodb.replicaSetName }}
                       {{- end }}
                       - name: REDIS_HOST
                         value: {{ template "fyipe.redisHost" . }}
@@ -119,6 +124,8 @@ spec:
                         value: {{ .Values.saas.stripe.privateKey }}
                       - name: IS_SAAS_SERVICE
                         value: 'true'
+                      - name: TWITTER_BEARER_TOKEN
+                        value: {{ .Values.saas.twitter.bearertoken }}
                       - name: AIRTABLE_API_KEY
                         value: {{ .Values.saas.airtable.key }}
                       - name: AIRTABLE_BASE_ID
@@ -137,6 +144,11 @@ spec:
                 {{- if $.Values.saas.isRunningOnGCPMarketplace }}
                 - name: ubbagent
                   image: $imageUbbagent
+                  resources:
+                    requests:
+                      cpu: 250m
+                    limits:
+                      cpu: 500m
                   env:
                   - name: AGENT_CONFIG_FILE
                     value: "/etc/ubbagent/config.yaml"

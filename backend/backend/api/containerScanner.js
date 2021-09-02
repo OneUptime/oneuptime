@@ -75,7 +75,7 @@ router.post('/log', isAuthorizedContainerScanner, async function(req, res) {
             { path: 'componentId', select: 'name slug' },
         ];
         const findLog = await ContainerSecurityLogService.findOneBy({
-            query: { securityId: securityLog._id },
+            query: { _id: securityLog._id },
             select: selectContainerLog,
             populate: populateContainerLog,
         });

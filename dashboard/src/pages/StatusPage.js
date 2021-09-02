@@ -12,7 +12,9 @@ import StatusPageLayout from '../components/statusPage/StatusPageLayout';
 import Links from '../components/statusPage/Links';
 import DeleteBox from '../components/statusPage/DeleteBox';
 import DuplicateStatusBox from '../components/statusPage/DuplicateStatusPage';
+import ExternalStatusPages from '../components/statusPage/ExternalStatusPages';
 import PrivateStatusPage from '../components/statusPage/PrivateStatusPage';
+import StatusPageLanguage from '../components/statusPage/StatusPageLanguage';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
 import { LoadingState } from '../components/basic/Loader';
 import PropTypes from 'prop-types';
@@ -124,6 +126,8 @@ class StatusPage extends Component {
         const {
             location: { pathname },
             statusPage: { status },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
         const pageName = status ? status.name : null;
         const data = {
@@ -132,9 +136,17 @@ class StatusPage extends Component {
                 status.projectId && (status.projectId._id || status.projectId),
             theme: status.theme,
         };
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Status Pages"
@@ -354,6 +366,33 @@ class StatusPage extends Component {
                                                                         <PrivateStatusPage />
                                                                     </div>
                                                                     <div className="Box-root Margin-bottom--12">
+                                                                        <StatusPageLanguage
+                                                                            multipleLanguages={
+                                                                                this
+                                                                                    .props
+                                                                                    .statusPage
+                                                                                    ?.status
+                                                                                    ?.multipleLanguages
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <ExternalStatusPages
+                                                                            statusPageId={
+                                                                                this
+                                                                                    .props
+                                                                                    .statusPage
+                                                                                    .status
+                                                                                    ._id
+                                                                            }
+                                                                            subProjectId={
+                                                                                this
+                                                                                    .props
+                                                                                    .subProjectId
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    <div className="Box-root Margin-bottom--12">
                                                                         <DuplicateStatusBox
                                                                             statusPageId={
                                                                                 this
@@ -462,6 +501,7 @@ function mapStateToProps(state, props) {
         subProjects: state.subProject.subProjects.subProjects,
         currentProject:
             state.project.currentProject && state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 }
 
@@ -478,6 +518,7 @@ StatusPage.propTypes = {
     subProjectId: PropTypes.string,
     currentProject: PropTypes.object,
     subProjects: PropTypes.array,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 StatusPage.displayName = 'StatusPage';
