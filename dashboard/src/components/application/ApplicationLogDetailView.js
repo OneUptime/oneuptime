@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import LogList from './LogList';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { bindActionCreators } from 'redux';
@@ -7,6 +6,7 @@ import { connect } from 'react-redux';
 import { fetchLogs } from '../../actions/applicationLog';
 import { ListLoader } from '../basic/Loader';
 import AlertPanel from '../basic/AlertPanel';
+import LogTail from './LogTail';
 
 class ApplicationLogDetailView extends Component {
     constructor(props) {
@@ -26,13 +26,10 @@ class ApplicationLogDetailView extends Component {
     render() {
         const {
             applicationLog,
-            componentId,
-            projectId,
             isDetails,
             stats,
             logOptions,
             handleLogTypeChange,
-            handleNavigationButtonClick,
         } = this.props;
         return (
             <div>
@@ -198,14 +195,7 @@ class ApplicationLogDetailView extends Component {
                                             </div>
                                         </div>
                                     </div>
-                                    <LogList
-                                        applicationLog={applicationLog}
-                                        componentId={componentId}
-                                        projectId={projectId}
-                                        handleNavigationButtonClick={
-                                            handleNavigationButtonClick
-                                        }
-                                    />
+                                    <LogTail applicationLog={applicationLog} />
                                 </div>
                             </div>
                         </div>
@@ -230,7 +220,6 @@ ApplicationLogDetailView.propTypes = {
     stats: PropTypes.object,
     logOptions: PropTypes.array,
     handleLogTypeChange: PropTypes.func,
-    handleNavigationButtonClick: PropTypes.func,
 };
 
 export default connect(null, mapDispatchToProps)(ApplicationLogDetailView);
