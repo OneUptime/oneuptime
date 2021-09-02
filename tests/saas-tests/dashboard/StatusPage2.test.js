@@ -10,11 +10,13 @@ const password = '1234567890';
 const componentName = 'hackerbay';
 const monitorName = 'fyipe';
 const monitorName1 = 'testFyipe';
+const customDomain = utils.generateRandomString();
 
 let browser, page;
 const gotoTheFirstStatusPage = async page => {
     await page.goto(utils.DASHBOARD_URL, {
         waitUntil: ['networkidle2'],
+        timeout: init.timeout,
     });
     await init.pageWaitForSelector(page, '#statusPages');
     await init.page$Eval(page, '#statusPages', e => e.click());
@@ -225,7 +227,7 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageType(page, '#customDomain', 'fyipeapp.com');
+            await init.pageType(page, '#customDomain', `${customDomain}.com`);
             await init.pageClick(page, '#createCustomDomainBtn');
             await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 hidden: true,
@@ -270,7 +272,7 @@ describe('Status Page', () => {
     test(
         'should update a domain',
         async done => {
-            const finalValue = 'status.fyipeapp.com';
+            const finalValue = `status.${customDomain}.com`;
 
             await gotoTheFirstStatusPage(page);
             await init.pageClick(page, '.custom-domains-tab');
@@ -368,7 +370,11 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageType(page, '#customDomain', 'app.fyipeapp.com');
+            await init.pageType(
+                page,
+                '#customDomain',
+                `app.${customDomain}.com`
+            );
             await init.pageClick(page, '#createCustomDomainBtn');
             await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 hidden: true,
@@ -438,7 +444,11 @@ describe('Status Page', () => {
                 visible: true,
                 timeout: init.timeout,
             });
-            await init.pageType(page, '#customDomain', 'server.fyipeapp.com');
+            await init.pageType(
+                page,
+                '#customDomain',
+                `server.${customDomain}.com`
+            );
             await init.pageClick(page, '#createCustomDomainBtn');
             await init.pageWaitForSelector(page, '#addMoreDomainModal', {
                 hidden: true,

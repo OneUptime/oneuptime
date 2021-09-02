@@ -800,6 +800,7 @@ const _this = {
     addNewMonitorToComponent: async function(page, componentName, monitorName) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
+            timeout: _this.timeout,
         });
         await _this.pageWaitForSelector(page, '#components');
         await _this.pageClickNavigate(page, '#components');
