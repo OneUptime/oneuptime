@@ -9,6 +9,11 @@ function getParentRoute(childRoute, projectId = null, type) {
         urlParts.pop();
         return urlParts.join('/');
     }
+    if (type === 'scheduledEvents') {
+        const urlParts = childRoute.split('/');
+        urlParts.pop();
+        return urlParts.join('/');
+    }
     if (
         lastNode === 'incident-log' ||
         lastNode === 'application-log' ||
