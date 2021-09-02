@@ -30,7 +30,7 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
     transports: ['websocket', 'polling'],
 });
 
-class ScheduledEvent extends Component {
+class ScheduledEventDetail extends Component {
     constructor(props) {
         super(props);
         this.limit = 10;
@@ -140,7 +140,7 @@ class ScheduledEvent extends Component {
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
                 <BreadCrumbItem
-                    route={getParentRoute(pathname)}
+                    route={getParentRoute(pathname, null, 'scheduledEvents')}
                     name="Scheduled Maintenance Event"
                 />
                 <BreadCrumbItem
@@ -281,9 +281,9 @@ class ScheduledEvent extends Component {
     }
 }
 
-ScheduledEvent.displayName = 'ScheduledEvent';
+ScheduledEventDetail.displayName = 'ScheduledEventDetail';
 
-ScheduledEvent.propTypes = {
+ScheduledEventDetail.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
@@ -349,4 +349,7 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-export default connect(mapStateToProps, mapDispatchToProps)(ScheduledEvent);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(ScheduledEventDetail);
