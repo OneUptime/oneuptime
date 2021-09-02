@@ -50,14 +50,11 @@ describe('Fyipe Page Reload', () => {
             });
             await init.pageClick(page, '#projectSettings');
             await init.pageClick(page, '#integrations');
-            await init.pageWaitForSelector(page, '#addSlackButton', {
-                visible: true,
-                timeout: init.timeout,
-            });
             await init.pageClick(page, '#addWebhookButton');
             await init.pageType(page, '#endpoint', webHookEndpoint);
+            await init.pageClick(page, '#addMoreMonitor');
             await init.selectDropdownValue(
-                '#monitorId',
+                '#monitorfield_0',
                 `${componentName} / ${monitorName}`,
                 page
             );
@@ -75,7 +72,7 @@ describe('Fyipe Page Reload', () => {
             });
             const spanElement = await init.pageWaitForSelector(
                 page,
-                '#addSlackButton',
+                '#addWebhookButton',
                 {
                     visible: true,
                     timeout: init.timeout,

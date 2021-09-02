@@ -68,10 +68,20 @@ class CallRouting extends Component {
     render() {
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Project Settings"
@@ -120,6 +130,8 @@ class CallRouting extends Component {
 CallRouting.propTypes = {
     currentProject: PropTypes.shape({
         _id: PropTypes.any,
+        name: PropTypes.any,
+        slug: PropTypes.any,
     }),
     getCallRoutingLogs: PropTypes.func,
     getCallRoutingNumbers: PropTypes.func,
@@ -134,6 +146,7 @@ CallRouting.propTypes = {
             }),
         }),
     }),
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 CallRouting.displayName = 'CallRouting';
@@ -147,6 +160,7 @@ const mapDispatchToProps = dispatch =>
 const mapStateToProps = state => {
     return {
         currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 

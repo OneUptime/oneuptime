@@ -104,7 +104,7 @@ class AddExternalStatusPagesModal extends Component {
                                             </div>
                                             <div className="bs-Fieldset-row">
                                                 <label className="bs-Fieldset-label">
-                                                    URL
+                                                    Status Page Url
                                                 </label>
                                                 <div className="bs-Fieldset-fields">
                                                     <Field

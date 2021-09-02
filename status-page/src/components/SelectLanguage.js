@@ -1,14 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import LanguageBox from './LanguageBox';
-import { Translate } from 'react-auto-translate';
 import ShouldRender from './ShouldRender';
 import { openLanguageMenu } from '../actions/subscribe';
 
-const SelectLanguage = ({ theme, languageMenu, openLanguageMenu }) => {
-    const [isShown, setIsShown] = useState(false);
+const SelectLanguage = ({ isShown, setIsShown, theme }) => {
     const popupReff = useRef();
     const documentClickHandler = useRef();
 
@@ -25,13 +23,6 @@ const SelectLanguage = ({ theme, languageMenu, openLanguageMenu }) => {
         document.removeEventListener('click', documentClickHandler.current);
     };
 
-    const handleToggleButtonClick = () => {
-        openLanguageMenu();
-        if (isShown) return;
-        setIsShown(true);
-        document.addEventListener('click', documentClickHandler.current);
-    };
-
     const handleCloseButtonClick = () => {
         setIsShown(false);
         removeDocumentClickHandler();
@@ -43,44 +34,21 @@ const SelectLanguage = ({ theme, languageMenu, openLanguageMenu }) => {
             id="language-button"
             style={{ marginLeft: 10 }}
         >
-            <button
-                className={!theme ? 'bs-Button-subscribe' : 'subscribe_btn '}
-                onClick={handleToggleButtonClick}
-                style={
-                    {
-                        //backgroundColor: 'transparent',
-                    }
-                }
-            >
-                <Translate>Language</Translate>
-            </button>
-            {theme ? (
-                <div
-                    className={`popup-menu ${isShown ? 'shown' : ''}`}
-                    ref={popupReff}
-                >
-                    <LanguageBox
-                        theme={theme}
-                        handleCloseButtonClick={handleCloseButtonClick}
-                    />
-                </div>
-            ) : (
-                <ShouldRender if={languageMenu}>
-                    <LanguageBox
-                        theme={theme}
-                        handleCloseButtonClick={handleCloseButtonClick}
-                    />
-                </ShouldRender>
-            )}
+            <ShouldRender if={isShown}>
+                <LanguageBox
+                    theme={theme}
+                    handleCloseButtonClick={handleCloseButtonClick}
+                />
+            </ShouldRender>
         </div>
     );
 };
 
 SelectLanguage.displayName = 'SelectLanguage';
 SelectLanguage.propTypes = {
+    isShown: PropTypes.bool,
+    setIsShown: PropTypes.func,
     theme: PropTypes.bool,
-    languageMenu: PropTypes.bool,
-    openLanguageMenu: PropTypes.func,
 };
 
 const mapDispatchToProps = dispatch =>

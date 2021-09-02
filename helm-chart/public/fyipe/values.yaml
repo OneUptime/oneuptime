@@ -3,8 +3,6 @@
 ## This is for Fyipe SaaS service. This will deploy all the SaaS env vars
 ################################################################################## 
 saas:
-  isMongoPrimaryBackupServiceEnabled: false
-  isMongoSecondaryBackupServiceEnabled: false
   exposeInitScriptContainer: false
   isSaasService: false
   stripe: 
@@ -15,6 +13,8 @@ saas:
     baseId: 
   amplitude: 
     key: #Amplitude for tracking. 
+  twitter:
+    bearertoken: # Twitter Bearer Token. 
   licensing:
     airtable: # Airtable for validating licenses. 
       key: 
@@ -142,7 +142,9 @@ mongodb:
     pullPolicy: Always
   # Uncomment this field to enable external access
   # to mongodb database
-
+  # If the mongodb is failing to initialise, comment out the variable below {externalAccess, serviceAccount, rbac}
+  # After reinstall the project again
+  # Once deployed successfully, uncomment the variables and upgrade the project
   externalAccess:
     enabled: true
     service:
@@ -154,7 +156,6 @@ mongodb:
     create: true
   rbac:
     create: true
-
   # end of file for external access selectors
   persistence:
     enabled: true

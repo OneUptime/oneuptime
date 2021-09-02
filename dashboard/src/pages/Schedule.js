@@ -14,6 +14,7 @@ import { getEscalation } from '../actions/schedule';
 import { teamLoading } from '../actions/team';
 import BreadCrumbItem from '../components/breadCrumb/BreadCrumbItem';
 import getParentRoute from '../utils/getParentRoute';
+import ScheduleCalender from '../components/schedule/ScheduleCalender';
 class Schedule extends Component {
     constructor(props) {
         super(props);
@@ -80,14 +81,25 @@ class Schedule extends Component {
             location: { pathname },
             schedule,
             groups,
+            requestingEscalations,
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
         const name = schedule ? schedule.name : null;
         if (error) {
             return <div></div>;
         }
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="On-Call Duty"
@@ -106,6 +118,12 @@ class Schedule extends Component {
                                     <span>
                                         <div>
                                             <div>
+                                                <ScheduleCalender
+                                                    escalations={escalations}
+                                                    requestingEscalations={
+                                                        requestingEscalations
+                                                    }
+                                                />
                                                 <RenameScheduleBox />
                                                 <MonitorBox
                                                     schedule={schedule}
@@ -189,6 +207,9 @@ const mapStateToProps = (state, props) => {
         scheduleId: schedule && schedule._id,
         teamMembers: state.team.teamMembers,
         groups: state.groups.oncallDuty?.groups,
+        requestingEscalations: state.schedule.escalation.requesting,
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -209,6 +230,9 @@ Schedule.propTypes = {
     schedule: PropTypes.shape({
         name: PropTypes.string,
     }),
+    requestingEscalations: PropTypes.bool,
+    currentProject: PropTypes.object.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Schedule);

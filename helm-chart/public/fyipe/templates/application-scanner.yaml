@@ -22,6 +22,11 @@ spec:
               - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "application-scanner" .Values.image.tag }}
                 name: {{ printf "%s-%s" .Release.Name "app-scan" }}
                 imagePullPolicy: {{ .Values.image.pullPolicy }}
+                resources:
+                  requests:
+                    cpu: 250m
+                  limits:
+                    cpu: 500m
                 env:
                     - name: NODE_ENV
                       value: 'production'

@@ -23,6 +23,11 @@ spec:
                 - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "haraka" .Values.image.tag }}
                   name: {{ printf "%s-%s" .Release.Name "haraka"  }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  resources:
+                    requests:
+                      cpu: 250m
+                    limits:
+                      cpu: 500m
                   env:
                       - name: SMTP_USER
                         value: {{ .Values.haraka.user }}

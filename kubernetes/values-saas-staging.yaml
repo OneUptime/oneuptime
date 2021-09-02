@@ -6,9 +6,7 @@
 
 saas:
     isSaasService: true
-    isMongoPrimaryBackupServiceEnabled: true
     exposeInitScriptContainer: true
-    isMongoSecondaryBackupServiceEnabled: true
     slackErrorLog:
         webhook: https://hooks.slack.com/services/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
         channel: fyipe-engineering
@@ -20,6 +18,8 @@ saas:
         baseId: appgek0ngJaHhppeJ
     amplitude:
         key: 4b76c47248f969446af69dfdbf687d90
+    twitter:
+        bearertoken: AAAAAAAAAAAAAAAAAAAAAIhoSQEAAAAAHYrFoeObKCWmKngLzLkwVtbRXi8%3DPfskVl7VYJp1qEjlEywsYuJ4Er6GGCe4sOMPVax65IicxJkr0r
     licensing:
         airtable:
             key: keye3gzJRafDIhRKg

@@ -36,7 +36,7 @@ describe('Stripe cards API', () => {
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.pageClick(page, '#profile-menu');
             await init.pageClick(page, '#profileBilling');
-            await init.pageWaitForSelector(page, '#placeholder-right');
+            await init.pageWaitForSelector(page, '#cardNo_0');
             await init.pageWaitForSelector(page, '#addCardButton');
             await init.pageClick(page, '#addCardButton');
             await init.pageWaitForSelector(

@@ -14,7 +14,7 @@ production_realtime:
         - sudo docker tag fyipeproject/realtime:latest fyipeproject/realtime:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/realtime:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/realtime:latest
-        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-realtime fi-realtime=fyipeproject/realtime:3.0.$CI_PIPELINE_IID
+        - sudo kubectl set image deployment/fi-realtime fi-realtime=fyipeproject/realtime:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -45,7 +45,7 @@ staging_realtime:
         - sudo docker tag fyipeproject/realtime:master fyipeproject/realtime:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/realtime:3.0.$CI_PIPELINE_IID
         - sudo docker push fyipeproject/realtime:master
-        - sudo kubectl --kubeconfig=/root/.kube/config set image deployment/fi-realtime fi-realtime=fyipeproject/realtime:3.0.$CI_PIPELINE_IID
+        - sudo kubectl set image deployment/fi-realtime fi-realtime=fyipeproject/realtime:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

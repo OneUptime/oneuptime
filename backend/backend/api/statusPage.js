@@ -34,7 +34,6 @@ const defaultStatusPageColors = require('../config/statusPageColors');
 const SubscriberService = require('../services/subscriberService');
 const ScheduledEventService = require('../services/scheduledEventService');
 const axios = require('axios');
-const bearer = process.env.TWITTER_BEARER_TOKEN;
 const cheerio = require('cheerio');
 // Route Description: Adding a status page to the project.
 // req.params->{projectId}; req.body -> {[monitorIds]}
@@ -1244,7 +1243,7 @@ router.get('/:projectId/notes/:scheduledEventSlug', checkUser, async function(
 
     const scheduledEventId = await ScheduledEventService.findOneBy({
         query: { slug: scheduledEventSlug },
-        select: '_id',
+        select: '_id createdById',
     });
 
     try {
@@ -1611,13 +1610,33 @@ router.post(
                 const status = $('span.status.font-large')
                     .text()
                     .replace(/\s\s+/g, ''); // To remove empty spaces
+                const atlassianStatuspage = $(
+                    '.powered-by a.color-secondary'
+                ).text(); // This verifies that we are working with StatusPages Powered by Atlassian.
+                if (atlassianStatuspage !== 'Powered by Statuspage') {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'External Status Page Url is Invalid',
+                    });
+                }
                 if (status === 'All Systems Operational') {
                     data.description = status;
                 } else {
-                    data.description = 'Some Systems Are Down';
+                    $('div.component-container.border-color').each((i, el) => {
+                        const componentStatus = $(el)
+                            .find('.component-status')
+                            .text()
+                            .replace(/\s\s+/g, '');
+                        if (componentStatus !== 'Operational') {
+                            data.description = componentStatus;
+                        }
+                    });
                 }
             } catch (err) {
-                data.description = 'Invalid URL';
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Url is Invalid',
+                });
             }
 
             data.createdById = req.user ? req.user.id : null;
@@ -1680,13 +1699,33 @@ router.post(
                 const status = $('span.status.font-large')
                     .text()
                     .replace(/\s\s+/g, ''); // To remove empty spaces
+                const atlassianStatuspage = $(
+                    '.powered-by a.color-secondary'
+                ).text();
+                if (atlassianStatuspage !== 'Powered by Statuspage') {
+                    return sendErrorResponse(req, res, {
+                        code: 400,
+                        message: 'External Status Page Url is Invalid',
+                    });
+                }
                 if (status === 'All Systems Operational') {
                     data.description = status;
                 } else {
-                    data.description = 'Some Systems Are Down';
+                    $('div.component-container.border-color').each((i, el) => {
+                        const componentStatus = $(el)
+                            .find('.component-status')
+                            .text()
+                            .replace(/\s\s+/g, '');
+                        if (componentStatus !== 'Operational') {
+                            data.description = componentStatus;
+                        }
+                    });
                 }
             } catch (err) {
-                data.description = 'Invalid URL';
+                return sendErrorResponse(req, res, {
+                    code: 400,
+                    message: 'External Status Page Url is Invalid',
+                });
             }
 
             await StatusPageService.updateExternalStatusPage(

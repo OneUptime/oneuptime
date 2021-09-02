@@ -12,7 +12,7 @@ Admin mongodb username is: `root`
 
 ## MongoDB common issues.
 
-MongoDB has will give you a lot of issues like:
+MongoDB will give you a lot of issues like:
 
 #### MongoDB Crashloop Backoff
 
@@ -27,7 +27,7 @@ Important: Backup surving member. See backup section in this document for more i
 Resolution: Delete all statefulset and start again.
 
 ```
-kubectl delete pvc datadir-fi-mongodb-primary-0 datadir-fi-mongodb-secondary-0
+kubectl delete pvc datadir-fi-mongodb-0 datadir-fi-mongodb-1
 
 # If staging
 sudo helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
@@ -49,16 +49,8 @@ Run these on source cluster:
 Example:
 
 ```
-# Delete audit logs (optional, but recommended)
-
-sudo kubectl exec -it fi-mongodb-primary-0 -- bash
-mongo
-use fyipedb
-db.auth('fyipe', 'password')
-db.auditlogs.remove({})
-
-
 # Open MongoDB to the internet.
+# Only run this when MongoDB is not open to the internet
 
 sudo kubectl delete job fi-init-script
 
@@ -77,8 +69,8 @@ and look for `mongo-x-external` resource, `x` can be any number from 0 and above
 On the destination cluster:
 
 ```
-kubectl exec -it fi-mongodb-primary-0 -- bash
-mongodump --uri="mongodb://fyipe:password@<EXTERNAL-IP-ADDRESS-FROM-STEP-1>:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
+kubectl exec -it fi-mongodb-0 -- bash
+mongodump --uri="mongodb://fyipe:password@<EXTERNAL-IP-ADDRESS-FROM-STEP-1>:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive" --excludeCollection=auditlogs --excludeCollection=monitorlogs
 mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"
 ```
 
@@ -103,11 +95,11 @@ sudo helm upgrade -f ./kubernetes/values-saas-staging.yaml --set mongodb.externa
 
 Syntax:
 
-`sudo kubectl exec <pod> -- mongodump --uri="mongodb://<mongousername>:<mongopassword>@localhost:27017/<databasename>" --archive="<export-filepath>"`
+`sudo kubectl exec <pod> -- mongodump --uri="mongodb://<mongousername>:<mongopassword>@localhost:27017/<databasename>" --archive="<export-filepath>" --excludeCollection=auditlogs --excludeCollection=monitorlogs`
 
 Example:
 
-`sudo kubectl exec fi-mongodb-primary-0 -- mongodump --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
+`sudo kubectl exec fi-mongodb-0 -- mongodump --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
 
 **Step 2**: Copy file from conatiner to local machine.
 
@@ -117,7 +109,7 @@ Syntax:
 
 Example:
 
-`sudo kubectl cp fi-mongodb-primary-0:/bitnami/mongodb/fyipedata.archive /Volumes/DataDrive/Projects/Fyipe/app/backup.archive`
+`sudo kubectl cp fi-mongodb-0:/bitnami/mongodb/fyipedata.archive /Volumes/DataDrive/Projects/Fyipe/app/backup.archive`
 
 ## Restore
 
@@ -132,7 +124,7 @@ Syntax:
 `sudo kubectl cp <localfilePath> <pod>:<filepath>`
 
 Example:
-`sudo kubectl cp /Volumes/DataDrive/Projects/Fyipe/app/backup.archive fi-mongodb-primary-0:/bitnami/mongodb/fyipedata.archive`
+`sudo kubectl cp /Volumes/DataDrive/Projects/Fyipe/app/backup.archive fi-mongodb-0:/bitnami/mongodb/fyipedata.archive`
 
 **Step 2**: Mongorestore on the container.
 
@@ -142,7 +134,7 @@ Syntax:
 
 Example:
 
-`sudo kubectl exec fi-mongodb-primary-0 -- mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
+`sudo kubectl exec fi-mongodb-0 -- mongorestore --uri="mongodb://fyipe:password@localhost:27017/fyipedb" --archive="/bitnami/mongodb/fyipedata.archive"`
 
 ## Misc commands
 

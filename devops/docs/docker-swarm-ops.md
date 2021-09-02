@@ -1,3 +1,7 @@
+# See all services.
+
+sudo docker service ls
+
 # Restart Service
 
 sudo docker service update --force <SERVICE_ID>

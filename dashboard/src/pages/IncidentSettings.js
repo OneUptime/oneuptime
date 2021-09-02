@@ -141,6 +141,8 @@ class IncidentSettings extends React.Component {
     render() {
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
         const { skip, limit, count } = this.props.incidentPrioritiesList;
         const canPaginateForward =
@@ -154,8 +156,17 @@ class IncidentSettings extends React.Component {
                 ? true
                 : false;
         const numberOfPages = Math.ceil(parseInt(count) / 10);
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Project Settings"
@@ -429,6 +440,7 @@ IncidentSettings.propTypes = {
     ]),
     fetchCustomFields: PropTypes.func,
     fetchDefaultTemplate: PropTypes.func,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 const mapStateToProps = state => {
     return {
@@ -437,6 +449,7 @@ const mapStateToProps = state => {
             state.incidentPriorities.incidentPrioritiesList.incidentPriorities,
         incidentPrioritiesList: state.incidentPriorities.incidentPrioritiesList,
         modalId: state.modal.modals[0],
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 const mapDispatchToProps = dispatch =>

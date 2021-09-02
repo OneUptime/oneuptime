@@ -89,9 +89,7 @@ export class DashboardApp extends Component {
             notification: {
                 notifications: { notifications },
             },
-            switchToProjectViewerNav,
         } = this.props;
-        const projectName = currentProject ? currentProject.name : '';
         const projectId = currentProject ? currentProject._id : '';
         const incidentNotifications = notifications.filter(
             notification =>
@@ -107,6 +105,38 @@ export class DashboardApp extends Component {
             location.pathname === '/dashboard/profile/changePassword' ||
             location.pathname === '/dashboard/profile/advanced';
 
+        const profileFunc = () => {
+            let val;
+            if (location.pathname === '/dashboard/profile/billing') {
+                const path = location.pathname.split('/');
+                val = {
+                    route: path[path.length - 1],
+                    name: 'Billing',
+                };
+            } else if (location.pathname === '/dashboard/profile/settings') {
+                const path = location.pathname.split('/');
+                val = {
+                    route: path[path.length - 1],
+                    name: 'Profile Settings',
+                };
+            } else if (
+                location.pathname === '/dashboard/profile/changePassword'
+            ) {
+                const path = location.pathname.split('/');
+                val = {
+                    route: path[path.length - 1],
+                    name: 'Change Password',
+                };
+            } else if (location.pathname === '/dashboard/profile/advanced') {
+                const path = location.pathname.split('/');
+                val = {
+                    route: path[path.length - 1],
+                    name: 'Advanced',
+                };
+            }
+            return val;
+        };
+
         // forcing children to re-render on dashboard redraw
         // when projectId is changed/switched in user profile pages
         // * usually children components are unmounted/remounted when project is switched
@@ -120,15 +150,10 @@ export class DashboardApp extends Component {
 
         return (
             <Fragment>
-                {userProfile ? (
-                    <BreadCrumbItem route="#" name="Account" />
-                ) : (
+                {userProfile && (
                     <BreadCrumbItem
-                        route="/"
-                        name={projectName}
-                        projectId={projectId}
-                        slug={currentProject ? currentProject.slug : null}
-                        switchToProjectViewerNav={switchToProjectViewerNav}
+                        route={profileFunc().route}
+                        name={profileFunc().name}
                     />
                 )}
                 <CreateProjectModal />
@@ -345,7 +370,6 @@ DashboardApp.propTypes = {
     currentModal: PropTypes.object,
     closeModal: PropTypes.func,
     pageName: PropTypes.string,
-    switchToProjectViewerNav: PropTypes.bool,
 };
 
 const mapStateToProps = state => ({

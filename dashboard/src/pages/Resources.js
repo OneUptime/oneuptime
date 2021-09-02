@@ -25,10 +25,20 @@ class Resources extends Component {
     render() {
         const {
             location: { pathname },
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
+                <BreadCrumbItem
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
                 <BreadCrumbItem
                     route={getParentRoute(pathname)}
                     name="Project Settings"
@@ -59,8 +69,16 @@ Resources.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
+    currentProject: PropTypes.object.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 Resources.displayName = 'Resources';
 
-export default connect(null, null)(Resources);
+const mapStateToProps = state => {
+    return {
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+    };
+};
+export default connect(mapStateToProps)(Resources);

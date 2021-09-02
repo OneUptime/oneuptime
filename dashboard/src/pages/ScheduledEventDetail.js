@@ -30,7 +30,7 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
     transports: ['websocket', 'polling'],
 });
 
-class ScheduledEvent extends Component {
+class ScheduledEventDetail extends Component {
     constructor(props) {
         super(props);
         this.limit = 10;
@@ -124,13 +124,23 @@ class ScheduledEvent extends Component {
             scheduledEventId,
             internalNotesList,
             monitorList,
+            currentProject,
+            switchToProjectViewerNav,
         } = this.props;
         const eventName = scheduledEvent ? scheduledEvent.name : '';
-
+        const projectName = currentProject ? currentProject.name : '';
+        const projectId = currentProject ? currentProject._id : '';
         return (
             <Fade>
                 <BreadCrumbItem
-                    route={getParentRoute(pathname)}
+                    route="/"
+                    name={projectName}
+                    projectId={projectId}
+                    slug={currentProject ? currentProject.slug : null}
+                    switchToProjectViewerNav={switchToProjectViewerNav}
+                />
+                <BreadCrumbItem
+                    route={getParentRoute(pathname, null, 'scheduledEvents')}
                     name="Scheduled Maintenance Event"
                 />
                 <BreadCrumbItem
@@ -271,9 +281,9 @@ class ScheduledEvent extends Component {
     }
 }
 
-ScheduledEvent.displayName = 'ScheduledEvent';
+ScheduledEventDetail.displayName = 'ScheduledEventDetail';
 
-ScheduledEvent.propTypes = {
+ScheduledEventDetail.propTypes = {
     location: PropTypes.shape({
         pathname: PropTypes.string,
     }),
@@ -290,6 +300,8 @@ ScheduledEvent.propTypes = {
     deleteScheduledEventNoteSuccess: PropTypes.func,
     createScheduledEventNoteSuccess: PropTypes.func,
     monitorList: PropTypes.array,
+    currentProject: PropTypes.object.isRequired,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 const mapStateToProps = (state, props) => {
@@ -318,6 +330,8 @@ const mapStateToProps = (state, props) => {
         scheduledEventId:
             state.scheduledEvent.currentScheduledEvent.scheduledEvent &&
             state.scheduledEvent.currentScheduledEvent.scheduledEvent._id,
+        currentProject: state.project.currentProject,
+        switchToProjectViewerNav: state.project.switchToProjectViewerNav,
     };
 };
 
@@ -335,4 +349,7 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-export default connect(mapStateToProps, mapDispatchToProps)(ScheduledEvent);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(ScheduledEventDetail);

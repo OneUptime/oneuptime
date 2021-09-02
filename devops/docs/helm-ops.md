@@ -2,6 +2,15 @@
 
 Please run these commands from `root`
 
+Make sure to use the right kubernetes context before making any changes
+
+```
+kubectl config get-contexts
+
+# replace NAME with the context name
+kubectl config use-context NAME
+```
+
 ### Lint chart
 
 ```
@@ -31,7 +40,7 @@ helm install -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saa
 Staging:
 
 ```
-kubectl config set-context do-nyc1-fyipe-staging
+kubectl config use-context arn:aws:eks:us-east-2:972164494713:cluster/fyipe-staging
 helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-staging.yaml fi ./helm-chart/public/fyipe
 ```
 
@@ -40,7 +49,7 @@ Use default values first and then use staging values.
 Production:
 
 ```
-kubectl config set-context do-nyc3-fyipe-production
+kubectl config use-context arn:aws:eks:us-east-2:972164494713:cluster/fyipe-production
 helm upgrade -f ./helm-chart/public/fyipe/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./helm-chart/public/fyipe
 ```
 

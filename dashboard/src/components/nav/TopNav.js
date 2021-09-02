@@ -59,9 +59,10 @@ class TopContent extends Component {
 
     componentDidUpdate(prevProps) {
         if (prevProps.currentProject !== this.props.currentProject) {
-            this.props.fetchSubProjectOngoingScheduledEvents(
-                this.props.currentProject._id
-            );
+            this.props.currentProject &&
+                this.props.fetchSubProjectOngoingScheduledEvents(
+                    this.props.currentProject._id
+                );
         }
         if (
             (!prevProps.user.id &&
@@ -399,6 +400,9 @@ class TopContent extends Component {
         if (topNavCardCount === 4) topNavCardClass = 'oneCardClass';
         if (topNavCardCount === 5) topNavCardClass = 'twoCardClass';
         if (topNavCardCount === 6) topNavCardClass = 'threeCardClass';
+        const { project } = this.props;
+        const renderSearch =
+            project.projects.success && project.projects.projects.length !== 0;
         return (
             <div
                 tabIndex="0"
@@ -407,16 +411,19 @@ class TopContent extends Component {
                     zIndex: '2',
                     width: '100%',
                     display: 'flex',
-                    justifyContent: isNotViewer ? 'space-between' : 'flex-end',
+                    justifyContent:
+                        isNotViewer && renderSearch
+                            ? 'space-between'
+                            : 'flex-end',
                 }}
                 className="db-World-topContent Box-root Box-background--transparent Padding-vertical--20 db-Topnav-wrap"
             >
-                <ShouldRender if={isNotViewer}>
+                <ShouldRender if={isNotViewer && renderSearch}>
                     <div className="db-Search-wrapper">
                         <Search />
                     </div>
                 </ShouldRender>
-                <div>
+                <div style={{ marginRight: '15px' }}>
                     <div className="Box-root Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween">
                         <div
                             className="Box-root"
@@ -600,6 +607,7 @@ const mapStateToProps = (state, props) => {
     return {
         profilePic,
         feedback: state.feedback,
+        project: state.project,
         notifications: state.notifications.notifications,
         incidents: state.incident.unresolvedincidents,
         currentProject: state.project.currentProject,
@@ -665,6 +673,7 @@ TopContent.propTypes = {
     currentProjectId: PropTypes.string.isRequired,
     currentProjectSlug: PropTypes.string.isRequired,
     updateProfileSetting: PropTypes.func.isRequired,
+    project: PropTypes.object,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TopContent);

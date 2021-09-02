@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Field, reduxForm } from 'redux-form';
+import { Field, reduxForm, FieldArray } from 'redux-form';
 import {
     updateStatusPageLanguage,
     fetchProjectStatusPage,
@@ -15,29 +15,31 @@ import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 
 export function StatusPageLanguage(props) {
-    const [language, setLang] = useState([
+    const [error, setError] = useState('');
+    const [language] = useState([
         'English',
         'German',
         'French',
         'Dutch',
+        'Spanish',
     ]);
-    const [langResult, setLangResult] = useState([]);
-    const [lang, setLangText] = useState('');
-
-    const { multipleLanguages, formValues } = props;
-    useEffect(() => {
-        const languages = multipleLanguages || [];
-        const filteredResult = [...language].filter(
-            lang => !languages.includes(lang)
-        );
-        setLangResult(languages);
-        setLang(filteredResult);
-    }, []);
+    const { formValues } = props;
 
     const submitForm = values => {
         const { status } = props.statusPage;
         const { projectId } = status;
         const { formValues } = props;
+        const languages = formValues.multipleLanguages;
+        const isDuplicate = languages
+            ? languages.length === new Set(languages).size
+                ? false
+                : true
+            : false;
+
+        if (isDuplicate) {
+            setError('Duplicate language selection found');
+            return;
+        }
         props
             .updateStatusPageLanguage(projectId._id || projectId, {
                 _id: status._id,
@@ -57,7 +59,7 @@ export function StatusPageLanguage(props) {
                 onlineText: values.onlineText,
                 degradedText: values.degradedText,
                 enableMultipleLanguage: formValues.multiLanguage || false,
-                multipleLanguages: langResult,
+                multipleLanguages: formValues.multipleLanguages || [],
             })
             .then(() => {
                 props.fetchProjectStatusPage(projectId._id || projectId, true);
@@ -68,20 +70,105 @@ export function StatusPageLanguage(props) {
             );
         }
     };
-    const handleLanguageChange = () => {
-        const newArr = [...langResult];
-        if (!newArr.includes(lang)) {
-            newArr.push(lang);
-        }
-        const filteredLangs = language.filter(l => l !== lang);
-        setLangResult(newArr);
-        setLang(filteredLangs);
-    };
-    const handleRemoveTeamMember = lang => {
-        const newArr = [...language, lang];
-        const filteredLangs = langResult.filter(l => l !== lang);
-        setLangResult(filteredLangs);
-        setLang(newArr);
+
+    const renderLanguage = ({ fields }) => {
+        return (
+            <div
+                style={{
+                    width: '80%',
+                    position: 'relative',
+                }}
+            >
+                <button
+                    id="addMoreMonitor"
+                    className="Button bs-ButtonLegacy ActionIconParent"
+                    style={{
+                        position: 'absolute',
+                        zIndex: 1,
+                        right: 0,
+                    }}
+                    type="button"
+                    onClick={() => {
+                        fields.push();
+                    }}
+                >
+                    <span className="bs-Button bs-FileUploadButton bs-Button--icon bs-Button--new">
+                        <span>Add Language</span>
+                    </span>
+                </button>
+                {fields.map((field, index) => {
+                    return (
+                        <div
+                            style={{
+                                width: '62%',
+                                marginBottom: 10,
+                            }}
+                            key={index}
+                        >
+                            <Field
+                                className="db-select-nw Table-cell--width--maximized"
+                                component={RenderSelect}
+                                name={field}
+                                id={`language${index}`}
+                                placeholder="language"
+                                style={{
+                                    height: '28px',
+                                    width: '50%',
+                                }}
+                                options={[
+                                    {
+                                        value: '',
+                                        label: 'Select language',
+                                    },
+                                    ...(language && language.length > 0
+                                        ? language.map(lang => ({
+                                              value: lang,
+                                              label: lang,
+                                          }))
+                                        : []),
+                                ]}
+                            />
+                            <button
+                                id="addMoreMonitor"
+                                className="Button bs-ButtonLegacy ActionIconParent"
+                                style={{
+                                    marginTop: 10,
+                                }}
+                                type="button"
+                                onClick={() => {
+                                    fields.remove(index);
+                                }}
+                            >
+                                <span className="bs-Button bs-Button--icon bs-Button--delete">
+                                    <span>Remove Language</span>
+                                </span>
+                            </button>
+                        </div>
+                    );
+                })}
+                {error && (
+                    <div
+                        className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                        style={{
+                            marginTop: '5px',
+                            alignItems: 'center',
+                        }}
+                    >
+                        <div
+                            className="Box-root Margin-right--8"
+                            style={{ marginTop: '2px' }}
+                        >
+                            <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                        </div>
+                        <div className="Box-root">
+                            <span id="monitorError" style={{ color: 'red' }}>
+                                {error}
+                            </span>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
     };
     const { handleSubmit } = props;
     return (
@@ -172,156 +259,38 @@ export function StatusPageLanguage(props) {
                                             </div>
                                         </div>
                                         {formValues &&
-                                        formValues.multiLanguage &&
-                                        langResult.length > 0 ? (
-                                            <div className="bs-Fieldset-row">
-                                                <label
-                                                    className="bs-Fieldset-label"
-                                                    style={{ flex: '25% 0 0' }}
+                                            formValues.multiLanguage && (
+                                                <div
+                                                    className="bs-Fieldset-row Margin-bottom--12 Padding-left--0"
+                                                    style={{ padding: 0 }}
                                                 >
-                                                    <span></span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <div
-                                                        className="Box-root"
+                                                    <label
+                                                        className="bs-Fieldset-label"
                                                         style={{
-                                                            height: '5px',
+                                                            flex: '28.5% 0 0',
                                                         }}
-                                                    ></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
+                                                    >
+                                                        <span></span>
+                                                    </label>
+                                                    <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
                                                         <div
-                                                            className="bs-Fieldset-row Margin-bottom--12 Flex-flex Flex-alignItems--stretch Flex-direction--column"
                                                             style={{
-                                                                marginBottom:
-                                                                    '0',
-                                                                padding:
-                                                                    '25px 20px 38px 20px',
-                                                                paddingTop: 0,
-                                                                paddingBottom: 0,
+                                                                marginBottom: 5,
                                                             }}
                                                         >
-                                                            <label
-                                                                className=".bs-Fieldset-label"
-                                                                style={{
-                                                                    fontWeight:
-                                                                        '500',
-                                                                    marginBottom: 10,
-                                                                }}
-                                                            >
-                                                                Languages
-                                                            </label>
-                                                            {langResult.map(
-                                                                lang => (
-                                                                    <div
-                                                                        key={
-                                                                            lang
-                                                                        }
-                                                                        style={{
-                                                                            display:
-                                                                                'flex',
-                                                                            alignItems:
-                                                                                'flex-end',
-                                                                            justifyContent:
-                                                                                'space-between',
-                                                                        }}
-                                                                    >
-                                                                        <span>
-                                                                            <span>
-                                                                                {
-                                                                                    lang
-                                                                                }
-                                                                            </span>
-                                                                        </span>
-                                                                        <div
-                                                                            className="clear_times"
-                                                                            style={{
-                                                                                marginRight:
-                                                                                    '0',
-                                                                                cursor:
-                                                                                    'pointer',
-                                                                            }}
-                                                                            onClick={() =>
-                                                                                handleRemoveTeamMember(
-                                                                                    lang
-                                                                                )
-                                                                            }
-                                                                        ></div>
-                                                                    </div>
-                                                                )
-                                                            )}
+                                                            <span>
+                                                                Select Languages
+                                                            </span>
                                                         </div>
+                                                        <FieldArray
+                                                            name="multipleLanguages"
+                                                            component={
+                                                                renderLanguage
+                                                            }
+                                                        />
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ) : null}
-
-                                        {formValues &&
-                                        formValues.multiLanguage ? (
-                                            <div className="bs-Fieldset-row">
-                                                <label
-                                                    className="bs-Fieldset-label"
-                                                    style={{ flex: '25% 0 0' }}
-                                                >
-                                                    <span></span>
-                                                </label>
-                                                <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                    <div
-                                                        className="Box-root"
-                                                        style={{
-                                                            height: '5px',
-                                                        }}
-                                                    ></div>
-                                                    <div className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--column Flex-justifyContent--flexStart">
-                                                        <div
-                                                            className="bs-Fieldset-row Margin-bottom--12"
-                                                            style={{
-                                                                marginBottom:
-                                                                    '0',
-                                                                padding:
-                                                                    '25px 20px 38px 20px',
-                                                                paddingTop: 0,
-                                                            }}
-                                                        >
-                                                            <Field
-                                                                id="componentList"
-                                                                component={
-                                                                    RenderSelect
-                                                                }
-                                                                className="db-select-nw"
-                                                                placeholder="Add Language"
-                                                                options={[
-                                                                    ...language.map(
-                                                                        lang => ({
-                                                                            value: lang,
-                                                                            label: lang,
-                                                                        })
-                                                                    ),
-                                                                ]}
-                                                                onChange={(
-                                                                    event,
-                                                                    value
-                                                                ) => {
-                                                                    setLangText(
-                                                                        value
-                                                                    );
-                                                                }}
-                                                            />
-                                                            <button
-                                                                title="add-team-member"
-                                                                id={`group_member-add`}
-                                                                className="bs-Button bs-DeprecatedButton Margin-left--8"
-                                                                type="button"
-                                                                onClick={
-                                                                    handleLanguageChange
-                                                                }
-                                                            >
-                                                                <span>Add</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : null}
+                                            )}
                                     </div>
                                 </fieldset>
                             </div>

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-echo "Get KubeCluster Config"
-sudo doctl kubernetes cluster kubeconfig save staging
-sudo kubectl config --kubeconfig=/root/.kube/config get-contexts
-sudo kubectl config --kubeconfig=/root/.kube/config use-context do-lon1-staging
+echo "Connect machine with to communicate with aws cluster"
+# This command will automatically switch to the fyipe-staging cluster
+aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name fyipe-staging

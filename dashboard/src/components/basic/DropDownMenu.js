@@ -34,7 +34,7 @@ const DropDownMenu = ({ options, value, updateState, id }) => {
                 id={id}
                 onClick={() => setOpen(!open)}
             >
-                <div>{value}</div>
+                <div id="filterToggle">{value}</div>
                 <div className="caret-icon--down"></div>
             </button>
             {open && (
@@ -45,6 +45,11 @@ const DropDownMenu = ({ options, value, updateState, id }) => {
                                 <li
                                     className="ddm-dropdown-menu__item"
                                     onClick={() => onClick(data.value)}
+                                    id={
+                                        data.value === 'Clear Filters'
+                                            ? 'clear'
+                                            : data.value
+                                    }
                                 >
                                     {data.value}
                                 </li>

@@ -42,7 +42,10 @@ class IncidentPrioritiesListClass extends React.Component {
                                         <div className="bs-ObjectList-cell bs-u-v-middle">
                                             <div className="bs-ObjectList-cell-row bs-ObjectList-copy bs-is-highlighted"></div>
                                             <div className="bs-ObjectList-row db-UserListRow db-UserListRow--withNamebs-ObjectList-cell-row bs-is-muted">
-                                                <div className="Flex-flex Flex-alignItems--center">
+                                                <div
+                                                    className="Flex-flex Flex-alignItems--center"
+                                                    id="priorities"
+                                                >
                                                     <span
                                                         className="Margin-right--4"
                                                         style={{

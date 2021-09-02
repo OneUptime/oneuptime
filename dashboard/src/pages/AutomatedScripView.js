@@ -97,9 +97,17 @@ const AutomatedScripView = props => {
     const scriptName = details?.name;
     const scriptType = details?.scriptType;
     const projectId = props.currentProject?._id;
+    const projectName = props.currentProject ? props.currentProject.name : '';
 
     return (
         <Fade>
+            <BreadCrumbItem
+                route="/"
+                name={projectName}
+                projectId={projectId || ''}
+                slug={props.currentProject ? props.currentProject.slug : null}
+                switchToProjectViewerNav={props.switchToProjectViewerNav}
+            />
             <BreadCrumbItem route={parentRoute} name="Automation Scripts" />
             <BreadCrumbItem
                 route={history.location.pathname}
@@ -659,6 +667,7 @@ AutomatedScripView.propTypes = {
     location: PropTypes.object,
     requesting: PropTypes.bool,
     details: PropTypes.object,
+    switchToProjectViewerNav: PropTypes.bool,
 };
 
 const mapStateToProps = state => ({
@@ -666,6 +675,7 @@ const mapStateToProps = state => ({
     script: state.automatedScripts.individualScript,
     details: state.automatedScripts.individualScript.details,
     requesting: state.automatedScripts.individualScript.requesting,
+    switchToProjectViewerNav: state.project.switchToProjectViewerNav,
 });
 
 const mapDispatchToProps = dispatch =>
