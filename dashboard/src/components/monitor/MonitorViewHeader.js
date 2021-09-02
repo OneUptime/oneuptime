@@ -219,7 +219,11 @@ export class MonitorViewHeader extends Component {
                                     : 'Padding-left--20'
                             }`}
                         >
-                            <Badge color={'slate5'}>
+                            <Badge
+                                color={'slate5'}
+                                backgroundColor={'white'}
+                                fontColor={'black'}
+                            >
                                 {monitor && monitor.resourceCategory
                                     ? monitor.resourceCategory.name
                                     : ''}
