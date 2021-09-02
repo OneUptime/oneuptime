@@ -133,6 +133,10 @@ describe('Custom SMTP Settings', () => {
             await init.pageClick(page, '#from', { clickCount: 3 });
             await init.pageType(page, '#from', from);
             await init.pageClick(page, '#saveSmtp');
+            await init.pageWaitForSelector(page, '#saveSmtpLoading');
+            await init.pageWaitForSelector(page, '#saveSmtpLoading', {
+                hidden: true, // This confirms that the request has been fulfilled
+            });
 
             await init.navigateToSmtp(page);
             await init.pageWaitForSelector(page, '#from', {
