@@ -243,6 +243,12 @@ module.exports = {
 
                 incident = await incident.save();
 
+                // update all monitor status in the background to match incident type
+                MonitorService.updateAllMonitorStatus(
+                    { _id: { $in: data.monitors } },
+                    { monitorStatus: data.incidentType.toLowerCase() }
+                );
+
                 // ********* TODO ************
                 // notification is an array of notifications
                 // ***************************
@@ -887,7 +893,13 @@ module.exports = {
             incident = await _this.updateOneBy({ _id: incidentId }, data);
 
             const monitors = incident.monitors.map(
-                monitor => monitor.monitorId
+                monitor => monitor.monitorId._id || monitor.monitorId
+            );
+
+            // update all monitor status in the background to match incident type
+            MonitorService.updateAllMonitorStatus(
+                { _id: { $in: monitors } },
+                { monitorStatus: 'online' }
             );
 
             // automatically create resolved incident note

@@ -82,7 +82,9 @@ class ResourceTabularList extends Component {
                     const lastMatchedCriterion = monitor.lastMatchedCriterion
                         ? monitor.lastMatchedCriterion.name.toLowerCase()
                         : null;
-                    status = lastMatchedCriterion
+                    status = monitor.monitorStatus
+                        ? monitor.monitorStatus
+                        : lastMatchedCriterion
                         ? lastMatchedCriterion
                         : incidents && incidents[0]
                         ? incidents[0].incidentType === 'online' ||

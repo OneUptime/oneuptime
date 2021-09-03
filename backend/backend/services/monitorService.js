@@ -411,7 +411,7 @@ module.exports = {
             query.deleted = false;
 
             const select =
-                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+                '_id monitorStatus name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
             const populate = [
                 {
                     path: 'monitorSla',
@@ -442,7 +442,7 @@ module.exports = {
                 $set: data,
             });
             const select =
-                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
+                '_id monitorStatus name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
             const populate = [
                 {
                     path: 'monitorSla',
@@ -455,6 +455,25 @@ module.exports = {
             return updatedData;
         } catch (error) {
             ErrorService.log('monitorService.updateMany', error);
+            throw error;
+        }
+    },
+
+    // To be used to know the current status of a monitor
+    // online, offline or degraded
+    updateAllMonitorStatus: async function(query, data) {
+        try {
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            const updatedData = await MonitorModel.updateMany(query, {
+                $set: data,
+            });
+            return updatedData;
+        } catch (error) {
+            ErrorService.log('monitorService.updateAllMonitorStatus', error);
             throw error;
         }
     },
@@ -660,7 +679,7 @@ module.exports = {
             const _this = this;
 
             const select =
-                '_id name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+                '_id monitorStatus name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
             const populate = [
                 {
                     path: 'monitorSla',
