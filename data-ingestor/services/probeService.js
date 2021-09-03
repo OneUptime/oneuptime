@@ -1866,6 +1866,13 @@ const checkAnd = (
                     con.criteria[i] &&
                     con.criteria[i].responseType === 'statusCode'
                 ) {
+                    statusCode = Number(statusCode);
+                    const criteriaStatusCode1 =
+                        con.criteria[i].field1 &&
+                        Number(con.criteria[i].field1);
+                    const criteriaStatusCode2 =
+                        con.criteria[i].field2 &&
+                        Number(con.criteria[i].field2);
                     if (
                         con.criteria[i] &&
                         con.criteria[i].filter &&
@@ -1874,9 +1881,9 @@ const checkAnd = (
                         if (
                             !(
                                 con.criteria[i] &&
-                                con.criteria[i].field1 &&
+                                criteriaStatusCode1 &&
                                 statusCode &&
-                                statusCode > con.criteria[i].field1
+                                statusCode > criteriaStatusCode1
                             )
                         ) {
                             validity = false;
@@ -1904,9 +1911,9 @@ const checkAnd = (
                         if (
                             !(
                                 con.criteria[i] &&
-                                con.criteria[i].field1 &&
+                                criteriaStatusCode1 &&
                                 statusCode &&
-                                statusCode < con.criteria[i].field1
+                                statusCode < criteriaStatusCode1
                             )
                         ) {
                             validity = false;
@@ -1934,11 +1941,11 @@ const checkAnd = (
                         if (
                             !(
                                 con.criteria[i] &&
-                                con.criteria[i].field1 &&
+                                criteriaStatusCode1 &&
                                 statusCode &&
-                                con.criteria[i].field2 &&
-                                statusCode > con.criteria[i].field1 &&
-                                statusCode < con.criteria[i].field2
+                                criteriaStatusCode2 &&
+                                statusCode > criteriaStatusCode1 &&
+                                statusCode < criteriaStatusCode2
                             )
                         ) {
                             validity = false;
@@ -1966,9 +1973,9 @@ const checkAnd = (
                         if (
                             !(
                                 con.criteria[i] &&
-                                con.criteria[i].field1 &&
+                                criteriaStatusCode1 &&
                                 statusCode &&
-                                statusCode == con.criteria[i].field1
+                                statusCode == criteriaStatusCode1
                             )
                         ) {
                             validity = false;
@@ -1996,9 +2003,9 @@ const checkAnd = (
                         if (
                             !(
                                 con.criteria[i] &&
-                                con.criteria[i].field1 &&
+                                criteriaStatusCode1 &&
                                 statusCode &&
-                                statusCode != con.criteria[i].field1
+                                statusCode != criteriaStatusCode1
                             )
                         ) {
                             validity = false;
@@ -2026,9 +2033,9 @@ const checkAnd = (
                         if (
                             !(
                                 con.criteria[i] &&
-                                con.criteria[i].field1 &&
+                                criteriaStatusCode1 &&
                                 statusCode &&
-                                statusCode >= con.criteria[i].field1
+                                statusCode >= criteriaStatusCode1
                             )
                         ) {
                             validity = false;
@@ -2056,9 +2063,9 @@ const checkAnd = (
                         if (
                             !(
                                 con.criteria[i] &&
-                                con.criteria[i].field1 &&
+                                criteriaStatusCode1 &&
                                 statusCode &&
-                                statusCode <= con.criteria[i].field1
+                                statusCode <= criteriaStatusCode1
                             )
                         ) {
                             validity = false;
