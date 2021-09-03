@@ -199,44 +199,6 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    // test case is no longer valid
-    test.skip(
-        'should add multiple domains',
-        async done => {
-            await gotoTheFirstStatusPage(page);
-            await page.waitForNavigation({ waitUntil: 'networkidle2' });
-            await init.pageWaitForSelector(page, '#react-tabs-2');
-            await init.pageClick(page, '#react-tabs-2');
-            await init.pageWaitForSelector(page, '#addMoreDomain');
-            await init.pageClick(page, '#addMoreDomain');
-            await init.pageWaitForSelector(page, '#domain_1', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageType(page, '#domain_1', 'fyipe.fyipeapp.com');
-
-            await init.pageClick(page, '#addMoreDomain');
-            await init.pageWaitForSelector(page, '#domain_2', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageType(page, '#domain_2', 'api.fyipeapp.com');
-            await init.pageWaitForSelector(page, '#btnAddDomain');
-            await init.pageClick(page, '#btnAddDomain');
-
-            await init.pageWaitForSelector(page, '.ball-beat', {
-                hidden: true,
-            });
-            const domains = await init.page$$Eval(
-                page,
-                'fieldset[name="added-domain"]',
-                domains => domains.length
-            );
-            expect(domains).toEqual(4);
-            done();
-        },
-        operationTimeOut
-    );
     // This test is added again as the next test depends on it.
     test(
         'should create a domain',

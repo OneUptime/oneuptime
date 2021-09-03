@@ -250,25 +250,6 @@ describe('Status Page', () => {
         operationTimeOut
     );
 
-    // this test case is no longer viable for custom domains
-    test.skip(
-        'should indicate if domain(s) is set on a status page',
-        async done => {
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: ['networkidle2'],
-            });
-            await init.page$Eval(page, '#statusPages', elem => elem.click());
-
-            const elem = await init.pageWaitForSelector(page, '#domainSet', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            expect(elem).toBeDefined();
-            done();
-        },
-        operationTimeOut
-    );
-
     test(
         'should update a domain',
         async done => {

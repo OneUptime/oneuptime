@@ -32,48 +32,6 @@ describe('Incident Priority API', () => {
         done();
     });
 
-    // TEST CASE NO LONGER NEEDED
-    test.skip(
-        'Should not remove the incident priority used by default.',
-        async done => {
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
-            });
-            await init.pageWaitForSelector(page, '#projectSettings');
-            await init.pageClick(page, '#projectSettings');
-            await init.pageWaitForSelector(page, '#more');
-            await init.pageClick(page, '#more');
-            await init.pageWaitForSelector(page, '#incidentSettings');
-            await init.pageClick(page, '#incidentSettings');
-
-            await init.pageWaitForSelector(page, '.incident-priority-tab', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.page$$Eval(page, '.incident-priority-tab', elems =>
-                elems[0].click()
-            );
-
-            const deleteButtonFirstRowIndentifier = '#priorityDelete_High_0';
-            await init.pageWaitForSelector(
-                page,
-                deleteButtonFirstRowIndentifier
-            );
-            await init.pageClick(page, deleteButtonFirstRowIndentifier);
-            await init.pageWaitForSelector(page, '#message-modal-message');
-            const warningMessage = await init.page$Eval(
-                page,
-                '#message-modal-message',
-                e => e.textContent
-            );
-            expect(warningMessage).toEqual(
-                'This incident priority is marked as default and cannot be deleted.'
-            );
-            done();
-        },
-        operationTimeOut
-    );
-
     test(
         'Should create incident priority.',
         async done => {
