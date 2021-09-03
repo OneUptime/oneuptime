@@ -150,10 +150,20 @@ Main API to send logs to the server.
     -   [Basic Usage for Tracking](#basic-usage-for-tracking)
     -   [API Documentation](#api-documentation)
         -   [Init(LoggerOptions)](#initloggeroptions)
-        -   [LoggerOptions](#loggeroptions)
+            -   [LoggerOptions](#loggeroptions)
             -   [LogInfo(log, tags)](#loginfolog-tags)
             -   [LogWarning(warning, tags)](#logwarningwarning-tags)
             -   [LogError(error, tags)](#logerrorerror-tags)
+        -   [InitTracker(FyipeTrackerOption)](#inittrackerfyipetrackeroption)
+            -   [FyipeTrackerOption](#fyipetrackeroption)
+            -   [TrackerOption](#trackeroption)
+            -   [SetTag(key, value)](#settagkey-value)
+            -   [SetTags(tags)](#settagstags)
+            -   [SetFingerprint(fingerprint)](#setfingerprintfingerprint)
+            -   [AddToTimeline(category, content, type)](#addtotimelinecategory-content-type)
+            -   [CaptureMessage(message)](#capturemessagemessage)
+            -   [CaptureException(error)](#captureexceptionerror)
+    -   [Contribution](#contribution)
 
 <a name="logger_api--logger"></a>
 
@@ -168,7 +178,7 @@ Create a constructor from the class, which will be used to send logs to the serv
 | ------------- | ------------------- | ----------------------------------------------- |
 | LoggerOptions | <code>struct</code> | The Object containing the Log Container details |
 
-### LoggerOptions
+#### LoggerOptions
 
 LoggerOption
 **Kind**: Struct
@@ -215,3 +225,111 @@ Logs a request of type `error` to the server.
 | ----- | ------------------------------------------ | ----------------------------------------------------------- |
 | error | <code>string</code> \| <code>Struct</code> | The content to the logged on the server.                    |
 | tags  | <code>string</code> \| <code>Array</code>  | The tag(s) to be attached to the logged item on the server. |
+
+<a name="tracker_api--tracker"></a>
+
+### InitTracker(FyipeTrackerOption)
+
+Create a constructor from the class, which will be used to track errors sent to the server.
+
+**Kind**: Constructor
+**Returns**: <code>Initialized Tracker</code>
+
+| Param              | Type                | Description                                                                   |
+| ------------------ | ------------------- | ----------------------------------------------------------------------------- |
+| FyipeTrackerOption | <code>struct</code> | The Object containing the Error Tracking Container details and tracker option |
+
+#### FyipeTrackerOption
+
+**Kind**: Struct
+**Returns**: <code>null</code>
+
+| Param           | Type                       | Description                                 |
+| --------------- | -------------------------- | ------------------------------------------- |
+| ApiUrl          | <code>string</code>        | The Server URL.                             |
+| ErrorTrackerId  | <code>string</code>        | The Error Tracker ID.                       |
+| ErrorTrackerKey | <code>string</code>        | The Error Tracker Key.                      |
+| Option          | <code>TrackerOption</code> | The options to be considred by the tracker. |
+
+#### TrackerOption
+
+| Param              | Type                 | Description                                                                                           |
+| ------------------ | -------------------- | ----------------------------------------------------------------------------------------------------- |
+| MaxTimeline        | <code>int</code>     | The total amount of timeline that should be captured, defaults to 5                                   |
+| CaptureCodeSnippet | <code>boolean</code> | When set as `true` stack traces are automatically attached to all error sent to your fyipe dashboard. |
+
+#### SetTag(key, value)
+
+Set tag for the error to be sent to the server.
+
+**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>null</code>
+
+| Param | Type                | Description            |
+| ----- | ------------------- | ---------------------- |
+| key   | <code>string</code> | The key for the tag.   |
+| value | <code>string</code> | The value for the tag. |
+
+#### SetTags(tags)
+
+Set multiple tags for the error to be sent to the server. Takes in a map of string of string
+
+**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>null</code>
+
+| Param | Type                           | Description          |
+| ----- | ------------------------------ | -------------------- |
+| tags  | <code>map[string]string</code> | The key for the tag. |
+
+#### SetFingerprint(fingerprint)
+
+Set fingerprint for the next error to be captured.
+
+**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>null</code>
+
+| Param       | Type                         | Description                                                   |
+| ----------- | ---------------------------- | ------------------------------------------------------------- |
+| fingerprint | <code>list of strings</code> | The set of string used to group error messages on the server. |
+
+#### AddToTimeline(category, content, type)
+
+Add a custom timeline element to the next error to be sent to the server
+
+**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>null</code>
+
+| Param    | Type                                       | Description                         |
+| -------- | ------------------------------------------ | ----------------------------------- |
+| category | <code>string</code>                        | The category of the timeline event. |
+| content  | <code>string</code> \| <code>struct</code> | The content of the timeline event.  |
+| type     | <code>string</code>                        | The type of timeline event.         |
+
+#### CaptureMessage(message)
+
+Capture a custom error message to be sent to the server
+
+**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>response</code>
+
+| Param   | Type                | Description                           |
+| ------- | ------------------- | ------------------------------------- |
+| message | <code>string</code> | The message to be sent to the server. |
+
+#### CaptureException(error)
+
+Capture a custom error object to be sent to the server
+
+**Kind**: method of [<code>FyipeTracker</code>](#tracker_api--tracker)
+**Returns**: <code>response</code>
+
+| Param | Type                      | Description                                |
+| ----- | ------------------------- | ------------------------------------------ |
+| error | <code>Error object</code> | The Error Object to be sent to the server. |
+
+## Contribution
+
+-   Clone repository
+-   run `cd go-sdk`
+-   run `go get -d ./...` to install dependencies
+-   run `go test -v` to run tests
