@@ -75,7 +75,10 @@ describe('Fyipe Page Reload', () => {
             await init.pageClick(page, '#btnAddStatusPageMonitors');
 
             // To confirm no errors and stays on the same page on reload
-            await page.reload({ waitUntil: 'networkidle2' });
+            await page.reload({
+                waitUntil: 'networkidle2',
+                timeout: init.timeout,
+            });
             await init.pageWaitForSelector(page, '#cbStatusPages', {
                 visible: true,
                 timeout: init.timeout,
