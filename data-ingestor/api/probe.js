@@ -88,7 +88,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 const {
                     stat: validDegraded,
                     successReasons: degradedSuccessReasons,
-                    failedReasons: degradedFailedReasons,
+                    // failedReasons: degradedFailedReasons,
                     matchedCriterion: matchedDegradedCriterion,
                 } =
                     monitor && monitor.criteria && monitor.criteria.degraded
@@ -107,7 +107,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 const {
                     stat: validDown,
                     successReasons: downSuccessReasons,
-                    failedReasons: downFailedReasons,
+                    // failedReasons: downFailedReasons,
                     matchedCriterion: matchedDownCriterion,
                 } =
                     monitor && monitor.criteria && monitor.criteria.down
@@ -140,23 +140,15 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     matchedCriterion = matchedUpCriterion;
                 } else if (degraded) {
                     status = 'degraded';
-                    reason = [...degradedSuccessReasons, ...upFailedReasons];
+                    reason = degradedSuccessReasons;
                     matchedCriterion = matchedDegradedCriterion;
                 } else if (down) {
                     matchedCriterion = matchedDownCriterion;
                     status = 'offline';
-                    reason = [
-                        ...downSuccessReasons,
-                        ...degradedFailedReasons,
-                        ...upFailedReasons,
-                    ];
+                    reason = downSuccessReasons;
                 } else {
                     status = 'offline';
-                    reason = [
-                        ...downFailedReasons,
-                        ...degradedFailedReasons,
-                        ...upFailedReasons,
-                    ];
+                    reason = upFailedReasons;
                     if (monitor.criteria.down) {
                         matchedCriterion = monitor.criteria.down.find(
                             criterion => criterion.default === true
