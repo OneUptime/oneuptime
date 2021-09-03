@@ -82,7 +82,7 @@ describe('Registration API', () => {
             await init.registerFailedUser(user, page);
             const errorMsg = await init.page$Eval(
                 page,
-                '#error',
+                '#error', // The previous validation is no longer in use.
                 elem => elem.textContent
             );
 
