@@ -84,7 +84,7 @@ module.exports = {
             if (!query.deleted) query.deleted = false;
             let logsQuery = LogModel.find(query)
                 .lean()
-                .sort([['createdAt', -1]])
+                .sort([['createdAt', 1]])
                 .limit(limit)
                 .skip(skip);
 

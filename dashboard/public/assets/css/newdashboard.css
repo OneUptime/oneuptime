@@ -11546,6 +11546,113 @@ table {
     transform: translateX(-45%);
 }
 
+/* LogTail CSS */
+.bs-loglist {
+    background-color: #212839;
+    padding: 30px 0;
+    padding-right: 12px;
+}
+
+.bs-log-line-caret {
+    padding: 0px 8px;
+    display: flex;
+    align-content: center;
+}
+
+.bs-logrow {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.bs-flights {
+    margin: 0 7px;
+    color: #ffc45e;
+}
+
+.bs-log-timestamp {
+    color: #939db8;
+}
+
+.bs-log-message {
+    color: rgb(242, 242, 242);
+    font-size: 12px;
+}
+
+.bs-rowfull {
+    font-size: 13px;
+    font-family: Fira Code,Monaco,Consolas,Lucida Console,monospace !important;
+    margin-bottom: 10px;
+}
+
+.bs-rowfull:hover {
+    background-color: #2E3647;
+}
+
+.bs-rowfull:hover .bs-log-line-caret {
+    background-color: #3A4253;
+}
+.bs-list-collapse {
+    color: white;
+    padding: 10px 32px;
+    font-size: 13px;
+    font-family: Fira Code,Monaco,Consolas,Lucida Console,monospace !important;
+}
+
+.bs-col-msg {
+    margin: 8px 0;
+}
+
+.bs-brown  {
+    color: #ffa361;
+}
+
+.bs-log-base {
+    display: flex;
+}
+
+.bs-show-nulls {
+    margin: 0 8px;
+}
+
+.bs-active-row {
+    background-color: #2E3647;
+}
+
+.bs-active-row .bs-log-line-caret {
+    background-color: #3A4253;
+}
+
+.bs-hover-null {
+    width: 16px;
+    height: 16px;
+}
+
+.bs-list-flex {
+    display: flex;
+    align-items: center;
+}
+
+.bs-log-base span {
+    color: #939db8;
+    font-family: -apple-system,BlinkMacSystemFont,San Francisco,Roboto,Segoe UI,Helvetica Neue,sans-serif !important;
+    text-decoration: underline;
+}
+
+.bs-list-collapse .react-json-view {
+    background-color: #2E3647 !important;
+}
+
+.bs-log-cursor {
+    cursor: pointer;
+}
+
+.bs-log-error {
+    background-color: #212839;
+    text-align: center;
+    color: #fff;
+}
+
 @media (max-width: 1335px)
 {
     .threeCardClass

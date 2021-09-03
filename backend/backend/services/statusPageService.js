@@ -398,7 +398,7 @@ module.exports = {
             const statusPage = await this.findOneBy({
                 query: { _id: statusPageId },
                 populate: populateStatusPage,
-                select: 'domain',
+                select: 'domains',
             });
 
             if (!statusPage) {
