@@ -64,28 +64,34 @@ class ResourceTabularList extends Component {
 
         let data = null;
         switch (componentResource.type) {
-            case 'website monitor':
             case 'device monitor':
             case 'manual monitor':
+            case 'script monitor':
+            case 'website monitor':
             case 'api monitor':
             case 'server monitor':
-            case 'script monitor':
-            case 'incomingHttpRequest monitor':
+            case 'IP monitor':
             case 'kubernetes monitor':
-            case 'IP monitor': {
+            case 'incomingHttpRequest monitor': {
                 // get monitor status
                 monitor = monitors.filter(
                     monitor => monitor._id === componentResource._id
                 )[0];
                 if (monitor) {
                     const incidents = monitor.incidents;
-                    status =
-                        incidents && incidents[0]
-                            ? incidents[0].incidentType === 'online' ||
-                              incidents[0].resolved
-                                ? 'online'
-                                : incidents[0].incidentType
-                            : 'online';
+                    const lastMatchedCriterion = monitor.lastMatchedCriterion
+                        ? monitor.lastMatchedCriterion.name.toLowerCase()
+                        : null;
+                    status = monitor.monitorStatus
+                        ? monitor.monitorStatus
+                        : lastMatchedCriterion
+                        ? lastMatchedCriterion
+                        : incidents && incidents[0]
+                        ? incidents[0].incidentType === 'online' ||
+                          incidents[0].resolved
+                            ? 'online'
+                            : incidents[0].incidentType
+                        : 'online';
 
                     indicator = (
                         <StatusIndicator
