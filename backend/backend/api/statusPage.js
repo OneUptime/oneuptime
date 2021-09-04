@@ -2204,7 +2204,7 @@ router.get('/resources/:statusPageSlug', checkUser, ipWhitelist, async function(
 
         response.announcement = announcement.value || {};
 
-        response.monitorStatus = monitorStatus.value || [];
+        response.monitorStatus = monitorStatus.value || {};
 
         response.timelines = timelines.value || {};
 
@@ -2213,10 +2213,7 @@ router.get('/resources/:statusPageSlug', checkUser, ipWhitelist, async function(
         response.announcementLogs = announcementLogs.value || {};
 
         statusPage.monitorsData.map(data => {
-            const statusData = response.monitorStatus.find(
-                status => status[data._id]
-            );
-            data.statuses = statusData[data._id];
+            data.statuses = response.monitorStatus[data._id];
             return data;
         });
         response.statusPages = statusPage;
@@ -2429,20 +2426,18 @@ async function getAnnouncements(req, statusPageId, projectId) {
 }
 //get monitor status
 async function getMonitorStatuses(req, monitors) {
-    const status = [];
+    const status = {};
     const endDate = moment(Date.now());
     const startDate = moment(Date.now()).subtract(90, 'days');
-    await Promise.all(
-        monitors.map(async data => {
-            const monitorId = data.monitor._id;
-            const monitorStatuses = await MonitorService.getMonitorStatuses(
-                monitorId,
-                startDate,
-                endDate
-            );
-            return status.push({ [monitorId]: monitorStatuses });
-        })
-    );
+    for (const data of monitors) {
+        const monitorId = data.monitor._id;
+        const monitorStatuses = await MonitorService.getMonitorStatuses(
+            monitorId,
+            startDate,
+            endDate
+        );
+        status[monitorId] = monitorStatuses;
+    }
 
     return status;
 }
