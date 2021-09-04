@@ -30,6 +30,7 @@ module.exports = {
                 // check if monitor has a previous status
                 // check if previous status is different from the current status
                 // if different, end the previous status and create a new monitor status
+                const now = new Date(moment().format());
                 if (previousMonitorStatus) {
                     if (
                         data.status === 'enable' &&
@@ -43,12 +44,11 @@ module.exports = {
                             _id: ObjectId(previousMonitorStatus._id),
                         },
                         {
-                            endTime: new Date(moment().format()),
+                            endTime: now,
                         }
                     );
                 }
 
-                const now = new Date(moment().format());
                 const monitorStatusData = {
                     monitorId: data.monitorId,
                     probeId: data.probeId || null,

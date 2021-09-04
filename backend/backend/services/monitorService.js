@@ -1940,9 +1940,13 @@ module.exports = {
              */
             //First step
             let incidentsHappenedDuringTheDay = [];
-            reversedStatuses.forEach(monitor => {
+            reversedStatuses.forEach((monitor, index, array) => {
                 const monitorStatus = Object.assign({}, monitor);
-                if (monitorStatus.endTime === null) {
+                if (
+                    monitorStatus.endTime === null &&
+                    index === array.length - 1
+                ) {
+                    // only set this for the last item in the array (current monitor status)
                     monitorStatus.endTime = new Date().toISOString();
                 }
 
