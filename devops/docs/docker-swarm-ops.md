@@ -1,4 +1,4 @@
-# See all services. 
+# See all services.
 
 sudo docker service ls
 
