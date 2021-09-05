@@ -11653,6 +11653,12 @@ table {
     color: #fff;
 }
 
+.bs-cancel-box {
+    padding: 20px;
+    display: flex;
+    justify-content: flex-end;
+}
+
 @media (max-width: 1335px)
 {
     .threeCardClass
