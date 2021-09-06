@@ -87,7 +87,7 @@ describe('Profile -> Delete Account Component test', () => {
 
             const projectDeletion = await init.pageWaitForSelector(
                 page,
-                '#projectDeletion'
+                '#projectOwnership' // Updated UI
             );
 
             expect(projectDeletion).toBeDefined();
@@ -134,7 +134,7 @@ describe('Profile -> Delete Account Component test', () => {
 
             const projectDeletion = await init.pageWaitForSelector(
                 page,
-                '#projectDeletion'
+                '#projectOwnership'
             );
 
             expect(projectDeletion).toBeDefined();
@@ -155,10 +155,9 @@ describe('Profile -> Delete Account Component test', () => {
             // Change member role -> Owner
             await init.pageWaitForSelector(page, '#teamMembers');
             await init.pageClick(page, '#teamMembers');
-            await init.pageWaitForSelector(page, 'button[title="Change Role"]');
-            await init.pageClick(page, 'button[title="Change Role"]');
-            await init.pageWaitForSelector(page, `div[title="${role}"]`);
-            await init.pageClick(page, `div[title="${role}"]`);
+            const emailSelector = user1.email.split('@')[0];
+            await init.pageClick(page, `#changeRole_${emailSelector}`);
+            await init.pageClick(page, `#${role}`);
             await init.pageWaitForSelector(page, '#confirmRoleChange');
             await init.pageClick(page, '#confirmRoleChange');
             await init.pageWaitForSelector(page, '#confirmRoleChange', {
@@ -169,10 +168,8 @@ describe('Profile -> Delete Account Component test', () => {
             await init.switchProject(projectName, page);
             await init.pageWaitForSelector(page, '#teamMembers');
             await init.pageClick(page, '#teamMembers');
-            await init.pageWaitForSelector(page, 'button[title="Change Role"]');
-            await init.pageClick(page, 'button[title="Change Role"]');
-            await init.pageWaitForSelector(page, `div[title="${role}"]`);
-            await init.pageClick(page, `div[title="${role}"]`);
+            await init.pageClick(page, `#changeRole_${emailSelector}`);
+            await init.pageClick(page, `#${role}`);
             await init.pageWaitForSelector(page, '#confirmRoleChange');
             await init.pageClick(page, '#confirmRoleChange');
             await init.pageWaitForSelector(page, '#confirmRoleChange', {
@@ -222,6 +219,7 @@ describe('Profile -> Delete Account Component test', () => {
             await init.pageWaitForSelector(page, '#deleteMyAccount');
             await init.pageType(page, '#deleteMyAccount', 'delete my account');
             await init.pageClick(page, '#btn_confirm_delete');
+            await init.pageClick(page, '#close');
             await page.waitForNavigation();
             const url = await page.url();
             expect(url).toEqual(`${utils.ACCOUNTS_URL}/accounts/login`);
