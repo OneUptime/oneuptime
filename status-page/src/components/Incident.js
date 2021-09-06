@@ -304,6 +304,7 @@ class Incident extends Component {
             incident,
             incidentNotes,
             lastIncidentTimeline,
+            statusData,
         } = this.props;
         const error = this.renderError();
 
@@ -345,13 +346,24 @@ class Incident extends Component {
                                 className="feed-title"
                                 style={{
                                     fontWeight: 'bold',
-                                    marginBottom: 10,
                                     fontSize: 30,
+                                    textAlign: 'center',
                                     // textTransform: 'unset',
                                 }}
                             >
                                 {incident.title}
                             </header>
+                            <p
+                                style={{
+                                    textAlign: 'center',
+                                    fontWeight: '500',
+                                    marginBottom: 10,
+                                    color: 'rgba(0, 0, 0, 0.6)',
+                                    fontSize: 25,
+                                }}
+                            >
+                                Incident Report for {statusData.name}
+                            </p>
                             <span
                                 style={{
                                     color: 'rgba(0, 0, 0, 0.6)',
