@@ -85,15 +85,22 @@ class SingleAnnouncement extends Component {
                                             <span
                                                 style={{
                                                     color: 'rgba(0, 0, 0, 0.5)',
+                                                    whiteSpace: 'pre-wrap',
                                                 }}
                                             >
-                                                {announcement.description && (
-                                                    <Markdown>
-                                                        {
-                                                            announcement.description
-                                                        }
-                                                    </Markdown>
-                                                )}
+                                                {announcement.description &&
+                                                    announcement.description
+                                                        .split('\n')
+                                                        .map((elem, index) => (
+                                                            <Markdown
+                                                                key={`${elem}-${index}`}
+                                                                options={{
+                                                                    forceBlock: true,
+                                                                }}
+                                                            >
+                                                                {elem}
+                                                            </Markdown>
+                                                        ))}
                                             </span>
                                         </div>
                                         <ShouldRender
