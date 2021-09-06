@@ -112,47 +112,6 @@ describe('Status Page', () => {
         },
         operationTimeOut
     );
-    // Status-page monitor can now be saved without chart type
-    test.skip(
-        'should show error message and not submit the form if no chart is selected.',
-        async done => {
-            await gotoTheFirstStatusPage(page);
-            await init.pageWaitForSelector(page, '#addMoreMonitors', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#addMoreMonitors');
-            await init.pageWaitForSelector(page, '#monitor-0');
-            await init.selectDropdownValue(
-                '#monitor-0 .db-select-nw',
-                `${componentName} / ${monitorName}`,
-                page
-            );
-            await init.pageClick(page, '#monitor-0 .Checkbox');
-            await init.pageWaitForSelector(page, '#monitor-0 .errors', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            const element = await init.page$Eval(
-                page,
-                '#monitor-0 .errors',
-                e => {
-                    return e.innerHTML;
-                }
-            );
-            expect(element).toContain(
-                'You must select at least one chart type'
-            );
-            await init.pageClick(page, '#btnAddStatusPageMonitors');
-            await page.reload({ waitUntil: 'networkidle2' });
-            const monitor = await init.pageWaitForSelector(page, '#monitor-0', {
-                hidden: true,
-            });
-            expect(monitor).toBeNull();
-            done();
-        },
-        operationTimeOut
-    );
 
     test(
         'should show an error message and not submit the form if the users select the same monitor twice.',

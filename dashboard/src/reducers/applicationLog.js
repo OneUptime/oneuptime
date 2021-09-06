@@ -448,9 +448,9 @@ export default function applicationLog(state = INITIAL_STATE, action) {
                 });
             } else {
                 // new log add to beginning of logs
-                requestLogs = [action.payload].concat(
-                    state.logs[action.payload.applicationLogId._id].logs
-                );
+                requestLogs = state.logs[
+                    action.payload.applicationLogId._id
+                ].logs.concat([action.payload]);
                 // update counts
                 logCount += 1;
                 typeCount += 1;

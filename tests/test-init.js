@@ -130,6 +130,114 @@ const _this = {
             }
         }
     },
+    registerFailedUser: async function(user, page) {
+        if (
+            utils.BACKEND_URL.includes('localhost') ||
+            utils.BACKEND_URL.includes('staging.fyipe.com')
+        ) {
+            const { email } = user;
+            let frame, elementHandle;
+            await page.goto(utils.ACCOUNTS_URL + '/register', {
+                waitUntil: 'networkidle2',
+            });
+            await _this.pageWaitForSelector(page, '#email');
+            await _this.pageClick(page, 'input[name=email]');
+            await _this.pageType(page, 'input[name=email]', email);
+            await _this.pageClick(page, 'input[name=name]');
+            await _this.pageType(page, 'input[name=name]', 'Test Name');
+            await _this.pageClick(page, 'input[name=companyName]');
+            await _this.pageType(page, 'input[name=companyName]', 'Test Name');
+            await _this.pageClick(page, 'input[name=companyPhoneNumber]');
+            await _this.pageType(
+                page,
+                'input[name=companyPhoneNumber]',
+                '99105688'
+            );
+            await _this.pageClick(page, 'input[name=password]');
+            await _this.pageType(page, 'input[name=password]', '1234567890');
+            await _this.pageClick(page, 'input[name=confirmPassword]');
+            await _this.pageType(
+                page,
+                'input[name=confirmPassword]',
+                '1234567890'
+            );
+
+            await _this.pageClick(page, 'button[type=submit]');
+            await _this.pageWaitForSelector(page, `form#card-form`, {
+                visible: true,
+                timeout: _this.timeout,
+            });
+
+            await _this.pageWaitForSelector(
+                page,
+                '.__PrivateStripeElement > iframe',
+                {
+                    visible: true,
+                    timeout: _this.timeout,
+                }
+            );
+            const stripeIframeElements = await _this.page$$(
+                page,
+                '.__PrivateStripeElement > iframe'
+            );
+
+            await _this.pageClick(page, 'input[name=cardName]');
+            await _this.pageType(page, 'input[name=cardName]', 'Test name');
+
+            elementHandle = stripeIframeElements[0]; // card element
+            frame = await elementHandle.contentFrame();
+            await frame.waitForSelector('input[name=cardnumber]');
+            await frame.type('input[name=cardnumber]', '42424242424242424242', {
+                delay: 200,
+            });
+
+            elementHandle = stripeIframeElements[1]; // cvc element
+            frame = await elementHandle.contentFrame();
+            await frame.waitForSelector('input[name=cvc]');
+            await frame.type('input[name=cvc]', '123', {
+                delay: 50,
+            });
+
+            elementHandle = stripeIframeElements[2]; // exp element
+            frame = await elementHandle.contentFrame();
+            await frame.waitForSelector('input[name=exp-date]');
+            await frame.type('input[name=exp-date]', '11/23', {
+                delay: 50,
+            });
+            await _this.pageClick(page, 'input[name=address1]');
+            await _this.pageType(
+                page,
+                'input[name=address1]',
+                utils.user.address.streetA
+            );
+            await _this.pageClick(page, 'input[name=address2]');
+            await _this.pageType(
+                page,
+                'input[name=address2]',
+                utils.user.address.streetB
+            );
+            await _this.pageClick(page, 'input[name=city]');
+            await _this.pageType(
+                page,
+                'input[name=city]',
+                utils.user.address.city
+            );
+            await _this.pageClick(page, 'input[name=state]');
+            await _this.pageType(
+                page,
+                'input[name=state]',
+                utils.user.address.state
+            );
+            await _this.pageClick(page, 'input[name=zipCode]');
+            await _this.pageType(
+                page,
+                'input[name=zipCode]',
+                utils.user.address.zipcode
+            );
+            await page.select('#country', 'India');
+            await _this.pageClick(page, 'button[type=submit]');
+        }
+    },
     loginProjectViewer: async function(user, page) {
         const { email, password } =
             utils.BACKEND_URL.includes('localhost') ||
@@ -800,6 +908,7 @@ const _this = {
     addNewMonitorToComponent: async function(page, componentName, monitorName) {
         await page.goto(utils.DASHBOARD_URL, {
             waitUntil: 'networkidle2',
+            timeout: _this.timeout,
         });
         await _this.pageWaitForSelector(page, '#components');
         await _this.pageClickNavigate(page, '#components');

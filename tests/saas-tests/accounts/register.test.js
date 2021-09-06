@@ -75,43 +75,18 @@ describe('Registration API', () => {
         'User cannot register with personal email',
         async () => {
             const personalEmail = 'personalEmail@gmail.com';
-            await page.goto(utils.ACCOUNTS_URL + '/register', {
-                waitUntil: 'networkidle2',
-            });
-            await init.pageWaitForSelector(page, '#email');
-            await init.pageClick(page, 'input[name=email]');
-            await init.pageType(page, 'input[name=email]', personalEmail);
-            await init.pageClick(page, 'input[name=name]');
-            await init.pageType(page, 'input[name=name]', utils.user.name);
-            await init.pageClick(page, 'input[name=companyName]');
-            await init.pageType(
-                page,
-                'input[name=companyName]',
-                utils.user.company.name
-            );
-            await init.pageClick(page, 'input[name=companyPhoneNumber]');
-            await init.pageType(
-                page,
-                'input[name=companyPhoneNumber]',
-                utils.user.phone
-            );
-            await init.pageClick(page, 'input[name=password]');
-            await init.pageType(page, 'input[name=password]', user.password);
-            await init.pageClick(page, 'input[name=confirmPassword]');
-            await init.pageType(
-                page,
-                'input[name=confirmPassword]',
-                user.password
-            );
-            await init.pageClick(page, 'button[type=submit]');
-
-            await init.pageWaitForSelector(page, '#email_error');
+            const user = {
+                email: personalEmail,
+                password: '1234567890',
+            };
+            await init.registerFailedUser(user, page);
             const errorMsg = await init.page$Eval(
                 page,
-                '#email_error',
+                '#error', // The previous validation is no longer in use.
                 elem => elem.textContent
             );
-            expect(errorMsg).toEqual('Please enter a business email address.');
+
+            expect(errorMsg).toEqual('Business email address is required.');
         },
         init.timeout
     );
