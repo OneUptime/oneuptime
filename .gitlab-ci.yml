@@ -155,3 +155,8 @@ include:
   - '/ci/spec/data-ingestor/audit.yaml'
   - '/ci/spec/data-ingestor/deploy.yaml'
   - '/ci/spec/data-ingestor/rollback.yaml'
+
+  # # GO-SDK
+  # - '/ci/spec/go-sdk/audit.yaml'
+  # - '/ci/spec/go-sdk/build-n-test.yaml'
+  # - '/ci/spec/go-sdk/deploy.yaml'

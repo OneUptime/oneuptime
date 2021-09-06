@@ -178,7 +178,11 @@ class CardForm extends Component {
         const registerError = this.props.register.error;
         let header;
         if (registerError) {
-            header = <span style={errorStyle}>{registerError}</span>;
+            header = (
+                <span id="error" style={errorStyle}>
+                    {registerError}
+                </span>
+            );
         } else {
             header = <span>Enter your card details</span>;
         }
