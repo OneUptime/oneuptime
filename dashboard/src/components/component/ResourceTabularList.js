@@ -80,7 +80,7 @@ class ResourceTabularList extends Component {
                 if (monitor) {
                     const incidents = monitor.incidents;
                     const lastMatchedCriterion = monitor.lastMatchedCriterion
-                        ? monitor.lastMatchedCriterion.name.toLowerCase()
+                        ? monitor.lastMatchedCriterion?.name.toLowerCase()
                         : null;
                     status = monitor.monitorStatus
                         ? monitor.monitorStatus
