@@ -444,9 +444,30 @@ class Incident extends Component {
                                                 }}
                                             >
                                                 {note.content && (
-                                                    <Markdown>
-                                                        {note.content}
-                                                    </Markdown>
+                                                    <div
+                                                        style={{
+                                                            whiteSpace:
+                                                                'pre-wrap',
+                                                        }}
+                                                    >
+                                                        {note.content
+                                                            .split('\n')
+                                                            .map(
+                                                                (
+                                                                    elem,
+                                                                    index
+                                                                ) => (
+                                                                    <Markdown
+                                                                        key={`${elem}-${index}`}
+                                                                        options={{
+                                                                            forceBlock: true,
+                                                                        }}
+                                                                    >
+                                                                        {elem}
+                                                                    </Markdown>
+                                                                )
+                                                            )}
+                                                    </div>
                                                 )}
                                             </span>
                                             <span
@@ -724,15 +745,31 @@ class Incident extends Component {
                                                                             'block',
                                                                         textAlign:
                                                                             'justify',
+                                                                        whiteSpace:
+                                                                            'pre-wrap',
                                                                     }}
                                                                 >
-                                                                    {note.content && (
-                                                                        <Markdown>
-                                                                            {
-                                                                                note.content
-                                                                            }
-                                                                        </Markdown>
-                                                                    )}
+                                                                    {note.content
+                                                                        .split(
+                                                                            '\n'
+                                                                        )
+                                                                        .map(
+                                                                            (
+                                                                                elem,
+                                                                                index
+                                                                            ) => (
+                                                                                <Markdown
+                                                                                    key={`${elem}-${index}`}
+                                                                                    options={{
+                                                                                        forceBlock: true,
+                                                                                    }}
+                                                                                >
+                                                                                    {
+                                                                                        elem
+                                                                                    }
+                                                                                </Markdown>
+                                                                            )
+                                                                        )}
                                                                 </span>
                                                                 <span
                                                                     style={{
