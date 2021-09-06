@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { Link } from 'react-router-dom';
 import { Translate } from 'react-auto-translate';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
@@ -362,7 +363,13 @@ class Incident extends Component {
                                     fontSize: 25,
                                 }}
                             >
-                                Incident Report for {statusData.name}
+                                Incident Report for{' '}
+                                <Link
+                                    style={{ color: 'rgba(0, 0, 0, 0.6)' }}
+                                    to={`/status-page/${statusData.slug}`}
+                                >
+                                    {statusData.name}
+                                </Link>
                             </p>
                             <span
                                 style={{
