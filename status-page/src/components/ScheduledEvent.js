@@ -132,35 +132,6 @@ class ScheduledEvent extends Component {
 
         const currentTime = moment();
 
-        // eslint-disable-next-line no-console
-        console.log('** scheduled event **', scheduledEvent);
-        // eslint-disable-next-line no-console
-        console.log(
-            '** isSameOrAfter **',
-            currentTime.isSameOrAfter(moment(scheduledEvent.startDate))
-        );
-        // eslint-disable-next-line no-console
-        console.log(
-            '** logic **',
-            currentTime.isSameOrAfter(moment(scheduledEvent.startDate)) &&
-                currentTime.isBefore(moment(scheduledEvent.endDate))
-        );
-        // eslint-disable-next-line no-console
-        console.log(
-            '** isAfter **',
-            currentTime.isAfter(moment(scheduledEvent.startDate))
-        );
-        // eslint-disable-next-line no-console
-        console.log(
-            '** isSameOrBefore **',
-            currentTime.isSameOrBefore(moment(scheduledEvent.startDate))
-        );
-        // eslint-disable-next-line no-console
-        console.log(
-            '** isBefore **',
-            currentTime.isBefore(moment(scheduledEvent.startDate))
-        );
-
         return (
             <div
                 className="page-main-wrapper"
@@ -177,99 +148,47 @@ class ScheduledEvent extends Component {
                         }}
                     >
                         <div style={{ marginBottom: 50 }}>
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                }}
-                            >
-                                <header
-                                    className="feed-title"
+                            <div>
+                                <div
                                     style={{
-                                        fontWeight: 'bold',
-                                        marginBottom: 10,
-                                        fontSize: 30,
-                                        // textTransform: 'unset',
+                                        display: 'flex',
+                                        alignItems: 'baseline',
+                                        justifyContent: 'center',
                                     }}
                                 >
-                                    {scheduledEvent.name}
-                                </header>
-                                {!fetchingNotes &&
-                                eventNotes &&
-                                !fetchingEvent &&
-                                scheduledEvent.startDate &&
-                                scheduledEvent.endDate ? (
-                                    scheduledEvent.cancelled ? (
-                                        <div
-                                            style={{
-                                                marginLeft: 15,
-                                            }}
-                                            className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                        >
-                                            <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                <span id="ongoing-event">
-                                                    <Translate>
-                                                        Cancelled
-                                                    </Translate>
+                                    <header
+                                        className="feed-title"
+                                        style={{
+                                            fontWeight: 'bold',
+                                            textAlign: 'center',
+                                            fontSize: 30,
+                                            // textTransform: 'unset',
+                                        }}
+                                    >
+                                        {scheduledEvent.name}
+                                    </header>
+
+                                    {!fetchingNotes &&
+                                    eventNotes &&
+                                    !fetchingEvent &&
+                                    scheduledEvent.startDate &&
+                                    scheduledEvent.endDate ? (
+                                        scheduledEvent.cancelled ? (
+                                            <div
+                                                style={{
+                                                    marginLeft: 15,
+                                                }}
+                                                className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                            >
+                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span id="ongoing-event">
+                                                        <Translate>
+                                                            Cancelled
+                                                        </Translate>
+                                                    </span>
                                                 </span>
-                                            </span>
-                                        </div>
-                                    ) : scheduledEvent.resolved ? (
-                                        <div
-                                            style={{
-                                                marginLeft: 15,
-                                            }}
-                                            className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                        >
-                                            <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                <span id="ongoing-event">
-                                                    <Translate>
-                                                        Completed
-                                                    </Translate>
-                                                </span>
-                                            </span>
-                                        </div>
-                                    ) : currentTime.isSameOrAfter(
-                                          moment(scheduledEvent.startDate)
-                                      ) &&
-                                      currentTime.isBefore(
-                                          moment(scheduledEvent.endDate)
-                                      ) ? (
-                                        <div
-                                            style={{
-                                                marginLeft: 15,
-                                            }}
-                                            className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                        >
-                                            <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                <span id="ongoing-event">
-                                                    <Translate>
-                                                        Ongoing
-                                                    </Translate>
-                                                </span>
-                                            </span>
-                                        </div>
-                                    ) : currentTime.isBefore(
-                                          moment(scheduledEvent.startDate)
-                                      ) ? (
-                                        <div
-                                            style={{
-                                                marginLeft: 15,
-                                            }}
-                                            className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                        >
-                                            <span className="Badge-text Text-color--default Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                <span id="ongoing-event">
-                                                    <Translate>
-                                                        Scheduled
-                                                    </Translate>
-                                                </span>
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        currentTime.isSameOrAfter(
-                                            moment(scheduledEvent.endDate)
-                                        ) && (
+                                            </div>
+                                        ) : scheduledEvent.resolved ? (
                                             <div
                                                 style={{
                                                     marginLeft: 15,
@@ -279,14 +198,82 @@ class ScheduledEvent extends Component {
                                                 <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
                                                     <span id="ongoing-event">
                                                         <Translate>
-                                                            Ended
+                                                            Completed
                                                         </Translate>
                                                     </span>
                                                 </span>
                                             </div>
+                                        ) : currentTime.isSameOrAfter(
+                                              moment(scheduledEvent.startDate)
+                                          ) &&
+                                          currentTime.isBefore(
+                                              moment(scheduledEvent.endDate)
+                                          ) ? (
+                                            <div
+                                                style={{
+                                                    marginLeft: 15,
+                                                }}
+                                                className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                            >
+                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span id="ongoing-event">
+                                                        <Translate>
+                                                            Ongoing
+                                                        </Translate>
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        ) : currentTime.isBefore(
+                                              moment(scheduledEvent.startDate)
+                                          ) ? (
+                                            <div
+                                                style={{
+                                                    marginLeft: 15,
+                                                }}
+                                                className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                            >
+                                                <span className="Badge-text Text-color--default Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                    <span id="ongoing-event">
+                                                        <Translate>
+                                                            Scheduled
+                                                        </Translate>
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            currentTime.isSameOrAfter(
+                                                moment(scheduledEvent.endDate)
+                                            ) && (
+                                                <div
+                                                    style={{
+                                                        marginLeft: 15,
+                                                    }}
+                                                    className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
+                                                >
+                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
+                                                        <span id="ongoing-event">
+                                                            <Translate>
+                                                                Ended
+                                                            </Translate>
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            )
                                         )
-                                    )
-                                ) : null}
+                                    ) : null}
+                                </div>
+                                <p
+                                    style={{
+                                        textAlign: 'center',
+                                        fontWeight: '500',
+                                        marginBottom: 10,
+                                        color: 'rgba(0, 0, 0, 0.6)',
+                                        fontSize: 25,
+                                    }}
+                                >
+                                    Scheduled Maintenance Report for{' '}
+                                    {statusData.name}
+                                </p>
                             </div>
                             <span
                                 style={{
@@ -377,13 +364,22 @@ class ScheduledEvent extends Component {
                                                     fontSize: 14,
                                                     display: 'block',
                                                     textAlign: 'justify',
+                                                    whiteSpace: 'pre-wrap',
                                                 }}
                                             >
-                                                {note.content && (
-                                                    <Markdown>
-                                                        {note.content}
-                                                    </Markdown>
-                                                )}
+                                                {note.content &&
+                                                    note.content
+                                                        .split('\n')
+                                                        .map((elem, index) => (
+                                                            <Markdown
+                                                                key={`${elem}-${index}`}
+                                                                options={{
+                                                                    forceBlock: true,
+                                                                }}
+                                                            >
+                                                                {elem}
+                                                            </Markdown>
+                                                        ))}
                                             </span>
                                             <span
                                                 style={{
@@ -731,13 +727,32 @@ class ScheduledEvent extends Component {
                                                                             'block',
                                                                         textAlign:
                                                                             'justify',
+                                                                        whiteSpace:
+                                                                            'pre-wrap',
                                                                     }}
                                                                 >
-                                                                    <Markdown>
-                                                                        {
-                                                                            note.content
-                                                                        }
-                                                                    </Markdown>
+                                                                    {note.content &&
+                                                                        note.content
+                                                                            .split(
+                                                                                '\n'
+                                                                            )
+                                                                            .map(
+                                                                                (
+                                                                                    elem,
+                                                                                    index
+                                                                                ) => (
+                                                                                    <Markdown
+                                                                                        key={`${elem}-${index}`}
+                                                                                        options={{
+                                                                                            forceBlock: true,
+                                                                                        }}
+                                                                                    >
+                                                                                        {
+                                                                                            elem
+                                                                                        }
+                                                                                    </Markdown>
+                                                                                )
+                                                                            )}
                                                                 </span>
                                                                 <span
                                                                     style={{

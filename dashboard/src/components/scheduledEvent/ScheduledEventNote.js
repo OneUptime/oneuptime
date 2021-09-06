@@ -277,13 +277,32 @@ export class ScheduledEventNote extends Component {
                                                                               'block',
                                                                           marginTop:
                                                                               '10px',
+                                                                          whiteSpace:
+                                                                              'pre-wrap',
                                                                       }}
                                                                   >
-                                                                      <Markdown>
-                                                                          {
-                                                                              note.content
-                                                                          }
-                                                                      </Markdown>
+                                                                      {note.content &&
+                                                                          note.content
+                                                                              .split(
+                                                                                  '\n'
+                                                                              )
+                                                                              .map(
+                                                                                  (
+                                                                                      elem,
+                                                                                      index
+                                                                                  ) => (
+                                                                                      <Markdown
+                                                                                          key={`${elem}-${index}`}
+                                                                                          options={{
+                                                                                              forceBlock: true,
+                                                                                          }}
+                                                                                      >
+                                                                                          {
+                                                                                              elem
+                                                                                          }
+                                                                                      </Markdown>
+                                                                                  )
+                                                                              )}
                                                                   </span>
                                                               </div>
                                                           </div>
