@@ -364,13 +364,22 @@ class ScheduledEvent extends Component {
                                                     fontSize: 14,
                                                     display: 'block',
                                                     textAlign: 'justify',
+                                                    whiteSpace: 'pre-wrap',
                                                 }}
                                             >
-                                                {note.content && (
-                                                    <Markdown>
-                                                        {note.content}
-                                                    </Markdown>
-                                                )}
+                                                {note.content &&
+                                                    note.content
+                                                        .split('\n')
+                                                        .map((elem, index) => (
+                                                            <Markdown
+                                                                key={`${elem}-${index}`}
+                                                                options={{
+                                                                    forceBlock: true,
+                                                                }}
+                                                            >
+                                                                {elem}
+                                                            </Markdown>
+                                                        ))}
                                             </span>
                                             <span
                                                 style={{
@@ -718,13 +727,32 @@ class ScheduledEvent extends Component {
                                                                             'block',
                                                                         textAlign:
                                                                             'justify',
+                                                                        whiteSpace:
+                                                                            'pre-wrap',
                                                                     }}
                                                                 >
-                                                                    <Markdown>
-                                                                        {
-                                                                            note.content
-                                                                        }
-                                                                    </Markdown>
+                                                                    {note.content &&
+                                                                        note.content
+                                                                            .split(
+                                                                                '\n'
+                                                                            )
+                                                                            .map(
+                                                                                (
+                                                                                    elem,
+                                                                                    index
+                                                                                ) => (
+                                                                                    <Markdown
+                                                                                        key={`${elem}-${index}`}
+                                                                                        options={{
+                                                                                            forceBlock: true,
+                                                                                        }}
+                                                                                    >
+                                                                                        {
+                                                                                            elem
+                                                                                        }
+                                                                                    </Markdown>
+                                                                                )
+                                                                            )}
                                                                 </span>
                                                                 <span
                                                                     style={{
