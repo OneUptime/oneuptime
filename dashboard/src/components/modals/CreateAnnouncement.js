@@ -39,14 +39,18 @@ class CreateAnnouncement extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.handleCloseModal();
-            case 'Enter':
-                return document.getElementById('createAnnouncementBtn').click();
-            default:
-                return false;
+    handleKeyBoard = event => {
+        if (event.target.localName !== 'textarea' && event.key) {
+            switch (event.key) {
+                case 'Escape':
+                    return this.handleCloseModal();
+                case 'Enter':
+                    return document
+                        .getElementById('createAnnouncementBtn')
+                        .click();
+                default:
+                    return false;
+            }
         }
     };
 
