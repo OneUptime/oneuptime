@@ -15,6 +15,7 @@ import {
 import { ACCOUNTS_URL } from '../config';
 import { ListLoader } from './basic/Loader';
 import AffectedResources from './basic/AffectedResources';
+import { Link } from 'react-router-dom';
 
 class ScheduledEvent extends Component {
     componentDidMount() {
@@ -272,7 +273,12 @@ class ScheduledEvent extends Component {
                                     }}
                                 >
                                     Scheduled Maintenance Report for{' '}
-                                    {statusData.name}
+                                    <Link
+                                        style={{ color: 'rgba(0, 0, 0, 0.6)' }}
+                                        to={`/status-page/${statusData.slug}`}
+                                    >
+                                        {statusData.name}
+                                    </Link>
                                 </p>
                             </div>
                             <span

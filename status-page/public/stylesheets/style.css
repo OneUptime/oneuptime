@@ -70,7 +70,8 @@ ul.plain {
 }
 
 a { color: #6772e5; text-decoration: none; }
-a:hover { color: #4c4c4c; }
+/* a:hover { color: #4c4c4c; } */
+a:hover { color: #6772e5 !important; }
 
 
 /******* Simple Bar Chart *******/
