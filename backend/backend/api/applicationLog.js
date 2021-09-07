@@ -417,4 +417,29 @@ router.put(
     }
 );
 
+router.post(
+    '/:projectId/:componentId/:applicationLogId/search',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        const { applicationLogId } = req.params;
+        const startTime = new Date();
+        const duration = req.body.time;
+        const text = req.body.filter;
+        const endTime = new Date(startTime.getTime() + duration * 60000);
+        let response;
+        if (text) {
+            response = await LogService.search({}, text);
+        }
+        if (duration) {
+            response = await LogService.searchByDuration({
+                applicationLogId,
+                startTime,
+                endTime,
+            });
+        }
+        return sendItemResponse(req, res, response);
+    }
+);
+
 module.exports = router;
