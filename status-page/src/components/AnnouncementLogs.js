@@ -7,6 +7,7 @@ import { bindActionCreators } from 'redux';
 import moment from 'moment';
 import ShouldRender from './ShouldRender';
 import { handleResources } from '../config';
+import Markdown from 'markdown-to-jsx';
 
 class AnnouncementLogs extends Component {
     state = {
@@ -85,8 +86,24 @@ class AnnouncementLogs extends Component {
                                             <div
                                                 className="incident_desc"
                                                 id={`event-description-`}
+                                                style={{
+                                                    whiteSpace: 'pre-wrap',
+                                                }}
                                             >
-                                                {log.announcementId.description}
+                                                {log.announcementId
+                                                    .description &&
+                                                    log.announcementId.description
+                                                        .split('\n')
+                                                        .map((elem, index) => (
+                                                            <Markdown
+                                                                key={`${elem}-${index}`}
+                                                                options={{
+                                                                    forceBlock: true,
+                                                                }}
+                                                            >
+                                                                {elem}
+                                                            </Markdown>
+                                                        ))}
                                             </div>
                                             <ShouldRender
                                                 if={
@@ -221,13 +238,38 @@ class AnnouncementLogs extends Component {
                                                                             .name
                                                                     }
                                                                 </div>
-                                                                <div className="ct_desc">
+                                                                <div
+                                                                    className="ct_desc"
+                                                                    style={{
+                                                                        whiteSpace:
+                                                                            'pre-wrap',
+                                                                    }}
+                                                                >
                                                                     <Translate>
-                                                                        {
-                                                                            log
-                                                                                .announcementId
-                                                                                .description
-                                                                        }
+                                                                        {log
+                                                                            .announcementId
+                                                                            .description &&
+                                                                            log.announcementId.description
+                                                                                .split(
+                                                                                    '\n'
+                                                                                )
+                                                                                .map(
+                                                                                    (
+                                                                                        elem,
+                                                                                        index
+                                                                                    ) => (
+                                                                                        <Markdown
+                                                                                            key={`${elem}-${index}`}
+                                                                                            options={{
+                                                                                                forceBlock: true,
+                                                                                            }}
+                                                                                        >
+                                                                                            {
+                                                                                                elem
+                                                                                            }
+                                                                                        </Markdown>
+                                                                                    )
+                                                                                )}
                                                                     </Translate>
                                                                 </div>
                                                                 <ShouldRender
