@@ -334,7 +334,11 @@ export class MonitorDetail extends Component {
                                     : 'Padding-left--20'
                             }`}
                         >
-                            <Badge color={'slate5'}>
+                            <Badge
+                                color={'slate5'}
+                                backgroundColor="#fff"
+                                fontColor="#000"
+                            >
                                 {monitor && monitor.resourceCategory
                                     ? monitor.resourceCategory.name
                                     : ''}
