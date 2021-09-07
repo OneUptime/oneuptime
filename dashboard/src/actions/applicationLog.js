@@ -464,3 +464,36 @@ export function getLogSuccess(log) {
         payload: log,
     };
 }
+
+export function searchLog(projectId, componentId, applicationLogId, payload) {
+    return function(dispatch) {
+        const promise = postApi(
+            `application-log/${projectId}/${componentId}/${applicationLogId}/search`,
+            payload
+        );
+        promise.then(
+            function(response) {
+                dispatch(
+                    fetchLogsSuccess({
+                        applicationLogId,
+                        logs: response.data.searchedLogs,
+                        count: response.data.totalSearchCount,
+                    })
+                );
+            },
+            function(error) {
+                if (error && error.response && error.response.data)
+                    error = error.response.data;
+                if (error && error.data) {
+                    error = error.data;
+                }
+                if (error && error.message) {
+                    error = error.message;
+                } else {
+                    error = 'Network Error';
+                }
+            }
+        );
+        return promise;
+    };
+}
