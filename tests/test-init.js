@@ -885,6 +885,30 @@ const _this = {
             timeout: _this.timeout,
         });
     },
+    addHttpTestServerMonitorToComponent: async function(
+        component,
+        monitorName,
+        page
+    ) {
+        component && (await _this.addComponent(component, page));
+        await _this.pageWaitForSelector(page, 'input[id=name]');
+        await _this.pageClick(page, 'input[id=name]');
+        await page.focus('input[id=name]');
+        await _this.pageType(page, 'input[id=name]', monitorName);
+        await _this.pageWaitForSelector(page, 'button[id=showMoreMonitors]');
+        await _this.pageClick(page, 'button[id=showMoreMonitors]');
+        await _this.pageClick(page, '[data-testId=type_url]');
+        await _this.pageWaitForSelector(page, '#url', {
+            visible: true,
+            timeout: _this.timeout,
+        });
+        await _this.pageClick(page, '#url');
+        await _this.pageType(page, '#url', 'http://localhost:3010');
+        await _this.pageClickNavigate(page, 'button[type=submit]');
+        await _this.pageWaitForSelector(page, `#monitor-title-${monitorName}`, {
+            visible: true,
+        });
+    },
     addMonitorToComponent: async function(component, monitorName, page) {
         component && (await _this.addComponent(component, page));
         await _this.pageWaitForSelector(page, 'input[id=name]');
