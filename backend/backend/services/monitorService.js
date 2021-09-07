@@ -304,10 +304,19 @@ module.exports = {
         );
 
         const select =
-            '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+            '_id monitorStatus name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+        const populate = [
+            {
+                path: 'monitorSla',
+                select: 'frequency _id',
+            },
+            { path: 'componentId', select: 'name' },
+            { path: 'incidentCommunicationSla', select: '_id' },
+            { path: 'resourceCategory', select: 'name' },
+        ];
         const query = { _id };
 
-        const monitor = await this.findOneBy({ query, select });
+        const monitor = await this.findOneBy({ query, select, populate });
         RealTimeService.monitorEdit(monitor);
         return monitor;
     },
@@ -411,14 +420,15 @@ module.exports = {
             query.deleted = false;
 
             const select =
-                '_id monitorStatus name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+                '_id monitorStatus name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
             const populate = [
                 {
                     path: 'monitorSla',
                     select: 'frequency _id',
                 },
-                { path: 'componentId', select: 'name slug' },
+                { path: 'componentId', select: 'name' },
                 { path: 'incidentCommunicationSla', select: '_id' },
+                { path: 'resourceCategory', select: 'name' },
             ];
             const monitor = await this.findOneBy({ query, select, populate });
             // run in the background
@@ -1630,11 +1640,21 @@ module.exports = {
                     }
 
                     const select =
-                        '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria lastPingTime lastMatchedCriterion method disabled customFields';
+                        '_id monitorStatus name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+                    const populate = [
+                        {
+                            path: 'monitorSla',
+                            select: 'frequency _id',
+                        },
+                        { path: 'componentId', select: 'name' },
+                        { path: 'incidentCommunicationSla', select: '_id' },
+                        { path: 'resourceCategory', select: 'name' },
+                    ];
 
                     const monitorData = await this.findOneBy({
                         query: { _id: monitor._id },
                         select,
+                        populate,
                     });
                     // run in the background
                     RealTimeService.monitorEdit(monitorData);

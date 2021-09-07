@@ -40,7 +40,7 @@ const socket = io.connect(REALTIME_URL.replace('/realtime', ''), {
     path: '/realtime/socket.io',
     transports: ['websocket', 'polling'],
 });
-class DashboardView extends Component {
+class MonitorDashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Monitors');
         if (SHOULD_LOG_ANALYTICS) {
@@ -595,7 +595,7 @@ const mapStateToProps = (state, ownProps) => {
     };
 };
 
-DashboardView.propTypes = {
+MonitorDashboardView.propTypes = {
     currentProject: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
@@ -638,6 +638,9 @@ DashboardView.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-DashboardView.displayName = 'DashboardView';
+MonitorDashboardView.displayName = 'MonitorDashboardView';
 
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardView);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(MonitorDashboardView);
