@@ -98,4 +98,79 @@ const DoubleArrowDown = () => {
     );
 };
 
-export { ArrowDown, ArrowRight, CopyIcon, EyeIcon, DoubleArrowDown };
+const HelpIcon = () => {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+        >
+            <path fill="none" d="M0 0h24v24H0z" />
+            <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm-1-5h2v2h-2v-2zm2-1.645V14h-2v-1.5a1 1 0 0 1 1-1 1.5 1.5 0 1 0-1.471-1.794l-1.962-.393A3.501 3.501 0 1 1 13 13.355z" />
+        </svg>
+    );
+};
+
+const BookmarkIcon = () => {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+        >
+            <path fill="none" d="M0 0h24v24H0z" />
+            <path
+                d="M6 4v4h12V4h2.007c.548 0 .993.445.993.993v16.014a.994.994 0 0 1-.993.993H3.993A.994.994 0 0 1 3 21.007V4.993C3 4.445 3.445 4 3.993 4H6zm2-2h8v4H8V2z"
+                fill="rgba(147,157,184,1)"
+            />
+        </svg>
+    );
+};
+
+const TimeIcon = () => {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+        >
+            <path fill="none" d="M0 0h24v24H0z" />
+            <path
+                d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm1-8h4v2h-6V7h2v5z"
+                fill="rgba(147,157,184,1)"
+            />
+        </svg>
+    );
+};
+
+const CancelIcon = () => {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+        >
+            <path fill="none" d="M0 0h24v24H0z" />
+            <path
+                d="M12 10.586l4.95-4.95 1.414 1.414-4.95 4.95 4.95 4.95-1.414 1.414-4.95-4.95-4.95 4.95-1.414-1.414 4.95-4.95-4.95-4.95L7.05 5.636z"
+                fill="rgba(147,157,184,1)"
+            />
+        </svg>
+    );
+};
+
+export {
+    ArrowDown,
+    ArrowRight,
+    CopyIcon,
+    EyeIcon,
+    DoubleArrowDown,
+    HelpIcon,
+    BookmarkIcon,
+    TimeIcon,
+    CancelIcon,
+};
