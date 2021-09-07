@@ -83,7 +83,7 @@ describe('Monitor API', () => {
             testServerMonitorName,
             page
         );
-        //await page.waitForTimeout(600000);
+
         await init.pageWaitForSelector(page, '#notificationscroll', {
             visbile: true,
             timeout: 360000,
