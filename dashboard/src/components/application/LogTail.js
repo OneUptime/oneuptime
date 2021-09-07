@@ -33,17 +33,27 @@ class LogTail extends Component {
             {
                 type: logName,
                 createdAt: newDate,
-                stringifiedContent: `Welcome to ${logName} logs`,
-            },
-            {
-                type: logName,
-                createdAt: newDate,
                 stringifiedContent: '',
             },
             {
                 type: logName,
                 createdAt: newDate,
                 stringifiedContent: `----------------------`,
+            },
+            {
+                type: logName,
+                createdAt: newDate,
+                stringifiedContent: `Welcome to ${logName} logs`,
+            },
+            {
+                type: logName,
+                createdAt: newDate,
+                stringifiedContent: `----------------------`,
+            },
+            {
+                type: logName,
+                createdAt: newDate,
+                stringifiedContent: '',
             },
         ];
         const noItem = {
