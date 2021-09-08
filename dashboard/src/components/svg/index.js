@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const ArrowDown = () => {
     return (
@@ -163,6 +164,81 @@ const CancelIcon = () => {
     );
 };
 
+const TimeFilledIcon = () => {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+        >
+            <path fill="none" d="M0 0h24v24H0z" />
+            <path
+                d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm1-10V7h-2v7h6v-2h-4z"
+                fill="rgba(147,157,184,1)"
+            />
+        </svg>
+    );
+};
+
+const CircleIcon = ({ className }) => {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="9"
+            height="9"
+            className={className}
+        >
+            <path fill="none" d="M0 0h24v24H0z" />
+            <path
+                d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"
+                fill="rgba(147,157,184,1)"
+            />
+        </svg>
+    );
+};
+
+const DashIcon = ({ className }) => {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="12"
+            height="12"
+            className={className}
+        >
+            <path fill="none" d="M0 0h24v24H0z" />
+            <path d="M5 11h14v2H5z" fill="rgba(147,157,184,1)" />
+        </svg>
+    );
+};
+
+const DocumentIcon = () => {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="40"
+            height="40"
+        >
+            <path fill="none" d="M0 0h24v24H0z" />
+            <path
+                d="M19 22H5a3 3 0 0 1-3-3V3a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v12h4v4a3 3 0 0 1-3 3zm-1-5v2a1 1 0 0 0 2 0v-2h-2zm-2 3V4H4v15a1 1 0 0 0 1 1h11zM6 7h8v2H6V7zm0 4h8v2H6v-2zm0 4h5v2H6v-2z"
+                fill="rgba(147,157,184,1)"
+            />
+        </svg>
+    );
+};
+
+CircleIcon.propTypes = {
+    className: PropTypes.string,
+};
+
+DashIcon.propTypes = {
+    className: PropTypes.string,
+};
+
 export {
     ArrowDown,
     ArrowRight,
@@ -173,4 +249,8 @@ export {
     BookmarkIcon,
     TimeIcon,
     CancelIcon,
+    TimeFilledIcon,
+    CircleIcon,
+    DashIcon,
+    DocumentIcon,
 };
