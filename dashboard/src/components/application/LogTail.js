@@ -1,7 +1,7 @@
 import React, { Component, useState } from 'react';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
-import { ArrowDown, ArrowRight, CopyIcon } from '../svg';
+import { ArrowDown, ArrowRight, CopyIcon, DocumentIcon } from '../svg';
 import { connect } from 'react-redux';
 import moment from 'moment';
 import ReactJson from 'react-json-view';
@@ -61,32 +61,48 @@ class LogTail extends Component {
             createdAt: newDate,
             stringifiedContent: `You've no logs yet`,
         };
+
         return (
             <div className="bs-loglist">
-                <ShouldRender if={logs && logs.error}>
-                    <div className="bs-log-error">{'logs.error'}</div>
-                </ShouldRender>
-                <ShouldRender if={logs && !logs.error}>
-                    {items.length > 0 &&
-                        items.map((item, index) => (
-                            <>
-                                <LogItem key={index} value={item} />
-                            </>
-                        ))}
-                    {logs &&
-                        logs.logs &&
-                        logs.logs.length > 0 &&
-                        logs.logs.map((log, index) => (
-                            <>
-                                <LogItem key={index} value={log} />
-                            </>
-                        ))}
-                    {logs && logs.logs && logs.logs.length < 1 && (
-                        <>
-                            <LogItem value={noItem} />
-                        </>
-                    )}
-                </ShouldRender>
+                {logs && logs.requesting ? (
+                    <div className="log-requesting">
+                        <div>
+                            <div>
+                                <DocumentIcon />
+                            </div>
+                            <div>Loading content...</div>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <ShouldRender if={logs && logs.error}>
+                            <div className="bs-log-error">
+                                {logs && logs.error}
+                            </div>
+                        </ShouldRender>
+                        <ShouldRender if={logs && !logs.error}>
+                            {items.length > 0 &&
+                                items.map((item, index) => (
+                                    <>
+                                        <LogItem key={index} value={item} />
+                                    </>
+                                ))}
+                            {logs &&
+                                logs.logs &&
+                                logs.logs.length > 0 &&
+                                logs.logs.map((log, index) => (
+                                    <>
+                                        <LogItem key={index} value={log} />
+                                    </>
+                                ))}
+                            {logs && logs.logs && logs.logs.length < 1 && (
+                                <>
+                                    <LogItem value={noItem} />
+                                </>
+                            )}
+                        </ShouldRender>
+                    </>
+                )}
             </div>
         );
     }
