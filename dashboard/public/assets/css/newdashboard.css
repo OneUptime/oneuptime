@@ -11662,11 +11662,12 @@ table {
 }
 
 .bs-search-log {
-    width: 30px;
+    width: 40px;
     display: flex;
     justify-content: center;
     align-items: center;
     border-left: 1px solid rgba(147,157,184,1);
+    background-color: #2E3648;
 }
 
 .bs-search-frame {
@@ -11678,15 +11679,28 @@ table {
 }
 
 .ddm-dropdown-log {
-    background-color: white;
+    background-color: #283041;
     position: absolute;
     width: 100%;
-    height: 200px;
+    height: 220px;
     top: 10px;
     z-index: 5;
-    border: 1px solid rgba(0, 0, 0, 0.04);
-    box-shadow: 0 0 0 2px rgba(50, 50, 93, 0.1), 0 2px 5px 0 rgba(50, 50, 93, 0.08), 0 1px 1.5px 0 rgba(0, 0, 0, 0.07), 0 1px 2px 0 rgba(0, 0, 0, 0.08), 0 0 0 0 transparent;
-    overflow: auto;
+    border: 1px solid #4d5770;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1),0 4px 6px -2px rgba(0,0,0,0.05);
+    border-radius: 5px;
+}
+
+.ddm-dropdown-log-2 {
+    background-color: #fff;
+    position: absolute;
+    /* width: 100%; */
+    height: 220px;
+    top: 10px;
+    z-index: 5;
+    border: 1px solid #4d5770;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1),0 4px 6px -2px rgba(0,0,0,0.05);
+    border-radius: 5px;
+    margin-right: -50px;
 }
 
 .bs-search-item {
@@ -11722,6 +11736,156 @@ table {
 
 .bs-cursor-log {
     cursor: pointer;
+}
+
+.bs-search-log-frame {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.bs-time-log {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 10px;
+    border: 1px solid rgba(147,157,184,1);
+    background-color: #2E3648;
+    border-radius: 5px;
+}
+
+.bs-app-log {
+    width: 90%;
+}
+
+.bs-flex-log {
+    flex: 1;
+}
+
+.bs-log-bg {
+    background-color: #2E3648 !important;
+    border-radius: 0px;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    color: #fff !important;
+    padding-left: 15px;
+}
+
+.bs-log-bg-theme {
+    background-color: #202839 !important;
+    color: #fff;
+    box-shadow: inset 0 -1px rgba(147,157,184,1) !important;
+}
+
+.bs-log-display {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+.bs-log-display > div:nth-child(1) {
+    width: 30%;
+    color: #fff;
+    padding-top: 5px;
+    overflow: auto;
+}
+
+.bs-log-display > div:nth-child(2) {
+    width: 70%;
+    background-color: #2E3647;
+    padding: 2rem;
+}
+
+.bs-relative {
+    display: block;
+    font-weight: 600;
+    padding: 2rem 2rem .625rem !important;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    width: 100% !important;
+    color: #939db8 !important;
+}
+
+.bs-log-display ul li {
+    display: block;
+    font-weight: 500;
+    padding: .625rem 2rem;
+    cursor: pointer;
+}
+
+.bs-log-display ul li:hover {
+    background-color: #5251f6;
+}
+
+.bs-custom-log {
+    color: #939db8 !important;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-weight: 600;
+}
+
+.log-custom-form {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bs-log-display > div:nth-child(2) form {
+    margin-top: 15px;
+}
+
+.bs-log-where {
+    color: #fff;
+}
+
+.bs-log-field {
+    background-color: #202839 !important;
+    border: 1px solid #202839;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+.bs-log-apply {
+    background-color: #5251f6;
+    color: #fff;
+    border: 1px solid #5251f6;
+    padding: 10px 20px;
+    border-radius: 5px;
+    margin-top: 32px;
+}
+
+.bs-log-where, .bs-log-where div {
+    margin-top: 10px;
+}
+
+.bs-icon-log-r {
+    margin-right: -4px;
+}
+.bs-icon-log {
+    margin-top: 36px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.bs-icon-log-l {
+    margin-left: -4px;
+    font-size: 18px;
+    color: #939db8 !important;
+}
+
+.log-requesting {
+    height: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.log-requesting > div {
+    text-align: center;
+    color: rgb(147, 157, 184);
 }
 
 @media (max-width: 1335px)
