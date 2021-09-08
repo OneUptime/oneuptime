@@ -92,7 +92,7 @@ const SearchInput = props => {
             fetchLogs();
         }
         if (typeof val === 'object') {
-            const testRegex = /^now(-\d{1,2}h)?$/; // /(now)-?(\d{1,2}h)?/;
+            const testRegex = /^now(-\d{1,2}h)?$/;
             if (!testRegex.test(val.log_from) || !testRegex.test(val.log_to)) {
                 setError('The input does not match format');
             } else {
