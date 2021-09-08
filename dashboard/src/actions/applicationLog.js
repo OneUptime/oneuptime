@@ -471,6 +471,7 @@ export function searchLog(projectId, componentId, applicationLogId, payload) {
             `application-log/${projectId}/${componentId}/${applicationLogId}/search`,
             payload
         );
+        dispatch(fetchLogsRequest({ applicationLogId }));
         promise.then(
             function(response) {
                 dispatch(
@@ -492,6 +493,9 @@ export function searchLog(projectId, componentId, applicationLogId, payload) {
                 } else {
                     error = 'Network Error';
                 }
+                dispatch(
+                    fetchLogsFailure({ applicationLogId, error: errors(error) })
+                );
             }
         );
         return promise;
