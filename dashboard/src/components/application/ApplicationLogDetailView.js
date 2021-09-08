@@ -72,9 +72,12 @@ class ApplicationLogDetailView extends Component {
                 <ShouldRender if={stats && !stats.requesting}>
                     <div
                         className="db-TrendRow db-ListViewItem-header db-Trends-header"
-                        style={{ display: 'flex', justifyContent: 'center' }}
+                        style={{
+                            justifyContent: 'center',
+                            backgroundColor: '#202839',
+                        }}
                     >
-                        <div>
+                        <div className="bs-app-log">
                             <SearchInput
                                 projectId={projectId}
                                 componentId={componentId}
@@ -92,38 +95,6 @@ class ApplicationLogDetailView extends Component {
                         <div className="">
                             <div className="Box-root">
                                 <div>
-                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span>
-                                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <ShouldRender
-                                                        if={!this.state.display}
-                                                    >
-                                                        <span>
-                                                            Here&apos;s a list
-                                                            of recent logs which
-                                                            belong to this log
-                                                            container.
-                                                        </span>
-                                                    </ShouldRender>
-                                                    <ShouldRender
-                                                        if={this.state.display}
-                                                    >
-                                                        <span>
-                                                            Showing results for:{' '}
-                                                            <span className="bs-log-bold">
-                                                                {
-                                                                    this.state
-                                                                        .display
-                                                                }
-                                                            </span>
-                                                        </span>
-                                                    </ShouldRender>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
                                     <LogTail applicationLog={applicationLog} />
                                 </div>
                             </div>
