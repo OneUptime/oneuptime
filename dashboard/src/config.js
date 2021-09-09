@@ -61,6 +61,10 @@ export const IS_LOCALHOST = isLocalhost;
 export const STATUSPAGE_DOMAIN =
     process.env.STATUSPAGE_DOMAIN || env('STATUSPAGE_DOMAIN');
 
+export const SENTRY_DSN = process.env.SENTRY_DSN || env('SENTRY_DSN');
+
+export const VERSION = process.env.VERSION || env('VERSION');
+
 export const User = {
     getAccessToken() {
         return localStorage.getItem('access_token');

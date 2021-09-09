@@ -14,6 +14,8 @@
     },
     "homepage": "https://github.com/fyipe/api-docs#readme",
     "dependencies": {
+        "@sentry/node": "^6.12.0",
+        "@sentry/tracing": "^6.12.0",
         "chai": "^4.2.0",
         "chai-http": "^4.3.0",
         "cors": "^2.8.5",

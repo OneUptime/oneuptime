@@ -31,7 +31,9 @@ spec:
                       cpu: 500m
                   env:
                       - name: NODE_ENV
-                        value: 'production'
+                        value: {{ .Values.nodeEnv }}
+                      - name: SENTRY_DSN
+                        value: {{ .Values.sentry.backend.dsn }}
                       - name: SERVER_URL
                         value: {{ template "fyipe.serverUrl" $ }}
                       - name: IS_SAAS_SERVICE

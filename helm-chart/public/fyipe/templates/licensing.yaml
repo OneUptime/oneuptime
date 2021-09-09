@@ -44,7 +44,9 @@ spec:
                     - name: TOKEN_SECRET
                       value: {{ .Values.saas.licensing.tokenSecret }}
                     - name: NODE_ENV
-                      value: 'production'
+                      value: {{ .Values.nodeEnv }}
+                    - name: SENTRY_DSN
+                      value: {{ .Values.sentry.backend.dsn }}
                   ports:
                       - containerPort: {{ .Values.host.licensingPort }}
                         hostPort: {{ .Values.host.licensingPort }}
