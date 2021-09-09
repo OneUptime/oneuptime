@@ -25,9 +25,7 @@ class LogTail extends Component {
         });
         const { logs, applicationLog } = this.props;
         const firstItem = logs?.logs[0];
-        const newDate = moment(firstItem?.createdAt).format(
-            'YYYY-MM-DD HH:mm:ss:mm'
-        );
+        const newDate = firstItem?.createdAt;
         const logName = applicationLog.name;
         const items = [
             {
