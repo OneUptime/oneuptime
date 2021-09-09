@@ -31,7 +31,9 @@ spec:
                       - name: DOMAIN
                         value: {{ .Values.domain }}
                       - name: NODE_ENV
-                        value: 'production'
+                        value: {{ .Values.nodeEnv }}
+                      - name: SENTRY_DSN
+                        value: {{ .Values.sentry.dashboard.dsn }}
                       - name: PUSHNOTIFICATION_PUBLIC_KEY
                         value: {{ .Values.pushNotification.publicKey }}
                       {{- if .Values.statusPageDomain }}

@@ -73,6 +73,7 @@ module.exports = {
             // await ApiService.removeProbeScan(monitorIds);
         } catch (error) {
             ErrorService.log('getApi', error);
+            global.Sentry.captureException(error);
         }
     },
 };
