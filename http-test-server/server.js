@@ -41,6 +41,7 @@ Sentry.init({
     dsn: process.env.SENTRY_DSN,
     release: `http-test-server@${process.env.npm_package_version}`,
     environment: process.env.NODE_ENV,
+    tracesSampleRate: 0.0,
 });
 
 // Sentry: The request handler must be the first middleware on the app

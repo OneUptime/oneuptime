@@ -27,7 +27,7 @@ Sentry.init({
             app,
         }),
     ],
-    tracesSampleRate: 1.0,
+    tracesSampleRate: 0.0,
 });
 
 process.on('exit', () => {

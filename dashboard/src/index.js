@@ -18,7 +18,7 @@ Sentry.init({
     release: `fyipe-dashboard@${VERSION}`,
     integrations: [new Integrations.BrowserTracing()],
     environment: process.env.NODE_ENV,
-    tracesSampleRate: 1.0,
+    tracesSampleRate: 0.0,
 });
 
 if (!isServer) {

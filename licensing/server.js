@@ -34,7 +34,7 @@ Sentry.init({
     ],
     environment: process.env.NODE_ENV,
     release: `fyipe-licensing@${process.env.npm_package_version}`,
-    tracesSampleRate: 1.0,
+    tracesSampleRate: 0.0,
 });
 
 const path = require('path');

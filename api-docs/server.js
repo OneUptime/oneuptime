@@ -37,7 +37,7 @@ Sentry.init({
     ],
     environment: process.env.NODE_ENV,
     release: `fyipe-api-docs@${process.env.npm_package_version}`,
-    tracesSampleRate: 1.0,
+    tracesSampleRate: 0.0,
 });
 
 app.use(Sentry.Handlers.requestHandler());
