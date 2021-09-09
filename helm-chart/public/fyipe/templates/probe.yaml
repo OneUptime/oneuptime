@@ -62,9 +62,9 @@ spec:
                         value: {{ $.Values.saas.slackErrorLog.channel }}
                       {{- end }}
                       - name: NODE_ENV
-                        value: {{ .Values.nodeEnv }}
+                        value: {{ $.Values.nodeEnv }}
                       - name: SENTRY_DSN
-                        value: {{ .Values.sentry.probe.dsn }}
+                        value: {{ $.Values.sentry.probe.dsn }}
                   ports:
                       - containerPort: {{ $value.port }}
                         hostPort: {{ $value.port }}
