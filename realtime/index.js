@@ -44,7 +44,7 @@ Sentry.init({
             app,
         }),
     ],
-    tracesSampleRate: 1.0,
+    tracesSampleRate: 0.0,
 });
 
 // Sentry: The request handler must be the first middleware on the app
