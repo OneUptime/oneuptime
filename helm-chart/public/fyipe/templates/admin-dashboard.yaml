@@ -36,7 +36,7 @@ spec:
                       value: {{ .Values.fyipe.licensingUrl }}
                     {{- end }}
                     - name: NODE_ENV
-                        value: {{ .Values.nodeEnv }}
+                      value: {{ .Values.nodeEnv }}
                     - name: SENTRY_DSN
                       value: {{ .Values.sentry.adminDashboard.dsn }}
                     - name: IS_THIRD_PARTY_BILLING
