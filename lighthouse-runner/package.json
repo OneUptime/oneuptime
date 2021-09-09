@@ -13,6 +13,7 @@
     "author": "David Adewole",
     "license": "MIT",
     "dependencies": {
+        "@sentry/node": "^6.12.0",
         "axios": "^0.21.1",
         "chrome-launcher": "^0.14.0",
         "cors": "^2.8.5",

@@ -27,12 +27,22 @@ process.on('uncaughtException', err => {
 });
 
 const express = require('express');
+const Sentry = require('@sentry/node');
 const app = express();
 const http = require('http').createServer(app);
 const cors = require('cors');
 const Main = require('./worker/main');
 const cron = require('node-cron');
 const config = require('./utils/config');
+
+Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    release: `applicationscanner@${process.env.npm_package_version}`,
+    environment: process.env.NODE_ENV,
+});
+
+// Sentry: The request handler must be the first middleware on the app
+app.use(Sentry.Handlers.requestHandler());
 
 const cronApplicationSecurityStartTime = Math.floor(Math.random() * 50);
 
@@ -64,6 +74,9 @@ app.get(['/application/version', '/version'], function(req, res) {
     res.setHeader('Content-Type', 'application/json');
     res.send({ applicationScannerVersion: process.env.npm_package_version });
 });
+
+app.use(Sentry.Handlers.errorHandler());
+global.Sentry = Sentry;
 
 // Run this cron every 5 minute.
 cron.schedule('*/5 * * * *', () => {

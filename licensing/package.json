@@ -3,6 +3,8 @@
     "version": "3.0.0",
     "private": true,
     "dependencies": {
+        "@sentry/node": "^6.12.0",
+        "@sentry/tracing": "^6.12.0",
         "airtable": "^0.10.1",
         "body-parser": "^1.19.0",
         "chai": "^4.2.0",

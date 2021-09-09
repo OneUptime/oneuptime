@@ -31,7 +31,9 @@ spec:
                     - name: FYIPE_HOST
                       value: {{ .Values.fyipe.hosts.host1.host }}
                     - name: NODE_ENV
-                      value: 'production'
+                      value: {{ .Values.nodeEnv }}
+                    - name: SENTRY_DSN
+                      value: {{ .Values.sentry.statusPage.dsn }}
                     - name: BACKEND_URL
                       value: {{ template "fyipe.backendHost" . }}
                     - name: MONGO_URL

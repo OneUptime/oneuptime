@@ -253,6 +253,7 @@ class DeleteAccount extends Component {
                                                             onClick={() =>
                                                                 this.props.logoutUser()
                                                             }
+                                                            id="close"
                                                         >
                                                             <span>Close</span>
                                                         </button>
