@@ -37,7 +37,9 @@ spec:
                             name: {{ printf "%s-%s" .Release.Name "configmap"  }}
                             key: clusterkey
                       - name: NODE_ENV
-                        value: 'production'
+                        value: {{ .Values.nodeEnv }}
+                      - name: SENTRY_DSN
+                        value: {{ .Values.sentry.realtime.dsn }}
                   ports:
                       - containerPort: {{ .Values.host.realtimePort }}
                         hostPort: {{ .Values.host.realtimePort }}

@@ -29,7 +29,9 @@ spec:
                     cpu: 500m
                 env:
                     - name: NODE_ENV
-                      value: 'production'
+                      value: {{ .Values.nodeEnv }}
+                    - name: SENTRY_DSN
+                      value: {{ .Values.sentry.containerScanner.dsn }}
                     - name: PORT
                       value: {{ .Values.host.containerScannerPort | quote }}
                     - name: SERVER_URL
