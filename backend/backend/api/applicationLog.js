@@ -428,7 +428,10 @@ router.post(
         const endTime = new Date(startTime.getTime() + duration * 60000);
         let response;
         if (filter) {
-            response = await LogService.search({}, filter);
+            response = await LogService.search(
+                { applicationLogId, deleted: false },
+                filter
+            );
         }
         if (duration) {
             response = await LogService.searchByDuration({
