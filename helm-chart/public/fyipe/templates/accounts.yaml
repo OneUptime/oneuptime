@@ -39,7 +39,7 @@ spec:
                       - name: NODE_ENV
                         value: {{ .Values.nodeEnv }}
                       - name: SENTRY_DSN
-                        value: {{ .Values.sentry.frontend.dsn }}
+                        value: {{ .Values.sentry.accounts.dsn }}
                       - name: DISABLE_SIGNUP
                         value: {{ .Values.disableSignup | quote  }}
                   ports:

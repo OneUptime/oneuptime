@@ -31,7 +31,7 @@ spec:
                     - name: NODE_ENV
                       value: {{ .Values.nodeEnv }}
                     - name: SENTRY_DSN
-                      value: {{ .Values.sentry.backend.dsn }}
+                      value: {{ .Values.sentry.applicationScanner.dsn }}
                     - name: PORT
                       value: {{ .Values.host.applicationScannerPort | quote }}
                     - name: SERVER_URL

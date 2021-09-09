@@ -38,7 +38,7 @@ spec:
                     - name: NODE_ENV
                       value: {{ .Values.nodeEnv }}
                     - name: SENTRY_DSN
-                      value: {{ .Values.sentry.backend.dsn }}
+                      value: {{ .Values.sentry.httpTestServer.dsn }}
                   ports:
                       - containerPort: {{ .Values.host.httpTestServerPort }}
                         hostPort: {{ .Values.host.httpTestServerPort }}

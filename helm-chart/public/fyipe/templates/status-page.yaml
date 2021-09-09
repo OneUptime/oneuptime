@@ -33,7 +33,7 @@ spec:
                     - name: NODE_ENV
                       value: {{ .Values.nodeEnv }}
                     - name: SENTRY_DSN
-                      value: {{ .Values.sentry.frontend.dsn }}
+                      value: {{ .Values.sentry.statusPage.dsn }}
                     - name: BACKEND_URL
                       value: {{ template "fyipe.backendHost" . }}
                     - name: MONGO_URL

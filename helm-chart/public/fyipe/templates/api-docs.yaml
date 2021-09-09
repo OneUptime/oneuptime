@@ -41,7 +41,7 @@ spec:
                       - name: NODE_ENV
                         value: {{ .Values.nodeEnv }}
                       - name: SENTRY_DSN
-                        value: {{ .Values.sentry.backend.dsn }}
+                        value: {{ .Values.sentry.apiDocs.dsn }}
                   ports:
                       - containerPort: {{ .Values.host.apiDocsPort }}
                         hostPort: {{ .Values.host.apiDocsPort }}
