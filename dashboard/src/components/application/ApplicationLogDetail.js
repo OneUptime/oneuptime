@@ -278,6 +278,7 @@ class ApplicationLogDetail extends Component {
                                 }
                                 handleLogTypeChange={this.handleLogTypeChange}
                                 formId="applicationLogDateTimeForm"
+                                setShow={this.props.setShow}
                             />
                         </ShouldRender>
                         <ShouldRender if={applicationLog.editMode}>
@@ -380,6 +381,7 @@ ApplicationLogDetail.propTypes = {
     fetchLogs: PropTypes.func,
     startDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     endDate: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+    setShow: PropTypes.func,
 };
 export default connect(
     mapStateToProps,
