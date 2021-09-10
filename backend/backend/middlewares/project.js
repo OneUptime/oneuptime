@@ -62,8 +62,9 @@ module.exports = {
                     });
 
                     if (subProjects && subProjects.length > 0) {
-                        for (const subProject in subProjects) {
-                            const subProjectUsers = subProject.users;
+                        for (const subProject of subProjects) {
+                            // 'for in' iterate over the keys while 'for of' iterate over the values
+                            const subProjectUsers = subProject.users; // Using 'for in' made subProject.users === undefined
 
                             for (let i = 0; i < subProjectUsers.length; i++) {
                                 if (subProjectUsers[i].userId === userId) {
