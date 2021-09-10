@@ -932,7 +932,7 @@ module.exports = {
 
             const project = await ProjectService.findOneBy({
                 query: { _id: data.projectId._id || data.projectId },
-                select: 'parentProject _id',
+                select: 'parentProjectId _id',
             });
             const projectId = project
                 ? project.parentProjectId
