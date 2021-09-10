@@ -15,6 +15,8 @@
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs,puppeteer'"
     },
     "dependencies": {
+        "@sentry/node": "^6.12.0",
+        "@sentry/tracing": "^6.12.0",
         "axios": "^0.21.1",
         "body-parser": "^1.19.0",
         "cli-table": "^0.3.1",

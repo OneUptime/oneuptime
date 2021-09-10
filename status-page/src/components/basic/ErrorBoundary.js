@@ -3,15 +3,6 @@ import PropTypes from 'prop-types';
 import * as Sentry from '@sentry/react';
 
 class ErrorBoundary extends Component {
-    componentDidCatch(error, info) {
-        if (window.location.href.indexOf('localhost') <= -1) {
-            this.context.mixpanel.track('An Error has occurred', {
-                error,
-                info,
-            });
-        }
-    }
-
     render() {
         const fallback = (
             <div
@@ -44,10 +35,6 @@ class ErrorBoundary extends Component {
 }
 
 ErrorBoundary.displayName = 'ErrorBoundary';
-
-ErrorBoundary.contextTypes = {
-    mixpanel: PropTypes.object.isRequired,
-};
 
 ErrorBoundary.propTypes = {
     children: PropTypes.any,
