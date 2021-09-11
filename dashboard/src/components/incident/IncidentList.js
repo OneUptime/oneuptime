@@ -484,6 +484,9 @@ export class IncidentList extends Component {
                                                 style={{
                                                     height: '1px',
                                                 }}
+                                                id={`incident_${this.handleMonitorList(
+                                                    incident.monitors
+                                                )}_title`}
                                             >
                                                 <div
                                                     className="db-ListViewItem-cellContent Box-root Padding-all--8"
