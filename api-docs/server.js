@@ -34,6 +34,12 @@ Sentry.init({
         new Tracing.Integrations.Express({
             app,
         }),
+        new Sentry.Integrations.OnUncaughtException({
+            onFatalError() {
+                // override default behaviour
+                return;
+            },
+        }),
     ],
     environment: process.env.NODE_ENV,
     release: `fyipe-api-docs@${process.env.npm_package_version}`,
