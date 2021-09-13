@@ -17,8 +17,16 @@ import ApplicationLogViewDeleteBox from '../components/application/ApplicationLo
 import ShouldRender from '../components/basic/ShouldRender';
 import { LoadingState } from '../components/basic/Loader';
 import LibraryList from '../components/application/LibraryList';
+import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 
 class ApplicationLogView extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            show: false,
+            tabIndex: 0,
+        };
+    }
     componentDidMount() {
         if (SHOULD_LOG_ANALYTICS) {
             logEvent(
@@ -89,6 +97,15 @@ class ApplicationLogView extends Component {
             postObj
         );
     };
+
+    tabSelected = index => {
+        const tabSlider = document.getElementById('tab-slider');
+
+        setTimeout(() => {
+            tabSlider.style.transform = `translate(calc(${tabSlider.offsetWidth}px*${index}), 0px)`;
+        });
+        this.setState({ tabIndex: index });
+    };
     render() {
         const {
             location: { pathname },
@@ -131,30 +148,152 @@ class ApplicationLogView extends Component {
                     <LoadingState />
                 </ShouldRender>
                 <ShouldRender if={this.props.applicationLog[0]}>
-                    {applicationLog[0] && applicationLog[0].showQuickStart ? (
-                        <LibraryList
-                            title="Log Container"
-                            type="logs"
-                            applicationLog={this.props.applicationLog[0]}
-                            close={this.handleCloseQuickStart}
-                        />
-                    ) : null}
-                    <div>
-                        <ApplicationLogDetail
-                            componentId={componentId}
-                            index={this.props.applicationLog[0]?._id}
-                            isDetails={true}
-                            componentSlug={this.props.componentSlug}
-                        />
-                    </div>
-
-                    <div className="Box-root Margin-bottom--12">
-                        <ApplicationLogViewDeleteBox
-                            componentId={this.props.componentId}
-                            applicationLog={this.props.applicationLog[0]}
-                            componentSlug={this.props.componentSlug}
-                        />
-                    </div>
+                    <Tabs
+                        selectedTabClassName={'custom-tab-selected'}
+                        onSelect={tab => this.tabSelected(tab)}
+                        selectedIndex={this.state.tabIndex}
+                    >
+                        <div className="Flex-flex Flex-direction--columnReverse">
+                            <TabList
+                                id="customTabList"
+                                className={'custom-tab-list'}
+                            >
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 basic-tab bs-automate-tab'
+                                    }
+                                >
+                                    Basic
+                                </Tab>
+                                <Tab
+                                    className={
+                                        'custom-tab custom-tab-6 advanced-options-tab bs-automate-tab'
+                                    }
+                                >
+                                    Advanced Options
+                                </Tab>
+                                <div
+                                    id="tab-slider"
+                                    className="custom-tab-6 status-tab bs-automate-slider"
+                                ></div>
+                            </TabList>
+                        </div>
+                        <div className="Box-root">
+                            <div>
+                                <div>
+                                    <div className="db-BackboneViewContainer">
+                                        <div className="react-settings-view react-view">
+                                            <span data-reactroot="">
+                                                <div>
+                                                    <div>
+                                                        <TabPanel>
+                                                            <Fade>
+                                                                <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
+                                                                    {applicationLog[0] &&
+                                                                    applicationLog[0]
+                                                                        .showQuickStart ? (
+                                                                        <ShouldRender
+                                                                            if={
+                                                                                this
+                                                                                    .state
+                                                                                    .show
+                                                                            }
+                                                                        >
+                                                                            <LibraryList
+                                                                                title="Log Container"
+                                                                                type="logs"
+                                                                                applicationLog={
+                                                                                    this
+                                                                                        .props
+                                                                                        .applicationLog[0]
+                                                                                }
+                                                                                close={
+                                                                                    this
+                                                                                        .handleCloseQuickStart
+                                                                                }
+                                                                                setShow={() =>
+                                                                                    this.setState(
+                                                                                        {
+                                                                                            show: false,
+                                                                                        }
+                                                                                    )
+                                                                                }
+                                                                            />
+                                                                        </ShouldRender>
+                                                                    ) : null}
+                                                                    <ShouldRender
+                                                                        if={
+                                                                            !this
+                                                                                .state
+                                                                                .show
+                                                                        }
+                                                                    >
+                                                                        <div>
+                                                                            <ApplicationLogDetail
+                                                                                componentId={
+                                                                                    componentId
+                                                                                }
+                                                                                index={
+                                                                                    this
+                                                                                        .props
+                                                                                        .applicationLog[0]
+                                                                                        ?._id
+                                                                                }
+                                                                                isDetails={
+                                                                                    true
+                                                                                }
+                                                                                componentSlug={
+                                                                                    this
+                                                                                        .props
+                                                                                        .componentSlug
+                                                                                }
+                                                                                setShow={() =>
+                                                                                    this.setState(
+                                                                                        {
+                                                                                            show: true,
+                                                                                        }
+                                                                                    )
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </ShouldRender>
+                                                                </div>
+                                                            </Fade>
+                                                        </TabPanel>
+                                                        <TabPanel>
+                                                            <Fade>
+                                                                <div className="bs-ContentSection Card-root Card-shadow--medium Margin-bottom--12">
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <ApplicationLogViewDeleteBox
+                                                                            componentId={
+                                                                                this
+                                                                                    .props
+                                                                                    .componentId
+                                                                            }
+                                                                            applicationLog={
+                                                                                this
+                                                                                    .props
+                                                                                    .applicationLog[0]
+                                                                            }
+                                                                            componentSlug={
+                                                                                this
+                                                                                    .props
+                                                                                    .componentSlug
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </Fade>
+                                                        </TabPanel>
+                                                    </div>
+                                                </div>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </Tabs>
                 </ShouldRender>
             </Fade>
         );

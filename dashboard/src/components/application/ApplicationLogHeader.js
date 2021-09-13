@@ -1,15 +1,14 @@
 import React, { Component } from 'react';
 import DataPathHoC from '../DataPathHoC';
 import ViewApplicationLogKey from '../modals/ViewApplicationLogKey';
-import DeleteApplicationLog from '../modals/DeleteApplicationLog';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
-import { FormLoader } from '../basic/Loader';
 import { connect } from 'react-redux';
 import Select from '../../components/basic/react-select-fyipe';
 import SearchBox from '../basic/SearchBox';
 import DateTimeRangePicker from '../basic/DateTimeRangePicker';
 import Badge from '../common/Badge';
+import { HelpIcon } from '../svg';
 
 class ApplicationLogHeader extends Component {
     constructor(props) {
@@ -26,9 +25,6 @@ class ApplicationLogHeader extends Component {
             openModal,
             openApplicationLogKeyModalId,
             editApplicationLog,
-            deleteModalId,
-            deleteApplicationLog,
-            deleting,
             viewMore,
             resetApplicationLogKey,
             filter,
@@ -86,6 +82,24 @@ class ApplicationLogHeader extends Component {
                                         {isDetails ? (
                                             <div>
                                                 <button
+                                                    id={`help_${applicationLog.name}`}
+                                                    className="bs-Button bs-DeprecatedButton"
+                                                    type="button"
+                                                    onClick={this.props.setShow}
+                                                >
+                                                    <span className="bs-list-flex">
+                                                        <HelpIcon />
+                                                        <span
+                                                            style={{
+                                                                marginLeft:
+                                                                    '5px',
+                                                            }}
+                                                        >
+                                                            Help
+                                                        </span>
+                                                    </span>
+                                                </button>
+                                                <button
                                                     id={`filter_${applicationLog.name}`}
                                                     className="bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--filter"
                                                     type="button"
@@ -133,39 +147,6 @@ class ApplicationLogHeader extends Component {
                                                     onClick={editApplicationLog}
                                                 >
                                                     <span>Edit</span>
-                                                </button>
-                                                <button
-                                                    id={`delete_${applicationLog.name}`}
-                                                    className={
-                                                        deleting
-                                                            ? 'bs-Button bs-Button--blue'
-                                                            : 'bs-Button bs-DeprecatedButton db-Trends-editButton bs-Button--icon bs-Button--delete'
-                                                    }
-                                                    type="button"
-                                                    disabled={deleting}
-                                                    onClick={() =>
-                                                        openModal({
-                                                            id: deleteModalId,
-                                                            onClose: () => '',
-                                                            onConfirm: () =>
-                                                                deleteApplicationLog(),
-                                                            content: DataPathHoC(
-                                                                DeleteApplicationLog,
-                                                                {
-                                                                    applicationLog,
-                                                                }
-                                                            ),
-                                                        })
-                                                    }
-                                                >
-                                                    <ShouldRender
-                                                        if={!deleting}
-                                                    >
-                                                        <span>Delete</span>
-                                                    </ShouldRender>
-                                                    <ShouldRender if={deleting}>
-                                                        <FormLoader />
-                                                    </ShouldRender>
                                                 </button>
                                             </div>
                                         ) : (
@@ -287,10 +268,7 @@ ApplicationLogHeader.propTypes = {
     applicationLog: PropTypes.object,
     openModal: PropTypes.func,
     editApplicationLog: PropTypes.func,
-    deleteApplicationLog: PropTypes.func,
     isDetails: PropTypes.bool,
-    deleteModalId: PropTypes.string,
-    deleting: PropTypes.bool,
     viewMore: PropTypes.func,
     resetApplicationLogKey: PropTypes.func,
     filter: PropTypes.string,
@@ -302,5 +280,6 @@ ApplicationLogHeader.propTypes = {
     handleLogFilterChange: PropTypes.func,
     handleLogTypeChange: PropTypes.func,
     formId: PropTypes.string,
+    setShow: PropTypes.func,
 };
 export default connect(mapStateToProps)(ApplicationLogHeader);
