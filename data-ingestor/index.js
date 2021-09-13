@@ -39,6 +39,12 @@ Sentry.init({
         new Tracing.Integrations.Express({
             app,
         }),
+        new Sentry.Integrations.OnUncaughtException({
+            onFatalError() {
+                // override default behaviour
+                return;
+            },
+        }),
     ],
     tracesSampleRate: 0.0,
 });
