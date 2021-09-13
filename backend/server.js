@@ -4,8 +4,8 @@ if (process.env.NEW_RELIC_LICENSE_KEY) {
 }
 
 const express = require('express');
-// const Sentry = require('@sentry/node');
-// const Tracing = require('@sentry/tracing');
+const Sentry = require('@sentry/node');
+const Tracing = require('@sentry/tracing');
 const app = express();
 
 const { NODE_ENV } = process.env;
@@ -15,20 +15,26 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     require('custom-env').env();
 }
 
-// Sentry.init({
-//     dsn: process.env.SENTRY_DSN,
-//     release: `fyipe-backend@${process.env.npm_package_version}`,
-//     environment: process.env.NODE_ENV,
-//     integrations: [
-//         // enable HTTP calls tracing
-//         new Sentry.Integrations.Http({ tracing: true }),
-//         // enable Express.js middleware tracing
-//         new Tracing.Integrations.Express({
-//             app,
-//         }),
-//     ],
-//     tracesSampleRate: 0.0,
-// });
+Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    release: `fyipe-backend@${process.env.npm_package_version}`,
+    environment: process.env.NODE_ENV,
+    integrations: [
+        // enable HTTP calls tracing
+        new Sentry.Integrations.Http({ tracing: true }),
+        // enable Express.js middleware tracing
+        new Tracing.Integrations.Express({
+            app,
+        }),
+        new Sentry.Integrations.OnUncaughtException({
+            onFatalError() {
+                // override default behaviour
+                return;
+            },
+        }),
+    ],
+    tracesSampleRate: 0.0,
+});
 
 process.on('exit', () => {
     // eslint-disable-next-line no-console
@@ -69,8 +75,8 @@ io.adapter(
 global.io = io;
 
 // Sentry: The request handler must be the first middleware on the app
-// app.use(Sentry.Handlers.requestHandler());
-// app.use(Sentry.Handlers.tracingHandler());
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.tracingHandler());
 
 app.use(cors());
 
@@ -357,7 +363,7 @@ app.use('/*', function(req, res) {
     res.status(404).render('notFound.ejs', {});
 });
 
-// app.use(Sentry.Handlers.errorHandler());
+app.use(Sentry.Handlers.errorHandler());
 
 //attach cron jobs
 require('./backend/workers/main');
