@@ -864,31 +864,37 @@ module.exports = {
             const projectId = incident.projectId._id || incident.projectId;
             let project = await ProjectService.findOneBy({
                 query: { _id: projectId },
-                select: 'parentProjectId',
+                select: 'parentProjectId _id name',
             });
 
-            if (project.parentProjectId) {
-                project = await ProjectService.findOneBy({
+            let zap = [];
+            if (project) {
+                if (project.parentProjectId) {
+                    project = await ProjectService.findOneBy({
+                        query: {
+                            _id:
+                                project.parentProjectId._id ||
+                                project.parentProjectId,
+                        },
+                        select: 'name _id',
+                    });
+                }
+                const monitorIds = incident.monitors.map(
+                    monitor => monitor.monitorId._id
+                );
+                zap = await _this.findBy({
                     query: {
-                        _id:
-                            project.parentProjectId._id ||
-                            project.parentProjectId,
+                        projectId: project._id,
+                        type: type,
+                        // $or: [{ monitors: incident.monitorId._id }, { monitors: [] }],
+                        $or: [
+                            { monitors: { $all: monitorIds } },
+                            { monitors: [] },
+                        ],
                     },
-                    select: 'name _id',
+                    select: 'url',
                 });
             }
-            const monitorIds = incident.monitors.map(
-                monitor => monitor.monitorId._id
-            );
-            const zap = await _this.findBy({
-                query: {
-                    projectId: project._id,
-                    type: type,
-                    // $or: [{ monitors: incident.monitorId._id }, { monitors: [] }],
-                    $or: [{ monitors: { $all: monitorIds } }, { monitors: [] }],
-                },
-                select: 'url',
-            });
 
             if (zap && zap.length) {
                 for (const z of zap) {

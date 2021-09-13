@@ -2,7 +2,7 @@ apiVersion: v1
 entries:
   Fyipe:
   - apiVersion: v2
-    created: "2021-03-07T11:19:29.413005Z"
+    created: "2021-09-10T14:13:26.551683+01:00"
     dependencies:
     - name: nginx-ingress-controller
       repository: https://charts.bitnami.com/bitnami
@@ -14,7 +14,7 @@ entries:
       repository: https://charts.bitnami.com/bitnami
       version: 14.8.8
     description: One complete DevOps and DevOps platform.
-    digest: f953d7ab1864e3953f368dbab8190d3131f2542c657050244a2eac923fb28f2a
+    digest: 84b0d954025bc9d98419d3f7d4ee9e4470db717297e4fc1aaa546af75b16a96a
     home: https://fyipe.com
     icon: https://fyipe.com/img/Fyipe.svg
     keywords:
@@ -39,4 +39,4 @@ entries:
     urls:
     - Fyipe-3.0.0.tgz
     version: 3.0.0
-generated: "2021-03-07T11:19:29.403258Z"
+generated: "2021-09-10T14:13:26.53643+01:00"
