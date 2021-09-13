@@ -26,6 +26,12 @@ Sentry.init({
         new Tracing.Integrations.Express({
             app,
         }),
+        new Sentry.Integrations.OnUncaughtException({
+            onFatalError() {
+                // override default behaviour
+                return;
+            },
+        }),
     ],
     tracesSampleRate: 0.0,
 });
@@ -58,6 +64,7 @@ const io = require('socket.io')(http, {
 const redisAdapter = require('socket.io-redis');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const redis = require('redis');
 
 io.adapter(
     redisAdapter({
@@ -65,6 +72,12 @@ io.adapter(
         port: process.env.REDIS_PORT,
     })
 );
+
+const redisClient = redis.createClient({
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+});
+global.redisClient = redisClient;
 
 global.io = io;
 
@@ -342,16 +355,7 @@ app.use(
     require('./backend/api/incidentNoteTemplate')
 );
 
-app.get(['/', '/api'], function(req, res) {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(
-        JSON.stringify({
-            status: 200,
-            message: 'Service Status - OK',
-            serviceType: 'fyipe-api',
-        })
-    );
-});
+app.use(['/api'], require('./backend/api/apiStatus'));
 
 app.use('/*', function(req, res) {
     res.status(404).render('notFound.ejs', {});

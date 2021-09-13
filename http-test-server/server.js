@@ -42,6 +42,14 @@ Sentry.init({
     release: `http-test-server@${process.env.npm_package_version}`,
     environment: process.env.NODE_ENV,
     tracesSampleRate: 0.0,
+    integrations: [
+        new Sentry.Integrations.OnUncaughtException({
+            onFatalError() {
+                // override default behaviour
+                return;
+            },
+        }),
+    ],
 });
 
 // Sentry: The request handler must be the first middleware on the app
