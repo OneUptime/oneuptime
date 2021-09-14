@@ -335,6 +335,7 @@ router.put(
     async function(req, res) {
         try {
             const data = req.body;
+            const { monitorId } = req.params;
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -387,11 +388,11 @@ router.put(
                 }
             }
 
-            await ScheduleService.deleteMonitor(req.params.monitorId);
+            await ScheduleService.deleteMonitor(monitorId);
             if (data.callScheduleIds && data.callScheduleIds.length) {
                 await ScheduleService.addMonitorToSchedules(
                     data.callScheduleIds,
-                    req.params.monitorId
+                    monitorId
                 );
             }
 
@@ -401,7 +402,7 @@ router.put(
             }
 
             const monitor = await MonitorService.updateOneBy(
-                { _id: req.params.monitorId },
+                { _id: monitorId },
                 data,
                 unsetData
             );
@@ -583,9 +584,10 @@ router.delete(
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
+        const { monitorId, projectId } = req.params;
         try {
             const monitor = await MonitorService.deleteBy(
-                { _id: req.params.monitorId, projectId: req.params.projectId },
+                { _id: monitorId, projectId: projectId },
                 req.user.id
             );
             if (monitor) {

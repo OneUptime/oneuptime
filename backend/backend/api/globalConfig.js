@@ -136,12 +136,13 @@ router.post('/configs', getUser, isUserMasterAdmin, async function(req, res) {
 router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
     try {
         const selectConfig = 'name value createdAt';
+        const { name } = req.params;
         let globalConfig = await GlobalConfigService.findOneBy({
-            query: { name: req.params.name },
+            query: { name: name },
             select: selectConfig,
         });
         // If audit logs status was fetched and it doesn't exist, we need to create it
-        if (!globalConfig && req.params.name === 'auditLogMonitoringStatus') {
+        if (!globalConfig && name === 'auditLogMonitoringStatus') {
             const auditLogConfig = {
                 name: 'auditLogMonitoringStatus',
                 value: true,
@@ -150,7 +151,7 @@ router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
         }
 
         // If email logs status was fetched and it doesn't exist, we need to create it
-        if (!globalConfig && req.params.name === 'emailLogMonitoringStatus') {
+        if (!globalConfig && name === 'emailLogMonitoringStatus') {
             const emailLogConfig = {
                 name: 'emailLogMonitoringStatus',
                 value: true,
@@ -159,7 +160,7 @@ router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
         }
 
         // If SMS logs status was fetched and it doesnt exist, we need to create it
-        if (!globalConfig && req.params.name === 'smsLogMonitoringStatus') {
+        if (!globalConfig && name === 'smsLogMonitoringStatus') {
             const smsLogConfig = {
                 name: 'smsLogMonitoringStatus',
                 value: true,
@@ -168,7 +169,7 @@ router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
         }
 
         // If Call logs status was fetched and it doesnt exist, we need to create it
-        if (!globalConfig && req.params.name === 'callLogMonitoringStatus') {
+        if (!globalConfig && name === 'callLogMonitoringStatus') {
             const callLogConfig = {
                 name: 'callLogMonitoringStatus',
                 value: true,
@@ -176,7 +177,7 @@ router.get('/:name', getUser, isUserMasterAdmin, async function(req, res) {
             await GlobalConfigService.create(callLogConfig);
         }
         globalConfig = await GlobalConfigService.findOneBy({
-            query: { name: req.params.name },
+            query: { name },
             select: selectConfig,
         });
 

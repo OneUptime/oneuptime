@@ -129,11 +129,12 @@ router.delete(
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
+        const { errorTrackerId, componentId } = req.params;
         try {
             const errorTracker = await ErrorTrackerService.deleteBy(
                 {
-                    _id: req.params.errorTrackerId,
-                    componentId: req.params.componentId,
+                    _id: errorTrackerId,
+                    componentId: componentId,
                 },
                 req.user.id
             );
@@ -202,7 +203,7 @@ router.put(
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
-        const errorTrackerId = req.params.errorTrackerId;
+        const { errorTrackerId, componentId } = req.params;
 
         const data = req.body;
         if (!data) {
@@ -239,7 +240,7 @@ router.put(
         // try to find in the application log if the name already exist for that component
         const existingQuery = {
             name: data.name,
-            componentId: req.params.componentId,
+            componentId: componentId,
         };
         if (data.resourceCategory != '') {
             existingQuery.resourceCategory = data.resourceCategory;

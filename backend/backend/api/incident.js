@@ -241,20 +241,21 @@ router.post(
     getUser,
     isAuthorized,
     async function(req, res) {
+        const { monitorId, projectId } = req.params;
         // include date range
         try {
             const { startDate, endDate } = req.body;
             let query = {
-                'monitors.monitorId': { $in: [req.params.monitorId] },
-                projectId: req.params.projectId,
+                'monitors.monitorId': { $in: [monitorId] },
+                projectId,
             };
 
             if (startDate && endDate) {
                 const start = moment(startDate).toDate();
                 const end = moment(endDate).toDate();
                 query = {
-                    'monitors.monitorId': { $in: [req.params.monitorId] },
-                    projectId: req.params.projectId,
+                    'monitors.monitorId': { $in: [monitorId] },
+                    projectId,
                     createdAt: { $gte: start, $lte: end },
                 };
             }
@@ -538,9 +539,10 @@ router.post(
                 acknowledgedByApi = true;
             }
             const projectId = req.params.projectId;
+            const incidentId = req.params.incidentId;
 
             const incident = await IncidentService.acknowledge(
-                req.params.incidentId,
+                incidentId,
                 userId,
                 req.user.name,
                 null,
@@ -612,29 +614,29 @@ router.post(
             ] = await Promise.all([
                 IncidentMessageService.findBy({
                     query: {
-                        incidentId: req.params.incidentId,
+                        incidentId,
                         type: 'internal',
                     },
                     populate: populateIncidentMessage,
                     select: selectIncidentMessage,
                 }),
                 IncidentTimelineService.findBy({
-                    query: { incidentId: req.params.incidentId },
+                    query: { incidentId },
                     select: selectIncTimeline,
                     populate: populateIncTimeline,
                 }),
                 AlertService.findBy({
-                    query: { incidentId: req.params.incidentId },
+                    query: { incidentId },
                     populate: populateAlert,
                     select: selectAlert,
                 }),
                 subscriberAlertService.findBy({
-                    query: { incidentId: req.params.incidentId, projectId },
+                    query: { incidentId, projectId },
                     select,
                     populate,
                 }),
                 onCallScheduleStatusService.findBy({
-                    query: { incident: req.params.incidentId },
+                    query: { incidentId },
                     select: selectOnCallScheduleStatus,
                     populate: populateOnCallScheduleStatus,
                 }),
@@ -701,9 +703,10 @@ router.post(
                 resolvedByApi = true;
             }
             const projectId = req.params.projectId;
+            const incidentId = req.params.incidentId;
 
             const incident = await IncidentService.resolve(
-                req.params.incidentId,
+                incidentId,
                 userId,
                 null,
                 null,
@@ -775,29 +778,29 @@ router.post(
             ] = await Promise.all([
                 IncidentMessageService.findBy({
                     query: {
-                        incidentId: req.params.incidentId,
+                        incidentId,
                         type: 'internal',
                     },
                     populate: populateIncidentMessage,
                     select: selectIncidentMessage,
                 }),
                 IncidentTimelineService.findBy({
-                    query: { incidentId: req.params.incidentId },
+                    query: { incidentId },
                     select: selectIncTimeline,
                     populate: populateIncTimeline,
                 }),
                 AlertService.findBy({
-                    query: { incidentId: req.params.incidentId },
+                    query: { incidentId },
                     select: selectAlert,
                     populate: populateAlert,
                 }),
                 subscriberAlertService.findBy({
-                    query: { incidentId: req.params.incidentId, projectId },
+                    query: { incidentId, projectId },
                     select,
                     populate,
                 }),
                 onCallScheduleStatusService.findBy({
-                    query: { incident: req.params.incidentId },
+                    query: { incidentId },
                     select: selectOnCallScheduleStatus,
                     populate: populateOnCallScheduleStatus,
                 }),
@@ -852,11 +855,9 @@ router.post(
     async function(req, res) {
         try {
             const userId = req.user ? req.user.id : null;
+            const { incidentId } = req.params;
             // Call the IncidentService
-            const incident = await IncidentService.close(
-                req.params.incidentId,
-                userId
-            );
+            const incident = await IncidentService.close(incidentId, userId);
             return sendItemResponse(req, res, incident);
         } catch (error) {
             return sendErrorResponse(req, res, error);
@@ -1092,7 +1093,7 @@ router.post(
                 }
                 // send project webhook notification
                 AlertService.sendStausPageNoteNotificationToProjectWebhooks(
-                    req.params.projectId,
+                    projectId,
                     incident,
                     {
                         ...data,
@@ -1167,7 +1168,7 @@ router.post(
                     subscriberAlertService.findBy({
                         query: {
                             incidentId: incident._id,
-                            projectId: req.params.projectId,
+                            projectId,
                         },
                         select,
                         populate,
@@ -1718,7 +1719,7 @@ router.get(
                     select: 'idNumber projectId',
                     populate: [{ path: 'projectId', select: 'slug' }],
                 }),
-                IncidentService.resolve(req.params.incidentId, userId),
+                IncidentService.resolve(incidentId, userId),
             ]);
 
             const { projectId: project } = incident;
@@ -1760,11 +1761,7 @@ router.get(
                     select: 'idNumber projectId',
                     populate: [{ path: 'projectId', select: 'slug' }],
                 }),
-                IncidentService.acknowledge(
-                    req.params.incidentId,
-                    userId,
-                    req.user.name
-                ),
+                IncidentService.acknowledge(incidentId, userId, req.user.name),
             ]);
 
             const { projectId: project } = incident;

@@ -75,16 +75,20 @@ const _this = {
             secure = smtpDb.secure;
         } else {
             const globalSettings = await _this.getSmtpSettings();
-            user = globalSettings.user;
-            pass = globalSettings.pass;
-            host = globalSettings.host;
-            port = globalSettings.port;
-            from = globalSettings.from;
-            name = globalSettings.name;
-            secure = globalSettings.secure;
-            internalSmtp = globalSettings.internalSmtp;
-            customSmtp = globalSettings.customSmtp;
-            backupConfig = globalSettings.backupConfig;
+            if (!isEmpty(globalSettings)) {
+                user = globalSettings.user;
+                pass = globalSettings.pass;
+                host = globalSettings.host;
+                port = globalSettings.port;
+                from = globalSettings.from;
+                name = globalSettings.name;
+                secure = globalSettings.secure;
+                internalSmtp = globalSettings.internalSmtp;
+                customSmtp = globalSettings.customSmtp;
+                backupConfig = globalSettings.backupConfig;
+            } else {
+                return {};
+            }
         }
 
         return {
@@ -131,47 +135,52 @@ const _this = {
         let settings = {};
         if (!host || !user || !pass) {
             settings = await _this.getSmtpSettings();
-            host = settings.host;
-            port = settings.port;
-            user = settings.user;
-            pass = settings.pass;
-            secure = settings.secure;
+            if (!isEmpty(settings)) {
+                host = settings.host;
+                port = settings.port;
+                user = settings.user;
+                pass = settings.pass;
+                secure = settings.secure;
 
-            if (!settings['email-enabled']) {
-                return null;
+                if (!settings['email-enabled']) {
+                    return null;
+                }
             }
         }
 
         internalSmtp = internalSmtp || settings.internalSmtp;
         let privateMailer;
-        if (internalSmtp) {
-            privateMailer = nodemailer.createTransport({
-                host: host,
-                port: port,
-                secure: secure,
-                auth: {
-                    user: user,
-                    pass: pass,
-                },
-                tls: {
-                    // do not fail on invalid certs
-                    // also allow self signed certs
-                    rejectUnauthorized: false,
-                },
-            });
-        } else {
-            privateMailer = nodemailer.createTransport({
-                host: host,
-                port: port,
-                secure: secure,
-                auth: {
-                    user: user,
-                    pass: pass,
-                },
-            });
-        }
 
-        privateMailer.use('compile', hbs(options));
+        if (host && user && pass) {
+            if (internalSmtp) {
+                privateMailer = nodemailer.createTransport({
+                    host: host,
+                    port: port,
+                    secure: secure,
+                    auth: {
+                        user: user,
+                        pass: pass,
+                    },
+                    tls: {
+                        // do not fail on invalid certs
+                        // also allow self signed certs
+                        rejectUnauthorized: false,
+                    },
+                });
+            } else {
+                privateMailer = nodemailer.createTransport({
+                    host: host,
+                    port: port,
+                    secure: secure,
+                    auth: {
+                        user: user,
+                        pass: pass,
+                    },
+                });
+            }
+
+            privateMailer.use('compile', hbs(options));
+        }
         return privateMailer;
     },
 
@@ -231,9 +240,12 @@ const _this = {
             };
         }
 
+        // this should be handled gracefully
+        // if there's no settings, no email should be sent
+        // throwing error here is not needed
         const error = new Error('SMTP settings not found.');
         ErrorService.log('mailService.getSmtpSettings', error);
-        throw error;
+        return {};
     },
 
     getTemplates: async (emailTemplate, emailType) => {
@@ -272,117 +284,120 @@ const _this = {
         try {
             let accountMail = await _this.getSmtpSettings();
             smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: userEmail,
-                subject: 'Welcome to Fyipe.',
-                template: 'sign_up_body',
-                context: {
-                    homeURL: global.homeHost,
-                    name: name.split(' ')[0].toString(),
-                    dashboardURL: global.dashboardHost,
-                },
-            };
 
-            const [mailer, mailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = mailBody;
+            if (!isEmpty(accountMail)) {
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: userEmail,
+                    subject: 'Welcome to Fyipe.',
+                    template: 'sign_up_body',
+                    context: {
+                        homeURL: global.homeHost,
+                        name: name.split(' ')[0].toString(),
+                        dashboardURL: global.dashboardHost,
+                    },
+                };
 
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+                const [mailer, mailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = mailBody;
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = {
-                            ...accountMail.backupConfig,
-                        };
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: userEmail,
-                            subject: 'Welcome to Fyipe.',
-                            template: 'sign_up_body',
-                            context: {
-                                homeURL: global.homeHost,
-                                name: name.split(' ')[0].toString(),
-                                dashboardURL: global.dashboardHost,
-                            },
-                        };
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                        const [mailer, mailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = mailBody;
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = {
+                                ...accountMail.backupConfig,
+                            };
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: userEmail,
+                                subject: 'Welcome to Fyipe.',
+                                template: 'sign_up_body',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    name: name.split(' ')[0].toString(),
+                                    dashboardURL: global.dashboardHost,
+                                },
+                            };
 
-                        if (!mailer) {
+                            const [mailer, mailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = mailBody;
+
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendMail', error);
             await EmailStatusService.create({
@@ -441,758 +456,32 @@ const _this = {
         try {
             let accountMail = await _this.getSmtpSettings();
             smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: userEmail,
-                subject: `New login to Fyipe from ${device}`,
-                template: 'user_login_body',
-                context: {
-                    homeURL: global.homeHost,
-                    userEmail,
-                    dashboardURL: global.dashboardHost,
-                    ip: location.ip,
-                    locations,
-                    device,
-                    twoFactorEnabled,
-                    statusMessage,
-                },
-            };
-
-            const [mailer, mailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = mailBody;
-
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
-
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
-
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = {
-                            ...accountMail.backupConfig,
-                        };
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: userEmail,
-                            subject: `New login to Fyipe from ${device}`,
-                            template: 'user_login_body',
-                            context: {
-                                homeURL: global.homeHost,
-                                userEmail,
-                                dashboardURL: global.dashboardHost,
-                                ip: location.ip,
-                                locations,
-                                device,
-                                twoFactorEnabled,
-                                statusMessage,
-                            },
-                        };
-
-                        const [mailer, mailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = mailBody;
-
-                        if (!mailer) {
-                            await EmailStatusService.create({
-                                from: mailOptions.from,
-                                to: mailOptions.to,
-                                subject: mailOptions.subject,
-                                template: mailOptions.template,
-                                status: 'Email not enabled.',
-                                content: EmailBody,
-                                error: 'Email not enabled.',
-                                smtpServer,
-                            });
-                            return;
-                        }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
-                    } else {
-                        throw error;
-                    }
-                } else {
-                    throw error;
-                }
-            }
-
-            return info;
-        } catch (error) {
-            ErrorService.log('mailService.sendMail', error);
-            await EmailStatusService.create({
-                from: mailOptions.from,
-                to: mailOptions.to,
-                subject: mailOptions.subject,
-                template: mailOptions.template,
-                status: 'Error',
-                content: EmailBody,
-                error: error.message,
-                smtpServer,
-            });
-            throw error;
-        }
-    },
-    // Automated email sent when a user deletes a project
-    sendDeleteProjectEmail: async function({ userEmail, name, projectName }) {
-        let mailOptions = {};
-        let EmailBody;
-        let smtpServer;
-        try {
-            let accountMail = await _this.getSmtpSettings();
-            accountMail.name = 'Fyipe Support';
-            accountMail.from = 'support@fyipe.com';
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: userEmail,
-                replyTo: accountMail.from,
-                cc: accountMail.from,
-                subject: 'We need your feedback',
-                template: 'delete_project',
-                context: {
-                    projectName,
-                    name: name.split(' ')[0].toString(),
-                    currentYear: new Date().getFullYear(),
-                },
-            };
-
-            const [mailer, mailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = mailBody;
-
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
-
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
-
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = {
-                            ...accountMail.backupConfig,
-                        };
-                        accountMail.name = 'Fyipe Support';
-                        accountMail.from = 'support@fyipe.com';
-
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: userEmail,
-                            replyTo: accountMail.from,
-                            cc: accountMail.from,
-                            subject: 'We need your feedback',
-                            template: 'delete_project',
-                            context: {
-                                projectName,
-                                name: name.split(' ')[0].toString(),
-                                currentYear: new Date().getFullYear(),
-                            },
-                        };
-
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-
-                        if (!mailer) {
-                            await EmailStatusService.create({
-                                from: mailOptions.from,
-                                to: mailOptions.to,
-                                subject: mailOptions.subject,
-                                template: mailOptions.template,
-                                status: 'Email not enabled.',
-                                content: EmailBody,
-                                error: 'Email not enabled.',
-                                smtpServer,
-                            });
-                            return;
-                        }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
-                    } else {
-                        throw error;
-                    }
-                } else {
-                    throw error;
-                }
-            }
-
-            return info;
-        } catch (error) {
-            ErrorService.log('mailService.sendDeleteProjectEmail', error);
-            await EmailStatusService.create({
-                from: mailOptions.from,
-                to: mailOptions.to,
-                subject: mailOptions.subject,
-                template: mailOptions.template,
-                status: error.message,
-                content: EmailBody,
-                error: error.message,
-                smtpServer,
-            });
-            throw error;
-        }
-    },
-    sendVerifyEmail: async function(tokenVerifyURL, name, email) {
-        let mailOptions = {};
-        let EmailBody;
-        let smtpServer;
-        try {
-            let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: '[Fyipe] Verify your Email',
-                template: 'send_verification_email',
-                context: {
-                    homeURL: global.homeHost,
-                    tokenVerifyURL,
-                    name: name.split(' ')[0].toString(),
-                },
-            };
-
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
-
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
-
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = {
-                            ...accountMail.backupConfig,
-                        };
-
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: '[Fyipe] Verify your Email',
-                            template: 'send_verification_email',
-                            context: {
-                                homeURL: global.homeHost,
-                                tokenVerifyURL,
-                                name: name.split(' ')[0].toString(),
-                            },
-                        };
-
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-
-                        if (!mailer) {
-                            await EmailStatusService.create({
-                                from: mailOptions.from,
-                                to: mailOptions.to,
-                                subject: mailOptions.subject,
-                                template: mailOptions.template,
-                                status: 'Email not enabled.',
-                                content: EmailBody,
-                                error: 'Email not enabled.',
-                                smtpServer,
-                            });
-                            return;
-                        }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
-                    } else {
-                        throw error;
-                    }
-                } else {
-                    throw error;
-                }
-            }
-
-            return info;
-        } catch (error) {
-            ErrorService.log('mailService.sendVerifyEmail', error);
-            await EmailStatusService.create({
-                from: mailOptions.from,
-                to: mailOptions.to,
-                subject: mailOptions.subject,
-                template: mailOptions.template,
-                status: 'Error',
-                content: EmailBody,
-                error: error.message,
-                smtpServer,
-            });
-            throw error;
-        }
-    },
-    sendLeadEmailToFyipeTeam: async function(lead) {
-        let mailOptions = {};
-        let EmailBody;
-        let accountMail = await _this.getSmtpSettings();
-        let smtpServer = 'internal';
-        if (!accountMail.internalSmtp) {
-            smtpServer = accountMail.host;
-        }
-        try {
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: 'support@fyipe.com',
-                subject: 'New Lead Added',
-                template: 'lead_to_fyipe_team',
-                context: {
-                    templateName: lead.templateName,
-                    airtableId: lead.airtableId,
-                    page: lead.page,
-                    projectId: lead.projectId,
-                    createdById: lead.createdById,
-                    homeURL: global.homeHost,
-                    _id: lead._id,
-                    message: lead.message,
-                    createdAt: moment(lead.createdAt).format('LLLL'),
-                    projectName:
-                        lead.project && lead.project.name
-                            ? lead.project.name
-                            : '',
-                    userName: lead.userName
-                        ? lead.userName
-                        : lead.name
-                        ? lead.name
-                        : '',
-                    userPhone: lead.phone,
-                    userEmail: lead.email,
-                    type: lead.type,
-                    country: lead.country,
-                    website: lead.website,
-                    companySize: lead.companySize,
-                    whitepaperName: lead.whitepaperName,
-                },
-            };
-
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
-
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
-
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = {
-                            ...accountMail.backupConfig,
-                        };
-
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: 'support@fyipe.com',
-                            subject: 'New Lead Added',
-                            template: 'lead_to_fyipe_team',
-                            context: {
-                                templateName: lead.templateName,
-                                airtableId: lead.airtableId,
-                                page: lead.page,
-                                projectId: lead.projectId,
-                                createdById: lead.createdById,
-                                homeURL: global.homeHost,
-                                _id: lead._id,
-                                message: lead.message,
-                                createdAt: moment(lead.createdAt).format(
-                                    'LLLL'
-                                ),
-                                projectName:
-                                    lead.project && lead.project.name
-                                        ? lead.project.name
-                                        : '',
-                                userName: lead.userName
-                                    ? lead.userName
-                                    : lead.name
-                                    ? lead.name
-                                    : '',
-                                userPhone: lead.phone,
-                                userEmail: lead.email,
-                                type: lead.type,
-                                country: lead.country,
-                                website: lead.website,
-                                companySize: lead.companySize,
-                                whitepaperName: lead.whitepaperName,
-                            },
-                        };
-
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-
-                        if (!mailer) {
-                            await EmailStatusService.create({
-                                from: mailOptions.from,
-                                to: mailOptions.to,
-                                subject: mailOptions.subject,
-                                template: mailOptions.template,
-                                status: 'Email not enabled.',
-                                content: EmailBody,
-                                error: 'Email not enabled.',
-                                smtpServer,
-                            });
-                            return;
-                        }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
-                    } else {
-                        throw error;
-                    }
-                } else {
-                    throw error;
-                }
-            }
-
-            return info;
-        } catch (error) {
-            ErrorService.log('mailService.sendLeadEmailToFyipeTeam', error);
-            await EmailStatusService.create({
-                from: mailOptions.from,
-                to: mailOptions.to,
-                subject: mailOptions.subject,
-                template: mailOptions.template,
-                status: 'Error',
-                content: EmailBody,
-                error: error.message,
-                smtpServer,
-            });
-            throw error;
-        }
-    },
-
-    sendUserFeedbackResponse: async function(userEmail, name) {
-        let mailOptions = {};
-        let EmailBody;
-        let accountMail = await _this.getSmtpSettings();
-        let smtpServer = 'internal';
-        if (!accountMail.internalSmtp) {
-            smtpServer = accountMail.host;
-        }
-        try {
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: userEmail,
-                subject: 'Thank you for your feedback!',
-                template: 'feedback_response',
-                context: {
-                    homeURL: global.homeHost,
-                    name: name.split(' ')[0].toString(),
-                },
-            };
-
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
-
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
-
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = {
-                            ...accountMail.backupConfig,
-                        };
-
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: userEmail,
-                            subject: 'Thank you for your feedback!',
-                            template: 'feedback_response',
-                            context: {
-                                homeURL: global.homeHost,
-                                name: name.split(' ')[0].toString(),
-                            },
-                        };
-
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
-                            await EmailStatusService.create({
-                                from: mailOptions.from,
-                                to: mailOptions.to,
-                                subject: mailOptions.subject,
-                                template: mailOptions.template,
-                                status: 'Email not enabled.',
-                                content: EmailBody,
-                                error: 'Email not enabled.',
-                                smtpServer,
-                            });
-                            return;
-                        }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
-                    } else {
-                        throw error;
-                    }
-                } else {
-                    throw error;
-                }
-            }
-
-            return info;
-        } catch (error) {
-            ErrorService.log('mailService.sendUserFeedbackResponse', error);
-            await EmailStatusService.create({
-                from: mailOptions.from,
-                to: mailOptions.to,
-                subject: mailOptions.subject,
-                template: mailOptions.template,
-                status: 'Error',
-                content: EmailBody,
-                error: error.message,
-                smtpServer,
-            });
-            throw error;
-        }
-    },
-
-    sendRequestDemoEmail: async function(to) {
-        let mailOptions = {};
-        let EmailBody;
-        let smtpServer;
-        try {
-            if (!to) {
-                const error = new Error('Email not found');
-                error.code = 400;
-                throw error;
-            } else {
-                let accountMail = await _this.getSmtpSettings();
-                smtpServer = 'internal';
+            if (!isEmpty(accountMail)) {
                 if (!accountMail.internalSmtp) {
                     smtpServer = accountMail.host;
                 }
                 mailOptions = {
                     from: `"${accountMail.name}" <${accountMail.from}>`,
-                    cc: 'noreply@fyipe.com',
-                    to: to,
-                    subject: 'Thank you for your demo request.',
-                    template: 'request_demo_body',
+                    to: userEmail,
+                    subject: `New login to Fyipe from ${device}`,
+                    template: 'user_login_body',
+                    context: {
+                        homeURL: global.homeHost,
+                        userEmail,
+                        dashboardURL: global.dashboardHost,
+                        ip: location.ip,
+                        locations,
+                        device,
+                        twoFactorEnabled,
+                        statusMessage,
+                    },
                 };
 
-                const [mailer, emailBody] = await Promise.all([
+                const [mailer, mailBody] = await Promise.all([
                     _this.createMailer({}),
                     _this.getEmailBody(mailOptions),
                 ]);
-                EmailBody = emailBody;
+                EmailBody = mailBody;
 
                 if (!mailer) {
                     await EmailStatusService.create({
@@ -1229,14 +518,169 @@ const _this = {
                             !isEmpty(accountMail.backupConfig)
                         ) {
                             smtpServer = accountMail.backupConfig.host;
-                            accountMail = { ...accountMail.backupConfig };
+                            accountMail = {
+                                ...accountMail.backupConfig,
+                            };
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: userEmail,
+                                subject: `New login to Fyipe from ${device}`,
+                                template: 'user_login_body',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    userEmail,
+                                    dashboardURL: global.dashboardHost,
+                                    ip: location.ip,
+                                    locations,
+                                    device,
+                                    twoFactorEnabled,
+                                    statusMessage,
+                                },
+                            };
+
+                            const [mailer, mailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = mailBody;
+
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Success',
+                                content: EmailBody,
+                                smtpServer,
+                            });
+                        } else {
+                            throw error;
+                        }
+                    } else {
+                        throw error;
+                    }
+                }
+
+                return info;
+            }
+        } catch (error) {
+            ErrorService.log('mailService.sendMail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+                content: EmailBody,
+                error: error.message,
+                smtpServer,
+            });
+            throw error;
+        }
+    },
+    // Automated email sent when a user deletes a project
+    sendDeleteProjectEmail: async function({ userEmail, name, projectName }) {
+        let mailOptions = {};
+        let EmailBody;
+        let smtpServer;
+        try {
+            let accountMail = await _this.getSmtpSettings();
+            if (!isEmpty(accountMail)) {
+                accountMail.name = 'Fyipe Support';
+                accountMail.from = 'support@fyipe.com';
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: userEmail,
+                    replyTo: accountMail.from,
+                    cc: accountMail.from,
+                    subject: 'We need your feedback',
+                    template: 'delete_project',
+                    context: {
+                        projectName,
+                        name: name.split(' ')[0].toString(),
+                        currentYear: new Date().getFullYear(),
+                    },
+                };
+
+                const [mailer, mailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = mailBody;
+
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
+
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
+
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = {
+                                ...accountMail.backupConfig,
+                            };
+                            accountMail.name = 'Fyipe Support';
+                            accountMail.from = 'support@fyipe.com';
 
                             mailOptions = {
                                 from: `"${accountMail.name}" <${accountMail.from}>`,
-                                cc: 'noreply@fyipe.com',
-                                to: to,
-                                subject: 'Thank you for your demo request.',
-                                template: 'request_demo_body',
+                                to: userEmail,
+                                replyTo: accountMail.from,
+                                cc: accountMail.from,
+                                subject: 'We need your feedback',
+                                template: 'delete_project',
+                                context: {
+                                    projectName,
+                                    name: name.split(' ')[0].toString(),
+                                    currentYear: new Date().getFullYear(),
+                                },
                             };
 
                             const [mailer, emailBody] = await Promise.all([
@@ -1281,7 +725,324 @@ const _this = {
                 return info;
             }
         } catch (error) {
-            ErrorService.log('mailService.sendRequestDemoEmail', error);
+            ErrorService.log('mailService.sendDeleteProjectEmail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: error.message,
+                content: EmailBody,
+                error: error.message,
+                smtpServer,
+            });
+            throw error;
+        }
+    },
+    sendVerifyEmail: async function(tokenVerifyURL, name, email) {
+        let mailOptions = {};
+        let EmailBody;
+        let smtpServer;
+        try {
+            let accountMail = await _this.getSmtpSettings();
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: '[Fyipe] Verify your Email',
+                    template: 'send_verification_email',
+                    context: {
+                        homeURL: global.homeHost,
+                        tokenVerifyURL,
+                        name: name.split(' ')[0].toString(),
+                    },
+                };
+
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
+
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
+
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = {
+                                ...accountMail.backupConfig,
+                            };
+
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject: '[Fyipe] Verify your Email',
+                                template: 'send_verification_email',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    tokenVerifyURL,
+                                    name: name.split(' ')[0].toString(),
+                                },
+                            };
+
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Success',
+                                content: EmailBody,
+                                smtpServer,
+                            });
+                        } else {
+                            throw error;
+                        }
+                    } else {
+                        throw error;
+                    }
+                }
+
+                return info;
+            }
+        } catch (error) {
+            ErrorService.log('mailService.sendVerifyEmail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+                content: EmailBody,
+                error: error.message,
+                smtpServer,
+            });
+            throw error;
+        }
+    },
+    sendLeadEmailToFyipeTeam: async function(lead) {
+        let mailOptions = {};
+        let EmailBody;
+        let smtpServer = 'internal';
+        try {
+            let accountMail = await _this.getSmtpSettings();
+            if (!isEmpty(accountMail)) {
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: 'support@fyipe.com',
+                    subject: 'New Lead Added',
+                    template: 'lead_to_fyipe_team',
+                    context: {
+                        templateName: lead.templateName,
+                        airtableId: lead.airtableId,
+                        page: lead.page,
+                        projectId: lead.projectId,
+                        createdById: lead.createdById,
+                        homeURL: global.homeHost,
+                        _id: lead._id,
+                        message: lead.message,
+                        createdAt: moment(lead.createdAt).format('LLLL'),
+                        projectName:
+                            lead.project && lead.project.name
+                                ? lead.project.name
+                                : '',
+                        userName: lead.userName
+                            ? lead.userName
+                            : lead.name
+                            ? lead.name
+                            : '',
+                        userPhone: lead.phone,
+                        userEmail: lead.email,
+                        type: lead.type,
+                        country: lead.country,
+                        website: lead.website,
+                        companySize: lead.companySize,
+                        whitepaperName: lead.whitepaperName,
+                    },
+                };
+
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
+
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
+
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = {
+                                ...accountMail.backupConfig,
+                            };
+
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: 'support@fyipe.com',
+                                subject: 'New Lead Added',
+                                template: 'lead_to_fyipe_team',
+                                context: {
+                                    templateName: lead.templateName,
+                                    airtableId: lead.airtableId,
+                                    page: lead.page,
+                                    projectId: lead.projectId,
+                                    createdById: lead.createdById,
+                                    homeURL: global.homeHost,
+                                    _id: lead._id,
+                                    message: lead.message,
+                                    createdAt: moment(lead.createdAt).format(
+                                        'LLLL'
+                                    ),
+                                    projectName:
+                                        lead.project && lead.project.name
+                                            ? lead.project.name
+                                            : '',
+                                    userName: lead.userName
+                                        ? lead.userName
+                                        : lead.name
+                                        ? lead.name
+                                        : '',
+                                    userPhone: lead.phone,
+                                    userEmail: lead.email,
+                                    type: lead.type,
+                                    country: lead.country,
+                                    website: lead.website,
+                                    companySize: lead.companySize,
+                                    whitepaperName: lead.whitepaperName,
+                                },
+                            };
+
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Success',
+                                content: EmailBody,
+                                smtpServer,
+                            });
+                        } else {
+                            throw error;
+                        }
+                    } else {
+                        throw error;
+                    }
+                }
+
+                return info;
+            }
+        } catch (error) {
+            ErrorService.log('mailService.sendLeadEmailToFyipeTeam', error);
             await EmailStatusService.create({
                 from: mailOptions.from,
                 to: mailOptions.to,
@@ -1296,32 +1057,151 @@ const _this = {
         }
     },
 
-    sendWhitepaperEmail: async function(to, whitepaperName) {
+    sendUserFeedbackResponse: async function(userEmail, name) {
+        let mailOptions = {};
+        let EmailBody;
+        let smtpServer = 'internal';
+        try {
+            let accountMail = await _this.getSmtpSettings();
+            if (!isEmpty) {
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: userEmail,
+                    subject: 'Thank you for your feedback!',
+                    template: 'feedback_response',
+                    context: {
+                        homeURL: global.homeHost,
+                        name: name.split(' ')[0].toString(),
+                    },
+                };
+
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
+
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
+
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = {
+                                ...accountMail.backupConfig,
+                            };
+
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: userEmail,
+                                subject: 'Thank you for your feedback!',
+                                template: 'feedback_response',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    name: name.split(' ')[0].toString(),
+                                },
+                            };
+
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Success',
+                                content: EmailBody,
+                                smtpServer,
+                            });
+                        } else {
+                            throw error;
+                        }
+                    } else {
+                        throw error;
+                    }
+                }
+
+                return info;
+            }
+        } catch (error) {
+            ErrorService.log('mailService.sendUserFeedbackResponse', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+                content: EmailBody,
+                error: error.message,
+                smtpServer,
+            });
+            throw error;
+        }
+    },
+
+    sendRequestDemoEmail: async function(to) {
         let mailOptions = {};
         let EmailBody;
         let smtpServer;
         try {
-            if (!to || whitepaperName) {
-                const error = new Error('Email or Whitepaper found');
+            if (!to) {
+                const error = new Error('Email not found');
                 error.code = 400;
-                ErrorService.log('mailService.sendWhitepaperEmail', error);
                 throw error;
             } else {
-                let link = null;
-
-                for (let i = 0; i < Whitepapers.length; i++) {
-                    if (Whitepapers[i].name === whitepaperName) {
-                        link = Whitepapers[i].link;
-                    }
-                }
-
-                if (!link) {
-                    const error = new Error('Whitepaper not found');
-                    error.code = 400;
-                    ErrorService.log('mailService.sendWhitepaperEmail', error);
-                    throw error;
-                } else {
-                    let accountMail = await _this.getSmtpSettings();
+                let accountMail = await _this.getSmtpSettings();
+                if (!isEmpty(accountMail)) {
                     smtpServer = 'internal';
                     if (!accountMail.internalSmtp) {
                         smtpServer = accountMail.host;
@@ -1330,12 +1210,8 @@ const _this = {
                         from: `"${accountMail.name}" <${accountMail.from}>`,
                         cc: 'noreply@fyipe.com',
                         to: to,
-                        subject: "Here's your Whitepaper",
-                        template: 'whitepaper_body',
-                        context: {
-                            homeURL: global.homeHost,
-                            link: link,
-                        },
+                        subject: 'Thank you for your demo request.',
+                        template: 'request_demo_body',
                     };
 
                     const [mailer, emailBody] = await Promise.all([
@@ -1385,12 +1261,8 @@ const _this = {
                                     from: `"${accountMail.name}" <${accountMail.from}>`,
                                     cc: 'noreply@fyipe.com',
                                     to: to,
-                                    subject: "Here's your Whitepaper",
-                                    template: 'whitepaper_body',
-                                    context: {
-                                        homeURL: global.homeHost,
-                                        link: link,
-                                    },
+                                    subject: 'Thank you for your demo request.',
+                                    template: 'request_demo_body',
                                 };
 
                                 const [mailer, emailBody] = await Promise.all([
@@ -1436,6 +1308,168 @@ const _this = {
                 }
             }
         } catch (error) {
+            ErrorService.log('mailService.sendRequestDemoEmail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+                content: EmailBody,
+                error: error.message,
+                smtpServer,
+            });
+            throw error;
+        }
+    },
+
+    sendWhitepaperEmail: async function(to, whitepaperName) {
+        let mailOptions = {};
+        let EmailBody;
+        let smtpServer;
+        try {
+            if (!to || whitepaperName) {
+                const error = new Error('Email or Whitepaper found');
+                error.code = 400;
+                ErrorService.log('mailService.sendWhitepaperEmail', error);
+                throw error;
+            } else {
+                let link = null;
+
+                for (let i = 0; i < Whitepapers.length; i++) {
+                    if (Whitepapers[i].name === whitepaperName) {
+                        link = Whitepapers[i].link;
+                    }
+                }
+
+                if (!link) {
+                    const error = new Error('Whitepaper not found');
+                    error.code = 400;
+                    ErrorService.log('mailService.sendWhitepaperEmail', error);
+                    throw error;
+                } else {
+                    let accountMail = await _this.getSmtpSettings();
+                    if (!isEmpty(accountMail)) {
+                        smtpServer = 'internal';
+                        if (!accountMail.internalSmtp) {
+                            smtpServer = accountMail.host;
+                        }
+                        mailOptions = {
+                            from: `"${accountMail.name}" <${accountMail.from}>`,
+                            cc: 'noreply@fyipe.com',
+                            to: to,
+                            subject: "Here's your Whitepaper",
+                            template: 'whitepaper_body',
+                            context: {
+                                homeURL: global.homeHost,
+                                link: link,
+                            },
+                        };
+
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer({}),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
+
+                        if (!mailer) {
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Email not enabled.',
+                                content: EmailBody,
+                                error: 'Email not enabled.',
+                                smtpServer,
+                            });
+                            return;
+                        }
+
+                        let info = {};
+                        try {
+                            info = await mailer.sendMail(mailOptions);
+
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Success',
+                                content: EmailBody,
+                                smtpServer,
+                            });
+                        } catch (error) {
+                            if (error.code === 'ECONNECTION') {
+                                if (
+                                    accountMail.internalSmtp &&
+                                    accountMail.customSmtp &&
+                                    !isEmpty(accountMail.backupConfig)
+                                ) {
+                                    smtpServer = accountMail.backupConfig.host;
+                                    accountMail = {
+                                        ...accountMail.backupConfig,
+                                    };
+
+                                    mailOptions = {
+                                        from: `"${accountMail.name}" <${accountMail.from}>`,
+                                        cc: 'noreply@fyipe.com',
+                                        to: to,
+                                        subject: "Here's your Whitepaper",
+                                        template: 'whitepaper_body',
+                                        context: {
+                                            homeURL: global.homeHost,
+                                            link: link,
+                                        },
+                                    };
+
+                                    const [
+                                        mailer,
+                                        emailBody,
+                                    ] = await Promise.all([
+                                        _this.createMailer(accountMail),
+                                        _this.getEmailBody(mailOptions),
+                                    ]);
+                                    EmailBody = emailBody;
+
+                                    if (!mailer) {
+                                        await EmailStatusService.create({
+                                            from: mailOptions.from,
+                                            to: mailOptions.to,
+                                            subject: mailOptions.subject,
+                                            template: mailOptions.template,
+                                            status: 'Email not enabled.',
+                                            content: EmailBody,
+                                            error: 'Email not enabled.',
+                                            smtpServer,
+                                        });
+                                        return;
+                                    }
+
+                                    info = await mailer.sendMail(mailOptions);
+
+                                    await EmailStatusService.create({
+                                        from: mailOptions.from,
+                                        to: mailOptions.to,
+                                        subject: mailOptions.subject,
+                                        template: mailOptions.template,
+                                        status: 'Success',
+                                        content: EmailBody,
+                                        smtpServer,
+                                    });
+                                } else {
+                                    throw error;
+                                }
+                            } else {
+                                throw error;
+                            }
+                        }
+
+                        return info;
+                    }
+                }
+            }
+        } catch (error) {
             ErrorService.log('mailService.sendWhitepaperEmail', error);
             if (mailOptions) {
                 await EmailStatusService.create({
@@ -1465,111 +1499,113 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: 'Password Reset for Fyipe',
-                template: 'forgot_password_body',
-                context: {
-                    homeURL: global.homeHost,
-                    forgotPasswordURL,
-                },
-            };
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: 'Password Reset for Fyipe',
+                    template: 'forgot_password_body',
+                    context: {
+                        homeURL: global.homeHost,
+                        forgotPasswordURL,
+                    },
+                };
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: 'Password Reset for Fyipe',
-                            template: 'forgot_password_body',
-                            context: {
-                                homeURL: global.homeHost,
-                                forgotPasswordURL,
-                            },
-                        };
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject: 'Password Reset for Fyipe',
+                                template: 'forgot_password_body',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    forgotPasswordURL,
+                                },
+                            };
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendForgotPasswordMail', error);
             await EmailStatusService.create({
@@ -1596,111 +1632,113 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: 'Your password has been changed.',
-                template: 'reset_password_body',
-                context: {
-                    homeURL: global.homeHost,
-                    accountsURL: global.homeHost + '/accounts',
-                },
-            };
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: 'Your password has been changed.',
+                    template: 'reset_password_body',
+                    context: {
+                        homeURL: global.homeHost,
+                        accountsURL: global.homeHost + '/accounts',
+                    },
+                };
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: 'Your password has been changed.',
-                            template: 'reset_password_body',
-                            context: {
-                                homeURL: global.homeHost,
-                                accountsURL: global.homeHost + '/accounts',
-                            },
-                        };
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject: 'Your password has been changed.',
+                                template: 'reset_password_body',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    accountsURL: global.homeHost + '/accounts',
+                                },
+                            };
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendResetPasswordConfirmMail', error);
             await EmailStatusService.create({
@@ -1732,115 +1770,118 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: "You've been added to a project on Fyipe",
-                template: 'new_user_added_to_project_body',
-                context: {
-                    homeURL: global.homeHost,
-                    projectName: project.name,
-                    userName: addedByUser.name,
-                    registerUrl,
-                },
-            };
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: "You've been added to a project on Fyipe",
+                    template: 'new_user_added_to_project_body',
+                    context: {
+                        homeURL: global.homeHost,
+                        projectName: project.name,
+                        userName: addedByUser.name,
+                        registerUrl,
+                    },
+                };
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: "You've been added to a project on Fyipe",
-                            template: 'new_user_added_to_project_body',
-                            context: {
-                                homeURL: global.homeHost,
-                                projectName: project.name,
-                                userName: addedByUser.name,
-                                registerUrl,
-                            },
-                        };
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject:
+                                    "You've been added to a project on Fyipe",
+                                template: 'new_user_added_to_project_body',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    projectName: project.name,
+                                    userName: addedByUser.name,
+                                    registerUrl,
+                                },
+                            };
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log(
                 'mailService.sendNewUserAddedToProjectMail',
@@ -1870,115 +1911,118 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: "You've been added to a project on Fyipe",
-                template: 'existing_user_added_to_project_body',
-                context: {
-                    homeURL: global.homeHost,
-                    projectName: project.name,
-                    userName: addedByUser.name,
-                    dashboardURL: global.dashboardHost,
-                },
-            };
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: "You've been added to a project on Fyipe",
+                    template: 'existing_user_added_to_project_body',
+                    context: {
+                        homeURL: global.homeHost,
+                        projectName: project.name,
+                        userName: addedByUser.name,
+                        dashboardURL: global.dashboardHost,
+                    },
+                };
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: "You've been added to a project on Fyipe",
-                            template: 'existing_user_added_to_project_body',
-                            context: {
-                                homeURL: global.homeHost,
-                                projectName: project.name,
-                                userName: addedByUser.name,
-                                dashboardURL: global.dashboardHost,
-                            },
-                        };
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject:
+                                    "You've been added to a project on Fyipe",
+                                template: 'existing_user_added_to_project_body',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    projectName: project.name,
+                                    userName: addedByUser.name,
+                                    dashboardURL: global.dashboardHost,
+                                },
+                            };
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log(
                 'mailService.sendExistingUserAddedToProjectMail',
@@ -2008,114 +2052,117 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: "You've been added to a sub-project on Fyipe",
-                template: 'existing_viewer_added_to_project_body',
-                context: {
-                    homeURL: global.homeHost,
-                    subProjectName: subProject.name,
-                    userName: addedByUser.name,
-                },
-            };
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: "You've been added to a sub-project on Fyipe",
+                    template: 'existing_viewer_added_to_project_body',
+                    context: {
+                        homeURL: global.homeHost,
+                        subProjectName: subProject.name,
+                        userName: addedByUser.name,
+                    },
+                };
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject:
-                                "You've been added to a sub-project on Fyipe",
-                            template: 'existing_viewer_added_to_project_body',
-                            context: {
-                                homeURL: global.homeHost,
-                                subProjectName: subProject.name,
-                                userName: addedByUser.name,
-                            },
-                        };
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject:
+                                    "You've been added to a sub-project on Fyipe",
+                                template:
+                                    'existing_viewer_added_to_project_body',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    subProjectName: subProject.name,
+                                    userName: addedByUser.name,
+                                },
+                            };
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log(
                 'mailService.sendExistingStatusPageViewerMail',
@@ -2145,116 +2192,119 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: "You've been added to a subproject on Fyipe",
-                template: 'existing_user_added_to_subproject_body',
-                context: {
-                    homeURL: global.homeHost,
-                    projectName: project.name,
-                    userName: addedByUser.name,
-                    dashboardURL: global.dashboardHost,
-                },
-            };
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: "You've been added to a subproject on Fyipe",
+                    template: 'existing_user_added_to_subproject_body',
+                    context: {
+                        homeURL: global.homeHost,
+                        projectName: project.name,
+                        userName: addedByUser.name,
+                        dashboardURL: global.dashboardHost,
+                    },
+                };
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject:
-                                "You've been added to a subproject on Fyipe",
-                            template: 'existing_user_added_to_subproject_body',
-                            context: {
-                                homeURL: global.homeHost,
-                                projectName: project.name,
-                                userName: addedByUser.name,
-                                dashboardURL: global.dashboardHost,
-                            },
-                        };
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject:
+                                    "You've been added to a subproject on Fyipe",
+                                template:
+                                    'existing_user_added_to_subproject_body',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    projectName: project.name,
+                                    userName: addedByUser.name,
+                                    dashboardURL: global.dashboardHost,
+                                },
+                            };
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log(
                 'mailService.sendExistingUserAddedToSubProjectMail',
@@ -2280,115 +2330,118 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: "You've been added to a project on Fyipe",
-                template: 'new_viewer_added_to_project',
-                context: {
-                    homeURL: global.homeHost,
-                    projectName: project.name,
-                    userName: addedByUser.name,
-                    accountsURL: global.homeHost + '/accounts',
-                },
-            };
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: "You've been added to a project on Fyipe",
+                    template: 'new_viewer_added_to_project',
+                    context: {
+                        homeURL: global.homeHost,
+                        projectName: project.name,
+                        userName: addedByUser.name,
+                        accountsURL: global.homeHost + '/accounts',
+                    },
+                };
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: "You've been added to a project on Fyipe",
-                            template: 'new_viewer_added_to_project',
-                            context: {
-                                homeURL: global.homeHost,
-                                projectName: project.name,
-                                userName: addedByUser.name,
-                                accountsURL: global.homeHost + '/accounts',
-                            },
-                        };
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject:
+                                    "You've been added to a project on Fyipe",
+                                template: 'new_viewer_added_to_project',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    projectName: project.name,
+                                    userName: addedByUser.name,
+                                    accountsURL: global.homeHost + '/accounts',
+                                },
+                            };
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendNewStatusPageViewerMail', error);
             await EmailStatusService.create({
@@ -2416,119 +2469,121 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: "You've been assigned a new role",
-                template: 'change_role',
-                context: {
-                    homeURL: global.homeHost,
-                    projectName: project.name,
-                    userName: addedByUser.name,
-                    role: role,
-                    dashboardURL: global.dashboardHost,
-                },
-            };
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: "You've been assigned a new role",
+                    template: 'change_role',
+                    context: {
+                        homeURL: global.homeHost,
+                        projectName: project.name,
+                        userName: addedByUser.name,
+                        role: role,
+                        dashboardURL: global.dashboardHost,
+                    },
+                };
 
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: "You've been assigned a new role",
-                            template: 'change_role',
-                            context: {
-                                homeURL: global.homeHost,
-                                projectName: project.name,
-                                userName: addedByUser.name,
-                                role: role,
-                                dashboardURL: global.dashboardHost,
-                            },
-                        };
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject: "You've been assigned a new role",
+                                template: 'change_role',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    projectName: project.name,
+                                    userName: addedByUser.name,
+                                    role: role,
+                                    dashboardURL: global.dashboardHost,
+                                },
+                            };
 
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendChangeRoleEmailToUser', error);
             await EmailStatusService.create({
@@ -2555,118 +2610,120 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: "You've been removed from a project on Fyipe",
-                template: 'removed_from_project',
-                context: {
-                    homeURL: global.homeHost,
-                    projectName: project.name,
-                    userName: removedByUser.name,
-                    dashboardURL: global.dashboardHost,
-                },
-            };
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: "You've been removed from a project on Fyipe",
+                    template: 'removed_from_project',
+                    context: {
+                        homeURL: global.homeHost,
+                        projectName: project.name,
+                        userName: removedByUser.name,
+                        dashboardURL: global.dashboardHost,
+                    },
+                };
 
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject:
-                                "You've been removed from a project on Fyipe",
-                            template: 'removed_from_project',
-                            context: {
-                                homeURL: global.homeHost,
-                                projectName: project.name,
-                                userName: removedByUser.name,
-                                dashboardURL: global.dashboardHost,
-                            },
-                        };
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject:
+                                    "You've been removed from a project on Fyipe",
+                                template: 'removed_from_project',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    projectName: project.name,
+                                    userName: removedByUser.name,
+                                    dashboardURL: global.dashboardHost,
+                                },
+                            };
 
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log(
                 'mailService.sendRemoveFromProjectEmailToUser',
@@ -2696,118 +2753,120 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: "You've been removed from a subproject on Fyipe",
-                template: 'removed_from_subproject',
-                context: {
-                    homeURL: global.homeHost,
-                    subProjectName: subProject.name,
-                    userName: removedByUser.name,
-                    dashboardURL: global.dashboardHost,
-                },
-            };
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: "You've been removed from a subproject on Fyipe",
+                    template: 'removed_from_subproject',
+                    context: {
+                        homeURL: global.homeHost,
+                        subProjectName: subProject.name,
+                        userName: removedByUser.name,
+                        dashboardURL: global.dashboardHost,
+                    },
+                };
 
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject:
-                                "You've been removed from a subproject on Fyipe",
-                            template: 'removed_from_subproject',
-                            context: {
-                                homeURL: global.homeHost,
-                                subProjectName: subProject.name,
-                                userName: removedByUser.name,
-                                dashboardURL: global.dashboardHost,
-                            },
-                        };
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject:
+                                    "You've been removed from a subproject on Fyipe",
+                                template: 'removed_from_subproject',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    subProjectName: subProject.name,
+                                    userName: removedByUser.name,
+                                    dashboardURL: global.dashboardHost,
+                                },
+                            };
 
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log(
                 'mailService.sendRemoveFromSubProjectEmailToUser',
@@ -2864,166 +2923,170 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getProjectSmtpSettings(projectId);
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            let iconColor = '#94c800';
-            let incidentShow = 'Offline';
-            let subject;
-            if (incidentType && incidentType === 'online') {
-                iconColor = '#75d380';
-                incidentShow = 'Online';
-            } else if (incidentType && incidentType === 'offline') {
-                iconColor = '#e25950';
-                incidentShow = 'Offline';
-            } else if (incidentType && incidentType === 'degraded') {
-                iconColor = '#ffde24';
-                incidentShow = 'Degraded';
-            }
-            if (emailProgress) {
-                subject = `Reminder ${emailProgress.current}/${emailProgress.total}: Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
-            } else {
-                subject = `Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
-            }
-            const iconStyle = `display:inline-block;width:16px;height:16px;background:${iconColor};border-radius:16px`;
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: subject,
-                template: 'new_incident_created',
-                context: {
-                    homeURL: global.homeHost,
-                    incidentTime: incidentTime,
-                    monitorName: monitorName,
-                    monitorUrl,
-                    incidentId,
-                    reason,
-                    view_url,
-                    method,
-                    iconStyle,
-                    componentName,
-                    accessToken,
-                    firstName,
-                    userId,
-                    projectId,
-                    ack_url: acknowledgeUrl,
-                    resolve_url: resolveUrl,
-                    acknowledgeUrl,
-                    resolveUrl,
-                    incidentType,
-                    projectName,
-                    dashboardURL: global.dashboardHost,
-                    criterionName,
-                    probeName,
-                },
-            };
-            EmailBody = await _this.getEmailBody(mailOptions);
-            const mailer = await _this.createMailer(accountMail);
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                let iconColor = '#94c800';
+                let incidentShow = 'Offline';
+                let subject;
+                if (incidentType && incidentType === 'online') {
+                    iconColor = '#75d380';
+                    incidentShow = 'Online';
+                } else if (incidentType && incidentType === 'offline') {
+                    iconColor = '#e25950';
+                    incidentShow = 'Offline';
+                } else if (incidentType && incidentType === 'degraded') {
+                    iconColor = '#ffde24';
+                    incidentShow = 'Degraded';
+                }
+                if (emailProgress) {
+                    subject = `Reminder ${emailProgress.current}/${emailProgress.total}: Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
+                } else {
+                    subject = `Incident ${incidentId} - ${componentName}/${monitorName} is ${incidentShow}`;
+                }
+                const iconStyle = `display:inline-block;width:16px;height:16px;background:${iconColor};border-radius:16px`;
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: subject,
+                    template: 'new_incident_created',
+                    context: {
+                        homeURL: global.homeHost,
+                        incidentTime: incidentTime,
+                        monitorName: monitorName,
+                        monitorUrl,
+                        incidentId,
+                        reason,
+                        view_url,
+                        method,
+                        iconStyle,
+                        componentName,
+                        accessToken,
+                        firstName,
+                        userId,
+                        projectId,
+                        ack_url: acknowledgeUrl,
+                        resolve_url: resolveUrl,
+                        acknowledgeUrl,
+                        resolveUrl,
+                        incidentType,
+                        projectName,
+                        dashboardURL: global.dashboardHost,
+                        criterionName,
+                        probeName,
+                    },
+                };
+                EmailBody = await _this.getEmailBody(mailOptions);
+                const mailer = await _this.createMailer(accountMail);
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: subject,
-                            template: 'new_incident_created',
-                            context: {
-                                homeURL: global.homeHost,
-                                incidentTime: incidentTime,
-                                monitorName: monitorName,
-                                monitorUrl,
-                                incidentId,
-                                reason,
-                                view_url,
-                                method,
-                                iconStyle,
-                                componentName,
-                                accessToken,
-                                firstName,
-                                userId,
-                                projectId,
-                                ack_url: acknowledgeUrl,
-                                resolve_url: resolveUrl,
-                                acknowledgeUrl,
-                                resolveUrl,
-                                incidentType,
-                                projectName,
-                                dashboardURL: global.dashboardHost,
-                                criterionName,
-                                probeName,
-                            },
-                        };
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        const mailer = await _this.createMailer(accountMail);
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject: subject,
+                                template: 'new_incident_created',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    incidentTime: incidentTime,
+                                    monitorName: monitorName,
+                                    monitorUrl,
+                                    incidentId,
+                                    reason,
+                                    view_url,
+                                    method,
+                                    iconStyle,
+                                    componentName,
+                                    accessToken,
+                                    firstName,
+                                    userId,
+                                    projectId,
+                                    ack_url: acknowledgeUrl,
+                                    resolve_url: resolveUrl,
+                                    acknowledgeUrl,
+                                    resolveUrl,
+                                    incidentType,
+                                    projectName,
+                                    dashboardURL: global.dashboardHost,
+                                    criterionName,
+                                    probeName,
+                                },
+                            };
+                            EmailBody = await _this.getEmailBody(mailOptions);
+                            const mailer = await _this.createMailer(
+                                accountMail
+                            );
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendIncidentCreatedMail', error);
             await EmailStatusService.create({
@@ -3093,142 +3156,144 @@ const _this = {
             template = template(data);
             subject = subject(data);
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
-            smtpServer = 'internal';
-            if (!smtpSettings.internalSmtp) {
-                smtpServer = smtpSettings.host;
-            }
-            const privateMailer = await _this.createMailer(smtpSettings);
-            if (replyAddress) {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    replyTo: replyAddress,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            } else {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            }
-            EmailBody = await _this.getEmailBody(mailOptions);
-            if (!privateMailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(smtpSettings)) {
+                smtpServer = 'internal';
+                if (!smtpSettings.internalSmtp) {
+                    smtpServer = smtpSettings.host;
+                }
+                const privateMailer = await _this.createMailer(smtpSettings);
+                if (replyAddress) {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        replyTo: replyAddress,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                } else {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                }
+                EmailBody = await _this.getEmailBody(mailOptions);
+                if (!privateMailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await privateMailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await privateMailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        smtpSettings.internalSmtp &&
-                        smtpSettings.customSmtp &&
-                        !isEmpty(smtpSettings.backupConfig)
-                    ) {
-                        smtpServer = smtpSettings.backupConfig.host;
-                        smtpSettings = { ...smtpSettings.backupConfig };
-                        const privateMailer = await _this.createMailer(
-                            smtpSettings
-                        );
-                        if (replyAddress) {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                replyTo: replyAddress,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        } else {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        }
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        if (!privateMailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            smtpSettings.internalSmtp &&
+                            smtpSettings.customSmtp &&
+                            !isEmpty(smtpSettings.backupConfig)
+                        ) {
+                            smtpServer = smtpSettings.backupConfig.host;
+                            smtpSettings = { ...smtpSettings.backupConfig };
+                            const privateMailer = await _this.createMailer(
+                                smtpSettings
+                            );
+                            if (replyAddress) {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    replyTo: replyAddress,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            } else {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            }
+                            EmailBody = await _this.getEmailBody(mailOptions);
+                            if (!privateMailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    ...(mailOptions.replyTo && {
+                                        replyTo: mailOptions.replyTo,
+                                    }),
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await privateMailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 ...(mailOptions.replyTo && {
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await privateMailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            ...(mailOptions.replyTo && {
-                                replyTo: mailOptions.replyTo,
-                            }),
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log(
                 'mailService.sendIncidentCreatedMailToSubscriber',
@@ -3276,146 +3341,148 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getProjectSmtpSettings(projectId);
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: `Incident ${incidentId} - ${componentName}/${monitorName} was acknowledged`,
-                template: 'incident_acknowledged',
-                context: {
-                    homeURL: global.homeHost,
-                    incidentTime: incidentTime,
-                    monitorName: monitorName,
-                    length,
-                    acknowledgeTime,
-                    monitorUrl,
-                    incidentId,
-                    reason,
-                    view_url,
-                    method,
-                    componentName,
-                    accessToken,
-                    firstName,
-                    userId,
-                    projectId,
-                    resolve_url: resolveUrl,
-                    incidentType,
-                    projectName,
-                    dashboardURL: global.dashboardHost,
-                    criterionName,
-                    acknowledgedBy,
-                },
-            };
-            const mailer = await _this.createMailer(accountMail);
-            EmailBody = await _this.getEmailBody(mailOptions);
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: `Incident ${incidentId} - ${componentName}/${monitorName} was acknowledged`,
+                    template: 'incident_acknowledged',
+                    context: {
+                        homeURL: global.homeHost,
+                        incidentTime: incidentTime,
+                        monitorName: monitorName,
+                        length,
+                        acknowledgeTime,
+                        monitorUrl,
+                        incidentId,
+                        reason,
+                        view_url,
+                        method,
+                        componentName,
+                        accessToken,
+                        firstName,
+                        userId,
+                        projectId,
+                        resolve_url: resolveUrl,
+                        incidentType,
+                        projectName,
+                        dashboardURL: global.dashboardHost,
+                        criterionName,
+                        acknowledgedBy,
+                    },
+                };
+                const mailer = await _this.createMailer(accountMail);
+                EmailBody = await _this.getEmailBody(mailOptions);
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: `Incident ${incidentId} - ${componentName}/${monitorName} was acknowledged`,
-                            template: 'incident_acknowledged',
-                            context: {
-                                homeURL: global.homeHost,
-                                incidentTime: incidentTime,
-                                monitorName: monitorName,
-                                length,
-                                acknowledgeTime,
-                                monitorUrl,
-                                incidentId,
-                                reason,
-                                view_url,
-                                method,
-                                componentName,
-                                accessToken,
-                                firstName,
-                                userId,
-                                projectId,
-                                resolve_url: resolveUrl,
-                                incidentType,
-                                projectName,
-                                dashboardURL: global.dashboardHost,
-                                criterionName,
-                                acknowledgedBy,
-                            },
-                        };
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject: `Incident ${incidentId} - ${componentName}/${monitorName} was acknowledged`,
+                                template: 'incident_acknowledged',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    incidentTime: incidentTime,
+                                    monitorName: monitorName,
+                                    length,
+                                    acknowledgeTime,
+                                    monitorUrl,
+                                    incidentId,
+                                    reason,
+                                    view_url,
+                                    method,
+                                    componentName,
+                                    accessToken,
+                                    firstName,
+                                    userId,
+                                    projectId,
+                                    resolve_url: resolveUrl,
+                                    incidentType,
+                                    projectName,
+                                    dashboardURL: global.dashboardHost,
+                                    criterionName,
+                                    acknowledgedBy,
+                                },
+                            };
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendIncidentAcknowledgedMail', error);
             await EmailStatusService.create({
@@ -3458,143 +3525,145 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getProjectSmtpSettings(projectId);
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: `Incident ${incidentId} - ${componentName}/${monitorName} was resolved`,
-                template: 'incident_resolved',
-                context: {
-                    homeURL: global.homeHost,
-                    incidentTime: incidentTime,
-                    monitorName: monitorName,
-                    length,
-                    resolveTime,
-                    monitorUrl,
-                    incidentId,
-                    reason,
-                    view_url,
-                    method,
-                    componentName,
-                    accessToken,
-                    firstName,
-                    userId,
-                    projectId,
-                    incidentType,
-                    projectName,
-                    dashboardURL: global.dashboardHost,
-                    criterionName,
-                    resolvedBy,
-                },
-            };
-            const mailer = await _this.createMailer(accountMail);
-            EmailBody = await _this.getEmailBody(mailOptions);
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: `Incident ${incidentId} - ${componentName}/${monitorName} was resolved`,
+                    template: 'incident_resolved',
+                    context: {
+                        homeURL: global.homeHost,
+                        incidentTime: incidentTime,
+                        monitorName: monitorName,
+                        length,
+                        resolveTime,
+                        monitorUrl,
+                        incidentId,
+                        reason,
+                        view_url,
+                        method,
+                        componentName,
+                        accessToken,
+                        firstName,
+                        userId,
+                        projectId,
+                        incidentType,
+                        projectName,
+                        dashboardURL: global.dashboardHost,
+                        criterionName,
+                        resolvedBy,
+                    },
+                };
+                const mailer = await _this.createMailer(accountMail);
+                EmailBody = await _this.getEmailBody(mailOptions);
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: `Incident ${incidentId} - ${componentName}/${monitorName} was resolved`,
-                            template: 'incident_resolved',
-                            context: {
-                                homeURL: global.homeHost,
-                                incidentTime: incidentTime,
-                                monitorName: monitorName,
-                                length,
-                                resolveTime,
-                                monitorUrl,
-                                incidentId,
-                                reason,
-                                view_url,
-                                method,
-                                componentName,
-                                accessToken,
-                                firstName,
-                                userId,
-                                projectId,
-                                incidentType,
-                                projectName,
-                                dashboardURL: global.dashboardHost,
-                                criterionName,
-                                resolvedBy,
-                            },
-                        };
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject: `Incident ${incidentId} - ${componentName}/${monitorName} was resolved`,
+                                template: 'incident_resolved',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    incidentTime: incidentTime,
+                                    monitorName: monitorName,
+                                    length,
+                                    resolveTime,
+                                    monitorUrl,
+                                    incidentId,
+                                    reason,
+                                    view_url,
+                                    method,
+                                    componentName,
+                                    accessToken,
+                                    firstName,
+                                    userId,
+                                    projectId,
+                                    incidentType,
+                                    projectName,
+                                    dashboardURL: global.dashboardHost,
+                                    criterionName,
+                                    resolvedBy,
+                                },
+                            };
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
+                return info;
             }
-            return info;
         } catch (error) {
             ErrorService.log('mailService.sendIncidentResolvedMail', error);
             await EmailStatusService.create({
@@ -3665,142 +3734,144 @@ const _this = {
             template = template(data);
             subject = subject(data);
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
-            smtpServer = 'internal';
-            if (!smtpSettings.internalSmtp) {
-                smtpServer = smtpSettings.host;
-            }
-            const privateMailer = await _this.createMailer(smtpSettings);
-            if (replyAddress) {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    replyTo: replyAddress,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            } else {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            }
-            EmailBody = await _this.getEmailBody(mailOptions);
-            if (!privateMailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(smtpSettings)) {
+                smtpServer = 'internal';
+                if (!smtpSettings.internalSmtp) {
+                    smtpServer = smtpSettings.host;
+                }
+                const privateMailer = await _this.createMailer(smtpSettings);
+                if (replyAddress) {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        replyTo: replyAddress,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                } else {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                }
+                EmailBody = await _this.getEmailBody(mailOptions);
+                if (!privateMailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await privateMailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await privateMailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        smtpSettings.internalSmtp &&
-                        smtpSettings.customSmtp &&
-                        !isEmpty(smtpSettings.backupConfig)
-                    ) {
-                        smtpServer = smtpSettings.backupConfig.host;
-                        smtpSettings = { ...smtpSettings.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            smtpSettings.internalSmtp &&
+                            smtpSettings.customSmtp &&
+                            !isEmpty(smtpSettings.backupConfig)
+                        ) {
+                            smtpServer = smtpSettings.backupConfig.host;
+                            smtpSettings = { ...smtpSettings.backupConfig };
 
-                        const privateMailer = await _this.createMailer(
-                            smtpSettings
-                        );
-                        if (replyAddress) {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                replyTo: replyAddress,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        } else {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        }
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        if (!privateMailer) {
+                            const privateMailer = await _this.createMailer(
+                                smtpSettings
+                            );
+                            if (replyAddress) {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    replyTo: replyAddress,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            } else {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            }
+                            EmailBody = await _this.getEmailBody(mailOptions);
+                            if (!privateMailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    ...(mailOptions.replyTo && {
+                                        replyTo: mailOptions.replyTo,
+                                    }),
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await privateMailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 ...(mailOptions.replyTo && {
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await privateMailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            ...(mailOptions.replyTo && {
-                                replyTo: mailOptions.replyTo,
-                            }),
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
+                return info;
             }
-            return info;
         } catch (error) {
             ErrorService.log(
                 'mailService.sendIncidentCreatedMailToSubscriber',
@@ -3878,84 +3949,118 @@ const _this = {
             template = template(data);
             subject = subject(data);
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
-            smtpServer = 'internal';
-            if (!smtpSettings.internalSmtp) {
-                smtpServer = smtpSettings.host;
-            }
-            const privateMailer = await _this.createMailer(smtpSettings);
-            mailOptions = {
-                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                to: email,
-                subject: subject,
-                template: 'template',
-                context: {
-                    body: template,
-                },
-            };
-
-            let info = {};
-            try {
-                info = await privateMailer.sendMail(mailOptions);
+            if (!isEmpty(smtpSettings)) {
+                smtpServer = 'internal';
+                if (!smtpSettings.internalSmtp) {
+                    smtpServer = smtpSettings.host;
+                }
+                const privateMailer = await _this.createMailer(smtpSettings);
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: email,
+                    subject: subject,
+                    template: 'template',
+                    context: {
+                        body: template,
+                    },
+                };
                 EmailBody = await _this.getEmailBody(mailOptions);
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        smtpSettings.internalSmtp &&
-                        smtpSettings.customSmtp &&
-                        !isEmpty(smtpSettings.backupConfig)
-                    ) {
-                        smtpServer = smtpSettings.backupConfig.host;
-                        smtpSettings = { ...smtpSettings.backupConfig };
+                if (!privateMailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-                        const privateMailer = await _this.createMailer(
-                            smtpSettings
-                        );
-                        mailOptions = {
-                            from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                            to: email,
-                            subject: subject,
-                            template: 'template',
-                            context: {
-                                body: template,
-                            },
-                        };
+                let info = {};
+                try {
+                    info = await privateMailer.sendMail(mailOptions);
+                    EmailBody = await _this.getEmailBody(mailOptions);
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            smtpSettings.internalSmtp &&
+                            smtpSettings.customSmtp &&
+                            !isEmpty(smtpSettings.backupConfig)
+                        ) {
+                            smtpServer = smtpSettings.backupConfig.host;
+                            smtpSettings = { ...smtpSettings.backupConfig };
 
-                        info = await privateMailer.sendMail(mailOptions);
+                            const privateMailer = await _this.createMailer(
+                                smtpSettings
+                            );
+                            mailOptions = {
+                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                to: email,
+                                subject: subject,
+                                template: 'template',
+                                context: {
+                                    body: template,
+                                },
+                            };
+                            EmailBody = await _this.getEmailBody(mailOptions);
+                            if (!privateMailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    ...(mailOptions.replyTo && {
+                                        replyTo: mailOptions.replyTo,
+                                    }),
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
 
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            ...(mailOptions.replyTo && {
-                                replyTo: mailOptions.replyTo,
-                            }),
-                            content: EmailBody,
-                            smtpServer,
-                        });
+                            info = await privateMailer.sendMail(mailOptions);
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Success',
+                                ...(mailOptions.replyTo && {
+                                    replyTo: mailOptions.replyTo,
+                                }),
+                                content: EmailBody,
+                                smtpServer,
+                            });
+                        } else {
+                            throw error;
+                        }
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log(
                 'mailService.sendInvestigationNoteToSubscribers',
@@ -4037,142 +4142,144 @@ const _this = {
             let smtpSettings = await _this.getProjectSmtpSettings(
                 schedule.projectId._id
             );
-            smtpServer = 'internal';
-            if (!smtpSettings.internalSmtp) {
-                smtpServer = smtpSettings.host;
-            }
-            const privateMailer = await _this.createMailer(smtpSettings);
-            if (replyAddress) {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    replyTo: replyAddress,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            } else {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            }
-            EmailBody = await _this.getEmailBody(mailOptions);
-            if (!privateMailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(smtpSettings)) {
+                smtpServer = 'internal';
+                if (!smtpSettings.internalSmtp) {
+                    smtpServer = smtpSettings.host;
+                }
+                const privateMailer = await _this.createMailer(smtpSettings);
+                if (replyAddress) {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        replyTo: replyAddress,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                } else {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                }
+                EmailBody = await _this.getEmailBody(mailOptions);
+                if (!privateMailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await privateMailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await privateMailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        smtpSettings.internalSmtp &&
-                        smtpSettings.customSmtp &&
-                        !isEmpty(smtpSettings.backupConfig)
-                    ) {
-                        smtpServer = smtpSettings.backupConfig.host;
-                        smtpSettings = { ...smtpSettings.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            smtpSettings.internalSmtp &&
+                            smtpSettings.customSmtp &&
+                            !isEmpty(smtpSettings.backupConfig)
+                        ) {
+                            smtpServer = smtpSettings.backupConfig.host;
+                            smtpSettings = { ...smtpSettings.backupConfig };
 
-                        const privateMailer = await _this.createMailer(
-                            smtpSettings
-                        );
-                        if (replyAddress) {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                replyTo: replyAddress,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        } else {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        }
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        if (!privateMailer) {
+                            const privateMailer = await _this.createMailer(
+                                smtpSettings
+                            );
+                            if (replyAddress) {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    replyTo: replyAddress,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            } else {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            }
+                            EmailBody = await _this.getEmailBody(mailOptions);
+                            if (!privateMailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    ...(mailOptions.replyTo && {
+                                        replyTo: mailOptions.replyTo,
+                                    }),
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await privateMailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 ...(mailOptions.replyTo && {
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await privateMailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            ...(mailOptions.replyTo && {
-                                replyTo: mailOptions.replyTo,
-                            }),
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
+                return info;
             }
-            return info;
         } catch (error) {
             ErrorService.log(
                 'mailService.sendScheduledEventMailToSubscriber',
@@ -4250,142 +4357,144 @@ const _this = {
             let smtpSettings = await _this.getProjectSmtpSettings(
                 schedule.projectId._id
             );
-            smtpServer = 'internal';
-            if (!smtpSettings.internalSmtp) {
-                smtpServer = smtpSettings.host;
-            }
-            const privateMailer = await _this.createMailer(smtpSettings);
-            if (replyAddress) {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    replyTo: replyAddress,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            } else {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            }
-            EmailBody = await _this.getEmailBody(mailOptions);
-            if (!privateMailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(smtpSettings)) {
+                smtpServer = 'internal';
+                if (!smtpSettings.internalSmtp) {
+                    smtpServer = smtpSettings.host;
+                }
+                const privateMailer = await _this.createMailer(smtpSettings);
+                if (replyAddress) {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        replyTo: replyAddress,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                } else {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                }
+                EmailBody = await _this.getEmailBody(mailOptions);
+                if (!privateMailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await privateMailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await privateMailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        smtpSettings.internalSmtp &&
-                        smtpSettings.customSmtp &&
-                        !isEmpty(smtpSettings.backupConfig)
-                    ) {
-                        smtpServer = smtpSettings.backupConfig.host;
-                        smtpSettings = { ...smtpSettings.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            smtpSettings.internalSmtp &&
+                            smtpSettings.customSmtp &&
+                            !isEmpty(smtpSettings.backupConfig)
+                        ) {
+                            smtpServer = smtpSettings.backupConfig.host;
+                            smtpSettings = { ...smtpSettings.backupConfig };
 
-                        const privateMailer = await _this.createMailer(
-                            smtpSettings
-                        );
-                        if (replyAddress) {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                replyTo: replyAddress,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        } else {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        }
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        if (!privateMailer) {
+                            const privateMailer = await _this.createMailer(
+                                smtpSettings
+                            );
+                            if (replyAddress) {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    replyTo: replyAddress,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            } else {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            }
+                            EmailBody = await _this.getEmailBody(mailOptions);
+                            if (!privateMailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    ...(mailOptions.replyTo && {
+                                        replyTo: mailOptions.replyTo,
+                                    }),
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await privateMailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 ...(mailOptions.replyTo && {
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await privateMailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            ...(mailOptions.replyTo && {
-                                replyTo: mailOptions.replyTo,
-                            }),
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
+                return info;
             }
-            return info;
         } catch (error) {
             ErrorService.log(
                 'mailService.sendScheduledEventMailToSubscriber',
@@ -4464,142 +4573,144 @@ const _this = {
             let smtpSettings = await _this.getProjectSmtpSettings(
                 schedule.projectId._id
             );
-            smtpServer = 'internal';
-            if (!smtpSettings.internalSmtp) {
-                smtpServer = smtpSettings.host;
-            }
-            const privateMailer = await _this.createMailer(smtpSettings);
-            if (replyAddress) {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    replyTo: replyAddress,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            } else {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            }
-            EmailBody = await _this.getEmailBody(mailOptions);
-            if (!privateMailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(smtpSettings)) {
+                smtpServer = 'internal';
+                if (!smtpSettings.internalSmtp) {
+                    smtpServer = smtpSettings.host;
+                }
+                const privateMailer = await _this.createMailer(smtpSettings);
+                if (replyAddress) {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        replyTo: replyAddress,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                } else {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                }
+                EmailBody = await _this.getEmailBody(mailOptions);
+                if (!privateMailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await privateMailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await privateMailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        smtpSettings.internalSmtp &&
-                        smtpSettings.customSmtp &&
-                        !isEmpty(smtpSettings.backupConfig)
-                    ) {
-                        smtpServer = smtpSettings.backupConfig.host;
-                        smtpSettings = { ...smtpSettings.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            smtpSettings.internalSmtp &&
+                            smtpSettings.customSmtp &&
+                            !isEmpty(smtpSettings.backupConfig)
+                        ) {
+                            smtpServer = smtpSettings.backupConfig.host;
+                            smtpSettings = { ...smtpSettings.backupConfig };
 
-                        const privateMailer = await _this.createMailer(
-                            smtpSettings
-                        );
-                        if (replyAddress) {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                replyTo: replyAddress,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        } else {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        }
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        if (!privateMailer) {
+                            const privateMailer = await _this.createMailer(
+                                smtpSettings
+                            );
+                            if (replyAddress) {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    replyTo: replyAddress,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            } else {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            }
+                            EmailBody = await _this.getEmailBody(mailOptions);
+                            if (!privateMailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    ...(mailOptions.replyTo && {
+                                        replyTo: mailOptions.replyTo,
+                                    }),
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await privateMailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 ...(mailOptions.replyTo && {
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await privateMailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            ...(mailOptions.replyTo && {
-                                replyTo: mailOptions.replyTo,
-                            }),
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
+                return info;
             }
-            return info;
         } catch (error) {
             ErrorService.log(
                 'mailService.sendCancelledScheduledEventMailToSubscriber',
@@ -4676,142 +4787,144 @@ const _this = {
             subject = subject(data);
 
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
-            smtpServer = 'internal';
-            if (!smtpSettings.internalSmtp) {
-                smtpServer = smtpSettings.host;
-            }
-            const privateMailer = await _this.createMailer(smtpSettings);
-            if (replyAddress) {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    replyTo: replyAddress,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            } else {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            }
-            EmailBody = await _this.getEmailBody(mailOptions);
-            if (!privateMailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(smtpSettings)) {
+                smtpServer = 'internal';
+                if (!smtpSettings.internalSmtp) {
+                    smtpServer = smtpSettings.host;
+                }
+                const privateMailer = await _this.createMailer(smtpSettings);
+                if (replyAddress) {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        replyTo: replyAddress,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                } else {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                }
+                EmailBody = await _this.getEmailBody(mailOptions);
+                if (!privateMailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await privateMailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await privateMailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        smtpSettings.internalSmtp &&
-                        smtpSettings.customSmtp &&
-                        !isEmpty(smtpSettings.backupConfig)
-                    ) {
-                        smtpServer = smtpSettings.backupConfig.host;
-                        smtpSettings = { ...smtpSettings.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            smtpSettings.internalSmtp &&
+                            smtpSettings.customSmtp &&
+                            !isEmpty(smtpSettings.backupConfig)
+                        ) {
+                            smtpServer = smtpSettings.backupConfig.host;
+                            smtpSettings = { ...smtpSettings.backupConfig };
 
-                        const privateMailer = await _this.createMailer(
-                            smtpSettings
-                        );
-                        if (replyAddress) {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                replyTo: replyAddress,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        } else {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        }
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        if (!privateMailer) {
+                            const privateMailer = await _this.createMailer(
+                                smtpSettings
+                            );
+                            if (replyAddress) {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    replyTo: replyAddress,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            } else {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            }
+                            EmailBody = await _this.getEmailBody(mailOptions);
+                            if (!privateMailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    ...(mailOptions.replyTo && {
+                                        replyTo: mailOptions.replyTo,
+                                    }),
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await privateMailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 ...(mailOptions.replyTo && {
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await privateMailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            ...(mailOptions.replyTo && {
-                                replyTo: mailOptions.replyTo,
-                            }),
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
+                return info;
             }
-            return info;
         } catch (error) {
             ErrorService.log(
                 'mailService.sendScheduledEventNoteMailToSubscriber',
@@ -4872,142 +4985,144 @@ const _this = {
             subject = subject(data);
 
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
-            smtpServer = 'internal';
-            if (!smtpSettings.internalSmtp) {
-                smtpServer = smtpSettings.host;
-            }
-            const privateMailer = await _this.createMailer(smtpSettings);
-            if (replyAddress) {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    replyTo: replyAddress,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            } else {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        body: template,
-                    },
-                };
-            }
-            EmailBody = await _this.getEmailBody(mailOptions);
-            if (!privateMailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(smtpSettings)) {
+                smtpServer = 'internal';
+                if (!smtpSettings.internalSmtp) {
+                    smtpServer = smtpSettings.host;
+                }
+                const privateMailer = await _this.createMailer(smtpSettings);
+                if (replyAddress) {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        replyTo: replyAddress,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                } else {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            body: template,
+                        },
+                    };
+                }
+                EmailBody = await _this.getEmailBody(mailOptions);
+                if (!privateMailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await privateMailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await privateMailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        smtpSettings.internalSmtp &&
-                        smtpSettings.customSmtp &&
-                        !isEmpty(smtpSettings.backupConfig)
-                    ) {
-                        smtpServer = smtpSettings.backupConfig.host;
-                        smtpSettings = { ...smtpSettings.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            smtpSettings.internalSmtp &&
+                            smtpSettings.customSmtp &&
+                            !isEmpty(smtpSettings.backupConfig)
+                        ) {
+                            smtpServer = smtpSettings.backupConfig.host;
+                            smtpSettings = { ...smtpSettings.backupConfig };
 
-                        const privateMailer = await _this.createMailer(
-                            smtpSettings
-                        );
-                        if (replyAddress) {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                replyTo: replyAddress,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        } else {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    body: template,
-                                },
-                            };
-                        }
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        if (!privateMailer) {
+                            const privateMailer = await _this.createMailer(
+                                smtpSettings
+                            );
+                            if (replyAddress) {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    replyTo: replyAddress,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            } else {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        body: template,
+                                    },
+                                };
+                            }
+                            EmailBody = await _this.getEmailBody(mailOptions);
+                            if (!privateMailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    ...(mailOptions.replyTo && {
+                                        replyTo: mailOptions.replyTo,
+                                    }),
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await privateMailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 ...(mailOptions.replyTo && {
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await privateMailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            ...(mailOptions.replyTo && {
-                                replyTo: mailOptions.replyTo,
-                            }),
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
+                return info;
             }
-            return info;
         } catch (error) {
             ErrorService.log('mailService.sendAnnouncementToSubscriber', error);
             await EmailStatusService.create({
@@ -5078,147 +5193,149 @@ const _this = {
             template = template(data);
             subject = subject(data);
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
-            smtpServer = 'internal';
-            if (!smtpSettings.internalSmtp) {
-                smtpServer = smtpSettings.host;
-            }
-            const privateMailer = await _this.createMailer(smtpSettings);
-            if (replyAddress) {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    replyTo: replyAddress,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        homeURL: global.homeHost,
-                        body: template,
-                    },
-                };
-            } else {
-                mailOptions = {
-                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                    to: email,
-                    subject: subject,
-                    template: 'template',
-                    context: {
-                        homeURL: global.homeHost,
-                        body: template,
-                    },
-                };
-            }
-            EmailBody = await _this.getEmailBody(mailOptions);
-            if (!privateMailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(smtpSettings)) {
+                smtpServer = 'internal';
+                if (!smtpSettings.internalSmtp) {
+                    smtpServer = smtpSettings.host;
+                }
+                const privateMailer = await _this.createMailer(smtpSettings);
+                if (replyAddress) {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        replyTo: replyAddress,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            homeURL: global.homeHost,
+                            body: template,
+                        },
+                    };
+                } else {
+                    mailOptions = {
+                        from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                        to: email,
+                        subject: subject,
+                        template: 'template',
+                        context: {
+                            homeURL: global.homeHost,
+                            body: template,
+                        },
+                    };
+                }
+                EmailBody = await _this.getEmailBody(mailOptions);
+                if (!privateMailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await privateMailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await privateMailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    ...(mailOptions.replyTo && {
-                        replyTo: mailOptions.replyTo,
-                    }),
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        smtpSettings.internalSmtp &&
-                        smtpSettings.customSmtp &&
-                        !isEmpty(smtpSettings.backupConfig)
-                    ) {
-                        smtpServer = smtpSettings.backupConfig.host;
-                        smtpSettings = { ...smtpSettings.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        ...(mailOptions.replyTo && {
+                            replyTo: mailOptions.replyTo,
+                        }),
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            smtpSettings.internalSmtp &&
+                            smtpSettings.customSmtp &&
+                            !isEmpty(smtpSettings.backupConfig)
+                        ) {
+                            smtpServer = smtpSettings.backupConfig.host;
+                            smtpSettings = { ...smtpSettings.backupConfig };
 
-                        const privateMailer = await _this.createMailer(
-                            smtpSettings
-                        );
-                        if (replyAddress) {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                replyTo: replyAddress,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    homeURL: global.homeHost,
-                                    body: template,
-                                },
-                            };
-                        } else {
-                            mailOptions = {
-                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                                to: email,
-                                subject: subject,
-                                template: 'template',
-                                context: {
-                                    homeURL: global.homeHost,
-                                    body: template,
-                                },
-                            };
-                        }
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        if (!privateMailer) {
+                            const privateMailer = await _this.createMailer(
+                                smtpSettings
+                            );
+                            if (replyAddress) {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    replyTo: replyAddress,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        homeURL: global.homeHost,
+                                        body: template,
+                                    },
+                                };
+                            } else {
+                                mailOptions = {
+                                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                    to: email,
+                                    subject: subject,
+                                    template: 'template',
+                                    context: {
+                                        homeURL: global.homeHost,
+                                        body: template,
+                                    },
+                                };
+                            }
+                            EmailBody = await _this.getEmailBody(mailOptions);
+                            if (!privateMailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    ...(mailOptions.replyTo && {
+                                        replyTo: mailOptions.replyTo,
+                                    }),
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await privateMailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 ...(mailOptions.replyTo && {
                                     replyTo: mailOptions.replyTo,
                                 }),
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await privateMailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            ...(mailOptions.replyTo && {
-                                replyTo: mailOptions.replyTo,
-                            }),
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log(
                 'mailService.sendIncidentResolvedMailToSubscriber',
@@ -5350,119 +5467,121 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: 'Change of Subscription Plan',
-                template: 'changed_subscription_plan',
-                context: {
-                    homeURL: global.homeHost,
-                    projectName: projectName,
-                    oldPlan: oldPlan,
-                    newPlan: newPlan,
-                    dashboardURL: global.dashboardHost,
-                },
-            };
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: 'Change of Subscription Plan',
+                    template: 'changed_subscription_plan',
+                    context: {
+                        homeURL: global.homeHost,
+                        projectName: projectName,
+                        oldPlan: oldPlan,
+                        newPlan: newPlan,
+                        dashboardURL: global.dashboardHost,
+                    },
+                };
 
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: 'Change of Subscription Plan',
-                            template: 'changed_subscription_plan',
-                            context: {
-                                homeURL: global.homeHost,
-                                projectName: projectName,
-                                oldPlan: oldPlan,
-                                newPlan: newPlan,
-                                dashboardURL: global.dashboardHost,
-                            },
-                        };
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject: 'Change of Subscription Plan',
+                                template: 'changed_subscription_plan',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    projectName: projectName,
+                                    oldPlan: oldPlan,
+                                    newPlan: newPlan,
+                                    dashboardURL: global.dashboardHost,
+                                },
+                            };
 
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendChangePlanMail', error);
             await EmailStatusService.create({
@@ -5485,116 +5604,118 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
 
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: 'New Project',
-                template: 'create_project',
-                context: {
-                    homeURL: global.homeHost,
-                    projectName: projectName,
-                    dashboardURL: global.dashboardHost,
-                },
-            };
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: 'New Project',
+                    template: 'create_project',
+                    context: {
+                        homeURL: global.homeHost,
+                        projectName: projectName,
+                        dashboardURL: global.dashboardHost,
+                    },
+                };
 
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: 'New Project',
-                            template: 'create_project',
-                            context: {
-                                homeURL: global.homeHost,
-                                projectName: projectName,
-                                dashboardURL: global.dashboardHost,
-                            },
-                        };
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject: 'New Project',
+                                template: 'create_project',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    projectName: projectName,
+                                    dashboardURL: global.dashboardHost,
+                                },
+                            };
 
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendCreateProjectMail', error);
             await EmailStatusService.create({
@@ -5617,113 +5738,115 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: 'New Sub-Project',
-                template: 'create_subproject',
-                context: {
-                    homeURL: global.homeHost,
-                    subProjectName: subProjectName,
-                    dashboardURL: global.dashboardHost,
-                },
-            };
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: 'New Sub-Project',
+                    template: 'create_subproject',
+                    context: {
+                        homeURL: global.homeHost,
+                        subProjectName: subProjectName,
+                        dashboardURL: global.dashboardHost,
+                    },
+                };
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: 'New Sub-Project',
-                            template: 'create_subproject',
-                            context: {
-                                homeURL: global.homeHost,
-                                subProjectName: subProjectName,
-                                dashboardURL: global.dashboardHost,
-                            },
-                        };
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject: 'New Sub-Project',
+                                template: 'create_subproject',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    subProjectName: subProjectName,
+                                    dashboardURL: global.dashboardHost,
+                                },
+                            };
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendCreateSubProjectMail', error);
             await EmailStatusService.create({
@@ -5751,119 +5874,121 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: 'support@fyipe.com',
-                subject: 'Upgrade to enterprise plan request from ' + email,
-                template: 'enterprise_upgrade',
-                context: {
-                    homeURL: global.homeHost,
-                    projectName: projectName,
-                    projectId: projectId,
-                    oldPlan: oldPlan,
-                    email: email,
-                },
-            };
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: 'support@fyipe.com',
+                    subject: 'Upgrade to enterprise plan request from ' + email,
+                    template: 'enterprise_upgrade',
+                    context: {
+                        homeURL: global.homeHost,
+                        projectName: projectName,
+                        projectId: projectId,
+                        oldPlan: oldPlan,
+                        email: email,
+                    },
+                };
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: 'support@fyipe.com',
-                            subject:
-                                'Upgrade to enterprise plan request from ' +
-                                email,
-                            template: 'enterprise_upgrade',
-                            context: {
-                                homeURL: global.homeHost,
-                                projectName: projectName,
-                                projectId: projectId,
-                                oldPlan: oldPlan,
-                                email: email,
-                            },
-                        };
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: 'support@fyipe.com',
+                                subject:
+                                    'Upgrade to enterprise plan request from ' +
+                                    email,
+                                template: 'enterprise_upgrade',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    projectName: projectName,
+                                    projectId: projectId,
+                                    oldPlan: oldPlan,
+                                    email: email,
+                                },
+                            };
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendUpgradeToEnterpriseMail', error);
             await EmailStatusService.create({
@@ -5891,117 +6016,119 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: email,
-                subject: 'Subscription Payment Failed',
-                template: 'subscription_payment_failed',
-                context: {
-                    homeURL: global.homeHost,
-                    projectName,
-                    name,
-                    chargeAttemptStage,
-                    dashboardURL: global.dashboardHost,
-                },
-            };
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+            if (!isEmpty(accountMail)) {
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: email,
+                    subject: 'Subscription Payment Failed',
+                    template: 'subscription_payment_failed',
+                    context: {
+                        homeURL: global.homeHost,
+                        projectName,
+                        name,
+                        chargeAttemptStage,
+                        dashboardURL: global.dashboardHost,
+                    },
+                };
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: email,
-                            subject: 'Subscription Payment Failed',
-                            template: 'subscription_payment_failed',
-                            context: {
-                                homeURL: global.homeHost,
-                                projectName,
-                                name,
-                                chargeAttemptStage,
-                                dashboardURL: global.dashboardHost,
-                            },
-                        };
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: email,
+                                subject: 'Subscription Payment Failed',
+                                template: 'subscription_payment_failed',
+                                context: {
+                                    homeURL: global.homeHost,
+                                    projectName,
+                                    name,
+                                    chargeAttemptStage,
+                                    dashboardURL: global.dashboardHost,
+                                },
+                            };
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendPaymentFailedEmail', error);
             await EmailStatusService.create({
@@ -6049,126 +6176,132 @@ const _this = {
         let smtpServer;
         try {
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
-            smtpServer = 'internal';
-            if (!smtpSettings.internalSmtp) {
-                smtpServer = smtpSettings.host;
-            }
-            mailOptions = {
-                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                to: userEmail,
-                subject: `About to Breach Incident SLA`,
-                template: 'sla_notification',
-                context: {
-                    name: name ? name.split(' ')[0].toString() : '',
-                    currentYear: new Date().getFullYear(),
-                    incidentSla,
-                    monitorName,
-                    incidentUrl,
-                    projectName,
-                    componentName,
-                    incidentId,
-                    reason,
-                    incidentSlaTimeline,
-                    incidentSlaRemaining,
-                },
-            };
+            if (!isEmpty(smtpSettings)) {
+                smtpServer = 'internal';
+                if (!smtpSettings.internalSmtp) {
+                    smtpServer = smtpSettings.host;
+                }
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: userEmail,
+                    subject: `About to Breach Incident SLA`,
+                    template: 'sla_notification',
+                    context: {
+                        name: name ? name.split(' ')[0].toString() : '',
+                        currentYear: new Date().getFullYear(),
+                        incidentSla,
+                        monitorName,
+                        incidentUrl,
+                        projectName,
+                        componentName,
+                        incidentId,
+                        reason,
+                        incidentSlaTimeline,
+                        incidentSlaRemaining,
+                    },
+                };
 
-            const mailer = await _this.createMailer(smtpSettings);
-            EmailBody = await _this.getEmailBody(mailOptions);
+                const mailer = await _this.createMailer(smtpSettings);
+                EmailBody = await _this.getEmailBody(mailOptions);
 
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        smtpSettings.internalSmtp &&
-                        smtpSettings.customSmtp &&
-                        !isEmpty(smtpSettings.backupConfig)
-                    ) {
-                        smtpServer = smtpSettings.backupConfig.host;
-                        smtpSettings = { ...smtpSettings.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            smtpSettings.internalSmtp &&
+                            smtpSettings.customSmtp &&
+                            !isEmpty(smtpSettings.backupConfig)
+                        ) {
+                            smtpServer = smtpSettings.backupConfig.host;
+                            smtpSettings = { ...smtpSettings.backupConfig };
 
-                        mailOptions = {
-                            from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                            to: userEmail,
-                            subject: `About to Breach Incident SLA`,
-                            template: 'sla_notification',
-                            context: {
-                                name: name ? name.split(' ')[0].toString() : '',
-                                currentYear: new Date().getFullYear(),
-                                incidentSla,
-                                monitorName,
-                                incidentUrl,
-                                projectName,
-                                componentName,
-                                incidentId,
-                                reason,
-                                incidentSlaTimeline,
-                                incidentSlaRemaining,
-                            },
-                        };
+                            mailOptions = {
+                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                to: userEmail,
+                                subject: `About to Breach Incident SLA`,
+                                template: 'sla_notification',
+                                context: {
+                                    name: name
+                                        ? name.split(' ')[0].toString()
+                                        : '',
+                                    currentYear: new Date().getFullYear(),
+                                    incidentSla,
+                                    monitorName,
+                                    incidentUrl,
+                                    projectName,
+                                    componentName,
+                                    incidentId,
+                                    reason,
+                                    incidentSlaTimeline,
+                                    incidentSlaRemaining,
+                                },
+                            };
 
-                        const mailer = await _this.createMailer(smtpSettings);
-                        EmailBody = await _this.getEmailBody(mailOptions);
+                            const mailer = await _this.createMailer(
+                                smtpSettings
+                            );
+                            EmailBody = await _this.getEmailBody(mailOptions);
 
-                        if (!mailer) {
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendSlaNotification', error);
             await EmailStatusService.create({
@@ -6202,123 +6335,129 @@ const _this = {
         let smtpServer;
         try {
             let smtpSettings = await _this.getProjectSmtpSettings(projectId);
-            smtpServer = 'internal';
-            if (!smtpSettings.internalSmtp) {
-                smtpServer = smtpSettings.host;
-            }
-            mailOptions = {
-                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                to: userEmail,
-                subject: `Breached Incident SLA`,
-                template: 'breach_sla_notification',
-                context: {
-                    name: name ? name.split(' ')[0].toString() : '',
-                    currentYear: new Date().getFullYear(),
-                    incidentSla,
-                    monitorName,
-                    incidentUrl,
-                    projectName,
-                    componentName,
-                    incidentId,
-                    reason,
-                    incidentSlaTimeline,
-                },
-            };
+            if (!isEmpty(smtpSettings)) {
+                smtpServer = 'internal';
+                if (!smtpSettings.internalSmtp) {
+                    smtpServer = smtpSettings.host;
+                }
+                mailOptions = {
+                    from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                    to: userEmail,
+                    subject: `Breached Incident SLA`,
+                    template: 'breach_sla_notification',
+                    context: {
+                        name: name ? name.split(' ')[0].toString() : '',
+                        currentYear: new Date().getFullYear(),
+                        incidentSla,
+                        monitorName,
+                        incidentUrl,
+                        projectName,
+                        componentName,
+                        incidentId,
+                        reason,
+                        incidentSlaTimeline,
+                    },
+                };
 
-            const mailer = await _this.createMailer(smtpSettings);
-            EmailBody = await _this.getEmailBody(mailOptions);
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+                const mailer = await _this.createMailer(smtpSettings);
+                EmailBody = await _this.getEmailBody(mailOptions);
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        smtpSettings.internalSmtp &&
-                        smtpSettings.customSmtp &&
-                        !isEmpty(smtpSettings.backupConfig)
-                    ) {
-                        smtpServer = smtpSettings.backupConfig.host;
-                        smtpSettings = { ...smtpSettings.backupConfig };
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            smtpSettings.internalSmtp &&
+                            smtpSettings.customSmtp &&
+                            !isEmpty(smtpSettings.backupConfig)
+                        ) {
+                            smtpServer = smtpSettings.backupConfig.host;
+                            smtpSettings = { ...smtpSettings.backupConfig };
 
-                        mailOptions = {
-                            from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
-                            to: userEmail,
-                            subject: `Breached Incident SLA`,
-                            template: 'breach_sla_notification',
-                            context: {
-                                name: name ? name.split(' ')[0].toString() : '',
-                                currentYear: new Date().getFullYear(),
-                                incidentSla,
-                                monitorName,
-                                incidentUrl,
-                                projectName,
-                                componentName,
-                                incidentId,
-                                reason,
-                                incidentSlaTimeline,
-                            },
-                        };
+                            mailOptions = {
+                                from: `"${smtpSettings.name}" <${smtpSettings.from}>`,
+                                to: userEmail,
+                                subject: `Breached Incident SLA`,
+                                template: 'breach_sla_notification',
+                                context: {
+                                    name: name
+                                        ? name.split(' ')[0].toString()
+                                        : '',
+                                    currentYear: new Date().getFullYear(),
+                                    incidentSla,
+                                    monitorName,
+                                    incidentUrl,
+                                    projectName,
+                                    componentName,
+                                    incidentId,
+                                    reason,
+                                    incidentSlaTimeline,
+                                },
+                            };
 
-                        const mailer = await _this.createMailer(smtpSettings);
-                        EmailBody = await _this.getEmailBody(mailOptions);
-                        if (!mailer) {
+                            const mailer = await _this.createMailer(
+                                smtpSettings
+                            );
+                            EmailBody = await _this.getEmailBody(mailOptions);
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log('mailService.sendSlaBreachNotification', error);
             await EmailStatusService.create({
@@ -6346,127 +6485,129 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            accountMail.name = 'Fyipe Support';
-            accountMail.from = 'support@fyipe.com';
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: userEmail,
-                replyTo: accountMail.from,
-                cc: accountMail.from,
-                subject: 'Unpaid Project Subscription',
-                template: 'unpaid_sub_notification',
-                context: {
-                    projectName,
-                    name: name.split(' ')[0].toString(),
-                    currentYear: new Date().getFullYear(),
-                    projectPlan: projectPlan.details,
-                    projectUrl,
-                },
-            };
+            if (!isEmpty(accountMail)) {
+                accountMail.name = 'Fyipe Support';
+                accountMail.from = 'support@fyipe.com';
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: userEmail,
+                    replyTo: accountMail.from,
+                    cc: accountMail.from,
+                    subject: 'Unpaid Project Subscription',
+                    template: 'unpaid_sub_notification',
+                    context: {
+                        projectName,
+                        name: name.split(' ')[0].toString(),
+                        currentYear: new Date().getFullYear(),
+                        projectPlan: projectPlan.details,
+                        projectUrl,
+                    },
+                };
 
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
-                        accountMail.name = 'Fyipe Support';
-                        accountMail.from = 'support@fyipe.com';
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
+                            accountMail.name = 'Fyipe Support';
+                            accountMail.from = 'support@fyipe.com';
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: userEmail,
-                            replyTo: accountMail.from,
-                            cc: accountMail.from,
-                            subject: 'Unpaid Project Subscription',
-                            template: 'unpaid_sub_notification',
-                            context: {
-                                projectName,
-                                name: name.split(' ')[0].toString(),
-                                currentYear: new Date().getFullYear(),
-                                projectPlan: projectPlan.details,
-                                projectUrl,
-                            },
-                        };
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: userEmail,
+                                replyTo: accountMail.from,
+                                cc: accountMail.from,
+                                subject: 'Unpaid Project Subscription',
+                                template: 'unpaid_sub_notification',
+                                context: {
+                                    projectName,
+                                    name: name.split(' ')[0].toString(),
+                                    currentYear: new Date().getFullYear(),
+                                    projectPlan: projectPlan.details,
+                                    projectUrl,
+                                },
+                            };
 
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log(
                 'mailService.sendUnpaidSubscriptionReminder',
@@ -6496,126 +6637,129 @@ const _this = {
         let smtpServer;
         try {
             let accountMail = await _this.getSmtpSettings();
-            accountMail.name = 'Fyipe Support';
-            accountMail.from = 'support@fyipe.com';
-            smtpServer = 'internal';
-            if (!accountMail.internalSmtp) {
-                smtpServer = accountMail.host;
-            }
-            mailOptions = {
-                from: `"${accountMail.name}" <${accountMail.from}>`,
-                to: userEmail,
-                replyTo: accountMail.from,
-                cc: accountMail.from,
-                subject: 'Unpaid Project Subscription - Project Deactivated',
-                template: 'unpaid_sub_delete_project',
-                context: {
-                    projectName,
-                    name: name.split(' ')[0].toString(),
-                    currentYear: new Date().getFullYear(),
-                    projectPlan: projectPlan.details,
-                },
-            };
+            if (!isEmpty(accountMail)) {
+                accountMail.name = 'Fyipe Support';
+                accountMail.from = 'support@fyipe.com';
+                smtpServer = 'internal';
+                if (!accountMail.internalSmtp) {
+                    smtpServer = accountMail.host;
+                }
+                mailOptions = {
+                    from: `"${accountMail.name}" <${accountMail.from}>`,
+                    to: userEmail,
+                    replyTo: accountMail.from,
+                    cc: accountMail.from,
+                    subject:
+                        'Unpaid Project Subscription - Project Deactivated',
+                    template: 'unpaid_sub_delete_project',
+                    context: {
+                        projectName,
+                        name: name.split(' ')[0].toString(),
+                        currentYear: new Date().getFullYear(),
+                        projectPlan: projectPlan.details,
+                    },
+                };
 
-            const [mailer, emailBody] = await Promise.all([
-                _this.createMailer({}),
-                _this.getEmailBody(mailOptions),
-            ]);
-            EmailBody = emailBody;
-            if (!mailer) {
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Email not enabled.',
-                    content: EmailBody,
-                    error: 'Email not enabled.',
-                    smtpServer,
-                });
-                return;
-            }
+                const [mailer, emailBody] = await Promise.all([
+                    _this.createMailer({}),
+                    _this.getEmailBody(mailOptions),
+                ]);
+                EmailBody = emailBody;
+                if (!mailer) {
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Email not enabled.',
+                        content: EmailBody,
+                        error: 'Email not enabled.',
+                        smtpServer,
+                    });
+                    return;
+                }
 
-            let info = {};
-            try {
-                info = await mailer.sendMail(mailOptions);
+                let info = {};
+                try {
+                    info = await mailer.sendMail(mailOptions);
 
-                await EmailStatusService.create({
-                    from: mailOptions.from,
-                    to: mailOptions.to,
-                    subject: mailOptions.subject,
-                    template: mailOptions.template,
-                    status: 'Success',
-                    content: EmailBody,
-                    smtpServer,
-                });
-            } catch (error) {
-                if (error.code === 'ECONNECTION') {
-                    if (
-                        accountMail.internalSmtp &&
-                        accountMail.customSmtp &&
-                        !isEmpty(accountMail.backupConfig)
-                    ) {
-                        smtpServer = accountMail.backupConfig.host;
-                        accountMail = { ...accountMail.backupConfig };
-                        accountMail.name = 'Fyipe Support';
-                        accountMail.from = 'support@fyipe.com';
+                    await EmailStatusService.create({
+                        from: mailOptions.from,
+                        to: mailOptions.to,
+                        subject: mailOptions.subject,
+                        template: mailOptions.template,
+                        status: 'Success',
+                        content: EmailBody,
+                        smtpServer,
+                    });
+                } catch (error) {
+                    if (error.code === 'ECONNECTION') {
+                        if (
+                            accountMail.internalSmtp &&
+                            accountMail.customSmtp &&
+                            !isEmpty(accountMail.backupConfig)
+                        ) {
+                            smtpServer = accountMail.backupConfig.host;
+                            accountMail = { ...accountMail.backupConfig };
+                            accountMail.name = 'Fyipe Support';
+                            accountMail.from = 'support@fyipe.com';
 
-                        mailOptions = {
-                            from: `"${accountMail.name}" <${accountMail.from}>`,
-                            to: userEmail,
-                            replyTo: accountMail.from,
-                            cc: accountMail.from,
-                            subject:
-                                'Unpaid Project Subscription - Project Deactivated',
-                            template: 'unpaid_sub_delete_project',
-                            context: {
-                                projectName,
-                                name: name.split(' ')[0].toString(),
-                                currentYear: new Date().getFullYear(),
-                                projectPlan: projectPlan.details,
-                            },
-                        };
+                            mailOptions = {
+                                from: `"${accountMail.name}" <${accountMail.from}>`,
+                                to: userEmail,
+                                replyTo: accountMail.from,
+                                cc: accountMail.from,
+                                subject:
+                                    'Unpaid Project Subscription - Project Deactivated',
+                                template: 'unpaid_sub_delete_project',
+                                context: {
+                                    projectName,
+                                    name: name.split(' ')[0].toString(),
+                                    currentYear: new Date().getFullYear(),
+                                    projectPlan: projectPlan.details,
+                                },
+                            };
 
-                        const [mailer, emailBody] = await Promise.all([
-                            _this.createMailer(accountMail),
-                            _this.getEmailBody(mailOptions),
-                        ]);
-                        EmailBody = emailBody;
-                        if (!mailer) {
+                            const [mailer, emailBody] = await Promise.all([
+                                _this.createMailer(accountMail),
+                                _this.getEmailBody(mailOptions),
+                            ]);
+                            EmailBody = emailBody;
+                            if (!mailer) {
+                                await EmailStatusService.create({
+                                    from: mailOptions.from,
+                                    to: mailOptions.to,
+                                    subject: mailOptions.subject,
+                                    template: mailOptions.template,
+                                    status: 'Email not enabled.',
+                                    content: EmailBody,
+                                    error: 'Email not enabled.',
+                                    smtpServer,
+                                });
+                                return;
+                            }
+
+                            info = await mailer.sendMail(mailOptions);
+
                             await EmailStatusService.create({
                                 from: mailOptions.from,
                                 to: mailOptions.to,
                                 subject: mailOptions.subject,
                                 template: mailOptions.template,
-                                status: 'Email not enabled.',
+                                status: 'Success',
                                 content: EmailBody,
-                                error: 'Email not enabled.',
                                 smtpServer,
                             });
-                            return;
+                        } else {
+                            throw error;
                         }
-
-                        info = await mailer.sendMail(mailOptions);
-
-                        await EmailStatusService.create({
-                            from: mailOptions.from,
-                            to: mailOptions.to,
-                            subject: mailOptions.subject,
-                            template: mailOptions.template,
-                            status: 'Success',
-                            content: EmailBody,
-                            smtpServer,
-                        });
                     } else {
                         throw error;
                     }
-                } else {
-                    throw error;
                 }
-            }
 
-            return info;
+                return info;
+            }
         } catch (error) {
             ErrorService.log(
                 'mailService.sendUnpaidSubscriptionProjectDelete',
