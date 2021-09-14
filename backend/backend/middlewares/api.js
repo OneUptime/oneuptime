@@ -104,13 +104,13 @@ module.exports = {
         // Get Project Id, If Available
         let projectId;
 
-        if (req.params.projectId) {
+        if (req.params && req.params.projectId) {
             projectId = req.params.projectId;
-        } else if (req.query.projectId) {
+        } else if (req.query && req.query.projectId) {
             projectId = req.query.projectId;
-        } else if (req.headers['projectId']) {
+        } else if (req.headers && req.headers['projectId']) {
             projectId = req.headers['projectId'];
-        } else if (req.body.projectId) {
+        } else if (req.body && req.body.projectId) {
             projectId = req.body.projectId;
         } else {
             return null;
