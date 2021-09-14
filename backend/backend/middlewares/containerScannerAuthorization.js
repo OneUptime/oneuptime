@@ -15,15 +15,13 @@ module.exports = {
                 clusterKey,
                 containerScannerVersion;
 
-            if (req.params.containerscannerkey) {
+            if (req.params && req.params.containerscannerkey) {
                 containerScannerKey = req.params.containerscannerkey;
-            } else if (req.query.containerScannerKey) {
+            } else if (req.query && req.query.containerScannerKey) {
                 containerScannerKey = req.query.containerscannerkey;
-            } else if (req.headers['containerscannerkey']) {
+            } else if (req.headers && req.headers['containerscannerkey']) {
                 containerScannerKey = req.headers['containerscannerkey'];
-            } else if (req.headers['containerscannerkey']) {
-                containerScannerKey = req.headers['containerscannerkey'];
-            } else if (req.body.containerScannerKey) {
+            } else if (req.body && req.body.containerScannerKey) {
                 containerScannerKey = req.body.containerScannerKey;
             } else {
                 return sendErrorResponse(req, res, {
@@ -32,15 +30,13 @@ module.exports = {
                 });
             }
 
-            if (req.params.containerscannername) {
+            if (req.params && req.params.containerscannername) {
                 containerScannerName = req.params.containerscannername;
-            } else if (req.query.containerscannername) {
+            } else if (req.query && req.query.containerscannername) {
                 containerScannerName = req.query.containerscannername;
-            } else if (req.headers['containerscannername']) {
+            } else if (req.headers && req.headers['containerscannername']) {
                 containerScannerName = req.headers['containerscannername'];
-            } else if (req.headers['containerscannername']) {
-                containerScannerName = req.headers['containerscannername'];
-            } else if (req.body.containerscannerName) {
+            } else if (req.body && req.body.containerscannerName) {
                 containerScannerName = req.body.containerscannername;
             } else {
                 return sendErrorResponse(req, res, {
@@ -49,26 +45,24 @@ module.exports = {
                 });
             }
 
-            if (req.params.clusterKey) {
+            if (req.params && req.params.clusterKey) {
                 clusterKey = req.params.clusterkey;
-            } else if (req.query.clusterKey) {
+            } else if (req.query && req.query.clusterKey) {
                 clusterKey = req.query.clusterkey;
-            } else if (req.headers['clusterKey']) {
+            } else if (req.headers && req.headers['clusterKey']) {
                 clusterKey = req.headers['clusterKey'];
-            } else if (req.headers['clusterkey']) {
-                clusterKey = req.headers['clusterkey'];
-            } else if (req.body.clusterKey) {
+            } else if (req.body && req.body.clusterKey) {
                 clusterKey = req.body.clusterKey;
             }
 
-            if (req.params.containerscannerversion) {
+            if (req.params && req.params.containerscannerversion) {
                 containerScannerVersion = req.params.containerscannerversion;
-            } else if (req.query.containerscannerversion) {
+            } else if (req.query && req.query.containerscannerversion) {
                 containerScannerVersion = req.query.containerscannerversion;
-            } else if (req.headers['containerscannerversion']) {
+            } else if (req.headers && req.headers['containerscannerversion']) {
                 containerScannerVersion =
                     req.headers['containerscannerversion'];
-            } else if (req.body.containerscannerversion) {
+            } else if (req.body && req.body.containerscannerversion) {
                 containerScannerVersion = req.body.containerscannerversion;
             }
 

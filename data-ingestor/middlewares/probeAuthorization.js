@@ -15,15 +15,13 @@ module.exports = {
         try {
             let probeKey, probeName, clusterKey, probeVersion;
 
-            if (req.params.probeKey) {
+            if (req.params && req.params.probeKey) {
                 probeKey = req.params.probeKey;
-            } else if (req.query.probeKey) {
+            } else if (req.query && req.query.probeKey) {
                 probeKey = req.query.probeKey;
-            } else if (req.headers['probeKey']) {
+            } else if (req.headers && req.headers['probeKey']) {
                 probeKey = req.headers['probeKey'];
-            } else if (req.headers['probekey']) {
-                probeKey = req.headers['probekey'];
-            } else if (req.body.probeKey) {
+            } else if (req.body && req.body.probeKey) {
                 probeKey = req.body.probeKey;
             } else {
                 return sendErrorResponse(req, res, {
@@ -32,15 +30,13 @@ module.exports = {
                 });
             }
 
-            if (req.params.probeName) {
+            if (req.params && req.params.probeName) {
                 probeName = req.params.probeName;
-            } else if (req.query.probeName) {
+            } else if (req.query && req.query.probeName) {
                 probeName = req.query.probeName;
-            } else if (req.headers['probeName']) {
+            } else if (req.headers && req.headers['probeName']) {
                 probeName = req.headers['probeName'];
-            } else if (req.headers['probename']) {
-                probeName = req.headers['probename'];
-            } else if (req.body.probeName) {
+            } else if (req.body && req.body.probeName) {
                 probeName = req.body.probeName;
             } else {
                 return sendErrorResponse(req, res, {
@@ -49,25 +45,23 @@ module.exports = {
                 });
             }
 
-            if (req.params.clusterKey) {
+            if (req.params && req.params.clusterKey) {
                 clusterKey = req.params.clusterKey;
-            } else if (req.query.clusterKey) {
+            } else if (req.query && req.query.clusterKey) {
                 clusterKey = req.query.clusterKey;
-            } else if (req.headers['clusterKey']) {
+            } else if (req.headers && req.headers['clusterKey']) {
                 clusterKey = req.headers['clusterKey'];
-            } else if (req.headers['clusterkey']) {
-                clusterKey = req.headers['clusterkey'];
-            } else if (req.body.clusterKey) {
+            } else if (req.body && req.body.clusterKey) {
                 clusterKey = req.body.clusterKey;
             }
 
-            if (req.params.probeVersion) {
+            if (req.params && req.params.probeVersion) {
                 probeVersion = req.params.probeVersion;
-            } else if (req.query.probeVersion) {
+            } else if (req.query && req.query.probeVersion) {
                 probeVersion = req.query.probeVersion;
-            } else if (req.headers['probeversion']) {
+            } else if (req.headers && req.headers['probeversion']) {
                 probeVersion = req.headers['probeversion'];
-            } else if (req.body.probeVersion) {
+            } else if (req.body && req.body.probeVersion) {
                 probeVersion = req.body.probeVersion;
             }
 

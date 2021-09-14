@@ -123,11 +123,12 @@ router.delete(
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
+        const { applicationLogId, componentId } = req.params;
         try {
             const applicationLog = await ApplicationLogService.deleteBy(
                 {
-                    _id: req.params.applicationLogId,
-                    componentId: req.params.componentId,
+                    _id: applicationLogId,
+                    componentId: componentId,
                 },
                 req.user.id
             );
@@ -309,7 +310,7 @@ router.post(
 
         try {
             const applicationLog = await ApplicationLogService.updateOneBy(
-                { _id: req.params.applicationLogId },
+                { _id: applicationLogId },
                 data
             );
             return sendItemResponse(req, res, applicationLog);
@@ -326,7 +327,7 @@ router.put(
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
-        const applicationLogId = req.params.applicationLogId;
+        const { applicationLogId, componentId } = req.params;
 
         const data = req.body;
         if (!data) {
@@ -358,7 +359,7 @@ router.put(
         // try to find in the application log if the name already exist for that component
         const existingQuery = {
             name: data.name,
-            componentId: req.params.componentId,
+            componentId: componentId,
         };
 
         if (data.resourceCategory != '') {
