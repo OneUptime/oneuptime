@@ -182,7 +182,7 @@ module.exports = {
                 query: { _id: projectId },
                 select: 'parentProjectId seats',
             });
-            if (project.parentProjectId) {
+            if (project && project.parentProjectId) {
                 subProject = project;
                 project = await ProjectService.findOneBy({
                     query: { _id: subProject.parentProjectId },
@@ -313,7 +313,7 @@ module.exports = {
                 select:
                     'parentProjectId seats _id users stripeSubscriptionId name',
             });
-            if (project.parentProjectId) {
+            if (project && project.parentProjectId) {
                 subProject = project;
                 project = await ProjectService.findOneBy({
                     query: { _id: subProject.parentProjectId },
@@ -453,17 +453,13 @@ module.exports = {
                     }),
                 ]);
                 // add user to all subProjects
-                await Promise.all(
-                    subProjects.map(async subProject => {
-                        const subProjectMembers = members.concat(
-                            subProject.users
-                        );
-                        await ProjectService.updateOneBy(
-                            { _id: subProject._id },
-                            { users: subProjectMembers }
-                        );
-                    })
-                );
+                for (const subProject of subProjects) {
+                    const subProjectMembers = members.concat(subProject.users);
+                    await ProjectService.updateOneBy(
+                        { _id: subProject._id },
+                        { users: subProjectMembers }
+                    );
+                }
             }
             projectUsers = await _this.getTeamMembersBy({
                 parentProjectId: project._id,

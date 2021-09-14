@@ -29,7 +29,13 @@ function renderLibraries() {
     });
     return list;
 }
-function renderLanguageQuickStart(library, type, errorTracker, applicationLog) {
+function renderLanguageQuickStart(
+    library,
+    type,
+    errorTracker,
+    applicationLog,
+    setShow
+) {
     const currentLibrary = logLibraries
         .getQuickStarts(errorTracker, applicationLog)
         .filter(quickStart => quickStart.id === library);
@@ -84,6 +90,24 @@ function renderLanguageQuickStart(library, type, errorTracker, applicationLog) {
                         height={currentLibrary[0].height.usage}
                     />
                 </div>
+                <div className="bs-cancel-box">
+                    <button
+                        id={'cancel-help'}
+                        className="bs-Button bs-DeprecatedButton"
+                        type="button"
+                        onClick={setShow}
+                    >
+                        <span className="bs-list-flex">
+                            <span
+                                style={{
+                                    marginLeft: '5px',
+                                }}
+                            >
+                                Cancel
+                            </span>
+                        </span>
+                    </button>
+                </div>
             </div>
         );
     }
@@ -95,6 +119,7 @@ const LibraryList = ({
     errorTracker,
     applicationLog,
     close,
+    setShow,
 }) => (
     <div tabIndex="0" className="Box-root Margin-vertical--12">
         <div className="db-Trends bs-ContentSection Card-root Card-shadow--medium">
@@ -183,7 +208,8 @@ const LibraryList = ({
                         library,
                         type,
                         errorTracker,
-                        applicationLog
+                        applicationLog,
+                        setShow
                     )}
                 </div>
             </div>
@@ -204,6 +230,7 @@ LibraryList.propTypes = {
     errorTracker: PropTypes.object,
     applicationLog: PropTypes.object,
     close: PropTypes.func,
+    setShow: PropTypes.func,
 };
 
 const mapStateToProps = state => {
