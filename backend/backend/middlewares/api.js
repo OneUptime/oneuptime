@@ -22,7 +22,11 @@ module.exports = {
             projectId = req.params.projectId;
         } else if (req.query && req.query.projectId) {
             projectId = req.query.projectId;
-        } else if (req.headers && req.headers['projectId']) {
+        } else if (
+            req.headers &&
+            (req.headers['projectId'] || req.headers['projectid'])
+        ) {
+            // header keys are automatically transformed to lowercase
             projectId = req.headers['projectId'];
         } else if (req.body && req.body.projectId) {
             projectId = req.body.projectId;
@@ -39,8 +43,8 @@ module.exports = {
 
         if (req.query && req.query.apiKey) {
             apiKey = req.query.apiKey;
-        } else if (req.headers && req.headers.apikey) {
-            apiKey = req.headers.apikey;
+        } else if (req.headers && (req.headers.apikey || req.headers.apiKey)) {
+            apiKey = req.headers.apikey || req.headers.apiKey;
         } else if (req.body && req.body.apiKey) {
             apiKey = req.body.apiKey;
         } else {
@@ -91,7 +95,7 @@ module.exports = {
     hasAPIKey: function(req) {
         if (req.query && req.query.apiKey) {
             return true;
-        } else if (req.headers && req.headers.apiKey) {
+        } else if (req.headers && (req.headers.apiKey || req.headers.apikey)) {
             return true;
         } else if (req.body && req.body.apiKey) {
             return true;
@@ -108,8 +112,12 @@ module.exports = {
             projectId = req.params.projectId;
         } else if (req.query && req.query.projectId) {
             projectId = req.query.projectId;
-        } else if (req.headers && req.headers['projectId']) {
-            projectId = req.headers['projectId'];
+        } else if (
+            req.headers &&
+            (req.headers['projectId'] || req.headers['projectid'])
+        ) {
+            // header keys are automatically transformed to lowercase
+            projectId = req.headers['projectId'] || req.headers['projectid'];
         } else if (req.body && req.body.projectId) {
             projectId = req.body.projectId;
         } else {
@@ -123,6 +131,7 @@ module.exports = {
         const statusPageId =
             req.params?.statusPageId ||
             req.query?.statusPageId ||
+            req.headers?.statuspageid ||
             req.headers?.statusPageId ||
             req.body?.statusPageId;
 
@@ -133,6 +142,7 @@ module.exports = {
         const statusPageSlug =
             req.params?.statusPageSlug ||
             req.query?.statusPageSlug ||
+            req.headers?.statuspageslug ||
             req.headers?.statusPageSlug ||
             req.body?.statusPageSlug;
 
