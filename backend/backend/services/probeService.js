@@ -117,9 +117,7 @@ module.exports = {
             }
 
             query.deleted = false;
-            let probeQuery = ProbeModel.findOne(query, {
-                deleted: false,
-            }).lean();
+            let probeQuery = ProbeModel.findOne(query).lean();
 
             probeQuery = handleSelect(select, probeQuery);
             probeQuery = handlePopulate(populate, probeQuery);
