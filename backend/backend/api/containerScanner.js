@@ -12,6 +12,9 @@ const isAuthorizedContainerScanner = require('../middlewares/containerScannerAut
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const RealTimeService = require('../services/realTimeService');
+const MailService = require('../services/mailService');
+const UserService = require('../services/userService');
+const ProjectService = require('../services/projectService');
 
 router.get('/containerSecurities', isAuthorizedContainerScanner, async function(
     req,
@@ -72,14 +75,27 @@ router.post('/log', isAuthorizedContainerScanner, async function(req, res) {
 
         const populateContainerLog = [
             { path: 'securityId', select: 'name slug' },
-            { path: 'componentId', select: 'name slug' },
+            { path: 'componentId', select: 'name slug projectId' },
         ];
         const findLog = await ContainerSecurityLogService.findOneBy({
             query: { _id: securityLog._id },
             select: selectContainerLog,
             populate: populateContainerLog,
         });
+        const project = await ProjectService.findOneBy({
+            query: { _id: findLog.componentId.projectId },
+            select: '_id name users',
+        });
+        const userIds = project.users.map(e => ({ id: e.userId })); // This cater for projects with multiple registered members
 
+        for (let i = 0; i < userIds.length; i++) {
+            const userId = userIds[i].id;
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: '_id email name',
+            });
+            await MailService.sendContainerEmail(project, user);
+        }
         RealTimeService.handleLog({
             securityId: security.securityId,
             securityLog: findLog,
