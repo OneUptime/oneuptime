@@ -29,8 +29,11 @@ module.exports = {
                 probeKey = req.params.probeKey;
             } else if (req.query && req.query.probeKey) {
                 probeKey = req.query.probeKey;
-            } else if (req.headers && req.headers['probeKey']) {
-                probeKey = req.headers['probeKey'];
+            } else if (
+                req.headers &&
+                (req.headers['probeKey'] || req.headers['probekey'])
+            ) {
+                probeKey = req.headers['probeKey'] || req.headers['probekey'];
             } else if (req.body && req.body.probeKey) {
                 probeKey = req.body.probeKey;
             } else {
@@ -44,8 +47,12 @@ module.exports = {
                 probeName = req.params.probeName;
             } else if (req.query && req.query.probeName) {
                 probeName = req.query.probeName;
-            } else if (req.headers && req.headers['probeName']) {
-                probeName = req.headers['probeName'];
+            } else if (
+                req.headers &&
+                (req.headers['probeName'] || req.headers['probename'])
+            ) {
+                probeName =
+                    req.headers['probeName'] || req.headers['probename'];
             } else if (req.body && req.body.probeName) {
                 probeName = req.body.probeName;
             } else {
@@ -59,8 +66,12 @@ module.exports = {
                 clusterKey = req.params.clusterKey;
             } else if (req.query && req.query.clusterKey) {
                 clusterKey = req.query.clusterKey;
-            } else if (req.headers && req.headers['clusterKey']) {
-                clusterKey = req.headers['clusterKey'];
+            } else if (
+                req.headers &&
+                (req.headers['clusterKey'] || req.headers['clusterkey'])
+            ) {
+                clusterKey =
+                    req.headers['clusterKey'] || req.headers['clusterkey'];
             } else if (req.body && req.body.clusterKey) {
                 clusterKey = req.body.clusterKey;
             }
