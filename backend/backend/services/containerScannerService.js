@@ -65,10 +65,7 @@ module.exports = {
 
             query.deleted = false;
             const containerScanner = await ContainerScannerModel.findOne(
-                query,
-                {
-                    deleted: false,
-                }
+                query
             ).lean();
             return containerScanner;
         } catch (error) {

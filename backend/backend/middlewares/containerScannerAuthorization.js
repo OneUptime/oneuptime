@@ -49,8 +49,12 @@ module.exports = {
                 clusterKey = req.params.clusterkey;
             } else if (req.query && req.query.clusterKey) {
                 clusterKey = req.query.clusterkey;
-            } else if (req.headers && req.headers['clusterKey']) {
-                clusterKey = req.headers['clusterKey'];
+            } else if (
+                req.headers &&
+                (req.headers['clusterKey'] || req.headers['clusterkey'])
+            ) {
+                clusterKey =
+                    req.headers['clusterKey'] || req.headers['clusterkey'];
             } else if (req.body && req.body.clusterKey) {
                 clusterKey = req.body.clusterKey;
             }
