@@ -2199,9 +2199,8 @@ const _this = {
                         mailOptions = {
                             from: `"${accountMail.name}" <${accountMail.from}>`,
                             to: user.email,
-                            subject:
-                                "You've been added to a subproject on Fyipe",
-                            template: 'existing_user_added_to_subproject_body',
+                            subject: 'Container Security',
+                            template: 'container_security',
                             context: {
                                 homeURL: global.homeHost,
                                 projectName: project.name,
