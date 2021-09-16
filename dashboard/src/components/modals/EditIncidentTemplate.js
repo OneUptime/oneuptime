@@ -15,7 +15,7 @@ import { closeModal } from '../../actions/modal';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderSelect } from '../basic/RenderSelect';
-import CodeEditor from '../basic/CodeEditor';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 class EditIncidentTemplate extends React.Component {
     componentDidMount() {
@@ -96,7 +96,6 @@ class EditIncidentTemplate extends React.Component {
             updatingIncidentTemplate,
             incidentPriorities,
             updateIncidentTemplateError,
-            content,
         } = this.props;
 
         return (
@@ -229,22 +228,18 @@ class EditIncidentTemplate extends React.Component {
                                                                 Description
                                                             </label>
                                                             <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                                <CodeEditor
-                                                                    code={
-                                                                        content
+                                                                <Field
+                                                                    name="content"
+                                                                    component={
+                                                                        RenderCodeEditor
                                                                     }
-                                                                    onCodeChange={
-                                                                        this
-                                                                            .onContentChange
-                                                                    }
-                                                                    textareaId={`description`}
+                                                                    mode="markdown"
+                                                                    height="150px"
+                                                                    width="100%"
                                                                     placeholder="This can be markdown"
-                                                                    style={{
-                                                                        width:
-                                                                            '100%',
-                                                                        height:
-                                                                            '150px',
-                                                                    }}
+                                                                    wrapEnabled={
+                                                                        true
+                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
@@ -506,7 +501,6 @@ EditIncidentTemplate.propTypes = {
     updateIncidentTemplateFailure: PropTypes.func,
     data: PropTypes.object,
     change: PropTypes.func,
-    content: PropTypes.string,
 };
 
 const EditIncidentTemplateForm = reduxForm({
@@ -523,13 +517,6 @@ const mapStateToProps = (state, ownProps) => {
             ? template.incidentPriority._id || template.incidentPriority
             : '',
     };
-    const content = state.form.EditIncidentTemplateForm
-        ? state.form.EditIncidentTemplateForm.values
-            ? state.form.EditIncidentTemplateForm.values.description
-                ? state.form.EditIncidentTemplateForm.values.description
-                : ''
-            : ''
-        : '';
     return {
         currentProject: state.project.currentProject,
         revealVariables: state.incidentBasicSettings.revealVariables,
@@ -543,7 +530,6 @@ const mapStateToProps = (state, ownProps) => {
         updateIncidentTemplateError:
             state.incidentBasicSettings.updateIncidentTemplate.error,
         initialValues,
-        content,
     };
 };
 const mapDispatchToProps = dispatch =>

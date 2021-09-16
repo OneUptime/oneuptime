@@ -11,8 +11,8 @@ import { bindActionCreators } from 'redux';
 import { logEvent } from '../../analytics';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
-import CodeEditor from '../basic/CodeEditor';
 import { createScheduledEventNote } from '../../actions/scheduledEvent';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 class AddNoteModal extends Component {
     componentDidMount() {
@@ -102,7 +102,6 @@ class AddNoteModal extends Component {
             event_state,
             creatingNote,
             createError,
-            content,
             closeThisDialog,
         } = this.props;
         const { type } = this.props.data;
@@ -226,14 +225,18 @@ class AddNoteModal extends Component {
                                                             </label>
                                                         </ShouldRender>
                                                         <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                            <CodeEditor
-                                                                code={content}
-                                                                onCodeChange={
-                                                                    this
-                                                                        .onContentChange
+                                                            <Field
+                                                                name="content"
+                                                                component={
+                                                                    RenderCodeEditor
                                                                 }
-                                                                textareaId={`new-${type}`}
+                                                                mode="markdown"
+                                                                height="150px"
+                                                                width="100%"
                                                                 placeholder="This can be markdown"
+                                                                wrapEnabled={
+                                                                    true
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -364,10 +367,6 @@ const mapStateToProps = state => {
         state.form.AddNote &&
         state.form.AddNote.values &&
         state.form.AddNote.values.event_state;
-    const content =
-        state.form.AddNote &&
-        state.form.AddNote.values &&
-        state.form.AddNote.values.content;
 
     return {
         currentProject,
@@ -375,7 +374,6 @@ const mapStateToProps = state => {
         creatingNote: state.scheduledEvent.newScheduledEventNote.requesting,
         createError: state.scheduledEvent.newScheduledEventNote.error,
         modalId: state.modal.modals[0].id,
-        content: content || '',
     };
 };
 
@@ -400,7 +398,6 @@ AddNoteModal.propTypes = {
     ]),
     modalId: PropTypes.string,
     closeModal: PropTypes.func,
-    content: PropTypes.string,
     change: PropTypes.func,
 };
 

@@ -16,7 +16,7 @@ import Tooltip from '../basic/Tooltip';
 import { incomingRequestVariables } from '../../config';
 import { fetchCustomFields } from '../../actions/customField';
 import { fetchCustomFields as fetchMonitorCustomFields } from '../../actions/monitorCustomField';
-import CodeEditor from '../basic/CodeEditor';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 function validate(values) {
     const errors = {};
@@ -1864,21 +1864,16 @@ class CreateIncomingRequest extends Component {
                                                                                 '100%',
                                                                         }}
                                                                     >
-                                                                        <CodeEditor
-                                                                            code={
-                                                                                formValues.noteContent
+                                                                        <Field
+                                                                            name="noteContent"
+                                                                            component={
+                                                                                RenderCodeEditor
                                                                             }
-                                                                            onCodeChange={
-                                                                                this
-                                                                                    .onContentChange
-                                                                            }
-                                                                            textareaId="newNoteContent"
+                                                                            mode="markdown"
+                                                                            height="150px"
+                                                                            width="100%"
                                                                             placeholder="This can be markdown"
-                                                                            style={{
-                                                                                width:
-                                                                                    '100%',
-                                                                            }}
-                                                                            required={
+                                                                            wrapEnabled={
                                                                                 true
                                                                             }
                                                                         />
