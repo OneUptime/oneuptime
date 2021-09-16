@@ -1883,7 +1883,10 @@ module.exports = {
                         if (subscriber.statusPageId) {
                             const statusPage = await StatusPageService.findOneBy(
                                 {
-                                    _id: subscriber.statusPageId,
+                                    query: {
+                                        _id: subscriber.statusPageId,
+                                    },
+                                    select: 'slug',
                                 }
                             );
                             statusPageSlug = statusPage
@@ -4837,6 +4840,7 @@ module.exports = {
                         let sendResult;
                         const smsTemplate = await SmsTemplateService.findOneBy({
                             query: { projectId, smsType: templateType },
+                            select: 'body smsType allowedVariables projectId',
                         });
                         const subscriberAlert = await SubscriberAlertService.create(
                             {
@@ -5311,6 +5315,8 @@ module.exports = {
                                                 projectId,
                                                 smsType: templateType,
                                             },
+                                            select:
+                                                'body allowedVariables projectId smsType',
                                         }
                                     );
                                     const subscriberAlert = await SubscriberAlertService.create(

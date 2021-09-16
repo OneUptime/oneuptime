@@ -15,7 +15,7 @@ import {
     fetchIncidentNoteTemplates,
     createIncidentNoteTemplateFailure,
 } from '../../actions/incidentNoteTemplate';
-import CodeEditor from '../basic/CodeEditor';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 class CreateIncidentNoteTemplate extends React.Component {
     state = {
@@ -103,7 +103,6 @@ class CreateIncidentNoteTemplate extends React.Component {
             creatingNoteTemplate,
             creatingNoteTemplateError,
             formValues,
-            content,
         } = this.props;
         const { showVariables } = this.state;
 
@@ -259,20 +258,18 @@ class CreateIncidentNoteTemplate extends React.Component {
                                                                 Incident Note
                                                             </label>
                                                             <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                                <CodeEditor
-                                                                    code={
-                                                                        content
+                                                                <Field
+                                                                    name="content"
+                                                                    component={
+                                                                        RenderCodeEditor
                                                                     }
-                                                                    onCodeChange={
-                                                                        this
-                                                                            .onContentChange
-                                                                    }
-                                                                    textareaId={`incidentNote`}
+                                                                    mode="markdown"
+                                                                    height="150px"
+                                                                    width="100%"
                                                                     placeholder="This can be markdown"
-                                                                    style={{
-                                                                        width:
-                                                                            '100%',
-                                                                    }}
+                                                                    wrapEnabled={
+                                                                        true
+                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
@@ -474,7 +471,6 @@ CreateIncidentNoteTemplate.propTypes = {
     createIncidentNoteTemplateFailure: PropTypes.func,
     formValues: PropTypes.object,
     change: PropTypes.func,
-    content: PropTypes.string,
 };
 
 const CreateIncidentNoteTemplateForm = reduxForm({
@@ -483,14 +479,6 @@ const CreateIncidentNoteTemplateForm = reduxForm({
 })(CreateIncidentNoteTemplate);
 
 const mapStateToProps = state => {
-    const content = state.form.CreateIncidentNoteTemplateForm
-        ? state.form.CreateIncidentNoteTemplateForm.values
-            ? state.form.CreateIncidentNoteTemplateForm.values.incidentNote
-                ? state.form.CreateIncidentNoteTemplateForm.values.incidentNote
-                : ''
-            : ''
-        : '';
-
     return {
         currentProject: state.project.currentProject,
         creatingNoteTemplate:
@@ -501,7 +489,6 @@ const mapStateToProps = state => {
             ? state.form.CreateIncidentNoteTemplateForm.values
             : {},
         initialValues: { incidentState: 'Update' },
-        content,
     };
 };
 const mapDispatchToProps = dispatch =>

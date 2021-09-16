@@ -16,7 +16,7 @@ import { bindActionCreators } from 'redux';
 import { logEvent } from '../../analytics';
 import { RenderField } from '../basic/RenderField';
 import { RenderSelect } from '../basic/RenderSelect';
-import CodeEditor from '../basic/CodeEditor';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 class NewIncidentMessage extends Component {
     componentDidMount() {
@@ -169,7 +169,6 @@ class NewIncidentMessage extends Component {
             handleSubmit,
             incidentMessageState,
             incident_state,
-            content,
             closeThisDialog,
             noteTemplates,
         } = this.props;
@@ -372,22 +371,18 @@ class NewIncidentMessage extends Component {
                                                             </label>
                                                         </ShouldRender>
                                                         <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                            <CodeEditor
-                                                                code={content}
-                                                                onCodeChange={
-                                                                    this
-                                                                        .onContentChange
+                                                            <Field
+                                                                name="content"
+                                                                component={
+                                                                    RenderCodeEditor
                                                                 }
-                                                                textareaId={`${
-                                                                    edit
-                                                                        ? 'edit'
-                                                                        : 'new'
-                                                                }-${type}`}
+                                                                mode="markdown"
+                                                                height="150px"
+                                                                width="100%"
                                                                 placeholder="This can be markdown"
-                                                                style={{
-                                                                    width:
-                                                                        '100%',
-                                                                }}
+                                                                wrapEnabled={
+                                                                    true
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -664,15 +659,7 @@ const mapStateToProps = (state, ownProps) => {
                 : ''
             : ''
         : '';
-    const content = state.form[ownProps.data.formId]
-        ? state.form[ownProps.data.formId].values
-            ? state.form[ownProps.data.formId].values.content
-                ? state.form[ownProps.data.formId].values.content
-                : ''
-            : ''
-        : '';
     return {
-        content,
         initialValues,
         incidentMessageState,
         currentProject,
@@ -699,7 +686,6 @@ NewIncidentMessage.propTypes = {
     editIncidentMessageSwitch: PropTypes.func,
     setInternalNote: PropTypes.func,
     incident_state: PropTypes.string,
-    content: PropTypes.string,
     change: PropTypes.func,
     closeThisDialog: PropTypes.func,
     noteTemplates: PropTypes.object,

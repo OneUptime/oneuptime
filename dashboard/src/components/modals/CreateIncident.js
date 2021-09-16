@@ -146,13 +146,15 @@ class CreateIncident extends Component {
     };
 
     handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.props.closeThisDialog();
-            case 'Enter':
-                return document.getElementById('createIncident').click();
-            default:
-                return false;
+        if (e.target.localName === 'body' && e.key) {
+            switch (e.key) {
+                case 'Escape':
+                    return this.props.closeThisDialog();
+                case 'Enter':
+                    return document.getElementById('createIncident').click();
+                default:
+                    return false;
+            }
         }
     };
 
