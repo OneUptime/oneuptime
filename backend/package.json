@@ -21,7 +21,7 @@
         "express": "^4.17.1",
         "express-rate-limit": "^5.2.6",
         "fyipe-acme-http-01": "^3.0.10432",
-        "fyipe-gl-manager": "^3.0.11823",
+        "fyipe-gl-manager": "^3.0.13205",
         "fyipe-le-store": "^3.0.10432",
         "greenlock": "^4.0.4",
         "gridfs-stream": "^1.1.1",
