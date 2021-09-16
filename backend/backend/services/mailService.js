@@ -2153,6 +2153,14 @@ const _this = {
                     projectName: project.name,
                     userName: user.name,
                     dashboardURL: global.dashboardHost,
+                    critical: project.critical,
+                    high: project.high,
+                    moderate: project.moderate,
+                    low: project.low,
+                    criticalIssues: project.criticalIssues,
+                    highIssues: project.highIssues,
+                    moderateIssues: project.moderateIssues,
+                    lowIssues: project.lowIssues,
                 },
             };
             const [mailer, emailBody] = await Promise.all([

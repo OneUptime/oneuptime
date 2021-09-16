@@ -87,6 +87,26 @@ router.post('/log', isAuthorizedContainerScanner, async function(req, res) {
             select: '_id name users',
         });
         const userIds = project.users.map(e => ({ id: e.userId })); // This cater for projects with multiple registered members
+        project.critical = findLog.data.vulnerabilityInfo.critical;
+        project.high = findLog.data.vulnerabilityInfo.high;
+        project.moderate = findLog.data.vulnerabilityInfo.moderate;
+        project.low = findLog.data.vulnerabilityInfo.low;
+        const critical = findLog.data.vulnerabilityData
+            .filter(e => e.severity === 'critical')
+            .slice(0, 10);
+        const high = findLog.data.vulnerabilityData
+            .filter(e => e.severity === 'high')
+            .slice(0, 10);
+        const moderate = findLog.data.vulnerabilityData
+            .filter(e => e.severity === 'moderate')
+            .slice(0, 5);
+        const low = findLog.data.vulnerabilityData
+            .filter(e => e.severity === 'low')
+            .slice(0, 5);
+        project.criticalIssues = critical;
+        project.highIssues = high;
+        project.moderateIssues = moderate;
+        project.lowIssues = low;
 
         for (let i = 0; i < userIds.length; i++) {
             const userId = userIds[i].id;
