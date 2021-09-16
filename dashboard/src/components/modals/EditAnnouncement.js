@@ -13,7 +13,7 @@ import {
     updateAnnouncement,
     fetchAnnouncements,
 } from '../../actions/statusPage';
-import CodeEditor from '../basic/CodeEditor';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 function validate(values) {
     const errors = {};
@@ -308,7 +308,6 @@ class EditAnnouncement extends Component {
             closeModal,
             requesting,
             updateError,
-            description,
         } = this.props;
         return (
             <div
@@ -426,16 +425,16 @@ class EditAnnouncement extends Component {
                                                         Description
                                                     </label>
                                                     <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                        <CodeEditor
-                                                            code={description}
-                                                            onCodeChange={
-                                                                this
-                                                                    .onContentChange
+                                                        <Field
+                                                            name="description"
+                                                            component={
+                                                                RenderCodeEditor
                                                             }
-                                                            textareaId={
-                                                                'description'
-                                                            }
+                                                            mode="markdown"
+                                                            height="150px"
+                                                            width="100%"
                                                             placeholder="This can be markdown"
+                                                            wrapEnabled={true}
                                                         />
                                                     </div>
                                                 </div>
@@ -533,7 +532,6 @@ EditAnnouncement.propTypes = {
     ]),
     data: PropTypes.object,
     change: PropTypes.func,
-    description: PropTypes.string,
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -570,14 +568,6 @@ const mapStateToProps = (state, ownProps) => {
         });
     });
 
-    const description = state.form.EditAnnouncementForm
-        ? state.form.EditAnnouncementForm.values
-            ? state.form.EditAnnouncementForm.values.description
-                ? state.form.EditAnnouncementForm.values.description
-                : ''
-            : ''
-        : '';
-
     return {
         requesting: state.statusPage.createAnnouncement.requesting,
         updateError: state.statusPage.createAnnouncement.error,
@@ -586,7 +576,6 @@ const mapStateToProps = (state, ownProps) => {
         formValues:
             state.form.EditAnnouncementForm &&
             state.form.EditAnnouncementForm.values,
-        description,
     };
 };
 
