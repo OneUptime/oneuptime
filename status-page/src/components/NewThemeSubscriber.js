@@ -5,34 +5,40 @@ import { Translate } from 'react-auto-translate';
 const NewThemeSubscriber = () => {
     const [isShown, setIsShown] = useState(false);
     const popupRef = useRef();
-    const documentClickHandler = useRef();
-
-    useEffect(() => {
-        documentClickHandler.current = e => {
-            if (popupRef.current && popupRef.current.contains(e.target)) return;
-            setIsShown(false);
-            removeDocumentClickHandler();
-        };
-    }, []);
-
-    const removeDocumentClickHandler = () => {
-        document.removeEventListener('click', documentClickHandler.current);
-    };
+    const subRef = useRef();
 
     const handleToggleButtonClick = () => {
-        if (isShown) return;
-        setIsShown(true);
-        document.addEventListener('click', documentClickHandler.current);
+        setIsShown(prevState => !prevState);
     };
-
     const handleCloseButtonClick = () => {
         setIsShown(false);
-        removeDocumentClickHandler();
     };
+    useEffect(() => {
+        const listener = event => {
+            if (!popupRef.current || popupRef.current.contains(event.target)) {
+                return;
+            }
+            if (isShown && subRef.current.contains(event.target)) {
+                return;
+            } else {
+                handleCloseButtonClick(event);
+            }
+        };
+        document.addEventListener('mousedown', listener);
+        document.addEventListener('touchstart', listener);
+        return () => {
+            document.removeEventListener('mousedown', listener);
+            document.removeEventListener('touchstart', listener);
+        };
+    });
 
     return (
         <div className="popup-menu-container" id="subscriber-button">
-            <button className="subscribe_btn" onClick={handleToggleButtonClick}>
+            <button
+                ref={subRef}
+                className="subscribe_btn"
+                onClick={handleToggleButtonClick}
+            >
                 <Translate>subscribe to updates</Translate>
             </button>
             <div
