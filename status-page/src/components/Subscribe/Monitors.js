@@ -77,9 +77,11 @@ class Monitors extends Component {
         }
     };
 
-    handleClose = () => {
+    handleClose = event => {
+        event.preventDefault();
         this.props.userDataReset();
         this.props.openSubscribeMenu();
+        this.props.handleCloseButtonClick();
     };
     render() {
         const multipleNotificationTypes =
@@ -215,7 +217,11 @@ class Monitors extends Component {
                           )}
                     <button
                         type="submit"
-                        className="subscribe-btn-full"
+                        className={
+                            this.props.theme
+                                ? 'subscribe-btn-full bs-theme-btn'
+                                : 'subscribe-btn-full'
+                        }
                         disabled={this.props.subscribed.requesting}
                     >
                         <ShouldRender if={!this.props.subscribed.requesting}>
@@ -284,6 +290,8 @@ Monitors.propTypes = {
     error: PropTypes.string,
     openSubscribeMenu: PropTypes.func,
     userDataReset: PropTypes.func,
+    theme: PropTypes.bool,
+    handleCloseButtonClick: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Monitors);
