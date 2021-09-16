@@ -35,8 +35,9 @@ router.put('/default', async (req, res) => {
 
         // if there's no default value
         // create a default value
+        // we should only have one default and update as the need arises
         const defaultManager = await DefaultManagerService.updateOneBy(
-            { subscriberEmail },
+            {},
             data
         );
         return sendItemResponse(req, res, defaultManager);

@@ -175,7 +175,12 @@ class SubscribeBox extends Component {
                                     emailNotification
                                 }
                             >
-                                <Message theme={theme} />
+                                <Message
+                                    handleCloseButtonClick={
+                                        this.props.handleCloseButtonClick
+                                    }
+                                    theme={theme}
+                                />
                             </ShouldRender>
                             <ShouldRender
                                 if={
@@ -184,7 +189,12 @@ class SubscribeBox extends Component {
                                     smsNotification
                                 }
                             >
-                                <Call theme={theme} />
+                                <Call
+                                    handleCloseButtonClick={
+                                        this.props.handleCloseButtonClick
+                                    }
+                                    theme={theme}
+                                />
                             </ShouldRender>
                             <ShouldRender
                                 if={
@@ -193,7 +203,12 @@ class SubscribeBox extends Component {
                                     webhookNotification
                                 }
                             >
-                                <Webhook theme={theme} />
+                                <Webhook
+                                    handleCloseButtonClick={
+                                        this.props.handleCloseButtonClick
+                                    }
+                                    theme={theme}
+                                />
                             </ShouldRender>
                             <ShouldRender
                                 if={
@@ -224,7 +239,12 @@ class SubscribeBox extends Component {
                                     selectIndividualMonitors
                                 }
                             >
-                                <Monitors />
+                                <Monitors
+                                    handleCloseButtonClick={
+                                        this.props.handleCloseButtonClick
+                                    }
+                                    theme={theme}
+                                />
                             </ShouldRender>
                         </div>
                     </div>
