@@ -1,5 +1,4 @@
 const Gl = require('greenlock');
-const mongoose = require('./backend/config/db');
 
 const greenlock = Gl.create({
     manager: 'fyipe-gl-manager',
@@ -23,15 +22,9 @@ const greenlock = Gl.create({
     },
 });
 
-// greenlock unfortunately stated experiencing issue with this
-// the reason behind this is not yet known
-// the workaround for now is to remove it, since we already have a default created, which doesn't change
-// if any of the field is to be updated, it should be handled manually for now in the db
-mongoose.connection.on('connected', () => {
-    // greenlock.manager.defaults({
-    //     agreeToTerms: true,
-    //     subscriberEmail: 'certs@fyipe.com',
-    // });
+greenlock.manager.defaults({
+    agreeToTerms: true,
+    subscriberEmail: 'certs@fyipe.com',
 });
 
-module.exports = greenlock;
+global.greenlock = greenlock; // make it available project wide

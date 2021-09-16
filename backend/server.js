@@ -65,6 +65,7 @@ const redisAdapter = require('socket.io-redis');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const redis = require('redis');
+const mongoose = require('./backend/config/db');
 
 io.adapter(
     redisAdapter({
@@ -372,7 +373,9 @@ const server = http.listen(app.get('port'), function() {
     console.log('Server Started on port ' + app.get('port'));
 });
 
-require('./greenlock');
+mongoose.connection.on('connected', () => {
+    require('./greenlock');
+});
 
 module.exports = app;
 module.exports.close = function() {
