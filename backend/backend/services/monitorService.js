@@ -426,7 +426,7 @@ module.exports = {
                     path: 'monitorSla',
                     select: 'frequency _id',
                 },
-                { path: 'componentId', select: 'name' },
+                { path: 'componentId', select: 'name slug' },
                 { path: 'incidentCommunicationSla', select: '_id' },
                 { path: 'resourceCategory', select: 'name' },
             ];
@@ -1894,10 +1894,13 @@ module.exports = {
 
     changeMonitorComponent: async function(projectId, monitorId, componentId) {
         const [monitor, component] = await Promise.all([
-            this.findOneBy({ query: { _id: monitorId }, select: 'projectId' }),
+            this.findOneBy({
+                query: { _id: monitorId },
+                select: 'projectId slug',
+            }),
             componentService.findOneBy({
                 query: { _id: componentId },
-                select: 'projectId',
+                select: 'projectId slug',
             }),
         ]);
 

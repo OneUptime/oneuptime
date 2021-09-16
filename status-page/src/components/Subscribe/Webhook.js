@@ -79,9 +79,11 @@ class Webhook extends Component {
             return false;
         }
     };
-    handleClose = () => {
+    handleClose = event => {
+        event.preventDefault();
         this.props.userDataReset();
         this.props.openSubscribeMenu();
+        this.props.handleCloseButtonClick();
     };
     render() {
         return (
@@ -219,6 +221,7 @@ Webhook.propTypes = {
     openSubscribeMenu: PropTypes.func,
     userDataReset: PropTypes.func,
     theme: PropTypes.bool,
+    handleCloseButtonClick: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Webhook);
