@@ -42,7 +42,8 @@ a, span, div[style*="margin: 16px 0"] {
 #issues {
   font-family: Arial, Helvetica, sans-serif;
   border-collapse: collapse;
-  width: 100%;
+  width: 80%;
+  margin: 0 auto;
 }
 
 #issues td, #issues th {
@@ -340,16 +341,16 @@ span.st-Delink.st-Delink--footer a {
         <div class="st-Spacer st-Spacer--filler"></div>
       </td>
       <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
-       Critical - {{critical}}
+       Critical - <span style="color: #e25950;">{{critical}}</span> 
       </td>
       <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
-       High Priority - {{high}}
+       High Priority - <span style="color: #e25950;">{{high}}</span> 
       </td>
       <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
-       Moderate - {{moderate}}
+       Moderate - <span style="color: #e39f48;">{{moderate}}</span> 
       </td>
       <td class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">
-       Low Priority - {{low}}
+       Low Priority - <span style="color: #6b7c93;">{{low}}</span>
       </td>
       <td class="st-Spacer st-Spacer--gutter" style="border: 0; margin:0; padding: 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;" width="64">
         <div class="st-Spacer st-Spacer--filler"></div>
@@ -363,7 +364,7 @@ span.st-Delink.st-Delink--footer a {
   </tbody>
 </table>
 <div>
-<h2 class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">Critical Issues</h2>
+<h2 id="issues" style="font-size: 18px; color: #e25950;">Critical Issues</h2>
 <table id="issues">
   <tr>
     <th>Library</th>
@@ -379,7 +380,7 @@ span.st-Delink.st-Delink--footer a {
 </div>
 <br></br>
 <div>
-<h2 class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">High Priority Issues</h2>
+<h2 id="issues" style="font-size: 18px; color: #e25950;">High Priority Issues</h2>
 <table id="issues">
   <tr>
     <th>Library</th>
@@ -395,7 +396,7 @@ span.st-Delink.st-Delink--footer a {
 </div>
 <br></br>
 <div>
-<h2 class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">Moderate Issues</h2>
+<h2 id="issues" style="font-size: 18px; color: #e39f48;">Moderate Issues</h2>
 <table id="issues">
   <tr>
     <th>Library</th>
@@ -411,7 +412,7 @@ span.st-Delink.st-Delink--footer a {
 </div>
 <br></br>
 <div>
-<h2 class="st-Font st-Font--body" style="border: 0; margin: 0; padding: 0; color: #000000 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; font-size: 16px; line-height: 24px;">Low Priority Issues</h2>
+<h2 id="issues" style="font-size: 18px; color: #6b7c93;">Low Priority Issues</h2>
 <table id="issues">
   <tr>
     <th>Library</th>
