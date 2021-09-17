@@ -364,11 +364,7 @@ class NotesMain extends Component {
                                                         }}
                                                         key={message._id}
                                                     >
-                                                        <b
-                                                            style={{
-                                                                color: '#000',
-                                                            }}
-                                                        >
+                                                        <b>
                                                             {
                                                                 message.incident_state
                                                             }
