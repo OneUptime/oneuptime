@@ -16,6 +16,8 @@ import {
     showIncidentCard,
 } from '../actions/status';
 import { openSubscribeMenu } from '../actions/subscribe';
+import { capitalize } from '../config';
+import Badge from './basic/Badge';
 const countNum = 10;
 
 class NotesMain extends Component {
@@ -64,6 +66,84 @@ class NotesMain extends Component {
 
     subscribebutton = () => {
         this.props.openSubscribeMenu();
+    };
+
+    handleIncidentStatus = (incident, timelines) => {
+        let incidentTimeline = null,
+            timelineStatus = null;
+        timelines.map(timeline => {
+            if (String(incident._id) === String(timeline.incidentId)) {
+                incidentTimeline = timeline;
+            }
+            return timeline;
+        });
+
+        if (incidentTimeline) {
+            if (incident.resolved) {
+                timelineStatus = (
+                    <Badge backgroundColor={'#fff'} fontColor={'#49c3b1'}>
+                        <Translate>Resolved</Translate>
+                    </Badge>
+                );
+            }
+
+            if (
+                incident.acknowledged &&
+                !incident.resolved &&
+                incident.incidentType
+            ) {
+                timelineStatus = (
+                    <Badge
+                        backgroundColor={'#fff'}
+                        fontColor={
+                            incident.incidentType === 'degraded'
+                                ? 'rgb(227, 159, 72)'
+                                : 'rgb(250, 109, 70)'
+                        }
+                    >
+                        <Translate>Acknowledged</Translate>
+                    </Badge>
+                );
+            }
+            if (
+                !incident.resolved &&
+                !incident.acknowledged &&
+                incident.incidentType
+            ) {
+                timelineStatus = (
+                    <Badge
+                        backgroundColor={'#fff'}
+                        fontColor={
+                            incident.incidentType === 'degraded'
+                                ? 'rgb(227, 159, 72)'
+                                : 'rgb(250, 109, 70)'
+                        }
+                    >
+                        <Translate>Active Incident</Translate>
+                    </Badge>
+                );
+            }
+
+            if (
+                !incidentTimeline.incident_state &&
+                incidentTimeline.status === 'investigation notes deleted'
+            ) {
+                timelineStatus = (
+                    <Badge backgroundColor={'#fff'} fontColor={'#49c3b1'}>
+                        <Translate>Deleted a note</Translate>
+                    </Badge>
+                );
+            }
+            if (incidentTimeline.incident_state) {
+                timelineStatus = (
+                    <Badge backgroundColor={'#fff'} fontColor={'#49c3b1'}>
+                        {capitalize(incidentTimeline.incident_state)}
+                    </Badge>
+                );
+            }
+        }
+
+        return timelineStatus;
     };
 
     render() {
@@ -244,17 +324,66 @@ class NotesMain extends Component {
                                     </div>
                                     <div
                                         className="incident-date"
-                                        style={{ marginBottom: 12 }}
+                                        style={{
+                                            marginBottom: 12,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                        }}
                                     >
-                                        <span>
-                                            <Translate>Created at</Translate>
-                                        </span>{' '}
-                                        <span>
+                                        <span style={{ marginRight: 10 }}>
+                                            <Translate>Created at </Translate>
                                             {moment(note.createdAt).format(
                                                 'LT'
                                             )}
                                         </span>
+                                        {this.handleIncidentStatus(
+                                            note,
+                                            this.props.lastIncidentTimelines
+                                        )}
                                     </div>
+                                    {note.message &&
+                                        note.message
+                                            .sort((a, b) => {
+                                                (a = moment(a.createdAt)),
+                                                    (b = moment(b.createdAt));
+                                                // order in descending order
+                                                if (b.diff(a) > 0) {
+                                                    return 1;
+                                                } else if (b.diff(a) < 0) {
+                                                    return -1;
+                                                } else {
+                                                    return 0;
+                                                }
+                                            })
+                                            .map(message => (
+                                                <>
+                                                    <div
+                                                        className="incident_desc"
+                                                        style={{
+                                                            marginBottom: 5,
+                                                        }}
+                                                        key={message._id}
+                                                    >
+                                                        <b
+                                                            style={{
+                                                                color: '#000',
+                                                            }}
+                                                        >
+                                                            {
+                                                                message.incident_state
+                                                            }
+                                                        </b>{' '}
+                                                        - {message.content}
+                                                    </div>
+                                                    <div className="incident-date">
+                                                        <span>
+                                                            {moment(
+                                                                message.createdAt
+                                                            ).format('LT')}
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            ))}
                                 </span>
                             ) : (
                                 <div
