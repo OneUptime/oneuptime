@@ -5,6 +5,9 @@ curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s ht
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 sudo kubectl version --client
 
+# fix dpkg interruption
+sudo dpkg --configure -a
+
 # Install and configure aws cli
 sudo apt-get install -y unzip
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" # download latest aws cli version
