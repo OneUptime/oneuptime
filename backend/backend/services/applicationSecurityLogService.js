@@ -41,7 +41,7 @@ module.exports = {
             } else {
                 securityLog = await this.updateOneBy(
                     { _id: securityLog._id },
-                    data
+                    { data: data }
                 );
             }
 

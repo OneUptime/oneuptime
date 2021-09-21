@@ -106,9 +106,9 @@ module.exports = {
                             audit.on('close', async () => {
                                 let advisories = [];
                                 auditOutput = JSON.parse(auditOutput); // parse the stringified json
-                                for (const key in auditOutput.advisories) {
+                                for (const key in auditOutput.vulnerabilities) {
                                     advisories.push(
-                                        auditOutput.advisories[key]
+                                        auditOutput.vulnerabilities[key]
                                     );
                                 }
 
@@ -154,7 +154,6 @@ module.exports = {
                                         auditOutput.metadata.vulnerabilities,
                                     advisories,
                                 };
-
                                 const resolvedLog = await updateApplicationSecurityLogService(
                                     {
                                         securityId: security._id,
