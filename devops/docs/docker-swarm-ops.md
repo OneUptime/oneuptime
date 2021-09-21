@@ -1,14 +1,14 @@
-# See all services. 
+# See all services.
 
 sudo docker service ls
 
 # Restart Service
 
-sudo docker service update --force <SERVICE_ID>
+sudo docker service update --force <SERVICE_NAME>
 
 # See Logs
 
-sudo docker service logs <SERVICE_ID>
+sudo docker service logs <SERVICE_NAME>
 
 # See all containers running on all docker swarm nodes
 
