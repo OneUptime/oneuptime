@@ -316,7 +316,7 @@ services:
     application-scanner:
         ports:
             - '3005:3005'
-            - '9240:9229' # Debugging port.
+            - '9241:9229' # Debugging port.
         build:
             context: ./application-scanner
             dockerfile: ./Dockerfile.dev
