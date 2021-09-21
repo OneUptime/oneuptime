@@ -434,14 +434,19 @@ class Search extends Component {
         return (
             <>
                 <Field
-                    className="db-BusinessSettings-input TextInput bs-TextInput search-input"
+                    className="db-BusinessSettings-input TextInput bs-TextInput search-input bs-padding-l-30"
                     component={RenderSearchField}
                     type="text"
                     name="search"
                     id="search"
                     placeholder="Search"
                     autofilled={'off'}
+                    parentStyle={{
+                        boxShadow:
+                            '0 2px 5px 0 rgb(50 50 93 / 10%), 0 1px 1px 0 rgb(0 0 0 / 7%)',
+                    }}
                     onChange={(e, newValue) => this.handleSearch(newValue)}
+                    iconLeft={true}
                     style={{
                         boxShadow: 'none',
                         width: '290px',

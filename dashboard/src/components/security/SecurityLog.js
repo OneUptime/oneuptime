@@ -178,13 +178,18 @@ const SecurityLog = ({
                                                     >
                                                         <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                             <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                {
-                                                                    advisory.module_name
-                                                                }
+                                                                {advisory.module_name ||
+                                                                    advisory.name}
                                                             </span>
                                                             <br />
                                                             <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                                {advisory.title ||
+                                                                {advisory.via.map(
+                                                                    v =>
+                                                                        advisory.severity ===
+                                                                        v.severity
+                                                                            ? v.title
+                                                                            : ''
+                                                                ) ||
                                                                     advisory.overview}
                                                             </span>
                                                         </div>

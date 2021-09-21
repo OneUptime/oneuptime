@@ -5,7 +5,7 @@ import valid from 'card-validator';
 import FileSaver from 'file-saver';
 import moment from 'moment';
 import { isEmpty } from 'lodash';
-import { emaildomains } from './constants/emaildomains';
+// import { emaildomains } from './constants/emaildomains';
 // import booleanParser from './utils/booleanParser';
 const dJSON = require('dirty-json');
 
@@ -60,6 +60,10 @@ export const IS_LOCALHOST = isLocalhost;
 
 export const STATUSPAGE_DOMAIN =
     process.env.STATUSPAGE_DOMAIN || env('STATUSPAGE_DOMAIN');
+
+export const SENTRY_DSN = process.env.SENTRY_DSN || env('SENTRY_DSN');
+
+export const VERSION = process.env.VERSION || env('VERSION');
 
 export const User = {
     getAccessToken() {
@@ -183,21 +187,24 @@ export const Validate = {
         return false;
     },
 
+    //eslint-disable-next-line
     isValidBusinessEmail(email) {
-        return emaildomains.test(email);
+        //return emaildomains.test(email);
+        return true;
     },
 
+    //eslint-disable-next-line
     isValidBusinessEmails(emails) {
-        let valid = true;
-        if (emails && emails.length > 0) {
-            for (let i = 0; i < emails.length; i++) {
-                if (!emaildomains.test(emails[i])) {
-                    valid = false;
-                    break;
-                }
-            }
-        }
-        return valid;
+        // let valid = true;
+        // if (emails && emails.length > 0) {
+        //     for (let i = 0; i < emails.length; i++) {
+        //         if (!emaildomains.test(emails[i])) {
+        //             valid = false;
+        //             break;
+        //         }
+        //     }
+        // }
+        return true;
     },
 
     compare(text1, text2) {
@@ -1526,7 +1533,7 @@ use Fyipe\\FyipeTracker;
 
 // set up tracking configurations    
 $options = new stdClass();                
-$options->maxTimeline = 50;
+$options->maxTimeline = 10;
 $options->captureCodeSnippet: true;     
 
 // constructor                    
@@ -1595,7 +1602,7 @@ import io.hackerbay.fyipe.FyipeTracker;
 import io.hackerbay.fyipe.model.TrackerOption;
                                         
 // set up option
-TrackerOption trackerOption = new TrackerOption(50); // set maximum timeline per event
+TrackerOption trackerOption = new TrackerOption(10); // set maximum timeline per event
 
 // set up the FyipeTracker
 public FyipeTracker tracker = new FyipeTracker(
@@ -1670,7 +1677,7 @@ from fyipe_sdk import tracker
 
 # set up tracking configurations    
 options = {
-    "maxTimeline": 50,
+    "maxTimeline": 10,
     "captureCodeSnippet": True
 }               
 
@@ -1775,7 +1782,7 @@ require 'fyipe'
                 
 # set up tracking configurations    
 options = {
-    "maxTimeline": 50,
+    "maxTimeline": 10,
     "captureCodeSnippet": true
 }               
 
@@ -1831,14 +1838,88 @@ puts response
             {
                 id: 'go',
                 height: {
-                    install: '25px',
+                    install: '50px',
                     usage: '500px',
                 },
                 language: 'Go',
-                errorTracking:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
-                logs:
-                    "No quickstart available at the moment. We're working on them and they will be launched soon. ",
+                errorTracking: {
+                    installation: {
+                        package: 'Go Get Install',
+                        command: `
+$ // TODO installation command`,
+                    },
+                    usage: `
+// TODO fix import properly
+import (
+    "fmt"
+)
+
+// set up tracking configurations
+timelineOpt := TrackerOption{
+	MaxTimeline:        10,
+	CaptureCodeSnippet: true,
+}            
+
+# constructor                        
+option := FyipeTrackerOption{                     
+    ApiUrl: "${apiUrl ? apiUrl : 'API_URL'}",
+    ErrorTrackerId: '${errorTracker ? errorTracker._id : 'ERROR_TRACKER_ID'}',
+    ErrorTrackerKey: '${errorTracker ? errorTracker.key : 'ERROR_TRACKER_KEY'}',
+    Options: timelineOpt // optional               
+}
+InitTracker(option)
+
+                
+// all error exception captured are set to your fyipe dashboard
+
+// capture error using the message method
+CaptureMessage("Dang! Error Again")
+
+`,
+                },
+                logs: {
+                    installation: {
+                        package: 'Go Get Install',
+                        command: `
+$ // TODO installation command`,
+                    },
+                    usage: `
+// TODO fix import properly
+import (
+    "fmt"
+)
+                
+// constructor
+option = LoggerOptions{                    
+    ApiUrl: '${apiUrl ? apiUrl : 'API_URL'}',
+    ApplicationLogId: '${
+        applicationLog ? applicationLog._id : 'APPLICATION_LOG_ID'
+    }',                    
+    ApplicationLogKey: '${
+        applicationLog ? applicationLog.key : 'APPLICATION_LOG_KEY'
+    }'
+}
+//initialization
+Init(option)
+ 
+// Sending an object log to the server
+// create struct
+type StructA struct {
+    Name string
+    Location string
+}
+item := StructA{"Tony Lewinsky","Liverpool"}
+
+// empty tag
+var tag = []string{}
+
+logResponse, logErr := LogInfo(item, tag)
+
+// response after logging a request
+fmt.PrintF("Log Info response: %v", logResponse)
+fmt.PrintF("Log Info error: %v", logErr)
+                `,
+                },
             },
         ];
     },

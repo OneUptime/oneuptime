@@ -199,13 +199,32 @@ export class IncidentMessageThread extends Component {
                                                                     style={{
                                                                         display:
                                                                             'block',
+                                                                        whiteSpace:
+                                                                            'pre-wrap',
                                                                     }}
                                                                 >
-                                                                    <Markdown>
-                                                                        {
-                                                                            incidentMessage.content
-                                                                        }
-                                                                    </Markdown>
+                                                                    {incidentMessage.content &&
+                                                                        incidentMessage.content
+                                                                            .split(
+                                                                                '\n'
+                                                                            )
+                                                                            .map(
+                                                                                (
+                                                                                    elem,
+                                                                                    index
+                                                                                ) => (
+                                                                                    <Markdown
+                                                                                        key={`${elem}-${index}`}
+                                                                                        options={{
+                                                                                            forceBlock: true,
+                                                                                        }}
+                                                                                    >
+                                                                                        {
+                                                                                            elem
+                                                                                        }
+                                                                                    </Markdown>
+                                                                                )
+                                                                            )}
                                                                 </span>
                                                                 <ShouldRender
                                                                     if={
@@ -533,13 +552,32 @@ export class IncidentMessageThread extends Component {
                                                                                     'block',
                                                                                 marginTop:
                                                                                     '10px',
+                                                                                whiteSpace:
+                                                                                    'pre-wrap',
                                                                             }}
                                                                         >
-                                                                            <Markdown>
-                                                                                {
-                                                                                    incidentMessage.content
-                                                                                }
-                                                                            </Markdown>
+                                                                            {incidentMessage.content &&
+                                                                                incidentMessage.content
+                                                                                    .split(
+                                                                                        '\n'
+                                                                                    )
+                                                                                    .map(
+                                                                                        (
+                                                                                            elem,
+                                                                                            index
+                                                                                        ) => (
+                                                                                            <Markdown
+                                                                                                key={`${elem}-${index}`}
+                                                                                                options={{
+                                                                                                    forceBlock: true,
+                                                                                                }}
+                                                                                            >
+                                                                                                {
+                                                                                                    elem
+                                                                                                }
+                                                                                            </Markdown>
+                                                                                        )
+                                                                                    )}
                                                                         </span>
                                                                     </div>
                                                                 </div>

@@ -4,6 +4,8 @@ if (process.env.NEW_RELIC_LICENSE_KEY) {
 }
 
 const express = require('express');
+const Sentry = require('@sentry/node');
+const Tracing = require('@sentry/tracing');
 const app = express();
 
 const { NODE_ENV } = process.env;
@@ -12,6 +14,27 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     // Load env vars from /backend/.env
     require('custom-env').env();
 }
+
+Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    release: `fyipe-backend@${process.env.npm_package_version}`,
+    environment: process.env.NODE_ENV,
+    integrations: [
+        // enable HTTP calls tracing
+        new Sentry.Integrations.Http({ tracing: true }),
+        // enable Express.js middleware tracing
+        new Tracing.Integrations.Express({
+            app,
+        }),
+        new Sentry.Integrations.OnUncaughtException({
+            onFatalError() {
+                // override default behaviour
+                return;
+            },
+        }),
+    ],
+    tracesSampleRate: 0.0,
+});
 
 process.on('exit', () => {
     // eslint-disable-next-line no-console
@@ -41,6 +64,8 @@ const io = require('socket.io')(http, {
 const redisAdapter = require('socket.io-redis');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const redis = require('redis');
+const mongoose = require('./backend/config/db');
 
 io.adapter(
     redisAdapter({
@@ -49,7 +74,17 @@ io.adapter(
     })
 );
 
+const redisClient = redis.createClient({
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+});
+global.redisClient = redisClient;
+
 global.io = io;
+
+// Sentry: The request handler must be the first middleware on the app
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.tracingHandler());
 
 app.use(cors());
 
@@ -321,20 +356,13 @@ app.use(
     require('./backend/api/incidentNoteTemplate')
 );
 
-app.get(['/', '/api'], function(req, res) {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(
-        JSON.stringify({
-            status: 200,
-            message: 'Service Status - OK',
-            serviceType: 'fyipe-api',
-        })
-    );
-});
+app.use(['/api'], require('./backend/api/apiStatus'));
 
 app.use('/*', function(req, res) {
     res.status(404).render('notFound.ejs', {});
 });
+
+app.use(Sentry.Handlers.errorHandler());
 
 //attach cron jobs
 require('./backend/workers/main');
@@ -345,7 +373,9 @@ const server = http.listen(app.get('port'), function() {
     console.log('Server Started on port ' + app.get('port'));
 });
 
-require('./greenlock');
+mongoose.connection.on('connected', () => {
+    require('./greenlock');
+});
 
 module.exports = app;
 module.exports.close = function() {

@@ -1,5 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import ShouldRender from './ShouldRender';
+import { BookmarkIcon, CancelIcon } from '../svg';
 
 const RenderSearchField = ({
     input,
@@ -16,13 +18,21 @@ const RenderSearchField = ({
     parentStyle = {},
     handleFocus,
     handleBlur,
+    iconLeft,
+    iconRight,
+    frame,
+    onFrameClick,
+    handleIconClick,
+    display,
 }) => (
     <div style={{ width: '100%', ...parentStyle }} id="search-input-container">
-        <img
-            src="/dashboard/assets/icons/search-solid.svg"
-            id="search-input-img"
-            alt="search-icon"
-        />
+        <ShouldRender if={iconLeft}>
+            <img
+                src="/dashboard/assets/icons/search-solid.svg"
+                id="search-input-img"
+                alt="search-icon"
+            />
+        </ShouldRender>
         <input
             {...input}
             type={type}
@@ -38,6 +48,33 @@ const RenderSearchField = ({
             onFocus={handleFocus}
             onBlur={handleBlur}
         />
+        <ShouldRender if={frame}>
+            <div
+                className="bs-search-log bs-search-frame"
+                onClick={onFrameClick}
+            >
+                <BookmarkIcon />
+            </div>
+        </ShouldRender>
+        <ShouldRender if={iconRight}>
+            <ShouldRender if={!display}>
+                <div className="bs-search-log bs-search-icon">
+                    <img
+                        src="/dashboard/assets/icons/search-solid.svg"
+                        id="search-input-img-2"
+                        alt="search-icon"
+                    />
+                </div>
+            </ShouldRender>
+            <ShouldRender if={display}>
+                <div
+                    className="bs-search-log bs-search-icon bs-cursor-log"
+                    onClick={handleIconClick}
+                >
+                    <CancelIcon />
+                </div>
+            </ShouldRender>
+        </ShouldRender>
     </div>
 );
 
@@ -61,6 +98,12 @@ RenderSearchField.propTypes = {
     autofilled: PropTypes.string,
     handleFocus: PropTypes.func,
     handleBlur: PropTypes.func,
+    iconLeft: PropTypes.bool,
+    iconRight: PropTypes.bool,
+    frame: PropTypes.bool,
+    onFrameClick: PropTypes.func,
+    handleIconClick: PropTypes.func,
+    display: PropTypes.string,
 };
 
 RenderSearchField.defaultProps = {

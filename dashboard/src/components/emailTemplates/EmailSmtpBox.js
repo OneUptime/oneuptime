@@ -589,7 +589,9 @@ export class EmailSmtpBox extends Component {
                                                             .requesting
                                                     }
                                                 >
-                                                    <FormLoader />
+                                                    <span id="saveSmtpLoading">
+                                                        <FormLoader />
+                                                    </span>
                                                 </ShouldRender>
                                             </button>
                                         </div>

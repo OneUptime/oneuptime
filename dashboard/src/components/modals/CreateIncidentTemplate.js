@@ -16,7 +16,7 @@ import { closeModal } from '../../actions/modal';
 import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
 import { RenderSelect } from '../basic/RenderSelect';
-import CodeEditor from '../basic/CodeEditor';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 class CreateIncidentTemplate extends React.Component {
     componentDidMount() {
@@ -98,7 +98,6 @@ class CreateIncidentTemplate extends React.Component {
             creatingIncidentTemplate,
             incidentPriorities,
             createIncidentTemplateError,
-            content,
         } = this.props;
 
         return (
@@ -241,22 +240,18 @@ class CreateIncidentTemplate extends React.Component {
                                                                 Description
                                                             </label>
                                                             <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                                <CodeEditor
-                                                                    code={
-                                                                        content
+                                                                <Field
+                                                                    name="content"
+                                                                    component={
+                                                                        RenderCodeEditor
                                                                     }
-                                                                    onCodeChange={
-                                                                        this
-                                                                            .onContentChange
-                                                                    }
-                                                                    textareaId={`description`}
+                                                                    mode="markdown"
+                                                                    height="150px"
+                                                                    width="100%"
                                                                     placeholder="This can be markdown"
-                                                                    style={{
-                                                                        width:
-                                                                            '100%',
-                                                                        height:
-                                                                            '150px',
-                                                                    }}
+                                                                    wrapEnabled={
+                                                                        true
+                                                                    }
                                                                 />
                                                             </div>
                                                         </div>
@@ -518,7 +513,6 @@ CreateIncidentTemplate.propTypes = {
     fetchIncidentTemplates: PropTypes.func,
     createIncidentTemplateFailure: PropTypes.func,
     change: PropTypes.func,
-    content: PropTypes.string,
 };
 
 const CreateIncidentTemplateForm = reduxForm({
@@ -527,13 +521,6 @@ const CreateIncidentTemplateForm = reduxForm({
 })(CreateIncidentTemplate);
 
 const mapStateToProps = state => {
-    const content = state.form.CreateIncidentTemplateForm
-        ? state.form.CreateIncidentTemplateForm.values
-            ? state.form.CreateIncidentTemplateForm.values.description
-                ? state.form.CreateIncidentTemplateForm.values.description
-                : ''
-            : ''
-        : '';
     return {
         currentProject: state.project.currentProject,
         revealVariables: state.incidentBasicSettings.revealVariables,
@@ -546,7 +533,6 @@ const mapStateToProps = state => {
             state.incidentBasicSettings.createIncidentTemplate.requesting,
         createIncidentTemplateError:
             state.incidentBasicSettings.createIncidentTemplate.error,
-        content,
     };
 };
 const mapDispatchToProps = dispatch =>

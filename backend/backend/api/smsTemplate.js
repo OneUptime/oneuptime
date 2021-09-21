@@ -113,6 +113,7 @@ router.put(
 router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const data = [];
+        const { projectId } = req.params;
         for (const value of req.body) {
             if (!value.body) {
                 return sendErrorResponse(req, res, {
@@ -121,7 +122,7 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
                 });
             }
             // sanitize template markup
-            value.projectId = req.params.projectId;
+            value.projectId = projectId;
             value.body = await DOMPurify.sanitize(value.body);
             data.push(value);
         }
@@ -140,9 +141,7 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
         }
         await SmsTemplateService.createMany(templateData);
 
-        const smsTemplates = await SmsTemplateService.getTemplates(
-            req.params.projectId
-        );
+        const smsTemplates = await SmsTemplateService.getTemplates(projectId);
         return sendItemResponse(req, res, smsTemplates);
     } catch (error) {
         sendErrorResponse(req, res, error);

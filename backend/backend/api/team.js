@@ -113,6 +113,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
 ) {
     const data = req.body;
     const userId = req.user ? req.user : null;
+    const { projectId } = req.params;
 
     if (!data.emails) {
         return sendErrorResponse(req, res, {
@@ -161,9 +162,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
     try {
         // If members are not Viewers, we make sure they don't exceed 100
         if (data.role !== 'Viewers') {
-            const teamMembers = await TeamService.getTeamMembers(
-                req.params.projectId
-            );
+            const teamMembers = await TeamService.getTeamMembers(projectId);
             const withoutViewers = teamMembers
                 ? teamMembers.filter(teamMember => teamMember.role !== 'Viewer')
                 : [];
@@ -178,7 +177,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
         // Call the TeamService
         const users = await TeamService.inviteTeamMembers(
             req.user.id,
-            req.params.projectId,
+            projectId,
             data.emails,
             data.role
         );
@@ -189,7 +188,7 @@ router.post('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
             });
         } else {
             // run in the background
-            RealTimeService.createTeamMember(req.params.projectId, {
+            RealTimeService.createTeamMember(projectId, {
                 users,
                 userId: userId.id,
             });
@@ -215,7 +214,7 @@ router.delete(
         const teamMemberUserId = req.params.teamMemberId;
         const projectId = req.params.projectId;
 
-        if (!req.params.teamMemberId) {
+        if (!teamMemberUserId) {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message:
@@ -223,7 +222,7 @@ router.delete(
             });
         }
 
-        if (typeof req.params.teamMemberId !== 'string') {
+        if (typeof teamMemberUserId !== 'string') {
             return sendErrorResponse(req, res, {
                 code: 400,
                 message:
@@ -257,6 +256,7 @@ router.put(
     isUserAdmin,
     async function(req, res) {
         const data = req.body;
+        const projectId = req.params.projectId;
         data.teamMemberId = req.params.teamMemberId;
         if (!data.teamMemberId) {
             return sendErrorResponse(req, res, {
@@ -296,20 +296,20 @@ router.put(
                 // Call the TeamService
                 // This code is reverted because the promises need to run sequentially. Debugging it shows that it was running simultaneously
                 await TeamService.updateTeamMemberRole(
-                    req.params.projectId,
+                    projectId,
                     userId,
                     teamMemberId,
                     data.role
                 );
                 const teamMembers = await TeamService.updateTeamMemberRole(
-                    req.params.projectId,
+                    projectId,
                     userId,
                     userId,
                     'Administrator'
                 );
 
                 NotificationService.create(
-                    req.params.projectId,
+                    projectId,
                     `A team members role was updated by ${req.user.name}`,
                     req.user.id,
                     'information'
@@ -318,13 +318,13 @@ router.put(
             } else {
                 // Call the TeamService
                 const updatedTeamMembers = await TeamService.updateTeamMemberRole(
-                    req.params.projectId,
+                    projectId,
                     userId,
                     teamMemberId,
                     data.role
                 );
                 NotificationService.create(
-                    req.params.projectId,
+                    projectId,
                     `A team members role was updated by ${req.user.name}`,
                     req.user.id,
                     'information'

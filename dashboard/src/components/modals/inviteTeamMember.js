@@ -508,6 +508,7 @@ export class FormModal extends Component {
                                                             style={{
                                                                 color: 'red',
                                                             }}
+                                                            id="businessEmailError"
                                                         >
                                                             {
                                                                 this.props.team

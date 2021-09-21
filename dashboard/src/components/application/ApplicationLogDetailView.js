@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import LogList from './LogList';
 import PropTypes from 'prop-types';
 import ShouldRender from '../basic/ShouldRender';
 import { bindActionCreators } from 'redux';
@@ -7,11 +6,16 @@ import { connect } from 'react-redux';
 import { fetchLogs } from '../../actions/applicationLog';
 import { ListLoader } from '../basic/Loader';
 import AlertPanel from '../basic/AlertPanel';
+import LogTail from './LogTail';
+import SearchInput from '../search/SearchInput';
 
 class ApplicationLogDetailView extends Component {
     constructor(props) {
         super(props);
         this.props = props;
+        this.state = {
+            display: null,
+        };
     }
 
     componentDidMount() {
@@ -25,19 +29,22 @@ class ApplicationLogDetailView extends Component {
     }
     render() {
         const {
-            applicationLog,
-            componentId,
             projectId,
-            isDetails,
+            componentId,
+            applicationLog,
+            applicationLogId,
             stats,
-            logOptions,
-            handleLogTypeChange,
-            handleNavigationButtonClick,
+            logs,
         } = this.props;
         return (
             <div>
                 <ShouldRender
-                    if={!(stats && !stats.requesting && stats.stats.all > 0)}
+                    if={
+                        !(stats && !stats.requesting && stats.stats.all > 0) &&
+                        logs &&
+                        logs.logs.length < 1 &&
+                        !this.state.display
+                    }
                 >
                     <AlertPanel
                         id={`${applicationLog.name}-no-log-warning`}
@@ -66,116 +73,20 @@ class ApplicationLogDetailView extends Component {
                     <div
                         className="db-TrendRow db-ListViewItem-header db-Trends-header"
                         style={{
-                            cursor: isDetails ? 'pointer' : 'none',
-                            zIndex: 'unset',
+                            justifyContent: 'center',
+                            backgroundColor: '#202839',
                         }}
                     >
-                        <div
-                            onClick={() => handleLogTypeChange(logOptions[0])}
-                            className="db-Trend-colInformation"
-                            id={`${applicationLog.name}-all`}
-                        >
-                            <div className="db-Trend-rowTitle" title="All Logs">
-                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
-                                    <span className="chart-font">All Logs</span>
-                                </div>
-                            </div>
-                            <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
-                                    <span>
-                                        {' '}
-                                        <span className="chart-font">
-                                            {stats && stats.stats
-                                                ? stats.stats.all
-                                                : 0}
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            onClick={() => handleLogTypeChange(logOptions[1])}
-                            className="db-Trend-colInformation"
-                            id={`${applicationLog.name}-error`}
-                        >
-                            <div
-                                className="db-Trend-rowTitle"
-                                title="Error Logs"
-                            >
-                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
-                                    <span className="chart-font">
-                                        Error Logs
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
-                                    <span>
-                                        {' '}
-                                        <span className="chart-font">
-                                            {stats && stats.stats
-                                                ? stats.stats.error
-                                                : 0}
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            onClick={() => handleLogTypeChange(logOptions[2])}
-                            className="db-Trend-colInformation"
-                            id={`${applicationLog.name}-warning`}
-                        >
-                            <div
-                                className="db-Trend-rowTitle"
-                                title="Warning Logs"
-                            >
-                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
-                                    <span className="chart-font">
-                                        Warning Logs
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
-                                    <span>
-                                        {' '}
-                                        <span className="chart-font">
-                                            {stats && stats.stats
-                                                ? stats.stats.warning
-                                                : 0}
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div
-                            onClick={() => handleLogTypeChange(logOptions[3])}
-                            className="db-Trend-colInformation"
-                            id={`${applicationLog.name}-info`}
-                        >
-                            <div
-                                className="db-Trend-rowTitle"
-                                title="Info Logs"
-                            >
-                                <div className="db-Trend-title Flex-flex Flex-justifyContent--center">
-                                    <span className="chart-font">
-                                        Info Logs
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="db-Trend-row">
-                                <div className="db-Trend-col db-Trend-colValue Flex-flex Flex-justifyContent--center">
-                                    <span>
-                                        {' '}
-                                        <span className="chart-font">
-                                            {stats && stats.stats
-                                                ? stats.stats.info
-                                                : 0}
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
+                        <div className="bs-app-log">
+                            <SearchInput
+                                projectId={projectId}
+                                componentId={componentId}
+                                applicationLogId={applicationLogId}
+                                setDisplay={val =>
+                                    this.setState({ display: val })
+                                }
+                                display={this.state.display}
+                            />
                         </div>
                     </div>
                 </ShouldRender>
@@ -184,28 +95,7 @@ class ApplicationLogDetailView extends Component {
                         <div className="">
                             <div className="Box-root">
                                 <div>
-                                    <div className="ContentHeader Box-root Box-background--white Box-divider--surface-bottom-1 Flex-flex Flex-direction--column Padding-horizontal--20 Padding-vertical--16">
-                                        <div className="Box-root Flex-flex Flex-direction--row Flex-justifyContent--spaceBetween">
-                                            <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
-                                                <span className="ContentHeader-title Text-color--dark Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap"></span>
-                                                <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                    <span>
-                                                        Here&apos;s a list of
-                                                        recent logs which belong
-                                                        to this log container.
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <LogList
-                                        applicationLog={applicationLog}
-                                        componentId={componentId}
-                                        projectId={projectId}
-                                        handleNavigationButtonClick={
-                                            handleNavigationButtonClick
-                                        }
-                                    />
+                                    <LogTail applicationLog={applicationLog} />
                                 </div>
                             </div>
                         </div>
@@ -225,12 +115,22 @@ ApplicationLogDetailView.propTypes = {
     projectId: PropTypes.string,
     componentId: PropTypes.string,
     applicationLog: PropTypes.object,
-    isDetails: PropTypes.bool,
+    applicationLogId: PropTypes.string,
     fetchLogs: PropTypes.func,
     stats: PropTypes.object,
-    logOptions: PropTypes.array,
-    handleLogTypeChange: PropTypes.func,
-    handleNavigationButtonClick: PropTypes.func,
+    logs: PropTypes.object,
 };
 
-export default connect(null, mapDispatchToProps)(ApplicationLogDetailView);
+const mapStateToProps = (state, props) => {
+    const applicationLogId = props.applicationLog._id;
+    const logs = state.applicationLog.logs[applicationLogId];
+    return {
+        applicationLogId,
+        logs,
+    };
+};
+
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(ApplicationLogDetailView);

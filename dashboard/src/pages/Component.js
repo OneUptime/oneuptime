@@ -26,7 +26,7 @@ import AlertDisabledWarning from '../components/settings/AlertDisabledWarning';
 import CustomTutorial from '../components/tutorial/CustomTutorial';
 import { fetchComponents } from '../actions/component';
 
-class DashboardView extends Component {
+class ComponentDashboardView extends Component {
     componentDidMount() {
         this.props.loadPage('Components');
         if (IS_SAAS_SERVICE) {
@@ -436,7 +436,7 @@ const mapStateToProps = state => {
     };
 };
 
-DashboardView.propTypes = {
+ComponentDashboardView.propTypes = {
     currentProject: PropTypes.oneOfType([
         PropTypes.object,
         PropTypes.oneOf([null, undefined]),
@@ -471,6 +471,9 @@ DashboardView.propTypes = {
     switchToProjectViewerNav: PropTypes.bool,
 };
 
-DashboardView.displayName = 'DashboardView';
+ComponentDashboardView.displayName = 'ComponentDashboardView';
 
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardView);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(ComponentDashboardView);

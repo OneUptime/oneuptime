@@ -127,6 +127,7 @@ router.put(
 router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
     try {
         const data = [];
+        const { projectId } = req.params;
         for (const value of req.body) {
             if (!value.subject) {
                 return sendErrorResponse(req, res, {
@@ -142,7 +143,7 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
                 });
             }
             // sanitize template markup
-            value.projectId = req.params.projectId;
+            value.projectId = projectId;
             const [subject, body] = await Promise.all([
                 DOMPurify.sanitize(value.subject),
                 DOMPurify.sanitize(value.body, {
@@ -173,7 +174,7 @@ router.put('/:projectId', getUser, isAuthorized, async function(req, res) {
             }
         }
         const emailTemplates = await EmailTemplateService.getTemplates(
-            req.params.projectId
+            projectId
         );
         return sendItemResponse(req, res, emailTemplates);
     } catch (error) {

@@ -5,6 +5,15 @@ if (!NODE_ENV || NODE_ENV === 'development') {
     require('custom-env').env();
 }
 
+const express = require('express');
+const Sentry = require('@sentry/node');
+const Tracing = require('@sentry/tracing');
+const app = express();
+const http = require('http').createServer(app);
+const cors = require('cors');
+const { mongoUrl } = require('./utils/config');
+const MongoClient = require('mongodb').MongoClient;
+
 process.on('exit', () => {
     console.log('Server Shutting Shutdown');
 });
@@ -19,12 +28,26 @@ process.on('uncaughtException', err => {
     console.error(err);
 });
 
-const express = require('express');
-const app = express();
-const http = require('http').createServer(app);
-const cors = require('cors');
-const { mongoUrl } = require('./utils/config');
-const MongoClient = require('mongodb').MongoClient;
+Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    release: `data-ingestor@${process.env.npm_package_version}`,
+    environment: process.env.NODE_ENV,
+    integrations: [
+        // enable HTTP calls tracing
+        new Sentry.Integrations.Http({ tracing: true }),
+        // enable Express.js middleware tracing
+        new Tracing.Integrations.Express({
+            app,
+        }),
+        new Sentry.Integrations.OnUncaughtException({
+            onFatalError() {
+                // override default behaviour
+                return;
+            },
+        }),
+    ],
+    tracesSampleRate: 0.0,
+});
 
 // mongodb
 function getMongoClient() {
@@ -47,6 +70,10 @@ const client = getMongoClient();
 
 // attach the database to global object
 global.db = client.db('fyipedb');
+
+// Sentry: The request handler must be the first middleware on the app
+app.use(Sentry.Handlers.requestHandler());
+app.use(Sentry.Handlers.tracingHandler());
 
 app.use(cors());
 
@@ -71,6 +98,8 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.json({ limit: '10mb' }));
 
 app.use(['/probe', '/api/probe'], require('./api/probe'));
+
+app.use(Sentry.Handlers.errorHandler());
 
 app.set('port', process.env.PORT || 3200);
 

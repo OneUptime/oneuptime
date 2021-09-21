@@ -93,7 +93,7 @@ module.exports = {
 
             const logs = await logsQuery;
 
-            return logs;
+            return logs.reverse();
         } catch (error) {
             ErrorService.log('logService.findBy', error);
             throw error;
@@ -172,6 +172,43 @@ module.exports = {
         ]);
 
         return { searchedLogs, totalSearchCount };
+    },
+    searchByDuration: async function(query) {
+        try {
+            const _this = this;
+            if (!query) {
+                query = {};
+            }
+
+            if (!query.deleted) query.deleted = false;
+            const { startTime, endTime } = query;
+            query = {
+                ...query,
+                createdAt: {
+                    $gte: endTime,
+                    $lte: startTime,
+                },
+            };
+            delete query.startTime;
+            delete query.endTime;
+            const selectLog =
+                'applicationLogId content stringifiedContent type tags createdById createdAt';
+            const populateLog = [{ path: 'applicationLogId', select: 'name' }];
+
+            const [searchedLogs, totalSearchCount] = await Promise.all([
+                _this.findBy({
+                    query,
+                    select: selectLog,
+                    populate: populateLog,
+                }),
+                _this.countBy(query),
+            ]);
+
+            return { searchedLogs, totalSearchCount };
+        } catch (error) {
+            ErrorService.log('logService.searchByDuration', error);
+            throw error;
+        }
     },
     // Introduce this to know the current date range of the query incase it wasnt given by the user
     async getDateRange(query) {

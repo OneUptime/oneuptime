@@ -13,8 +13,6 @@ const newName = 'Another';
 const newDefaultIncidentTitle = 'TEST: {{monitorName}}';
 const newDefaultIncidentDescription = 'TEST: {{incidentType}}';
 const incidentType = 'offline';
-const inctidentTitleAfterSubstitution = `TEST: ${monitorName}`;
-const inctidentDescriptionAfterSubstitution = `TEST: ${incidentType}`;
 const changedTitle = `${monitorName} is ${incidentType}.`;
 
 describe('Incident Settings API', () => {
@@ -159,52 +157,6 @@ describe('Incident Settings API', () => {
         operationTimeOut
     );
 
-    // THIS TEST CASE IS NO LONGER NEEDED BECAUSE TEMPLATE VALUES ARE NO LONGER PREFILLED
-    test.skip(
-        'Should fill title, description and priority fields on the incident creation form with the default values',
-        async done => {
-            await init.navigateToMonitorDetails(
-                componentName,
-                monitorName,
-                page
-            );
-
-            await init.pageWaitForSelector(
-                page,
-                `#monitorCreateIncident_${monitorName}`
-            );
-            await init.pageClick(page, `#monitorCreateIncident_${monitorName}`);
-            await init.pageWaitForSelector(page, '#title');
-
-            const priorityFieldValue = await init.page$Eval(
-                page,
-                '#incidentPriority',
-                e => e.textContent
-            );
-            expect(priorityFieldValue).toEqual('Low');
-            const titleFieldValue = await init.page$Eval(
-                page,
-                '#title',
-                e => e.value
-            );
-            expect(titleFieldValue).toEqual(inctidentTitleAfterSubstitution);
-            const descriptionFieldValue = await init.page$Eval(
-                page,
-                '.ace_layer.ace_text-layer',
-                e => e.textContent
-            );
-            expect(descriptionFieldValue).toEqual(
-                inctidentDescriptionAfterSubstitution
-            );
-            await init.selectDropdownValue('#incidentType', incidentType, page);
-            await init.pageClick(page, '#createIncident');
-            await init.pageWaitForSelector(page, '#closeIncident_0');
-            await init.pageClick(page, '#closeIncident_0');
-            done();
-        },
-        operationTimeOut
-    );
-
     test(
         'Should substitute variables in title, description when an incident is created',
         async done => {
@@ -249,111 +201,6 @@ describe('Incident Settings API', () => {
             );
             expect(title).toMatch(changedTitle);
             expect(incidentPriority).toMatch('Low');
-            done();
-        },
-        operationTimeOut
-    );
-
-    // TEST CASE NO LONGER NEEDED
-    test.skip(
-        'Should delete non-default priority',
-        async done => {
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
-            });
-            await init.pageWaitForSelector(page, '#projectSettings');
-            await init.pageClick(page, '#projectSettings');
-            await init.pageWaitForSelector(page, '#more');
-            await init.pageClick(page, '#more');
-            await init.pageWaitForSelector(page, '#incidentSettings');
-            await init.pageClick(page, '#incidentSettings');
-            await init.pageWaitForSelector(page, '.incident-priority-tab', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.page$$Eval(page, '.incident-priority-tab', elems =>
-                elems[0].click()
-            );
-            await init.pageWaitForSelector(page, '#priorityDelete_High_0');
-            await init.pageClick(page, '#priorityDelete_High_0');
-            await init.pageWaitForSelector(page, '#RemoveIncidentPriority', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.pageClick(page, '#RemoveIncidentPriority');
-            const deletedPriority = await init.pageWaitForSelector(
-                page,
-                '#RemoveIncidentPriority',
-                { hidden: true }
-            );
-            expect(deletedPriority).toBeDefined();
-            done();
-        },
-        operationTimeOut
-    );
-
-    // TEST CASE NO LONGER NEEDED
-    test.skip(
-        'Should create a priority and set it as default',
-        async done => {
-            const customPriority = utils.generateRandomString();
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: 'networkidle0',
-            });
-            await init.pageWaitForSelector(page, '#projectSettings');
-            await init.pageClick(page, '#projectSettings');
-            await init.pageWaitForSelector(page, '#more');
-            await init.pageClick(page, '#more');
-            await init.pageWaitForSelector(page, '#incidentSettings');
-            await init.pageClick(page, '#incidentSettings');
-            await init.pageWaitForSelector(page, '.incident-priority-tab', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.page$$Eval(page, '.incident-priority-tab', elems =>
-                elems[0].click()
-            );
-            // Add New Priority
-            await init.pageWaitForSelector(page, '#addNewPriority');
-            await init.pageClick(page, '#addNewPriority');
-            await init.pageWaitForSelector(page, '#CreateIncidentPriority');
-            await init.pageType(page, 'input[name=name]', customPriority);
-            await init.pageClick(page, '#CreateIncidentPriority');
-            await init.pageWaitForSelector(page, '#CreateIncidentPriority', {
-                hidden: true,
-            });
-            await init.pageWaitForSelector(page, '#incidentPrioritiesList', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            // Set the new Priority as Default
-            await init.pageClick(
-                page,
-                `button#priorityDefault_${customPriority}_1`
-            );
-            await init.pageWaitForSelector(page, '#priorityDefaultModal');
-            await init.pageClick(page, '#SetDefaultIncidentPriority');
-
-            await page.reload({ waitUntil: 'networkidle0' });
-            await init.pageWaitForSelector(page, '.incident-priority-tab', {
-                visible: true,
-                timeout: init.timeout,
-            });
-            await init.page$$Eval(page, '.incident-priority-tab', elems =>
-                elems[0].click()
-            );
-
-            let newDefaultPriority = await init.pageWaitForSelector(
-                page,
-                `span#priority_${customPriority}_1_default`,
-                { visible: true, timeout: init.timeout }
-            );
-            newDefaultPriority = await newDefaultPriority.getProperty(
-                'innerText'
-            );
-            newDefaultPriority = await newDefaultPriority.jsonValue();
-            expect(newDefaultPriority).toMatch('DEFAULT');
-
             done();
         },
         operationTimeOut

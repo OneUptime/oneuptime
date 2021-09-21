@@ -276,9 +276,10 @@ describe('Team API With SubProjects', () => {
             await init.pageClick(page, `#${role}_${projectName}`);
             await init.pageWaitForSelector(page, `#btn_modal_${projectName}`);
             await init.pageClick(page, `#btn_modal_${projectName}`);
+            await init.pageClick(page, `#btnConfirmInvite`);
             let spanElement = await init.pageWaitForSelector(
                 page,
-                `#frm_${projectName} span#field-error`
+                `#businessEmailError`
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();

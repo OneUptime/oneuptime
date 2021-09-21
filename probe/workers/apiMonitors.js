@@ -17,11 +17,11 @@ module.exports = {
         try {
             if (monitor && monitor.type) {
                 if (monitor.data.url) {
-                    const headers = ApiService.headers(
+                    const headers = await ApiService.headers(
                         monitor.headers,
                         monitor.bodyType
                     );
-                    const body = ApiService.body(
+                    const body = await ApiService.body(
                         monitor && monitor.text && monitor.text.length
                             ? monitor.text
                             : monitor.formData,

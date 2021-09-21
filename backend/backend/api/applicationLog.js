@@ -123,11 +123,12 @@ router.delete(
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
+        const { applicationLogId, componentId } = req.params;
         try {
             const applicationLog = await ApplicationLogService.deleteBy(
                 {
-                    _id: req.params.applicationLogId,
-                    componentId: req.params.componentId,
+                    _id: applicationLogId,
+                    componentId: componentId,
                 },
                 req.user.id
             );
@@ -309,7 +310,7 @@ router.post(
 
         try {
             const applicationLog = await ApplicationLogService.updateOneBy(
-                { _id: req.params.applicationLogId },
+                { _id: applicationLogId },
                 data
             );
             return sendItemResponse(req, res, applicationLog);
@@ -326,7 +327,7 @@ router.put(
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
-        const applicationLogId = req.params.applicationLogId;
+        const { applicationLogId, componentId } = req.params;
 
         const data = req.body;
         if (!data) {
@@ -358,7 +359,7 @@ router.put(
         // try to find in the application log if the name already exist for that component
         const existingQuery = {
             name: data.name,
-            componentId: req.params.componentId,
+            componentId: componentId,
         };
 
         if (data.resourceCategory != '') {
@@ -414,6 +415,41 @@ router.put(
         } catch (error) {
             return sendErrorResponse(req, res, error);
         }
+    }
+);
+
+router.post(
+    '/:projectId/:componentId/:applicationLogId/search',
+    getUser,
+    isAuthorized,
+    async function(req, res) {
+        const { applicationLogId } = req.params;
+        const startTime = new Date();
+        const { duration, filter, range } = req.body;
+        const endTime = new Date(startTime.getTime() + duration * 60000);
+        let response;
+        if (filter) {
+            response = await LogService.search(
+                { applicationLogId, deleted: false },
+                filter
+            );
+        }
+        if (duration) {
+            response = await LogService.searchByDuration({
+                applicationLogId,
+                startTime,
+                endTime,
+            });
+        }
+        if (range) {
+            const { log_from, log_to } = range;
+            response = await LogService.searchByDuration({
+                applicationLogId,
+                startTime: new Date(log_to),
+                endTime: new Date(log_from),
+            });
+        }
+        return sendItemResponse(req, res, response);
     }
 );
 

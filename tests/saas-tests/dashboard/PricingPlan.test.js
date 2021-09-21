@@ -73,56 +73,6 @@ describe('Status Page -> Pricing Plan Component', () => {
         operationTimeOut
     );
 
-    // There are only 3 plans in Saas - StartUp, Growth, Scale.
-    test.skip(
-        'should show upgrade modal if plan is Enterprise and Project is not on Enterprise plan',
-        async () => {
-            await page.goto(utils.DASHBOARD_URL, {
-                waitUntil: ['networkidle2'],
-            });
-            await init.page$Eval(page, '#statusPages', elem => elem.click());
-            // select the first item from the table row
-            const rowItem = await init.pageWaitForSelector(
-                page,
-                '#statusPagesListContainer > tr',
-                { visible: true, timeout: init.timeout }
-            );
-            rowItem.click();
-
-            await init.pageWaitForSelector(page, '.advanced-options-tab', {
-                visible: true,
-                timeout: init.timeout,
-            });
-
-            await init.page$$Eval(page, '.advanced-options-tab', elems =>
-                elems[0].click()
-            );
-
-            await init.page$Eval(
-                page,
-                'input[name="isSubscriberEnabled"]',
-                elem => elem.click()
-            );
-
-            const modal = await init.pageWaitForSelector(
-                page,
-                '#pricingPlanModal',
-                {
-                    visible: true,
-                    timeout: init.timeout,
-                }
-            );
-            const emailBtn = await init.pageWaitForSelector(
-                page,
-                '#enterpriseMail'
-            );
-
-            expect(modal).toBeDefined();
-            expect(emailBtn).toBeDefined();
-        },
-        operationTimeOut
-    );
-
     test(
         'should not show upgrade modal if project is subscribed to a particular plan',
         async done => {

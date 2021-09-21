@@ -114,10 +114,18 @@ function AnnouncementBox({ announcement, monitorState, type }) {
                     {announcement.name}
                 </div>
             </div>
-            <div className="ann_desc">
-                {announcement?.description && (
-                    <Markdown>{announcement.description}</Markdown>
-                )}
+            <div className="ann_desc" style={{ whiteSpace: 'pre-wrap' }}>
+                {announcement?.description &&
+                    announcement.description.split('\n').map((elem, index) => (
+                        <Markdown
+                            key={`${elem}-${index}`}
+                            options={{
+                                forceBlock: true,
+                            }}
+                        >
+                            {elem}
+                        </Markdown>
+                    ))}
             </div>
             <ShouldRender if={announcement.monitors.length > 0}>
                 <div className={'resources_aff'}>

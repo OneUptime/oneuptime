@@ -13,7 +13,7 @@ import {
     createAnnouncement,
     fetchAnnouncements,
 } from '../../actions/statusPage';
-import CodeEditor from '../basic/CodeEditor';
+import RenderCodeEditor from '../basic/RenderCodeEditor';
 
 function validate(values) {
     const errors = {};
@@ -39,14 +39,18 @@ class CreateAnnouncement extends Component {
         window.removeEventListener('keydown', this.handleKeyBoard);
     }
 
-    handleKeyBoard = e => {
-        switch (e.key) {
-            case 'Escape':
-                return this.handleCloseModal();
-            case 'Enter':
-                return document.getElementById('createAnnouncementBtn').click();
-            default:
-                return false;
+    handleKeyBoard = event => {
+        if (event.target.localName !== 'textarea' && event.key) {
+            switch (event.key) {
+                case 'Escape':
+                    return this.handleCloseModal();
+                case 'Enter':
+                    return document
+                        .getElementById('createAnnouncementBtn')
+                        .click();
+                default:
+                    return false;
+            }
         }
     };
 
@@ -323,7 +327,6 @@ class CreateAnnouncement extends Component {
             closeModal,
             requesting,
             createError,
-            description,
         } = this.props;
         return (
             <div
@@ -443,16 +446,16 @@ class CreateAnnouncement extends Component {
                                                         Description
                                                     </label>
                                                     <div className="bs-Fieldset-fields bs-Fieldset-fields--wide">
-                                                        <CodeEditor
-                                                            code={description}
-                                                            onCodeChange={
-                                                                this
-                                                                    .onContentChange
+                                                        <Field
+                                                            name="description"
+                                                            component={
+                                                                RenderCodeEditor
                                                             }
-                                                            textareaId={
-                                                                'description'
-                                                            }
+                                                            mode="markdown"
+                                                            height="150px"
+                                                            width="100%"
                                                             placeholder="This can be markdown"
+                                                            wrapEnabled={true}
                                                         />
                                                     </div>
                                                 </div>
@@ -551,7 +554,6 @@ CreateAnnouncement.propTypes = {
     ]),
     data: PropTypes.object,
     change: PropTypes.func,
-    description: PropTypes.string,
 };
 
 const mapStateToProps = (state, ownProps) => {
@@ -571,13 +573,6 @@ const mapStateToProps = (state, ownProps) => {
             }
         });
     });
-    const description = state.form.CreateAnnouncementForm
-        ? state.form.CreateAnnouncementForm.values
-            ? state.form.CreateAnnouncementForm.values.description
-                ? state.form.CreateAnnouncementForm.values.description
-                : ''
-            : ''
-        : '';
 
     return {
         createScheduledEventModalId: state.modal.modals[0].id,
@@ -590,7 +585,6 @@ const mapStateToProps = (state, ownProps) => {
         formValues:
             state.form.CreateAnnouncementForm &&
             state.form.CreateAnnouncementForm.values,
-        description,
     };
 };
 

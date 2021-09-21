@@ -37,7 +37,9 @@ spec:
                         value: {{ .Values.saas.amplitude.key }}
                       {{- end }}
                       - name: NODE_ENV
-                        value: 'production'
+                        value: {{ .Values.nodeEnv }}
+                      - name: SENTRY_DSN
+                        value: {{ .Values.sentry.accounts.dsn }}
                       - name: DISABLE_SIGNUP
                         value: {{ .Values.disableSignup | quote  }}
                   ports:

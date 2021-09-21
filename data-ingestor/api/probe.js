@@ -50,6 +50,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             retryCount,
             kubernetesData,
         } = req.body;
+        const { monitorId } = req.params;
 
         let status,
             log,
@@ -88,7 +89,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 const {
                     stat: validDegraded,
                     successReasons: degradedSuccessReasons,
-                    failedReasons: degradedFailedReasons,
+                    // failedReasons: degradedFailedReasons,
                     matchedCriterion: matchedDegradedCriterion,
                 } =
                     monitor && monitor.criteria && monitor.criteria.degraded
@@ -107,7 +108,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                 const {
                     stat: validDown,
                     successReasons: downSuccessReasons,
-                    failedReasons: downFailedReasons,
+                    // failedReasons: downFailedReasons,
                     matchedCriterion: matchedDownCriterion,
                 } =
                     monitor && monitor.criteria && monitor.criteria.down
@@ -140,23 +141,15 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
                     matchedCriterion = matchedUpCriterion;
                 } else if (degraded) {
                     status = 'degraded';
-                    reason = [...degradedSuccessReasons, ...upFailedReasons];
+                    reason = degradedSuccessReasons;
                     matchedCriterion = matchedDegradedCriterion;
                 } else if (down) {
                     matchedCriterion = matchedDownCriterion;
                     status = 'offline';
-                    reason = [
-                        ...downSuccessReasons,
-                        ...degradedFailedReasons,
-                        ...upFailedReasons,
-                    ];
+                    reason = downSuccessReasons;
                 } else {
                     status = 'offline';
-                    reason = [
-                        ...downFailedReasons,
-                        ...degradedFailedReasons,
-                        ...upFailedReasons,
-                    ];
+                    reason = upFailedReasons;
                     if (monitor.criteria.down) {
                         matchedCriterion = monitor.criteria.down.find(
                             criterion => criterion.default === true
@@ -538,7 +531,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
             // update monitor to save the last matched criterion
             await MonitorService.updateCriterion(monitor._id, matchedCriterion);
 
-            data.monitorId = req.params.monitorId || monitor._id;
+            data.monitorId = monitorId || monitor._id;
             data.probeId = req.probe && req.probe.id ? req.probe.id : null;
             data.reason =
                 data && data.reason && data.reason.length
@@ -595,7 +588,7 @@ router.post('/ping/:monitorId', isAuthorizedProbe, async function(
 
                     if (type === 'script') {
                         await MonitorService.updateScriptStatus(
-                            req.params.monitorId,
+                            monitorId,
                             'completed',
                             req.probe.id
                         );

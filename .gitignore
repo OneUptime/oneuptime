@@ -52,3 +52,5 @@ temp_readme.md
 tests/coverage
 
 settings.json
+
+go-sdk/tester/

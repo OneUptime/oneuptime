@@ -335,6 +335,7 @@ router.put(
     async function(req, res) {
         try {
             const data = req.body;
+            const { monitorId } = req.params;
             if (!data) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -387,11 +388,11 @@ router.put(
                 }
             }
 
-            await ScheduleService.deleteMonitor(req.params.monitorId);
+            await ScheduleService.deleteMonitor(monitorId);
             if (data.callScheduleIds && data.callScheduleIds.length) {
                 await ScheduleService.addMonitorToSchedules(
                     data.callScheduleIds,
-                    req.params.monitorId
+                    monitorId
                 );
             }
 
@@ -401,7 +402,7 @@ router.put(
             }
 
             const monitor = await MonitorService.updateOneBy(
-                { _id: req.params.monitorId },
+                { _id: monitorId },
                 data,
                 unsetData
             );
@@ -458,7 +459,7 @@ router.get(
                 : { projectId: { $in: subProjectIds } };
 
             const select =
-                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
+                '_id monitorStatus name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
             const populate = [
                 {
                     path: 'monitorSla',
@@ -503,7 +504,7 @@ router.get(
                 : { _id: monitorId, projectId: { $in: subProjectIds } };
 
             const select =
-                '_id name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
+                '_id monitorStatus name slug data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields';
             const populate = [
                 {
                     path: 'monitorSla',
@@ -583,9 +584,10 @@ router.delete(
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
+        const { monitorId, projectId } = req.params;
         try {
             const monitor = await MonitorService.deleteBy(
-                { _id: req.params.monitorId, projectId: req.params.projectId },
+                { _id: monitorId, projectId: projectId },
                 req.user.id
             );
             if (monitor) {

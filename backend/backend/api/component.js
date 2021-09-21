@@ -100,12 +100,13 @@ router.put(
     async function(req, res) {
         try {
             const data = req.body;
+            const { componentId } = req.params;
             let unsetData;
             if (!data.componentCategoryId || data.componentCategoryId === '') {
                 unsetData = { componentCategoryId: '' };
             }
             const component = await ComponentService.updateOneBy(
-                { _id: req.params.componentId },
+                { _id: componentId },
                 data,
                 unsetData
             );
@@ -722,18 +723,19 @@ router.delete(
     isAuthorized,
     isUserAdmin,
     async function(req, res) {
+        const { componentId, projectId } = req.params;
         try {
             await ComponentService.deleteBy(
                 {
-                    componentId: req.params.componentId,
-                    projectId: req.params.projectId,
+                    componentId: componentId,
+                    projectId: projectId,
                 },
                 req.user.id
             );
             const component = await ComponentService.deleteBy(
                 {
-                    _id: req.params.componentId,
-                    projectId: req.params.projectId,
+                    _id: componentId,
+                    projectId: projectId,
                 },
                 req.user.id
             );

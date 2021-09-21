@@ -74,9 +74,11 @@ class Message extends Component {
         }
     };
 
-    handleClose = () => {
+    handleClose = e => {
+        e.preventDefault();
         this.props.userDataReset();
         this.props.openSubscribeMenu();
+        this.props.handleCloseButtonClick();
     };
     render() {
         return (
@@ -193,6 +195,7 @@ Message.propTypes = {
     openSubscribeMenu: PropTypes.func,
     userDataReset: PropTypes.func,
     theme: PropTypes.bool,
+    handleCloseButtonClick: PropTypes.func,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Message);

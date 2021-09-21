@@ -18,13 +18,17 @@ module.exports = {
         //get project id
         let projectId, apiKey;
 
-        if (req.params.projectId) {
+        if (req.params && req.params.projectId) {
             projectId = req.params.projectId;
-        } else if (req.query.projectId) {
+        } else if (req.query && req.query.projectId) {
             projectId = req.query.projectId;
-        } else if (req.headers['projectId']) {
+        } else if (
+            req.headers &&
+            (req.headers['projectId'] || req.headers['projectid'])
+        ) {
+            // header keys are automatically transformed to lowercase
             projectId = req.headers['projectId'];
-        } else if (req.body.projectId) {
+        } else if (req.body && req.body.projectId) {
             projectId = req.body.projectId;
         } else {
             if (res) {
@@ -37,11 +41,11 @@ module.exports = {
             }
         }
 
-        if (req.query.apiKey) {
+        if (req.query && req.query.apiKey) {
             apiKey = req.query.apiKey;
-        } else if (req.headers.apikey) {
-            apiKey = req.headers.apikey;
-        } else if (req.body.apiKey) {
+        } else if (req.headers && (req.headers.apikey || req.headers.apiKey)) {
+            apiKey = req.headers.apikey || req.headers.apiKey;
+        } else if (req.body && req.body.apiKey) {
             apiKey = req.body.apiKey;
         } else {
             if (res) {
@@ -89,11 +93,11 @@ module.exports = {
         return true;
     },
     hasAPIKey: function(req) {
-        if (req.query.apiKey) {
+        if (req.query && req.query.apiKey) {
             return true;
-        } else if (req.headers.apikey || req.headers.apiKey) {
+        } else if (req.headers && (req.headers.apiKey || req.headers.apikey)) {
             return true;
-        } else if (req.body.apiKey) {
+        } else if (req.body && req.body.apiKey) {
             return true;
         }
 
@@ -104,13 +108,17 @@ module.exports = {
         // Get Project Id, If Available
         let projectId;
 
-        if (req.params.projectId) {
+        if (req.params && req.params.projectId) {
             projectId = req.params.projectId;
-        } else if (req.query.projectId) {
+        } else if (req.query && req.query.projectId) {
             projectId = req.query.projectId;
-        } else if (req.headers['projectId']) {
-            projectId = req.headers['projectId'];
-        } else if (req.body.projectId) {
+        } else if (
+            req.headers &&
+            (req.headers['projectId'] || req.headers['projectid'])
+        ) {
+            // header keys are automatically transformed to lowercase
+            projectId = req.headers['projectId'] || req.headers['projectid'];
+        } else if (req.body && req.body.projectId) {
             projectId = req.body.projectId;
         } else {
             return null;
@@ -121,30 +129,32 @@ module.exports = {
 
     getStatusPageId: function(req) {
         const statusPageId =
-            req.params.statusPageId ||
-            req.query.statusPageId ||
-            req.headers['statusPageId'] ||
-            req.body.statusPageId;
+            req.params?.statusPageId ||
+            req.query?.statusPageId ||
+            req.headers?.statuspageid ||
+            req.headers?.statusPageId ||
+            req.body?.statusPageId;
 
         return statusPageId;
     },
 
     getStatusPageSlug: function(req) {
         const statusPageSlug =
-            req.params.statusPageSlug ||
-            req.query.statusPageSlug ||
-            req.headers['statusPageSlug'] ||
-            req.body.statusPageSlug;
+            req.params?.statusPageSlug ||
+            req.query?.statusPageSlug ||
+            req.headers?.statuspageslug ||
+            req.headers?.statusPageSlug ||
+            req.body?.statusPageSlug;
 
         return statusPageSlug;
     },
 
     getStatusPageUrl: function(req) {
         const statusPageUrl =
-            req.params.url ||
-            req.query.url ||
-            req.headers['url'] ||
-            req.body.url;
+            req.params?.url ||
+            req.query?.url ||
+            req.headers?.url ||
+            req.body?.url;
 
         return statusPageUrl;
     },
