@@ -47,7 +47,20 @@ class Monitors extends Component {
     handleSubmit = event => {
         event.preventDefault();
         const { announcement, incident, scheduledEvent } = this.state;
-        const notificationType = { announcement, incident, scheduledEvent };
+        let notificationType = { announcement, incident, scheduledEvent };
+
+
+        // if multiple notificaiton types is not selected then set everything to true.
+        if (this.props.statuspage &&
+            !this.props.statuspage.multipleNotificationTypes
+        ) {
+            notificationType = { 
+                announcement: true, 
+                incident: true, 
+                scheduledEvent: true 
+            }
+        }
+
         const projectId =
             this.props.statuspage &&
             this.props.statuspage.projectId &&
@@ -120,101 +133,101 @@ class Monitors extends Component {
                     {this.props.subscribed.success
                         ? null
                         : this.state &&
-                          Object.keys(this.state).map((monitor, i) => {
-                              return (
-                                  <>
-                                      <ShouldRender
-                                          if={
-                                              monitor !== 'announcement' &&
-                                              monitor !== 'scheduledEvent' &&
-                                              monitor !== 'incident'
-                                          }
-                                      >
-                                          <label
-                                              className="container-checkbox"
-                                              key={i}
-                                          >
-                                              <span className="check-label">
-                                                  {monitor}
-                                              </span>
-                                              <input
-                                                  type="checkbox"
-                                                  name={monitor}
-                                                  onChange={this.handleChange}
-                                                  checked={this.state[monitor]}
-                                              />
-                                              <span className="checkmark"></span>
-                                          </label>
-                                      </ShouldRender>
-                                  </>
-                              );
-                          })}
+                        Object.keys(this.state).map((monitor, i) => {
+                            return (
+                                <>
+                                    <ShouldRender
+                                        if={
+                                            monitor !== 'announcement' &&
+                                            monitor !== 'scheduledEvent' &&
+                                            monitor !== 'incident'
+                                        }
+                                    >
+                                        <label
+                                            className="container-checkbox"
+                                            key={i}
+                                        >
+                                            <span className="check-label">
+                                                {monitor}
+                                            </span>
+                                            <input
+                                                type="checkbox"
+                                                name={monitor}
+                                                onChange={this.handleChange}
+                                                checked={this.state[monitor]}
+                                            />
+                                            <span className="checkmark"></span>
+                                        </label>
+                                    </ShouldRender>
+                                </>
+                            );
+                        })}
                     {this.props.subscribed.success
                         ? null
                         : multipleNotificationTypes &&
-                          this.state && (
-                              <>
-                                  <div className="bs-notificationType">
-                                      <div style={{ marginBottom: '10px' }}>
-                                          <Translate>
-                                              Select notification type.
-                                          </Translate>
-                                      </div>
-                                      {Object.keys(this.state).map(
-                                          (value, i) => {
-                                              return (
-                                                  <>
-                                                      <ShouldRender
-                                                          if={
-                                                              value ===
-                                                                  'announcement' ||
-                                                              value ===
-                                                                  'scheduledEvent' ||
-                                                              value ===
-                                                                  'incident'
-                                                          }
-                                                      >
-                                                          <label
-                                                              className="container-checkbox"
-                                                              key={i}
-                                                          >
-                                                              <span className="check-label">
-                                                                  {value ===
-                                                                  'scheduledEvent'
-                                                                      ? 'Schedule Event'
-                                                                      : value
-                                                                            .charAt(
-                                                                                0
-                                                                            )
-                                                                            .toUpperCase() +
-                                                                        value.slice(
-                                                                            1
-                                                                        )}
-                                                              </span>
-                                                              <input
-                                                                  type="checkbox"
-                                                                  name={value}
-                                                                  onChange={
-                                                                      this
-                                                                          .handleChange
-                                                                  }
-                                                                  checked={
-                                                                      this
-                                                                          .state[
-                                                                          value
-                                                                      ]
-                                                                  }
-                                                              />
-                                                              <span className="checkmark"></span>
-                                                          </label>
-                                                      </ShouldRender>
-                                                  </>
-                                              );
-                                          }
-                                      )}
-                                  </div>
-                              </>
-                          )}
+                        this.state && (
+                            <>
+                                <div className="bs-notificationType">
+                                    <div style={{ marginBottom: '10px' }}>
+                                        <Translate>
+                                            Select notification type.
+                                        </Translate>
+                                    </div>
+                                    {Object.keys(this.state).map(
+                                        (value, i) => {
+                                            return (
+                                                <>
+                                                    <ShouldRender
+                                                        if={
+                                                            value ===
+                                                            'announcement' ||
+                                                            value ===
+                                                            'scheduledEvent' ||
+                                                            value ===
+                                                            'incident'
+                                                        }
+                                                    >
+                                                        <label
+                                                            className="container-checkbox"
+                                                            key={i}
+                                                        >
+                                                            <span className="check-label">
+                                                                {value ===
+                                                                    'scheduledEvent'
+                                                                    ? 'Schedule Event'
+                                                                    : value
+                                                                        .charAt(
+                                                                            0
+                                                                        )
+                                                                        .toUpperCase() +
+                                                                    value.slice(
+                                                                        1
+                                                                    )}
+                                                            </span>
+                                                            <input
+                                                                type="checkbox"
+                                                                name={value}
+                                                                onChange={
+                                                                    this
+                                                                        .handleChange
+                                                                }
+                                                                checked={
+                                                                    this
+                                                                        .state[
+                                                                    value
+                                                                    ]
+                                                                }
+                                                            />
+                                                            <span className="checkmark"></span>
+                                                        </label>
+                                                    </ShouldRender>
+                                                </>
+                                            );
+                                        }
+                                    )}
+                                </div>
+                            </>
+                        )}
                     <button
                         type="submit"
                         className={
