@@ -203,6 +203,7 @@ services:
             - IS_SAAS_SERVICE=${IS_SAAS_SERVICE}
             - SCRIPT_RUNNER_URL=http://script-runner:3009
             - CLUSTER_KEY=test
+            - REALTIME_URL=http://realtime:3300
         depends_on:
             - mongo
             - redis

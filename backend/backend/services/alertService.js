@@ -3770,8 +3770,13 @@ module.exports = {
                 }
             };
 
-            const incidentAlert = subscriber.notificationType?.incident;
+            let incidentAlert = subscriber.notificationType?.incident;
             const statusPageId = subscriber?.statusPageId;
+
+            // if there is no notification type, then set incidentAlert to true.
+            if (!subscriber.notificationType) {
+                incidentAlert = true;
+            }
 
             if (!statusPageId) {
                 sendAlerts();
@@ -4986,9 +4991,13 @@ module.exports = {
                 }
             };
 
-            const scheduledEventAlert =
+            let scheduledEventAlert =
                 subscriber.notificationType?.scheduledEvent;
             const statusPageId = subscriber?.statusPageId;
+
+            if (!subscriber.notificationType) {
+                scheduledEventAlert = true;
+            }
 
             if (!statusPageId) {
                 sendAlerts();
@@ -5422,9 +5431,14 @@ module.exports = {
                             }
                         };
 
-                        const announcementAlert =
+                        let announcementAlert =
                             subscriber.notificationType?.announcement;
                         const statusPageId = subscriber?.statusPageId;
+
+                        // if there is no notification type, then set incidentAlert to true.
+                        if (!subscriber.notificationType) {
+                            announcementAlert = true;
+                        }
 
                         if (!statusPageId) {
                             sendAlerts();
