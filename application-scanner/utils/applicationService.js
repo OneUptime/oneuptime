@@ -154,6 +154,7 @@ module.exports = {
                                         auditOutput.metadata.vulnerabilities,
                                     advisories,
                                 };
+
                                 const resolvedLog = await updateApplicationSecurityLogService(
                                     {
                                         securityId: security._id,
