@@ -432,88 +432,104 @@ class Incident extends Component {
                             {!fetchingIncidentNotes &&
                                 incidentNotes &&
                                 incidentNotes.length > 0 &&
-                                incidentNotes.reverse().map(note => (
-                                    <div
-                                        key={note._id}
-                                        style={{
-                                            width: '100%',
-                                            display: 'grid',
-                                            gridTemplateColumns: '1fr 3fr',
-                                            gridColumnGap: 10,
-                                            marginTop: 20,
-                                        }}
-                                    >
-                                        <div>
-                                            <span
-                                                style={{
-                                                    display: 'block',
-                                                    fontWeight: 'bold',
-                                                }}
-                                            >
-                                                {note.incident_state}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span
-                                                style={{
-                                                    color: 'rgba(0, 0, 0, 0.6)',
-                                                    fontSize: 14,
-                                                    display: 'block',
-                                                    textAlign: 'justify',
-                                                }}
-                                            >
-                                                {note.content && (
-                                                    <div
-                                                        style={{
-                                                            whiteSpace:
-                                                                'pre-wrap',
-                                                        }}
-                                                    >
-                                                        {note.content
-                                                            .split('\n')
-                                                            .map(
-                                                                (
-                                                                    elem,
-                                                                    index
-                                                                ) => (
-                                                                    <Markdown
-                                                                        key={`${elem}-${index}`}
-                                                                        options={{
-                                                                            forceBlock: true,
-                                                                        }}
-                                                                    >
-                                                                        {elem}
-                                                                    </Markdown>
-                                                                )
-                                                            )}
-                                                    </div>
-                                                )}
-                                            </span>
-                                            <span
-                                                style={{
-                                                    display: 'flex',
-                                                    marginTop: 10,
-                                                    alignItems: 'center',
-                                                }}
-                                            >
+                                incidentNotes
+                                    .sort((a, b) => {
+                                        (a = moment(a.createdAt)),
+                                            (b = moment(b.createdAt));
+                                        // order in descending order
+                                        if (b.diff(a) > 0) {
+                                            return 1;
+                                        } else if (b.diff(a) < 0) {
+                                            return -1;
+                                        } else {
+                                            return 0;
+                                        }
+                                    })
+                                    .map(note => (
+                                        <div
+                                            key={note._id}
+                                            style={{
+                                                width: '100%',
+                                                display: 'grid',
+                                                gridTemplateColumns: '1fr 3fr',
+                                                gridColumnGap: 10,
+                                                marginTop: 20,
+                                            }}
+                                        >
+                                            <div>
                                                 <span
                                                     style={{
-                                                        color: '#AAA',
-                                                        fontSize: 12,
                                                         display: 'block',
+                                                        fontWeight: 'bold',
                                                     }}
                                                 >
-                                                    Posted on{' '}
-                                                    {moment(
-                                                        note.createdAt
-                                                    ).format(
-                                                        'MMMM Do YYYY, h:mm a'
+                                                    {note.incident_state}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span
+                                                    style={{
+                                                        color:
+                                                            'rgba(0, 0, 0, 0.6)',
+                                                        fontSize: 14,
+                                                        display: 'block',
+                                                        textAlign: 'justify',
+                                                    }}
+                                                >
+                                                    {note.content && (
+                                                        <div
+                                                            style={{
+                                                                whiteSpace:
+                                                                    'pre-wrap',
+                                                            }}
+                                                        >
+                                                            {note.content
+                                                                .split('\n')
+                                                                .map(
+                                                                    (
+                                                                        elem,
+                                                                        index
+                                                                    ) => (
+                                                                        <Markdown
+                                                                            key={`${elem}-${index}`}
+                                                                            options={{
+                                                                                forceBlock: true,
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                elem
+                                                                            }
+                                                                        </Markdown>
+                                                                    )
+                                                                )}
+                                                        </div>
                                                     )}
                                                 </span>
-                                            </span>
+                                                <span
+                                                    style={{
+                                                        display: 'flex',
+                                                        marginTop: 10,
+                                                        alignItems: 'center',
+                                                    }}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            color: '#AAA',
+                                                            fontSize: 12,
+                                                            display: 'block',
+                                                        }}
+                                                    >
+                                                        Posted on{' '}
+                                                        {moment(
+                                                            note.createdAt
+                                                        ).format(
+                                                            'MMMM Do YYYY, h:mm a'
+                                                        )}
+                                                    </span>
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
 
                             {!fetchingIncidentNotes &&
                                 incidentNotes &&
