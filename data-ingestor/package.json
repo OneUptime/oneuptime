@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "start": "node --max-old-space-size=4096 index.js",
-        "dev": "cross-env NODE_ENV=development nodemon index.js",
+        "dev": "cross-env NODE_ENV=development nodemon --inspect=0.0.0.0 index.js",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"
     },
