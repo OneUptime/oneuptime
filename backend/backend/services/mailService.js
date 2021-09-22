@@ -2041,6 +2041,150 @@ const _this = {
             throw error;
         }
     },
+    sendApplicationEmail: async function(project, user) {
+        let mailOptions;
+        let EmailBody;
+        let smtpServer;
+        try {
+            let accountMail = await _this.getSmtpSettings();
+            if (!accountMail.internalSmtp) {
+                smtpServer = accountMail.host;
+            }
+            mailOptions = {
+                from: `"${accountMail.name}" <${accountMail.from}>`,
+                to: user.email,
+                subject: 'Application Security',
+                template: 'application_security',
+                context: {
+                    homeURL: global.homeHost,
+                    projectName: project.name,
+                    userName: user.name,
+                    critical: project.critical,
+                    high: project.high,
+                    moderate: project.moderate,
+                    low: project.low,
+                    criticalIssues: project.criticalIssues,
+                    highIssues: project.highIssues,
+                    moderateIssues: project.moderateIssues,
+                    lowIssues: project.lowIssues,
+                    dashboardURL: global.dashboardHost,
+                },
+            };
+            const [mailer, emailBody] = await Promise.all([
+                _this.createMailer({}),
+                _this.getEmailBody(mailOptions),
+            ]);
+            EmailBody = emailBody;
+            if (!mailer) {
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Email not enabled.',
+                    content: EmailBody,
+                    error: 'Email not enabled.',
+                    smtpServer,
+                });
+                return;
+            }
+            let info = {};
+            try {
+                info = await mailer.sendMail(mailOptions);
+
+                await EmailStatusService.create({
+                    from: mailOptions.from,
+                    to: mailOptions.to,
+                    subject: mailOptions.subject,
+                    template: mailOptions.template,
+                    status: 'Success',
+                    content: EmailBody,
+                    smtpServer,
+                });
+            } catch (error) {
+                if (error.code === 'ECONNECTION') {
+                    if (
+                        accountMail.internalSmtp &&
+                        accountMail.customSmtp &&
+                        !isEmpty(accountMail.backupConfig)
+                    ) {
+                        smtpServer = accountMail.backupConfig.host;
+                        accountMail = { ...accountMail.backupConfig };
+
+                        mailOptions = {
+                            from: `"${accountMail.name}" <${accountMail.from}>`,
+                            to: user.email,
+                            subject: 'Application Security',
+                            template: 'application_security',
+                            context: {
+                                homeURL: global.homeHost,
+                                projectName: project.name,
+                                userName: user.name,
+                                critical: project.critical,
+                                high: project.high,
+                                moderate: project.moderate,
+                                low: project.low,
+                                criticalIssues: project.criticalIssues,
+                                highIssues: project.highIssues,
+                                moderateIssues: project.moderateIssues,
+                                lowIssues: project.lowIssues,
+                                dashboardURL: global.dashboardHost,
+                            },
+                        };
+                        const [mailer, emailBody] = await Promise.all([
+                            _this.createMailer(accountMail),
+                            _this.getEmailBody(mailOptions),
+                        ]);
+                        EmailBody = emailBody;
+                        if (!mailer) {
+                            await EmailStatusService.create({
+                                from: mailOptions.from,
+                                to: mailOptions.to,
+                                subject: mailOptions.subject,
+                                template: mailOptions.template,
+                                status: 'Email not enabled.',
+                                content: EmailBody,
+                                error: 'Email not enabled.',
+                                smtpServer,
+                            });
+                            return;
+                        }
+
+                        info = await mailer.sendMail(mailOptions);
+
+                        await EmailStatusService.create({
+                            from: mailOptions.from,
+                            to: mailOptions.to,
+                            subject: mailOptions.subject,
+                            template: mailOptions.template,
+                            status: 'Success',
+                            content: EmailBody,
+                            smtpServer,
+                        });
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    throw error;
+                }
+            }
+            return info;
+        } catch (error) {
+            ErrorService.log('mailService.sendContainerEmail', error);
+            await EmailStatusService.create({
+                from: mailOptions.from,
+                to: mailOptions.to,
+                subject: mailOptions.subject,
+                template: mailOptions.template,
+                status: 'Error',
+                content: EmailBody,
+                error: error.message,
+                smtpServer,
+            });
+            throw error;
+        }
+    },
+
     sendContainerEmail: async function(project, user) {
         let mailOptions;
         let EmailBody;

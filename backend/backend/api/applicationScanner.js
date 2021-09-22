@@ -13,6 +13,9 @@ const isAuthorizedApplicationScanner = require('../middlewares/applicationScanne
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const RealtimeService = require('../services/realTimeService');
+const MailService = require('../services/mailService');
+const UserService = require('../services/userService');
+const ProjectService = require('../services/projectService');
 
 // Route
 // Description: Updating profile setting.
@@ -79,7 +82,7 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
         });
 
         const populateApplicationSecurityLog = [
-            { path: 'componentId', select: '_id slug name slug' },
+            { path: 'componentId', select: '_id slug name slug projectId' },
             {
                 path: 'securityId',
                 select:
@@ -94,6 +97,135 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
             populate: populateApplicationSecurityLog,
             select: selectApplicationSecurityLog,
         });
+
+        const project = await ProjectService.findOneBy({
+            query: { _id: findLog.componentId.projectId },
+            select: '_id name users',
+        });
+
+        const userIds = project.users.map(e => ({ id: e.userId })); // This cater for projects with multiple registered members
+        project.critical = findLog.data.vulnerabilities.critical;
+        project.high = findLog.data.vulnerabilities.high;
+        project.moderate = findLog.data.vulnerabilities.moderate;
+        project.low = findLog.data.vulnerabilities.low;
+
+        const critical = findLog.data.advisories
+            .filter(e => e.severity === 'critical')
+            .slice(0, 10);
+        const high = findLog.data.advisories
+            .filter(e => e.severity === 'high')
+            .slice(0, 10);
+        const moderate = findLog.data.advisories
+            .filter(e => e.severity === 'moderate')
+            .slice(0, 10);
+        const low = findLog.data.advisories
+            .filter(e => e.severity === 'low')
+            .slice(0, 10);
+        const criticalWithTitle = critical.map(advisories => {
+            const filter = advisories.via.filter(
+                e => e.severity === advisories.severity
+            );
+            let filterBySeverity;
+            let filterByTitle;
+            if (filter.length > 0) {
+                filterBySeverity = advisories.via.find(
+                    e => e.severity === advisories.severity
+                ).severity;
+                filterByTitle = advisories.via.find(
+                    e => e.severity === advisories.severity
+                ).title;
+            } else {
+                filterBySeverity = 'Nil';
+                filterByTitle = 'Nil';
+            }
+            advisories.severity === filterBySeverity
+                ? (advisories.title = filterByTitle)
+                : (advisories.title = 'Nil');
+            return advisories;
+        });
+        const highWithTitle = high.map(advisories => {
+            const filter = advisories.via.filter(
+                e => e.severity === advisories.severity
+            );
+            let filterBySeverity;
+            let filterByTitle;
+            if (filter.length > 0) {
+                filterBySeverity = advisories.via.find(
+                    e => e.severity === advisories.severity
+                ).severity;
+                filterByTitle = advisories.via.find(
+                    e => e.severity === advisories.severity
+                ).title;
+            } else {
+                filterBySeverity = 'Nil';
+                filterByTitle = 'Nil';
+            }
+
+            advisories.severity === filterBySeverity
+                ? (advisories.title = filterByTitle)
+                : (advisories.title = 'Nil');
+            return advisories;
+        });
+        const moderateWithTitle = moderate.map(advisories => {
+            const filter = advisories.via.filter(
+                e => e.severity === advisories.severity
+            );
+            let filterBySeverity;
+            let filterByTitle;
+            if (filter.length > 0) {
+                filterBySeverity = advisories.via.find(
+                    e => e.severity === advisories.severity
+                ).severity;
+                filterByTitle = advisories.via.find(
+                    e => e.severity === advisories.severity
+                ).title;
+            } else {
+                filterBySeverity = 'Nil';
+                filterByTitle = 'Nil';
+            }
+
+            advisories.severity === filterBySeverity
+                ? (advisories.title = filterByTitle)
+                : (advisories.title = 'Nil');
+            return advisories;
+        });
+        const lowWithTitle = low.map(advisories => {
+            const filter = advisories.via.filter(
+                e => e.severity === advisories.severity
+            );
+            let filterBySeverity;
+            let filterByTitle;
+            if (filter.length > 0) {
+                filterBySeverity = advisories.via.find(
+                    e => e.severity === advisories.severity
+                ).severity;
+                filterByTitle = advisories.via.find(
+                    e => e.severity === advisories.severity
+                ).title;
+            } else {
+                filterBySeverity = 'Nil';
+                filterByTitle = 'Nil';
+            }
+
+            advisories.severity === filterBySeverity
+                ? (advisories.title = filterByTitle)
+                : (advisories.title = 'Nil');
+            return advisories;
+        });
+
+        project.criticalIssues = criticalWithTitle;
+        project.highIssues = highWithTitle;
+        project.moderateIssues = moderateWithTitle;
+        project.lowIssues = lowWithTitle;
+
+        for (let i = 0; i < userIds.length; i++) {
+            const userId = userIds[i].id;
+            const user = await UserService.findOneBy({
+                query: { _id: userId },
+                select: '_id email name',
+            });
+            await MailService.sendApplicationEmail(project, user);
+        }
 
         RealtimeService.handleLog({
             securityId: securityLog.securityId,
