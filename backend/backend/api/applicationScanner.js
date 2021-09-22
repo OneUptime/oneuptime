@@ -127,6 +127,7 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
             );
             let filterBySeverity;
             let filterByTitle;
+            //This is used to get the library name and description
             if (filter.length > 0) {
                 filterBySeverity = advisories.via.find(
                     e => e.severity === advisories.severity
@@ -149,6 +150,7 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
             );
             let filterBySeverity;
             let filterByTitle;
+            //This is used to get the library name and description
             if (filter.length > 0) {
                 filterBySeverity = advisories.via.find(
                     e => e.severity === advisories.severity
@@ -172,6 +174,7 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
             );
             let filterBySeverity;
             let filterByTitle;
+            //This is used to get the library name and description
             if (filter.length > 0) {
                 filterBySeverity = advisories.via.find(
                     e => e.severity === advisories.severity
@@ -195,6 +198,7 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
             );
             let filterBySeverity;
             let filterByTitle;
+            //This is used to get the library name and description
             if (filter.length > 0) {
                 filterBySeverity = advisories.via.find(
                     e => e.severity === advisories.severity
