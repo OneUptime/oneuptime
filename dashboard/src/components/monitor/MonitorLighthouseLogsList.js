@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
@@ -13,7 +12,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { openModal, closeModal } from '../../actions/modal';
 
 export class MonitorLighthouseLogsList extends Component {
-    // eslint-disable-next-line
     constructor(props) {
         super(props);
         this.props = props;
@@ -194,7 +192,8 @@ export class MonitorLighthouseLogsList extends Component {
                                             >
                                                 <div className="db-ListViewItem-cellContent Box-root Padding-all--8">
                                                     <span className="db-ListViewItem-text Text-color--cyan Text-display--inline Text-fontSize--14 Text-fontWeight--medium Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
-                                                        <div className="Box-root Margin-right--16"
+                                                        <div
+                                                            className="Box-root Margin-right--16"
                                                             id={`lighthouseUrl_${
                                                                 monitor.name
                                                                     ? monitor.name

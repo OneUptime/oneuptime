@@ -2,7 +2,6 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import Fade from 'react-reveal/Fade';
-import Dashboard from '../components/Dashboard';
 import PropTypes from 'prop-types';
 import { fetchMonitorIssue } from '../actions/monitor';
 import { fetchComponent } from '../actions/component';
@@ -77,11 +76,11 @@ class WebsiteMonitorIssues extends React.Component {
         const { componentSlug, fetchComponent, projectId } = this.props;
         if (projectId && componentSlug) {
             fetchComponent(projectId, componentSlug);
+            this.props.fetchMonitorIssue(
+                this.props.projectId,
+                this.props.match.params.issueId
+            );
         }
-        this.props.fetchMonitorIssue(
-            this.props.projectId,
-            this.props.match.params.issueId
-        );
     };
 
     render() {
@@ -398,9 +397,9 @@ class WebsiteMonitorIssues extends React.Component {
             monitor,
         } = this.props;
         const componentName =
-            component.length > 0
+            component?.length > 0
                 ? component[0]
-                    ? component[0].name
+                    ? component[0]?.name
                     : null
                 : null;
         const monitorName = monitor ? monitor.name : null;
@@ -415,40 +414,35 @@ class WebsiteMonitorIssues extends React.Component {
         const componentMonitorsRoute = getParentRoute(monitorDetailRoute);
 
         return (
-            <Dashboard ready={this.ready}>
-                <Fade>
-                    <BreadCrumbItem
-                        route={componentMonitorsRoute}
-                        name={componentName}
-                    />
-                    <BreadCrumbItem
-                        route={`${componentMonitorsRoute}#`}
-                        name="Monitors"
-                    />
-                    <BreadCrumbItem
-                        route={monitorDetailRoute}
-                        name={monitorName}
-                    />
-                    <BreadCrumbItem
-                        route={`${monitorDetailRoute}#`}
-                        name="Website Issues"
-                    />
-                    <BreadCrumbItem route={pathname} name={url} />
+            <Fade>
+                <BreadCrumbItem
+                    route={componentMonitorsRoute}
+                    name={componentName}
+                />
+                <BreadCrumbItem
+                    route={`${componentMonitorsRoute}#`}
+                    name="Monitors"
+                />
+                <BreadCrumbItem route={monitorDetailRoute} name={monitorName} />
+                <BreadCrumbItem
+                    route={`${monitorDetailRoute}#`}
+                    name="Website Issues"
+                />
+                <BreadCrumbItem route={pathname} name={url} />
+                <div>
                     <div>
-                        <div>
-                            <div className="db-BackboneViewContainer">
-                                <div className="react-settings-view react-view">
-                                    <span>
-                                        <div>
-                                            <div>{variable}</div>
-                                        </div>
-                                    </span>
-                                </div>
+                        <div className="db-BackboneViewContainer">
+                            <div className="react-settings-view react-view">
+                                <span>
+                                    <div>
+                                        <div>{variable}</div>
+                                    </div>
+                                </span>
                             </div>
                         </div>
                     </div>
-                </Fade>
-            </Dashboard>
+                </div>
+            </Fade>
         );
     }
 }
