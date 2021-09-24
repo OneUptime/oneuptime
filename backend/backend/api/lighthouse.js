@@ -15,6 +15,9 @@ const sendListResponse = require('../middlewares/response').sendListResponse;
 const {
     isAuthorizedLighthouse,
 } = require('../middlewares/lighthouseAuthorization');
+const MailService = require('../services/mailService');
+const UserService = require('../services/userService');
+const ProjectService = require('../services/projectService');
 
 // Route
 // Description: Updating profile setting.
@@ -88,6 +91,55 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
             if (data.lighthouseData) {
                 // The scanned results are published
                 data.scanning = false;
+
+                const project = await ProjectService.findOneBy({
+                    query: { _id: data.monitor.projectId },
+                    select: '_id name users',
+                });
+                project.monitor = data.monitor.name;
+
+                const userIds = project.users.map(e => ({ id: e.userId })); // This cater for projects with multiple registered members
+
+                const performance = data.performance;
+                const accessibility = data.accessibility;
+                const bestPractices = data.bestPractices;
+                const seo = data.seo;
+                const pwa = data.pwa;
+
+                const performanceIssues = data.lighthouseData.issues.performance.slice(
+                    0,
+                    10
+                );
+                const accessibilityIssues = data.lighthouseData.issues.accessibility.slice(
+                    0,
+                    10
+                );
+                const bestPracticesIssues = data.lighthouseData.issues[
+                    'best-practices'
+                ].slice(0, 10);
+                const seoIssues = data.lighthouseData.issues.seo.slice(0, 10);
+                const pwaIssues = data.lighthouseData.issues.pwa.slice(0, 10);
+
+                project.performance = performance;
+                project.accessibility = accessibility;
+                project.bestPractices = bestPractices;
+                project.seo = seo;
+                project.pwa = pwa;
+
+                project.performanceIssues = performanceIssues;
+                project.accessibilityIssues = accessibilityIssues;
+                project.bestPracticesIssues = bestPracticesIssues;
+                project.seoIssues = seoIssues;
+                project.pwaIssues = pwaIssues;
+
+                for (let i = 0; i < userIds.length; i++) {
+                    const userId = userIds[i].id;
+                    const user = await UserService.findOneBy({
+                        query: { _id: userId },
+                        select: '_id email name',
+                    });
+                    await MailService.sendLighthouseEmail(project, user);
+                }
                 log = await ProbeService.saveLighthouseLog(data);
             }
         }
