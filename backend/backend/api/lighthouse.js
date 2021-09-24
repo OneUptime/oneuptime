@@ -105,6 +105,7 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                 const bestPractices = data.bestPractices;
                 const seo = data.seo;
                 const pwa = data.pwa;
+
                 const performanceIssues = data.lighthouseData.issues.performance.slice(
                     0,
                     10
