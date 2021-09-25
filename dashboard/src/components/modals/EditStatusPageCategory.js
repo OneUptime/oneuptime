@@ -19,7 +19,7 @@ function validate(values) {
     return errors;
 }
 
-export class EditStatusPageCategory extends React.Component {
+class EditStatusPageCategory extends React.Component {
     componentDidMount() {
         window.addEventListener('keydown', this.handleKeyBoard);
     }
@@ -167,7 +167,7 @@ const EditStatusPageCategoryForm = reduxForm({
 })(EditStatusPageCategory);
 
 const mapStateToProps = (state, ownProps) => {
-    const { name: statusPageCategoryName } = ownProps.data;
+    const { statusPageCategoryName } = ownProps.data;
     return {
         initialValues: {
             statusPageCategoryName,
