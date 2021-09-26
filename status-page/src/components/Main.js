@@ -208,14 +208,22 @@ class Main extends Component {
             this.props.statusData.monitorsData !== undefined &&
             this.props.statusData.monitorsData.length > 0
         ) {
-            const monitorData = this.props.statusData.monitorsData;
+            let monitorArrangement = this.props.statusData.monitors.map(
+                monitorObj => monitorObj.monitor._id || monitorObj.monitor
+            );
+            let monitorData = this.props.statusData.monitorsData;
+            monitorArrangement = monitorArrangement.map(id =>
+                monitorData.find(data => data._id === id)
+            );
+            monitorData = monitorArrangement;
             const resourceCategories = this.getCategories(
                 monitorData,
-                'resourceCategory'
+                'statusPageCategory'
             );
             const uncategorized = monitorData.filter(
                 mon =>
-                    mon.resourceCategory === undefined || !mon.resourceCategory
+                    mon.statusPageCategory === undefined ||
+                    !mon.statusPageCategory
             );
 
             return (
@@ -226,8 +234,9 @@ class Main extends Component {
                     {resourceCategories.map(categoryName => {
                         const filteredResource = monitorData.filter(
                             resource =>
-                                resource.resourceCategory &&
-                                resource.resourceCategory.name === categoryName
+                                resource.statusPageCategory &&
+                                resource.statusPageCategory.name ===
+                                    categoryName
                         );
 
                         return this.CollapsableGroup(
@@ -326,7 +335,8 @@ class Main extends Component {
                                 }
                                 key={i}
                                 id={`monitor${i}`}
-                                resourceCategory={monitor.resourceCategory}
+                                // resourceCategory={monitor.resourceCategory}
+                                resourceCategory={monitor.statusPageCategory}
                                 isGroupedByMonitorCategory={false}
                                 theme={
                                     this.props.statusData.theme ===

@@ -16,7 +16,7 @@ import ExternalStatusPages from '../components/statusPage/ExternalStatusPages';
 import PrivateStatusPage from '../components/statusPage/PrivateStatusPage';
 import StatusPageLanguage from '../components/statusPage/StatusPageLanguage';
 import RenderIfSubProjectAdmin from '../components/basic/RenderIfSubProjectAdmin';
-import { LoadingState } from '../components/basic/Loader';
+import { FormLoader, LoadingState } from '../components/basic/Loader';
 import PropTypes from 'prop-types';
 import { logEvent } from '../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../config';
@@ -25,6 +25,7 @@ import {
     fetchSubProjectStatusPages,
     switchStatusPage,
     fetchProjectStatusPage,
+    updateStatusPageMonitors,
 } from '../actions/statusPage';
 import CustomStyles from '../components/statusPage/CustomStyles';
 import EmbeddedBubble from '../components/statusPage/EmbeddedBubble';
@@ -34,6 +35,10 @@ import { Tab, Tabs, TabList, TabPanel, resetIdCounter } from 'react-tabs';
 import Themes from '../components/statusPage/Themes';
 import StatusPageSubscriber from '../components/statusPage/StatusPageSubscriber';
 import Announcements from '../components/statusPage/Announcements';
+import StatusPageCategory from '../components/statusPage/StatusPageCategory';
+import { fetchAllStatusPageCategories } from '../actions/statusPageCategory';
+import MonitorsWithCategory from '../components/statusPage/MonitorsWithCategory';
+import EmptyCategory from '../components/statusPage/EmptyCategory';
 
 class StatusPage extends Component {
     state = {
@@ -51,15 +56,15 @@ class StatusPage extends Component {
     };
 
     async componentDidMount() {
+        const projectId = this.props.projectId && this.props.projectId;
+        const statusPageSlug = history.location.pathname
+            .split('status-page/')[1]
+            .split('/')[0];
+        if (projectId) {
+            await this.props.fetchProjectStatusPage(projectId);
+            await this.props.fetchSubProjectStatusPages(projectId);
+        }
         if (!this.props.statusPage.status._id) {
-            const projectId = this.props.projectId && this.props.projectId;
-            const statusPageSlug = history.location.pathname
-                .split('status-page/')[1]
-                .split('/')[0];
-            if (projectId) {
-                await this.props.fetchProjectStatusPage(projectId);
-                await this.props.fetchSubProjectStatusPages(projectId);
-            }
             if (
                 this.props.statusPage.subProjectStatusPages &&
                 this.props.statusPage.subProjectStatusPages.length > 0
@@ -91,6 +96,19 @@ class StatusPage extends Component {
             prevProps.statusPage.status._id !== this.props.statusPage.status._id
         ) {
             this.tabSelected(0);
+
+            if (this.props.statusPage.status.projectId) {
+                const projectId =
+                    this.props.statusPage.status.projectId._id ||
+                    this.props.statusPage.status.projectId;
+                const statusPageId = this.props.statusPage.status._id;
+                this.props.fetchAllStatusPageCategories({
+                    projectId,
+                    statusPageId,
+                    skip: 0,
+                    limit: 0,
+                });
+            }
         }
 
         if (prevProps.projectId !== this.props.projectId) {
@@ -122,12 +140,60 @@ class StatusPage extends Component {
         }
     }
 
+    updateMonitor = () => {
+        const { allStatusPageCategories, formState, statusPage } = this.props;
+        const { status } = statusPage;
+        const { projectId } = status;
+
+        const monitors = [];
+        const groupedMonitors = {};
+        allStatusPageCategories.forEach(category => {
+            const form = formState[category.name];
+            const values = form?.values;
+            if (values && values.monitors && values.monitors.length > 0) {
+                monitors.push(...values.monitors);
+
+                values.monitors.forEach(monitorObj => {
+                    if (!groupedMonitors[monitorObj.statusPageCategory]) {
+                        groupedMonitors[monitorObj.statusPageCategory] = [
+                            monitorObj,
+                        ];
+                    } else {
+                        groupedMonitors[monitorObj.statusPageCategory] = [
+                            ...groupedMonitors[monitorObj.statusPageCategory],
+                            monitorObj,
+                        ];
+                    }
+                });
+            }
+        });
+
+        this.props
+            .updateStatusPageMonitors(projectId._id || projectId, {
+                _id: status._id,
+                monitors,
+                groupedMonitors,
+            })
+            .then(() => {
+                this.props.fetchProjectStatusPage(
+                    this.props.currentProject._id
+                );
+            });
+        if (SHOULD_LOG_ANALYTICS) {
+            logEvent(
+                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > MONITOR UPDATED'
+            );
+        }
+    };
+
     render() {
         const {
             location: { pathname },
             statusPage: { status },
             currentProject,
             switchToProjectViewerNav,
+            loadingCategories,
+            allStatusPageCategories,
         } = this.props;
         const pageName = status ? status.name : null;
         const data = {
@@ -258,13 +324,110 @@ class StatusPage extends Component {
                                                                     }
                                                                 >
                                                                     <div className="Box-root Margin-bottom--12">
-                                                                        <Monitors
-                                                                            subProjectId={
-                                                                                this
-                                                                                    .props
-                                                                                    .subProjectId
-                                                                            }
-                                                                        />
+                                                                        {status &&
+                                                                        status.isGroupedByMonitorCategory ? (
+                                                                            !loadingCategories &&
+                                                                            allStatusPageCategories &&
+                                                                            allStatusPageCategories.length >
+                                                                                0 ? (
+                                                                                allStatusPageCategories.map(
+                                                                                    category => (
+                                                                                        <MonitorsWithCategory
+                                                                                            subProjectId={
+                                                                                                this
+                                                                                                    .props
+                                                                                                    .subProjectId
+                                                                                            }
+                                                                                            key={
+                                                                                                category._id
+                                                                                            }
+                                                                                            status={
+                                                                                                status
+                                                                                            }
+                                                                                            category={
+                                                                                                category
+                                                                                            }
+                                                                                            monitors={
+                                                                                                this
+                                                                                                    .props
+                                                                                                    .monitors
+                                                                                            }
+                                                                                            allStatusPageCategories={
+                                                                                                allStatusPageCategories
+                                                                                            }
+                                                                                        />
+                                                                                    )
+                                                                                )
+                                                                            ) : (
+                                                                                <EmptyCategory
+                                                                                    tabSelected={
+                                                                                        this
+                                                                                            .tabSelected
+                                                                                    }
+                                                                                />
+                                                                            )
+                                                                        ) : (
+                                                                            <Monitors
+                                                                                subProjectId={
+                                                                                    this
+                                                                                        .props
+                                                                                        .subProjectId
+                                                                                }
+                                                                            />
+                                                                        )}
+                                                                        {status &&
+                                                                            status.isGroupedByMonitorCategory &&
+                                                                            !loadingCategories &&
+                                                                            allStatusPageCategories &&
+                                                                            allStatusPageCategories.length >
+                                                                                0 && (
+                                                                                <div className="bs-ContentSection Card-root Card-shadow--medium">
+                                                                                    <div className="Box-root">
+                                                                                        <div
+                                                                                            style={{
+                                                                                                padding: 15,
+                                                                                                textAlign:
+                                                                                                    'right',
+                                                                                            }}
+                                                                                        >
+                                                                                            <button
+                                                                                                id="btnAddStatusPageMonitors"
+                                                                                                className="bs-Button bs-DeprecatedButton bs-Button--blue"
+                                                                                                disabled={
+                                                                                                    this
+                                                                                                        .props
+                                                                                                        .statusPage
+                                                                                                        .monitors
+                                                                                                        .requesting
+                                                                                                }
+                                                                                                type="button"
+                                                                                                onClick={
+                                                                                                    this
+                                                                                                        .updateMonitor
+                                                                                                }
+                                                                                            >
+                                                                                                {!this
+                                                                                                    .props
+                                                                                                    .statusPage
+                                                                                                    .monitors
+                                                                                                    .requesting && (
+                                                                                                    <span>
+                                                                                                        Save
+                                                                                                        Changes{' '}
+                                                                                                    </span>
+                                                                                                )}
+                                                                                                {this
+                                                                                                    .props
+                                                                                                    .statusPage
+                                                                                                    .monitors
+                                                                                                    .requesting && (
+                                                                                                    <FormLoader />
+                                                                                                )}
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
                                                                     </div>
                                                                 </RenderIfSubProjectAdmin>
                                                             </Fade>
@@ -364,6 +527,16 @@ class StatusPage extends Component {
                                                                 >
                                                                     <div className="Box-root Margin-bottom--12">
                                                                         <PrivateStatusPage />
+                                                                    </div>
+                                                                    <div className="Box-root Margin-bottom--12">
+                                                                        <StatusPageCategory
+                                                                            projectId={
+                                                                                data.projectId
+                                                                            }
+                                                                            statusPageId={
+                                                                                data.statusPageId
+                                                                            }
+                                                                        />
                                                                     </div>
                                                                     <div className="Box-root Margin-bottom--12">
                                                                         <StatusPageLanguage
@@ -470,6 +643,8 @@ const mapDispatchToProps = dispatch => {
             fetchSubProjectStatusPages,
             switchStatusPage,
             fetchProjectStatusPage,
+            fetchAllStatusPageCategories,
+            updateStatusPageMonitors,
         },
         dispatch
     );
@@ -493,15 +668,26 @@ function mapStateToProps(state, props) {
             }
         });
     }
+    const subProjectId = statusPage && statusPage.projectId._id;
+    const monitors = state.monitor.monitorsList.monitors
+        .filter(monitor => String(monitor._id) === String(subProjectId))
+        .map(monitor => monitor.monitors)
+        .flat();
     return {
         statusPage: statusPageObject,
         projectId:
             state.project.currentProject && state.project.currentProject._id,
-        subProjectId: statusPage && statusPage.projectId._id,
+        subProjectId,
         subProjects: state.subProject.subProjects.subProjects,
         currentProject:
             state.project.currentProject && state.project.currentProject,
         switchToProjectViewerNav: state.project.switchToProjectViewerNav,
+        loadingCategories:
+            state.statusPageCategory.fetchAllStatusPageCategories.requesting,
+        allStatusPageCategories:
+            state.statusPageCategory.fetchAllStatusPageCategories.categories,
+        monitors,
+        formState: state.form,
     };
 }
 
@@ -519,6 +705,12 @@ StatusPage.propTypes = {
     currentProject: PropTypes.object,
     subProjects: PropTypes.array,
     switchToProjectViewerNav: PropTypes.bool,
+    fetchAllStatusPageCategories: PropTypes.func,
+    loadingCategories: PropTypes.bool,
+    allStatusPageCategories: PropTypes.array,
+    monitors: PropTypes.array,
+    updateStatusPageMonitors: PropTypes.func,
+    formState: PropTypes.object,
 };
 
 StatusPage.displayName = 'StatusPage';

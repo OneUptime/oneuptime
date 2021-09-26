@@ -14,15 +14,14 @@ import {
     updateStatusPageMonitorsError,
     fetchProjectStatusPage,
 } from '../../actions/statusPage';
-import { FormLoader } from '../basic/Loader';
 import ShouldRender from '../basic/ShouldRender';
-import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { logEvent } from '../../analytics';
 import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { RenderMonitors } from './RenderMonitors';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
+import { Link } from 'react-router-dom';
 import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 
 const grid = 8;
@@ -34,28 +33,7 @@ const getListStyle = isDraggingOver => ({
     height: '90%',
 });
 
-const validate = values => {
-    const errors = {};
-    const { monitors = [] } = values;
-    const monitorsArrayErrors = {};
-    const selectedMonitor = {};
-    for (let i = 0; i < monitors.length; i++) {
-        const monitorErrors = {};
-        const monitor = monitors[i];
-        if (!monitor.monitor)
-            monitorErrors.monitor = 'A monitor must be selected.';
-        else {
-            if (selectedMonitor[monitor.monitor])
-                monitorErrors.monitor = 'This monitor is already selected.';
-            selectedMonitor[monitor.monitor] = true;
-        }
-        monitorsArrayErrors[i] = monitorErrors;
-    }
-    errors.monitors = monitorsArrayErrors;
-    return errors;
-};
-
-export class Monitors extends Component {
+class MonitorsWithCategory extends Component {
     submitForm = values => {
         const { status } = this.props.statusPage;
         const { projectId } = status;
@@ -81,38 +59,44 @@ export class Monitors extends Component {
         }
     };
 
-    renderAddMonitorButton = subProject => (
-        <ShouldRender
-            if={
-                this.props.monitors.length > 0 &&
-                (IsAdminSubProject(subProject) || IsOwnerSubProject(subProject))
-            }
-        >
-            <button
-                id="addMoreMonitors"
-                className="bs-Button bs-Button--icon bs-Button--new"
-                type="button"
-                onClick={() =>
-                    this.props.pushArray('StatuspageMonitors', 'monitors', {
-                        monitor: null,
-                        description: '',
-                        uptime: false,
-                        memory: false,
-                        cpu: false,
-                        storage: false,
-                        responseTime: false,
-                        temperature: false,
-                        runtime: false,
-                    })
+    renderAddMonitorButton = subProject => {
+        const { category } = this.props;
+
+        return (
+            <ShouldRender
+                if={
+                    this.props.monitors &&
+                    this.props.monitors.length > 0 &&
+                    (IsAdminSubProject(subProject) ||
+                        IsOwnerSubProject(subProject))
                 }
             >
-                <span>Add Monitor</span>
-            </button>
-        </ShouldRender>
-    );
+                <button
+                    id="addMoreMonitors"
+                    className="bs-Button bs-Button--icon bs-Button--new"
+                    type="button"
+                    onClick={() =>
+                        this.props.pushArray(`${category.name}`, 'monitors', {
+                            monitor: null,
+                            description: '',
+                            uptime: false,
+                            memory: false,
+                            cpu: false,
+                            storage: false,
+                            responseTime: false,
+                            temperature: false,
+                            runtime: false,
+                        })
+                    }
+                >
+                    <span>Add Monitor</span>
+                </button>
+            </ShouldRender>
+        );
+    };
 
     onDragEnd = result => {
-        const { statusPageMonitors, change } = this.props;
+        const { monitorsInCategory, change } = this.props;
         const { destination, source } = result;
 
         if (!destination) {
@@ -130,19 +114,19 @@ export class Monitors extends Component {
         const finish = destination.droppableId;
 
         if (start === finish) {
-            const result = Array.from(statusPageMonitors);
+            const result = Array.from(monitorsInCategory);
             const [removed] = result.splice(source.index, 1);
             result.splice(destination.index, 0, removed);
 
+            // update form field
             change('monitors', result);
-
             return;
         }
     };
 
     render() {
-        const { handleSubmit, subProjects } = this.props;
-        const { status } = this.props.statusPage;
+        const { category, statusPage, subProjects, handleSubmit } = this.props;
+        const { status } = statusPage;
         const subProject = !status.projectId
             ? null
             : this.props.currentProject._id === status.projectId._id ||
@@ -162,7 +146,7 @@ export class Monitors extends Component {
                             <div className="ContentHeader-center Box-root Flex-flex Flex-direction--column Flex-justifyContent--center">
                                 <span className="ContentHeader-title Text-display--inline Text-fontSize--20 Text-fontWeight--regular Text-lineHeight--28 Text-typeface--base Text-wrap--wrap">
                                     <span className="Text-color--inherit Text-display--inline Text-fontSize--16 Text-fontWeight--medium Text-lineHeight--24 Text-typeface--base Text-wrap--wrap">
-                                        Monitors
+                                        Status Page Category: {category.name}
                                     </span>
                                 </span>
                                 <span className="ContentHeader-description Text-color--inherit Text-display--inline Text-fontSize--14 Text-fontWeight--regular Text-lineHeight--20 Text-typeface--base Text-wrap--wrap">
@@ -191,7 +175,9 @@ export class Monitors extends Component {
                                 <div className="bs-ContentSection-content Box-root">
                                     <div>
                                         <div className="bs-Fieldset-wrapper Box-root">
-                                            <Droppable droppableId="visible_monitor">
+                                            <Droppable
+                                                droppableId={category.name}
+                                            >
                                                 {(provided, snapshot) => (
                                                     <div
                                                         ref={provided.innerRef}
@@ -218,7 +204,12 @@ export class Monitors extends Component {
                                                                 subProject={
                                                                     subProject
                                                                 }
-                                                                form="StatuspageMonitors"
+                                                                form={
+                                                                    category.name
+                                                                }
+                                                                statusPageCategory={
+                                                                    category._id
+                                                                }
                                                             />
                                                         </fieldset>
                                                         {provided.placeholder}
@@ -279,7 +270,8 @@ export class Monitors extends Component {
                                                       .monitorsInForm ? (
                                                     <>
                                                         No monitors are added to
-                                                        this status page.
+                                                        this status page
+                                                        category.
                                                     </>
                                                 ) : null}
                                             </div>
@@ -314,33 +306,6 @@ export class Monitors extends Component {
                                     </ShouldRender>
                                 </div>
                             </div>
-                            <div>
-                                {this.renderAddMonitorButton(subProject)}
-                                <ShouldRender
-                                    if={
-                                        this.props.monitors.length > 0 &&
-                                        (IsAdminSubProject(subProject) ||
-                                            IsOwnerSubProject(subProject))
-                                    }
-                                >
-                                    <button
-                                        id="btnAddStatusPageMonitors"
-                                        className="bs-Button bs-DeprecatedButton bs-Button--blue"
-                                        disabled={
-                                            this.props.statusPage.monitors
-                                                .requesting
-                                        }
-                                        type="submit"
-                                    >
-                                        {!this.props.statusPage.monitors
-                                            .requesting && (
-                                            <span>Save Changes </span>
-                                        )}
-                                        {this.props.statusPage.monitors
-                                            .requesting && <FormLoader />}
-                                    </button>
-                                </ShouldRender>
-                            </div>
                         </div>
                     </form>
                 </div>
@@ -349,12 +314,11 @@ export class Monitors extends Component {
     }
 }
 
-Monitors.displayName = 'Monitors';
+MonitorsWithCategory.displayName = 'MonitorsWithCategory';
 
-Monitors.propTypes = {
+MonitorsWithCategory.propTypes = {
     updateStatusPageMonitors: PropTypes.func.isRequired,
     statusPage: PropTypes.object.isRequired,
-    handleSubmit: PropTypes.func.isRequired,
     pushArray: PropTypes.func.isRequired,
     currentProject: PropTypes.oneOfType([
         PropTypes.object.isRequired,
@@ -363,17 +327,13 @@ Monitors.propTypes = {
     monitors: PropTypes.array.isRequired,
     fetchProjectStatusPage: PropTypes.func.isRequired,
     subProjects: PropTypes.array.isRequired,
+    category: PropTypes.object,
+    handleSubmit: PropTypes.func,
     monitorsInForm: PropTypes.array,
     selectedMonitors: PropTypes.array,
-    statusPageMonitors: PropTypes.array,
+    monitorsInCategory: PropTypes.array,
     change: PropTypes.func,
 };
-
-const MonitorsForm = reduxForm({
-    form: 'StatuspageMonitors', // a unique identifier for this form
-    enableReinitialize: true,
-    validate,
-})(Monitors);
 
 const mapDispatchToProps = dispatch =>
     bindActionCreators(
@@ -388,41 +348,53 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const selector = formValueSelector('StatuspageMonitors');
+const MonitorsWithCategoryForm = new reduxForm({
+    enableReinitialize: true,
+})(MonitorsWithCategory);
 
 const mapStateToProps = (state, ownProps) => {
-    const { subProjectId } = ownProps;
-    const { currentProject } = state.project;
+    const selector = formValueSelector(ownProps.category.name);
+    const monitorsInForm =
+        selector(state, 'monitors') && selector(state, 'monitors').length;
 
-    const monitors = state.monitor.monitorsList.monitors
-        .filter(monitor => String(monitor._id) === String(subProjectId))
-        .map(monitor => monitor.monitors)
-        .flat();
+    const { currentProject } = state.project;
+    const subProjects = state.subProject.subProjects.subProjects;
+
     const {
         statusPage,
         statusPage: {
             status: { monitors: selectedMonitors },
         },
     } = state;
-    const initialValues = { monitors: selectedMonitors || [] };
-    //Description field rendering becomes slow if the array is assigned to monitorsInForm instead of the array's lenght.
-    const monitorsInForm =
-        selector(state, 'monitors') && selector(state, 'monitors').length;
-    const subProjects = state.subProject.subProjects.subProjects;
+
+    const initialValues = {
+        monitors: selectedMonitors
+            ? selectedMonitors.filter(
+                  monitor =>
+                      String(
+                          monitor.statusPageCategory._id ||
+                              monitor.statusPageCategory
+                      ) === String(ownProps.category._id)
+              )
+            : [],
+    };
 
     return {
-        initialValues,
-        monitors,
-        statusPage,
+        form: ownProps.category.name, // dynamic redux form name
+        monitorsInForm,
         currentProject,
         subProjects,
-        monitorsInForm,
+        statusPage,
+        initialValues,
         selectedMonitors,
-        statusPageMonitors:
-            state.form.StatuspageMonitors &&
-            state.form.StatuspageMonitors.values &&
-            state.form.StatuspageMonitors.values.monitors,
+        monitorsInCategory:
+            state.form[ownProps.category.name] &&
+            state.form[ownProps.category.name].values &&
+            state.form[ownProps.category.name].values.monitors,
     };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(MonitorsForm);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(MonitorsWithCategoryForm);
