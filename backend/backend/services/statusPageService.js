@@ -613,6 +613,7 @@ module.exports = {
                 { path: 'projectId', select: 'parentProjectId' },
                 { path: 'monitorIds', select: 'name' },
                 { path: 'monitors.monitor', select: 'name' },
+                { path: 'monitors.statusPageCategory', select: 'name' },
                 {
                     path: 'domains.domainVerificationToken',
                     select: 'domain verificationToken verified ',
