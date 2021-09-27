@@ -7,7 +7,7 @@ const ProcessedDescription = text => {
     const tempArr = text.split(/\[Learn more\]/i);
     return (
         <a
-            href={tempArr[1].replace(/^\(|\)|\.$/gi, '')}
+            href={tempArr[1]?.replace(/^\(|\)|\.$/gi, '')}
             rel="noopener noreferrer"
             target="_blank"
         >
