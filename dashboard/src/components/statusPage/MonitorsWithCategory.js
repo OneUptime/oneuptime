@@ -22,7 +22,7 @@ import IsOwnerSubProject from '../basic/IsOwnerSubProject';
 import { Link } from 'react-router-dom';
 import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 
-const grid = 8;
+const grid = 0;
 
 const getListStyle = isDraggingOver => ({
     background: isDraggingOver ? 'lightblue' : 'transparent',
@@ -163,8 +163,7 @@ class MonitorsWithCategory extends Component {
                                                         <fieldset
                                                             className="bs-Fieldset"
                                                             style={{
-                                                                paddingTop:
-                                                                    '0px',
+                                                                padding: '0px',
                                                                 backgroundColor:
                                                                     'unset',
                                                             }}
@@ -253,15 +252,6 @@ class MonitorsWithCategory extends Component {
                                 </div>
                             </div>
                         </ShouldRender>
-                        <div className="bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
-                            <span className="db-SettingsForm-footerMessage"></span>
-                            <div className="bs-Tail-copy">
-                                <div
-                                    className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
-                                    style={{ marginTop: '10px' }}
-                                ></div>
-                            </div>
-                        </div>
                     </form>
                 </div>
             </div>

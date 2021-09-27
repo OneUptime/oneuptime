@@ -11,11 +11,9 @@ const getItemStyle = (isDragging, draggableStyle) => {
         padding: grid * 2,
         display: 'flex',
         alignItems: 'center',
-        margin: `0 0 ${grid}px 0`,
-        borderRadius: '5px',
         boxShadow: isDragging
             ? 'rgb(50 50 93 / 10%) 0px 7px 14px 0px, rgb(0 0 0 / 7%) 0px 3px 6px 0px'
-            : 'unset',
+            : 'inset 0 -1px #fdfdfd',
         background: '#f7f7f7',
         ...draggableStyle,
         ...(isDragging && { pointerEvents: 'auto' }),
