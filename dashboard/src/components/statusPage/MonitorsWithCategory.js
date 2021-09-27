@@ -16,8 +16,6 @@ import {
 } from '../../actions/statusPage';
 import ShouldRender from '../basic/ShouldRender';
 import PropTypes from 'prop-types';
-import { logEvent } from '../../analytics';
-import { SHOULD_LOG_ANALYTICS } from '../../config';
 import { RenderMonitors } from './RenderMonitors';
 import IsAdminSubProject from '../basic/IsAdminSubProject';
 import IsOwnerSubProject from '../basic/IsOwnerSubProject';
@@ -34,31 +32,6 @@ const getListStyle = isDraggingOver => ({
 });
 
 class MonitorsWithCategory extends Component {
-    submitForm = values => {
-        const { status } = this.props.statusPage;
-        const { projectId } = status;
-        const { monitors } = values;
-
-        this.props
-            .updateStatusPageMonitors(projectId._id || projectId, {
-                _id: status._id,
-                monitors,
-            })
-            .then(() => {
-                this.props.fetchProjectStatusPage(
-                    this.props.currentProject._id,
-                    true,
-                    0,
-                    10
-                );
-            });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > MONITOR UPDATED'
-            );
-        }
-    };
-
     renderAddMonitorButton = subProject => {
         const { category } = this.props;
 
@@ -125,7 +98,7 @@ class MonitorsWithCategory extends Component {
     };
 
     render() {
-        const { category, statusPage, subProjects, handleSubmit } = this.props;
+        const { category, statusPage, subProjects } = this.props;
         const { status } = statusPage;
         const subProject = !status.projectId
             ? null
@@ -163,7 +136,7 @@ class MonitorsWithCategory extends Component {
                             </div>
                         </div>
                     </div>
-                    <form onSubmit={handleSubmit(this.submitForm)}>
+                    <form>
                         <ShouldRender
                             if={
                                 this.props.monitors.length > 0 &&
@@ -286,25 +259,7 @@ class MonitorsWithCategory extends Component {
                                 <div
                                     className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
                                     style={{ marginTop: '10px' }}
-                                >
-                                    <ShouldRender
-                                        if={
-                                            this.props.statusPage.monitors.error
-                                        }
-                                    >
-                                        <div className="Box-root Margin-right--8">
-                                            <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
-                                        </div>
-                                        <div className="Box-root">
-                                            <span style={{ color: 'red' }}>
-                                                {
-                                                    this.props.statusPage
-                                                        .monitors.error
-                                                }
-                                            </span>
-                                        </div>
-                                    </ShouldRender>
-                                </div>
+                                ></div>
                             </div>
                         </div>
                     </form>
@@ -328,7 +283,6 @@ MonitorsWithCategory.propTypes = {
     fetchProjectStatusPage: PropTypes.func.isRequired,
     subProjects: PropTypes.array.isRequired,
     category: PropTypes.object,
-    handleSubmit: PropTypes.func,
     monitorsInForm: PropTypes.array,
     selectedMonitors: PropTypes.array,
     monitorsInCategory: PropTypes.array,
@@ -348,7 +302,7 @@ const mapDispatchToProps = dispatch =>
         dispatch
     );
 
-const MonitorsWithCategoryForm = new reduxForm({
+const MonitorsWithCategoryForm = reduxForm({
     enableReinitialize: true,
 })(MonitorsWithCategory);
 

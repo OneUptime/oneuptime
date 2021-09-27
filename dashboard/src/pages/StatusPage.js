@@ -43,6 +43,7 @@ import EmptyCategory from '../components/statusPage/EmptyCategory';
 class StatusPage extends Component {
     state = {
         tabIndex: 0,
+        monitorError: null,
     };
     tabSelected = index => {
         const tabSlider = document.getElementById('tab-slider');
@@ -140,6 +141,25 @@ class StatusPage extends Component {
         }
     }
 
+    validateMonitors = monitors => {
+        let monitorError;
+        const selectedMonitor = {};
+        for (let i = 0; i < monitors.length; i++) {
+            const monitor = monitors[i];
+            if (!monitor.monitor) monitorError = 'Please select a monitor.';
+            else {
+                if (selectedMonitor[monitor.monitor])
+                    monitorError = 'Only unique monitors are allowed.';
+                selectedMonitor[monitor.monitor] = true;
+            }
+
+            if (monitorError) break;
+        }
+
+        this.setState({ monitorError });
+        return monitorError;
+    };
+
     updateMonitor = () => {
         const { allStatusPageCategories, formState, statusPage } = this.props;
         const { status } = statusPage;
@@ -168,21 +188,26 @@ class StatusPage extends Component {
             }
         });
 
-        this.props
-            .updateStatusPageMonitors(projectId._id || projectId, {
-                _id: status._id,
-                monitors,
-                groupedMonitors,
-            })
-            .then(() => {
-                this.props.fetchProjectStatusPage(
-                    this.props.currentProject._id
+        if (!this.validateMonitors(monitors)) {
+            this.props
+                .updateStatusPageMonitors(projectId._id || projectId, {
+                    _id: status._id,
+                    monitors,
+                    groupedMonitors,
+                })
+                .then(() => {
+                    this.props.fetchProjectStatusPage(
+                        this.props.currentProject._id,
+                        true,
+                        0,
+                        10
+                    );
+                });
+            if (SHOULD_LOG_ANALYTICS) {
+                logEvent(
+                    'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > MONITOR UPDATED'
                 );
-            });
-        if (SHOULD_LOG_ANALYTICS) {
-            logEvent(
-                'EVENT: DASHBOARD > PROJECT > STATUS PAGES > STATUS PAGE > MONITOR UPDATED'
-            );
+            }
         }
     };
 
@@ -381,11 +406,63 @@ class StatusPage extends Component {
                                                                             allStatusPageCategories &&
                                                                             allStatusPageCategories.length >
                                                                                 0 && (
-                                                                                <div className="bs-ContentSection Card-root Card-shadow--medium">
-                                                                                    <div className="Box-root">
+                                                                                <div className="bs-ContentSection Card-root Card-shadow--medium bs-ContentSection-footer bs-ContentSection-content Box-root Box-background--white Flex-flex Flex-alignItems--center Flex-justifyContent--spaceBetween Padding-horizontal--20 Padding-vertical--12">
+                                                                                    <span className="db-SettingsForm-footerMessage"></span>
+                                                                                    <div
+                                                                                        style={{
+                                                                                            display:
+                                                                                                'flex',
+                                                                                            alignItems:
+                                                                                                'center',
+                                                                                            justifyContent:
+                                                                                                'space-between',
+                                                                                            width:
+                                                                                                '100%',
+                                                                                        }}
+                                                                                    >
+                                                                                        <div
+                                                                                            className="Box-root Flex-flex Flex-alignItems--stretch Flex-direction--row Flex-justifyContent--flexStart"
+                                                                                            style={{
+                                                                                                marginTop:
+                                                                                                    '10px',
+                                                                                            }}
+                                                                                        >
+                                                                                            <ShouldRender
+                                                                                                if={
+                                                                                                    this
+                                                                                                        .props
+                                                                                                        .statusPage
+                                                                                                        .monitors
+                                                                                                        .error ||
+                                                                                                    this
+                                                                                                        .state
+                                                                                                        .monitorError
+                                                                                                }
+                                                                                            >
+                                                                                                <div className="Box-root Margin-right--8">
+                                                                                                    <div className="Icon Icon--info Icon--color--red Icon--size--14 Box-root Flex-flex"></div>
+                                                                                                </div>
+                                                                                                <div className="Box-root">
+                                                                                                    <span
+                                                                                                        style={{
+                                                                                                            color:
+                                                                                                                'red',
+                                                                                                        }}
+                                                                                                    >
+                                                                                                        {this
+                                                                                                            .props
+                                                                                                            .statusPage
+                                                                                                            .monitors
+                                                                                                            .error ||
+                                                                                                            this
+                                                                                                                .state
+                                                                                                                .monitorError}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            </ShouldRender>
+                                                                                        </div>
                                                                                         <div
                                                                                             style={{
-                                                                                                padding: 15,
                                                                                                 textAlign:
                                                                                                     'right',
                                                                                             }}
