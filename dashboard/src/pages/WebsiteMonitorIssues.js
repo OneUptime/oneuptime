@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -85,6 +86,7 @@ class WebsiteMonitorIssues extends React.Component {
 
     render() {
         const { monitorState } = this.props;
+        console.log('Monitor State: ', monitorState);
         let variable;
         if (monitorState.monitorIssue) {
             variable = (
@@ -310,8 +312,8 @@ class WebsiteMonitorIssues extends React.Component {
                     <ShouldRender
                         if={
                             monitorState.monitorIssue.data &&
-                            monitorState.monitorIssue.data.bestPractices &&
-                            monitorState.monitorIssue.data.bestPractices
+                            monitorState.monitorIssue.data['best-practices'] &&
+                            monitorState.monitorIssue.data['best-practices']
                                 .length > 0
                         }
                     >
@@ -320,7 +322,7 @@ class WebsiteMonitorIssues extends React.Component {
                             category="Best Practices"
                             description="These checks highlight opportunities to improve the overall code health of your web app."
                             issues={
-                                monitorState.monitorIssue.data.bestPractices
+                                monitorState.monitorIssue.data['best-practices']
                             }
                         />
                     </ShouldRender>

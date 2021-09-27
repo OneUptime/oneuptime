@@ -91,6 +91,7 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
             if (data.lighthouseData) {
                 // The scanned results are published
                 data.scanning = false;
+                log = await ProbeService.saveLighthouseLog(data);
 
                 const project = await ProjectService.findOneBy({
                     query: { _id: data.monitor.projectId },
@@ -202,7 +203,6 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                     });
                     await MailService.sendLighthouseEmail(project, user);
                 }
-                log = await ProbeService.saveLighthouseLog(data);
             }
         }
         return sendItemResponse(req, response, log);

@@ -435,7 +435,7 @@
                       {{#each performanceIssues}}
                       <tr>
                         <td>{{title}}</td>
-                        <td>{{description}}</td>
+                        <td>{{description}} {{#if url}} <a href={{url}}>Learn More.</a> {{/if}}</td>
                       </tr>
                       {{/each}}
                     </table>
@@ -451,7 +451,7 @@
                       {{#each accessibilityIssues}}
                       <tr>
                         <td>{{title}}</td>
-                        <td>{{description}}</td>
+                        <td>{{description}} {{#if url}} <a href={{url}}>Learn More.</a> {{/if}}</td>
                       </tr>
                       {{/each}}
                     </table>
@@ -467,7 +467,7 @@
                       {{#each bestPracticesIssues}}
                       <tr>
                         <td>{{title}}</td>
-                        <td>{{description}}</td>
+                        <td>{{description}} {{#if url}} <a href={{url}}>Learn More.</a> {{/if}}</td>
                       </tr>
                       {{/each}}
                     </table>
@@ -483,7 +483,7 @@
                       {{#each seoIssues}}
                       <tr>
                         <td>{{title}}</td>
-                        <td>{{description}}</td>
+                        <td>{{description}} {{#if url}} <a href={{url}}>Learn More.</a> {{/if}}</td>
                       </tr>
                       {{/each}}
                     </table>
@@ -499,7 +499,7 @@
                       {{#each pwaIssues}}
                       <tr>
                         <td>{{title}}</td>
-                        <td>{{description}}</td>
+                        <td>{{description}} {{#if url}} <a href={{url}}>Learn More.</a> {{/if}}</td>
                       </tr>
                       {{/each}}
                     </table>
