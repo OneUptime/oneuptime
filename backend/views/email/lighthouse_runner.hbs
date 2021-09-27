@@ -59,9 +59,12 @@
       margin: 0 auto;
     }
 
-    #lighthouse td {
-      line-height: 14px;
-
+    #lighthouse-header {
+      color: grey;
+      text-transform: uppercase;
+    }
+    #lighthouse-content {
+      font-weight: 500;
     }
 
     #issues td,
@@ -404,14 +407,14 @@
                     </tbody>
                   </table>
                   <table id="lighthouse">
-                    <tr>
+                    <tr id="lighthouse-header">
                       <td>Performance</td>
                       <td>Accessibility</td>
                       <td> Best Practices</td>
                       <td> SEO</td>
                       <td> PWA</td>
                     </tr>
-                    <tr>
+                    <tr id="lighthouse-content">
                       <td>{{performance}}%</td>
                       <td>{{accessibility}}%</td>
                       <td>{{bestPractices}}% </td>
