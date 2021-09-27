@@ -371,6 +371,7 @@ const mapStateToProps = (state, ownProps) => {
         monitors: selectedMonitors
             ? selectedMonitors.filter(
                   monitor =>
+                      monitor.statusPageCategory &&
                       String(
                           monitor.statusPageCategory._id ||
                               monitor.statusPageCategory
