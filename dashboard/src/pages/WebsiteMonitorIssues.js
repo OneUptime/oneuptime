@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -86,7 +85,7 @@ class WebsiteMonitorIssues extends React.Component {
 
     render() {
         const { monitorState } = this.props;
-        console.log('Monitor State: ', monitorState);
+
         let variable;
         if (monitorState.monitorIssue) {
             variable = (

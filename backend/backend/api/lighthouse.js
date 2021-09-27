@@ -93,6 +93,7 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                 data.scanning = false;
                 log = await ProbeService.saveLighthouseLog(data);
 
+                /* For Email Service */
                 const project = await ProjectService.findOneBy({
                     query: { _id: data.monitor.projectId },
                     select: '_id name users',
