@@ -106,19 +106,81 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                 const seo = data.seo;
                 const pwa = data.pwa;
 
-                const performanceIssues = data.lighthouseData.issues.performance.slice(
-                    0,
-                    10
-                );
-                const accessibilityIssues = data.lighthouseData.issues.accessibility.slice(
-                    0,
-                    10
-                );
+                const performanceIssues = data.lighthouseData.issues.performance
+                    .slice(0, 10)
+                    .map(desc => {
+                        const splitDescription = desc.description.split(
+                            /\[Learn more\]/i
+                        );
+                        const url = splitDescription[1]
+                            ? splitDescription[1].replace(/^\(|\)|\.$/gi, '')
+                            : '';
+                        desc.description = splitDescription[0];
+                        desc.url = url;
+
+                        return desc;
+                    });
+
+                const accessibilityIssues = data.lighthouseData.issues.accessibility
+                    .slice(0, 10)
+                    .map(desc => {
+                        const splitDescription = desc.description.split(
+                            /\[Learn more\]/i
+                        );
+                        const url = splitDescription[1]
+                            ? splitDescription[1].replace(/^\(|\)|\.$/gi, '')
+                            : '';
+                        desc.description = splitDescription[0];
+                        desc.url = url;
+
+                        return desc;
+                    });
+
                 const bestPracticesIssues = data.lighthouseData.issues[
                     'best-practices'
-                ].slice(0, 10);
-                const seoIssues = data.lighthouseData.issues.seo.slice(0, 10);
-                const pwaIssues = data.lighthouseData.issues.pwa.slice(0, 10);
+                ]
+                    .slice(0, 10)
+                    .map(desc => {
+                        const splitDescription = desc.description.split(
+                            /\[Learn more\]/i
+                        );
+                        const url = splitDescription[1]
+                            ? splitDescription[1].replace(/^\(|\)|\.$/gi, '')
+                            : '';
+                        desc.description = splitDescription[0];
+                        desc.url = url;
+
+                        return desc;
+                    });
+
+                const seoIssues = data.lighthouseData.issues.seo
+                    .slice(0, 10)
+                    .map(desc => {
+                        const splitDescription = desc.description.split(
+                            /\[Learn more\]/i
+                        );
+                        const url = splitDescription[1]
+                            ? splitDescription[1].replace(/^\(|\)|\.$/gi, '')
+                            : '';
+                        desc.description = splitDescription[0];
+                        desc.url = url;
+
+                        return desc;
+                    });
+                const pwaIssues = data.lighthouseData.issues.pwa
+                    .slice(0, 10)
+                    .map(desc => {
+                        const splitDescription = desc.description.split(
+                            /\[Learn more\]/i
+                        );
+                        const url = splitDescription[1]
+                            ? splitDescription[1].replace(/^\(|\)|\.$/gi, '')
+                            : '';
+                        desc.description = splitDescription[0];
+                        desc.url = url;
+
+                        return desc;
+                    });
 
                 project.performance = performance;
                 project.accessibility = accessibility;
