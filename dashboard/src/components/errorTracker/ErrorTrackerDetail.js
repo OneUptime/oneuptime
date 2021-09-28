@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -114,7 +113,6 @@ class ErrorTrackerDetail extends Component {
             errorTracker,
             ignoreErrorEvent,
         } = this.props;
-        console.log('Sent Issues: ', issues);
 
         return ignoreErrorEvent(
             currentProject._id,

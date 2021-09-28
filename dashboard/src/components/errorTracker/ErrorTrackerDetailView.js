@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import React, { Component } from 'react';
 import ErrorTrackerIssue from './ErrorTrackerIssue';
 import { connect } from 'react-redux';
@@ -150,8 +149,6 @@ class ErrorTrackerDetailView extends Component {
             canPrev = false;
         }
 
-        console.log('Error Tracker: ', errorTracker);
-        console.log('Error Tracker Issues: ', errorTrackerIssues);
         return (
             <div>
                 <ShouldRender
