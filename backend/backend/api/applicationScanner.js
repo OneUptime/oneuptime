@@ -103,7 +103,9 @@ router.post('/log', isAuthorizedApplicationScanner, async function(req, res) {
             select: '_id name users',
         });
 
-        const userIds = project.users.map(e => ({ id: e.userId })); // This cater for projects with multiple registered members
+        const userIds = project.users
+            .filter(e => e.role !== 'Viewer')
+            .map(e => ({ id: e.userId })); // This cater for projects with multiple registered members
         project.critical = findLog.data.vulnerabilities.critical;
         project.high = findLog.data.vulnerabilities.high;
         project.moderate = findLog.data.vulnerabilities.moderate;

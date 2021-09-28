@@ -86,7 +86,9 @@ router.post('/log', isAuthorizedContainerScanner, async function(req, res) {
             query: { _id: findLog.componentId.projectId },
             select: '_id name users',
         });
-        const userIds = project.users.map(e => ({ id: e.userId })); // This cater for projects with multiple registered members
+        const userIds = project.users
+            .filter(e => e.role !== 'Viewer')
+            .map(e => ({ id: e.userId })); // This cater for projects with multiple registered members
         project.critical = findLog.data.vulnerabilityInfo.critical;
         project.high = findLog.data.vulnerabilityInfo.high;
         project.moderate = findLog.data.vulnerabilityInfo.moderate;

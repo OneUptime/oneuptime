@@ -99,9 +99,9 @@ router.post('/ping/:monitorId', isAuthorizedLighthouse, async function(
                     select: '_id name users',
                 });
                 project.monitor = data.monitor.name;
-
-                const userIds = project.users.map(e => ({ id: e.userId })); // This cater for projects with multiple registered members
-
+                const userIds = project.users
+                    .filter(e => e.role !== 'Viewer')
+                    .map(e => ({ id: e.userId })); // This cater for projects with multiple registered members
                 const performance = data.performance;
                 const accessibility = data.accessibility;
                 const bestPractices = data.bestPractices;
