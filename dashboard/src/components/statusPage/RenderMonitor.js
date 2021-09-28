@@ -297,7 +297,7 @@ let RenderMonitor = ({
 const mapStateToProps = (state, ownProps) => {
     const selector = formValueSelector(ownProps.form);
     const { subProject } = ownProps;
-    const subProjectId = subProject._id;
+    const subProjectId = subProject?._id;
 
     const allComponents = state.component.componentList.components
         .filter(
