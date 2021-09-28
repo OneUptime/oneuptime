@@ -178,7 +178,7 @@ module.exports = {
                         }
                     );
 
-                    if (!certificate) {
+                    if (!certificate && greenlock) {
                         // handle this in the background
                         greenlock.add({
                             subject: altnames[0],
@@ -351,7 +351,7 @@ module.exports = {
                             }
                         );
 
-                        if (!certificate) {
+                        if (!certificate && greenlock) {
                             // handle this in the background
                             greenlock.add({
                                 subject: altnames[0],
@@ -419,7 +419,11 @@ module.exports = {
 
             // delete any associated certificate (only for auto provisioned ssl)
             // handle this in the background
-            if (deletedDomain.enableHttps && deletedDomain.autoProvisioning) {
+            if (
+                deletedDomain.enableHttps &&
+                deletedDomain.autoProvisioning &&
+                greenlock
+            ) {
                 greenlock
                     .remove({ subject: deletedDomain.domain })
                     .finally(() => {
@@ -494,7 +498,11 @@ module.exports = {
                 // handle this for autoprovisioned custom domains
                 const customDomains = [...statusPage.domains];
                 for (const eachDomain of customDomains) {
-                    if (eachDomain.enableHttps && eachDomain.autoProvisioning) {
+                    if (
+                        eachDomain.enableHttps &&
+                        eachDomain.autoProvisioning &&
+                        greenlock
+                    ) {
                         greenlock
                             .remove({ subject: eachDomain.domain })
                             .finally(() => {
