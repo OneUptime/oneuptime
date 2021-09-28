@@ -569,13 +569,12 @@ module.exports = {
             const monitors = incident.monitors.map(
                 monitor => monitor.monitorId
             );
+
+            // handle this asynchronous operation in the background
+            AlertService.sendCreatedIncidentToSubscribers(incident, monitors);
+
             for (const monitor of monitors) {
                 AlertService.sendCreatedIncident(incident, monitor);
-                // handle this asynchronous operation in the background
-                AlertService.sendCreatedIncidentToSubscribers(
-                    incident,
-                    monitor
-                );
 
                 let notification = {};
                 // send slack notification
