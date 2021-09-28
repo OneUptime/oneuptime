@@ -29,4 +29,6 @@ const Gl = require('greenlock');
     });
 
     global.greenlock = greenlock; // make it available project wide
+    // eslint-disable-next-line no-console
+    console.log('** debug: greenlock **', global.greenlock);
 })();
