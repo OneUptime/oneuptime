@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
@@ -106,18 +107,21 @@ class ErrorTrackerDetail extends Component {
         const { editErrorTrackerSwitch, errorTracker } = this.props;
         editErrorTrackerSwitch(errorTracker._id);
     };
-    ignoreErrorEvent = issues => {
+    ignoreErrorEvent = (issues, ignore) => {
         const {
             currentProject,
             componentId,
             errorTracker,
             ignoreErrorEvent,
         } = this.props;
+        console.log('Sent Issues: ', issues);
+
         return ignoreErrorEvent(
             currentProject._id,
             componentId,
             errorTracker._id,
-            issues
+            issues,
+            ignore
         );
     };
     updateErrorEventMember = (issueId, userId, type) => {

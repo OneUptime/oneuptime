@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { FormLoader } from '../basic/Loader';
@@ -33,7 +34,7 @@ class ConfirmErrorTrackerIssueAction extends Component {
         ) {
             deleting = true;
         }
-
+        console.log('Ignore Props: ', this.props);
         return (
             <div className="ModalLayer-wash Box-root Flex-flex Flex-alignItems--flexStart Flex-justifyContent--center">
                 <div

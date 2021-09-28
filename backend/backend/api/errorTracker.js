@@ -548,7 +548,12 @@ router.post(
                     message: 'Action is required',
                 });
             }
-            const allowedActions = ['ignore', 'unresolve', 'resolve'];
+            const allowedActions = [
+                'ignore',
+                'unresolve',
+                'resolve',
+                'unignore',
+            ];
             if (!allowedActions.includes(action)) {
                 return sendErrorResponse(req, res, {
                     code: 400,
@@ -611,6 +616,16 @@ router.post(
                         resolvedById: null,
                     };
                     break;
+                case 'unignore':
+                    updateData = {
+                        ignored: false,
+                        ignoredAt: '',
+                        ignoredById: null,
+                        resolved: false,
+                        resolvedAt: '',
+                        resolvedById: null,
+                    };
+                    break;
                 case 'resolve':
                     updateData = {
                         ignored: false,
@@ -634,6 +649,7 @@ router.post(
                     errorTrackerId,
                 };
                 const currentIssue = await IssueService.countBy(query);
+
                 if (currentIssue && currentIssue > 0) {
                     // add action to timeline for this particular issue
                     const timelineData = {
