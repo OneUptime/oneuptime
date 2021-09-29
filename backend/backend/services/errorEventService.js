@@ -266,10 +266,11 @@ module.exports = {
         try {
             let previous, next;
             const selectErrorTracker =
-                'componentId name slug key showQuickStart resourceCategory createdById createdAt';
+                'componentId name slug key showQuickStart resourceCategory createdById createdAt issueId';
             const populateErrorTracker = [
                 { path: 'componentId', select: 'name' },
                 { path: 'resourceCategory', select: 'name' },
+                { path: 'issueId', select: 'name' },
             ];
             let errorEvent = await this.findOneBy({
                 query: { _id: errorEventId, errorTrackerId: errorTrackerId },
