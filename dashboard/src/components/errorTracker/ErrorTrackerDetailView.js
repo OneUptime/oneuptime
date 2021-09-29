@@ -56,9 +56,9 @@ class ErrorTrackerDetailView extends Component {
             selectedErrorEvents: errorEventsId,
         });
     };
-    ignoreErrorEvent = () => {
+    ignoreErrorEvent = ignore => {
         const promise = this.props
-            .ignoreErrorEvent(this.state.selectedErrorEvents)
+            .ignoreErrorEvent(this.state.selectedErrorEvents, ignore)
             .then();
         this.setState({
             selectedErrorEvents: [],
@@ -148,6 +148,7 @@ class ErrorTrackerDetailView extends Component {
             canNext = false;
             canPrev = false;
         }
+
         return (
             <div>
                 <ShouldRender
@@ -261,37 +262,89 @@ class ErrorTrackerDetailView extends Component {
                                         >
                                             <span>Resolve</span>
                                         </button>
-                                        <button
-                                            className="bs-Button bs-Button--icon bs-Button--block"
-                                            type="button"
-                                            disabled={
-                                                selectedErrorEvents.length < 1
-                                                    ? true
-                                                    : false
-                                            }
-                                            onClick={() => {
-                                                openModal({
-                                                    id: ignoreModalId,
-                                                    onClose: () => '',
-                                                    onConfirm: () =>
-                                                        this.ignoreErrorEvent(),
-                                                    content: DataPathHoC(
-                                                        ConfirmErrorTrackerIssueAction,
-                                                        {
-                                                            action: 'ignore',
-                                                            actionTitle:
-                                                                'Ignore',
-                                                            count:
-                                                                selectedErrorEvents.length,
-                                                            errorTrackerId:
-                                                                errorTracker._id,
-                                                        }
-                                                    ),
-                                                });
-                                            }}
-                                        >
-                                            <span>Ignore</span>
-                                        </button>
+                                        {errorTrackerIssues &&
+                                            errorTrackerIssues.errorTrackerIssues.map(
+                                                e => {
+                                                    return e.ignored ===
+                                                        false ? (
+                                                        <button
+                                                            className="bs-Button bs-Button--icon bs-Button--block"
+                                                            type="button"
+                                                            disabled={
+                                                                selectedErrorEvents.length <
+                                                                1
+                                                                    ? true
+                                                                    : false
+                                                            }
+                                                            onClick={() => {
+                                                                openModal({
+                                                                    id: ignoreModalId,
+                                                                    onClose: () =>
+                                                                        '',
+                                                                    onConfirm: () =>
+                                                                        this.ignoreErrorEvent(
+                                                                            'ignore'
+                                                                        ),
+                                                                    content: DataPathHoC(
+                                                                        ConfirmErrorTrackerIssueAction,
+                                                                        {
+                                                                            action:
+                                                                                'ignore',
+                                                                            actionTitle:
+                                                                                'Ignore',
+                                                                            count:
+                                                                                selectedErrorEvents.length,
+                                                                            errorTrackerId:
+                                                                                errorTracker._id,
+                                                                        }
+                                                                    ),
+                                                                });
+                                                            }}
+                                                        >
+                                                            <span>Ignore</span>
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            className="bs-Button bs-Button--icon bs-Button--block"
+                                                            type="button"
+                                                            disabled={
+                                                                selectedErrorEvents.length <
+                                                                1
+                                                                    ? true
+                                                                    : false
+                                                            }
+                                                            onClick={() => {
+                                                                openModal({
+                                                                    id: ignoreModalId,
+                                                                    onClose: () =>
+                                                                        '',
+                                                                    onConfirm: () =>
+                                                                        this.ignoreErrorEvent(
+                                                                            'unignore'
+                                                                        ),
+                                                                    content: DataPathHoC(
+                                                                        ConfirmErrorTrackerIssueAction,
+                                                                        {
+                                                                            action:
+                                                                                'unignore',
+                                                                            actionTitle:
+                                                                                'Unignore',
+                                                                            count:
+                                                                                selectedErrorEvents.length,
+                                                                            errorTrackerId:
+                                                                                errorTracker._id,
+                                                                        }
+                                                                    ),
+                                                                });
+                                                            }}
+                                                        >
+                                                            <span>
+                                                                Unignore
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                }
+                                            )}
                                     </div>
                                 </td>
                                 <td

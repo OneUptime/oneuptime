@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { postApi, getApi, deleteApi, putApi } from '../api';
 import * as types from '../constants/errorTracker';
 import errors from '../errors';
@@ -489,7 +490,7 @@ export function ignoreErrorEvent(
     return function(dispatch) {
         const promise = postApi(
             `error-tracker/${projectId}/${componentId}/${errorTrackerId}/issues/action`,
-            { issueId, action: `${unIgnore ? 'unresolve' : 'ignore'}` }
+            { issueId, action: unIgnore } // Instead of 'Unignore' becoming UNDEFINED always because the argument is always empty. A 'ignore' or 'unignore' parameter is used
         );
         dispatch(ignoreErrorEventRequest(errorTrackerId, issueId));
 
