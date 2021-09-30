@@ -177,6 +177,18 @@ class MonitorInfo extends Component {
             : offlineText;
     };
 
+    checkOngoingEventMonitor = events => {
+        let result = false;
+        for (const event of events) {
+            for (const monitor of event.monitors) {
+                if (monitor.monitorId._id === this.props.monitor._id) {
+                    result = true;
+                }
+            }
+        }
+        return result;
+    };
+
     render() {
         const {
             monitorState,
@@ -368,7 +380,9 @@ class MonitorInfo extends Component {
                                 }}
                             >
                                 {this.props.ongoing &&
-                                this.props.ongoing.length > 0
+                                this.checkOngoingEventMonitor(
+                                    this.props.ongoing
+                                )
                                     ? 'Ongoing Scheduled Event'
                                     : this.handleMonitorStatus(monitorStatus)}
                             </div>
