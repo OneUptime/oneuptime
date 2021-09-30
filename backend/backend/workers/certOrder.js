@@ -42,11 +42,13 @@ async function handleFetchingDomains() {
 module.exports = async function() {
     try {
         const domains = await handleFetchingDomains();
-        for (const domain of domains) {
-            await greenlock.add({
-                subject: domain,
-                altnames: [domain],
-            });
+        if (greenlock) {
+            for (const domain of domains) {
+                await greenlock.add({
+                    subject: domain,
+                    altnames: [domain],
+                });
+            }
         }
     } catch (error) {
         ErrorService.log('certOrder', error);

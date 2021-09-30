@@ -373,7 +373,7 @@ const server = http.listen(app.get('port'), function() {
     console.log('Server Started on port ' + app.get('port'));
 });
 
-mongoose.connection.on('connected', () => {
+mongoose.connection.on('connected', async () => {
     require('./greenlock');
 });
 
