@@ -65,7 +65,7 @@ module.exports = {
             });
             // add note when a scheduled event is created
             await ScheduledEventNoteService.create({
-                content: 'THIS SCHEDULED EVENT HAS BEEN CREATED',
+                content: scheduledEvent.description,
                 scheduledEventId: scheduledEvent._id,
                 createdById: scheduledEvent.createdById._id,
                 type: 'investigation',

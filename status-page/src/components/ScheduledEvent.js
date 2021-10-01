@@ -114,6 +114,64 @@ class ScheduledEvent extends Component {
         } else return error;
     };
 
+    AffectedResources = ({ event, monitorState }) => {
+        const affectedMonitors = [];
+        let monitorCount = 0;
+
+        const eventMonitors = [];
+        // populate the ids of the event monitors in an array
+        event &&
+            event.monitors &&
+            event.monitors.map(monitor => {
+                eventMonitors.push(String(monitor.monitorId._id));
+                return monitor;
+            });
+
+        monitorState.map(monitor => {
+            if (eventMonitors.includes(String(monitor._id))) {
+                affectedMonitors.push(monitor);
+                monitorCount += 1;
+            }
+            return monitor;
+        });
+        // check if the length of monitors on status page equals the monitor count
+        // if they are equal then all the monitors in status page is in a particular scheduled event
+        if (monitorCount === monitorState.length) {
+            return (
+                <>
+                    <span
+                        style={{
+                            fontWeight: 600,
+                        }}
+                    >
+                        <Translate>Resource Affected - </Translate>
+                    </span>{' '}
+                    <span>
+                        <Translate> All resources are affected</Translate>
+                    </span>
+                </>
+            );
+        } else {
+            return (
+                <>
+                    <span
+                        style={{
+                            fontWeight: 600,
+                        }}
+                    >
+                        <Translate>Resource Affected:</Translate>
+                    </span>{' '}
+                    <span>
+                        {affectedMonitors
+                            .map(monitor => monitor.name)
+                            .join(', ')
+                            .replace(/, ([^,]*)$/, ' and $1')}
+                    </span>
+                </>
+            );
+        }
+    };
+
     render() {
         const {
             fetchingNotes,
@@ -168,100 +226,6 @@ class ScheduledEvent extends Component {
                                     >
                                         {scheduledEvent.name}
                                     </header>
-
-                                    {!fetchingNotes &&
-                                    eventNotes &&
-                                    !fetchingEvent &&
-                                    scheduledEvent.startDate &&
-                                    scheduledEvent.endDate ? (
-                                        scheduledEvent.cancelled ? (
-                                            <div
-                                                style={{
-                                                    marginLeft: 15,
-                                                }}
-                                                className="Badge Badge--color--red Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                            >
-                                                <span className="Badge-text Text-color--red Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                    <span id="ongoing-event">
-                                                        <Translate>
-                                                            Cancelled
-                                                        </Translate>
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        ) : scheduledEvent.resolved ? (
-                                            <div
-                                                style={{
-                                                    marginLeft: 15,
-                                                }}
-                                                className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                            >
-                                                <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                    <span id="ongoing-event">
-                                                        <Translate>
-                                                            Completed
-                                                        </Translate>
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        ) : currentTime.isSameOrAfter(
-                                              moment(scheduledEvent.startDate)
-                                          ) &&
-                                          currentTime.isBefore(
-                                              moment(scheduledEvent.endDate)
-                                          ) ? (
-                                            <div
-                                                style={{
-                                                    marginLeft: 15,
-                                                }}
-                                                className="Badge Badge--color--yellow Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                            >
-                                                <span className="Badge-text Text-color--yellow Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                    <span id="ongoing-event">
-                                                        <Translate>
-                                                            Ongoing
-                                                        </Translate>
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        ) : currentTime.isBefore(
-                                              moment(scheduledEvent.startDate)
-                                          ) ? (
-                                            <div
-                                                style={{
-                                                    marginLeft: 15,
-                                                }}
-                                                className="Badge Badge--color--blue Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                            >
-                                                <span className="Badge-text Text-color--default Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                    <span id="ongoing-event">
-                                                        <Translate>
-                                                            Scheduled
-                                                        </Translate>
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        ) : (
-                                            currentTime.isSameOrAfter(
-                                                moment(scheduledEvent.endDate)
-                                            ) && (
-                                                <div
-                                                    style={{
-                                                        marginLeft: 15,
-                                                    }}
-                                                    className="Badge Badge--color--green Box-root Flex-inlineFlex Flex-alignItems--center Padding-horizontal--8 Padding-vertical--2"
-                                                >
-                                                    <span className="Badge-text Text-color--green Text-display--inline Text-fontSize--12 Text-fontWeight--bold Text-lineHeight--16 Text-typeface--upper Text-wrap--noWrap">
-                                                        <span id="ongoing-event">
-                                                            <Translate>
-                                                                Ended
-                                                            </Translate>
-                                                        </span>
-                                                    </span>
-                                                </div>
-                                            )
-                                        )
-                                    ) : null}
                                 </div>
                                 <p
                                     style={{
@@ -281,28 +245,6 @@ class ScheduledEvent extends Component {
                                     </Link>
                                 </p>
                             </div>
-                            <span
-                                style={{
-                                    color: 'rgba(0, 0, 0, 0.6)',
-                                }}
-                            >
-                                {scheduledEvent.description}
-                            </span>
-                            <div className="ongoing__affectedmonitor">
-                                <span
-                                    className="ongoing__affectedmonitor--content"
-                                    style={{
-                                        color: 'rgba(0, 0, 0, 0.5)',
-                                    }}
-                                >
-                                    <AffectedResources
-                                        event={scheduledEvent}
-                                        monitorState={monitorState}
-                                        colorStyle="grey"
-                                        cleanTheme={true}
-                                    />
-                                </span>
-                            </div>
                             <ShouldRender if={fetchingEvent}>
                                 <ListLoader />
                             </ShouldRender>
@@ -316,6 +258,7 @@ class ScheduledEvent extends Component {
                                             fontSize: 14,
                                             color: '#AAA',
                                             display: 'block',
+                                            textAlign: 'center',
                                         }}
                                     >
                                         <span
@@ -342,76 +285,113 @@ class ScheduledEvent extends Component {
                             {!fetchingNotes &&
                                 eventNotes &&
                                 eventNotes.length > 0 &&
-                                eventNotes.map(note => (
-                                    <div
-                                        key={note._id}
-                                        style={{
-                                            width: '100%',
-                                            display: 'grid',
-                                            gridTemplateColumns: '1fr 3fr',
-                                            gridColumnGap: 10,
-                                            marginTop: 20,
-                                        }}
-                                    >
-                                        <div>
-                                            <span
-                                                style={{
-                                                    display: 'block',
-                                                    fontWeight: 'bold',
-                                                }}
-                                            >
-                                                {note.event_state}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span
-                                                style={{
-                                                    color: 'rgba(0, 0, 0, 0.6)',
-                                                    fontSize: 14,
-                                                    display: 'block',
-                                                    textAlign: 'justify',
-                                                    whiteSpace: 'pre-wrap',
-                                                }}
-                                            >
-                                                {note.content &&
-                                                    note.content
-                                                        .split('\n')
-                                                        .map((elem, index) => (
-                                                            <Markdown
-                                                                key={`${elem}-${index}`}
-                                                                options={{
-                                                                    forceBlock: true,
-                                                                }}
-                                                            >
-                                                                {elem}
-                                                            </Markdown>
-                                                        ))}
-                                            </span>
-                                            <span
-                                                style={{
-                                                    display: 'flex',
-                                                    marginTop: 10,
-                                                    alignItems: 'center',
-                                                }}
-                                            >
+                                eventNotes
+                                    .sort((a, b) => {
+                                        (a = moment(a.createdAt)),
+                                            (b = moment(b.createdAt));
+                                        // order in ascending order
+                                        if (b.diff(a) > 0) {
+                                            return -1;
+                                        } else if (b.diff(a) < 0) {
+                                            return 1;
+                                        } else {
+                                            return 0;
+                                        }
+                                    })
+                                    .map(note => (
+                                        <div
+                                            key={note._id}
+                                            style={{
+                                                width: '100%',
+                                                display: 'grid',
+                                                gridTemplateColumns: '1fr 3fr',
+                                                gridColumnGap: 10,
+                                                marginTop: 20,
+                                            }}
+                                        >
+                                            <div>
                                                 <span
                                                     style={{
-                                                        color: '#AAA',
-                                                        fontSize: 12,
                                                         display: 'block',
+                                                        fontWeight: 'bold',
                                                     }}
                                                 >
-                                                    Posted on{' '}
-                                                    {moment(
-                                                        note.createdAt
-                                                    ).format(
-                                                        'MMMM Do YYYY, h:mm a'
-                                                    )}
+                                                    {note.event_state}
                                                 </span>
-                                            </span>
+                                            </div>
+                                            <div>
+                                                <span
+                                                    style={{
+                                                        color:
+                                                            'rgba(0, 0, 0, 0.6)',
+                                                        fontSize: 14,
+                                                        display: 'block',
+                                                        textAlign: 'justify',
+                                                        whiteSpace: 'pre-wrap',
+                                                    }}
+                                                >
+                                                    {note.content &&
+                                                        note.content
+                                                            .split('\n')
+                                                            .map(
+                                                                (
+                                                                    elem,
+                                                                    index
+                                                                ) => (
+                                                                    <Markdown
+                                                                        key={`${elem}-${index}`}
+                                                                        options={{
+                                                                            forceBlock: true,
+                                                                        }}
+                                                                    >
+                                                                        {elem}
+                                                                    </Markdown>
+                                                                )
+                                                            )}
+                                                </span>
+                                                {note.event_state ===
+                                                    'Created' && (
+                                                    <span
+                                                        style={{
+                                                            display: 'block',
+                                                            marginTop: 10,
+                                                            color: '#AAA',
+                                                            fontSize: 12,
+                                                        }}
+                                                    >
+                                                        {this.AffectedResources(
+                                                            {
+                                                                event: scheduledEvent,
+                                                                monitorState: monitorState,
+                                                            }
+                                                        )}
+                                                    </span>
+                                                )}
+                                                <span
+                                                    style={{
+                                                        display: 'flex',
+                                                        marginTop: 5,
+                                                        alignItems: 'center',
+                                                    }}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            color: '#AAA',
+                                                            fontSize: 12,
+                                                            display: 'block',
+                                                        }}
+                                                    >
+                                                        Posted on{' '}
+                                                        {moment(
+                                                            note.createdAt
+                                                        ).format(
+                                                            'MMMM Do YYYY, h:mm a'
+                                                        )}
+                                                    </span>
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
 
                             {!fetchingNotes &&
                                 eventNotes &&

@@ -14,7 +14,7 @@ import {
     moreIncidentNotes,
     fetchLastIncidentTimeline,
 } from '../actions/status';
-import { ACCOUNTS_URL, capitalize } from '../config';
+import { ACCOUNTS_URL } from '../config';
 import { ListLoader } from './basic/Loader';
 
 class Incident extends Component {
@@ -99,174 +99,6 @@ class Incident extends Component {
 
         moreIncidentNotes(statusData.projectId._id, incidentId, true, skip + 1);
     }
-
-    handleIncidentStatus = () => {
-        const {
-            requestingTimeline,
-            lastIncidentTimeline,
-            incident,
-        } = this.props;
-        let timelineStatus = null;
-        const styles = {
-            display:
-                this.props.statusData.theme === 'Classic Theme'
-                    ? 'flex'
-                    : 'block',
-            alignItems: 'flex-start',
-            fontSize: 14,
-            color:
-                this.props.statusData.theme === 'Classic Theme'
-                    ? 'rgba(0, 0, 0, 0.5)'
-                    : 'rgba(0, 0, 0, 0.6)',
-            paddingTop: 7,
-        };
-        const incidentStatus = {
-            color:
-                this.props.statusData.theme === 'Classic Theme'
-                    ? 'rgba(76, 76, 76, 0.8)'
-                    : 'rgba(0, 0, 0, 0.7)',
-            fontWeight: 600,
-            minWidth: 110,
-        };
-
-        if (!requestingTimeline) {
-            if (!incident.acknowledged && !incident.resolved) {
-                timelineStatus = (
-                    <span style={styles}>
-                        <span style={incidentStatus}>
-                            {' '}
-                            <Translate>Incident Status: </Translate>{' '}
-                        </span>
-                        <span style={{ marginLeft: 5 }}>
-                            <Translate>Identified</Translate>
-                        </span>
-                    </span>
-                );
-            }
-            if (
-                !lastIncidentTimeline.incident_state &&
-                lastIncidentTimeline.status === 'investigation notes deleted'
-            ) {
-                timelineStatus = (
-                    <span style={styles}>
-                        <span style={incidentStatus}>
-                            {' '}
-                            <Translate>Incident Status:</Translate>{' '}
-                        </span>
-                        <span className="time__wrapper">
-                            <span>
-                                <Translate>Deleted a note</Translate>{' '}
-                            </span>
-                            {incident.acknowledged && incident.resolved && (
-                                <span
-                                    title="Resolved"
-                                    className="resolved__incident"
-                                ></span>
-                            )}
-                            {incident.acknowledged && !incident.resolved && (
-                                <span
-                                    title="Acknowledged"
-                                    className="acknowledged__incident"
-                                ></span>
-                            )}
-                        </span>
-                    </span>
-                );
-            }
-            if (incident.acknowledged) {
-                timelineStatus = (
-                    <span style={styles}>
-                        <span style={incidentStatus}>
-                            <Translate>Incident Status:</Translate>
-                        </span>
-                        <span className="time__wrapper">
-                            This incident was acknowledged on{' '}
-                            {moment(incident.acknowledgedAt).format(
-                                'MMMM Do YYYY, h:mm a'
-                            )}
-                            <span
-                                title="Acknowledged"
-                                className="acknowledged__incident"
-                            ></span>
-                        </span>
-                    </span>
-                );
-            }
-            if (incident.resolved) {
-                timelineStatus = (
-                    <span style={styles}>
-                        <span style={incidentStatus}>
-                            <Translate>Incident Status:</Translate>{' '}
-                        </span>
-                        <span className="time__wrapper">
-                            This incident was resolved on{' '}
-                            {moment(incident.resolvedAt).format(
-                                'MMMM Do YYYY, h:mm a'
-                            )}
-                            <span
-                                title="Resolved"
-                                className="resolved__incident"
-                            ></span>
-                        </span>
-                    </span>
-                );
-            }
-            if (lastIncidentTimeline.incident_state) {
-                timelineStatus = (
-                    <span style={styles}>
-                        <span style={incidentStatus}>
-                            <Translate>Incident Status:</Translate>{' '}
-                        </span>
-                        <span style={{ marginLeft: 5 }}>
-                            {capitalize(lastIncidentTimeline.incident_state)}
-                        </span>
-                    </span>
-                );
-            }
-            if (lastIncidentTimeline.incident_state && incident.acknowledged) {
-                timelineStatus = (
-                    <span style={styles}>
-                        <span style={incidentStatus}>
-                            <Translate>Incident Status:</Translate>
-                        </span>
-                        <span className="time__wrapper">
-                            <span>
-                                {capitalize(
-                                    lastIncidentTimeline.incident_state
-                                )}
-                            </span>
-                            <span
-                                title="Acknowledged"
-                                className="acknowledged__incident"
-                            ></span>
-                        </span>
-                    </span>
-                );
-            }
-            if (lastIncidentTimeline.incident_state && incident.resolved) {
-                timelineStatus = (
-                    <span style={styles}>
-                        <span style={incidentStatus}>
-                            <Translate>Incident Status:</Translate>
-                        </span>
-                        <span className="time__wrapper">
-                            <span>
-                                {capitalize(
-                                    lastIncidentTimeline.incident_state
-                                )}
-                            </span>
-                            <span
-                                title="Resolved"
-                                className="resolved__incident"
-                            ></span>
-                        </span>
-                    </span>
-                );
-            }
-        }
-
-        return timelineStatus;
-    };
 
     renderError = () => {
         const { error } = this.props.status;
@@ -371,35 +203,6 @@ class Incident extends Component {
                                     {statusData.name}
                                 </Link>
                             </p>
-                            <span
-                                style={{
-                                    color: 'rgba(0, 0, 0, 0.6)',
-                                }}
-                            >
-                                {incident.description}
-                            </span>
-                            <div className="ongoing__affectedmonitor">
-                                <span
-                                    className="ongoing__affectedmonitor--title"
-                                    style={{
-                                        color: 'rgba(0, 0, 0, 0.8)',
-                                    }}
-                                >
-                                    <Translate>Resource Affected:</Translate>
-                                </span>{' '}
-                                <span
-                                    className="ongoing__affectedmonitor--content"
-                                    style={{
-                                        color: 'rgba(0, 0, 0, 0.5)',
-                                    }}
-                                >
-                                    {this.handleMonitorList(incident.monitors)}
-                                </span>
-                            </div>
-                            {!fetchingIncident &&
-                                lastIncidentTimeline &&
-                                lastIncidentTimeline.status &&
-                                this.handleIncidentStatus()}
                             <ShouldRender if={fetchingIncident}>
                                 <ListLoader />
                             </ShouldRender>
@@ -436,11 +239,11 @@ class Incident extends Component {
                                     .sort((a, b) => {
                                         (a = moment(a.createdAt)),
                                             (b = moment(b.createdAt));
-                                        // order in descending order
+                                        // order in ascending order
                                         if (b.diff(a) > 0) {
-                                            return 1;
-                                        } else if (b.diff(a) < 0) {
                                             return -1;
+                                        } else if (b.diff(a) < 0) {
+                                            return 1;
                                         } else {
                                             return 0;
                                         }
@@ -505,10 +308,37 @@ class Incident extends Component {
                                                         </div>
                                                     )}
                                                 </span>
+                                                {note.incident_state ===
+                                                    'Identified' && (
+                                                    <span
+                                                        style={{
+                                                            display: 'block',
+                                                            marginTop: 10,
+                                                            color: '#AAA',
+                                                            fontSize: 12,
+                                                        }}
+                                                    >
+                                                        <span
+                                                            style={{
+                                                                fontWeight: 600,
+                                                            }}
+                                                        >
+                                                            <Translate>
+                                                                Resource
+                                                                Affected -
+                                                            </Translate>
+                                                        </span>{' '}
+                                                        <span>
+                                                            {this.handleMonitorList(
+                                                                incident.monitors
+                                                            )}
+                                                        </span>
+                                                    </span>
+                                                )}
                                                 <span
                                                     style={{
                                                         display: 'flex',
-                                                        marginTop: 10,
+                                                        marginTop: 5,
                                                         alignItems: 'center',
                                                     }}
                                                 >
@@ -994,7 +824,6 @@ Incident.propTypes = {
     incidentNotes: PropTypes.array,
     requestingStatus: PropTypes.bool,
     fetchLastIncidentTimeline: PropTypes.func,
-    requestingTimeline: PropTypes.bool,
     lastIncidentTimeline: PropTypes.object,
     status: PropTypes.object,
 };
