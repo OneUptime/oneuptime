@@ -320,6 +320,17 @@ module.exports = {
                 // run in the background
                 RealTimeService.sendCreatedIncident(incident);
 
+                // run in the background
+                IncidentMessageService.create({
+                    content: incident.description,
+                    incidentId: incident._id,
+                    createdById:
+                        incident.createdById._id || incident.createdById,
+                    type: 'investigation',
+                    incident_state: 'Identified',
+                    post_statuspage: true,
+                });
+
                 await IncidentTimelineService.create({
                     incidentId: incident._id,
                     createdById: data.createdById,
