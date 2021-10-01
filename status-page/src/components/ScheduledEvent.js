@@ -314,6 +314,8 @@ class ScheduledEvent extends Component {
                                                     style={{
                                                         display: 'block',
                                                         fontWeight: 'bold',
+                                                        textTransform:
+                                                            'capitalize',
                                                     }}
                                                 >
                                                     {note.event_state}
