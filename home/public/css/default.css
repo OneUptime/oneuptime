@@ -3336,6 +3336,18 @@ section.basics .columns .risk:before{
     background-image:url("/img/risk.svg")
 }
 
+section.basics .columns .interval:before{
+    background-image:url("/img/wall-clock.svg")
+}
+
+section.basics .columns .json:before{
+    background-image:url("/img/json-file.svg")
+}
+
+section.basics .columns .devices:before{
+    background-image:url("/img/community.svg")
+}
+
 section.basics .columns .google:before{
     background-image:url("/img/google.svg")
 }
