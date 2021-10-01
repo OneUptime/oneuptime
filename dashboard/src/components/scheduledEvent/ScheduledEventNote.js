@@ -171,7 +171,6 @@ export class ScheduledEventNote extends Component {
                                           {note.content &&
                                           note.event_state !== 'Deleted' &&
                                           note.event_state !== 'Resolved' &&
-                                          note.event_state !== 'Created' &&
                                           note.event_state !== 'Started' &&
                                           note.event_state !== 'Cancelled' &&
                                           note.event_state !== 'Ended' ? (
@@ -398,8 +397,6 @@ export class ScheduledEventNote extends Component {
                                             (note.event_state === 'Deleted' ||
                                                 note.event_state ===
                                                     'Started' ||
-                                                note.event_state ===
-                                                    'Created' ||
                                                 note.event_state ===
                                                     'Resolved' ||
                                                 note.event_state ===
