@@ -13,9 +13,9 @@ mobile_lighthouse_home:
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker login -u $DOCKERHUBUSERNAME -p $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
-        - cd home
-        - sudo docker buildx build --platform linux/amd64 --tag $DOCKERHUBUSERNAME/light-house-mobile:latest --push .
+        - sudo docker buildx build fyipeproject/home:3.0.$CI_PIPELINE_IID --platform linux/amd64 --tag $DOCKERHUBUSERNAME/light-house-mobile:latest --push .
         - sudo docker run -p 1444:1444 -d $DOCKERHUBUSERNAME/light-house-mobile
+          - cd home
         - sudo docker ps
         - npm ci
         - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-818858/chrome-linux/chrome"
