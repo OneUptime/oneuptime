@@ -13,10 +13,10 @@ mobile_lighthouse_home:
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker login -u adeoluwadavid -p talodabijesu
         - sudo docker buildx create --use
+        - cd home
         - sudo docker buildx build --platform linux/arm/v7,linux/arm64/v8,linux/amd64 --tag adeoluwadavid/mobile-lighthouse:gitlab .
         - sudo docker run -p 1444:1444 -d adeoluwadavid/mobile-lighthouse
         - sudo docker ps
-        - cd home
         - npm ci
         - export CHROME_PATH="$(pwd)/node_modules/puppeteer/.local-chromium/linux-818858/chrome-linux/chrome"
         - npm run light-house-mobile
