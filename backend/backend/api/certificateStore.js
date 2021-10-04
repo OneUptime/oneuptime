@@ -2,6 +2,8 @@ const express = require('express');
 const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const CertificateStoreService = require('../services/certificateStoreService');
+const StatusPageService = require('../services/statusPageService');
+const greenlock = global.greenlock;
 
 const router = express.Router();
 
@@ -72,6 +74,50 @@ router.delete('/store/:id', async (req, res) => {
 
         const certificate = await CertificateStoreService.deleteBy({ id });
         return sendItemResponse(req, res, certificate);
+    } catch (error) {
+        return sendErrorResponse(req, res, error);
+    }
+});
+
+router.post('/certOrder', async (req, res) => {
+    try {
+        const domains = [];
+
+        const statusPages = await StatusPageService.findBy({
+            query: {
+                'domains.enableHttps': { $eq: true },
+                'domains.autoProvisioning': { $eq: true },
+                'domains.domain': { $type: 'string' },
+            },
+            skip: 0,
+            limit: 99999,
+            select: 'domains',
+        });
+
+        for (const statusPage of statusPages) {
+            for (const domain of statusPage.domains) {
+                if (
+                    domain.domain &&
+                    domain.domain.trim() &&
+                    domain.enableHttps &&
+                    domain.autoProvisioning
+                ) {
+                    domains.push(domain.domain);
+                }
+            }
+        }
+
+        if (greenlock) {
+            for (const domain of domains) {
+                // run in the background
+                greenlock.add({
+                    subject: domain,
+                    altnames: [domain],
+                });
+            }
+        }
+
+        return sendItemResponse(req, res, 'Certificate renewal triggered...');
     } catch (error) {
         return sendErrorResponse(req, res, error);
     }
