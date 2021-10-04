@@ -11,6 +11,8 @@ mobile_lighthouse_home:
         - echo "Setup machine for running lighthouse on home page"
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
         - sudo docker login -u $DOCKERHUBUSERNAME -p $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
         - cd home
