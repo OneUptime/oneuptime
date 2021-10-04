@@ -14,7 +14,7 @@ mobile_lighthouse_home:
         - sudo docker login -u adeoluwadavid -p talodabijesu
         - sudo docker buildx create --use
         - cd home
-        - sudo docker buildx build --platform linux/amd64 --tag adeoluwadavid/mobile-lighthouse:gitlab .
+        - sudo docker buildx build --platform linux/amd64 --tag adeoluwadavid/mobile-lighthouse:latest .
         - sudo docker run -p 1444:1444 -d adeoluwadavid/mobile-lighthouse
         - sudo docker ps
         - npm ci
