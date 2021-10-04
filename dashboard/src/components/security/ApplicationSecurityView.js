@@ -132,7 +132,7 @@ const ApplicationSecurityView = ({
                                         if={applicationSecurity.lastScan}
                                     >
                                         <label className="Text-fontWeight--medium">
-                                            dLast Scan:
+                                            Last Scan:
                                         </label>
                                         <div className="Margin-left--2">
                                             <span className="value">{`${moment(
