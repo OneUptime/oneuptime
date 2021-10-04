@@ -2,7 +2,7 @@
 lint-projects:
     stage: BuildAndTest
     script:
-        - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 294AC4827C1A168A
+        - sudo apt install ca-certificates
         - sudo apt-get update
         - sudo apt-get install -y curl gcc
         - sudo apt-get install -y build-essential
