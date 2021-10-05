@@ -6,7 +6,7 @@
 FROM node:16
 
 #Use bash shell by default
-#SHELL ["/bin/bash", "-c"]
+SHELL ["/bin/bash", "-c"]
 
 #SET ENV Variables. 
 ENV PRODUCTION=true
