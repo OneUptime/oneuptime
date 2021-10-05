@@ -93,8 +93,10 @@ router.post('/certOrder', async (req, res) => {
             limit: 99999,
             select: 'domains',
         });
+        console.log('** status pagees **', JSON.stringify(statusPages, null, 4));
 
         for (const statusPage of statusPages) {
+            console.log('** domains **', JSON.stringify(statusPage.domains, null, 4));
             for (const domain of statusPage.domains) {
                 if (
                     domain.domain &&
