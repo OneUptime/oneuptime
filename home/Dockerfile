@@ -3,11 +3,6 @@
 #
 
 # Pull base image nodejs image.
-
-FROM --platform=$BUILDPLATFORM node:alpine AS build
-ARG TARGETPLATFORM
-ARG BUILDPLATFORM
-
 FROM node:16
 
 #Use bash shell by default
