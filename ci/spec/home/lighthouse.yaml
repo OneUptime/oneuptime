@@ -12,7 +12,6 @@ mobile_lighthouse_home:
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker login -u $DOCKERHUBUSERNAME -p $DOCKERHUBPASSWORD
-        - sudo docker buildx create --use
         - cd home
         - sudo docker buildx ls
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag $DOCKERHUBUSERNAME/light-house-mobile:latest --push .
