@@ -9,6 +9,7 @@ mobile_lighthouse_home:
         - chmod +x ./ci/scripts/setup-docker.sh
         - ./ci/scripts/setup-docker.sh
         - echo "Setup machine for running lighthouse on home page"
+        - export DOCKER_CLI_EXPERIMENTAL=enabled
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker login -u $DOCKERHUBUSERNAME -p $DOCKERHUBPASSWORD
