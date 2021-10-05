@@ -93,10 +93,8 @@ router.post('/certOrder', async (req, res) => {
             limit: 99999,
             select: 'domains',
         });
-        console.log('** status pagees **', JSON.stringify(statusPages, null, 4));
 
         for (const statusPage of statusPages) {
-            console.log('** domains **', JSON.stringify(statusPage.domains, null, 4));
             for (const domain of statusPage.domains) {
                 if (
                     domain.domain &&
@@ -110,6 +108,7 @@ router.post('/certOrder', async (req, res) => {
         }
 
         if (greenlock) {
+            console.log('** domains **', domains);
             for (const domain of domains) {
                 // run in the background
                 greenlock.add({
