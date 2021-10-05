@@ -26,10 +26,10 @@ const Gl = require('greenlock');
     // this is causing issue with initialization
     // don't know why it's happening
     // manually added defaults to db
-    await greenlock.manager.defaults({
-        agreeToTerms: true,
-        subscriberEmail: 'certs@fyipe.com',
-    });
+    // await greenlock.manager.defaults({
+    //     agreeToTerms: true,
+    //     subscriberEmail: 'certs@fyipe.com',
+    // });
 
     global.greenlock = greenlock;
 })();
