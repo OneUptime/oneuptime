@@ -18,7 +18,7 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY package*.json /usr/src/app/
-RUN npm install
+RUN npm ci --only=production -timeout=600000
 
 # Bundle app source
 COPY . /usr/src/app
