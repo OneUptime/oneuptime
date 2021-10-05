@@ -313,14 +313,23 @@ const mapStateToProps = (state, ownProps) => {
 
     const initialValues = {
         monitors: selectedMonitors
-            ? selectedMonitors.filter(
-                  monitor =>
-                      monitor.statusPageCategory &&
-                      String(
-                          monitor.statusPageCategory._id ||
-                              monitor.statusPageCategory
-                      ) === String(ownProps.category._id)
-              )
+            ? selectedMonitors
+                  .filter(
+                      monitor =>
+                          monitor.statusPageCategory &&
+                          String(
+                              monitor.statusPageCategory._id ||
+                                  monitor.statusPageCategory
+                          ) === String(ownProps.category._id)
+                  )
+                  .map(monitor => {
+                      if (monitor.statusPageCategory) {
+                          monitor.statusPageCategory =
+                              monitor.statusPageCategory._id ||
+                              monitor.statusPageCategory;
+                      }
+                      return monitor;
+                  })
             : [],
     };
 
