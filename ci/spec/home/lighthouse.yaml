@@ -14,8 +14,7 @@ mobile_lighthouse_home:
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker login -u $DOCKERHUBUSERNAME -p $DOCKERHUBPASSWORD
         - sudo docker version
-        - sudo docker buildx create --name mybuilder
-        - sudo docker buildx use mybuilder
+        - sudo docker buildx create --use
         - sudo docker buildx ls
         - sudo docker buildx inspect --bootstrap
         - cd home
