@@ -91,5 +91,5 @@ entries:
     - http://redis.io/
     urls:
     - charts/redis-14.8.8.tgz
-    version: 14.8.8
+    version: 10.5.11
 generated: "2021-09-10T14:09:36.3769+01:00"

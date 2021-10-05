@@ -106,6 +106,11 @@ const monitorSchema = new Schema({
         ref: 'ResourceCategory',
         index: true,
     },
+    statusPageCategory: {
+        type: Schema.Types.ObjectId,
+        ref: 'StatusPageCategory',
+        index: true,
+    },
     createdAt: {
         type: Date,
         default: Date.now,
