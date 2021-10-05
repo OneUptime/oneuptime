@@ -234,6 +234,10 @@ app.use(
     require('./backend/api/resourceCategory')
 );
 app.use(
+    ['/statusPageCategory', '/api/statusPageCategory'],
+    require('./backend/api/statusPageCategory')
+);
+app.use(
     ['/monitorCriteria', '/api/monitorCriteria'],
     require('./backend/api/monitorCriteria')
 );

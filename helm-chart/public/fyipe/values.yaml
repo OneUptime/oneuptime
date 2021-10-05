@@ -117,7 +117,7 @@ redis:
     enabled: false
   persistence:
     enabled: true
-    mountPath: /bitnami/mongodb
+    mountPath: /bitnami/redis
     size: 20Gi
 
 

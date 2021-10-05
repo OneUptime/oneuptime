@@ -108,6 +108,10 @@ router.put(
                     path: 'monitors.monitor',
                     select: 'name',
                 },
+                {
+                    path: 'monitors.statusPageCategory',
+                    select: 'name',
+                },
             ];
 
             const selectStatusPage =
@@ -148,6 +152,10 @@ router.put('/:projectId/theme', getUser, isAuthorized, async (req, res) => {
             },
             {
                 path: 'monitors.monitor',
+                select: 'name',
+            },
+            {
+                path: 'monitors.statusPageCategory',
                 select: 'name',
             },
         ];
@@ -595,6 +603,10 @@ router.put('/:projectId', getUser, isAuthorized, isUserAdmin, async function(
                     path: 'monitors.monitor',
                     select: 'name',
                 },
+                {
+                    path: 'monitors.statusPageCategory',
+                    select: 'name',
+                },
             ];
 
             const selectStatusPage =
@@ -666,6 +678,10 @@ router.get('/statusBubble', async function(req, res) {
                 path: 'monitors.monitor',
                 select: 'name',
             },
+            {
+                path: 'monitors.statusPageCategory',
+                select: 'name',
+            },
         ];
 
         const selectStatusPage =
@@ -718,6 +734,10 @@ router.get('/:projectId/dashboard', getUser, isAuthorized, async function(
             },
             {
                 path: 'monitors.monitor',
+                select: 'name',
+            },
+            {
+                path: 'monitors.statusPageCategory',
                 select: 'name',
             },
         ];
@@ -782,6 +802,10 @@ router.get('/:projectId/statuspage', getUser, isAuthorized, async function(
                 path: 'monitors.monitor',
                 select: 'name',
             },
+            {
+                path: 'monitors.statusPageCategory',
+                select: 'name',
+            },
         ];
 
         const selectStatusPage =
@@ -824,6 +848,10 @@ router.get('/:statusPageSlug', checkUser, ipWhitelist, async function(
         },
         {
             path: 'monitors.monitor',
+            select: 'name',
+        },
+        {
+            path: 'monitors.statusPageCategory',
             select: 'name',
         },
     ];
@@ -2246,6 +2274,10 @@ async function getStatusPage(req, statusPageSlug) {
         },
         {
             path: 'monitors.monitor',
+            select: 'name',
+        },
+        {
+            path: 'monitors.statusPageCategory',
             select: 'name',
         },
     ];

@@ -304,7 +304,7 @@ module.exports = {
         );
 
         const select =
-            '_id monitorStatus name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+            '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
         const populate = [
             {
                 path: 'monitorSla',
@@ -313,6 +313,7 @@ module.exports = {
             { path: 'componentId', select: 'name' },
             { path: 'incidentCommunicationSla', select: '_id' },
             { path: 'resourceCategory', select: 'name' },
+            { path: 'statusPageCategory', select: 'name' },
         ];
         const query = { _id };
 
@@ -420,7 +421,7 @@ module.exports = {
             query.deleted = false;
 
             const select =
-                '_id monitorStatus name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+                '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
             const populate = [
                 {
                     path: 'monitorSla',
@@ -429,6 +430,7 @@ module.exports = {
                 { path: 'componentId', select: 'name slug' },
                 { path: 'incidentCommunicationSla', select: '_id' },
                 { path: 'resourceCategory', select: 'name' },
+                { path: 'statusPageCategory', select: 'name' },
             ];
             const monitor = await this.findOneBy({ query, select, populate });
             // run in the background
@@ -689,7 +691,7 @@ module.exports = {
             const _this = this;
 
             const select =
-                '_id monitorStatus name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+                '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
             const populate = [
                 {
                     path: 'monitorSla',
@@ -698,6 +700,7 @@ module.exports = {
                 { path: 'componentId', select: 'name' },
                 { path: 'incidentCommunicationSla', select: '_id' },
                 { path: 'resourceCategory', select: 'name' },
+                { path: 'statusPageCategory', select: 'name' },
             ];
             const subProjectMonitors = await Promise.all(
                 subProjectIds.map(async id => {
@@ -1640,7 +1643,7 @@ module.exports = {
                     }
 
                     const select =
-                        '_id monitorStatus name slug resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
+                        '_id monitorStatus name slug statusPageCategory resourceCategory data type monitorSla breachedMonitorSla breachClosedBy componentId projectId incidentCommunicationSla criteria agentlessConfig lastPingTime lastMatchedCriterion method bodyType formData text headers disabled pollTime updateTime customFields siteUrls lighthouseScanStatus';
                     const populate = [
                         {
                             path: 'monitorSla',
@@ -1649,6 +1652,7 @@ module.exports = {
                         { path: 'componentId', select: 'name' },
                         { path: 'incidentCommunicationSla', select: '_id' },
                         { path: 'resourceCategory', select: 'name' },
+                        { path: 'statusPageCategory', select: 'name' },
                     ];
 
                     const monitorData = await this.findOneBy({

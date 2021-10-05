@@ -23,12 +23,13 @@ const Gl = require('greenlock');
         },
     });
 
-    await greenlock.manager.defaults({
-        agreeToTerms: true,
-        subscriberEmail: 'certs@fyipe.com',
-    });
+    // this is causing issue with initialization
+    // don't know why it's happening
+    // manually added defaults to db
+    // await greenlock.manager.defaults({
+    //     agreeToTerms: true,
+    //     subscriberEmail: 'certs@fyipe.com',
+    // });
 
-    global.greenlock = greenlock; // make it available project wide
-    // eslint-disable-next-line no-console
-    console.log('** debug: greenlock **', global.greenlock);
+    global.greenlock = greenlock;
 })();

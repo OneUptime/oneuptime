@@ -607,6 +607,25 @@ module.exports = {
             }
             if (!query.deleted) query.deleted = false;
 
+            // run this in the background
+            try {
+                if (data && data.groupedMonitors) {
+                    for (const [key, value] of Object.entries(
+                        data.groupedMonitors
+                    )) {
+                        const monitorIds = value.map(
+                            monitorObj => monitorObj.monitor
+                        );
+                        MonitorService.updateBy(
+                            { _id: { $in: monitorIds } },
+                            { statusPageCategory: key }
+                        );
+                    }
+                }
+            } catch (error) {
+                ErrorService.log('statusPageService.updateOneBy', error);
+            }
+
             let updatedStatusPage = await StatusPageModel.findOneAndUpdate(
                 query,
                 {
@@ -621,6 +640,7 @@ module.exports = {
                 { path: 'projectId', select: 'parentProjectId' },
                 { path: 'monitorIds', select: 'name' },
                 { path: 'monitors.monitor', select: 'name' },
+                { path: 'monitors.statusPageCategory', select: 'name' },
                 {
                     path: 'domains.domainVerificationToken',
                     select: 'domain verificationToken verified ',

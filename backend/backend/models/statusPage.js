@@ -29,6 +29,11 @@ const statusSchema = new Schema({
                 ref: 'Monitor',
                 index: true,
             },
+            statusPageCategory: {
+                type: Schema.Types.ObjectId,
+                ref: 'StatusPageCategory',
+                index: true,
+            },
             description: String,
             uptime: Boolean,
             memory: Boolean,
