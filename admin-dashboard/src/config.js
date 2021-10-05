@@ -26,6 +26,25 @@ if (
     window &&
     window.location &&
     window.location.host &&
+    (window.location.host.includes('localhost:8080') ||
+        window.location.host.includes('0.0.0.0:8080') ||
+        window.location.host.includes('127.0.0.1:8080'))
+) {
+    const address = window.location.host.includes('localhost:')
+        ? 'localhost'
+        : window.location.host.includes('0.0.0.0:')
+        ? '0.0.0.0'
+        : '127.0.0.1';
+    apiUrl = window.location.protocol + `//${address}:8080/api`;
+    dashboardUrl = window.location.protocol + `//${address}:8080/dashboard`;
+    adminDashboardUrl = window.location.protocol + `//${address}:8080/admin`;
+    accountsUrl = window.location.protocol + `//${address}:8080/accounts`;
+    helmChartUrl = window.location.protocol + `//${address}:3423`;
+    docsUrl = window.location.protocol + `//${address}:1445`;
+} else if (
+    window &&
+    window.location &&
+    window.location.host &&
     (window.location.host.includes('localhost:') ||
         window.location.host.includes('0.0.0.0:') ||
         window.location.host.includes('127.0.0.1:'))

@@ -22,7 +22,25 @@ const isLocalhost =
         window.location.host.includes('0.0.0.0:') ||
         window.location.host.includes('127.0.0.1:'));
 
-if (isLocalhost) {
+const isLocalhost8080 =
+    window &&
+    window.location &&
+    window.location.host &&
+    (window.location.host.includes('localhost:8080') ||
+        window.location.host.includes('0.0.0.0:8080') ||
+        window.location.host.includes('127.0.0.1:8080'));
+
+if (isLocalhost8080) {
+    const address = window.location.host.includes('localhost:')
+        ? 'localhost'
+        : window.location.host.includes('0.0.0.0:')
+        ? '0.0.0.0'
+        : '127.0.0.1';
+    apiUrl = window.location.protocol + `//${address}:8080/api`;
+    dashboardUrl = window.location.protocol + `//${address}:8080/dashboard`;
+    accountsUrl = window.location.protocol + `//${address}:8080/accounts`;
+    realtimeUrl = `${window.location.protocol}//${address}:8080/realtime`;
+} else if (isLocalhost) {
     const address = window.location.host.includes('localhost:')
         ? 'localhost'
         : window.location.host.includes('0.0.0.0:')
