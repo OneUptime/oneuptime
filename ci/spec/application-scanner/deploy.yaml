@@ -1,6 +1,6 @@
 # DEPLOYMENT STAGE - Application Scanner
 staging_application-scanner:
-    stage: Deploy
+    stage: BuildnTest
     allow_failure: true
     retry: 2
     script:
