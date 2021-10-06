@@ -2247,5 +2247,5 @@ const AnnouncementLogModel = require('../models/announcementLogs');
 const handleSelect = require('../utils/select');
 const handlePopulate = require('../utils/populate');
 const axios = require('axios');
-const greenlock = global.greenlock;
+const greenlock = require('../../greenlock');
 const bearer = process.env.TWITTER_BEARER_TOKEN;

@@ -3,7 +3,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const CertificateStoreService = require('../services/certificateStoreService');
 const StatusPageService = require('../services/statusPageService');
-const greenlock = global.greenlock;
+const greenlock = require('../../greenlock');
 
 const router = express.Router();
 
