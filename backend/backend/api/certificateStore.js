@@ -3,7 +3,7 @@ const sendErrorResponse = require('../middlewares/response').sendErrorResponse;
 const sendItemResponse = require('../middlewares/response').sendItemResponse;
 const CertificateStoreService = require('../services/certificateStoreService');
 const StatusPageService = require('../services/statusPageService');
-const greenlock = global.greenlock;
+const greenlock = require('../../greenlock');
 
 const router = express.Router();
 
@@ -108,7 +108,6 @@ router.post('/certOrder', async (req, res) => {
         }
 
         if (greenlock) {
-            console.log('** domains **', domains);
             for (const domain of domains) {
                 // run in the background
                 greenlock.add({
