@@ -72,10 +72,11 @@ describe('Login API', () => {
             await init.pageClick(page, 'input[name=password]');
             await init.pageType(page, 'input[name=password]', user.password);
             await init.pageClick(page, 'button[type=submit]');
-
+            await init.pageWaitForSelector(page, '#loginError');
             const html = await init.page$Eval(page, '#main-body', e => {
                 return e.innerHTML;
             });
+
             html.should.containEql('User does not exist.');
         },
         init.timeout
