@@ -50,7 +50,6 @@ production_init-script:
         - sudo docker buildx create --use
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/init-script:3.0.$CI_PIPELINE_IID --push ./init-script
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/init-script:latest --push ./init-script
-        - sudo docker push fyipeproject/init-script:latest
         ## You cannot update a Kubernetes job. They are immutable. Delete it and run helm again which will create a a new job. .
         - sudo kubectl delete job fi-init-script || echo "Job not found"
         - sudo helm upgrade --reuse-values fi ./helm-chart/public/fyipe
