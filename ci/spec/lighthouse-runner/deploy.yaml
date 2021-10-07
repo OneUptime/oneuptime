@@ -51,7 +51,7 @@ production_lighthouse-runner:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    only:
         refs:
             - release
             - hotfix-release
