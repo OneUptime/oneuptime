@@ -1,6 +1,6 @@
 # DEPLOYMENT STAGE - BACKEND
 staging_backend:
-    stage: Deploy
+    stage: BuildAndTest
     allow_failure: true
     retry: 2
     script:
@@ -10,19 +10,19 @@ staging_backend:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - bash ./ci/scripts/deployment-staging-setup.sh
+        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         # Build and deploy backend.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/backend:master ./backend
-        - sudo docker tag fyipeproject/backend:master fyipeproject/backend:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/backend:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/backend:master
+        - sudo docker buildx create --use
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/backend:3.0.$CI_PIPELINE_IID --push ./backend
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/backend:master --push ./backend
         - sudo kubectl set image deployment/fi-backend fi-backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    only:
+    except:
         refs:
             - master
             - hotfix-master
@@ -30,7 +30,7 @@ staging_backend:
         name: staging
 
 production_backend:
-    stage: Deploy
+    stage: BuildAndTest
     allow_failure: true
     retry: 2
     script:
@@ -40,18 +40,18 @@ production_backend:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
         - bash ./ci/scripts/deployment-production-setup.sh
+        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/backend:latest ./backend
-        - sudo docker tag fyipeproject/backend:latest fyipeproject/backend:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/backend:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/backend:latest
+        - sudo docker buildx create --use
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/backend:3.0.$CI_PIPELINE_IID --push ./backend
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/backend:latest --push ./backend
         - sudo kubectl set image deployment/fi-backend fi-backend=fyipeproject/backend:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    only:
+    except:
         refs:
             - release
             - hotfix-release
