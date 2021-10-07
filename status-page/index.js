@@ -342,7 +342,9 @@ function createDir(dirPath) {
                                 `${certificate.id}.key`
                             );
 
-                            fs.writeFileSync(certPath, certificate.cert);
+                            const fullCert =
+                                certificate.cert + certificate.chain;
+                            fs.writeFileSync(certPath, fullCert);
                             fs.writeFileSync(
                                 privateKeyPath,
                                 certificate.privateKeyPem
