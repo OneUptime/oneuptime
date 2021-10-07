@@ -1,5 +1,5 @@
 production_api-docs:
-    stage: Deploy
+    stage: BuildAndTest
     retry: 2
     allow_failure: true
     script:
@@ -20,7 +20,7 @@ production_api-docs:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    only:
+    except:
         refs:
             - release
             - hotfix-release
@@ -29,7 +29,7 @@ production_api-docs:
 
 # DEPLOYMENT STAGE - Api docs
 staging_api-docs:
-    stage: Deploy
+    stage: BuildAndTest
     allow_failure: true
     retry: 2
     script:
@@ -51,7 +51,7 @@ staging_api-docs:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    only:
+    except:
         refs:
             - master
             - hotfix-master
