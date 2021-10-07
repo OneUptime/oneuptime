@@ -10,12 +10,12 @@ staging_script-runner:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - bash ./ci/scripts/deployment-staging-setup.sh
-        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         # Build and deploy script-runner.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker buildx create --use
-        - sudo docker buildx build --build-arg PORT="3009" --platform linux/amd64,linux/arm64 --tag fyipeproject/script-runner:3.0.$CI_PIPELINE_IID --push ./script-runner
-        - sudo docker buildx build --build-arg PORT="3009" --platform linux/amd64,linux/arm64 --tag fyipeproject/script-runner:master --push ./script-runner
+        - sudo docker build --build-arg PORT="3009" ./script-runner -t fyipeproject/script-runner:master
+        - sudo docker tag fyipeproject/script-runner:master fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/script-runner:master
         - sudo kubectl set image deployment/fi-script fi-script=fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
@@ -30,7 +30,7 @@ staging_script-runner:
         name: staging
 
 production_script-runner:
-    stage: BuildAndTest
+    stage: Deploy
     allow_failure: true
     retry: 2
     script:
@@ -40,18 +40,18 @@ production_script-runner:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
         - bash ./ci/scripts/deployment-production-setup.sh
-        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker buildx create --use
-        - sudo docker buildx build --build-arg PORT="3009" --platform linux/amd64,linux/arm64 --tag fyipeproject/script-runner:3.0.$CI_PIPELINE_IID --push ./script-runner
-        - sudo docker buildx build --build-arg PORT="3009" --platform linux/amd64,linux/arm64 --tag fyipeproject/script-runner:latest --push ./script-runner
+        - sudo docker build --build-arg PORT="3009" ./script-runner -t fyipeproject/script-runner:latest
+        - sudo docker tag fyipeproject/script-runner:latest fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/script-runner:latest
         - sudo kubectl set image deployment/fi-script fi-script=fyipeproject/script-runner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    only:
         refs:
             - release
             - hotfix-release

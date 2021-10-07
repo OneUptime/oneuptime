@@ -10,12 +10,12 @@ staging_haraka:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - bash ./ci/scripts/deployment-staging-setup.sh
-        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         # Build and deploy haraka.
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker buildx create --use
-        - sudo docker buildx build --build-arg PORT="2525" --platform linux/amd64,linux/arm64 --tag fyipeproject/haraka:3.0.$CI_PIPELINE_IID --push ./haraka
-        - sudo docker buildx build --build-arg PORT="2525" --platform linux/amd64,linux/arm64 --tag fyipeproject/haraka:master --push ./haraka
+        - sudo docker build --build-arg PORT="2525" ./haraka -t fyipeproject/haraka:master
+        - sudo docker tag fyipeproject/haraka:master fyipeproject/haraka:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/haraka:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/haraka:master
         - sudo kubectl set image deployment/fi-haraka fi-haraka=fyipeproject/haraka:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
@@ -40,11 +40,11 @@ production_haraka:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
         - bash ./ci/scripts/deployment-production-setup.sh
-        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker buildx create --use
-        - sudo docker buildx build --build-arg PORT="2525" --platform linux/amd64,linux/arm64 --tag fyipeproject/haraka:3.0.$CI_PIPELINE_IID --push ./haraka
-        - sudo docker buildx build --build-arg PORT="2525" --platform linux/amd64,linux/arm64 --tag fyipeproject/haraka:latest --push ./haraka
+        - sudo docker build --build-arg PORT="2525" ./haraka -t fyipeproject/haraka:latest
+        - sudo docker tag fyipeproject/haraka:latest fyipeproject/haraka:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/haraka:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/haraka:latest
         - sudo kubectl set image deployment/fi-haraka fi-haraka=fyipeproject/haraka:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh

@@ -10,12 +10,12 @@ staging_lighthouse-runner:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - bash ./ci/scripts/deployment-staging-setup.sh
-        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         # Build and deploy lighthouse-runner
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker buildx create --use
-        - sudo docker buildx build --build-arg PORT="3015" --platform linux/amd64,linux/arm64 --tag fyipeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID --push ./lighthouse-runner
-        - sudo docker buildx build --build-arg PORT="3015" --platform linux/amd64,linux/arm64 --tag fyipeproject/lighthouse-runner:master --push ./lighthouse-runner
+        - sudo docker build --build-arg PORT="3015" ./lighthouse-runner -t fyipeproject/lighthouse-runner:master
+        - sudo docker tag fyipeproject/lighthouse-runner:master fyipeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/lighthouse-runner:master
         - sudo kubectl set image deployment/fi-lighthouse fi-lighthouse=fyipeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
@@ -30,7 +30,7 @@ staging_lighthouse-runner:
         name: staging
 
 production_lighthouse-runner:
-    stage: BuildAndTest
+    stage: Deploy
     allow_failure: true
     retry: 2
     script:
@@ -42,16 +42,17 @@ production_lighthouse-runner:
         - bash ./ci/scripts/deployment-production-setup.sh
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker buildx create --use
-        - sudo docker buildx build --build-arg PORT="3015" --platform linux/amd64,linux/arm64 --tag fyipeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID --push ./lighthouse-runner
-        - sudo docker buildx build --build-arg PORT="3015" --platform linux/amd64,linux/arm64 --tag fyipeproject/lighthouse-runner:latest --push ./lighthouse-runner
+        - sudo docker build --build-arg PORT="3015" ./lighthouse-runner -t fyipeproject/lighthouse-runner:latest
+        - sudo docker tag fyipeproject/lighthouse-runner:latest fyipeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID
+        - sudo docker push fyipeproject/lighthouse-runner:latest
         - sudo kubectl set image deployment/fi-lighthouse fi-lighthouse=fyipeproject/lighthouse-runner:3.0.$CI_PIPELINE_IID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    only:
         refs:
             - release
             - hotfix-release
