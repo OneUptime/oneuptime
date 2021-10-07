@@ -67,19 +67,23 @@ const cors = require('cors');
 const redis = require('redis');
 const mongoose = require('./backend/config/db');
 
-io.adapter(
-    redisAdapter({
+try {
+    io.adapter(
+        redisAdapter({
+            host: process.env.REDIS_HOST,
+            port: process.env.REDIS_PORT,
+        })
+    );
+
+    const redisClient = redis.createClient({
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
-    })
-);
-
-const redisClient = redis.createClient({
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT,
-});
-global.redisClient = redisClient;
-
+    });
+    global.redisClient = redisClient;
+} catch (err) {
+    // eslint-disable-next-line no-console
+    console.log('redis error: ', err);
+}
 global.io = io;
 
 // Sentry: The request handler must be the first middleware on the app
