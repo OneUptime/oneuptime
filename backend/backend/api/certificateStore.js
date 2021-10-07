@@ -107,6 +107,7 @@ router.post('/certOrder', async (req, res) => {
             }
         }
 
+        console.log('** domains **', domains);
         if (greenlock) {
             for (const domain of domains) {
                 // run in the background
