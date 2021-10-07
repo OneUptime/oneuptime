@@ -256,6 +256,30 @@ function createDir(dirPath) {
     });
 }
 
+function countFreq(pat, txt) {
+    const M = pat.length;
+    const N = txt.length;
+    let res = 0;
+
+    // A loop to slide pat[] one by one
+    for (let i = 0; i <= N - M; i++) {
+        // For current index i, check for
+        // pattern match
+        let j;
+        for (j = 0; j < M; j++) {
+            if (txt[i + j] != pat[j]) {
+                break;
+            }
+        }
+
+        if (j == M) {
+            res++;
+            j = 0;
+        }
+    }
+    return res;
+}
+
 // using an IIFE here because we have an asynchronous code we want to run as we start the server
 // and since we can't await outside an async function, we had to use an IIFE to handle that
 (async function() {
@@ -342,7 +366,22 @@ function createDir(dirPath) {
                                 `${certificate.id}.key`
                             );
 
-                            fs.writeFileSync(certPath, certificate.cert);
+                            // check if the certificate is container chain
+                            // if not, add anc show update view for the frontend
+                            let fullCert = certificate.cert;
+                            if (
+                                countFreq(
+                                    'BEGIN CERTIFICATE',
+                                    certificate.cert
+                                ) === 1
+                            ) {
+                                fullCert =
+                                    certificate.cert +
+                                    '\n' +
+                                    '\n' +
+                                    certificate.chain;
+                            }
+                            fs.writeFileSync(certPath, fullCert);
                             fs.writeFileSync(
                                 privateKeyPath,
                                 certificate.privateKeyPem
