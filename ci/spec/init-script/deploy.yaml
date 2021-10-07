@@ -1,6 +1,6 @@
 # DEPLOYMENT STAGE - Init Script
 staging_init-script:
-    stage: BuildAndTest
+    stage: Deploy
     retry: 2
     allow_failure: true
     script:
@@ -25,7 +25,7 @@ staging_init-script:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    only:
         refs:
             - master
             - hotfix-master
