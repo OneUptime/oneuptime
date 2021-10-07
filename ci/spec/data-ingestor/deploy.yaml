@@ -1,5 +1,5 @@
 production_data-ingestor:
-    stage: BuildAndTest
+    stage: Deploy
     retry: 2
     allow_failure: true
     script:
@@ -20,7 +20,7 @@ production_data-ingestor:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    only:
         refs:
             - release
             - hotfix-release
@@ -29,7 +29,7 @@ production_data-ingestor:
 
 # DEPLOYMENT STAGE - Data-ingestor
 staging_data-ingestor:
-    stage: BuildAndTest
+    stage: Deploy
     retry: 2
     allow_failure: true
     script:
@@ -51,7 +51,7 @@ staging_data-ingestor:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    only:
         refs:
             - master
             - hotfix-master
