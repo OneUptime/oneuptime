@@ -1,5 +1,5 @@
 production_probe:
-    stage: Deploy
+    stage: BuildAndTest
     retry: 2
     allow_failure: true
     script:
@@ -21,7 +21,7 @@ production_probe:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    only:
+    except:
         refs:
             - release
             - hotfix-release
@@ -30,7 +30,7 @@ production_probe:
 
 # DEPLOYMENT STAGE - Probe
 staging_probe:
-    stage: Deploy
+    stage: BuildAndTest
     retry: 2
     allow_failure: true
     script:
@@ -54,7 +54,7 @@ staging_probe:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    only:
+    except:
         refs:
             - master
             - hotfix-master

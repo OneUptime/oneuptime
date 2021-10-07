@@ -1,6 +1,6 @@
 # DEPLOYMENT STAGE - status-page
 staging_status-page:
-    stage: Deploy
+    stage: BuildAndTest
     allow_failure: true
     script:
         - chmod +x ./ci/scripts/version-setup.sh
@@ -21,7 +21,7 @@ staging_status-page:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    only:
+    except:
         refs:
             - master
             - hotfix-master
@@ -29,7 +29,7 @@ staging_status-page:
         name: staging
 
 production_status-page:
-    stage: Deploy
+    stage: BuildAndTest
     allow_failure: true
     script:
         - chmod +x ./ci/scripts/version-setup.sh
@@ -49,7 +49,7 @@ production_status-page:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    only:
+    except:
         refs:
             - release
             - hotfix-release
