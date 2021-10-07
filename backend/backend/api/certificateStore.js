@@ -12,6 +12,8 @@ router.post('/store', async (req, res) => {
     try {
         const data = req.body;
 
+        console.log('** certificate details **', JSON.stringify(data, null, 4));
+
         const certificate = await CertificateStoreService.create(data);
         return sendItemResponse(req, res, certificate);
     } catch (error) {
