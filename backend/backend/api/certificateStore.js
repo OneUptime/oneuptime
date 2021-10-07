@@ -12,8 +12,6 @@ router.post('/store', async (req, res) => {
     try {
         const data = req.body;
 
-        console.log('** certificate details **', JSON.stringify(data, null, 4));
-
         const certificate = await CertificateStoreService.create(data);
         return sendItemResponse(req, res, certificate);
     } catch (error) {
@@ -109,7 +107,6 @@ router.post('/certOrder', async (req, res) => {
             }
         }
 
-        console.log('** domains **', domains);
         if (greenlock) {
             for (const domain of domains) {
                 // run in the background
