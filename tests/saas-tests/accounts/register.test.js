@@ -198,7 +198,7 @@ describe('Registration API', () => {
             await init.pageWaitForSelector(page, '#titleText');
             const innerText = await init.page$Eval(
                 page,
-                '#titleText',
+                '#cbHome',
                 elem => elem.innerText
             );
             page.url().should.containEql(utils.DASHBOARD_URL);

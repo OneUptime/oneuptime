@@ -1659,7 +1659,6 @@ margin-left:10px;
 }
 
 .tooltip {
-  position: relative;
   display: inline-block;
 }
 
@@ -1723,6 +1722,11 @@ margin-left:10px;
 
 .resize-style {
   z-index: 200000;
+}
+
+.tooltip_div {
+  position: absolute;
+  z-index: 30;
 }
 
 .tooltip .tooltiptext-chart::after {

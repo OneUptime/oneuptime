@@ -4084,6 +4084,21 @@ module.exports = {
             const _this = this;
             const uuid = new Date().getTime();
             if (schedule) {
+                const track = {};
+                const sendSubscribersAlert = async ({
+                    subscriber,
+                    component,
+                    subscribers,
+                }) => {
+                    await _this.sendSubscriberScheduledEventAlert(
+                        subscriber,
+                        schedule,
+                        'Subscriber Scheduled Maintenance Resolved',
+                        component,
+                        subscribers.length,
+                        uuid
+                    );
+                };
                 for (const monitor of schedule.monitors) {
                     const component = monitor.monitorId.componentId.name;
                     const subscribers = await SubscriberService.subscribersForAlert(
@@ -4094,14 +4109,23 @@ module.exports = {
                     );
 
                     for (const subscriber of subscribers) {
-                        await _this.sendSubscriberScheduledEventAlert(
-                            subscriber,
-                            schedule,
-                            'Subscriber Scheduled Maintenance Resolved',
-                            component,
-                            subscribers.length,
-                            uuid
-                        );
+                        if (subscriber.alertVia === AlertType.Email) {
+                            if (!track[subscriber.contactEmail]) {
+                                track[subscriber.contactEmail] =
+                                    subscriber.contactEmail;
+                                await sendSubscribersAlert({
+                                    subscriber,
+                                    component,
+                                    subscribers,
+                                });
+                            }
+                        } else {
+                            await sendSubscribersAlert({
+                                subscriber,
+                                component,
+                                subscribers,
+                            });
+                        }
                     }
                 }
             }
