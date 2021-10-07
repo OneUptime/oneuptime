@@ -1,6 +1,6 @@
 # DEPLOYMENT STAGE - Lighthouse Runner
 staging_lighthouse-runner:
-    stage: BuildAndTest
+    stage: Deploy
     allow_failure: true
     retry: 2
     script:
@@ -22,7 +22,7 @@ staging_lighthouse-runner:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    omly:
         refs:
             - master
             - hotfix-master
@@ -30,7 +30,7 @@ staging_lighthouse-runner:
         name: staging
 
 production_lighthouse-runner:
-    stage: BuildAndTest
+    stage: Deploy
     allow_failure: true
     retry: 2
     script:
@@ -51,7 +51,7 @@ production_lighthouse-runner:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    except:
+    only:
         refs:
             - release
             - hotfix-release
