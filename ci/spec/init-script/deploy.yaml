@@ -1,6 +1,6 @@
 # DEPLOYMENT STAGE - Init Script
 staging_init-script:
-    stage: Deploy
+    stage: BuildAndTest
     retry: 2
     allow_failure: true
     script:
@@ -12,11 +12,11 @@ staging_init-script:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - bash ./ci/scripts/deployment-staging-setup.sh
+        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/init-script:master ./init-script
-        - sudo docker tag fyipeproject/init-script:master fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/init-script:master
+        - sudo docker buildx create --use
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/init-script:3.0.$CI_PIPELINE_IID --push ./init-script
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/init-script:master --push ./init-script
         ## You cannot update a Kubernetes job. They are immutable. Delete it and run helm again which will create a a new job. .
         - sudo kubectl delete job fi-init-script || echo "Job not found"
         - sudo helm upgrade --reuse-values fi ./helm-chart/public/fyipe
@@ -25,7 +25,7 @@ staging_init-script:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    only:
+    except:
         refs:
             - master
             - hotfix-master
@@ -33,7 +33,7 @@ staging_init-script:
         name: staging
 
 production_init-script:
-    stage: Deploy
+    stage: BuildAndTest
     allow_failure: true
     retry: 2
     script:
@@ -45,11 +45,11 @@ production_init-script:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
         - bash ./ci/scripts/deployment-production-setup.sh
+        - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
-        - sudo docker build -t fyipeproject/init-script:latest ./init-script
-        - sudo docker tag fyipeproject/init-script:latest fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/init-script:3.0.$CI_PIPELINE_IID
-        - sudo docker push fyipeproject/init-script:latest
+        - sudo docker buildx create --use
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/init-script:3.0.$CI_PIPELINE_IID --push ./init-script
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag fyipeproject/init-script:latest --push ./init-script
         ## You cannot update a Kubernetes job. They are immutable. Delete it and run helm again which will create a a new job. .
         - sudo kubectl delete job fi-init-script || echo "Job not found"
         - sudo helm upgrade --reuse-values fi ./helm-chart/public/fyipe
@@ -58,7 +58,7 @@ production_init-script:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    only:
+    except:
         refs:
             - release
             - hotfix-release
