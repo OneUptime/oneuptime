@@ -8,7 +8,7 @@ async function run() {
 
     for (const certificate of certificates) {
         if (certificate.cert) {
-            const fullCert = certificate.cert + certificate.chain;
+            const fullCert = certificate.cert + '\n' + '\n' + certificate.chain;
 
             await update(
                 certificateCollection,
