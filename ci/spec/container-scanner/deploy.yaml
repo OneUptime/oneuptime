@@ -1,6 +1,6 @@
 # DEPLOYMENT STAGE - Container Scanner
 staging_container-scanner:
-    stage: Deploy
+    stage: BuildAndTest
     allow_failure: true
     retry: 2
     script:
@@ -22,7 +22,7 @@ staging_container-scanner:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    only:
+    except:
         refs:
             - master
             - hotfix-master
@@ -30,7 +30,7 @@ staging_container-scanner:
         name: staging
 
 production_container-scanner:
-    stage: Deploy
+    stage: BuildAndTest
     allow_failure: true
     retry: 2
     script:
@@ -51,7 +51,7 @@ production_container-scanner:
         - ./ci/scripts/deployment-cleanup.sh
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
-    only:
+    except:
         refs:
             - release
             - hotfix-release
