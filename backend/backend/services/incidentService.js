@@ -325,7 +325,7 @@ module.exports = {
                     content: incident.description,
                     incidentId: incident._id,
                     createdById:
-                        incident.createdById._id || incident.createdById,
+                        incident.createdById?._id || incident.createdById,
                     type: 'investigation',
                     incident_state: 'Identified',
                     post_statuspage: true,
