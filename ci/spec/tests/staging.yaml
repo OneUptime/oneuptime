@@ -2,6 +2,11 @@ smoke_test_staging:
     stage: BuildAndTest
     allow_failure: true
     script:
+        - cd init-script
+        - npm ci
+        - NODE_ENV=ci IS_SAAS_SERVICE=true npm start
+        - NODE_ENV=development npm start
+        - cd ..
         - cd tests
         - npm ci
         - npm run-script staging-test
