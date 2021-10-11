@@ -27,6 +27,10 @@ import CustomTutorial from '../components/tutorial/CustomTutorial';
 import { fetchComponents } from '../actions/component';
 
 class ComponentDashboardView extends Component {
+    state = {
+        showNewComponentForm: false,
+    };
+
     componentDidMount() {
         this.props.loadPage('Components');
         if (IS_SAAS_SERVICE) {
@@ -47,6 +51,12 @@ class ComponentDashboardView extends Component {
     componentWillUnmount() {
         this.props.destroy('NewComponent');
     }
+
+    toggleForm = () => {
+        this.setState(prevState => ({
+            showNewComponentForm: !prevState.showNewComponentForm,
+        }));
+    };
 
     ready = () => {
         const projectId = this.props.currentProject
@@ -194,7 +204,13 @@ class ComponentDashboardView extends Component {
                     slug={currentProject ? currentProject.slug : null}
                     switchToProjectViewerNav={switchToProjectViewerNav}
                 />
-                <BreadCrumbItem route={pathname} name="Components" />
+                <BreadCrumbItem
+                    route={pathname}
+                    name="Components"
+                    addBtn={components.length > 0}
+                    btnText="Create New Component"
+                    toggleForm={this.toggleForm}
+                />
                 <ShouldRender
                     if={this.props.monitors && this.props.monitors.length > 0}
                 >
@@ -257,13 +273,34 @@ class ComponentDashboardView extends Component {
                                                         />
                                                     </ShouldRender>
 
-                                                    {components}
+                                                    {!this.state
+                                                        .showNewComponentForm &&
+                                                        components &&
+                                                        components.length > 0 &&
+                                                        components}
 
                                                     <RenderIfSubProjectAdmin>
-                                                        <NewComponent
-                                                            index={1000}
-                                                            formKey="NewComponentForm"
-                                                        />
+                                                        <ShouldRender
+                                                            if={
+                                                                this.state
+                                                                    .showNewComponentForm ||
+                                                                !components ||
+                                                                components.length ===
+                                                                    0
+                                                            }
+                                                        >
+                                                            <NewComponent
+                                                                index={1000}
+                                                                formKey="NewComponentForm"
+                                                                toggleForm={
+                                                                    this
+                                                                        .toggleForm
+                                                                }
+                                                                componentCount={
+                                                                    components.length
+                                                                }
+                                                            />
+                                                        </ShouldRender>
                                                     </RenderIfSubProjectAdmin>
 
                                                     <RenderIfSubProjectMember>
